@@ -1,0 +1,106 @@
+# Header line one.
+#
+# Header line three.
+
+# A string with a long comment that has to be wrapped because it is longer than the width of a line
+# in the project file, with self-contained hyphenation.
+s = "a \"b\" \\ c\ttab \u0001 end"
+m = """
+line 1
+line \"2\"\r
+	tabbed \u007F"""
+f = 1e-07
+f2 = 100000.0
+f3 = -0.0
+nan = nan
+inf = -inf
+i = -3
+b = true
+# Not set: written as a comment.
+# none =   (not set)
+when = 2026-10-15T14:32:05
+l = [1, 2.5, "x", true]
+long = [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+]
+empty_l = []
+"weird key" = 1
+empty_t = {}
+
+[inline]
+a = 1
+# "b None" =   (not set)
+c = [1, 2]
+
+[allnone]
+# x =   (not set)
+
+# Table comment.
+# Second paragraph.
+#
+# After an empty line.
+[t]
+# k =   (not set)
+
+[t.deep]
+#
+z = "é Å"
+
+# Array of tables comment (first element only).
+[[t.v]]
+a = 1
+
+[[t.v]]
+a = 2
+
+[t.v.sub]
+q = "r"
+
+# Groups.
+[[arr]]
+# Name (stack depth 2).
+name = "Aptamer"
+residues = "1-12"
+
+[[arr]]
+# Name (stack depth 2).
+name = "Target"

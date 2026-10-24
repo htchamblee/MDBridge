@@ -7,6 +7,9 @@ add_library(mdbridge_core STATIC
     json.cpp
     paths.cpp
     project_file.cpp
+    text.cpp
+    toml_writer.cpp
+    unicode_tables.inc
     value.cpp)
 add_library(mdbridge::core ALIAS mdbridge_core)
 target_include_directories(mdbridge_core PUBLIC

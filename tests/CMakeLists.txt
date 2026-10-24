@@ -7,7 +7,8 @@ include(GoogleTest)
 # core: project files read exactly as MDATK reads them (fixtures in data/, see data/README.md)
 add_executable(mdbridge_core_tests
     core/test_json.cpp
-    core/test_project_file.cpp)
+    core/test_project_file.cpp
+    core/test_text.cpp)
 target_link_libraries(mdbridge_core_tests PRIVATE mdbridge::core GTest::gtest_main)
 target_compile_definitions(mdbridge_core_tests PRIVATE MDBRIDGE_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data")
 mdbridge_target_warnings(mdbridge_core_tests)
