@@ -17,6 +17,7 @@ function(mdbridge_dependency name url sha512)
         URL "${url}"
         URL_HASH SHA512=${sha512}
         DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+        SYSTEM  # third-party headers: no warnings from them in MDBridge's strict builds
         ${find_args})
 endfunction()
 

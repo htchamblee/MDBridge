@@ -5,7 +5,7 @@
 #
 # Qt 6 must be installed; every other dependency is fetched at configure time (cmake/Dependencies.cmake).
 # docs/BUILDING.md has the details.
-cmake_minimum_required(VERSION 3.24)
+cmake_minimum_required(VERSION 3.25)
 
 project(MDBridge
     VERSION 0.1.0

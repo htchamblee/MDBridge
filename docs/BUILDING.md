@@ -5,7 +5,7 @@
 | | Linux | Windows |
 |---|---|---|
 | Compiler | GCC 11 or newer (RHEL 9's) | Visual Studio 2022 (MSVC), C++ workload |
-| CMake | 3.24 or newer | 3.24 or newer (Visual Studio's own is fine) |
+| CMake | 3.25 or newer | 3.25 or newer (Visual Studio's own is fine) |
 | Qt | 6.5 or newer with Vulkan support (releases use 6.11.3) | same, the `msvc2022_64` build |
 | Build tool | Ninja (or Make) | Visual Studio's MSBuild |
 | Python 3 | parity scripts, smoke test, shader compiler wrapper | same |
@@ -19,13 +19,15 @@ program loads the user's at run time.
 
 Qt is not fetched (building it per checkout would take an hour). Any of:
 
-- the official binaries with [aqtinstall](https://github.com/miurahr/aqtinstall), which is how CI gets
-  them:
+- the official binaries with `tools/get_qt.py`, which is how CI gets them (it downloads the online
+  installer's archives without an account and checks their SHA-1):
   ```bash
-  python3 -m pip install aqtinstall
-  python3 -m aqt install-qt linux desktop 6.11.3 linux_gcc_64 -O ~/Qt --archives qtbase icu
-  python  -m aqt install-qt windows desktop 6.11.3 win64_msvc2022_64 -O C:\Qt --archives qtbase
+  python3 -m pip install py7zr
+  python3 tools/get_qt.py --version 6.11.3 --arch linux_gcc_64 --out ~/Qt/6.11.3/gcc_64 --archive qtbase --archive icu
+  python  tools\get_qt.py --version 6.11.3 --arch win64_msvc2022_64 --out C:\Qt\6.11.3\msvc2022_64
   ```
+  ([aqtinstall](https://github.com/miurahr/aqtinstall) does the same, but its release 3.3.0 does not
+  read the repository layout of Qt 6.11 for Windows);
 - the Qt online installer (Qt 6.11 for GCC 64-bit / MSVC 2022 64-bit);
 - a distribution's Qt 6.5+ development packages with Vulkan enabled (e.g. Fedora's
   `qt6-qtbase-devel`). Ubuntu 24.04's Qt (6.4) is too old and RHEL / Rocky 9 has no Qt 6
@@ -40,7 +42,8 @@ ctest --test-dir build/release --output-on-failure
 ./build/release/src/app/mdbridge gui tests/data/projects/full.mdatk.toml
 ```
 
-The Qt interface needs Qt's X11 libraries on the build machine (most desktops have them; on RHEL /
+Qt's CMake files need the OpenGL headers (RHEL / Rocky: `libglvnd-devel mesa-libGL-devel`; Debian /
+Ubuntu: `libgl-dev`), and the interface needs Qt's X11 libraries (most desktops have them; on RHEL /
 Rocky: `xcb-util-cursor xcb-util-wm xcb-util-image xcb-util-keysyms xcb-util-renderutil
 libxkbcommon-x11`). Useful options: `-DMDBRIDGE_WARNINGS_AS_ERRORS=ON` (as in CI),
 `-DMDBRIDGE_BUILD_APP=OFF` (only the Qt-free `core` library and its tests: no Qt needed).

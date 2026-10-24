@@ -28,7 +28,7 @@ concurrency:
 
 env:
   QT_VERSION: "6.11.3"
-  AQT_VERSION: "3.3.0"
+  PY7ZR_VERSION: "1.1.4"  # unpacks Qt's archives (tools/get_qt.py)
 
 jobs:
   linux:
@@ -45,13 +45,13 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
 
-      - name: System packages (compiler, build tools, Qt's X11 libraries, lavapipe and Xvfb for the tests)
+      - name: System packages (compiler, build tools, OpenGL headers and Qt's X11 libraries, lavapipe and Xvfb)
         run: |
           dnf install -y dnf-plugins-core
           dnf config-manager --set-enabled crb
           dnf install -y --setopt=install_weak_deps=False \
             gcc-c++ cmake ninja-build git file binutils findutils which tar xz \
-            python3.12 python3.12-pip \
+            python3.12 python3.12-pip libglvnd-devel mesa-libGL-devel \
             libX11-xcb libxkbcommon libxkbcommon-x11 xcb-util xcb-util-cursor xcb-util-wm xcb-util-image \
             xcb-util-keysyms xcb-util-renderutil fontconfig dejavu-sans-fonts dbus-libs \
             libglvnd-egl libglvnd-glx libglvnd-opengl mesa-libGL mesa-libEGL \
@@ -61,8 +61,9 @@ jobs:
 
       - name: Qt ${{ env.QT_VERSION }}
         run: |
-          python3.12 -m pip install "aqtinstall==$AQT_VERSION"
-          python3.12 -m aqt install-qt linux desktop "$QT_VERSION" linux_gcc_64 -O /opt/Qt --archives qtbase icu
+          python3.12 -m pip install "py7zr==$PY7ZR_VERSION"
+          python3.12 tools/get_qt.py --version "$QT_VERSION" --arch linux_gcc_64 --out "/opt/Qt/$QT_VERSION/gcc_64" \
+            --archive qtbase --archive icu
           echo "QT_DIR=/opt/Qt/$QT_VERSION/gcc_64" >> "$GITHUB_ENV"
 
       - name: Configure and build
@@ -162,8 +163,8 @@ jobs:
 
       - name: Qt ${{ env.QT_VERSION }}
         run: |
-          python -m pip install "aqtinstall==$env:AQT_VERSION"
-          python -m aqt install-qt windows desktop $env:QT_VERSION win64_msvc2022_64 -O C:\Qt --archives qtbase
+          python -m pip install "py7zr==$env:PY7ZR_VERSION"
+          python tools\get_qt.py --version $env:QT_VERSION --arch win64_msvc2022_64 --out "C:\Qt\$env:QT_VERSION\msvc2022_64"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Inno Setup
