@@ -88,6 +88,19 @@ if ls "$APPDIR"/usr/lib/libvulkan.so* > /dev/null 2>&1; then
     exit 1
 fi
 
+echo "== libraries taken from the host"
+# what every Linux desktop has; anything else must be bundled (e.g. libOpenGL.so.0 is often missing)
+HOST_ALLOWED='^(ld-linux-x86-64\.so\.2|lib(c|m|dl|pthread|rt)\.so\.[0-9]+|libstdc\+\+\.so\.6|libgcc_s\.so\.1|libz\.so\.1|libX11(-xcb)?\.so\.[0-9]+|libxcb\.so\.1|libfontconfig\.so\.1|libfreetype\.so\.6|libGL\.so\.1|libEGL\.so\.1|libgpg-error\.so\.0)$'
+host_libs="$(find "$APPDIR/usr" -type f \( -name '*.so*' -o -perm -u+x \) -exec sh -c \
+    'readelf -d "$1" 2>/dev/null | sed -n "s/.*(NEEDED).*\[\(.*\)\]/\1/p"' _ {} \; | sort -u |
+    while read -r lib; do [ -e "$APPDIR/usr/lib/$lib" ] || echo "$lib"; done)"
+echo "   $(echo $host_libs)"
+unexpected="$(echo "$host_libs" | grep -vE "$HOST_ALLOWED" || true)"
+if [ -n "$unexpected" ]; then
+    echo "the AppImage would need these libraries from the host: $(echo $unexpected)" >&2
+    exit 1
+fi
+
 echo "== licences of the bundled system libraries"
 LICENSES="$APPDIR/usr/share/doc/mdbridge/licenses/system"
 mkdir -p "$LICENSES"

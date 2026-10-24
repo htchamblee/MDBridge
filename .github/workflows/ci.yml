@@ -142,7 +142,7 @@ jobs:
       - name: What every desktop has (X11, OpenGL dispatch, fonts); no Qt, no Vulkan
         run: |
           dnf install -y --setopt=install_weak_deps=False python3 xorg-x11-server-Xvfb xorg-x11-xauth \
-            libX11 libX11-xcb libxcb fontconfig dejavu-sans-fonts libglvnd-egl libglvnd-glx libglvnd-opengl \
+            libX11 libX11-xcb libxcb fontconfig dejavu-sans-fonts libglvnd-egl libglvnd-glx \
             mesa-libGL mesa-libEGL findutils
       - name: Smoke test
         run: |

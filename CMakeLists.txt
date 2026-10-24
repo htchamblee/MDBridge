@@ -42,6 +42,10 @@ endif()
 
 add_subdirectory(src/core)
 if(MDBRIDGE_BUILD_APP)
+    # Qt's package links OpenGL into every Qt program. With GLVND that would be libOpenGL.so.0 and
+    # libGLX.so.0, and libOpenGL.so.0 is missing on many systems; Qt itself needs libGL.so.1, which
+    # every desktop has, so programs link that (MDBridge draws with Vulkan, not OpenGL)
+    set(OpenGL_GL_PREFERENCE LEGACY)
     find_package(Qt6 6.5 REQUIRED COMPONENTS Core Gui Widgets)
     add_subdirectory(src/render)
     add_subdirectory(src/app)
