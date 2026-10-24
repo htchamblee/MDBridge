@@ -22,4 +22,10 @@ cd tests/data/projects && python ../../parity/reference.py --out ../expected *.t
 in their `saved` / `time` entries; commit the project files and their references together. CI's
 parity job (`.github/workflows/ci.yml`) does the same with fresh files on every push.
 
+`text/` holds the expected results of Python's text functions that project files depend on:
+`textwrap_cases.toml` (textwrap.wrap and str.splitlines over string literals of MDATK's sources and
+edge cases; `python tests/parity/textwrap_cases.py <MDATK checkout> tests/data/text/textwrap_cases.toml`)
+and `tomlio_golden.toml` (a document written by MDATK's `tomlio.dumps`; the data and comments are
+repeated in `tests/core/test_text.cpp`).
+
 Never put research structures or trajectories of real projects here.

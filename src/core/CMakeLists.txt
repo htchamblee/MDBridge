@@ -4,9 +4,21 @@ FetchContent_MakeAvailable(tomlplusplus)
 configure_file(version.hpp.in "${CMAKE_CURRENT_BINARY_DIR}/include/mdbridge/version.hpp" @ONLY)
 
 add_library(mdbridge_core STATIC
+    clock.cpp
+    hash.cpp
     json.cpp
+    log.cpp
+    naming.cpp
     paths.cpp
+    project.cpp
     project_file.cpp
+    project_io.cpp
+    project_model.inc
+    python.cpp
+    settings.cpp
+    step_log.cpp
+    step_types.cpp
+    step_types.inc
     text.cpp
     toml_writer.cpp
     unicode_tables.inc
