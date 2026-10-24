@@ -1,0 +1,870 @@
+[
+ {
+  "entry": {
+   "step": {
+    "t": "str",
+    "utf8": "3032",
+    "v": "02"
+   },
+   "title": {
+    "t": "str",
+    "utf8": "746c656170206275696c64",
+    "v": "tleap build"
+   },
+   "status": {
+    "t": "str",
+    "utf8": "6f6b",
+    "v": "ok"
+   },
+   "time": {
+    "t": "datetime",
+    "iso": "2026-10-15T14:32:05"
+   },
+   "duration_s": {
+    "t": "float",
+    "hex": "0x1.3c0c1fc8f3238p+0",
+    "repr": "1.23456"
+   },
+   "command": {
+    "t": "str",
+    "utf8": "6261736820782e7368",
+    "v": "bash x.sh"
+   },
+   "folder": {
+    "t": "str",
+    "utf8": "2f77",
+    "v": "/w"
+   },
+   "files": {
+    "t": "array",
+    "v": [
+     {
+      "t": "str",
+      "utf8": "612e7061726d37",
+      "v": "a.parm7"
+     },
+     {
+      "t": "str",
+      "utf8": "622e72737437",
+      "v": "b.rst7"
+     }
+    ]
+   },
+   "summary": {
+    "t": "str",
+    "utf8": "65786974207374617475732030",
+    "v": "exit status 0"
+   },
+   "citations": {
+    "t": "array",
+    "v": [
+     {
+      "t": "str",
+      "utf8": "6b31",
+      "v": "k1"
+     }
+    ]
+   },
+   "output": {
+    "t": "str",
+    "utf8": "68656c6c6f0a776f726c64",
+    "v": "hello\nworld"
+   }
+  },
+  "with_doc": true,
+  "output": "# One entry per step run in this project: analyses, renders, generated scripts that MDATK ran, PDB\n# clean-ups, density fits.\n[[log]]\n# What ran: 'render', 'workflow write', 'pdb clean', or the planner step number of a generated\n# script that MDATK ran (e.g. '03').\nstep = \"02\"\n# Short human-readable description.\ntitle = \"tleap build\"\n# ok, failed or cancelled.\nstatus = \"ok\"\n# When the step started.\ntime = 2026-10-15T14:32:05\n# Wall time in seconds.\nduration_s = 1.23\n# Command line that was run (for generated scripts).\ncommand = \"bash x.sh\"\n# Working folder of the command.\nfolder = \"/w\"\n# Files written by the step.\nfiles = [\"a.parm7\", \"b.rst7\"]\n# Result in a few lines.\nsummary = \"exit status 0\"\n# Citation keys of the resources the step used (see the BibTeX export).\ncitations = [\"k1\"]\n# Program output (the last 20000 characters).\noutput = \"\"\"\nhello\nworld\"\"\"\n"
+ },
+ {
+  "entry": {
+   "step": {
+    "t": "str",
+    "utf8": "3032",
+    "v": "02"
+   },
+   "title": {
+    "t": "str",
+    "utf8": "746c656170206275696c64",
+    "v": "tleap build"
+   },
+   "status": {
+    "t": "str",
+    "utf8": "6f6b",
+    "v": "ok"
+   },
+   "time": {
+    "t": "datetime",
+    "iso": "2026-10-15T14:32:05"
+   },
+   "duration_s": {
+    "t": "float",
+    "hex": "0x1.3c0c1fc8f3238p+0",
+    "repr": "1.23456"
+   },
+   "command": {
+    "t": "str",
+    "utf8": "6261736820782e7368",
+    "v": "bash x.sh"
+   },
+   "folder": {
+    "t": "str",
+    "utf8": "2f77",
+    "v": "/w"
+   },
+   "files": {
+    "t": "array",
+    "v": [
+     {
+      "t": "str",
+      "utf8": "612e7061726d37",
+      "v": "a.parm7"
+     },
+     {
+      "t": "str",
+      "utf8": "622e72737437",
+      "v": "b.rst7"
+     }
+    ]
+   },
+   "summary": {
+    "t": "str",
+    "utf8": "65786974207374617475732030",
+    "v": "exit status 0"
+   },
+   "citations": {
+    "t": "array",
+    "v": [
+     {
+      "t": "str",
+      "utf8": "6b31",
+      "v": "k1"
+     }
+    ]
+   },
+   "output": {
+    "t": "str",
+    "utf8": "68656c6c6f0a776f726c64",
+    "v": "hello\nworld"
+   }
+  },
+  "with_doc": false,
+  "output": "[[log]]\nstep = \"02\"\ntitle = \"tleap build\"\nstatus = \"ok\"\ntime = 2026-10-15T14:32:05\nduration_s = 1.23\ncommand = \"bash x.sh\"\nfolder = \"/w\"\nfiles = [\"a.parm7\", \"b.rst7\"]\nsummary = \"exit status 0\"\ncitations = [\"k1\"]\noutput = \"\"\"\nhello\nworld\"\"\"\n"
+ },
+ {
+  "entry": {
+   "step": {
+    "t": "str",
+    "utf8": "3033",
+    "v": "03"
+   },
+   "title": {
+    "t": "str",
+    "utf8": "",
+    "v": ""
+   },
+   "status": {
+    "t": "str",
+    "utf8": "6f6b",
+    "v": "ok"
+   },
+   "time": {
+    "t": "datetime",
+    "iso": "2026-10-15T14:32:05"
+   },
+   "duration_s": {
+    "t": "float",
+    "hex": "0x0.0p+0",
+    "repr": "0.0"
+   },
+   "command": {
+    "t": "str",
+    "utf8": "",
+    "v": ""
+   },
+   "folder": {
+    "t": "str",
+    "utf8": "",
+    "v": ""
+   },
+   "files": {
+    "t": "array",
+    "v": []
+   },
+   "summary": {
+    "t": "str",
+    "utf8": "",
+    "v": ""
+   },
+   "citations": {
+    "t": "array",
+    "v": []
+   },
+   "output": {
+    "t": "str",
+    "utf8": "",
+    "v": ""
+   }
+  },
+  "with_doc": true,
+  "output": "# One entry per step run in this project: analyses, renders, generated scripts that MDATK ran, PDB\n# clean-ups, density fits.\n[[log]]\n# What ran: 'render', 'workflow write', 'pdb clean', or the planner step number of a generated\n# script that MDATK ran (e.g. '03').\nstep = \"03\"\n# ok, failed or cancelled.\nstatus = \"ok\"\n# When the step started.\ntime = 2026-10-15T14:32:05\n# Wall time in seconds.\nduration_s = 0.0\n"
+ },
+ {
+  "entry": {
+   "step": {
+    "t": "str",
+    "utf8": "3033",
+    "v": "03"
+   },
+   "title": {
+    "t": "str",
+    "utf8": "",
+    "v": ""
+   },
+   "status": {
+    "t": "str",
+    "utf8": "6f6b",
+    "v": "ok"
+   },
+   "time": {
+    "t": "datetime",
+    "iso": "2026-10-15T14:32:05"
+   },
+   "duration_s": {
+    "t": "float",
+    "hex": "0x0.0p+0",
+    "repr": "0.0"
+   },
+   "command": {
+    "t": "str",
+    "utf8": "",
+    "v": ""
+   },
+   "folder": {
+    "t": "str",
+    "utf8": "",
+    "v": ""
+   },
+   "files": {
+    "t": "array",
+    "v": []
+   },
+   "summary": {
+    "t": "str",
+    "utf8": "",
+    "v": ""
+   },
+   "citations": {
+    "t": "array",
+    "v": []
+   },
+   "output": {
+    "t": "str",
+    "utf8": "",
+    "v": ""
+   }
+  },
+  "with_doc": false,
+  "output": "[[log]]\nstep = \"03\"\nstatus = \"ok\"\ntime = 2026-10-15T14:32:05\nduration_s = 0.0\n"
+ },
+ {
+  "entry": {
+   "step": {
+    "t": "str",
+    "utf8": "",
+    "v": ""
+   },
+   "title": {
+    "t": "str",
+    "utf8": "",
+    "v": ""
+   },
+   "status": {
+    "t": "str",
+    "utf8": "",
+    "v": ""
+   },
+   "time": {
+    "t": "datetime",
+    "iso": "2026-10-15T14:32:05"
+   },
+   "duration_s": {
+    "t": "float",
+    "hex": "0x0.0p+0",
+    "repr": "0.0"
+   },
+   "command": {
+    "t": "str",
+    "utf8": "",
+    "v": ""
+   },
+   "folder": {
+    "t": "str",
+    "utf8": "",
+    "v": ""
+   },
+   "files": {
+    "t": "array",
+    "v": []
+   },
+   "summary": {
+    "t": "str",
+    "utf8": "",
+    "v": ""
+   },
+   "citations": {
+    "t": "array",
+    "v": []
+   },
+   "output": {
+    "t": "str",
+    "utf8": "",
+    "v": ""
+   }
+  },
+  "with_doc": true,
+  "output": "# One entry per step run in this project: analyses, renders, generated scripts that MDATK ran, PDB\n# clean-ups, density fits.\n[[log]]\n# When the step started.\ntime = 2026-10-15T14:32:05\n# Wall time in seconds.\nduration_s = 0.0\n"
+ },
+ {
+  "entry": {
+   "step": {
+    "t": "str",
+    "utf8": "",
+    "v": ""
+   },
+   "title": {
+    "t": "str",
+    "utf8": "",
+    "v": ""
+   },
+   "status": {
+    "t": "str",
+    "utf8": "",
+    "v": ""
+   },
+   "time": {
+    "t": "datetime",
+    "iso": "2026-10-15T14:32:05"
+   },
+   "duration_s": {
+    "t": "float",
+    "hex": "0x0.0p+0",
+    "repr": "0.0"
+   },
+   "command": {
+    "t": "str",
+    "utf8": "",
+    "v": ""
+   },
+   "folder": {
+    "t": "str",
+    "utf8": "",
+    "v": ""
+   },
+   "files": {
+    "t": "array",
+    "v": []
+   },
+   "summary": {
+    "t": "str",
+    "utf8": "",
+    "v": ""
+   },
+   "citations": {
+    "t": "array",
+    "v": []
+   },
+   "output": {
+    "t": "str",
+    "utf8": "",
+    "v": ""
+   }
+  },
+  "with_doc": false,
+  "output": "[[log]]\ntime = 2026-10-15T14:32:05\nduration_s = 0.0\n"
+ },
+ {
+  "entry": {
+   "step": {
+    "t": "str",
+    "utf8": "3034",
+    "v": "04"
+   },
+   "title": {
+    "t": "str",
+    "utf8": "",
+    "v": ""
+   },
+   "status": {
+    "t": "str",
+    "utf8": "6f6b",
+    "v": "ok"
+   },
+   "time": {
+    "t": "datetime",
+    "iso": "2026-10-15T14:32:05"
+   },
+   "duration_s": {
+    "t": "float",
+    "hex": "0x0.0p+0",
+    "repr": "0.0"
+   },
+   "command": {
+    "t": "str",
+    "utf8": "",
+    "v": ""
+   },
+   "folder": {
+    "t": "str",
+    "utf8": "",
+    "v": ""
+   },
+   "files": {
+    "t": "array",
+    "v": []
+   },
+   "summary": {
+    "t": "str",
+    "utf8": "",
+    "v": ""
+   },
+   "citations": {
+    "t": "array",
+    "v": []
+   },
+   "output": {
+    "t": "str",
+    "repeat": "x",
+    "count": 20005
+   }
+  },
+  "with_doc": true,
+  "output_head": "# One entry per step run in this project: analyses, renders, generated scripts that MDATK ran, PDB\n# clean-ups, density fits.\n[[log]]\n# What ran: 'render', 'workflow write', 'pdb clean', or the planner step number of a generated\n# script that MDATK ran (e.g. '03').\nstep = \"04\"\n# ok, failed or cancelled.\nstatus = \"ok\"\n# When the step started.\ntime = 2026-10-15T14:32:05\n# Wall time in seconds.\nduration_s = 0.0\n# Program output (the last 20000 characters).\noutput = \"\"\"\n[...]\nxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  "output_tail": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"\"\"\n",
+  "output_len_codepoints": 20481
+ },
+ {
+  "entry": {
+   "step": {
+    "t": "str",
+    "utf8": "3034",
+    "v": "04"
+   },
+   "title": {
+    "t": "str",
+    "utf8": "",
+    "v": ""
+   },
+   "status": {
+    "t": "str",
+    "utf8": "6f6b",
+    "v": "ok"
+   },
+   "time": {
+    "t": "datetime",
+    "iso": "2026-10-15T14:32:05"
+   },
+   "duration_s": {
+    "t": "float",
+    "hex": "0x0.0p+0",
+    "repr": "0.0"
+   },
+   "command": {
+    "t": "str",
+    "utf8": "",
+    "v": ""
+   },
+   "folder": {
+    "t": "str",
+    "utf8": "",
+    "v": ""
+   },
+   "files": {
+    "t": "array",
+    "v": []
+   },
+   "summary": {
+    "t": "str",
+    "utf8": "",
+    "v": ""
+   },
+   "citations": {
+    "t": "array",
+    "v": []
+   },
+   "output": {
+    "t": "str",
+    "repeat": "x",
+    "count": 20005
+   }
+  },
+  "with_doc": false,
+  "output_head": "[[log]]\nstep = \"04\"\nstatus = \"ok\"\ntime = 2026-10-15T14:32:05\nduration_s = 0.0\noutput = \"\"\"\n[...]\nxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  "output_tail": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"\"\"\n",
+  "output_len_codepoints": 20101
+ },
+ {
+  "entry": {
+   "step": {
+    "t": "str",
+    "utf8": "3035",
+    "v": "05"
+   },
+   "title": {
+    "t": "str",
+    "utf8": "",
+    "v": ""
+   },
+   "status": {
+    "t": "str",
+    "utf8": "6f6b",
+    "v": "ok"
+   },
+   "time": {
+    "t": "datetime",
+    "iso": "2026-10-15T14:32:05"
+   },
+   "duration_s": {
+    "t": "float",
+    "hex": "0x0.0p+0",
+    "repr": "0.0"
+   },
+   "command": {
+    "t": "str",
+    "utf8": "",
+    "v": ""
+   },
+   "folder": {
+    "t": "str",
+    "utf8": "",
+    "v": ""
+   },
+   "files": {
+    "t": "array",
+    "v": []
+   },
+   "summary": {
+    "t": "str",
+    "utf8": "",
+    "v": ""
+   },
+   "citations": {
+    "t": "array",
+    "v": []
+   },
+   "output": {
+    "t": "str",
+    "repeat": "é",
+    "count": 20000
+   }
+  },
+  "with_doc": true,
+  "output_head": "# One entry per step run in this project: analyses, renders, generated scripts that MDATK ran, PDB\n# clean-ups, density fits.\n[[log]]\n# What ran: 'render', 'workflow write', 'pdb clean', or the planner step number of a generated\n# script that MDATK ran (e.g. '03').\nstep = \"05\"\n# ok, failed or cancelled.\nstatus = \"ok\"\n# When the step started.\ntime = 2026-10-15T14:32:05\n# Wall time in seconds.\nduration_s = 0.0\n# Program output (the last 20000 characters).\noutput = \"éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé",
+  "output_tail": "éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé\"\n",
+  "output_len_codepoints": 20470
+ },
+ {
+  "entry": {
+   "step": {
+    "t": "str",
+    "utf8": "3035",
+    "v": "05"
+   },
+   "title": {
+    "t": "str",
+    "utf8": "",
+    "v": ""
+   },
+   "status": {
+    "t": "str",
+    "utf8": "6f6b",
+    "v": "ok"
+   },
+   "time": {
+    "t": "datetime",
+    "iso": "2026-10-15T14:32:05"
+   },
+   "duration_s": {
+    "t": "float",
+    "hex": "0x0.0p+0",
+    "repr": "0.0"
+   },
+   "command": {
+    "t": "str",
+    "utf8": "",
+    "v": ""
+   },
+   "folder": {
+    "t": "str",
+    "utf8": "",
+    "v": ""
+   },
+   "files": {
+    "t": "array",
+    "v": []
+   },
+   "summary": {
+    "t": "str",
+    "utf8": "",
+    "v": ""
+   },
+   "citations": {
+    "t": "array",
+    "v": []
+   },
+   "output": {
+    "t": "str",
+    "repeat": "é",
+    "count": 20000
+   }
+  },
+  "with_doc": false,
+  "output_head": "[[log]]\nstep = \"05\"\nstatus = \"ok\"\ntime = 2026-10-15T14:32:05\nduration_s = 0.0\noutput = \"éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé",
+  "output_tail": "éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé\"\n",
+  "output_len_codepoints": 20090
+ },
+ {
+  "entry": {
+   "step": {
+    "t": "str",
+    "utf8": "3036",
+    "v": "06"
+   },
+   "title": {
+    "t": "str",
+    "utf8": "",
+    "v": ""
+   },
+   "status": {
+    "t": "str",
+    "utf8": "6f6b",
+    "v": "ok"
+   },
+   "time": {
+    "t": "datetime",
+    "iso": "2026-10-15T14:32:05"
+   },
+   "duration_s": {
+    "t": "float",
+    "hex": "0x0.0p+0",
+    "repr": "0.0"
+   },
+   "command": {
+    "t": "str",
+    "utf8": "",
+    "v": ""
+   },
+   "folder": {
+    "t": "str",
+    "utf8": "",
+    "v": ""
+   },
+   "files": {
+    "t": "array",
+    "v": []
+   },
+   "summary": {
+    "t": "str",
+    "utf8": "",
+    "v": ""
+   },
+   "citations": {
+    "t": "array",
+    "v": []
+   },
+   "output": {
+    "t": "str",
+    "repeat": "é",
+    "count": 20001
+   }
+  },
+  "with_doc": true,
+  "output_head": "# One entry per step run in this project: analyses, renders, generated scripts that MDATK ran, PDB\n# clean-ups, density fits.\n[[log]]\n# What ran: 'render', 'workflow write', 'pdb clean', or the planner step number of a generated\n# script that MDATK ran (e.g. '03').\nstep = \"06\"\n# ok, failed or cancelled.\nstatus = \"ok\"\n# When the step started.\ntime = 2026-10-15T14:32:05\n# Wall time in seconds.\nduration_s = 0.0\n# Program output (the last 20000 characters).\noutput = \"\"\"\n[...]\nééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé",
+  "output_tail": "éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé\"\"\"\n",
+  "output_len_codepoints": 20481
+ },
+ {
+  "entry": {
+   "step": {
+    "t": "str",
+    "utf8": "3036",
+    "v": "06"
+   },
+   "title": {
+    "t": "str",
+    "utf8": "",
+    "v": ""
+   },
+   "status": {
+    "t": "str",
+    "utf8": "6f6b",
+    "v": "ok"
+   },
+   "time": {
+    "t": "datetime",
+    "iso": "2026-10-15T14:32:05"
+   },
+   "duration_s": {
+    "t": "float",
+    "hex": "0x0.0p+0",
+    "repr": "0.0"
+   },
+   "command": {
+    "t": "str",
+    "utf8": "",
+    "v": ""
+   },
+   "folder": {
+    "t": "str",
+    "utf8": "",
+    "v": ""
+   },
+   "files": {
+    "t": "array",
+    "v": []
+   },
+   "summary": {
+    "t": "str",
+    "utf8": "",
+    "v": ""
+   },
+   "citations": {
+    "t": "array",
+    "v": []
+   },
+   "output": {
+    "t": "str",
+    "repeat": "é",
+    "count": 20001
+   }
+  },
+  "with_doc": false,
+  "output_head": "[[log]]\nstep = \"06\"\nstatus = \"ok\"\ntime = 2026-10-15T14:32:05\nduration_s = 0.0\noutput = \"\"\"\n[...]\nééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé",
+  "output_tail": "éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé\"\"\"\n",
+  "output_len_codepoints": 20101
+ },
+ {
+  "entry": {
+   "step": {
+    "t": "str",
+    "utf8": "3037",
+    "v": "07"
+   },
+   "title": {
+    "t": "str",
+    "utf8": "",
+    "v": ""
+   },
+   "status": {
+    "t": "str",
+    "utf8": "6f6b",
+    "v": "ok"
+   },
+   "time": {
+    "t": "datetime",
+    "iso": "2026-10-15T14:32:05"
+   },
+   "duration_s": {
+    "t": "float",
+    "hex": "0x0.0p+0",
+    "repr": "0.0"
+   },
+   "command": {
+    "t": "str",
+    "utf8": "",
+    "v": ""
+   },
+   "folder": {
+    "t": "str",
+    "utf8": "",
+    "v": ""
+   },
+   "files": {
+    "t": "array",
+    "v": [
+     {
+      "t": "str",
+      "utf8": "636166e92e706462"
+     }
+    ]
+   },
+   "summary": {
+    "t": "str",
+    "utf8": "6d756c74690a6c696e650a",
+    "v": "multi\nline\n"
+   },
+   "citations": {
+    "t": "array",
+    "v": []
+   },
+   "output": {
+    "t": "str",
+    "utf8": "",
+    "v": ""
+   }
+  },
+  "with_doc": true,
+  "output": "# One entry per step run in this project: analyses, renders, generated scripts that MDATK ran, PDB\n# clean-ups, density fits.\n[[log]]\n# What ran: 'render', 'workflow write', 'pdb clean', or the planner step number of a generated\n# script that MDATK ran (e.g. '03').\nstep = \"07\"\n# ok, failed or cancelled.\nstatus = \"ok\"\n# When the step started.\ntime = 2026-10-15T14:32:05\n# Wall time in seconds.\nduration_s = 0.0\n# Files written by the step.\nfiles = [\"caf�.pdb\"]\n# Result in a few lines.\nsummary = \"\"\"\nmulti\nline\n\"\"\"\n"
+ },
+ {
+  "entry": {
+   "step": {
+    "t": "str",
+    "utf8": "3037",
+    "v": "07"
+   },
+   "title": {
+    "t": "str",
+    "utf8": "",
+    "v": ""
+   },
+   "status": {
+    "t": "str",
+    "utf8": "6f6b",
+    "v": "ok"
+   },
+   "time": {
+    "t": "datetime",
+    "iso": "2026-10-15T14:32:05"
+   },
+   "duration_s": {
+    "t": "float",
+    "hex": "0x0.0p+0",
+    "repr": "0.0"
+   },
+   "command": {
+    "t": "str",
+    "utf8": "",
+    "v": ""
+   },
+   "folder": {
+    "t": "str",
+    "utf8": "",
+    "v": ""
+   },
+   "files": {
+    "t": "array",
+    "v": [
+     {
+      "t": "str",
+      "utf8": "636166e92e706462"
+     }
+    ]
+   },
+   "summary": {
+    "t": "str",
+    "utf8": "6d756c74690a6c696e650a",
+    "v": "multi\nline\n"
+   },
+   "citations": {
+    "t": "array",
+    "v": []
+   },
+   "output": {
+    "t": "str",
+    "utf8": "",
+    "v": ""
+   }
+  },
+  "with_doc": false,
+  "output": "[[log]]\nstep = \"07\"\nstatus = \"ok\"\ntime = 2026-10-15T14:32:05\nduration_s = 0.0\nfiles = [\"caf�.pdb\"]\nsummary = \"\"\"\nmulti\nline\n\"\"\"\n"
+ }
+]

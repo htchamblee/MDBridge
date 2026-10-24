@@ -1,0 +1,414 @@
+[
+ {
+  "text": "",
+  "indent": "",
+  "lines": []
+ },
+ {
+  "text": "",
+  "indent": "    ",
+  "lines": []
+ },
+ {
+  "text": null,
+  "indent": "",
+  "lines": []
+ },
+ {
+  "text": null,
+  "indent": "    ",
+  "lines": []
+ },
+ {
+  "text": "One line.",
+  "indent": "",
+  "lines": [
+   "# One line."
+  ]
+ },
+ {
+  "text": "One line.",
+  "indent": "    ",
+  "lines": [
+   "    # One line."
+  ]
+ },
+ {
+  "text": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  "indent": "",
+  "lines": [
+   "# xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+   "# xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  ]
+ },
+ {
+  "text": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  "indent": "    ",
+  "lines": [
+   "    # xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+   "    # xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  ]
+ },
+ {
+  "text": "para one\npara two",
+  "indent": "",
+  "lines": [
+   "# para one",
+   "# para two"
+  ]
+ },
+ {
+  "text": "para one\npara two",
+  "indent": "    ",
+  "lines": [
+   "    # para one",
+   "    # para two"
+  ]
+ },
+ {
+  "text": "para one\n\npara three",
+  "indent": "",
+  "lines": [
+   "# para one",
+   "#",
+   "# para three"
+  ]
+ },
+ {
+  "text": "para one\n\npara three",
+  "indent": "    ",
+  "lines": [
+   "    # para one",
+   "    #",
+   "    # para three"
+  ]
+ },
+ {
+  "text": "\n",
+  "indent": "",
+  "lines": [
+   "#"
+  ]
+ },
+ {
+  "text": "\n",
+  "indent": "    ",
+  "lines": [
+   "    #"
+  ]
+ },
+ {
+  "text": "\n\n",
+  "indent": "",
+  "lines": [
+   "#",
+   "#"
+  ]
+ },
+ {
+  "text": "\n\n",
+  "indent": "    ",
+  "lines": [
+   "    #",
+   "    #"
+  ]
+ },
+ {
+  "text": "trailing newline\n",
+  "indent": "",
+  "lines": [
+   "# trailing newline"
+  ]
+ },
+ {
+  "text": "trailing newline\n",
+  "indent": "    ",
+  "lines": [
+   "    # trailing newline"
+  ]
+ },
+ {
+  "text": "\nleading newline",
+  "indent": "",
+  "lines": [
+   "#",
+   "# leading newline"
+  ]
+ },
+ {
+  "text": "\nleading newline",
+  "indent": "    ",
+  "lines": [
+   "    #",
+   "    # leading newline"
+  ]
+ },
+ {
+  "text": "crlf\r\nline",
+  "indent": "",
+  "lines": [
+   "# crlf",
+   "# line"
+  ]
+ },
+ {
+  "text": "crlf\r\nline",
+  "indent": "    ",
+  "lines": [
+   "    # crlf",
+   "    # line"
+  ]
+ },
+ {
+  "text": "cr\rline",
+  "indent": "",
+  "lines": [
+   "# cr",
+   "# line"
+  ]
+ },
+ {
+  "text": "cr\rline",
+  "indent": "    ",
+  "lines": [
+   "    # cr",
+   "    # line"
+  ]
+ },
+ {
+  "text": "vt\u000bline",
+  "indent": "",
+  "lines": [
+   "# vt",
+   "# line"
+  ]
+ },
+ {
+  "text": "vt\u000bline",
+  "indent": "    ",
+  "lines": [
+   "    # vt",
+   "    # line"
+  ]
+ },
+ {
+  "text": "ff\fline",
+  "indent": "",
+  "lines": [
+   "# ff",
+   "# line"
+  ]
+ },
+ {
+  "text": "ff\fline",
+  "indent": "    ",
+  "lines": [
+   "    # ff",
+   "    # line"
+  ]
+ },
+ {
+  "text": "fs\u001cline",
+  "indent": "",
+  "lines": [
+   "# fs",
+   "# line"
+  ]
+ },
+ {
+  "text": "fs\u001cline",
+  "indent": "    ",
+  "lines": [
+   "    # fs",
+   "    # line"
+  ]
+ },
+ {
+  "text": "nelline",
+  "indent": "",
+  "lines": [
+   "# nel",
+   "# line"
+  ]
+ },
+ {
+  "text": "nelline",
+  "indent": "    ",
+  "lines": [
+   "    # nel",
+   "    # line"
+  ]
+ },
+ {
+  "text": "ls line",
+  "indent": "",
+  "lines": [
+   "# ls",
+   "# line"
+  ]
+ },
+ {
+  "text": "ls line",
+  "indent": "    ",
+  "lines": [
+   "    # ls",
+   "    # line"
+  ]
+ },
+ {
+  "text": "ps line",
+  "indent": "",
+  "lines": [
+   "# ps",
+   "# line"
+  ]
+ },
+ {
+  "text": "ps line",
+  "indent": "    ",
+  "lines": [
+   "    # ps",
+   "    # line"
+  ]
+ },
+ {
+  "text": "tab\tinside",
+  "indent": "",
+  "lines": [
+   "# tab     inside"
+  ]
+ },
+ {
+  "text": "tab\tinside",
+  "indent": "    ",
+  "lines": [
+   "    # tab     inside"
+  ]
+ },
+ {
+  "text": "  indented",
+  "indent": "",
+  "lines": [
+   "#   indented"
+  ]
+ },
+ {
+  "text": "  indented",
+  "indent": "    ",
+  "lines": [
+   "    #   indented"
+  ]
+ },
+ {
+  "text": "trailing nbsp ",
+  "indent": "",
+  "lines": [
+   "# trailing nbsp"
+  ]
+ },
+ {
+  "text": "trailing nbsp ",
+  "indent": "    ",
+  "lines": [
+   "    # trailing nbsp"
+  ]
+ },
+ {
+  "text": "trailing spaces   ",
+  "indent": "",
+  "lines": [
+   "# trailing spaces"
+  ]
+ },
+ {
+  "text": "trailing spaces   ",
+  "indent": "    ",
+  "lines": [
+   "    # trailing spaces"
+  ]
+ },
+ {
+  "text": "Ends with colon:",
+  "indent": "",
+  "lines": [
+   "# Ends with colon:"
+  ]
+ },
+ {
+  "text": "Ends with colon:",
+  "indent": "    ",
+  "lines": [
+   "    # Ends with colon:"
+  ]
+ },
+ {
+  "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa b",
+  "indent": "",
+  "lines": [
+   "# aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "# b"
+  ]
+ },
+ {
+  "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa b",
+  "indent": "    ",
+  "lines": [
+   "    # aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "    # aaa b"
+  ]
+ },
+ {
+  "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa b",
+  "indent": "",
+  "lines": [
+   "# aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "# b"
+  ]
+ },
+ {
+  "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa b",
+  "indent": "    ",
+  "lines": [
+   "    # aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "    # aaaa b"
+  ]
+ },
+ {
+  "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "indent": "",
+  "lines": [
+   "# aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "# a"
+  ]
+ },
+ {
+  "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "indent": "    ",
+  "lines": [
+   "    # aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "    # aaaaa"
+  ]
+ },
+ {
+  "text": "Contact map: 'instant' (evolves with the movie), 'frame' (one fixed frame) or 'frequency' (fraction of frames in contact).",
+  "indent": "",
+  "lines": [
+   "# Contact map: 'instant' (evolves with the movie), 'frame' (one fixed frame) or 'frequency'",
+   "# (fraction of frames in contact)."
+  ]
+ },
+ {
+  "text": "Contact map: 'instant' (evolves with the movie), 'frame' (one fixed frame) or 'frequency' (fraction of frames in contact).",
+  "indent": "    ",
+  "lines": [
+   "    # Contact map: 'instant' (evolves with the movie), 'frame' (one fixed frame) or 'frequency'",
+   "    # (fraction of frames in contact)."
+  ]
+ },
+ {
+  "text": 0,
+  "indent": "",
+  "lines": [],
+  "note": "falsy non-string: nothing"
+ }
+]

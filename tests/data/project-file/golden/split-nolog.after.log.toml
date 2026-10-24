@@ -1,0 +1,10 @@
+# Step log of the MDATK project q.mdatk.toml (moved here when the project file grew too large).
+
+# ---- step log (entries are appended; newest last) ----
+
+[[log]]
+step = "01"
+title = "first entry of a big project"
+status = "ok"
+time = 2026-10-15T14:32:24
+duration_s = 0.75

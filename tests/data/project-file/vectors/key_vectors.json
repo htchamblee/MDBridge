@@ -1,0 +1,137 @@
+[
+ {
+  "key": {
+   "t": "str",
+   "utf8": "61",
+   "v": "a"
+  },
+  "output": "a"
+ },
+ {
+  "key": {
+   "t": "str",
+   "utf8": "412d625f39",
+   "v": "A-b_9"
+  },
+  "output": "A-b_9"
+ },
+ {
+  "key": {
+   "t": "str",
+   "utf8": "",
+   "v": ""
+  },
+  "output": "\"\""
+ },
+ {
+  "key": {
+   "t": "str",
+   "utf8": "612e62",
+   "v": "a.b"
+  },
+  "output": "\"a.b\""
+ },
+ {
+  "key": {
+   "t": "str",
+   "utf8": "612062",
+   "v": "a b"
+  },
+  "output": "\"a b\""
+ },
+ {
+  "key": {
+   "t": "str",
+   "utf8": "c3a9",
+   "v": "é"
+  },
+  "output": "\"é\""
+ },
+ {
+  "key": {
+   "t": "str",
+   "utf8": "6162630a",
+   "v": "abc\n"
+  },
+  "output": "abc\n"
+ },
+ {
+  "key": {
+   "t": "str",
+   "utf8": "610a62",
+   "v": "a\nb"
+  },
+  "output": "\"a\\nb\""
+ },
+ {
+  "key": {
+   "t": "str",
+   "utf8": "7122",
+   "v": "q\""
+  },
+  "output": "\"q\\\"\""
+ },
+ {
+  "key": {
+   "t": "str",
+   "utf8": "31",
+   "v": "1"
+  },
+  "output": "1"
+ },
+ {
+  "key": {
+   "t": "str",
+   "utf8": "2d",
+   "v": "-"
+  },
+  "output": "-"
+ },
+ {
+  "key": {
+   "t": "str",
+   "utf8": "5f",
+   "v": "_"
+  },
+  "output": "_"
+ },
+ {
+  "key": {
+   "t": "str",
+   "utf8": "74616209",
+   "v": "tab\t"
+  },
+  "output": "\"tab\\t\""
+ },
+ {
+  "key": {
+   "t": "str",
+   "utf8": "636166e9"
+  },
+  "output": "\"caf�\""
+ },
+ {
+  "key": {
+   "t": "str",
+   "utf8": "787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878",
+   "v": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  },
+  "output": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+ },
+ {
+  "key": {
+   "t": "str",
+   "utf8": "776974682f736c617368",
+   "v": "with/slash"
+  },
+  "output": "\"with/slash\""
+ },
+ {
+  "key": {
+   "t": "str",
+   "utf8": "706c75732b",
+   "v": "plus+"
+  },
+  "output": "\"plus+\""
+ }
+]

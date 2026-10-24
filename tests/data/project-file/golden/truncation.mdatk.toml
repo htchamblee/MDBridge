@@ -1,0 +1,2352 @@
+# Molecular Dynamic Analysis Tool Kit (MDATK) project file.
+# Plain TOML: every entry is explained by the comment above it. Edit with care; MDATK rewrites this
+# file (keeping the step log) when the project is saved.
+
+# File type marker of an MDATK project; do not change.
+format = "mdatk-project"
+# Version of the project file layout.
+format_version = 1
+# Molecular Dynamic Analysis Tool Kit (MDATK) version that wrote this file.
+mdatk_version = "0.0.4.1"
+# When the settings were last saved.
+saved = 2026-10-15T14:32:15
+# File next to the project that holds its step log ("": the log is at the end of this file; it moves
+# out once the project file would grow too large).
+log_file = ""
+# Free-text notes about the project (what, why, decisions, to-dos)
+notes = ""
+
+# Input files and frame range
+[inputs]
+# Topology: Amber .parm7 / .prmtop (preferred), PDB, PSF, GRO, ...
+topology = ""
+# Trajectory files in order; several files are concatenated
+trajectories = []
+# First analysed frame (0-based; of the cleaned trajectory when cleaning is on)
+start = 0
+# Stop before this frame (0-based, exclusive; not set: up to the last frame)
+# stop =   (not set)
+# Analyse every n-th frame
+step = 1
+# Time between stored frames in ps (not set: from the trajectory's time stamps)
+# dt_ps =   (not set)
+# Unit shown on time axes: "ps", "ns", "us" or "frame"
+time_unit = "ns"
+# External data files shown as extra traces (interpolated onto the analysed frames)
+external = []
+
+# Trajectory cleaning with cpptraj
+[cleaning]
+# Strip, image and fit the trajectory with cpptraj before the analyses
+enabled = false
+# cpptraj executable: a name on PATH or an absolute path
+cpptraj_path = "cpptraj"
+# Conda environment providing cpptraj (a name such as AmberTools26 or a prefix path); every call
+# runs through 'conda run -n <env>'
+conda_env = ""
+# conda / mamba / micromamba executable ("": found automatically)
+conda_exe = ""
+# cpptraj mask of the solvent residues to strip
+solvent_mask = ":WAT,HOH,TIP3,SOL,T3P,T4P,SPC"
+# cpptraj mask of the ions to strip (Mg2+ is kept by default)
+ion_mask = ":Na+,Cl-,K+,NA,CL,K,Na,Cl,SOD,CLA,POT"
+# Further atoms to strip (cpptraj mask; optional)
+extra_strip_mask = ""
+# Re-image molecules into the primary box (cpptraj autoimage)
+autoimage = true
+# Anchor mask for autoimage ("": cpptraj's default, the first molecule)
+autoimage_anchor = ""
+# RMS-fit every frame onto the reference
+fit = true
+# cpptraj mask of the atoms used for the RMS fit
+fit_mask = "@P,C4'"
+# Fit reference: the "first" frame, a given "frame" number or a "file"
+fit_reference = "first"
+# Remove the box after fitting (a rotated box cannot be stored in NetCDF)
+remove_box_after_fit = true
+# Reference frame for fit_reference = "frame" (1-based, cpptraj convention)
+reference_frame = 1
+# Reference structure for fit_reference = "file"
+reference_file = ""
+# First frame read by cpptraj (1-based trajin argument)
+start = 1
+# Last frame read by cpptraj (1-based, inclusive; not set: the last frame)
+# stop =   (not set)
+# Read every n-th frame (cpptraj trajin offset)
+offset = 1
+# Advanced: cpptraj commands inserted before trajout
+extra_commands = ""
+# Folder for the cleaned files ("": <cache_dir>/cleaned)
+output_dir = ""
+
+# Analyses
+[analyses]
+# Minimum-image distances (cleaned, imaged systems rarely need it)
+use_pbc = false
+# Largest proximity cutoff usable later without re-analysing (Å)
+proximity_search_radius = 8.0
+
+# RMSD time series
+[analyses.rmsd]
+# Compute RMSD time series
+enabled = true
+# Reference structure: index into the analysed frames (0: the first)
+reference_frame = 0
+# Superpose each frame onto the reference before computing the RMSD
+superposition = true
+# Mass-weighted superposition and RMSD
+mass_weighted = false
+
+# One RMSD series per target
+[[analyses.rmsd.targets]]
+# Name of the series (data key rmsd/<label>)
+label = "Complex"
+# Atoms whose RMSD is computed (selection; group:<name> allowed)
+selection = "(group:Aptamer or group:Target) and not name H*"
+# Atoms superposed before computing the RMSD ("": the same atoms)
+fit_selection = ""
+
+[[analyses.rmsd.targets]]
+# Name of the series (data key rmsd/<label>)
+label = "Backbone"
+# Atoms whose RMSD is computed (selection; group:<name> allowed)
+selection = "(group:Aptamer or group:Target) and name C4'"
+# Atoms superposed before computing the RMSD ("": the same atoms)
+fit_selection = ""
+
+# Heavy-atom contacts between two groups
+[analyses.contacts]
+# Count heavy-atom contacts between two groups
+enabled = true
+# First residue group
+group_a = "Aptamer"
+# Second residue group
+group_b = "Target"
+# Contact distance cutoff (Å)
+cutoff = 4.5
+# Ignore hydrogens
+heavy_only = true
+
+# Hydrogen bonds between two groups
+[analyses.hbonds]
+# Count hydrogen bonds between two groups
+enabled = true
+# First residue group
+group_a = "Aptamer"
+# Second residue group
+group_b = "Target"
+# Maximum donor-acceptor distance (Å)
+distance_cutoff = 3.5
+# Also require a minimum D-H...A angle (needs hydrogens in the topology)
+use_angle = true
+# Minimum D-H...A angle (degrees)
+angle_cutoff = 135.0
+# Elements that can donate (comma separated)
+donor_elements = "N,O"
+# Elements that can accept (comma separated)
+acceptor_elements = "N,O"
+
+# Mg2+ coordination, bridges and occupancy
+[analyses.mg]
+# Analyse Mg2+ coordination: inner/outer-sphere contacts, bridges and occupancy
+enabled = true
+# Selection of the Mg2+ ions
+mg_selection = "resname MG Mg MG2 or name MG Mg"
+# Atoms that can coordinate Mg2+
+ligand_selection = "group:Aptamer or group:Target"
+# Elements of the coordinating atoms (comma separated)
+ligand_elements = "O"
+# First group of a Mg2+ bridge
+group_a = "Aptamer"
+# Second group of a Mg2+ bridge
+group_b = "Target"
+# Inner-sphere Mg-O distance cutoff (Å)
+inner_cutoff = 2.6
+# Outer-sphere (water-mediated) Mg-O distance cutoff (Å)
+outer_cutoff = 4.5
+# Shell that counts as a bridge: "inner" or "outer"
+bridge_shell = "inner"
+# Require octahedral O-Mg-O angles (about 90 or 180 degrees)
+geometry = false
+# Allowed deviation from the octahedral angles (degrees)
+angle_tolerance = 25.0
+# Atoms whose Mg2+ occupancy is reported ("": the ligand selection)
+occupancy_selection = ""
+# Elements counted for the occupancy (comma separated)
+occupancy_elements = "N,O"
+
+# Base stacking
+[analyses.stacking]
+# Detect base stacking from ring geometry
+enabled = true
+# Residues whose rings are considered
+selection = "group:Aptamer or group:Target"
+# "all" ring pairs, or "inter" (group A against group B only)
+scope = "all"
+# First group for scope = "inter"
+group_a = "Aptamer"
+# Second group for scope = "inter"
+group_b = "Target"
+# Maximum ring-centroid distance (Å)
+distance_cutoff = 4.5
+# Maximum angle between the ring normals (degrees)
+angle_cutoff = 30.0
+# Maximum lateral displacement of the centroids (Å)
+offset_cutoff = 2.5
+# Maximum RMS deviation of ring atoms from their plane (Å)
+planarity_cutoff = 0.25
+
+# Non-bonded interaction energy
+[analyses.energy]
+# Non-bonded interaction energy between two groups
+enabled = true
+# First residue group
+group_a = "Aptamer"
+# Second residue group
+group_b = "Target"
+# Pair distance cutoff (Å)
+cutoff = 12.0
+# Relative dielectric constant
+dielectric = 1.0
+# Distance-dependent dielectric (epsilon = dielectric x r)
+distance_dependent = false
+# Use the exact Lennard-Jones parameters of a parm7 topology
+use_parm7 = true
+# Reference energy drawn on charts and panels (kcal/mol; not set: none)
+# target_value =   (not set)
+# Exclude pairs within n bonds (0: exclude none)
+exclude_bonded = 3
+
+# Base pairs (secondary structure)
+[analyses.basepairs]
+# Base pairs of the residues in the structure view, for the secondary-structure panel and PDB
+# annotation; computed whenever a panel needs them. Engine: "builtin" (canonical pairs from H-bond
+# geometry) or "barnaba" (optional)
+engine = "builtin"
+# Re-detect the pairs every n-th analysed frame (pairs hold in between)
+stride = 10
+# Builtin: maximum donor-acceptor distance of a base-pair H-bond (Å)
+cutoff = 3.5
+# Builtin: also count G-U wobble pairs
+wobble = true
+# Barnaba: also keep non-canonical (non Watson-Crick) pairs
+noncanonical = false
+
+# Structure view: colouring, glow, 3D representations, labels
+[visual]
+# Residue groups shown in the structure view (empty: all)
+structure_groups = []
+# Atom used for each residue's 2D trace point, first one found wins (P, C4', C1', CA ...)
+trace_atoms = "C4',CA"
+# 3D representations (empty: the 2D backbone trace)
+representations = []
+# 3D renderer: "auto" / "software" (built-in) or "vtk" (optional)
+renderer = "auto"
+# Residues no representation draws: "trace" (3D trace) or "hide"
+rep_rest = "trace"
+# Spline control atom of ribbons, cartoons and traces: "P" or "C4'"
+backbone_atom = "P"
+# Include hydrogens in all-atom representations
+rep_hydrogens = false
+# Show Mg2+ ions in the structure view
+show_ions = true
+# Superpose each frame's trace onto the reference frame
+align_frames = true
+# View rotation in degrees about X, Y and Z (R = Rz Ry Rx)
+rotation = [0.0, 0.0, 0.0]
+# Magnification of the structure view (1: the whole model fits; 2: twice as large)
+zoom = 1.0
+# View centre: "" (centre of the model), "origin" (0, 0, 0 of the coordinates) or a residue, e.g.
+# "12" or "B:12"
+center_on = ""
+# Keep the centre residue in the middle in every frame (not only the first)
+center_follow = false
+# Residue colouring: "chain", "groups" or "proximity"
+color_mode = "groups"
+# Colour of residues no group or proximity colour applies to
+base_color = "#b5b3ad"
+# Matplotlib palette for chain colouring
+chain_palette = "tab10"
+# Group (or sel:<selection>) whose proximity colours and glows residues
+proximity_set = "Target"
+# Distance that counts as proximity (Å)
+proximity_cutoff = 4.0
+# Colour of residues in proximity
+proximity_color = "#e34948"
+# Glow of residues near the proximity set: "none", "ever" (whole movie), "fade" or "current"
+glow_mode = "fade"
+# Glow colour
+glow_color = "#ffb000"
+# Frames over which the glow fades (glow_mode = "fade")
+fade_frames = 15
+# Glow intensity factor
+glow_strength = 1.0
+# Colour of Mg2+ ions
+ion_color = "#008300"
+# Line width of the 2D trace (points)
+line_width = 2.2
+# Marker size of the 2D trace points
+point_size = 22.0
+# Fade distant parts toward the background colour
+depth_cue = true
+# "light" or "dark"
+theme = "light"
+# Base font size (points)
+font_size = 11.0
+# Show the time label in the structure view
+show_time_label = true
+# Residue-number tags on every n-th residue (0: off)
+label_every = 0
+# Explicit residue numbers / ranges to tag, e.g. "1, 12, 24"
+label_residues = ""
+# Figure title ("": none)
+title = ""
+
+# Density map shadow and fit
+[density]
+# Density map file (.mrc / .map / .ccp4)
+map_path = ""
+# Draw the map shadow
+show = true
+# Resolution in Å; width of the simulated map used for fitting
+resolution = 5.0
+# Contour level in map standard deviations above the mean
+level = 2.0
+# Shadow colour
+color = "#2a78d6"
+# Shadow opacity, 0 (invisible) to 1
+opacity = 0.45
+# Draw the shadow in front of 3D representations (else behind them)
+front = false
+# "ref" (the first analysed frame) or a trajectory frame number to fit on
+fit_frame = "ref"
+# Automatic fit: "global" search or "manual" (refine the stored placement)
+search = "global"
+# Degrees between sampled orientations of the global search
+angular_step = 30.0
+# Fit before rendering when no placement is stored
+auto_fit = true
+# Placement: 3x3 rotation (row-major) + translation, model -> map
+transform = []
+# Backbone points of the reference frame the placement was made on (the map follows the molecule
+# when the reference changes: other start frame, cleaned vs raw files)
+anchor = []
+# Correlation of the stored placement (0: not fitted)
+fit_cc = 0.0
+# Summary of the last fit
+fit_info = ""
+
+# Figure layout: grid and panels
+[layout]
+# Grid layout (see 'mdatk list')
+preset = "large_plus_3"
+
+# Panels in slot order
+[[layout.panels]]
+# Panel type: structure, timeseries, dual_axis, heatmap or contact_map
+type = "structure"
+# Data keys shown, e.g. rmsd/Complex or contacts/per_residue_a
+series = []
+# Panel title ("": automatic)
+title = "Structure"
+# Panel-specific options, e.g. axis limits or the contact-map mode
+options = {}
+
+[[layout.panels]]
+# Panel type: structure, timeseries, dual_axis, heatmap or contact_map
+type = "timeseries"
+# Data keys shown, e.g. rmsd/Complex or contacts/per_residue_a
+series = ["rmsd/Complex"]
+# Panel title ("": automatic)
+title = "RMSD"
+# Panel-specific options, e.g. axis limits or the contact-map mode
+options = {}
+
+[[layout.panels]]
+# Panel type: structure, timeseries, dual_axis, heatmap or contact_map
+type = "timeseries"
+# Data keys shown, e.g. rmsd/Complex or contacts/per_residue_a
+series = ["hbonds/count"]
+# Panel title ("": automatic)
+title = "Inter-strand H-bonds"
+# Panel-specific options, e.g. axis limits or the contact-map mode
+options = {}
+
+[[layout.panels]]
+# Panel type: structure, timeseries, dual_axis, heatmap or contact_map
+type = "contact_map"
+# Data keys shown, e.g. rmsd/Complex or contacts/per_residue_a
+series = ["contacts/map"]
+# Panel title ("": automatic)
+title = ""
+
+# Panel-specific options, e.g. axis limits or the contact-map mode
+[layout.panels.options]
+# Contact map: 'instant' (evolves with the movie), 'frame' (one fixed frame) or 'frequency'
+# (fraction of frames in contact).
+mode = "instant"
+# Contact map: true puts the first group (e.g. the aptamer) along x and the second along y.
+transpose = true
+
+# Outputs: folders, video, charts, PDB frames
+[output]
+# Output folder (a relative path is relative to the project file)
+out_dir = "MDATK_output"
+# Cache of analyses and cleaned trajectories ("": <out_dir>/MDATK_cache)
+cache_dir = ""
+# Write MDATK_params_log.toml (settings, versions, cache keys, citations) next to the outputs
+write_params_log = true
+# Time-stamp output file names, e.g. MDATK_video_2026-10-15_143205.mp4 (cache and log keep fixed
+# names)
+timestamp_files = true
+
+# MP4 video
+[output.video]
+# Write the MP4 video
+enabled = true
+# Video file name (time-stamped when output.timestamp_files is on)
+filename = "MDATK_video.mp4"
+# Frames per second
+fps = 24
+# Width in pixels
+width = 1920
+# Height in pixels
+height = 1080
+# Figure resolution; sets text and line sizes relative to the frame
+dpi = 120
+# FFmpeg video codec
+codec = "libx264"
+# Constant rate factor: lower means better quality and larger files (libx264: 18-28)
+crf = 20
+# Use every n-th analysed frame
+frame_stride = 1
+# FFmpeg executable
+ffmpeg_path = "ffmpeg"
+
+# Time charts
+[output.charts]
+# Write high-resolution time charts
+enabled = true
+# Data keys to chart (empty: every scalar series)
+series = []
+# Also chart per-residue heatmaps
+include_heatmaps = false
+# File formats, e.g. png, pdf, svg
+formats = ["png"]
+# Raster resolution
+dpi = 300
+# Width in inches
+width = 8.0
+# Height in inches
+height = 4.5
+# "mdatk" (built-in look) or any matplotlib style name
+style = "mdatk"
+# Line colour ("": the first palette colour)
+color = ""
+# Line width (points)
+line_width = 1.5
+# Chart title ("": the series label; "{label}" placeholders allowed)
+title = ""
+# x-axis label ("": automatic)
+xlabel = ""
+# y-axis label ("": automatic)
+ylabel = ""
+# Running-average window in frames (0: off)
+smoothing = 0
+# Draw the energy target value when one is set
+show_target = true
+# File name prefix
+prefix = "MDATK_chart"
+
+# PDB export of selected frames
+[output.pdb]
+# Export selected frames as PDB files
+enabled = false
+# Frames to export, e.g. "0, 10, 20-50:10, last"
+frames = ""
+# Times to export, e.g. "1.5ns, 2000ps" (no unit: inputs.time_unit)
+times = ""
+# Group names (comma separated) or a selection ("": everything)
+selection = ""
+# File name prefix
+prefix = "MDATK_frame"
+
+# Project Planner and script wizard
+[workflow]
+# Project name used in every generated file name
+project_name = "project"
+# Time stamp in generated file names (fixed once files are written)
+stamp = ""
+# Put the time stamp into file names
+use_stamp = true
+# Folder of the generated files ("": <output.out_dir>/<project_name>_workflow)
+out_dir = ""
+# One sub-folder per step, e.g. 03_amber-build/
+step_folders = true
+# Planner steps
+nodes = []
+# Planner connections
+edges = []
+# Stand-alone script wizard settings, one entry per step type
+scratch = []
+
+# Residue groups
+[[groups]]
+# Group name, used in selections (group:<name>), panels and legends
+name = "Aptamer"
+# Residue numbers or ranges, e.g. "1-40, 45"; may be chain-qualified ("A:1-40")
+residues = "1-12"
+# MDAnalysis selection that replaces 'residues' when given
+selection = ""
+# Colour of the group in the structure view, legends and charts (#rrggbb)
+color = "#2a78d6"
+
+[[groups]]
+# Group name, used in selections (group:<name>), panels and legends
+name = "Target"
+# Residue numbers or ranges, e.g. "1-40, 45"; may be chain-qualified ("A:1-40")
+residues = "13-24"
+# MDAnalysis selection that replaces 'residues' when given
+selection = ""
+# Colour of the group in the structure view, legends and charts (#rrggbb)
+color = "#eb6834"
+
+# ---- step log (entries are appended; newest last) ----
+
+# One entry per step run in this project: analyses, renders, generated scripts that MDATK ran, PDB
+# clean-ups, density fits.
+[[log]]
+# What ran: 'render', 'workflow write', 'pdb clean', or the planner step number of a generated
+# script that MDATK ran (e.g. '03').
+step = "06"
+# Short human-readable description.
+title = "long output"
+# ok, failed or cancelled.
+status = "ok"
+# When the step started.
+time = 2026-10-15T14:32:16
+# Wall time in seconds.
+duration_s = 1.0
+# Program output (the last 20000 characters).
+output = """
+[...]
+1
+line 00182
+line 00183
+line 00184
+line 00185
+line 00186
+line 00187
+line 00188
+line 00189
+line 00190
+line 00191
+line 00192
+line 00193
+line 00194
+line 00195
+line 00196
+line 00197
+line 00198
+line 00199
+line 00200
+line 00201
+line 00202
+line 00203
+line 00204
+line 00205
+line 00206
+line 00207
+line 00208
+line 00209
+line 00210
+line 00211
+line 00212
+line 00213
+line 00214
+line 00215
+line 00216
+line 00217
+line 00218
+line 00219
+line 00220
+line 00221
+line 00222
+line 00223
+line 00224
+line 00225
+line 00226
+line 00227
+line 00228
+line 00229
+line 00230
+line 00231
+line 00232
+line 00233
+line 00234
+line 00235
+line 00236
+line 00237
+line 00238
+line 00239
+line 00240
+line 00241
+line 00242
+line 00243
+line 00244
+line 00245
+line 00246
+line 00247
+line 00248
+line 00249
+line 00250
+line 00251
+line 00252
+line 00253
+line 00254
+line 00255
+line 00256
+line 00257
+line 00258
+line 00259
+line 00260
+line 00261
+line 00262
+line 00263
+line 00264
+line 00265
+line 00266
+line 00267
+line 00268
+line 00269
+line 00270
+line 00271
+line 00272
+line 00273
+line 00274
+line 00275
+line 00276
+line 00277
+line 00278
+line 00279
+line 00280
+line 00281
+line 00282
+line 00283
+line 00284
+line 00285
+line 00286
+line 00287
+line 00288
+line 00289
+line 00290
+line 00291
+line 00292
+line 00293
+line 00294
+line 00295
+line 00296
+line 00297
+line 00298
+line 00299
+line 00300
+line 00301
+line 00302
+line 00303
+line 00304
+line 00305
+line 00306
+line 00307
+line 00308
+line 00309
+line 00310
+line 00311
+line 00312
+line 00313
+line 00314
+line 00315
+line 00316
+line 00317
+line 00318
+line 00319
+line 00320
+line 00321
+line 00322
+line 00323
+line 00324
+line 00325
+line 00326
+line 00327
+line 00328
+line 00329
+line 00330
+line 00331
+line 00332
+line 00333
+line 00334
+line 00335
+line 00336
+line 00337
+line 00338
+line 00339
+line 00340
+line 00341
+line 00342
+line 00343
+line 00344
+line 00345
+line 00346
+line 00347
+line 00348
+line 00349
+line 00350
+line 00351
+line 00352
+line 00353
+line 00354
+line 00355
+line 00356
+line 00357
+line 00358
+line 00359
+line 00360
+line 00361
+line 00362
+line 00363
+line 00364
+line 00365
+line 00366
+line 00367
+line 00368
+line 00369
+line 00370
+line 00371
+line 00372
+line 00373
+line 00374
+line 00375
+line 00376
+line 00377
+line 00378
+line 00379
+line 00380
+line 00381
+line 00382
+line 00383
+line 00384
+line 00385
+line 00386
+line 00387
+line 00388
+line 00389
+line 00390
+line 00391
+line 00392
+line 00393
+line 00394
+line 00395
+line 00396
+line 00397
+line 00398
+line 00399
+line 00400
+line 00401
+line 00402
+line 00403
+line 00404
+line 00405
+line 00406
+line 00407
+line 00408
+line 00409
+line 00410
+line 00411
+line 00412
+line 00413
+line 00414
+line 00415
+line 00416
+line 00417
+line 00418
+line 00419
+line 00420
+line 00421
+line 00422
+line 00423
+line 00424
+line 00425
+line 00426
+line 00427
+line 00428
+line 00429
+line 00430
+line 00431
+line 00432
+line 00433
+line 00434
+line 00435
+line 00436
+line 00437
+line 00438
+line 00439
+line 00440
+line 00441
+line 00442
+line 00443
+line 00444
+line 00445
+line 00446
+line 00447
+line 00448
+line 00449
+line 00450
+line 00451
+line 00452
+line 00453
+line 00454
+line 00455
+line 00456
+line 00457
+line 00458
+line 00459
+line 00460
+line 00461
+line 00462
+line 00463
+line 00464
+line 00465
+line 00466
+line 00467
+line 00468
+line 00469
+line 00470
+line 00471
+line 00472
+line 00473
+line 00474
+line 00475
+line 00476
+line 00477
+line 00478
+line 00479
+line 00480
+line 00481
+line 00482
+line 00483
+line 00484
+line 00485
+line 00486
+line 00487
+line 00488
+line 00489
+line 00490
+line 00491
+line 00492
+line 00493
+line 00494
+line 00495
+line 00496
+line 00497
+line 00498
+line 00499
+line 00500
+line 00501
+line 00502
+line 00503
+line 00504
+line 00505
+line 00506
+line 00507
+line 00508
+line 00509
+line 00510
+line 00511
+line 00512
+line 00513
+line 00514
+line 00515
+line 00516
+line 00517
+line 00518
+line 00519
+line 00520
+line 00521
+line 00522
+line 00523
+line 00524
+line 00525
+line 00526
+line 00527
+line 00528
+line 00529
+line 00530
+line 00531
+line 00532
+line 00533
+line 00534
+line 00535
+line 00536
+line 00537
+line 00538
+line 00539
+line 00540
+line 00541
+line 00542
+line 00543
+line 00544
+line 00545
+line 00546
+line 00547
+line 00548
+line 00549
+line 00550
+line 00551
+line 00552
+line 00553
+line 00554
+line 00555
+line 00556
+line 00557
+line 00558
+line 00559
+line 00560
+line 00561
+line 00562
+line 00563
+line 00564
+line 00565
+line 00566
+line 00567
+line 00568
+line 00569
+line 00570
+line 00571
+line 00572
+line 00573
+line 00574
+line 00575
+line 00576
+line 00577
+line 00578
+line 00579
+line 00580
+line 00581
+line 00582
+line 00583
+line 00584
+line 00585
+line 00586
+line 00587
+line 00588
+line 00589
+line 00590
+line 00591
+line 00592
+line 00593
+line 00594
+line 00595
+line 00596
+line 00597
+line 00598
+line 00599
+line 00600
+line 00601
+line 00602
+line 00603
+line 00604
+line 00605
+line 00606
+line 00607
+line 00608
+line 00609
+line 00610
+line 00611
+line 00612
+line 00613
+line 00614
+line 00615
+line 00616
+line 00617
+line 00618
+line 00619
+line 00620
+line 00621
+line 00622
+line 00623
+line 00624
+line 00625
+line 00626
+line 00627
+line 00628
+line 00629
+line 00630
+line 00631
+line 00632
+line 00633
+line 00634
+line 00635
+line 00636
+line 00637
+line 00638
+line 00639
+line 00640
+line 00641
+line 00642
+line 00643
+line 00644
+line 00645
+line 00646
+line 00647
+line 00648
+line 00649
+line 00650
+line 00651
+line 00652
+line 00653
+line 00654
+line 00655
+line 00656
+line 00657
+line 00658
+line 00659
+line 00660
+line 00661
+line 00662
+line 00663
+line 00664
+line 00665
+line 00666
+line 00667
+line 00668
+line 00669
+line 00670
+line 00671
+line 00672
+line 00673
+line 00674
+line 00675
+line 00676
+line 00677
+line 00678
+line 00679
+line 00680
+line 00681
+line 00682
+line 00683
+line 00684
+line 00685
+line 00686
+line 00687
+line 00688
+line 00689
+line 00690
+line 00691
+line 00692
+line 00693
+line 00694
+line 00695
+line 00696
+line 00697
+line 00698
+line 00699
+line 00700
+line 00701
+line 00702
+line 00703
+line 00704
+line 00705
+line 00706
+line 00707
+line 00708
+line 00709
+line 00710
+line 00711
+line 00712
+line 00713
+line 00714
+line 00715
+line 00716
+line 00717
+line 00718
+line 00719
+line 00720
+line 00721
+line 00722
+line 00723
+line 00724
+line 00725
+line 00726
+line 00727
+line 00728
+line 00729
+line 00730
+line 00731
+line 00732
+line 00733
+line 00734
+line 00735
+line 00736
+line 00737
+line 00738
+line 00739
+line 00740
+line 00741
+line 00742
+line 00743
+line 00744
+line 00745
+line 00746
+line 00747
+line 00748
+line 00749
+line 00750
+line 00751
+line 00752
+line 00753
+line 00754
+line 00755
+line 00756
+line 00757
+line 00758
+line 00759
+line 00760
+line 00761
+line 00762
+line 00763
+line 00764
+line 00765
+line 00766
+line 00767
+line 00768
+line 00769
+line 00770
+line 00771
+line 00772
+line 00773
+line 00774
+line 00775
+line 00776
+line 00777
+line 00778
+line 00779
+line 00780
+line 00781
+line 00782
+line 00783
+line 00784
+line 00785
+line 00786
+line 00787
+line 00788
+line 00789
+line 00790
+line 00791
+line 00792
+line 00793
+line 00794
+line 00795
+line 00796
+line 00797
+line 00798
+line 00799
+line 00800
+line 00801
+line 00802
+line 00803
+line 00804
+line 00805
+line 00806
+line 00807
+line 00808
+line 00809
+line 00810
+line 00811
+line 00812
+line 00813
+line 00814
+line 00815
+line 00816
+line 00817
+line 00818
+line 00819
+line 00820
+line 00821
+line 00822
+line 00823
+line 00824
+line 00825
+line 00826
+line 00827
+line 00828
+line 00829
+line 00830
+line 00831
+line 00832
+line 00833
+line 00834
+line 00835
+line 00836
+line 00837
+line 00838
+line 00839
+line 00840
+line 00841
+line 00842
+line 00843
+line 00844
+line 00845
+line 00846
+line 00847
+line 00848
+line 00849
+line 00850
+line 00851
+line 00852
+line 00853
+line 00854
+line 00855
+line 00856
+line 00857
+line 00858
+line 00859
+line 00860
+line 00861
+line 00862
+line 00863
+line 00864
+line 00865
+line 00866
+line 00867
+line 00868
+line 00869
+line 00870
+line 00871
+line 00872
+line 00873
+line 00874
+line 00875
+line 00876
+line 00877
+line 00878
+line 00879
+line 00880
+line 00881
+line 00882
+line 00883
+line 00884
+line 00885
+line 00886
+line 00887
+line 00888
+line 00889
+line 00890
+line 00891
+line 00892
+line 00893
+line 00894
+line 00895
+line 00896
+line 00897
+line 00898
+line 00899
+line 00900
+line 00901
+line 00902
+line 00903
+line 00904
+line 00905
+line 00906
+line 00907
+line 00908
+line 00909
+line 00910
+line 00911
+line 00912
+line 00913
+line 00914
+line 00915
+line 00916
+line 00917
+line 00918
+line 00919
+line 00920
+line 00921
+line 00922
+line 00923
+line 00924
+line 00925
+line 00926
+line 00927
+line 00928
+line 00929
+line 00930
+line 00931
+line 00932
+line 00933
+line 00934
+line 00935
+line 00936
+line 00937
+line 00938
+line 00939
+line 00940
+line 00941
+line 00942
+line 00943
+line 00944
+line 00945
+line 00946
+line 00947
+line 00948
+line 00949
+line 00950
+line 00951
+line 00952
+line 00953
+line 00954
+line 00955
+line 00956
+line 00957
+line 00958
+line 00959
+line 00960
+line 00961
+line 00962
+line 00963
+line 00964
+line 00965
+line 00966
+line 00967
+line 00968
+line 00969
+line 00970
+line 00971
+line 00972
+line 00973
+line 00974
+line 00975
+line 00976
+line 00977
+line 00978
+line 00979
+line 00980
+line 00981
+line 00982
+line 00983
+line 00984
+line 00985
+line 00986
+line 00987
+line 00988
+line 00989
+line 00990
+line 00991
+line 00992
+line 00993
+line 00994
+line 00995
+line 00996
+line 00997
+line 00998
+line 00999
+line 01000
+line 01001
+line 01002
+line 01003
+line 01004
+line 01005
+line 01006
+line 01007
+line 01008
+line 01009
+line 01010
+line 01011
+line 01012
+line 01013
+line 01014
+line 01015
+line 01016
+line 01017
+line 01018
+line 01019
+line 01020
+line 01021
+line 01022
+line 01023
+line 01024
+line 01025
+line 01026
+line 01027
+line 01028
+line 01029
+line 01030
+line 01031
+line 01032
+line 01033
+line 01034
+line 01035
+line 01036
+line 01037
+line 01038
+line 01039
+line 01040
+line 01041
+line 01042
+line 01043
+line 01044
+line 01045
+line 01046
+line 01047
+line 01048
+line 01049
+line 01050
+line 01051
+line 01052
+line 01053
+line 01054
+line 01055
+line 01056
+line 01057
+line 01058
+line 01059
+line 01060
+line 01061
+line 01062
+line 01063
+line 01064
+line 01065
+line 01066
+line 01067
+line 01068
+line 01069
+line 01070
+line 01071
+line 01072
+line 01073
+line 01074
+line 01075
+line 01076
+line 01077
+line 01078
+line 01079
+line 01080
+line 01081
+line 01082
+line 01083
+line 01084
+line 01085
+line 01086
+line 01087
+line 01088
+line 01089
+line 01090
+line 01091
+line 01092
+line 01093
+line 01094
+line 01095
+line 01096
+line 01097
+line 01098
+line 01099
+line 01100
+line 01101
+line 01102
+line 01103
+line 01104
+line 01105
+line 01106
+line 01107
+line 01108
+line 01109
+line 01110
+line 01111
+line 01112
+line 01113
+line 01114
+line 01115
+line 01116
+line 01117
+line 01118
+line 01119
+line 01120
+line 01121
+line 01122
+line 01123
+line 01124
+line 01125
+line 01126
+line 01127
+line 01128
+line 01129
+line 01130
+line 01131
+line 01132
+line 01133
+line 01134
+line 01135
+line 01136
+line 01137
+line 01138
+line 01139
+line 01140
+line 01141
+line 01142
+line 01143
+line 01144
+line 01145
+line 01146
+line 01147
+line 01148
+line 01149
+line 01150
+line 01151
+line 01152
+line 01153
+line 01154
+line 01155
+line 01156
+line 01157
+line 01158
+line 01159
+line 01160
+line 01161
+line 01162
+line 01163
+line 01164
+line 01165
+line 01166
+line 01167
+line 01168
+line 01169
+line 01170
+line 01171
+line 01172
+line 01173
+line 01174
+line 01175
+line 01176
+line 01177
+line 01178
+line 01179
+line 01180
+line 01181
+line 01182
+line 01183
+line 01184
+line 01185
+line 01186
+line 01187
+line 01188
+line 01189
+line 01190
+line 01191
+line 01192
+line 01193
+line 01194
+line 01195
+line 01196
+line 01197
+line 01198
+line 01199
+line 01200
+line 01201
+line 01202
+line 01203
+line 01204
+line 01205
+line 01206
+line 01207
+line 01208
+line 01209
+line 01210
+line 01211
+line 01212
+line 01213
+line 01214
+line 01215
+line 01216
+line 01217
+line 01218
+line 01219
+line 01220
+line 01221
+line 01222
+line 01223
+line 01224
+line 01225
+line 01226
+line 01227
+line 01228
+line 01229
+line 01230
+line 01231
+line 01232
+line 01233
+line 01234
+line 01235
+line 01236
+line 01237
+line 01238
+line 01239
+line 01240
+line 01241
+line 01242
+line 01243
+line 01244
+line 01245
+line 01246
+line 01247
+line 01248
+line 01249
+line 01250
+line 01251
+line 01252
+line 01253
+line 01254
+line 01255
+line 01256
+line 01257
+line 01258
+line 01259
+line 01260
+line 01261
+line 01262
+line 01263
+line 01264
+line 01265
+line 01266
+line 01267
+line 01268
+line 01269
+line 01270
+line 01271
+line 01272
+line 01273
+line 01274
+line 01275
+line 01276
+line 01277
+line 01278
+line 01279
+line 01280
+line 01281
+line 01282
+line 01283
+line 01284
+line 01285
+line 01286
+line 01287
+line 01288
+line 01289
+line 01290
+line 01291
+line 01292
+line 01293
+line 01294
+line 01295
+line 01296
+line 01297
+line 01298
+line 01299
+line 01300
+line 01301
+line 01302
+line 01303
+line 01304
+line 01305
+line 01306
+line 01307
+line 01308
+line 01309
+line 01310
+line 01311
+line 01312
+line 01313
+line 01314
+line 01315
+line 01316
+line 01317
+line 01318
+line 01319
+line 01320
+line 01321
+line 01322
+line 01323
+line 01324
+line 01325
+line 01326
+line 01327
+line 01328
+line 01329
+line 01330
+line 01331
+line 01332
+line 01333
+line 01334
+line 01335
+line 01336
+line 01337
+line 01338
+line 01339
+line 01340
+line 01341
+line 01342
+line 01343
+line 01344
+line 01345
+line 01346
+line 01347
+line 01348
+line 01349
+line 01350
+line 01351
+line 01352
+line 01353
+line 01354
+line 01355
+line 01356
+line 01357
+line 01358
+line 01359
+line 01360
+line 01361
+line 01362
+line 01363
+line 01364
+line 01365
+line 01366
+line 01367
+line 01368
+line 01369
+line 01370
+line 01371
+line 01372
+line 01373
+line 01374
+line 01375
+line 01376
+line 01377
+line 01378
+line 01379
+line 01380
+line 01381
+line 01382
+line 01383
+line 01384
+line 01385
+line 01386
+line 01387
+line 01388
+line 01389
+line 01390
+line 01391
+line 01392
+line 01393
+line 01394
+line 01395
+line 01396
+line 01397
+line 01398
+line 01399
+line 01400
+line 01401
+line 01402
+line 01403
+line 01404
+line 01405
+line 01406
+line 01407
+line 01408
+line 01409
+line 01410
+line 01411
+line 01412
+line 01413
+line 01414
+line 01415
+line 01416
+line 01417
+line 01418
+line 01419
+line 01420
+line 01421
+line 01422
+line 01423
+line 01424
+line 01425
+line 01426
+line 01427
+line 01428
+line 01429
+line 01430
+line 01431
+line 01432
+line 01433
+line 01434
+line 01435
+line 01436
+line 01437
+line 01438
+line 01439
+line 01440
+line 01441
+line 01442
+line 01443
+line 01444
+line 01445
+line 01446
+line 01447
+line 01448
+line 01449
+line 01450
+line 01451
+line 01452
+line 01453
+line 01454
+line 01455
+line 01456
+line 01457
+line 01458
+line 01459
+line 01460
+line 01461
+line 01462
+line 01463
+line 01464
+line 01465
+line 01466
+line 01467
+line 01468
+line 01469
+line 01470
+line 01471
+line 01472
+line 01473
+line 01474
+line 01475
+line 01476
+line 01477
+line 01478
+line 01479
+line 01480
+line 01481
+line 01482
+line 01483
+line 01484
+line 01485
+line 01486
+line 01487
+line 01488
+line 01489
+line 01490
+line 01491
+line 01492
+line 01493
+line 01494
+line 01495
+line 01496
+line 01497
+line 01498
+line 01499
+line 01500
+line 01501
+line 01502
+line 01503
+line 01504
+line 01505
+line 01506
+line 01507
+line 01508
+line 01509
+line 01510
+line 01511
+line 01512
+line 01513
+line 01514
+line 01515
+line 01516
+line 01517
+line 01518
+line 01519
+line 01520
+line 01521
+line 01522
+line 01523
+line 01524
+line 01525
+line 01526
+line 01527
+line 01528
+line 01529
+line 01530
+line 01531
+line 01532
+line 01533
+line 01534
+line 01535
+line 01536
+line 01537
+line 01538
+line 01539
+line 01540
+line 01541
+line 01542
+line 01543
+line 01544
+line 01545
+line 01546
+line 01547
+line 01548
+line 01549
+line 01550
+line 01551
+line 01552
+line 01553
+line 01554
+line 01555
+line 01556
+line 01557
+line 01558
+line 01559
+line 01560
+line 01561
+line 01562
+line 01563
+line 01564
+line 01565
+line 01566
+line 01567
+line 01568
+line 01569
+line 01570
+line 01571
+line 01572
+line 01573
+line 01574
+line 01575
+line 01576
+line 01577
+line 01578
+line 01579
+line 01580
+line 01581
+line 01582
+line 01583
+line 01584
+line 01585
+line 01586
+line 01587
+line 01588
+line 01589
+line 01590
+line 01591
+line 01592
+line 01593
+line 01594
+line 01595
+line 01596
+line 01597
+line 01598
+line 01599
+line 01600
+line 01601
+line 01602
+line 01603
+line 01604
+line 01605
+line 01606
+line 01607
+line 01608
+line 01609
+line 01610
+line 01611
+line 01612
+line 01613
+line 01614
+line 01615
+line 01616
+line 01617
+line 01618
+line 01619
+line 01620
+line 01621
+line 01622
+line 01623
+line 01624
+line 01625
+line 01626
+line 01627
+line 01628
+line 01629
+line 01630
+line 01631
+line 01632
+line 01633
+line 01634
+line 01635
+line 01636
+line 01637
+line 01638
+line 01639
+line 01640
+line 01641
+line 01642
+line 01643
+line 01644
+line 01645
+line 01646
+line 01647
+line 01648
+line 01649
+line 01650
+line 01651
+line 01652
+line 01653
+line 01654
+line 01655
+line 01656
+line 01657
+line 01658
+line 01659
+line 01660
+line 01661
+line 01662
+line 01663
+line 01664
+line 01665
+line 01666
+line 01667
+line 01668
+line 01669
+line 01670
+line 01671
+line 01672
+line 01673
+line 01674
+line 01675
+line 01676
+line 01677
+line 01678
+line 01679
+line 01680
+line 01681
+line 01682
+line 01683
+line 01684
+line 01685
+line 01686
+line 01687
+line 01688
+line 01689
+line 01690
+line 01691
+line 01692
+line 01693
+line 01694
+line 01695
+line 01696
+line 01697
+line 01698
+line 01699
+line 01700
+line 01701
+line 01702
+line 01703
+line 01704
+line 01705
+line 01706
+line 01707
+line 01708
+line 01709
+line 01710
+line 01711
+line 01712
+line 01713
+line 01714
+line 01715
+line 01716
+line 01717
+line 01718
+line 01719
+line 01720
+line 01721
+line 01722
+line 01723
+line 01724
+line 01725
+line 01726
+line 01727
+line 01728
+line 01729
+line 01730
+line 01731
+line 01732
+line 01733
+line 01734
+line 01735
+line 01736
+line 01737
+line 01738
+line 01739
+line 01740
+line 01741
+line 01742
+line 01743
+line 01744
+line 01745
+line 01746
+line 01747
+line 01748
+line 01749
+line 01750
+line 01751
+line 01752
+line 01753
+line 01754
+line 01755
+line 01756
+line 01757
+line 01758
+line 01759
+line 01760
+line 01761
+line 01762
+line 01763
+line 01764
+line 01765
+line 01766
+line 01767
+line 01768
+line 01769
+line 01770
+line 01771
+line 01772
+line 01773
+line 01774
+line 01775
+line 01776
+line 01777
+line 01778
+line 01779
+line 01780
+line 01781
+line 01782
+line 01783
+line 01784
+line 01785
+line 01786
+line 01787
+line 01788
+line 01789
+line 01790
+line 01791
+line 01792
+line 01793
+line 01794
+line 01795
+line 01796
+line 01797
+line 01798
+line 01799
+line 01800
+line 01801
+line 01802
+line 01803
+line 01804
+line 01805
+line 01806
+line 01807
+line 01808
+line 01809
+line 01810
+line 01811
+line 01812
+line 01813
+line 01814
+line 01815
+line 01816
+line 01817
+line 01818
+line 01819
+line 01820
+line 01821
+line 01822
+line 01823
+line 01824
+line 01825
+line 01826
+line 01827
+line 01828
+line 01829
+line 01830
+line 01831
+line 01832
+line 01833
+line 01834
+line 01835
+line 01836
+line 01837
+line 01838
+line 01839
+line 01840
+line 01841
+line 01842
+line 01843
+line 01844
+line 01845
+line 01846
+line 01847
+line 01848
+line 01849
+line 01850
+line 01851
+line 01852
+line 01853
+line 01854
+line 01855
+line 01856
+line 01857
+line 01858
+line 01859
+line 01860
+line 01861
+line 01862
+line 01863
+line 01864
+line 01865
+line 01866
+line 01867
+line 01868
+line 01869
+line 01870
+line 01871
+line 01872
+line 01873
+line 01874
+line 01875
+line 01876
+line 01877
+line 01878
+line 01879
+line 01880
+line 01881
+line 01882
+line 01883
+line 01884
+line 01885
+line 01886
+line 01887
+line 01888
+line 01889
+line 01890
+line 01891
+line 01892
+line 01893
+line 01894
+line 01895
+line 01896
+line 01897
+line 01898
+line 01899
+line 01900
+line 01901
+line 01902
+line 01903
+line 01904
+line 01905
+line 01906
+line 01907
+line 01908
+line 01909
+line 01910
+line 01911
+line 01912
+line 01913
+line 01914
+line 01915
+line 01916
+line 01917
+line 01918
+line 01919
+line 01920
+line 01921
+line 01922
+line 01923
+line 01924
+line 01925
+line 01926
+line 01927
+line 01928
+line 01929
+line 01930
+line 01931
+line 01932
+line 01933
+line 01934
+line 01935
+line 01936
+line 01937
+line 01938
+line 01939
+line 01940
+line 01941
+line 01942
+line 01943
+line 01944
+line 01945
+line 01946
+line 01947
+line 01948
+line 01949
+line 01950
+line 01951
+line 01952
+line 01953
+line 01954
+line 01955
+line 01956
+line 01957
+line 01958
+line 01959
+line 01960
+line 01961
+line 01962
+line 01963
+line 01964
+line 01965
+line 01966
+line 01967
+line 01968
+line 01969
+line 01970
+line 01971
+line 01972
+line 01973
+line 01974
+line 01975
+line 01976
+line 01977
+line 01978
+line 01979
+line 01980
+line 01981
+line 01982
+line 01983
+line 01984
+line 01985
+line 01986
+line 01987
+line 01988
+line 01989
+line 01990
+line 01991
+line 01992
+line 01993
+line 01994
+line 01995
+line 01996
+line 01997
+line 01998
+line 01999
+"""

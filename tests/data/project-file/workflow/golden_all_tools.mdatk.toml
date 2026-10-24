@@ -1,0 +1,3260 @@
+# Molecular Dynamic Analysis Tool Kit (MDATK) project file.
+# Plain TOML: every entry is explained by the comment above it. Edit with care; MDATK rewrites this
+# file (keeping the step log) when the project is saved.
+
+# File type marker of an MDATK project; do not change.
+format = "mdatk-project"
+# Version of the project file layout.
+format_version = 1
+# Molecular Dynamic Analysis Tool Kit (MDATK) version that wrote this file.
+mdatk_version = "0.0.4.1"
+# When the settings were last saved.
+saved = 2026-10-15T14:32:00
+# File next to the project that holds its step log ("": the log is at the end of this file; it moves
+# out once the project file would grow too large).
+log_file = ""
+# Free-text notes about the project (what, why, decisions, to-dos)
+notes = ""
+
+# Input files and frame range
+[inputs]
+# Topology: Amber .parm7 / .prmtop (preferred), PDB, PSF, GRO, ...
+topology = ""
+# Trajectory files in order; several files are concatenated
+trajectories = []
+# First analysed frame (0-based; of the cleaned trajectory when cleaning is on)
+start = 0
+# Stop before this frame (0-based, exclusive; not set: up to the last frame)
+# stop =   (not set)
+# Analyse every n-th frame
+step = 1
+# Time between stored frames in ps (not set: from the trajectory's time stamps)
+# dt_ps =   (not set)
+# Unit shown on time axes: "ps", "ns", "us" or "frame"
+time_unit = "ns"
+# External data files shown as extra traces (interpolated onto the analysed frames)
+external = []
+
+# Trajectory cleaning with cpptraj
+[cleaning]
+# Strip, image and fit the trajectory with cpptraj before the analyses
+enabled = false
+# cpptraj executable: a name on PATH or an absolute path
+cpptraj_path = "cpptraj"
+# Conda environment providing cpptraj (a name such as AmberTools26 or a prefix path); every call
+# runs through 'conda run -n <env>'
+conda_env = ""
+# conda / mamba / micromamba executable ("": found automatically)
+conda_exe = ""
+# cpptraj mask of the solvent residues to strip
+solvent_mask = ":WAT,HOH,TIP3,SOL,T3P,T4P,SPC"
+# cpptraj mask of the ions to strip (Mg2+ is kept by default)
+ion_mask = ":Na+,Cl-,K+,NA,CL,K,Na,Cl,SOD,CLA,POT"
+# Further atoms to strip (cpptraj mask; optional)
+extra_strip_mask = ""
+# Re-image molecules into the primary box (cpptraj autoimage)
+autoimage = true
+# Anchor mask for autoimage ("": cpptraj's default, the first molecule)
+autoimage_anchor = ""
+# RMS-fit every frame onto the reference
+fit = true
+# cpptraj mask of the atoms used for the RMS fit
+fit_mask = "@P,C4'"
+# Fit reference: the "first" frame, a given "frame" number or a "file"
+fit_reference = "first"
+# Remove the box after fitting (a rotated box cannot be stored in NetCDF)
+remove_box_after_fit = true
+# Reference frame for fit_reference = "frame" (1-based, cpptraj convention)
+reference_frame = 1
+# Reference structure for fit_reference = "file"
+reference_file = ""
+# First frame read by cpptraj (1-based trajin argument)
+start = 1
+# Last frame read by cpptraj (1-based, inclusive; not set: the last frame)
+# stop =   (not set)
+# Read every n-th frame (cpptraj trajin offset)
+offset = 1
+# Advanced: cpptraj commands inserted before trajout
+extra_commands = ""
+# Folder for the cleaned files ("": <cache_dir>/cleaned)
+output_dir = ""
+
+# Analyses
+[analyses]
+# Minimum-image distances (cleaned, imaged systems rarely need it)
+use_pbc = false
+# Largest proximity cutoff usable later without re-analysing (Å)
+proximity_search_radius = 8.0
+
+# RMSD time series
+[analyses.rmsd]
+# Compute RMSD time series
+enabled = true
+# Reference structure: index into the analysed frames (0: the first)
+reference_frame = 0
+# Superpose each frame onto the reference before computing the RMSD
+superposition = true
+# Mass-weighted superposition and RMSD
+mass_weighted = false
+
+# One RMSD series per target
+[[analyses.rmsd.targets]]
+# Name of the series (data key rmsd/<label>)
+label = "Complex"
+# Atoms whose RMSD is computed (selection; group:<name> allowed)
+selection = "(group:Aptamer or group:Target) and not name H*"
+# Atoms superposed before computing the RMSD ("": the same atoms)
+fit_selection = ""
+
+[[analyses.rmsd.targets]]
+# Name of the series (data key rmsd/<label>)
+label = "Backbone"
+# Atoms whose RMSD is computed (selection; group:<name> allowed)
+selection = "(group:Aptamer or group:Target) and name C4'"
+# Atoms superposed before computing the RMSD ("": the same atoms)
+fit_selection = ""
+
+# Heavy-atom contacts between two groups
+[analyses.contacts]
+# Count heavy-atom contacts between two groups
+enabled = true
+# First residue group
+group_a = "Aptamer"
+# Second residue group
+group_b = "Target"
+# Contact distance cutoff (Å)
+cutoff = 4.5
+# Ignore hydrogens
+heavy_only = true
+
+# Hydrogen bonds between two groups
+[analyses.hbonds]
+# Count hydrogen bonds between two groups
+enabled = true
+# First residue group
+group_a = "Aptamer"
+# Second residue group
+group_b = "Target"
+# Maximum donor-acceptor distance (Å)
+distance_cutoff = 3.5
+# Also require a minimum D-H...A angle (needs hydrogens in the topology)
+use_angle = true
+# Minimum D-H...A angle (degrees)
+angle_cutoff = 135.0
+# Elements that can donate (comma separated)
+donor_elements = "N,O"
+# Elements that can accept (comma separated)
+acceptor_elements = "N,O"
+
+# Mg2+ coordination, bridges and occupancy
+[analyses.mg]
+# Analyse Mg2+ coordination: inner/outer-sphere contacts, bridges and occupancy
+enabled = true
+# Selection of the Mg2+ ions
+mg_selection = "resname MG Mg MG2 or name MG Mg"
+# Atoms that can coordinate Mg2+
+ligand_selection = "group:Aptamer or group:Target"
+# Elements of the coordinating atoms (comma separated)
+ligand_elements = "O"
+# First group of a Mg2+ bridge
+group_a = "Aptamer"
+# Second group of a Mg2+ bridge
+group_b = "Target"
+# Inner-sphere Mg-O distance cutoff (Å)
+inner_cutoff = 2.6
+# Outer-sphere (water-mediated) Mg-O distance cutoff (Å)
+outer_cutoff = 4.5
+# Shell that counts as a bridge: "inner" or "outer"
+bridge_shell = "inner"
+# Require octahedral O-Mg-O angles (about 90 or 180 degrees)
+geometry = false
+# Allowed deviation from the octahedral angles (degrees)
+angle_tolerance = 25.0
+# Atoms whose Mg2+ occupancy is reported ("": the ligand selection)
+occupancy_selection = ""
+# Elements counted for the occupancy (comma separated)
+occupancy_elements = "N,O"
+
+# Base stacking
+[analyses.stacking]
+# Detect base stacking from ring geometry
+enabled = true
+# Residues whose rings are considered
+selection = "group:Aptamer or group:Target"
+# "all" ring pairs, or "inter" (group A against group B only)
+scope = "all"
+# First group for scope = "inter"
+group_a = "Aptamer"
+# Second group for scope = "inter"
+group_b = "Target"
+# Maximum ring-centroid distance (Å)
+distance_cutoff = 4.5
+# Maximum angle between the ring normals (degrees)
+angle_cutoff = 30.0
+# Maximum lateral displacement of the centroids (Å)
+offset_cutoff = 2.5
+# Maximum RMS deviation of ring atoms from their plane (Å)
+planarity_cutoff = 0.25
+
+# Non-bonded interaction energy
+[analyses.energy]
+# Non-bonded interaction energy between two groups
+enabled = true
+# First residue group
+group_a = "Aptamer"
+# Second residue group
+group_b = "Target"
+# Pair distance cutoff (Å)
+cutoff = 12.0
+# Relative dielectric constant
+dielectric = 1.0
+# Distance-dependent dielectric (epsilon = dielectric x r)
+distance_dependent = false
+# Use the exact Lennard-Jones parameters of a parm7 topology
+use_parm7 = true
+# Reference energy drawn on charts and panels (kcal/mol; not set: none)
+# target_value =   (not set)
+# Exclude pairs within n bonds (0: exclude none)
+exclude_bonded = 3
+
+# Base pairs (secondary structure)
+[analyses.basepairs]
+# Base pairs of the residues in the structure view, for the secondary-structure panel and PDB
+# annotation; computed whenever a panel needs them. Engine: "builtin" (canonical pairs from H-bond
+# geometry) or "barnaba" (optional)
+engine = "builtin"
+# Re-detect the pairs every n-th analysed frame (pairs hold in between)
+stride = 10
+# Builtin: maximum donor-acceptor distance of a base-pair H-bond (Å)
+cutoff = 3.5
+# Builtin: also count G-U wobble pairs
+wobble = true
+# Barnaba: also keep non-canonical (non Watson-Crick) pairs
+noncanonical = false
+
+# Structure view: colouring, glow, 3D representations, labels
+[visual]
+# Residue groups shown in the structure view (empty: all)
+structure_groups = []
+# Atom used for each residue's 2D trace point, first one found wins (P, C4', C1', CA ...)
+trace_atoms = "C4',CA"
+# 3D representations (empty: the 2D backbone trace)
+representations = []
+# 3D renderer: "auto" / "software" (built-in) or "vtk" (optional)
+renderer = "auto"
+# Residues no representation draws: "trace" (3D trace) or "hide"
+rep_rest = "trace"
+# Spline control atom of ribbons, cartoons and traces: "P" or "C4'"
+backbone_atom = "P"
+# Include hydrogens in all-atom representations
+rep_hydrogens = false
+# Show Mg2+ ions in the structure view
+show_ions = true
+# Superpose each frame's trace onto the reference frame
+align_frames = true
+# View rotation in degrees about X, Y and Z (R = Rz Ry Rx)
+rotation = [0.0, 0.0, 0.0]
+# Magnification of the structure view (1: the whole model fits; 2: twice as large)
+zoom = 1.0
+# View centre: "" (centre of the model), "origin" (0, 0, 0 of the coordinates) or a residue, e.g.
+# "12" or "B:12"
+center_on = ""
+# Keep the centre residue in the middle in every frame (not only the first)
+center_follow = false
+# Residue colouring: "chain", "groups" or "proximity"
+color_mode = "groups"
+# Colour of residues no group or proximity colour applies to
+base_color = "#b5b3ad"
+# Matplotlib palette for chain colouring
+chain_palette = "tab10"
+# Group (or sel:<selection>) whose proximity colours and glows residues
+proximity_set = "Target"
+# Distance that counts as proximity (Å)
+proximity_cutoff = 4.0
+# Colour of residues in proximity
+proximity_color = "#e34948"
+# Glow of residues near the proximity set: "none", "ever" (whole movie), "fade" or "current"
+glow_mode = "fade"
+# Glow colour
+glow_color = "#ffb000"
+# Frames over which the glow fades (glow_mode = "fade")
+fade_frames = 15
+# Glow intensity factor
+glow_strength = 1.0
+# Colour of Mg2+ ions
+ion_color = "#008300"
+# Line width of the 2D trace (points)
+line_width = 2.2
+# Marker size of the 2D trace points
+point_size = 22.0
+# Fade distant parts toward the background colour
+depth_cue = true
+# "light" or "dark"
+theme = "light"
+# Base font size (points)
+font_size = 11.0
+# Show the time label in the structure view
+show_time_label = true
+# Residue-number tags on every n-th residue (0: off)
+label_every = 0
+# Explicit residue numbers / ranges to tag, e.g. "1, 12, 24"
+label_residues = ""
+# Figure title ("": none)
+title = ""
+
+# Density map shadow and fit
+[density]
+# Density map file (.mrc / .map / .ccp4)
+map_path = ""
+# Draw the map shadow
+show = true
+# Resolution in Å; width of the simulated map used for fitting
+resolution = 5.0
+# Contour level in map standard deviations above the mean
+level = 2.0
+# Shadow colour
+color = "#2a78d6"
+# Shadow opacity, 0 (invisible) to 1
+opacity = 0.45
+# Draw the shadow in front of 3D representations (else behind them)
+front = false
+# "ref" (the first analysed frame) or a trajectory frame number to fit on
+fit_frame = "ref"
+# Automatic fit: "global" search or "manual" (refine the stored placement)
+search = "global"
+# Degrees between sampled orientations of the global search
+angular_step = 30.0
+# Fit before rendering when no placement is stored
+auto_fit = true
+# Placement: 3x3 rotation (row-major) + translation, model -> map
+transform = []
+# Backbone points of the reference frame the placement was made on (the map follows the molecule
+# when the reference changes: other start frame, cleaned vs raw files)
+anchor = []
+# Correlation of the stored placement (0: not fitted)
+fit_cc = 0.0
+# Summary of the last fit
+fit_info = ""
+
+# Figure layout: grid and panels
+[layout]
+# Grid layout (see 'mdatk list')
+preset = "large_plus_3"
+
+# Panels in slot order
+[[layout.panels]]
+# Panel type: structure, timeseries, dual_axis, heatmap or contact_map
+type = "structure"
+# Data keys shown, e.g. rmsd/Complex or contacts/per_residue_a
+series = []
+# Panel title ("": automatic)
+title = "Structure"
+# Panel-specific options, e.g. axis limits or the contact-map mode
+options = {}
+
+[[layout.panels]]
+# Panel type: structure, timeseries, dual_axis, heatmap or contact_map
+type = "timeseries"
+# Data keys shown, e.g. rmsd/Complex or contacts/per_residue_a
+series = ["rmsd/Complex"]
+# Panel title ("": automatic)
+title = "RMSD"
+# Panel-specific options, e.g. axis limits or the contact-map mode
+options = {}
+
+[[layout.panels]]
+# Panel type: structure, timeseries, dual_axis, heatmap or contact_map
+type = "timeseries"
+# Data keys shown, e.g. rmsd/Complex or contacts/per_residue_a
+series = ["hbonds/count"]
+# Panel title ("": automatic)
+title = "Inter-strand H-bonds"
+# Panel-specific options, e.g. axis limits or the contact-map mode
+options = {}
+
+[[layout.panels]]
+# Panel type: structure, timeseries, dual_axis, heatmap or contact_map
+type = "contact_map"
+# Data keys shown, e.g. rmsd/Complex or contacts/per_residue_a
+series = ["contacts/map"]
+# Panel title ("": automatic)
+title = ""
+
+# Panel-specific options, e.g. axis limits or the contact-map mode
+[layout.panels.options]
+# Contact map: 'instant' (evolves with the movie), 'frame' (one fixed frame) or 'frequency'
+# (fraction of frames in contact).
+mode = "instant"
+# Contact map: true puts the first group (e.g. the aptamer) along x and the second along y.
+transpose = true
+
+# Outputs: folders, video, charts, PDB frames
+[output]
+# Output folder (a relative path is relative to the project file)
+out_dir = "MDATK_output"
+# Cache of analyses and cleaned trajectories ("": <out_dir>/MDATK_cache)
+cache_dir = ""
+# Write MDATK_params_log.toml (settings, versions, cache keys, citations) next to the outputs
+write_params_log = true
+# Time-stamp output file names, e.g. MDATK_video_2026-10-15_143205.mp4 (cache and log keep fixed
+# names)
+timestamp_files = true
+
+# MP4 video
+[output.video]
+# Write the MP4 video
+enabled = true
+# Video file name (time-stamped when output.timestamp_files is on)
+filename = "MDATK_video.mp4"
+# Frames per second
+fps = 24
+# Width in pixels
+width = 1920
+# Height in pixels
+height = 1080
+# Figure resolution; sets text and line sizes relative to the frame
+dpi = 120
+# FFmpeg video codec
+codec = "libx264"
+# Constant rate factor: lower means better quality and larger files (libx264: 18-28)
+crf = 20
+# Use every n-th analysed frame
+frame_stride = 1
+# FFmpeg executable
+ffmpeg_path = "ffmpeg"
+
+# Time charts
+[output.charts]
+# Write high-resolution time charts
+enabled = true
+# Data keys to chart (empty: every scalar series)
+series = []
+# Also chart per-residue heatmaps
+include_heatmaps = false
+# File formats, e.g. png, pdf, svg
+formats = ["png"]
+# Raster resolution
+dpi = 300
+# Width in inches
+width = 8.0
+# Height in inches
+height = 4.5
+# "mdatk" (built-in look) or any matplotlib style name
+style = "mdatk"
+# Line colour ("": the first palette colour)
+color = ""
+# Line width (points)
+line_width = 1.5
+# Chart title ("": the series label; "{label}" placeholders allowed)
+title = ""
+# x-axis label ("": automatic)
+xlabel = ""
+# y-axis label ("": automatic)
+ylabel = ""
+# Running-average window in frames (0: off)
+smoothing = 0
+# Draw the energy target value when one is set
+show_target = true
+# File name prefix
+prefix = "MDATK_chart"
+
+# PDB export of selected frames
+[output.pdb]
+# Export selected frames as PDB files
+enabled = false
+# Frames to export, e.g. "0, 10, 20-50:10, last"
+frames = ""
+# Times to export, e.g. "1.5ns, 2000ps" (no unit: inputs.time_unit)
+times = ""
+# Group names (comma separated) or a selection ("": everything)
+selection = ""
+# File name prefix
+prefix = "MDATK_frame"
+
+# Project Planner and script wizard
+[workflow]
+# Project name used in every generated file name
+project_name = "project"
+# Time stamp in generated file names (fixed once files are written)
+stamp = ""
+# Put the time stamp into file names
+use_stamp = true
+# Folder of the generated files ("": <output.out_dir>/<project_name>_workflow)
+out_dir = ""
+# One sub-folder per step, e.g. 03_amber-build/
+step_folders = true
+# Planner connections
+edges = []
+
+# Planner steps
+[[workflow.nodes]]
+# Unique id of the step
+id = "n1"
+# Step type: the script generator (see 'mdatk workflow tools')
+tool = "amber-build"
+# Step number; orders the steps and their file names
+step = 1
+# Box title ("": the step type's label)
+title = ""
+# Position of the box on the planner canvas
+x = 40.0
+# Position of the box on the planner canvas
+y = 40.0
+# Hand-picked input files for ports that no connection feeds ({port = path})
+files = {}
+
+# The step's options (each one is explained by its comment)
+[workflow.nodes.settings]
+# Prepare the PDB for tleap: Write a cleaned copy of the input first: hydrogens removed (tleap
+# rebuilds them), TER records between chains, first MODEL only. Rosetta / FARFAR2 models need this.
+prep = true
+# Remove 5′-terminal phosphates: Drop P/OP1/OP2 of each chain's first residue: Amber's 5′-terminal
+# residues (G5, A5 ...) have no phosphate.
+strip_5p = true
+# Break chains at numbering gaps: Insert a TER record where residue numbers jump, so tleap does not
+# bond across a gap.
+gap_ter = true
+# Remove waters from the input: Crystal waters are dropped; the solvent box is built by tleap.
+strip_water = true
+# RNA force field: leaprc file for RNA. 'OL3 + CP' adds the phosphate oxygen vdW correction of
+# Steinbrecher et al. (JCTC 2012) from the frcmod below; NBfix19 / 0BPh assume it. Choices: ol3cp,
+# ol3, ljbb, roc, yil, shaw.
+rna_ff = "ol3cp"
+# CP parameters: Retyped library: the build script writes RNA_CP.lib (AmberTools' RNA.lib with the
+# phosphate oxygens retyped OP / OR) and frcmod.cp (the CP Lennard-Jones values plus the parm10.dat
+# bonded terms for the new types), so only phosphate oxygens change and the NBfix19 / 0BPh masks
+# address them as @%OP / @%OR. Own frcmod: load a CP parameter file you provide (masks stay @%O2 /
+# @%OS). Choices: lib, frcmod.
+cp_source = "lib"
+# CP frcmod file: Parameter file with the CP phosphate correction: a name in leap's search path /
+# the step folder, or an absolute path.
+cp_frcmod = "frcmod.99bsc0-chiol3-CaseP"
+# Extra parameter files: One frcmod file per line, loaded with loadamberparams after the force field
+# (e.g. frcmod.LRNA).
+extra_frcmod = ""
+# Extra residue libraries: One library (.lib / .off) per line, loaded with loadOff (e.g. LRNA.lib).
+extra_libs = ""
+# Leap commands before parameter files: Inserted right after the leaprc files, e.g. addAtomTypes for
+# new atom types.
+leap_before_params = ""
+# Leap commands before loadpdb: Inserted before the PDB is read, e.g. addPdbResMap entries.
+leap_before_load = ""
+# Leap commands after loadpdb: Inserted after the PDB is read and before solvation, e.g. bond
+# commands.
+leap_after_load = ""
+# Water model: Water model; its leaprc also loads the matching monovalent / divalent ion parameters.
+# Choices: spce, tip3p, opc, opc3, tip4pew, fb3, tip4pd, tip4p2005, none.
+water = "spce"
+# Box shape: Truncated octahedron (solvateoct) needs ~30 % less water than a rectangular box.
+# Choices: oct, rect, cubic.
+box = "oct"
+# Buffer: Minimum distance between the RNA and the box edge.
+buffer = 15.0
+# Neutralise with monovalent cations: addIonsRand <cation> 0 neutralises the RNA's phosphate charge.
+neutralize = true
+# Cation: Monovalent cation for neutralisation and salt. Choices: Na+, K+.
+cation = "Na+"
+# Mg²⁺ ions: Number of Mg²⁺ ions (residue MG) added at random positions.
+mg_count = 0
+# Balance Mg²⁺ with Cl⁻: Add two Cl⁻ per Mg²⁺ so the box stays neutral.
+mg_balance = true
+# Extra salt pairs: Additional cation/Cl⁻ pairs (≈ concentration [M] × number of waters / 55.5).
+salt_pairs = 0
+# Mg²⁺ Lennard-Jones model: 12-6: the Li & Merz parameters loaded with the water model. 12-6-4 (Li &
+# Merz): loads frcmod.ions234lm_1264_<water> and adds the C4 terms with ParmEd add12_6_4 (Amber
+# only; GROMACS cannot represent C4). microMg / nanoMg (Grotz, Cruz-León & Schwierz): optimised 12-6
+# Mg²⁺ with explicit Mg²⁺-RNA pair terms tuned to phosphate binding - written as a frcmod plus
+# ParmEd changeLJPair lines, and carried into GROMACS as [ nonbond_params ]. microMg keeps the
+# experimental (µs) water exchange; nanoMg exchanges water faster for better sampling of ion
+# binding. Choices: 126, 1264, micro, nano.
+mg_model = "126"
+# Mg²⁺-Cl⁻ pair term: Apply the authors' Mg²⁺-Cl⁻ pair term (optimised with their Cl⁻ model; Amber's
+# Cl⁻ parameters are kept for everything else). Without it Mg²⁺-Cl⁻ follows the combination rule
+# with the optimised Mg²⁺, which is not a published combination and gives much too strong Mg²⁺-Cl⁻
+# contacts.
+mg_cl_pair = true
+# NBfix19 (gHBfix19 as LJ pairs): Off-diagonal Lennard-Jones terms for -NH...N- and
+# -OH...O(phosphate) pairs (Kuehrova & Mlynsky JCTC 2019; Mlynsky et al. 2026). The masks assume OL3
+# + CP.
+nbfix19 = true
+# 0BPh pairs: Extra H5/H4 – O5' Lennard-Jones pairs of the 0BPh modification (Mlýnský et al. 2023):
+# masks @%OR with the CP library, @%OS otherwise.
+bph0 = true
+# Separate HO and O2 Lennard-Jones types first: addLJType @%HO and @%O2 before the pair changes.
+# tleap merges atom types with equal LJ parameters: HO shares its LJ type with water HW and O2 with
+# base carbonyl O, so without this the HO-O2 / HO-OS pairs also change water-H and carbonyl-O
+# interactions.
+split_types = false
+# Hydrogen mass repartitioning: ParmEd HMassRepartition (hydrogens 3.024 Da) so MD can use a 4 fs
+# time step with SHAKE.
+hmr = false
+# Extra ParmEd commands: Added before outparm, e.g. the L-RNA changeLJPair lines.
+parmed_extra = ""
+# Name L-nucleotides for leap: Before tleap, residues whose sugar chirality (C1'/C3'/C4') is L get
+# L-RNA names (Dudek & Trylska: LA LC LG LU, terminals LA5/LA3 ...), the other RNA residues Amber
+# names. Runs the PDB tools that MDATK copies into the step folder (replaces to_lrna.sh); a
+# structure without L residues is only checked.
+lrna = true
+# Force L for: Residues that are L whatever their geometry says (overrides the detection), e.g.
+# 'C:45-73', 'A:45-73, A:80-90' or 'C' for a whole chain.
+lrna_ranges = ""
+# 5'/3' terminal names: LA5/LA3 ... at chain ends as in nucleic12_LRNA.lib. Off: plain LA/LC/LG/LU
+# at the ends (as to_lrna.sh wrote), for libraries that map terminals with addPdbResMap.
+lrna_terminals = true
+# NBfix19 / 0BPh / CP for L-RNA: Declare the L-RNA library's atom types for tleap (addAtomTypes) and
+# add the NBfix19 / 0BPh pairs for its bridging-oxygen type (HO, H5, H4 against LD, as for OS / OR
+# in D-RNA). ParmEd skips them when the structure has no L residues. The CP correction of L residues
+# comes with the L-RNA parameter file (e.g. frcmod.LRNA).
+lrna_fixes = true
+# L-RNA atom types: Atom types of the L-RNA library declared as sp3 oxygens before it is loaded; the
+# first one is the bridging phosphate oxygen used in the NBfix19 / 0BPh pairs.
+lrna_types = "LD LH"
+# Two-pass build: L-RNA naming -> dry tleap -> ParmEd -> ambpdb -> solvated tleap -> ParmEd. The
+# ambpdb PDB keeps the dry topology's residue names (Amber terminal names are re-applied).
+two_pass = false
+# Also save a PDB of the built system: tleap savepdb after solvation - handy for a visual check.
+save_pdb = true
+# Conda environment: Activate this conda environment at the top of the script (eval "$(conda
+# shell.bash hook)"; conda activate <name>). Leave empty when the programs are already on PATH.
+conda_env = ""
+# Setup commands: Shell lines run before any program, e.g. 'module load ...' on a cluster or 'source
+# /opt/amber26/amber.sh' on a workstation.
+env_setup = ""
+
+[[workflow.nodes]]
+# Unique id of the step
+id = "n2"
+# Step type: the script generator (see 'mdatk workflow tools')
+tool = "amber-restraints"
+# Step number; orders the steps and their file names
+step = 2
+# Box title ("": the step type's label)
+title = ""
+# Position of the box on the planner canvas
+x = 320.0
+# Position of the box on the planner canvas
+y = 40.0
+# Hand-picked input files for ports that no connection feeds ({port = path})
+files = {}
+
+# The step's options (each one is explained by its comment)
+[workflow.nodes.settings]
+# Sequence: RNA sequence in topology order; chains separated by spaces, '&' or new lines (optionally
+# 'A: GGCAC...'). Not needed when a secondary-structure file is connected.
+sequence = ""
+# Secondary structure: Dot-bracket notation for the whole sequence; '()', '[]', '{}' and '<>' pairs
+# are restrained. Strand separators (spaces, '&') are ignored.
+dotbracket = ""
+# Residue offset: Topology residue number = position in the sequence + offset (use when the topology
+# has extra residues before the RNA).
+res_offset = 0
+# Restrain G·U wobble pairs: Also restrain G·U pairs (G O6–U N3, G N1–U O2). Off: only Watson–Crick
+# G–C and A–U pairs are restrained.
+wobble = false
+# r1: Lower distance where the linear restraint wall starts (Å).
+r1 = 2.3
+# r2: Start of the flat bottom (Å).
+r2 = 2.7
+# r3: End of the flat bottom (Å).
+r3 = 3.2
+# r4: Upper distance where the restraint turns linear (Å).
+r4 = 3.7
+# rk2: Force constant below r2 (kcal/mol/Å²).
+rk2 = 10.0
+# rk3: Force constant above r3 (kcal/mol/Å²).
+rk3 = 10.0
+# Conda environment: Activate this conda environment at the top of the script (eval "$(conda
+# shell.bash hook)"; conda activate <name>). Leave empty when the programs are already on PATH.
+conda_env = ""
+# Setup commands: Shell lines run before any program, e.g. 'module load ...' on a cluster or 'source
+# /opt/amber26/amber.sh' on a workstation.
+env_setup = ""
+
+[[workflow.nodes]]
+# Unique id of the step
+id = "n3"
+# Step type: the script generator (see 'mdatk workflow tools')
+tool = "amber-md"
+# Step number; orders the steps and their file names
+step = 3
+# Box title ("": the step type's label)
+title = ""
+# Position of the box on the planner canvas
+x = 600.0
+# Position of the box on the planner canvas
+y = 40.0
+# Hand-picked input files for ports that no connection feeds ({port = path})
+files = {}
+
+# The step's options (each one is explained by its comment)
+[workflow.nodes.settings]
+# Amber version: Version the files target (local Amber 26 or cluster Amber 24); the input format is
+# the same, the version is recorded in the scripts. Choices: 26, 24.
+amber_version = "26"
+# MD engine: Program for the MD stages. Choices: pmemd.cuda, pmemd, pmemd.MPI.
+engine = "pmemd.cuda"
+# MPI processes: Processes for pmemd.MPI.
+nproc = 8
+# MPI launcher: Command placed before pmemd.MPI; {n} is replaced by the process count (srun on SLURM
+# clusters).
+mpi_launcher = "mpirun -np {n}"
+# GPU (CUDA_VISIBLE_DEVICES): Optional GPU index for pmemd.cuda.
+gpu = ""
+# Minimisation engine: pmemd.cuda can stop on bad initial contacts; the CPU pmemd is more forgiving.
+# Choices: same, pmemd.
+min_engine = "same"
+# Input coordinates have velocities: Tick when the starting rst7 is a restart of an earlier MD run,
+# so the first MD stage can continue it (irest=1).
+input_velocities = false
+# Positional restraint reference: Coordinates used as -ref for positional restraints. Choices:
+# previous, initial.
+restraint_ref = "previous"
+# Separate production script: Production stages go into their own script (e.g. to run them on a
+# cluster).
+separate_production = true
+# Skip finished stages: When the script is re-run, stages whose output file already has pmemd's
+# final timing lines are skipped (resumes an interrupted run).
+resume = true
+# Dry PDB before production: cpptraj strips water and ions from the last restart of the main script
+# (before the production script) - for a visual check of the equilibrated structure.
+dry_pdb = true
+# Strip mask: cpptraj mask of atoms removed in the dry PDB / trajectory.
+strip_mask = ":WAT,HOH,Na+,Cl-,K+,MG"
+# Dry, imaged production trajectory: cpptraj autoimage + strip of the production trajectories (and
+# the matching dry topology) for visualisation.
+dry_traj = false
+# Strip mask (trajectory): cpptraj mask removed from the dry trajectory.
+dry_mask = ":WAT,HOH,Na+,Cl-,K+,MG"
+# Conda environment: Activate this conda environment at the top of the script (eval "$(conda
+# shell.bash hook)"; conda activate <name>). Leave empty when the programs are already on PATH.
+conda_env = ""
+# Setup commands: Shell lines run before any program, e.g. 'module load ...' on a cluster or 'source
+# /opt/amber26/amber.sh' on a workstation.
+env_setup = ""
+
+# Stages run in order; each starts from the previous stage's restart file.
+[[workflow.nodes.settings.stages]]
+name = "min1"
+title = "Minimize water/ions, RNA restrained"
+kind = "min"
+maxcyc = 2000
+ncyc = 500
+ntmin = "1"
+nstlim = 50000
+dt = 0.002
+restart = "auto"
+ensemble = "nvt"
+thermostat = "langevin"
+gamma_ln = 1.0
+tautp = 1.0
+vrand = 1000
+tempi = 0.0
+temp0 = 300.0
+ramp = false
+ramp_steps = 20000
+barostat = "berendsen"
+pres0 = 1.0
+taup = 1.0
+mcbarint = 100
+ntp = "1"
+shake = true
+cut = 10.0
+posres = true
+posres_mask = ""
+posres_wt = 10.0
+distres = false
+listout = false
+ntpr = 100
+ntwx = 500
+ntwr = 5000
+netcdf = true
+iwrap = false
+segments = 1
+production = false
+extra_cntrl = ""
+extra_namelists = ""
+
+[[workflow.nodes.settings.stages]]
+name = "min2"
+title = "Unrestrained min, helix pairs held"
+kind = "min"
+maxcyc = 2000
+ncyc = 500
+ntmin = "1"
+nstlim = 50000
+dt = 0.002
+restart = "auto"
+ensemble = "nvt"
+thermostat = "langevin"
+gamma_ln = 1.0
+tautp = 1.0
+vrand = 1000
+tempi = 0.0
+temp0 = 300.0
+ramp = false
+ramp_steps = 20000
+barostat = "berendsen"
+pres0 = 1.0
+taup = 1.0
+mcbarint = 100
+ntp = "1"
+shake = true
+cut = 10.0
+posres = false
+posres_mask = ""
+posres_wt = 10.0
+distres = true
+listout = false
+ntpr = 100
+ntwx = 500
+ntwr = 5000
+netcdf = true
+iwrap = false
+segments = 1
+production = false
+extra_cntrl = ""
+extra_namelists = ""
+
+[[workflow.nodes.settings.stages]]
+name = "heat"
+title = "Heat 0 -> 300 K, helix pairs held"
+kind = "md"
+maxcyc = 2000
+ncyc = 500
+ntmin = "1"
+nstlim = 25000
+dt = 0.002
+restart = "auto"
+ensemble = "nvt"
+thermostat = "langevin"
+gamma_ln = 1.0
+tautp = 1.0
+vrand = 1000
+tempi = 0.0
+temp0 = 300.0
+ramp = false
+ramp_steps = 20000
+barostat = "berendsen"
+pres0 = 1.0
+taup = 1.0
+mcbarint = 100
+ntp = "1"
+shake = true
+tol = 1e-06
+cut = 10.0
+posres = false
+posres_mask = ""
+posres_wt = 10.0
+distres = true
+listout = false
+ntpr = 500
+ntwx = 500
+ntwr = 5000
+netcdf = true
+iwrap = false
+segments = 1
+production = false
+extra_cntrl = ""
+extra_namelists = ""
+
+[[workflow.nodes.settings.stages]]
+name = "eq"
+title = "NPT eq, light restraint"
+kind = "md"
+maxcyc = 2000
+ncyc = 500
+ntmin = "1"
+nstlim = 50000
+dt = 0.002
+restart = "auto"
+ensemble = "npt"
+thermostat = "langevin"
+gamma_ln = 1.0
+tautp = 1.0
+vrand = 1000
+tempi = 0.0
+temp0 = 300.0
+ramp = false
+ramp_steps = 20000
+barostat = "berendsen"
+pres0 = 1.0
+taup = 1.0
+mcbarint = 100
+ntp = "1"
+shake = true
+cut = 10.0
+posres = false
+posres_mask = ""
+posres_wt = 10.0
+distres = true
+listout = false
+ntpr = 500
+ntwx = 500
+ntwr = 5000
+netcdf = true
+iwrap = false
+segments = 1
+production = false
+extra_cntrl = ""
+extra_namelists = ""
+
+[[workflow.nodes.settings.stages]]
+name = "eq-free"
+title = "Unrestrained NPT eq"
+kind = "md"
+maxcyc = 2000
+ncyc = 500
+ntmin = "1"
+nstlim = 50000
+dt = 0.002
+restart = "auto"
+ensemble = "npt"
+thermostat = "langevin"
+gamma_ln = 1.0
+tautp = 1.0
+vrand = 1000
+tempi = 0.0
+temp0 = 300.0
+ramp = false
+ramp_steps = 20000
+barostat = "berendsen"
+pres0 = 1.0
+taup = 1.0
+mcbarint = 100
+ntp = "1"
+shake = true
+cut = 10.0
+posres = false
+posres_mask = ""
+posres_wt = 10.0
+distres = true
+listout = true
+ntpr = 500
+ntwx = 500
+ntwr = 5000
+netcdf = true
+iwrap = false
+segments = 1
+production = false
+extra_cntrl = ""
+extra_namelists = ""
+
+[[workflow.nodes.settings.stages]]
+name = "prod"
+title = "Production, helix pairs held"
+kind = "md"
+maxcyc = 2000
+ncyc = 500
+ntmin = "1"
+nstlim = 150000000
+dt = 0.002
+restart = "auto"
+ensemble = "npt"
+thermostat = "langevin"
+gamma_ln = 1.0
+tautp = 1.0
+vrand = 1000
+tempi = 0.0
+temp0 = 300.0
+ramp = false
+ramp_steps = 20000
+barostat = "berendsen"
+pres0 = 1.0
+taup = 1.0
+mcbarint = 100
+ntp = "1"
+shake = true
+cut = 10.0
+posres = false
+posres_mask = ""
+posres_wt = 10.0
+distres = true
+listout = false
+ntpr = 500
+ntwx = 5000
+ntwr = 50000
+netcdf = true
+iwrap = false
+segments = 1
+production = true
+extra_cntrl = ""
+extra_namelists = ""
+
+[[workflow.nodes]]
+# Unique id of the step
+id = "n4"
+# Step type: the script generator (see 'mdatk workflow tools')
+tool = "structure-builder"
+# Step number; orders the steps and their file names
+step = 4
+# Box title ("": the step type's label)
+title = ""
+# Position of the box on the planner canvas
+x = 880.0
+# Position of the box on the planner canvas
+y = 40.0
+# Hand-picked input files for ports that no connection feeds ({port = path})
+files = {}
+
+# The step's options (each one is explained by its comment)
+[workflow.nodes.settings]
+# Build: Ideal helix: a new A-form duplex or single strand. Mutate: swap bases of the connected PDB.
+# Fit: place the connected PDB in the map. Choices: helix, mutate, fit.
+mode = "helix"
+# Sequence (5'->3'): Strand 1; T is read as U.
+sequence = ""
+# Partner strand: Complement (the canonical partners of the pairing: Watson-Crick for wc), none
+# (single strand) or a sequence typed below. Choices: auto, none, explicit.
+partner_mode = "auto"
+# Partner (5'->3'): Same length as strand 1; mismatches and G·U wobbles are allowed (reported).
+partner = ""
+# Pairing: Base-pair geometry of the duplex: Watson-Crick (antiparallel A-form, default), reverse
+# Watson-Crick / Hoogsteen / Hoogsteen-Hoogsteen (parallel strands) or reverse Hoogsteen
+# (antiparallel). For the Hoogsteen pairings strand 1 is the purine strand. Choices: wc, reverse-wc,
+# hoogsteen, reverse-hoogsteen, hh.
+pairing = "wc"
+# Triplex: A third strand in the major groove on the Hoogsteen edge of the strand-1 purines (Watson-
+# Crick duplex only). Choices: none, hoogsteen, reverse-hoogsteen.
+triplex = "none"
+# Third strand: The canonical motif bases (U / C+ or A / G on A / G) or a sequence typed below.
+# Choices: auto, explicit.
+third_mode = "auto"
+# Third strand (5'->3'): Same length as strand 1; mismatches are allowed (reported).
+third = ""
+# Chirality: D: right-handed. L: the mirror image (left-handed, L-nucleotides). Choices: D, L.
+chirality = "D"
+# Chain ids: Strand 1, strand 2 (and 3 of a triplex; default C).
+chains = "A,B"
+# First residue (strand 1)
+start1 = 1
+# First residue (strand 2)
+start2 = 1
+# First residue (strand 3)
+start3 = 1
+# Residue names: Name scheme of mdatk.pdbtools. Choices: , amber, ccd, rosetta, pdb.
+scheme = ""
+# 5'/3' terminal names: For the schemes with terminal variants (Amber, CCD).
+terminals = true
+# 5'-phosphate: Keep P/OP1/OP2/OP3 on the 5' ends (the Amber 5' units have none).
+phosphate5 = false
+# Hydrogens: Add all hydrogens (default: heavy atoms only).
+hydrogens = false
+# Mutations: Chain:residue + new base, comma separated.
+mutations = ""
+# Compensatory partner mutations: Change the Watson-Crick / G·U partner of every mutated base to the
+# complement unless it is mutated explicitly.
+compensatory = true
+# Keep G·U pairs: A G or U facing U / G keeps its partner (wobble) instead of the Watson-Crick
+# complement.
+wobble = false
+# Search: Global: all orientations and positions. Local: refine the model as placed. Choices:
+# global, local.
+search = "global"
+# Angular step: Rotation sampling of the global search.
+angular_step = 30.0
+# Conda environment: Activate this conda environment at the top of the script (eval "$(conda
+# shell.bash hook)"; conda activate <name>). Leave empty when the programs are already on PATH.
+conda_env = ""
+# Setup commands: Shell lines run before any program, e.g. 'module load ...' on a cluster or 'source
+# /opt/amber26/amber.sh' on a workstation.
+env_setup = ""
+# Python: Interpreter that can import MDATK. From the standalone AppImage / Windows build the script
+# calls that program itself instead.
+python = "python3"
+
+[[workflow.nodes]]
+# Unique id of the step
+id = "n5"
+# Step type: the script generator (see 'mdatk workflow tools')
+tool = "restraint-dicts"
+# Step number; orders the steps and their file names
+step = 5
+# Box title ("": the step type's label)
+title = ""
+# Position of the box on the planner canvas
+x = 1160.0
+# Position of the box on the planner canvas
+y = 40.0
+# Hand-picked input files for ports that no connection feeds ({port = path})
+files = {}
+
+# The step's options (each one is explained by its comment)
+[workflow.nodes.settings]
+# Program: acedrg (CCP4) or phenix.elbow (Phenix) builds the restraints from the SMILES; MDATK then
+# renames the atoms to the CCD names the model uses. Choices: acedrg, phenix.elbow.
+program = "acedrg"
+# Phenix version: Installed Phenix release. Choices: 1.21, 2.x.
+phenix_version = "2.x"
+# Phenix installation: Top folder of the Phenix installation; the script sources its phenix_env.sh.
+# Leave empty when phenix.elbow is already on PATH.
+phenix_dir = ""
+# CCP4 setup script: Sourced before acedrg runs (ccp4.setup-sh of the CCP4 installation). Leave
+# empty when acedrg is already on PATH.
+ccp4_setup = ""
+# Extra arguments: Added to every acedrg / phenix.elbow command line.
+program_args = ""
+# Residues: Model: the 5'/3' variants the connected model needs (all eight when no model is
+# connected or it does not exist yet). The four parents 0A/0C/0G/0U are CCD entries that Coot and
+# Phenix already know. Choices: auto, variants, all, list.
+codes_mode = "auto"
+# Codes: Residue codes separated by spaces or commas; codes that are not in the table need a custom
+# SMILES.
+codes = ""
+# Polymer group: _chem_comp.group of the dictionaries. RNA lets Coot / Phenix link the residue to
+# its neighbours like the CCD's L-nucleotides; non-polymer makes it a free ligand. Choices: RNA,
+# non-polymer.
+group = "RNA"
+# Custom SMILES: One 'code = SMILES' per line. For a code of the table the SMILES replaces the
+# built-in one and must describe the same molecule and stereochemistry; other codes keep the atom
+# names the program invents.
+custom = ""
+# Fetch SMILES from PubChem when writing (network): Off: no network access. On: the isomeric SMILES
+# of the compounds below is downloaded from PubChem (PUG REST) when the step's files are written,
+# checked against the code's atom graph and stereochemistry, and used instead of the built-in
+# SMILES.
+pubchem_fetch = false
+# PubChem compounds: One 'code = CID' (or compound name) per line.
+pubchem_ids = ""
+# Timeout: Seconds to wait for PubChem.
+pubchem_timeout = 15
+# Conda environment: Activate this conda environment at the top of the script (eval "$(conda
+# shell.bash hook)"; conda activate <name>). Leave empty when the programs are already on PATH.
+conda_env = ""
+# Setup commands: Shell lines run before any program, e.g. 'module load ...' on a cluster or 'source
+# /opt/amber26/amber.sh' on a workstation.
+env_setup = ""
+
+[[workflow.nodes]]
+# Unique id of the step
+id = "n6"
+# Step type: the script generator (see 'mdatk workflow tools')
+tool = "farfar2"
+# Step number; orders the steps and their file names
+step = 6
+# Box title ("": the step type's label)
+title = ""
+# Position of the box on the planner canvas
+x = 1440.0
+# Position of the box on the planner canvas
+y = 40.0
+# Hand-picked input files for ports that no connection feeds ({port = path})
+files = {}
+
+# The step's options (each one is explained by its comment)
+[workflow.nodes.settings]
+# Write FASTA and secstruct from the fields below: Generate the Rosetta FASTA (one entry per chain,
+# lower case, A:1-16 numbering) and the secstruct file. Off: use existing files.
+make_inputs = true
+# Sequence: One chain per line or chains separated by spaces / '&' (optionally 'A: ggcac...').
+# Residues are numbered continuously across chains.
+sequence = ""
+# Secondary structure: Dot-bracket for the whole sequence (strand separators optional). Paired bases
+# must be complementary (G–C, A–U, G–U) or rna_denovo stops.
+dotbracket = ""
+# FASTA name: Name on the FASTA header lines; empty uses the project name.
+fasta_name = ""
+# Existing FASTA: FASTA file to use instead.
+fasta_file = ""
+# Existing secstruct: Secondary structure file to use instead (dot-bracket on line 1).
+secstruct_file = ""
+# Models per run (-nstruct): Models written by each run.
+nstruct = 100
+# Monte Carlo cycles (-cycles): Fragment-assembly cycles per model (Rosetta default 10 000).
+cycles = 50000
+# Full-atom refinement (-minimize_rna): High-resolution minimisation after assembly - strongly
+# recommended.
+minimize_rna = true
+# Fixed stems (-fixed_stems): Seed every helix of the secondary structure with Watson–Crick pairs.
+fixed_stems = true
+# Base-pair-step moves: -rna:denovo:bps_moves (helix flexibility by base pair step fragments).
+bps_moves = false
+# Heat (-heat): Randomise torsions before assembly.
+heat = true
+# Close loops (-close_loops): Close chain breaks by cyclic coordinate descent after fragment moves.
+close_loops = true
+# Fuzz fragments: -fuzz_fragments value (0: not set).
+fuzz_fragments = 5
+# Autofilter (-autofilter): Keep only models that score among the best during the run.
+autofilter = false
+# Filter low-res base pairs: -filter_lores_base_pairs: discard models missing the secondary-
+# structure pairs.
+filter_lores_base_pairs = false
+# Filter chain closure: -filter_chain_closure: discard models with open chain breaks.
+filter_chain_closure = true
+# … also halfway: -filter_chain_closure_halfway
+filter_chain_closure_halfway = false
+# … distance: -filter_chain_closure_distance (Å).
+filter_chain_closure_distance = 15.0
+# Coordinate constraints in minimiser: -rna:denovo:minimize:minimizer_use_coordinate_constraints
+coord_csts = true
+# Dump PDBs (-rna:denovo:out:dump): Also write PDB files into each run folder.
+dump = true
+# Residues of the -s PDB: -input_res: residues provided by the fixed-helix PDB. Choices: typed,
+# stems.
+input_res_mode = "typed"
+# -input_res: Chain-qualified residues, e.g. 'A:1-6 A:13-16 B:17-20'.
+input_res = ""
+# Map resolution (-edensity:mapreso): Resolution of the connected map (Å).
+map_reso = 4.3
+# Cryo-EM scatterers: -edensity:cryoem_scatterers (electron rather than X-ray form factors).
+cryoem_scatterers = true
+# Density weight (elec_dens_fast): Score weight of the fit to the map.
+w_density = 20.0
+# coordinate_constraint: -set_weights coordinate_constraint (0: not set).
+w_coordinate_constraint = 1.0
+# linear_chainbreak: -set_weights linear_chainbreak (0: not set).
+w_linear_chainbreak = 10.0
+# Independent runs: Number of rna_denovo runs (seeds); each writes its own silent file.
+runs = 12
+# Parallel runs: Runs started at the same time (xargs -P).
+parallel = 6
+# Reproducible seeds: -run:constant_seed with -run:jran <seed base + run number>.
+constant_seed = true
+# Seed base: Run i uses seed base + i.
+seed_base = 3000
+# Run with nice: Lower the CPU priority of the runs.
+nice = true
+# rna_denovo executable: Name on PATH or full path, e.g. rna_denovo.default.linuxgccrelease.
+exe = "rna_denovo"
+# Rosetta database: -database path (empty: found by the executable).
+database = ""
+# Extra flags: Additional rna_denovo flags, one or more per line (written to the flags file).
+extra = ""
+# Conda environment: Activate this conda environment at the top of the script (eval "$(conda
+# shell.bash hook)"; conda activate <name>). Leave empty when the programs are already on PATH.
+conda_env = ""
+# Setup commands: Shell lines run before any program, e.g. 'module load ...' on a cluster or 'source
+# /opt/amber26/amber.sh' on a workstation.
+env_setup = ""
+
+[[workflow.nodes]]
+# Unique id of the step
+id = "n7"
+# Step type: the script generator (see 'mdatk workflow tools')
+tool = "farfar2-models"
+# Step number; orders the steps and their file names
+step = 7
+# Box title ("": the step type's label)
+title = ""
+# Position of the box on the planner canvas
+x = 1720.0
+# Position of the box on the planner canvas
+y = 40.0
+# Hand-picked input files for ports that no connection feeds ({port = path})
+files = {}
+
+# The step's options (each one is explained by its comment)
+[workflow.nodes.settings]
+# Cluster with rna_cluster: Group models by all-heavy-atom RMSD, best (lowest energy) cluster first.
+# Off: rank all models of all runs by score.
+cluster = true
+# Cluster radius (-cluster:radius): RMSD threshold (Å).
+radius = 2.0
+# Maximum clusters (-nstruct)
+max_clusters = 400
+# rna_cluster executable
+cluster_exe = "rna_cluster"
+# Extra rna_cluster flags
+cluster_extra = ""
+# Models to extract: Cluster centres (or best models) written as PDB files
+# <project>_<step>_model-01_<time>.pdb ...
+n_models = 10
+# extract_pdbs executable
+extract_exe = "extract_pdbs"
+# Rosetta database: -database path (empty: found by the executables).
+database = ""
+# Annotate with x3dna-dssr: Base pairs, stems and secondary structure of every extracted model.
+dssr = true
+# Also write JSON: x3dna-dssr --json output.
+dssr_json = false
+# x3dna-dssr executable
+dssr_exe = "x3dna-dssr"
+# Conda environment: Activate this conda environment at the top of the script (eval "$(conda
+# shell.bash hook)"; conda activate <name>). Leave empty when the programs are already on PATH.
+conda_env = ""
+# Setup commands: Shell lines run before any program, e.g. 'module load ...' on a cluster or 'source
+# /opt/amber26/amber.sh' on a workstation.
+env_setup = ""
+
+[[workflow.nodes]]
+# Unique id of the step
+id = "n8"
+# Step type: the script generator (see 'mdatk workflow tools')
+tool = "gromacs"
+# Step number; orders the steps and their file names
+step = 8
+# Box title ("": the step type's label)
+title = ""
+# Position of the box on the planner canvas
+x = 2000.0
+# Position of the box on the planner canvas
+y = 40.0
+# Hand-picked input files for ports that no connection feeds ({port = path})
+files = {}
+
+# The step's options (each one is explained by its comment)
+[workflow.nodes.settings]
+# GROMACS version: 2024+ on the workstation, 2023.3 on the cluster (loaded as a module). Choices:
+# 2024, 2023.
+gmx_version = "2024"
+# Module to load: 'module load' line for the cluster version (empty: none).
+module = "GROMACS/2023.3-CUDA-11.8.0"
+# gmx executable: gmx, gmx_mpi or a full path.
+gmx = "gmx"
+# Convert Amber files with: ParmEd keeps off-diagonal Lennard-Jones pairs (NBfix) as [
+# nonbond_params ]; acpype is an alternative; 'none' uses GROMACS files as they are. Choices:
+# parmed, acpype, none.
+convert = "parmed"
+# Hydrogen mass repartitioning (mdp): mass-repartition-factor = 3 in every mdp (GROMACS 2024+ only)
+# so dt = 0.004 ps works with constraints = h-bonds. Not needed when the Amber topology already has
+# HMR.
+mass_repartition = false
+# Restraint force constant: kJ/mol/nm² for stages with RNA position restraints.
+posres_fc = 1000.0
+# Allow losing NBfix pairs: Normally the conversion stops when the Amber topology has off-diagonal
+# LJ pairs that do not appear in the GROMACS topology.
+allow_nbfix_loss = false
+# Offload to the GPU: -nb gpu -pme gpu -bonded gpu
+gpu = true
+# Update on the GPU (-update gpu): Fastest on one GPU; not available with every setting.
+update_gpu = false
+# OpenMP threads (-ntomp): 0: let GROMACS decide.
+ntomp = 0
+# grompp -maxwarn: Number of grompp warnings to accept.
+maxwarn = 0
+# Extra mdrun flags
+extra_mdrun = ""
+# Separate production script: Production stages go into their own script.
+separate_production = true
+# Conda environment: Activate this conda environment at the top of the script (eval "$(conda
+# shell.bash hook)"; conda activate <name>). Leave empty when the programs are already on PATH.
+conda_env = ""
+# Setup commands: Shell lines run before any program, e.g. 'module load ...' on a cluster or 'source
+# /opt/amber26/amber.sh' on a workstation.
+env_setup = ""
+
+# Each stage starts from the previous stage's coordinates and checkpoint.
+[[workflow.nodes.settings.stages]]
+name = "em"
+integrator = "steep"
+nsteps = 50000
+emtol = 1000.0
+emstep = 0.01
+dt = 0.002
+velocities = "auto"
+tcoupl = "V-rescale"
+tc_grps = "System"
+tau_t = 0.1
+ref_t = 300.0
+pcoupl = "no"
+tau_p = 2.0
+ref_p = 1.0
+compressibility = 4.5e-05
+constraints = "none"
+cutoff = 1.0
+posres = false
+nstxout_compressed = 5000
+nstenergy = 5000
+production = false
+extra_mdp = ""
+
+[[workflow.nodes.settings.stages]]
+name = "nvt"
+integrator = "md"
+nsteps = 50000
+emtol = 1000.0
+emstep = 0.01
+dt = 0.002
+velocities = "auto"
+tcoupl = "V-rescale"
+tc_grps = "System"
+tau_t = 0.1
+ref_t = 300.0
+pcoupl = "no"
+tau_p = 2.0
+ref_p = 1.0
+compressibility = 4.5e-05
+constraints = "h-bonds"
+cutoff = 1.0
+posres = true
+nstxout_compressed = 5000
+nstenergy = 5000
+production = false
+extra_mdp = ""
+
+[[workflow.nodes.settings.stages]]
+name = "npt"
+integrator = "md"
+nsteps = 50000
+emtol = 1000.0
+emstep = 0.01
+dt = 0.002
+velocities = "auto"
+tcoupl = "V-rescale"
+tc_grps = "System"
+tau_t = 0.1
+ref_t = 300.0
+pcoupl = "C-rescale"
+tau_p = 2.0
+ref_p = 1.0
+compressibility = 4.5e-05
+constraints = "h-bonds"
+cutoff = 1.0
+posres = true
+nstxout_compressed = 5000
+nstenergy = 5000
+production = false
+extra_mdp = ""
+
+[[workflow.nodes.settings.stages]]
+name = "md"
+integrator = "md"
+nsteps = 50000000
+emtol = 1000.0
+emstep = 0.01
+dt = 0.002
+velocities = "auto"
+tcoupl = "V-rescale"
+tc_grps = "System"
+tau_t = 0.1
+ref_t = 300.0
+pcoupl = "C-rescale"
+tau_p = 2.0
+ref_p = 1.0
+compressibility = 4.5e-05
+constraints = "h-bonds"
+cutoff = 1.0
+posres = false
+nstxout_compressed = 5000
+nstenergy = 5000
+production = true
+extra_mdp = ""
+
+[[workflow.nodes]]
+# Unique id of the step
+id = "n9"
+# Step type: the script generator (see 'mdatk workflow tools')
+tool = "note"
+# Step number; orders the steps and their file names
+step = 0
+# Box title ("": the step type's label)
+title = ""
+# Position of the box on the planner canvas
+x = 2280.0
+# Position of the box on the planner canvas
+y = 40.0
+# Hand-picked input files for ports that no connection feeds ({port = path})
+files = {}
+
+# The step's options (each one is explained by its comment)
+[workflow.nodes.settings]
+# Text: Anything worth remembering about the plan.
+text = ""
+
+[[workflow.nodes]]
+# Unique id of the step
+id = "n10"
+# Step type: the script generator (see 'mdatk workflow tools')
+tool = "input-file"
+# Step number; orders the steps and their file names
+step = 0
+# Box title ("": the step type's label)
+title = ""
+# Position of the box on the planner canvas
+x = 2560.0
+# Position of the box on the planner canvas
+y = 40.0
+# Hand-picked input files for ports that no connection feeds ({port = path})
+files = {}
+
+# The step's options (each one is explained by its comment)
+[workflow.nodes.settings]
+# File: The existing file. Relative paths are read from the folder of the saved preset.
+path = ""
+# Type: What the file contains; decides which inputs it can feed. Choices: pdb, fasta, secstruct,
+# map, cif, smiles, silent, parm7, rst7, nc, dist, top, gro, xtc, trafl, image, text.
+kind = "pdb"
+
+[[workflow.nodes]]
+# Unique id of the step
+id = "n11"
+# Step type: the script generator (see 'mdatk workflow tools')
+tool = "mdatk"
+# Step number; orders the steps and their file names
+step = 0
+# Box title ("": the step type's label)
+title = ""
+# Position of the box on the planner canvas
+x = 2840.0
+# Position of the box on the planner canvas
+y = 40.0
+# Hand-picked input files for ports that no connection feeds ({port = path})
+files = {}
+
+# The step's options (each one is explained by its comment)
+[workflow.nodes.settings]
+# Clean with cpptraj first: Enable cpptraj stripping / imaging / fitting (Input & cleaning) when the
+# paths are applied; solvated MD output normally needs it.
+clean = true
+
+[[workflow.nodes]]
+# Unique id of the step
+id = "n12"
+# Step type: the script generator (see 'mdatk workflow tools')
+tool = "phenix-rsr"
+# Step number; orders the steps and their file names
+step = 9
+# Box title ("": the step type's label)
+title = ""
+# Position of the box on the planner canvas
+x = 3120.0
+# Position of the box on the planner canvas
+y = 40.0
+# Hand-picked input files for ports that no connection feeds ({port = path})
+files = {}
+
+# The step's options (each one is explained by its comment)
+[workflow.nodes.settings]
+# Phenix version: Installed Phenix release. Choices: 1.21, 2.x.
+phenix_version = "2.x"
+# Phenix installation: Top folder of the Phenix installation; the script sources its phenix_env.sh.
+# Leave empty when phenix.real_space_refine is already on PATH (or set it up below).
+phenix_dir = ""
+# Macro cycles: macro_cycles of real_space_refine.
+macro_cycles = 5
+# Global minimisation: run=minimization_global: Gradient-driven minimisation of the whole model
+# against the map with geometry restraints.
+run_minimization_global = true
+# Rigid body: run=rigid_body: Rigid-body refinement of the chains first (a model that is not yet
+# placed well).
+run_rigid_body = false
+# Local grid search: run=local_grid_search: Local real-space fitting of side chains / residues by
+# grid search.
+run_local_grid_search = true
+# Morphing: run=morphing: Morphs the model towards the map: large, smooth moves of models from
+# another state.
+run_morphing = false
+# Simulated annealing: run=simulated_annealing: Real-space simulated annealing: larger radius of
+# convergence, slower.
+run_simulated_annealing = false
+# ADP (B-factors): run=adp: Refines atomic displacement parameters at the end.
+run_adp = true
+# Processors: nproc (parallel parts of the refinement).
+nproc = 1
+# Output prefix: output.prefix of Phenix's files (empty: <project>_<step>_phenix-rsr_<time>); the
+# refined model is copied to the step's own file.
+prefix = ""
+# Extra parameters: Appended verbatim to the command line, one or more per line (# starts a
+# comment).
+extra = ""
+# Nucleic-acid secondary-structure restraints: Phenix searches the model for base pairs and stacking
+# and restrains them (secondary_structure.enabled=True).
+na_ss = true
+# Explicit base pairs: Written as base_pair restraints into a parameter (.eff) file. Dot-bracket:
+# the connected secondary structure or the one typed below (nothing is written when there is none).
+# Annotation: the REMARK 950 PAIR records of the model ('mdatk pdb annotate'), read when the files
+# are written. Choices: none, secstruct, annotation.
+pairs_source = "secstruct"
+# Sequence: For a typed dot-bracket (chains separated by spaces).
+sequence = ""
+# Dot-bracket: Ignored when a secondary structure is connected.
+dotbracket = ""
+# Residue numbering: How dot-bracket positions map to residues: the nucleotides of the model in file
+# order (when it exists; otherwise continuous numbering), numbers continuous across chains from 1,
+# or restarting at 1 in every chain. Choices: model, continuous, chain.
+numbering = "model"
+# Restrain G·U wobble pairs: Saenger class 28.
+wobble = true
+# Stacking from the annotation: Also write the STACK records as stacking_pair restraints.
+stacking = false
+# Conda environment: Activate this conda environment at the top of the script (eval "$(conda
+# shell.bash hook)"; conda activate <name>). Leave empty when the programs are already on PATH.
+conda_env = ""
+# Setup commands: Shell lines run before any program, e.g. 'module load ...' on a cluster or 'source
+# /opt/amber26/amber.sh' on a workstation.
+env_setup = ""
+
+[[workflow.nodes]]
+# Unique id of the step
+id = "n13"
+# Step type: the script generator (see 'mdatk workflow tools')
+tool = "coot-rsr"
+# Step number; orders the steps and their file names
+step = 10
+# Box title ("": the step type's label)
+title = ""
+# Position of the box on the planner canvas
+x = 3400.0
+# Position of the box on the planner canvas
+y = 40.0
+# Hand-picked input files for ports that no connection feeds ({port = path})
+files = {}
+
+# The step's options (each one is explained by its comment)
+[workflow.nodes.settings]
+# Coot version: Installed Coot generation; the script works in both, the version selects the
+# command-line flags. Choices: 0.9, 1.x.
+coot_version = "1.x"
+# Coot executable: Name or path of the coot program.
+coot_exe = "coot"
+# Residues: Residue ranges to refine, e.g. 'A:1-20, B:5-12' (empty: every polymer residue; a range
+# without a chain applies to every chain).
+residues = ""
+# Zone size: Residues refined together (refine_zone window).
+zone_size = 10
+# Zone overlap: Residues shared by neighbouring windows.
+overlap = 3
+# Cycles: Passes over all windows.
+cycles = 2
+# Map weight: Default: Coot's own weight. Auto: auto_weight_for_refinement (when this Coot has it).
+# Fixed: set_matrix with the value below. Choices: default, auto, fixed.
+weight_mode = "default"
+# Weight: set_matrix value (larger: the map pulls harder).
+weight = 60.0
+# Torsion restraints: set_refine_with_torsion_restraints: also restrain torsions from the
+# dictionaries.
+torsions = false
+# Conda environment: Activate this conda environment at the top of the script (eval "$(conda
+# shell.bash hook)"; conda activate <name>). Leave empty when the programs are already on PATH.
+conda_env = ""
+# Setup commands: Shell lines run before any program, e.g. 'module load ...' on a cluster or 'source
+# /opt/amber26/amber.sh' on a workstation.
+env_setup = ""
+
+[[workflow.nodes]]
+# Unique id of the step
+id = "n14"
+# Step type: the script generator (see 'mdatk workflow tools')
+tool = "rnamake"
+# Step number; orders the steps and their file names
+step = 11
+# Box title ("": the step type's label)
+title = ""
+# Position of the box on the planner canvas
+x = 3680.0
+# Position of the box on the planner canvas
+y = 40.0
+# Hand-picked input files for ports that no connection feeds ({port = path})
+files = {}
+
+# The step's options (each one is explained by its comment)
+[workflow.nodes.settings]
+# Application: design_rna_scaffold is the current RNAMake app (double-dash options); design_rna is
+# the 2016-2020 version (single-dash options). Choices: design_rna_scaffold, design_rna.
+app = "design_rna_scaffold"
+# Start base pair: Base pair where the design starts, <chain><residue>-<chain><residue>, e.g.
+# A222-A251.
+start_bp = ""
+# End base pair: Base pair the design must reach.
+end_bp = ""
+# Designs: Number of designs.
+designs = 10
+# Extra motif PDBs: Comma-separated PDB files of extra motifs (--extra_pdbs).
+extra_pdbs = ""
+# Search: path_finding (default), Monte Carlo or exhaustive search through motif / helix libraries.
+# Choices: path_finding, mc, exhaustive.
+search_type = "path_finding"
+# Score cutoff (--search_cutoff): Accept solutions scoring below this.
+search_cutoff = 7.5
+# Maximum size (--search_max_size)
+search_max_size = 999999
+# Maximum motifs: --search_max_motifs
+search_max_motifs = 999
+# Motif path: Comma-separated library path, e.g. flex_helices,twoway,flex_helices (empty: RNAMake
+# default).
+motif_path = ""
+# Minimum helix length
+min_helix = 4
+# Maximum helix length
+max_helix = 99
+# Ignore clashes (--no_sterics)
+no_sterics = false
+# Skip base-pair checks: --no_basepair_checks
+no_bp_checks = false
+# Skip sequence optimisation: Keep the library sequences (--skip_sequence_optimization /
+# -only_ideal).
+skip_seq_opt = false
+# Sequences per design
+seqs_per_design = 1
+# Optimisation steps: --seq_opt_steps
+seq_opt_steps = 10000
+# Optimisation cutoff: --seq_opt_cutoff
+seq_opt_cutoff = 7.0
+# Thermal-fluctuation scoring: --thermo_fluc: sample helix flexibility to score how often the design
+# closes.
+thermo_fluc = false
+# Fluctuation steps
+thermo_fluc_steps = 1000000
+# Write design PDBs: --dump_pdbs / -pdbs
+dump_pdbs = true
+# Write scaffold PDBs: --dump_scaffold_pdbs
+dump_scaffold = false
+# RNAMAKE folder: RNAMake installation (exported as RNAMAKE, which the programs need).
+rnamake_dir = "$RNAMAKE"
+# Executable: Empty: the application name; or a full path.
+exe = ""
+# Extra flags: Additional command-line flags.
+extra = ""
+# Conda environment: Activate this conda environment at the top of the script (eval "$(conda
+# shell.bash hook)"; conda activate <name>). Leave empty when the programs are already on PATH.
+conda_env = ""
+# Setup commands: Shell lines run before any program, e.g. 'module load ...' on a cluster or 'source
+# /opt/amber26/amber.sh' on a workstation.
+env_setup = ""
+
+[[workflow.nodes]]
+# Unique id of the step
+id = "n15"
+# Step type: the script generator (see 'mdatk workflow tools')
+tool = "simrna"
+# Step number; orders the steps and their file names
+step = 12
+# Box title ("": the step type's label)
+title = ""
+# Position of the box on the planner canvas
+x = 3960.0
+# Position of the box on the planner canvas
+y = 40.0
+# Hand-picked input files for ports that no connection feeds ({port = path})
+files = {}
+
+# The step's options (each one is explained by its comment)
+[workflow.nodes.settings]
+# Sequence: Chains separated by spaces / new lines; ignored when a secondary-structure step is
+# connected.
+sequence = ""
+# Secondary structure: Dot-bracket; pseudoknot brackets [] {} <> go to extra restraint lines.
+dotbracket = ""
+# Use the secondary structure as restraints (-S)
+use_ss = true
+# Distance restraints: SimRNA restraint lines, e.g. 'SLOPE A/20/P A/41/C4' 0 8 1' or 'WELL A/16/MB
+# A/39/MB 5.0 10.0 5.0' (atoms P, C4', N1/N9, C2, C4/C6, MB).
+restraints = ""
+# NUMBER_OF_ITERATIONS: Monte Carlo iterations.
+iterations = 16000000
+# TRA_WRITE_IN_EVERY_N_ITERATIONS: Trajectory frame interval.
+write_every = 16000
+# INIT_TEMP: Start of the simulated-annealing temperature.
+init_temp = 1.35
+# FINAL_TEMP: End temperature (equal to INIT_TEMP: constant temperature).
+final_temp = 0.9
+# BONDS_WEIGHT
+bonds_weight = 1.0
+# ANGLES_WEIGHT
+angles_weight = 1.0
+# TORS_ANGLES_WEIGHT
+tors_weight = 0.0
+# ETA_THETA_WEIGHT
+eta_theta_weight = 0.4
+# Extra config lines: KEY value lines added to the config file.
+extra_config = ""
+# Independent runs: Runs with different random seeds.
+runs = 8
+# Parallel runs
+parallel = 4
+# Replicas (-E): Replica-exchange Monte Carlo replicas per run (1: plain simulated annealing).
+replicas = 10
+# Seed base: Run i uses seed base + i (-R).
+seed_base = 1000
+# Run with nice
+nice = true
+# SimRNA executable
+exe = "SimRNA"
+# SimRNA folder: Installation folder containing data/ (linked into every run folder); a path or a
+# shell variable.
+simrna_dir = "$SIMRNA"
+# Cluster and rebuild all-atom models: clustering on the lowest-energy frames of all runs, then
+# SimRNA_trafl2pdbs ... AA.
+cluster = true
+# Fraction of frames: Lowest-energy fraction clustered.
+fraction = 0.01
+# Models to rebuild: Cluster representatives rebuilt as all-atom PDB files.
+n_models = 5
+# clustering executable
+cluster_exe = "clustering"
+# SimRNA_trafl2pdbs executable
+trafl2pdbs_exe = "SimRNA_trafl2pdbs"
+# Conda environment: Activate this conda environment at the top of the script (eval "$(conda
+# shell.bash hook)"; conda activate <name>). Leave empty when the programs are already on PATH.
+conda_env = ""
+# Setup commands: Shell lines run before any program, e.g. 'module load ...' on a cluster or 'source
+# /opt/amber26/amber.sh' on a workstation.
+env_setup = ""
+
+[[workflow.nodes]]
+# Unique id of the step
+id = "n16"
+# Step type: the script generator (see 'mdatk workflow tools')
+tool = "vmd"
+# Step number; orders the steps and their file names
+step = 13
+# Box title ("": the step type's label)
+title = ""
+# Position of the box on the planner canvas
+x = 4240.0
+# Position of the box on the planner canvas
+y = 40.0
+# Hand-picked input files for ports that no connection feeds ({port = path})
+files = {}
+
+# The step's options (each one is explained by its comment)
+[workflow.nodes.settings]
+# First frame: First trajectory frame loaded (0-based).
+first = 0
+# Last frame: Last frame (-1: until the end).
+last = -1
+# Stride: Load every n-th frame.
+stride = 1
+# RNA style: Representation of every residue group. Choices: NewCartoon, Licorice, Ribbons, Tube,
+# Surf, QuickSurf, VDW, CPK, Lines.
+rna_style = "NewCartoon"
+# Bases as licorice: Overlay the nucleobases (and ribose) as licorice so base positions are visible.
+bases = true
+# Colour by residue group: One representation per MDATK residue group in its colour; off: colour by
+# residue name.
+group_colors = true
+# Extra selection: Also show this VMD selection (e.g. 'resname MG and within 5 of nucleic').
+selection = ""
+# Extra selection style:  Choices: NewCartoon, Licorice, Ribbons, Tube, Surf, QuickSurf, VDW, CPK,
+# Lines.
+selection_style = "Licorice"
+# Mg²⁺ as spheres: Show Mg²⁺ (resname MG) as VDW spheres.
+ions = true
+# Ion sphere scale: VDW radius scale for ions.
+ion_scale = 0.6
+# Material: VMD material of all representations. Choices: Opaque, AOChalky, AOShiny, Glossy,
+# Transparent, Diffuse.
+material = "AOChalky"
+# Smoothing window: Trajectory smoothing of the representations (frames, 0: off).
+smooth = 0
+# Background:  Choices: white, black.
+background = "white"
+# Projection:  Choices: Orthographic, Perspective.
+projection = "Orthographic"
+# Depth cueing: Fade distant atoms.
+depthcue = false
+# Align frames: Superpose every frame on the first using the alignment selection (measure fit).
+align = true
+# Alignment selection: Atoms used to superpose frames.
+align_sel = "nucleic and name P C4'"
+# Window width: Display / image width in pixels.
+width = 1280
+# Window height
+height = 960
+# Output: Interactive: open VMD with the scene. Snapshot: render the last frame. Movie: render every
+# loaded frame and join them with ffmpeg. Choices: interactive, snapshot, movie.
+render = "interactive"
+# Renderer: TachyonInternal works without a display (batch); snapshot captures the OpenGL window.
+# Choices: TachyonInternal, snapshot.
+renderer = "TachyonInternal"
+# Movie frame rate
+fps = 24
+# VMD executable
+vmd_exe = "vmd"
+# ffmpeg executable
+ffmpeg_exe = "ffmpeg"
+# Extra Tcl commands: Run after the scene is built (before rendering).
+extra_tcl = ""
+# Conda environment: Activate this conda environment at the top of the script (eval "$(conda
+# shell.bash hook)"; conda activate <name>). Leave empty when the programs are already on PATH.
+conda_env = ""
+# Setup commands: Shell lines run before any program, e.g. 'module load ...' on a cluster or 'source
+# /opt/amber26/amber.sh' on a workstation.
+env_setup = ""
+
+# Stand-alone script wizard settings, one entry per step type
+[[workflow.scratch]]
+# Unique id of the step
+id = "wizard-amber-build"
+# Step type: the script generator (see 'mdatk workflow tools')
+tool = "amber-build"
+# Step number; orders the steps and their file names
+step = 1
+# Box title ("": the step type's label)
+title = ""
+# Position of the box on the planner canvas
+x = 40.0
+# Position of the box on the planner canvas
+y = 40.0
+# Hand-picked input files for ports that no connection feeds ({port = path})
+files = {}
+
+# The step's options (each one is explained by its comment)
+[workflow.scratch.settings]
+# Prepare the PDB for tleap: Write a cleaned copy of the input first: hydrogens removed (tleap
+# rebuilds them), TER records between chains, first MODEL only. Rosetta / FARFAR2 models need this.
+prep = true
+# Remove 5′-terminal phosphates: Drop P/OP1/OP2 of each chain's first residue: Amber's 5′-terminal
+# residues (G5, A5 ...) have no phosphate.
+strip_5p = true
+# Break chains at numbering gaps: Insert a TER record where residue numbers jump, so tleap does not
+# bond across a gap.
+gap_ter = true
+# Remove waters from the input: Crystal waters are dropped; the solvent box is built by tleap.
+strip_water = true
+# RNA force field: leaprc file for RNA. 'OL3 + CP' adds the phosphate oxygen vdW correction of
+# Steinbrecher et al. (JCTC 2012) from the frcmod below; NBfix19 / 0BPh assume it. Choices: ol3cp,
+# ol3, ljbb, roc, yil, shaw.
+rna_ff = "ol3cp"
+# CP parameters: Retyped library: the build script writes RNA_CP.lib (AmberTools' RNA.lib with the
+# phosphate oxygens retyped OP / OR) and frcmod.cp (the CP Lennard-Jones values plus the parm10.dat
+# bonded terms for the new types), so only phosphate oxygens change and the NBfix19 / 0BPh masks
+# address them as @%OP / @%OR. Own frcmod: load a CP parameter file you provide (masks stay @%O2 /
+# @%OS). Choices: lib, frcmod.
+cp_source = "lib"
+# CP frcmod file: Parameter file with the CP phosphate correction: a name in leap's search path /
+# the step folder, or an absolute path.
+cp_frcmod = "frcmod.99bsc0-chiol3-CaseP"
+# Extra parameter files: One frcmod file per line, loaded with loadamberparams after the force field
+# (e.g. frcmod.LRNA).
+extra_frcmod = ""
+# Extra residue libraries: One library (.lib / .off) per line, loaded with loadOff (e.g. LRNA.lib).
+extra_libs = ""
+# Leap commands before parameter files: Inserted right after the leaprc files, e.g. addAtomTypes for
+# new atom types.
+leap_before_params = ""
+# Leap commands before loadpdb: Inserted before the PDB is read, e.g. addPdbResMap entries.
+leap_before_load = ""
+# Leap commands after loadpdb: Inserted after the PDB is read and before solvation, e.g. bond
+# commands.
+leap_after_load = ""
+# Water model: Water model; its leaprc also loads the matching monovalent / divalent ion parameters.
+# Choices: spce, tip3p, opc, opc3, tip4pew, fb3, tip4pd, tip4p2005, none.
+water = "spce"
+# Box shape: Truncated octahedron (solvateoct) needs ~30 % less water than a rectangular box.
+# Choices: oct, rect, cubic.
+box = "oct"
+# Buffer: Minimum distance between the RNA and the box edge.
+buffer = 15.0
+# Neutralise with monovalent cations: addIonsRand <cation> 0 neutralises the RNA's phosphate charge.
+neutralize = true
+# Cation: Monovalent cation for neutralisation and salt. Choices: Na+, K+.
+cation = "Na+"
+# Mg²⁺ ions: Number of Mg²⁺ ions (residue MG) added at random positions.
+mg_count = 0
+# Balance Mg²⁺ with Cl⁻: Add two Cl⁻ per Mg²⁺ so the box stays neutral.
+mg_balance = true
+# Extra salt pairs: Additional cation/Cl⁻ pairs (≈ concentration [M] × number of waters / 55.5).
+salt_pairs = 0
+# Mg²⁺ Lennard-Jones model: 12-6: the Li & Merz parameters loaded with the water model. 12-6-4 (Li &
+# Merz): loads frcmod.ions234lm_1264_<water> and adds the C4 terms with ParmEd add12_6_4 (Amber
+# only; GROMACS cannot represent C4). microMg / nanoMg (Grotz, Cruz-León & Schwierz): optimised 12-6
+# Mg²⁺ with explicit Mg²⁺-RNA pair terms tuned to phosphate binding - written as a frcmod plus
+# ParmEd changeLJPair lines, and carried into GROMACS as [ nonbond_params ]. microMg keeps the
+# experimental (µs) water exchange; nanoMg exchanges water faster for better sampling of ion
+# binding. Choices: 126, 1264, micro, nano.
+mg_model = "126"
+# Mg²⁺-Cl⁻ pair term: Apply the authors' Mg²⁺-Cl⁻ pair term (optimised with their Cl⁻ model; Amber's
+# Cl⁻ parameters are kept for everything else). Without it Mg²⁺-Cl⁻ follows the combination rule
+# with the optimised Mg²⁺, which is not a published combination and gives much too strong Mg²⁺-Cl⁻
+# contacts.
+mg_cl_pair = true
+# NBfix19 (gHBfix19 as LJ pairs): Off-diagonal Lennard-Jones terms for -NH...N- and
+# -OH...O(phosphate) pairs (Kuehrova & Mlynsky JCTC 2019; Mlynsky et al. 2026). The masks assume OL3
+# + CP.
+nbfix19 = true
+# 0BPh pairs: Extra H5/H4 – O5' Lennard-Jones pairs of the 0BPh modification (Mlýnský et al. 2023):
+# masks @%OR with the CP library, @%OS otherwise.
+bph0 = true
+# Separate HO and O2 Lennard-Jones types first: addLJType @%HO and @%O2 before the pair changes.
+# tleap merges atom types with equal LJ parameters: HO shares its LJ type with water HW and O2 with
+# base carbonyl O, so without this the HO-O2 / HO-OS pairs also change water-H and carbonyl-O
+# interactions.
+split_types = false
+# Hydrogen mass repartitioning: ParmEd HMassRepartition (hydrogens 3.024 Da) so MD can use a 4 fs
+# time step with SHAKE.
+hmr = false
+# Extra ParmEd commands: Added before outparm, e.g. the L-RNA changeLJPair lines.
+parmed_extra = ""
+# Name L-nucleotides for leap: Before tleap, residues whose sugar chirality (C1'/C3'/C4') is L get
+# L-RNA names (Dudek & Trylska: LA LC LG LU, terminals LA5/LA3 ...), the other RNA residues Amber
+# names. Runs the PDB tools that MDATK copies into the step folder (replaces to_lrna.sh); a
+# structure without L residues is only checked.
+lrna = true
+# Force L for: Residues that are L whatever their geometry says (overrides the detection), e.g.
+# 'C:45-73', 'A:45-73, A:80-90' or 'C' for a whole chain.
+lrna_ranges = ""
+# 5'/3' terminal names: LA5/LA3 ... at chain ends as in nucleic12_LRNA.lib. Off: plain LA/LC/LG/LU
+# at the ends (as to_lrna.sh wrote), for libraries that map terminals with addPdbResMap.
+lrna_terminals = true
+# NBfix19 / 0BPh / CP for L-RNA: Declare the L-RNA library's atom types for tleap (addAtomTypes) and
+# add the NBfix19 / 0BPh pairs for its bridging-oxygen type (HO, H5, H4 against LD, as for OS / OR
+# in D-RNA). ParmEd skips them when the structure has no L residues. The CP correction of L residues
+# comes with the L-RNA parameter file (e.g. frcmod.LRNA).
+lrna_fixes = true
+# L-RNA atom types: Atom types of the L-RNA library declared as sp3 oxygens before it is loaded; the
+# first one is the bridging phosphate oxygen used in the NBfix19 / 0BPh pairs.
+lrna_types = "LD LH"
+# Two-pass build: L-RNA naming -> dry tleap -> ParmEd -> ambpdb -> solvated tleap -> ParmEd. The
+# ambpdb PDB keeps the dry topology's residue names (Amber terminal names are re-applied).
+two_pass = false
+# Also save a PDB of the built system: tleap savepdb after solvation - handy for a visual check.
+save_pdb = true
+# Conda environment: Activate this conda environment at the top of the script (eval "$(conda
+# shell.bash hook)"; conda activate <name>). Leave empty when the programs are already on PATH.
+conda_env = ""
+# Setup commands: Shell lines run before any program, e.g. 'module load ...' on a cluster or 'source
+# /opt/amber26/amber.sh' on a workstation.
+env_setup = ""
+
+[[workflow.scratch]]
+# Unique id of the step
+id = "wizard-amber-restraints"
+# Step type: the script generator (see 'mdatk workflow tools')
+tool = "amber-restraints"
+# Step number; orders the steps and their file names
+step = 1
+# Box title ("": the step type's label)
+title = ""
+# Position of the box on the planner canvas
+x = 40.0
+# Position of the box on the planner canvas
+y = 40.0
+# Hand-picked input files for ports that no connection feeds ({port = path})
+files = {}
+
+# The step's options (each one is explained by its comment)
+[workflow.scratch.settings]
+# Sequence: RNA sequence in topology order; chains separated by spaces, '&' or new lines (optionally
+# 'A: GGCAC...'). Not needed when a secondary-structure file is connected.
+sequence = ""
+# Secondary structure: Dot-bracket notation for the whole sequence; '()', '[]', '{}' and '<>' pairs
+# are restrained. Strand separators (spaces, '&') are ignored.
+dotbracket = ""
+# Residue offset: Topology residue number = position in the sequence + offset (use when the topology
+# has extra residues before the RNA).
+res_offset = 0
+# Restrain G·U wobble pairs: Also restrain G·U pairs (G O6–U N3, G N1–U O2). Off: only Watson–Crick
+# G–C and A–U pairs are restrained.
+wobble = false
+# r1: Lower distance where the linear restraint wall starts (Å).
+r1 = 2.3
+# r2: Start of the flat bottom (Å).
+r2 = 2.7
+# r3: End of the flat bottom (Å).
+r3 = 3.2
+# r4: Upper distance where the restraint turns linear (Å).
+r4 = 3.7
+# rk2: Force constant below r2 (kcal/mol/Å²).
+rk2 = 10.0
+# rk3: Force constant above r3 (kcal/mol/Å²).
+rk3 = 10.0
+# Conda environment: Activate this conda environment at the top of the script (eval "$(conda
+# shell.bash hook)"; conda activate <name>). Leave empty when the programs are already on PATH.
+conda_env = ""
+# Setup commands: Shell lines run before any program, e.g. 'module load ...' on a cluster or 'source
+# /opt/amber26/amber.sh' on a workstation.
+env_setup = ""
+
+[[workflow.scratch]]
+# Unique id of the step
+id = "wizard-amber-md"
+# Step type: the script generator (see 'mdatk workflow tools')
+tool = "amber-md"
+# Step number; orders the steps and their file names
+step = 1
+# Box title ("": the step type's label)
+title = ""
+# Position of the box on the planner canvas
+x = 40.0
+# Position of the box on the planner canvas
+y = 40.0
+# Hand-picked input files for ports that no connection feeds ({port = path})
+files = {}
+
+# The step's options (each one is explained by its comment)
+[workflow.scratch.settings]
+# Amber version: Version the files target (local Amber 26 or cluster Amber 24); the input format is
+# the same, the version is recorded in the scripts. Choices: 26, 24.
+amber_version = "26"
+# MD engine: Program for the MD stages. Choices: pmemd.cuda, pmemd, pmemd.MPI.
+engine = "pmemd.cuda"
+# MPI processes: Processes for pmemd.MPI.
+nproc = 8
+# MPI launcher: Command placed before pmemd.MPI; {n} is replaced by the process count (srun on SLURM
+# clusters).
+mpi_launcher = "mpirun -np {n}"
+# GPU (CUDA_VISIBLE_DEVICES): Optional GPU index for pmemd.cuda.
+gpu = ""
+# Minimisation engine: pmemd.cuda can stop on bad initial contacts; the CPU pmemd is more forgiving.
+# Choices: same, pmemd.
+min_engine = "same"
+# Input coordinates have velocities: Tick when the starting rst7 is a restart of an earlier MD run,
+# so the first MD stage can continue it (irest=1).
+input_velocities = false
+# Positional restraint reference: Coordinates used as -ref for positional restraints. Choices:
+# previous, initial.
+restraint_ref = "previous"
+# Separate production script: Production stages go into their own script (e.g. to run them on a
+# cluster).
+separate_production = true
+# Skip finished stages: When the script is re-run, stages whose output file already has pmemd's
+# final timing lines are skipped (resumes an interrupted run).
+resume = true
+# Dry PDB before production: cpptraj strips water and ions from the last restart of the main script
+# (before the production script) - for a visual check of the equilibrated structure.
+dry_pdb = true
+# Strip mask: cpptraj mask of atoms removed in the dry PDB / trajectory.
+strip_mask = ":WAT,HOH,Na+,Cl-,K+,MG"
+# Dry, imaged production trajectory: cpptraj autoimage + strip of the production trajectories (and
+# the matching dry topology) for visualisation.
+dry_traj = false
+# Strip mask (trajectory): cpptraj mask removed from the dry trajectory.
+dry_mask = ":WAT,HOH,Na+,Cl-,K+,MG"
+# Conda environment: Activate this conda environment at the top of the script (eval "$(conda
+# shell.bash hook)"; conda activate <name>). Leave empty when the programs are already on PATH.
+conda_env = ""
+# Setup commands: Shell lines run before any program, e.g. 'module load ...' on a cluster or 'source
+# /opt/amber26/amber.sh' on a workstation.
+env_setup = ""
+
+# Stages run in order; each starts from the previous stage's restart file.
+[[workflow.scratch.settings.stages]]
+name = "min1"
+title = "Minimize water/ions, RNA restrained"
+kind = "min"
+maxcyc = 2000
+ncyc = 500
+ntmin = "1"
+nstlim = 50000
+dt = 0.002
+restart = "auto"
+ensemble = "nvt"
+thermostat = "langevin"
+gamma_ln = 1.0
+tautp = 1.0
+vrand = 1000
+tempi = 0.0
+temp0 = 300.0
+ramp = false
+ramp_steps = 20000
+barostat = "berendsen"
+pres0 = 1.0
+taup = 1.0
+mcbarint = 100
+ntp = "1"
+shake = true
+cut = 10.0
+posres = true
+posres_mask = ""
+posres_wt = 10.0
+distres = false
+listout = false
+ntpr = 100
+ntwx = 500
+ntwr = 5000
+netcdf = true
+iwrap = false
+segments = 1
+production = false
+extra_cntrl = ""
+extra_namelists = ""
+
+[[workflow.scratch.settings.stages]]
+name = "min2"
+title = "Unrestrained min, helix pairs held"
+kind = "min"
+maxcyc = 2000
+ncyc = 500
+ntmin = "1"
+nstlim = 50000
+dt = 0.002
+restart = "auto"
+ensemble = "nvt"
+thermostat = "langevin"
+gamma_ln = 1.0
+tautp = 1.0
+vrand = 1000
+tempi = 0.0
+temp0 = 300.0
+ramp = false
+ramp_steps = 20000
+barostat = "berendsen"
+pres0 = 1.0
+taup = 1.0
+mcbarint = 100
+ntp = "1"
+shake = true
+cut = 10.0
+posres = false
+posres_mask = ""
+posres_wt = 10.0
+distres = true
+listout = false
+ntpr = 100
+ntwx = 500
+ntwr = 5000
+netcdf = true
+iwrap = false
+segments = 1
+production = false
+extra_cntrl = ""
+extra_namelists = ""
+
+[[workflow.scratch.settings.stages]]
+name = "heat"
+title = "Heat 0 -> 300 K, helix pairs held"
+kind = "md"
+maxcyc = 2000
+ncyc = 500
+ntmin = "1"
+nstlim = 25000
+dt = 0.002
+restart = "auto"
+ensemble = "nvt"
+thermostat = "langevin"
+gamma_ln = 1.0
+tautp = 1.0
+vrand = 1000
+tempi = 0.0
+temp0 = 300.0
+ramp = false
+ramp_steps = 20000
+barostat = "berendsen"
+pres0 = 1.0
+taup = 1.0
+mcbarint = 100
+ntp = "1"
+shake = true
+tol = 1e-06
+cut = 10.0
+posres = false
+posres_mask = ""
+posres_wt = 10.0
+distres = true
+listout = false
+ntpr = 500
+ntwx = 500
+ntwr = 5000
+netcdf = true
+iwrap = false
+segments = 1
+production = false
+extra_cntrl = ""
+extra_namelists = ""
+
+[[workflow.scratch.settings.stages]]
+name = "eq"
+title = "NPT eq, light restraint"
+kind = "md"
+maxcyc = 2000
+ncyc = 500
+ntmin = "1"
+nstlim = 50000
+dt = 0.002
+restart = "auto"
+ensemble = "npt"
+thermostat = "langevin"
+gamma_ln = 1.0
+tautp = 1.0
+vrand = 1000
+tempi = 0.0
+temp0 = 300.0
+ramp = false
+ramp_steps = 20000
+barostat = "berendsen"
+pres0 = 1.0
+taup = 1.0
+mcbarint = 100
+ntp = "1"
+shake = true
+cut = 10.0
+posres = false
+posres_mask = ""
+posres_wt = 10.0
+distres = true
+listout = false
+ntpr = 500
+ntwx = 500
+ntwr = 5000
+netcdf = true
+iwrap = false
+segments = 1
+production = false
+extra_cntrl = ""
+extra_namelists = ""
+
+[[workflow.scratch.settings.stages]]
+name = "eq-free"
+title = "Unrestrained NPT eq"
+kind = "md"
+maxcyc = 2000
+ncyc = 500
+ntmin = "1"
+nstlim = 50000
+dt = 0.002
+restart = "auto"
+ensemble = "npt"
+thermostat = "langevin"
+gamma_ln = 1.0
+tautp = 1.0
+vrand = 1000
+tempi = 0.0
+temp0 = 300.0
+ramp = false
+ramp_steps = 20000
+barostat = "berendsen"
+pres0 = 1.0
+taup = 1.0
+mcbarint = 100
+ntp = "1"
+shake = true
+cut = 10.0
+posres = false
+posres_mask = ""
+posres_wt = 10.0
+distres = true
+listout = true
+ntpr = 500
+ntwx = 500
+ntwr = 5000
+netcdf = true
+iwrap = false
+segments = 1
+production = false
+extra_cntrl = ""
+extra_namelists = ""
+
+[[workflow.scratch.settings.stages]]
+name = "prod"
+title = "Production, helix pairs held"
+kind = "md"
+maxcyc = 2000
+ncyc = 500
+ntmin = "1"
+nstlim = 150000000
+dt = 0.002
+restart = "auto"
+ensemble = "npt"
+thermostat = "langevin"
+gamma_ln = 1.0
+tautp = 1.0
+vrand = 1000
+tempi = 0.0
+temp0 = 300.0
+ramp = false
+ramp_steps = 20000
+barostat = "berendsen"
+pres0 = 1.0
+taup = 1.0
+mcbarint = 100
+ntp = "1"
+shake = true
+cut = 10.0
+posres = false
+posres_mask = ""
+posres_wt = 10.0
+distres = true
+listout = false
+ntpr = 500
+ntwx = 5000
+ntwr = 50000
+netcdf = true
+iwrap = false
+segments = 1
+production = true
+extra_cntrl = ""
+extra_namelists = ""
+
+[[workflow.scratch]]
+# Unique id of the step
+id = "wizard-structure-builder"
+# Step type: the script generator (see 'mdatk workflow tools')
+tool = "structure-builder"
+# Step number; orders the steps and their file names
+step = 1
+# Box title ("": the step type's label)
+title = ""
+# Position of the box on the planner canvas
+x = 40.0
+# Position of the box on the planner canvas
+y = 40.0
+# Hand-picked input files for ports that no connection feeds ({port = path})
+files = {}
+
+# The step's options (each one is explained by its comment)
+[workflow.scratch.settings]
+# Build: Ideal helix: a new A-form duplex or single strand. Mutate: swap bases of the connected PDB.
+# Fit: place the connected PDB in the map. Choices: helix, mutate, fit.
+mode = "helix"
+# Sequence (5'->3'): Strand 1; T is read as U.
+sequence = ""
+# Partner strand: Complement (the canonical partners of the pairing: Watson-Crick for wc), none
+# (single strand) or a sequence typed below. Choices: auto, none, explicit.
+partner_mode = "auto"
+# Partner (5'->3'): Same length as strand 1; mismatches and G·U wobbles are allowed (reported).
+partner = ""
+# Pairing: Base-pair geometry of the duplex: Watson-Crick (antiparallel A-form, default), reverse
+# Watson-Crick / Hoogsteen / Hoogsteen-Hoogsteen (parallel strands) or reverse Hoogsteen
+# (antiparallel). For the Hoogsteen pairings strand 1 is the purine strand. Choices: wc, reverse-wc,
+# hoogsteen, reverse-hoogsteen, hh.
+pairing = "wc"
+# Triplex: A third strand in the major groove on the Hoogsteen edge of the strand-1 purines (Watson-
+# Crick duplex only). Choices: none, hoogsteen, reverse-hoogsteen.
+triplex = "none"
+# Third strand: The canonical motif bases (U / C+ or A / G on A / G) or a sequence typed below.
+# Choices: auto, explicit.
+third_mode = "auto"
+# Third strand (5'->3'): Same length as strand 1; mismatches are allowed (reported).
+third = ""
+# Chirality: D: right-handed. L: the mirror image (left-handed, L-nucleotides). Choices: D, L.
+chirality = "D"
+# Chain ids: Strand 1, strand 2 (and 3 of a triplex; default C).
+chains = "A,B"
+# First residue (strand 1)
+start1 = 1
+# First residue (strand 2)
+start2 = 1
+# First residue (strand 3)
+start3 = 1
+# Residue names: Name scheme of mdatk.pdbtools. Choices: , amber, ccd, rosetta, pdb.
+scheme = ""
+# 5'/3' terminal names: For the schemes with terminal variants (Amber, CCD).
+terminals = true
+# 5'-phosphate: Keep P/OP1/OP2/OP3 on the 5' ends (the Amber 5' units have none).
+phosphate5 = false
+# Hydrogens: Add all hydrogens (default: heavy atoms only).
+hydrogens = false
+# Mutations: Chain:residue + new base, comma separated.
+mutations = ""
+# Compensatory partner mutations: Change the Watson-Crick / G·U partner of every mutated base to the
+# complement unless it is mutated explicitly.
+compensatory = true
+# Keep G·U pairs: A G or U facing U / G keeps its partner (wobble) instead of the Watson-Crick
+# complement.
+wobble = false
+# Search: Global: all orientations and positions. Local: refine the model as placed. Choices:
+# global, local.
+search = "global"
+# Angular step: Rotation sampling of the global search.
+angular_step = 30.0
+# Conda environment: Activate this conda environment at the top of the script (eval "$(conda
+# shell.bash hook)"; conda activate <name>). Leave empty when the programs are already on PATH.
+conda_env = ""
+# Setup commands: Shell lines run before any program, e.g. 'module load ...' on a cluster or 'source
+# /opt/amber26/amber.sh' on a workstation.
+env_setup = ""
+# Python: Interpreter that can import MDATK. From the standalone AppImage / Windows build the script
+# calls that program itself instead.
+python = "python3"
+
+[[workflow.scratch]]
+# Unique id of the step
+id = "wizard-restraint-dicts"
+# Step type: the script generator (see 'mdatk workflow tools')
+tool = "restraint-dicts"
+# Step number; orders the steps and their file names
+step = 1
+# Box title ("": the step type's label)
+title = ""
+# Position of the box on the planner canvas
+x = 40.0
+# Position of the box on the planner canvas
+y = 40.0
+# Hand-picked input files for ports that no connection feeds ({port = path})
+files = {}
+
+# The step's options (each one is explained by its comment)
+[workflow.scratch.settings]
+# Program: acedrg (CCP4) or phenix.elbow (Phenix) builds the restraints from the SMILES; MDATK then
+# renames the atoms to the CCD names the model uses. Choices: acedrg, phenix.elbow.
+program = "acedrg"
+# Phenix version: Installed Phenix release. Choices: 1.21, 2.x.
+phenix_version = "2.x"
+# Phenix installation: Top folder of the Phenix installation; the script sources its phenix_env.sh.
+# Leave empty when phenix.elbow is already on PATH.
+phenix_dir = ""
+# CCP4 setup script: Sourced before acedrg runs (ccp4.setup-sh of the CCP4 installation). Leave
+# empty when acedrg is already on PATH.
+ccp4_setup = ""
+# Extra arguments: Added to every acedrg / phenix.elbow command line.
+program_args = ""
+# Residues: Model: the 5'/3' variants the connected model needs (all eight when no model is
+# connected or it does not exist yet). The four parents 0A/0C/0G/0U are CCD entries that Coot and
+# Phenix already know. Choices: auto, variants, all, list.
+codes_mode = "auto"
+# Codes: Residue codes separated by spaces or commas; codes that are not in the table need a custom
+# SMILES.
+codes = ""
+# Polymer group: _chem_comp.group of the dictionaries. RNA lets Coot / Phenix link the residue to
+# its neighbours like the CCD's L-nucleotides; non-polymer makes it a free ligand. Choices: RNA,
+# non-polymer.
+group = "RNA"
+# Custom SMILES: One 'code = SMILES' per line. For a code of the table the SMILES replaces the
+# built-in one and must describe the same molecule and stereochemistry; other codes keep the atom
+# names the program invents.
+custom = ""
+# Fetch SMILES from PubChem when writing (network): Off: no network access. On: the isomeric SMILES
+# of the compounds below is downloaded from PubChem (PUG REST) when the step's files are written,
+# checked against the code's atom graph and stereochemistry, and used instead of the built-in
+# SMILES.
+pubchem_fetch = false
+# PubChem compounds: One 'code = CID' (or compound name) per line.
+pubchem_ids = ""
+# Timeout: Seconds to wait for PubChem.
+pubchem_timeout = 15
+# Conda environment: Activate this conda environment at the top of the script (eval "$(conda
+# shell.bash hook)"; conda activate <name>). Leave empty when the programs are already on PATH.
+conda_env = ""
+# Setup commands: Shell lines run before any program, e.g. 'module load ...' on a cluster or 'source
+# /opt/amber26/amber.sh' on a workstation.
+env_setup = ""
+
+[[workflow.scratch]]
+# Unique id of the step
+id = "wizard-farfar2"
+# Step type: the script generator (see 'mdatk workflow tools')
+tool = "farfar2"
+# Step number; orders the steps and their file names
+step = 1
+# Box title ("": the step type's label)
+title = ""
+# Position of the box on the planner canvas
+x = 40.0
+# Position of the box on the planner canvas
+y = 40.0
+# Hand-picked input files for ports that no connection feeds ({port = path})
+files = {}
+
+# The step's options (each one is explained by its comment)
+[workflow.scratch.settings]
+# Write FASTA and secstruct from the fields below: Generate the Rosetta FASTA (one entry per chain,
+# lower case, A:1-16 numbering) and the secstruct file. Off: use existing files.
+make_inputs = true
+# Sequence: One chain per line or chains separated by spaces / '&' (optionally 'A: ggcac...').
+# Residues are numbered continuously across chains.
+sequence = ""
+# Secondary structure: Dot-bracket for the whole sequence (strand separators optional). Paired bases
+# must be complementary (G–C, A–U, G–U) or rna_denovo stops.
+dotbracket = ""
+# FASTA name: Name on the FASTA header lines; empty uses the project name.
+fasta_name = ""
+# Existing FASTA: FASTA file to use instead.
+fasta_file = ""
+# Existing secstruct: Secondary structure file to use instead (dot-bracket on line 1).
+secstruct_file = ""
+# Models per run (-nstruct): Models written by each run.
+nstruct = 100
+# Monte Carlo cycles (-cycles): Fragment-assembly cycles per model (Rosetta default 10 000).
+cycles = 50000
+# Full-atom refinement (-minimize_rna): High-resolution minimisation after assembly - strongly
+# recommended.
+minimize_rna = true
+# Fixed stems (-fixed_stems): Seed every helix of the secondary structure with Watson–Crick pairs.
+fixed_stems = true
+# Base-pair-step moves: -rna:denovo:bps_moves (helix flexibility by base pair step fragments).
+bps_moves = false
+# Heat (-heat): Randomise torsions before assembly.
+heat = true
+# Close loops (-close_loops): Close chain breaks by cyclic coordinate descent after fragment moves.
+close_loops = true
+# Fuzz fragments: -fuzz_fragments value (0: not set).
+fuzz_fragments = 5
+# Autofilter (-autofilter): Keep only models that score among the best during the run.
+autofilter = false
+# Filter low-res base pairs: -filter_lores_base_pairs: discard models missing the secondary-
+# structure pairs.
+filter_lores_base_pairs = false
+# Filter chain closure: -filter_chain_closure: discard models with open chain breaks.
+filter_chain_closure = true
+# … also halfway: -filter_chain_closure_halfway
+filter_chain_closure_halfway = false
+# … distance: -filter_chain_closure_distance (Å).
+filter_chain_closure_distance = 15.0
+# Coordinate constraints in minimiser: -rna:denovo:minimize:minimizer_use_coordinate_constraints
+coord_csts = true
+# Dump PDBs (-rna:denovo:out:dump): Also write PDB files into each run folder.
+dump = true
+# Residues of the -s PDB: -input_res: residues provided by the fixed-helix PDB. Choices: typed,
+# stems.
+input_res_mode = "typed"
+# -input_res: Chain-qualified residues, e.g. 'A:1-6 A:13-16 B:17-20'.
+input_res = ""
+# Map resolution (-edensity:mapreso): Resolution of the connected map (Å).
+map_reso = 4.3
+# Cryo-EM scatterers: -edensity:cryoem_scatterers (electron rather than X-ray form factors).
+cryoem_scatterers = true
+# Density weight (elec_dens_fast): Score weight of the fit to the map.
+w_density = 20.0
+# coordinate_constraint: -set_weights coordinate_constraint (0: not set).
+w_coordinate_constraint = 1.0
+# linear_chainbreak: -set_weights linear_chainbreak (0: not set).
+w_linear_chainbreak = 10.0
+# Independent runs: Number of rna_denovo runs (seeds); each writes its own silent file.
+runs = 12
+# Parallel runs: Runs started at the same time (xargs -P).
+parallel = 6
+# Reproducible seeds: -run:constant_seed with -run:jran <seed base + run number>.
+constant_seed = true
+# Seed base: Run i uses seed base + i.
+seed_base = 3000
+# Run with nice: Lower the CPU priority of the runs.
+nice = true
+# rna_denovo executable: Name on PATH or full path, e.g. rna_denovo.default.linuxgccrelease.
+exe = "rna_denovo"
+# Rosetta database: -database path (empty: found by the executable).
+database = ""
+# Extra flags: Additional rna_denovo flags, one or more per line (written to the flags file).
+extra = ""
+# Conda environment: Activate this conda environment at the top of the script (eval "$(conda
+# shell.bash hook)"; conda activate <name>). Leave empty when the programs are already on PATH.
+conda_env = ""
+# Setup commands: Shell lines run before any program, e.g. 'module load ...' on a cluster or 'source
+# /opt/amber26/amber.sh' on a workstation.
+env_setup = ""
+
+[[workflow.scratch]]
+# Unique id of the step
+id = "wizard-farfar2-models"
+# Step type: the script generator (see 'mdatk workflow tools')
+tool = "farfar2-models"
+# Step number; orders the steps and their file names
+step = 1
+# Box title ("": the step type's label)
+title = ""
+# Position of the box on the planner canvas
+x = 40.0
+# Position of the box on the planner canvas
+y = 40.0
+# Hand-picked input files for ports that no connection feeds ({port = path})
+files = {}
+
+# The step's options (each one is explained by its comment)
+[workflow.scratch.settings]
+# Cluster with rna_cluster: Group models by all-heavy-atom RMSD, best (lowest energy) cluster first.
+# Off: rank all models of all runs by score.
+cluster = true
+# Cluster radius (-cluster:radius): RMSD threshold (Å).
+radius = 2.0
+# Maximum clusters (-nstruct)
+max_clusters = 400
+# rna_cluster executable
+cluster_exe = "rna_cluster"
+# Extra rna_cluster flags
+cluster_extra = ""
+# Models to extract: Cluster centres (or best models) written as PDB files
+# <project>_<step>_model-01_<time>.pdb ...
+n_models = 10
+# extract_pdbs executable
+extract_exe = "extract_pdbs"
+# Rosetta database: -database path (empty: found by the executables).
+database = ""
+# Annotate with x3dna-dssr: Base pairs, stems and secondary structure of every extracted model.
+dssr = true
+# Also write JSON: x3dna-dssr --json output.
+dssr_json = false
+# x3dna-dssr executable
+dssr_exe = "x3dna-dssr"
+# Conda environment: Activate this conda environment at the top of the script (eval "$(conda
+# shell.bash hook)"; conda activate <name>). Leave empty when the programs are already on PATH.
+conda_env = ""
+# Setup commands: Shell lines run before any program, e.g. 'module load ...' on a cluster or 'source
+# /opt/amber26/amber.sh' on a workstation.
+env_setup = ""
+
+[[workflow.scratch]]
+# Unique id of the step
+id = "wizard-gromacs"
+# Step type: the script generator (see 'mdatk workflow tools')
+tool = "gromacs"
+# Step number; orders the steps and their file names
+step = 1
+# Box title ("": the step type's label)
+title = ""
+# Position of the box on the planner canvas
+x = 40.0
+# Position of the box on the planner canvas
+y = 40.0
+# Hand-picked input files for ports that no connection feeds ({port = path})
+files = {}
+
+# The step's options (each one is explained by its comment)
+[workflow.scratch.settings]
+# GROMACS version: 2024+ on the workstation, 2023.3 on the cluster (loaded as a module). Choices:
+# 2024, 2023.
+gmx_version = "2024"
+# Module to load: 'module load' line for the cluster version (empty: none).
+module = "GROMACS/2023.3-CUDA-11.8.0"
+# gmx executable: gmx, gmx_mpi or a full path.
+gmx = "gmx"
+# Convert Amber files with: ParmEd keeps off-diagonal Lennard-Jones pairs (NBfix) as [
+# nonbond_params ]; acpype is an alternative; 'none' uses GROMACS files as they are. Choices:
+# parmed, acpype, none.
+convert = "parmed"
+# Hydrogen mass repartitioning (mdp): mass-repartition-factor = 3 in every mdp (GROMACS 2024+ only)
+# so dt = 0.004 ps works with constraints = h-bonds. Not needed when the Amber topology already has
+# HMR.
+mass_repartition = false
+# Restraint force constant: kJ/mol/nm² for stages with RNA position restraints.
+posres_fc = 1000.0
+# Allow losing NBfix pairs: Normally the conversion stops when the Amber topology has off-diagonal
+# LJ pairs that do not appear in the GROMACS topology.
+allow_nbfix_loss = false
+# Offload to the GPU: -nb gpu -pme gpu -bonded gpu
+gpu = true
+# Update on the GPU (-update gpu): Fastest on one GPU; not available with every setting.
+update_gpu = false
+# OpenMP threads (-ntomp): 0: let GROMACS decide.
+ntomp = 0
+# grompp -maxwarn: Number of grompp warnings to accept.
+maxwarn = 0
+# Extra mdrun flags
+extra_mdrun = ""
+# Separate production script: Production stages go into their own script.
+separate_production = true
+# Conda environment: Activate this conda environment at the top of the script (eval "$(conda
+# shell.bash hook)"; conda activate <name>). Leave empty when the programs are already on PATH.
+conda_env = ""
+# Setup commands: Shell lines run before any program, e.g. 'module load ...' on a cluster or 'source
+# /opt/amber26/amber.sh' on a workstation.
+env_setup = ""
+
+# Each stage starts from the previous stage's coordinates and checkpoint.
+[[workflow.scratch.settings.stages]]
+name = "em"
+integrator = "steep"
+nsteps = 50000
+emtol = 1000.0
+emstep = 0.01
+dt = 0.002
+velocities = "auto"
+tcoupl = "V-rescale"
+tc_grps = "System"
+tau_t = 0.1
+ref_t = 300.0
+pcoupl = "no"
+tau_p = 2.0
+ref_p = 1.0
+compressibility = 4.5e-05
+constraints = "none"
+cutoff = 1.0
+posres = false
+nstxout_compressed = 5000
+nstenergy = 5000
+production = false
+extra_mdp = ""
+
+[[workflow.scratch.settings.stages]]
+name = "nvt"
+integrator = "md"
+nsteps = 50000
+emtol = 1000.0
+emstep = 0.01
+dt = 0.002
+velocities = "auto"
+tcoupl = "V-rescale"
+tc_grps = "System"
+tau_t = 0.1
+ref_t = 300.0
+pcoupl = "no"
+tau_p = 2.0
+ref_p = 1.0
+compressibility = 4.5e-05
+constraints = "h-bonds"
+cutoff = 1.0
+posres = true
+nstxout_compressed = 5000
+nstenergy = 5000
+production = false
+extra_mdp = ""
+
+[[workflow.scratch.settings.stages]]
+name = "npt"
+integrator = "md"
+nsteps = 50000
+emtol = 1000.0
+emstep = 0.01
+dt = 0.002
+velocities = "auto"
+tcoupl = "V-rescale"
+tc_grps = "System"
+tau_t = 0.1
+ref_t = 300.0
+pcoupl = "C-rescale"
+tau_p = 2.0
+ref_p = 1.0
+compressibility = 4.5e-05
+constraints = "h-bonds"
+cutoff = 1.0
+posres = true
+nstxout_compressed = 5000
+nstenergy = 5000
+production = false
+extra_mdp = ""
+
+[[workflow.scratch.settings.stages]]
+name = "md"
+integrator = "md"
+nsteps = 50000000
+emtol = 1000.0
+emstep = 0.01
+dt = 0.002
+velocities = "auto"
+tcoupl = "V-rescale"
+tc_grps = "System"
+tau_t = 0.1
+ref_t = 300.0
+pcoupl = "C-rescale"
+tau_p = 2.0
+ref_p = 1.0
+compressibility = 4.5e-05
+constraints = "h-bonds"
+cutoff = 1.0
+posres = false
+nstxout_compressed = 5000
+nstenergy = 5000
+production = true
+extra_mdp = ""
+
+[[workflow.scratch]]
+# Unique id of the step
+id = "wizard-note"
+# Step type: the script generator (see 'mdatk workflow tools')
+tool = "note"
+# Step number; orders the steps and their file names
+step = 1
+# Box title ("": the step type's label)
+title = ""
+# Position of the box on the planner canvas
+x = 40.0
+# Position of the box on the planner canvas
+y = 40.0
+# Hand-picked input files for ports that no connection feeds ({port = path})
+files = {}
+
+# The step's options (each one is explained by its comment)
+[workflow.scratch.settings]
+# Text: Anything worth remembering about the plan.
+text = ""
+
+[[workflow.scratch]]
+# Unique id of the step
+id = "wizard-input-file"
+# Step type: the script generator (see 'mdatk workflow tools')
+tool = "input-file"
+# Step number; orders the steps and their file names
+step = 1
+# Box title ("": the step type's label)
+title = ""
+# Position of the box on the planner canvas
+x = 40.0
+# Position of the box on the planner canvas
+y = 40.0
+# Hand-picked input files for ports that no connection feeds ({port = path})
+files = {}
+
+# The step's options (each one is explained by its comment)
+[workflow.scratch.settings]
+# File: The existing file. Relative paths are read from the folder of the saved preset.
+path = ""
+# Type: What the file contains; decides which inputs it can feed. Choices: pdb, fasta, secstruct,
+# map, cif, smiles, silent, parm7, rst7, nc, dist, top, gro, xtc, trafl, image, text.
+kind = "pdb"
+
+[[workflow.scratch]]
+# Unique id of the step
+id = "wizard-mdatk"
+# Step type: the script generator (see 'mdatk workflow tools')
+tool = "mdatk"
+# Step number; orders the steps and their file names
+step = 1
+# Box title ("": the step type's label)
+title = ""
+# Position of the box on the planner canvas
+x = 40.0
+# Position of the box on the planner canvas
+y = 40.0
+# Hand-picked input files for ports that no connection feeds ({port = path})
+files = {}
+
+# The step's options (each one is explained by its comment)
+[workflow.scratch.settings]
+# Clean with cpptraj first: Enable cpptraj stripping / imaging / fitting (Input & cleaning) when the
+# paths are applied; solvated MD output normally needs it.
+clean = true
+
+[[workflow.scratch]]
+# Unique id of the step
+id = "wizard-phenix-rsr"
+# Step type: the script generator (see 'mdatk workflow tools')
+tool = "phenix-rsr"
+# Step number; orders the steps and their file names
+step = 1
+# Box title ("": the step type's label)
+title = ""
+# Position of the box on the planner canvas
+x = 40.0
+# Position of the box on the planner canvas
+y = 40.0
+# Hand-picked input files for ports that no connection feeds ({port = path})
+files = {}
+
+# The step's options (each one is explained by its comment)
+[workflow.scratch.settings]
+# Phenix version: Installed Phenix release. Choices: 1.21, 2.x.
+phenix_version = "2.x"
+# Phenix installation: Top folder of the Phenix installation; the script sources its phenix_env.sh.
+# Leave empty when phenix.real_space_refine is already on PATH (or set it up below).
+phenix_dir = ""
+# Macro cycles: macro_cycles of real_space_refine.
+macro_cycles = 5
+# Global minimisation: run=minimization_global: Gradient-driven minimisation of the whole model
+# against the map with geometry restraints.
+run_minimization_global = true
+# Rigid body: run=rigid_body: Rigid-body refinement of the chains first (a model that is not yet
+# placed well).
+run_rigid_body = false
+# Local grid search: run=local_grid_search: Local real-space fitting of side chains / residues by
+# grid search.
+run_local_grid_search = true
+# Morphing: run=morphing: Morphs the model towards the map: large, smooth moves of models from
+# another state.
+run_morphing = false
+# Simulated annealing: run=simulated_annealing: Real-space simulated annealing: larger radius of
+# convergence, slower.
+run_simulated_annealing = false
+# ADP (B-factors): run=adp: Refines atomic displacement parameters at the end.
+run_adp = true
+# Processors: nproc (parallel parts of the refinement).
+nproc = 1
+# Output prefix: output.prefix of Phenix's files (empty: <project>_<step>_phenix-rsr_<time>); the
+# refined model is copied to the step's own file.
+prefix = ""
+# Extra parameters: Appended verbatim to the command line, one or more per line (# starts a
+# comment).
+extra = ""
+# Nucleic-acid secondary-structure restraints: Phenix searches the model for base pairs and stacking
+# and restrains them (secondary_structure.enabled=True).
+na_ss = true
+# Explicit base pairs: Written as base_pair restraints into a parameter (.eff) file. Dot-bracket:
+# the connected secondary structure or the one typed below (nothing is written when there is none).
+# Annotation: the REMARK 950 PAIR records of the model ('mdatk pdb annotate'), read when the files
+# are written. Choices: none, secstruct, annotation.
+pairs_source = "secstruct"
+# Sequence: For a typed dot-bracket (chains separated by spaces).
+sequence = ""
+# Dot-bracket: Ignored when a secondary structure is connected.
+dotbracket = ""
+# Residue numbering: How dot-bracket positions map to residues: the nucleotides of the model in file
+# order (when it exists; otherwise continuous numbering), numbers continuous across chains from 1,
+# or restarting at 1 in every chain. Choices: model, continuous, chain.
+numbering = "model"
+# Restrain G·U wobble pairs: Saenger class 28.
+wobble = true
+# Stacking from the annotation: Also write the STACK records as stacking_pair restraints.
+stacking = false
+# Conda environment: Activate this conda environment at the top of the script (eval "$(conda
+# shell.bash hook)"; conda activate <name>). Leave empty when the programs are already on PATH.
+conda_env = ""
+# Setup commands: Shell lines run before any program, e.g. 'module load ...' on a cluster or 'source
+# /opt/amber26/amber.sh' on a workstation.
+env_setup = ""
+
+[[workflow.scratch]]
+# Unique id of the step
+id = "wizard-coot-rsr"
+# Step type: the script generator (see 'mdatk workflow tools')
+tool = "coot-rsr"
+# Step number; orders the steps and their file names
+step = 1
+# Box title ("": the step type's label)
+title = ""
+# Position of the box on the planner canvas
+x = 40.0
+# Position of the box on the planner canvas
+y = 40.0
+# Hand-picked input files for ports that no connection feeds ({port = path})
+files = {}
+
+# The step's options (each one is explained by its comment)
+[workflow.scratch.settings]
+# Coot version: Installed Coot generation; the script works in both, the version selects the
+# command-line flags. Choices: 0.9, 1.x.
+coot_version = "1.x"
+# Coot executable: Name or path of the coot program.
+coot_exe = "coot"
+# Residues: Residue ranges to refine, e.g. 'A:1-20, B:5-12' (empty: every polymer residue; a range
+# without a chain applies to every chain).
+residues = ""
+# Zone size: Residues refined together (refine_zone window).
+zone_size = 10
+# Zone overlap: Residues shared by neighbouring windows.
+overlap = 3
+# Cycles: Passes over all windows.
+cycles = 2
+# Map weight: Default: Coot's own weight. Auto: auto_weight_for_refinement (when this Coot has it).
+# Fixed: set_matrix with the value below. Choices: default, auto, fixed.
+weight_mode = "default"
+# Weight: set_matrix value (larger: the map pulls harder).
+weight = 60.0
+# Torsion restraints: set_refine_with_torsion_restraints: also restrain torsions from the
+# dictionaries.
+torsions = false
+# Conda environment: Activate this conda environment at the top of the script (eval "$(conda
+# shell.bash hook)"; conda activate <name>). Leave empty when the programs are already on PATH.
+conda_env = ""
+# Setup commands: Shell lines run before any program, e.g. 'module load ...' on a cluster or 'source
+# /opt/amber26/amber.sh' on a workstation.
+env_setup = ""
+
+[[workflow.scratch]]
+# Unique id of the step
+id = "wizard-rnamake"
+# Step type: the script generator (see 'mdatk workflow tools')
+tool = "rnamake"
+# Step number; orders the steps and their file names
+step = 1
+# Box title ("": the step type's label)
+title = ""
+# Position of the box on the planner canvas
+x = 40.0
+# Position of the box on the planner canvas
+y = 40.0
+# Hand-picked input files for ports that no connection feeds ({port = path})
+files = {}
+
+# The step's options (each one is explained by its comment)
+[workflow.scratch.settings]
+# Application: design_rna_scaffold is the current RNAMake app (double-dash options); design_rna is
+# the 2016-2020 version (single-dash options). Choices: design_rna_scaffold, design_rna.
+app = "design_rna_scaffold"
+# Start base pair: Base pair where the design starts, <chain><residue>-<chain><residue>, e.g.
+# A222-A251.
+start_bp = ""
+# End base pair: Base pair the design must reach.
+end_bp = ""
+# Designs: Number of designs.
+designs = 10
+# Extra motif PDBs: Comma-separated PDB files of extra motifs (--extra_pdbs).
+extra_pdbs = ""
+# Search: path_finding (default), Monte Carlo or exhaustive search through motif / helix libraries.
+# Choices: path_finding, mc, exhaustive.
+search_type = "path_finding"
+# Score cutoff (--search_cutoff): Accept solutions scoring below this.
+search_cutoff = 7.5
+# Maximum size (--search_max_size)
+search_max_size = 999999
+# Maximum motifs: --search_max_motifs
+search_max_motifs = 999
+# Motif path: Comma-separated library path, e.g. flex_helices,twoway,flex_helices (empty: RNAMake
+# default).
+motif_path = ""
+# Minimum helix length
+min_helix = 4
+# Maximum helix length
+max_helix = 99
+# Ignore clashes (--no_sterics)
+no_sterics = false
+# Skip base-pair checks: --no_basepair_checks
+no_bp_checks = false
+# Skip sequence optimisation: Keep the library sequences (--skip_sequence_optimization /
+# -only_ideal).
+skip_seq_opt = false
+# Sequences per design
+seqs_per_design = 1
+# Optimisation steps: --seq_opt_steps
+seq_opt_steps = 10000
+# Optimisation cutoff: --seq_opt_cutoff
+seq_opt_cutoff = 7.0
+# Thermal-fluctuation scoring: --thermo_fluc: sample helix flexibility to score how often the design
+# closes.
+thermo_fluc = false
+# Fluctuation steps
+thermo_fluc_steps = 1000000
+# Write design PDBs: --dump_pdbs / -pdbs
+dump_pdbs = true
+# Write scaffold PDBs: --dump_scaffold_pdbs
+dump_scaffold = false
+# RNAMAKE folder: RNAMake installation (exported as RNAMAKE, which the programs need).
+rnamake_dir = "$RNAMAKE"
+# Executable: Empty: the application name; or a full path.
+exe = ""
+# Extra flags: Additional command-line flags.
+extra = ""
+# Conda environment: Activate this conda environment at the top of the script (eval "$(conda
+# shell.bash hook)"; conda activate <name>). Leave empty when the programs are already on PATH.
+conda_env = ""
+# Setup commands: Shell lines run before any program, e.g. 'module load ...' on a cluster or 'source
+# /opt/amber26/amber.sh' on a workstation.
+env_setup = ""
+
+[[workflow.scratch]]
+# Unique id of the step
+id = "wizard-simrna"
+# Step type: the script generator (see 'mdatk workflow tools')
+tool = "simrna"
+# Step number; orders the steps and their file names
+step = 1
+# Box title ("": the step type's label)
+title = ""
+# Position of the box on the planner canvas
+x = 40.0
+# Position of the box on the planner canvas
+y = 40.0
+# Hand-picked input files for ports that no connection feeds ({port = path})
+files = {}
+
+# The step's options (each one is explained by its comment)
+[workflow.scratch.settings]
+# Sequence: Chains separated by spaces / new lines; ignored when a secondary-structure step is
+# connected.
+sequence = ""
+# Secondary structure: Dot-bracket; pseudoknot brackets [] {} <> go to extra restraint lines.
+dotbracket = ""
+# Use the secondary structure as restraints (-S)
+use_ss = true
+# Distance restraints: SimRNA restraint lines, e.g. 'SLOPE A/20/P A/41/C4' 0 8 1' or 'WELL A/16/MB
+# A/39/MB 5.0 10.0 5.0' (atoms P, C4', N1/N9, C2, C4/C6, MB).
+restraints = ""
+# NUMBER_OF_ITERATIONS: Monte Carlo iterations.
+iterations = 16000000
+# TRA_WRITE_IN_EVERY_N_ITERATIONS: Trajectory frame interval.
+write_every = 16000
+# INIT_TEMP: Start of the simulated-annealing temperature.
+init_temp = 1.35
+# FINAL_TEMP: End temperature (equal to INIT_TEMP: constant temperature).
+final_temp = 0.9
+# BONDS_WEIGHT
+bonds_weight = 1.0
+# ANGLES_WEIGHT
+angles_weight = 1.0
+# TORS_ANGLES_WEIGHT
+tors_weight = 0.0
+# ETA_THETA_WEIGHT
+eta_theta_weight = 0.4
+# Extra config lines: KEY value lines added to the config file.
+extra_config = ""
+# Independent runs: Runs with different random seeds.
+runs = 8
+# Parallel runs
+parallel = 4
+# Replicas (-E): Replica-exchange Monte Carlo replicas per run (1: plain simulated annealing).
+replicas = 10
+# Seed base: Run i uses seed base + i (-R).
+seed_base = 1000
+# Run with nice
+nice = true
+# SimRNA executable
+exe = "SimRNA"
+# SimRNA folder: Installation folder containing data/ (linked into every run folder); a path or a
+# shell variable.
+simrna_dir = "$SIMRNA"
+# Cluster and rebuild all-atom models: clustering on the lowest-energy frames of all runs, then
+# SimRNA_trafl2pdbs ... AA.
+cluster = true
+# Fraction of frames: Lowest-energy fraction clustered.
+fraction = 0.01
+# Models to rebuild: Cluster representatives rebuilt as all-atom PDB files.
+n_models = 5
+# clustering executable
+cluster_exe = "clustering"
+# SimRNA_trafl2pdbs executable
+trafl2pdbs_exe = "SimRNA_trafl2pdbs"
+# Conda environment: Activate this conda environment at the top of the script (eval "$(conda
+# shell.bash hook)"; conda activate <name>). Leave empty when the programs are already on PATH.
+conda_env = ""
+# Setup commands: Shell lines run before any program, e.g. 'module load ...' on a cluster or 'source
+# /opt/amber26/amber.sh' on a workstation.
+env_setup = ""
+
+[[workflow.scratch]]
+# Unique id of the step
+id = "wizard-vmd"
+# Step type: the script generator (see 'mdatk workflow tools')
+tool = "vmd"
+# Step number; orders the steps and their file names
+step = 1
+# Box title ("": the step type's label)
+title = ""
+# Position of the box on the planner canvas
+x = 40.0
+# Position of the box on the planner canvas
+y = 40.0
+# Hand-picked input files for ports that no connection feeds ({port = path})
+files = {}
+
+# The step's options (each one is explained by its comment)
+[workflow.scratch.settings]
+# First frame: First trajectory frame loaded (0-based).
+first = 0
+# Last frame: Last frame (-1: until the end).
+last = -1
+# Stride: Load every n-th frame.
+stride = 1
+# RNA style: Representation of every residue group. Choices: NewCartoon, Licorice, Ribbons, Tube,
+# Surf, QuickSurf, VDW, CPK, Lines.
+rna_style = "NewCartoon"
+# Bases as licorice: Overlay the nucleobases (and ribose) as licorice so base positions are visible.
+bases = true
+# Colour by residue group: One representation per MDATK residue group in its colour; off: colour by
+# residue name.
+group_colors = true
+# Extra selection: Also show this VMD selection (e.g. 'resname MG and within 5 of nucleic').
+selection = ""
+# Extra selection style:  Choices: NewCartoon, Licorice, Ribbons, Tube, Surf, QuickSurf, VDW, CPK,
+# Lines.
+selection_style = "Licorice"
+# Mg²⁺ as spheres: Show Mg²⁺ (resname MG) as VDW spheres.
+ions = true
+# Ion sphere scale: VDW radius scale for ions.
+ion_scale = 0.6
+# Material: VMD material of all representations. Choices: Opaque, AOChalky, AOShiny, Glossy,
+# Transparent, Diffuse.
+material = "AOChalky"
+# Smoothing window: Trajectory smoothing of the representations (frames, 0: off).
+smooth = 0
+# Background:  Choices: white, black.
+background = "white"
+# Projection:  Choices: Orthographic, Perspective.
+projection = "Orthographic"
+# Depth cueing: Fade distant atoms.
+depthcue = false
+# Align frames: Superpose every frame on the first using the alignment selection (measure fit).
+align = true
+# Alignment selection: Atoms used to superpose frames.
+align_sel = "nucleic and name P C4'"
+# Window width: Display / image width in pixels.
+width = 1280
+# Window height
+height = 960
+# Output: Interactive: open VMD with the scene. Snapshot: render the last frame. Movie: render every
+# loaded frame and join them with ffmpeg. Choices: interactive, snapshot, movie.
+render = "interactive"
+# Renderer: TachyonInternal works without a display (batch); snapshot captures the OpenGL window.
+# Choices: TachyonInternal, snapshot.
+renderer = "TachyonInternal"
+# Movie frame rate
+fps = 24
+# VMD executable
+vmd_exe = "vmd"
+# ffmpeg executable
+ffmpeg_exe = "ffmpeg"
+# Extra Tcl commands: Run after the scene is built (before rendering).
+extra_tcl = ""
+# Conda environment: Activate this conda environment at the top of the script (eval "$(conda
+# shell.bash hook)"; conda activate <name>). Leave empty when the programs are already on PATH.
+conda_env = ""
+# Setup commands: Shell lines run before any program, e.g. 'module load ...' on a cluster or 'source
+# /opt/amber26/amber.sh' on a workstation.
+env_setup = ""
+
+# Residue groups
+[[groups]]
+# Group name, used in selections (group:<name>), panels and legends
+name = "Aptamer"
+# Residue numbers or ranges, e.g. "1-40, 45"; may be chain-qualified ("A:1-40")
+residues = "1-12"
+# MDAnalysis selection that replaces 'residues' when given
+selection = ""
+# Colour of the group in the structure view, legends and charts (#rrggbb)
+color = "#2a78d6"
+
+[[groups]]
+# Group name, used in selections (group:<name>), panels and legends
+name = "Target"
+# Residue numbers or ranges, e.g. "1-40, 45"; may be chain-qualified ("A:1-40")
+residues = "13-24"
+# MDAnalysis selection that replaces 'residues' when given
+selection = ""
+# Colour of the group in the structure view, legends and charts (#rrggbb)
+color = "#eb6834"

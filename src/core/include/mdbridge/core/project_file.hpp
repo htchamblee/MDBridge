@@ -20,6 +20,7 @@
 #include <string>
 #include <string_view>
 
+#include "mdbridge/core/errors.hpp"
 #include "mdbridge/core/value.hpp"
 
 namespace mdbridge::core {
@@ -31,9 +32,9 @@ inline constexpr std::string_view kProjectSuffix = ".mdatk.toml";
 inline constexpr std::string_view kLogMarker = "# ---- step log (entries are appended; newest last) ----";
 
 // A file that is not a readable project; the message names the file, as MDATK's do.
-class ProjectError : public std::runtime_error {
+class ProjectError : public ValueError {
 public:
-    using std::runtime_error::runtime_error;
+    using ValueError::ValueError;
 };
 
 enum class FileKind { Project, ParamsLog };

@@ -1,0 +1,913 @@
+[
+ {
+  "name": "empty",
+  "data": {
+   "t": "table",
+   "v": []
+  },
+  "docs": {},
+  "header": [],
+  "output": "\n"
+ },
+ {
+  "name": "empty with header",
+  "data": {
+   "t": "table",
+   "v": []
+  },
+  "docs": {},
+  "header": [
+   "Title line."
+  ],
+  "output": "# Title line.\n"
+ },
+ {
+  "name": "header lines",
+  "data": {
+   "t": "table",
+   "v": [
+    [
+     "a",
+     {
+      "t": "int",
+      "v": "1"
+     }
+    ]
+   ]
+  },
+  "docs": {},
+  "header": [
+   "One.",
+   "",
+   "Trailing spaces   ",
+   "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  ],
+  "output": "# One.\n#\n# Trailing spaces\n# xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n\na = 1\n"
+ },
+ {
+  "name": "order: scalars, None, empty tables, tables, arrays of tables",
+  "data": {
+   "t": "table",
+   "v": [
+    [
+     "t",
+     {
+      "t": "table",
+      "v": [
+       [
+        "x",
+        {
+         "t": "int",
+         "v": "1"
+        }
+       ]
+      ]
+     }
+    ],
+    [
+     "a",
+     {
+      "t": "table",
+      "v": []
+     }
+    ],
+    [
+     "arr",
+     {
+      "t": "array",
+      "v": [
+       {
+        "t": "table",
+        "v": [
+         [
+          "y",
+          {
+           "t": "int",
+           "v": "1"
+          }
+         ]
+        ]
+       },
+       {
+        "t": "table",
+        "v": [
+         [
+          "y",
+          {
+           "t": "none"
+          }
+         ]
+        ]
+       }
+      ]
+     }
+    ],
+    [
+     "b",
+     {
+      "t": "int",
+      "v": "1"
+     }
+    ],
+    [
+     "e",
+     {
+      "t": "none"
+     }
+    ],
+    [
+     "f",
+     {
+      "t": "array",
+      "v": []
+     }
+    ],
+    [
+     "z",
+     {
+      "t": "str",
+      "utf8": "6c617374",
+      "v": "last"
+     }
+    ]
+   ]
+  },
+  "docs": {
+   "t": "doc t",
+   "a": "doc a",
+   "arr": "doc arr",
+   "arr/y": "doc y",
+   "b": "doc b",
+   "e": "doc e",
+   "f": "doc f",
+   "t/x": "doc x"
+  },
+  "header": [],
+  "output": "# doc b\nb = 1\n# doc e\n# e =   (not set)\n# doc f\nf = []\nz = \"last\"\n# doc a\na = {}\n\n# doc t\n[t]\n# doc x\nx = 1\n\n# doc arr\n[[arr]]\n# doc y\ny = 1\n\n[[arr]]\n# doc y\n# y =   (not set)\n"
+ },
+ {
+  "name": "no docs at all",
+  "data": {
+   "t": "table",
+   "v": [
+    [
+     "a",
+     {
+      "t": "int",
+      "v": "1"
+     }
+    ],
+    [
+     "t",
+     {
+      "t": "table",
+      "v": [
+       [
+        "b",
+        {
+         "t": "table",
+         "v": [
+          [
+           "c",
+           {
+            "t": "array",
+            "v": [
+             {
+              "t": "int",
+              "v": "1"
+             },
+             {
+              "t": "int",
+              "v": "2"
+             }
+            ]
+           }
+          ]
+         ]
+        }
+       ]
+      ]
+     }
+    ],
+    [
+     "arr",
+     {
+      "t": "array",
+      "v": [
+       {
+        "t": "table",
+        "v": [
+         [
+          "k",
+          {
+           "t": "str",
+           "utf8": "76",
+           "v": "v"
+          }
+         ]
+        ]
+       },
+       {
+        "t": "table",
+        "v": [
+         [
+          "k",
+          {
+           "t": "str",
+           "utf8": "77",
+           "v": "w"
+          }
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   ]
+  },
+  "docs": {},
+  "header": [],
+  "output": "a = 1\n\n[t]\n\n[t.b]\nc = [1, 2]\n\n[[arr]]\nk = \"v\"\n\n[[arr]]\nk = \"w\"\n"
+ },
+ {
+  "name": "empty doc string means no comment",
+  "data": {
+   "t": "table",
+   "v": [
+    [
+     "a",
+     {
+      "t": "int",
+      "v": "1"
+     }
+    ],
+    [
+     "t",
+     {
+      "t": "table",
+      "v": [
+       [
+        "b",
+        {
+         "t": "int",
+         "v": "2"
+        }
+       ]
+      ]
+     }
+    ]
+   ]
+  },
+  "docs": {
+   "a": "",
+   "t": ""
+  },
+  "header": [],
+  "output": "a = 1\n\n[t]\nb = 2\n"
+ },
+ {
+  "name": "multi-line and long docs",
+  "data": {
+   "t": "table",
+   "v": [
+    [
+     "a",
+     {
+      "t": "int",
+      "v": "1"
+     }
+    ]
+   ]
+  },
+  "docs": {
+   "a": "first paragraph\nsecond paragraph that is long w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w "
+  },
+  "header": [],
+  "output": "# first paragraph\n# second paragraph that is long w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w\n# w w w w w w w w w w w w w w w w w w w w w w w w w w\na = 1\n"
+ },
+ {
+  "name": "quoted keys in headers",
+  "data": {
+   "t": "table",
+   "v": [
+    [
+     "a b",
+     {
+      "t": "table",
+      "v": [
+       [
+        "c.d",
+        {
+         "t": "table",
+         "v": [
+          [
+           "k",
+           {
+            "t": "int",
+            "v": "1"
+           }
+          ]
+         ]
+        }
+       ]
+      ]
+     }
+    ],
+    [
+     "é",
+     {
+      "t": "table",
+      "v": [
+       [
+        "x",
+        {
+         "t": "none"
+        }
+       ]
+      ]
+     }
+    ]
+   ]
+  },
+  "docs": {},
+  "header": [],
+  "output": "[\"a b\"]\n\n[\"a b\".\"c.d\"]\nk = 1\n\n[\"é\"]\n# x =   (not set)\n"
+ },
+ {
+  "name": "array of empty tables",
+  "data": {
+   "t": "table",
+   "v": [
+    [
+     "arr",
+     {
+      "t": "array",
+      "v": [
+       {
+        "t": "table",
+        "v": []
+       },
+       {
+        "t": "table",
+        "v": []
+       }
+      ]
+     }
+    ],
+    [
+     "after",
+     {
+      "t": "table",
+      "v": [
+       [
+        "x",
+        {
+         "t": "int",
+         "v": "1"
+        }
+       ]
+      ]
+     }
+    ]
+   ]
+  },
+  "docs": {},
+  "header": [],
+  "output": "[after]\nx = 1\n\n[[arr]]\n\n[[arr]]\n"
+ },
+ {
+  "name": "nested arrays of tables",
+  "data": {
+   "t": "table",
+   "v": [
+    [
+     "n",
+     {
+      "t": "array",
+      "v": [
+       {
+        "t": "table",
+        "v": [
+         [
+          "id",
+          {
+           "t": "int",
+           "v": "1"
+          }
+         ],
+         [
+          "s",
+          {
+           "t": "table",
+           "v": [
+            [
+             "o",
+             {
+              "t": "int",
+              "v": "1"
+             }
+            ],
+            [
+             "rec",
+             {
+              "t": "array",
+              "v": [
+               {
+                "t": "table",
+                "v": [
+                 [
+                  "r",
+                  {
+                   "t": "int",
+                   "v": "1"
+                  }
+                 ]
+                ]
+               },
+               {
+                "t": "table",
+                "v": [
+                 [
+                  "r",
+                  {
+                   "t": "int",
+                   "v": "2"
+                  }
+                 ]
+                ]
+               }
+              ]
+             }
+            ]
+           ]
+          }
+         ]
+        ]
+       },
+       {
+        "t": "table",
+        "v": [
+         [
+          "id",
+          {
+           "t": "int",
+           "v": "2"
+          }
+         ],
+         [
+          "s",
+          {
+           "t": "table",
+           "v": [
+            [
+             "rec",
+             {
+              "t": "array",
+              "v": [
+               {
+                "t": "table",
+                "v": [
+                 [
+                  "r",
+                  {
+                   "t": "int",
+                   "v": "3"
+                  }
+                 ]
+                ]
+               }
+              ]
+             }
+            ]
+           ]
+          }
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   ]
+  },
+  "docs": {
+   "n": "nodes",
+   "n/s": "settings",
+   "n/s/rec": "records",
+   "n/id": "id"
+  },
+  "header": [],
+  "output": "# nodes\n[[n]]\n# id\nid = 1\n\n# settings\n[n.s]\no = 1\n\n# records\n[[n.s.rec]]\nr = 1\n\n[[n.s.rec]]\nr = 2\n\n[[n]]\n# id\nid = 2\n\n# settings\n[n.s]\n\n# records\n[[n.s.rec]]\nr = 3\n"
+ },
+ {
+  "name": "mixed list stays inline",
+  "data": {
+   "t": "table",
+   "v": [
+    [
+     "m",
+     {
+      "t": "array",
+      "v": [
+       {
+        "t": "table",
+        "v": [
+         [
+          "a",
+          {
+           "t": "int",
+           "v": "1"
+          }
+         ]
+        ]
+       },
+       {
+        "t": "int",
+        "v": "2"
+       },
+       {
+        "t": "str",
+        "utf8": "78",
+        "v": "x"
+       }
+      ]
+     }
+    ]
+   ]
+  },
+  "docs": {},
+  "header": [],
+  "output": "m = [{ a = 1 }, 2, \"x\"]\n"
+ },
+ {
+  "name": "long arrays",
+  "data": {
+   "t": "table",
+   "v": [
+    [
+     "l",
+     {
+      "t": "array",
+      "v": [
+       {
+        "t": "int",
+        "v": "0"
+       },
+       {
+        "t": "int",
+        "v": "1"
+       },
+       {
+        "t": "int",
+        "v": "2"
+       },
+       {
+        "t": "int",
+        "v": "3"
+       },
+       {
+        "t": "int",
+        "v": "4"
+       },
+       {
+        "t": "int",
+        "v": "5"
+       },
+       {
+        "t": "int",
+        "v": "6"
+       },
+       {
+        "t": "int",
+        "v": "7"
+       },
+       {
+        "t": "int",
+        "v": "8"
+       },
+       {
+        "t": "int",
+        "v": "9"
+       },
+       {
+        "t": "int",
+        "v": "10"
+       },
+       {
+        "t": "int",
+        "v": "11"
+       },
+       {
+        "t": "int",
+        "v": "12"
+       },
+       {
+        "t": "int",
+        "v": "13"
+       },
+       {
+        "t": "int",
+        "v": "14"
+       },
+       {
+        "t": "int",
+        "v": "15"
+       },
+       {
+        "t": "int",
+        "v": "16"
+       },
+       {
+        "t": "int",
+        "v": "17"
+       },
+       {
+        "t": "int",
+        "v": "18"
+       },
+       {
+        "t": "int",
+        "v": "19"
+       },
+       {
+        "t": "int",
+        "v": "20"
+       },
+       {
+        "t": "int",
+        "v": "21"
+       },
+       {
+        "t": "int",
+        "v": "22"
+       },
+       {
+        "t": "int",
+        "v": "23"
+       },
+       {
+        "t": "int",
+        "v": "24"
+       },
+       {
+        "t": "int",
+        "v": "25"
+       },
+       {
+        "t": "int",
+        "v": "26"
+       },
+       {
+        "t": "int",
+        "v": "27"
+       },
+       {
+        "t": "int",
+        "v": "28"
+       },
+       {
+        "t": "int",
+        "v": "29"
+       },
+       {
+        "t": "int",
+        "v": "30"
+       },
+       {
+        "t": "int",
+        "v": "31"
+       },
+       {
+        "t": "int",
+        "v": "32"
+       },
+       {
+        "t": "int",
+        "v": "33"
+       },
+       {
+        "t": "int",
+        "v": "34"
+       },
+       {
+        "t": "int",
+        "v": "35"
+       },
+       {
+        "t": "int",
+        "v": "36"
+       },
+       {
+        "t": "int",
+        "v": "37"
+       },
+       {
+        "t": "int",
+        "v": "38"
+       },
+       {
+        "t": "int",
+        "v": "39"
+       },
+       {
+        "t": "int",
+        "v": "40"
+       },
+       {
+        "t": "int",
+        "v": "41"
+       },
+       {
+        "t": "int",
+        "v": "42"
+       },
+       {
+        "t": "int",
+        "v": "43"
+       },
+       {
+        "t": "int",
+        "v": "44"
+       },
+       {
+        "t": "int",
+        "v": "45"
+       },
+       {
+        "t": "int",
+        "v": "46"
+       },
+       {
+        "t": "int",
+        "v": "47"
+       },
+       {
+        "t": "int",
+        "v": "48"
+       },
+       {
+        "t": "int",
+        "v": "49"
+       },
+       {
+        "t": "int",
+        "v": "50"
+       },
+       {
+        "t": "int",
+        "v": "51"
+       },
+       {
+        "t": "int",
+        "v": "52"
+       },
+       {
+        "t": "int",
+        "v": "53"
+       },
+       {
+        "t": "int",
+        "v": "54"
+       },
+       {
+        "t": "int",
+        "v": "55"
+       },
+       {
+        "t": "int",
+        "v": "56"
+       },
+       {
+        "t": "int",
+        "v": "57"
+       },
+       {
+        "t": "int",
+        "v": "58"
+       },
+       {
+        "t": "int",
+        "v": "59"
+       }
+      ]
+     }
+    ],
+    [
+     "s",
+     {
+      "t": "array",
+      "v": [
+       {
+        "t": "str",
+        "utf8": "78787878787878787878787878787878787878787878787878787878787878787878787878787878",
+        "v": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+       },
+       {
+        "t": "str",
+        "utf8": "79797979797979797979797979797979797979797979797979797979797979797979797979797979",
+        "v": "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy"
+       },
+       {
+        "t": "str",
+        "utf8": "7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a",
+        "v": "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+       }
+      ]
+     }
+    ]
+   ]
+  },
+  "docs": {},
+  "header": [],
+  "output": "l = [\n    0,\n    1,\n    2,\n    3,\n    4,\n    5,\n    6,\n    7,\n    8,\n    9,\n    10,\n    11,\n    12,\n    13,\n    14,\n    15,\n    16,\n    17,\n    18,\n    19,\n    20,\n    21,\n    22,\n    23,\n    24,\n    25,\n    26,\n    27,\n    28,\n    29,\n    30,\n    31,\n    32,\n    33,\n    34,\n    35,\n    36,\n    37,\n    38,\n    39,\n    40,\n    41,\n    42,\n    43,\n    44,\n    45,\n    46,\n    47,\n    48,\n    49,\n    50,\n    51,\n    52,\n    53,\n    54,\n    55,\n    56,\n    57,\n    58,\n    59,\n]\ns = [\n    \"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\",\n    \"yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy\",\n    \"zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz\",\n]\n"
+ },
+ {
+  "name": "multi-line strings",
+  "data": {
+   "t": "table",
+   "v": [
+    [
+     "m",
+     {
+      "t": "str",
+      "utf8": "610a62",
+      "v": "a\nb"
+     }
+    ],
+    [
+     "n",
+     {
+      "t": "str",
+      "utf8": "656e64730a",
+      "v": "ends\n"
+     }
+    ],
+    [
+     "o",
+     {
+      "t": "str",
+      "utf8": "6f6e6c790d",
+      "v": "only\r"
+     }
+    ]
+   ]
+  },
+  "docs": {},
+  "header": [],
+  "output": "m = \"\"\"\na\nb\"\"\"\nn = \"\"\"\nends\n\"\"\"\no = \"only\\r\"\n"
+ },
+ {
+  "name": "table that only holds tables",
+  "data": {
+   "t": "table",
+   "v": [
+    [
+     "outer",
+     {
+      "t": "table",
+      "v": [
+       [
+        "inner",
+        {
+         "t": "table",
+         "v": [
+          [
+           "k",
+           {
+            "t": "int",
+            "v": "1"
+           }
+          ]
+         ]
+        }
+       ]
+      ]
+     }
+    ]
+   ]
+  },
+  "docs": {
+   "outer": "o",
+   "outer/inner": "i"
+  },
+  "header": [],
+  "output": "# o\n[outer]\n\n# i\n[outer.inner]\nk = 1\n"
+ },
+ {
+  "name": "datetime",
+  "data": {
+   "t": "table",
+   "v": [
+    [
+     "saved",
+     {
+      "t": "datetime",
+      "iso": "2026-10-15T14:32:05"
+     }
+    ]
+   ]
+  },
+  "docs": {},
+  "header": [],
+  "output": "saved = 2026-10-15T14:32:05\n"
+ }
+]

@@ -1,0 +1,4 @@
+save over a params log: <work>/params/MDATK_params_log.toml is the parameter log of a run; save the project under another name
+save .json: <work>/preset.json: JSON presets are no longer supported; MDATK 0.0.4.1 uses TOML project files (.mdatk.toml)
+read .JSON: <work>/preset.JSON: JSON presets are no longer supported; MDATK 0.0.4.1 uses TOML project files (.mdatk.toml)
+append_log missing: FileNotFoundError('<work>/missing.mdatk.toml')
