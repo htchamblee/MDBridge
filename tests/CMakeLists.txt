@@ -7,6 +7,7 @@ include(GoogleTest)
 # core: project files read exactly as MDATK reads them (fixtures in data/, see data/README.md)
 add_executable(mdbridge_core_tests
     core/test_atom_selection.cpp
+    core/test_dataset.cpp
     core/test_hash.cpp
     core/test_json.cpp
     core/test_naming.cpp
