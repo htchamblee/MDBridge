@@ -15,6 +15,7 @@
 #include <utility>
 #include <vector>
 
+#include "mdbridge/core/errors.hpp"
 #include "mdbridge/core/value.hpp"
 
 namespace mdbridge::core {
@@ -60,28 +61,11 @@ std::filesystem::path appendLog(const std::filesystem::path& project, const LogE
 // _split_log: moves the log of `project` to <stem>.log.toml, sets log_file, returns the side file.
 std::filesystem::path splitLog(const std::filesystem::path& project);
 
-// The user stopped the work (mdatk.progress.Cancelled): a logged step ends "cancelled".
-class Cancelled : public std::runtime_error {
-public:
-    Cancelled() : std::runtime_error("cancelled") {}
-    using std::runtime_error::runtime_error;
-};
-
-// An error that names the Python exception class MDATK reports in the same situation; the summary
-// of a failed step is "<pythonName>: <message>", e.g. "RuntimeError: pmemd crashed".
-class NamedError : public std::runtime_error {
-public:
-    NamedError(std::string pythonName, const std::string& message)
-        : std::runtime_error(message), m_name(std::move(pythonName)) {}
-    const std::string& pythonName() const { return m_name; }
-
-private:
-    std::string m_name;
-};
-
-// "<class>: <message>" of an exception: NamedError's name; ValueError for ProjectError and
-// std::invalid_argument; KeyError for std::out_of_range; OSError for filesystem errors;
-// RuntimeError for other std::runtime_error; Exception otherwise.
+// "<class>: <message>" of an exception, the summary of a failed step: NamedError's name; the
+// Python name of a ValueError (ValueError for ProjectError, SelectionError, NoDataError ...);
+// ValueError for std::invalid_argument; KeyError (message as its repr) for std::out_of_range;
+// FileNotFoundError and the other OSError names, with Python's "[Errno N] text: 'path'", for
+// filesystem errors; RuntimeError for other std::runtime_error; Exception otherwise.
 std::string exceptionSummary(const std::exception& error);
 
 // logged(path, step, title, citations): runs `body` with an entry that started now. When `body`

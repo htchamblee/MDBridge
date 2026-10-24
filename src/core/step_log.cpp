@@ -218,7 +218,10 @@ std::string exceptionSummary(const std::exception& error) {
         }
         return text;
     }
-    if (dynamic_cast<const ProjectError*>(&error) || dynamic_cast<const std::invalid_argument*>(&error)) {
+    if (const auto* value = dynamic_cast<const ValueError*>(&error)) {
+        return std::string(value->pythonName()) + ": " + error.what();
+    }
+    if (dynamic_cast<const std::invalid_argument*>(&error)) {
         return std::string("ValueError: ") + error.what();
     }
     if (dynamic_cast<const std::out_of_range*>(&error)) {
