@@ -6,6 +6,7 @@ add_library(mdbridge_io STATIC
     external.cpp
     gromacs.cpp
     loader.cpp
+    mrc.cpp
     netcdf.cpp
     parm7.cpp
     pdb.cpp

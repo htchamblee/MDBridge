@@ -18,6 +18,7 @@ add_library(mdbridge_core STATIC
     project_io.cpp
     project_model.inc
     python.cpp
+    rigid_transform.cpp
     selections.cpp
     settings.cpp
     step_log.cpp

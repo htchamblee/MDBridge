@@ -16,6 +16,7 @@ add_executable(mdbridge_core_tests
     core/test_progress.cpp
     core/test_project_model.cpp
     core/test_python.cpp
+    core/test_rigid_transform.cpp
     core/test_selections.cpp
     core/test_step_log.cpp
     core/test_step_types.cpp
@@ -31,6 +32,7 @@ gtest_discover_tests(mdbridge_core_tests DISCOVERY_MODE PRE_TEST)
 add_executable(mdbridge_io_tests
     io/test_external.cpp
     io/test_loader.cpp
+    io/test_mrc.cpp
     io/test_netcdf.cpp
     io/test_parm7.cpp
     io/test_pdb.cpp
