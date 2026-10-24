@@ -23,17 +23,21 @@ std::string pythonStr(const Value& value);
 // type(value).__name__: str, int, float, bool, list, dict, datetime, date, time, NoneType.
 std::string_view pythonTypeName(const Value& value);
 
-// round(x, digits): correctly rounded on the exact binary value, ties to even.
+// round(x, digits): correctly rounded on the exact binary value, ties to even. Throws
+// std::overflow_error("rounded value too large to represent") as Python does (digits < 0 only).
 double pythonRound(double x, int digits);
 
 // Python's json.dumps(value, sort_keys=True, separators=(",", ":"), default=str) with
 // ensure_ascii: compact, keys sorted by code point, non-ASCII as \uXXXX (surrogate pairs beyond
-// U+FFFF), NaN / Infinity, dates as str().
+// U+FFFF), NaN / Infinity, dates as str(). Bytes that are not UTF-8 count as surrogateescape's
+// lone surrogates (\udcXX), as in a Python str of an undecodable file name.
 std::string pythonJsonCompact(const Value& value);
 
 // POSIX os.path (posixpath) on UTF-8 strings.
 namespace posixpath {
-// "~" and "~user" expansion; $HOME first for "~" (unchanged path when no home is known)
+// "~" and "~user" expansion; $HOME first for "~" (set, even empty), else the passwd entry
+// (unchanged path when no home is known). Windows, where MDATK has no reference behaviour:
+// "~" is %USERPROFILE% and "~user" stays as it is.
 std::string expanduser(std::string_view path);
 bool isabs(std::string_view path);
 std::string join(std::string_view base, std::string_view path);

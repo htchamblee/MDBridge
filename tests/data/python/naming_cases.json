@@ -1,0 +1,290 @@
+{
+ "sanitize_project": [
+  [
+   "",
+   "project"
+  ],
+  [
+   "   ",
+   "project"
+  ],
+  [
+   "my apt 1",
+   "my-apt-1"
+  ],
+  [
+   "apt1",
+   "apt1"
+  ],
+  [
+   "  ..My Plan!!  ",
+   "My-Plan"
+  ],
+  [
+   "café",
+   "caf"
+  ],
+  [
+   "a/b\\c",
+   "a-b-c"
+  ],
+  [
+   "--x--",
+   "x"
+  ],
+  [
+   "_a_",
+   "a"
+  ],
+  [
+   ".hidden",
+   "hidden"
+  ],
+  [
+   "a__b",
+   "a__b"
+  ],
+  [
+   "a..b",
+   "a..b"
+  ],
+  [
+   "a b\tc\nd",
+   "a-b-c-d"
+  ],
+  [
+   "xxx",
+   "xxx"
+  ],
+  [
+   "Ünïcødé",
+   "n-c-d"
+  ],
+  [
+   "項目",
+   "project"
+  ],
+  [
+   "a-._b",
+   "a-._b"
+  ],
+  [
+   " nbsp ",
+   "nbsp"
+  ],
+  [
+   null,
+   "project"
+  ]
+ ],
+ "sanitize_tag": [
+  [
+   "",
+   "step"
+  ],
+  [
+   "eq_free",
+   "eq-free"
+  ],
+  [
+   "a b/c",
+   "a-b-c"
+  ],
+  [
+   "amber-build",
+   "amber-build"
+  ],
+  [
+   "--",
+   "step"
+  ],
+  [
+   "_",
+   "step"
+  ],
+  [
+   "stage 1",
+   "stage-1"
+  ],
+  [
+   "min.1",
+   "min-1"
+  ],
+  [
+   "Ünï",
+   "n"
+  ],
+  [
+   null,
+   "step"
+  ],
+  [
+   "eq-free",
+   "eq-free"
+  ]
+ ],
+ "step_label": [
+  [
+   0,
+   "00"
+  ],
+  [
+   1,
+   "01"
+  ],
+  [
+   9,
+   "09"
+  ],
+  [
+   10,
+   "10"
+  ],
+  [
+   99,
+   "99"
+  ],
+  [
+   100,
+   "100"
+  ],
+  [
+   1234,
+   "1234"
+  ],
+  [
+   -1,
+   "-1"
+  ]
+ ],
+ "step_folder": [
+  [
+   3,
+   "amber-build",
+   "03_amber-build"
+  ],
+  [
+   12,
+   "eq_free",
+   "12_eq-free"
+  ],
+  [
+   0,
+   "",
+   "00_step"
+  ]
+ ],
+ "file_name": [
+  [
+   "apt1",
+   3,
+   "tleap",
+   "20261015-1432",
+   "parm7",
+   "apt1_03_tleap_20261015-1432.parm7"
+  ],
+  [
+   "apt1",
+   3,
+   "tleap",
+   "",
+   "parm7",
+   "apt1_03_tleap.parm7"
+  ],
+  [
+   "my apt",
+   1,
+   "eq_free",
+   "20261015-1432",
+   ".rst7",
+   "my-apt_01_eq-free_20261015-1432.rst7"
+  ],
+  [
+   "",
+   0,
+   "plan",
+   "",
+   "sh",
+   "project_00_plan.sh"
+  ],
+  [
+   "a",
+   2,
+   "b",
+   "",
+   "",
+   "a_02_b"
+  ],
+  [
+   "a",
+   2,
+   "b",
+   "s",
+   "..x",
+   "a_02_b_s.x"
+  ]
+ ],
+ "parse_name": [
+  [
+   "my_apt_03_eq-free_20261015-1432.rst7",
+   {
+    "project": "my_apt",
+    "step": "03",
+    "tag": "eq-free",
+    "stamp": "20261015-1432",
+    "ext": "rst7"
+   }
+  ],
+  [
+   "apt1_03_tleap.parm7",
+   {
+    "project": "apt1",
+    "step": "03",
+    "tag": "tleap",
+    "stamp": "",
+    "ext": "parm7"
+   }
+  ],
+  [
+   "apt1_03_tleap",
+   {
+    "project": "apt1",
+    "step": "03",
+    "tag": "tleap",
+    "stamp": "",
+    "ext": ""
+   }
+  ],
+  [
+   "apt1_3_tleap.parm7",
+   null
+  ],
+  [
+   "apt1_003_x_20261015-1432",
+   {
+    "project": "apt1",
+    "step": "003",
+    "tag": "x",
+    "stamp": "20261015-1432",
+    "ext": ""
+   }
+  ],
+  [
+   "x_01_a_b.pdb",
+   null
+  ],
+  [
+   "apt1_03_tleap.tar.gz",
+   null
+  ],
+  [
+   "_01_a",
+   null
+  ],
+  [
+   "a_01_b_20261015-14321.x",
+   null
+  ]
+ ],
+ "new_stamp_example": "20261015-1432"
+}

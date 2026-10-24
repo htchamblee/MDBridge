@@ -1,0 +1,774 @@
+{
+ "how": "the inputs of stable_hash_cases.json (same order and names) as tagged JSON: {\"$float\": ...}, {\"$datetime\": isoformat}, {\"$date\": isoformat}, {\"$int\": decimal} beyond 64 bits; tuples as lists, keys as str(); a dataclass as its _to_plain() form (None fields kept), marked dataclass=true",
+ "cases": [
+  {
+   "name": "empty_dict",
+   "dataclass": false,
+   "input": {}
+  },
+  {
+   "name": "simple",
+   "dataclass": false,
+   "input": {
+    "b": 1,
+    "a": [
+     1,
+     2.5,
+     "x",
+     true,
+     null
+    ]
+   }
+  },
+  {
+   "name": "none_values_in_dicts_dropped",
+   "dataclass": false,
+   "input": {
+    "a": null,
+    "b": {
+     "c": null,
+     "d": 0
+    }
+   }
+  },
+  {
+   "name": "floats",
+   "dataclass": false,
+   "input": {
+    "f": [
+     0.1,
+     1.0,
+     1e-07,
+     1e+16,
+     1000000000000000.0,
+     123456789.123,
+     -0.0,
+     2.5e-05,
+     1e+22,
+     0.0001
+    ]
+   }
+  },
+  {
+   "name": "nonfinite",
+   "dataclass": false,
+   "input": {
+    "f": [
+     {
+      "$float": "nan"
+     },
+     {
+      "$float": "inf"
+     },
+     {
+      "$float": "-inf"
+     }
+    ]
+   }
+  },
+  {
+   "name": "unicode_escaped",
+   "dataclass": false,
+   "input": {
+    "s": "café Å – 😀 \u0000 \u001f  \" \\ / \n\t\r\b\f"
+   }
+  },
+  {
+   "name": "key_order_codepoints",
+   "dataclass": false,
+   "input": {
+    "b": 1,
+    "B": 2,
+    "a": 3,
+    "_": 4,
+    "é": 5,
+    "z": 6,
+    "10": 7,
+    "9": 8,
+    "！": 9,
+    "😀": 10
+   }
+  },
+  {
+   "name": "tuple_to_list",
+   "dataclass": false,
+   "input": {
+    "t": [
+     1,
+     2
+    ]
+   }
+  },
+  {
+   "name": "int_keys_to_str",
+   "dataclass": false,
+   "input": {
+    "1": "a",
+    "2": "b"
+   }
+  },
+  {
+   "name": "datetime_default_str",
+   "dataclass": false,
+   "input": {
+    "t": {
+     "$datetime": "2026-10-15T14:32:05"
+    },
+    "d": {
+     "$date": "2026-01-02"
+    },
+    "u": {
+     "$datetime": "2026-10-15T14:32:05.250000+00:00"
+    }
+   }
+  },
+  {
+   "name": "big_int",
+   "dataclass": false,
+   "input": {
+    "i": {
+     "$int": "9223372036854775808"
+    },
+    "j": -9223372036854775808,
+    "k": {
+     "$int": "12345678901234567890123"
+    }
+   }
+  },
+  {
+   "name": "bools",
+   "dataclass": false,
+   "input": {
+    "t": true,
+    "f": false
+   }
+  },
+  {
+   "name": "nested_lists",
+   "dataclass": false,
+   "input": [
+    [
+     1,
+     [
+      2,
+      [
+       3
+      ]
+     ]
+    ],
+    []
+   ]
+  },
+  {
+   "name": "plain_string",
+   "dataclass": false,
+   "input": "abc"
+  },
+  {
+   "name": "plain_number",
+   "dataclass": false,
+   "input": 3
+  },
+  {
+   "name": "group",
+   "dataclass": true,
+   "input": {
+    "name": "Aptamer",
+    "residues": "1-12",
+    "selection": "",
+    "color": "#2a78d6"
+   }
+  },
+  {
+   "name": "default_project",
+   "dataclass": true,
+   "input": {
+    "notes": "",
+    "inputs": {
+     "topology": "",
+     "trajectories": [],
+     "start": 0,
+     "stop": null,
+     "step": 1,
+     "dt_ps": null,
+     "time_unit": "ns",
+     "external": []
+    },
+    "cleaning": {
+     "enabled": false,
+     "cpptraj_path": "cpptraj",
+     "conda_env": "",
+     "conda_exe": "",
+     "solvent_mask": ":WAT,HOH,TIP3,SOL,T3P,T4P,SPC",
+     "ion_mask": ":Na+,Cl-,K+,NA,CL,K,Na,Cl,SOD,CLA,POT",
+     "extra_strip_mask": "",
+     "autoimage": true,
+     "autoimage_anchor": "",
+     "fit": true,
+     "fit_mask": "@P,C4'",
+     "fit_reference": "first",
+     "remove_box_after_fit": true,
+     "reference_frame": 1,
+     "reference_file": "",
+     "start": 1,
+     "stop": null,
+     "offset": 1,
+     "extra_commands": "",
+     "output_dir": ""
+    },
+    "groups": [
+     {
+      "name": "Aptamer",
+      "residues": "1-12",
+      "selection": "",
+      "color": "#2a78d6"
+     },
+     {
+      "name": "Target",
+      "residues": "13-24",
+      "selection": "",
+      "color": "#eb6834"
+     }
+    ],
+    "analyses": {
+     "rmsd": {
+      "enabled": true,
+      "targets": [
+       {
+        "label": "Complex",
+        "selection": "(group:Aptamer or group:Target) and not name H*",
+        "fit_selection": ""
+       },
+       {
+        "label": "Backbone",
+        "selection": "(group:Aptamer or group:Target) and name C4'",
+        "fit_selection": ""
+       }
+      ],
+      "reference_frame": 0,
+      "superposition": true,
+      "mass_weighted": false
+     },
+     "contacts": {
+      "enabled": true,
+      "group_a": "Aptamer",
+      "group_b": "Target",
+      "cutoff": 4.5,
+      "heavy_only": true
+     },
+     "hbonds": {
+      "enabled": true,
+      "group_a": "Aptamer",
+      "group_b": "Target",
+      "distance_cutoff": 3.5,
+      "use_angle": true,
+      "angle_cutoff": 135.0,
+      "donor_elements": "N,O",
+      "acceptor_elements": "N,O"
+     },
+     "mg": {
+      "enabled": true,
+      "mg_selection": "resname MG Mg MG2 or name MG Mg",
+      "ligand_selection": "group:Aptamer or group:Target",
+      "ligand_elements": "O",
+      "group_a": "Aptamer",
+      "group_b": "Target",
+      "inner_cutoff": 2.6,
+      "outer_cutoff": 4.5,
+      "bridge_shell": "inner",
+      "geometry": false,
+      "angle_tolerance": 25.0,
+      "occupancy_selection": "",
+      "occupancy_elements": "N,O"
+     },
+     "stacking": {
+      "enabled": true,
+      "selection": "group:Aptamer or group:Target",
+      "scope": "all",
+      "group_a": "Aptamer",
+      "group_b": "Target",
+      "distance_cutoff": 4.5,
+      "angle_cutoff": 30.0,
+      "offset_cutoff": 2.5,
+      "planarity_cutoff": 0.25
+     },
+     "energy": {
+      "enabled": true,
+      "group_a": "Aptamer",
+      "group_b": "Target",
+      "cutoff": 12.0,
+      "dielectric": 1.0,
+      "distance_dependent": false,
+      "use_parm7": true,
+      "target_value": null,
+      "exclude_bonded": 3
+     },
+     "basepairs": {
+      "engine": "builtin",
+      "stride": 10,
+      "cutoff": 3.5,
+      "wobble": true,
+      "noncanonical": false
+     },
+     "use_pbc": false,
+     "proximity_search_radius": 8.0
+    },
+    "visual": {
+     "structure_groups": [],
+     "trace_atoms": "C4',CA",
+     "representations": [],
+     "renderer": "auto",
+     "rep_rest": "trace",
+     "backbone_atom": "P",
+     "rep_hydrogens": false,
+     "show_ions": true,
+     "align_frames": true,
+     "rotation": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "zoom": 1.0,
+     "center_on": "",
+     "center_follow": false,
+     "color_mode": "groups",
+     "base_color": "#b5b3ad",
+     "chain_palette": "tab10",
+     "proximity_set": "Target",
+     "proximity_cutoff": 4.0,
+     "proximity_color": "#e34948",
+     "glow_mode": "fade",
+     "glow_color": "#ffb000",
+     "fade_frames": 15,
+     "glow_strength": 1.0,
+     "ion_color": "#008300",
+     "line_width": 2.2,
+     "point_size": 22.0,
+     "depth_cue": true,
+     "theme": "light",
+     "font_size": 11.0,
+     "show_time_label": true,
+     "label_every": 0,
+     "label_residues": "",
+     "title": ""
+    },
+    "density": {
+     "map_path": "",
+     "show": true,
+     "resolution": 5.0,
+     "level": 2.0,
+     "color": "#2a78d6",
+     "opacity": 0.45,
+     "front": false,
+     "fit_frame": "ref",
+     "search": "global",
+     "angular_step": 30.0,
+     "auto_fit": true,
+     "transform": [],
+     "anchor": [],
+     "fit_cc": 0.0,
+     "fit_info": ""
+    },
+    "layout": {
+     "preset": "large_plus_3",
+     "panels": [
+      {
+       "type": "structure",
+       "series": [],
+       "title": "Structure",
+       "options": {}
+      },
+      {
+       "type": "timeseries",
+       "series": [
+        "rmsd/Complex"
+       ],
+       "title": "RMSD",
+       "options": {}
+      },
+      {
+       "type": "timeseries",
+       "series": [
+        "hbonds/count"
+       ],
+       "title": "Inter-strand H-bonds",
+       "options": {}
+      },
+      {
+       "type": "contact_map",
+       "series": [
+        "contacts/map"
+       ],
+       "title": "",
+       "options": {
+        "mode": "instant",
+        "transpose": true
+       }
+      }
+     ]
+    },
+    "output": {
+     "out_dir": "MDATK_output",
+     "cache_dir": "",
+     "video": {
+      "enabled": true,
+      "filename": "MDATK_video.mp4",
+      "fps": 24,
+      "width": 1920,
+      "height": 1080,
+      "dpi": 120,
+      "codec": "libx264",
+      "crf": 20,
+      "frame_stride": 1,
+      "ffmpeg_path": "ffmpeg"
+     },
+     "charts": {
+      "enabled": true,
+      "series": [],
+      "include_heatmaps": false,
+      "formats": [
+       "png"
+      ],
+      "dpi": 300,
+      "width": 8.0,
+      "height": 4.5,
+      "style": "mdatk",
+      "color": "",
+      "line_width": 1.5,
+      "title": "",
+      "xlabel": "",
+      "ylabel": "",
+      "smoothing": 0,
+      "show_target": true,
+      "prefix": "MDATK_chart"
+     },
+     "pdb": {
+      "enabled": false,
+      "frames": "",
+      "times": "",
+      "selection": "",
+      "prefix": "MDATK_frame"
+     },
+     "write_params_log": true,
+     "timestamp_files": true
+    },
+    "workflow": {
+     "project_name": "project",
+     "stamp": "",
+     "use_stamp": true,
+     "out_dir": "",
+     "step_folders": true,
+     "nodes": [],
+     "edges": [],
+     "scratch": []
+    }
+   }
+  },
+  {
+   "name": "default_project_dict",
+   "dataclass": false,
+   "input": {
+    "notes": "",
+    "inputs": {
+     "topology": "",
+     "trajectories": [],
+     "start": 0,
+     "stop": null,
+     "step": 1,
+     "dt_ps": null,
+     "time_unit": "ns",
+     "external": []
+    },
+    "cleaning": {
+     "enabled": false,
+     "cpptraj_path": "cpptraj",
+     "conda_env": "",
+     "conda_exe": "",
+     "solvent_mask": ":WAT,HOH,TIP3,SOL,T3P,T4P,SPC",
+     "ion_mask": ":Na+,Cl-,K+,NA,CL,K,Na,Cl,SOD,CLA,POT",
+     "extra_strip_mask": "",
+     "autoimage": true,
+     "autoimage_anchor": "",
+     "fit": true,
+     "fit_mask": "@P,C4'",
+     "fit_reference": "first",
+     "remove_box_after_fit": true,
+     "reference_frame": 1,
+     "reference_file": "",
+     "start": 1,
+     "stop": null,
+     "offset": 1,
+     "extra_commands": "",
+     "output_dir": ""
+    },
+    "groups": [
+     {
+      "name": "Aptamer",
+      "residues": "1-12",
+      "selection": "",
+      "color": "#2a78d6"
+     },
+     {
+      "name": "Target",
+      "residues": "13-24",
+      "selection": "",
+      "color": "#eb6834"
+     }
+    ],
+    "analyses": {
+     "rmsd": {
+      "enabled": true,
+      "targets": [
+       {
+        "label": "Complex",
+        "selection": "(group:Aptamer or group:Target) and not name H*",
+        "fit_selection": ""
+       },
+       {
+        "label": "Backbone",
+        "selection": "(group:Aptamer or group:Target) and name C4'",
+        "fit_selection": ""
+       }
+      ],
+      "reference_frame": 0,
+      "superposition": true,
+      "mass_weighted": false
+     },
+     "contacts": {
+      "enabled": true,
+      "group_a": "Aptamer",
+      "group_b": "Target",
+      "cutoff": 4.5,
+      "heavy_only": true
+     },
+     "hbonds": {
+      "enabled": true,
+      "group_a": "Aptamer",
+      "group_b": "Target",
+      "distance_cutoff": 3.5,
+      "use_angle": true,
+      "angle_cutoff": 135.0,
+      "donor_elements": "N,O",
+      "acceptor_elements": "N,O"
+     },
+     "mg": {
+      "enabled": true,
+      "mg_selection": "resname MG Mg MG2 or name MG Mg",
+      "ligand_selection": "group:Aptamer or group:Target",
+      "ligand_elements": "O",
+      "group_a": "Aptamer",
+      "group_b": "Target",
+      "inner_cutoff": 2.6,
+      "outer_cutoff": 4.5,
+      "bridge_shell": "inner",
+      "geometry": false,
+      "angle_tolerance": 25.0,
+      "occupancy_selection": "",
+      "occupancy_elements": "N,O"
+     },
+     "stacking": {
+      "enabled": true,
+      "selection": "group:Aptamer or group:Target",
+      "scope": "all",
+      "group_a": "Aptamer",
+      "group_b": "Target",
+      "distance_cutoff": 4.5,
+      "angle_cutoff": 30.0,
+      "offset_cutoff": 2.5,
+      "planarity_cutoff": 0.25
+     },
+     "energy": {
+      "enabled": true,
+      "group_a": "Aptamer",
+      "group_b": "Target",
+      "cutoff": 12.0,
+      "dielectric": 1.0,
+      "distance_dependent": false,
+      "use_parm7": true,
+      "target_value": null,
+      "exclude_bonded": 3
+     },
+     "basepairs": {
+      "engine": "builtin",
+      "stride": 10,
+      "cutoff": 3.5,
+      "wobble": true,
+      "noncanonical": false
+     },
+     "use_pbc": false,
+     "proximity_search_radius": 8.0
+    },
+    "visual": {
+     "structure_groups": [],
+     "trace_atoms": "C4',CA",
+     "representations": [],
+     "renderer": "auto",
+     "rep_rest": "trace",
+     "backbone_atom": "P",
+     "rep_hydrogens": false,
+     "show_ions": true,
+     "align_frames": true,
+     "rotation": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "zoom": 1.0,
+     "center_on": "",
+     "center_follow": false,
+     "color_mode": "groups",
+     "base_color": "#b5b3ad",
+     "chain_palette": "tab10",
+     "proximity_set": "Target",
+     "proximity_cutoff": 4.0,
+     "proximity_color": "#e34948",
+     "glow_mode": "fade",
+     "glow_color": "#ffb000",
+     "fade_frames": 15,
+     "glow_strength": 1.0,
+     "ion_color": "#008300",
+     "line_width": 2.2,
+     "point_size": 22.0,
+     "depth_cue": true,
+     "theme": "light",
+     "font_size": 11.0,
+     "show_time_label": true,
+     "label_every": 0,
+     "label_residues": "",
+     "title": ""
+    },
+    "density": {
+     "map_path": "",
+     "show": true,
+     "resolution": 5.0,
+     "level": 2.0,
+     "color": "#2a78d6",
+     "opacity": 0.45,
+     "front": false,
+     "fit_frame": "ref",
+     "search": "global",
+     "angular_step": 30.0,
+     "auto_fit": true,
+     "transform": [],
+     "anchor": [],
+     "fit_cc": 0.0,
+     "fit_info": ""
+    },
+    "layout": {
+     "preset": "large_plus_3",
+     "panels": [
+      {
+       "type": "structure",
+       "series": [],
+       "title": "Structure",
+       "options": {}
+      },
+      {
+       "type": "timeseries",
+       "series": [
+        "rmsd/Complex"
+       ],
+       "title": "RMSD",
+       "options": {}
+      },
+      {
+       "type": "timeseries",
+       "series": [
+        "hbonds/count"
+       ],
+       "title": "Inter-strand H-bonds",
+       "options": {}
+      },
+      {
+       "type": "contact_map",
+       "series": [
+        "contacts/map"
+       ],
+       "title": "",
+       "options": {
+        "mode": "instant",
+        "transpose": true
+       }
+      }
+     ]
+    },
+    "output": {
+     "out_dir": "MDATK_output",
+     "cache_dir": "",
+     "video": {
+      "enabled": true,
+      "filename": "MDATK_video.mp4",
+      "fps": 24,
+      "width": 1920,
+      "height": 1080,
+      "dpi": 120,
+      "codec": "libx264",
+      "crf": 20,
+      "frame_stride": 1,
+      "ffmpeg_path": "ffmpeg"
+     },
+     "charts": {
+      "enabled": true,
+      "series": [],
+      "include_heatmaps": false,
+      "formats": [
+       "png"
+      ],
+      "dpi": 300,
+      "width": 8.0,
+      "height": 4.5,
+      "style": "mdatk",
+      "color": "",
+      "line_width": 1.5,
+      "title": "",
+      "xlabel": "",
+      "ylabel": "",
+      "smoothing": 0,
+      "show_target": true,
+      "prefix": "MDATK_chart"
+     },
+     "pdb": {
+      "enabled": false,
+      "frames": "",
+      "times": "",
+      "selection": "",
+      "prefix": "MDATK_frame"
+     },
+     "write_params_log": true,
+     "timestamp_files": true
+    },
+    "workflow": {
+     "project_name": "project",
+     "stamp": "",
+     "use_stamp": true,
+     "out_dir": "",
+     "step_folders": true,
+     "nodes": [],
+     "edges": [],
+     "scratch": []
+    }
+   }
+  },
+  {
+   "name": "cleaning_params_vars",
+   "dataclass": false,
+   "input": {
+    "solvent_mask": ":WAT,HOH,TIP3,SOL,T3P,T4P,SPC",
+    "ion_mask": ":Na+,Cl-,K+,NA,CL,K,Na,Cl,SOD,CLA,POT",
+    "extra_strip_mask": "",
+    "autoimage": true,
+    "autoimage_anchor": "",
+    "fit": true,
+    "fit_mask": "@P,C4'",
+    "fit_reference": "first",
+    "remove_box_after_fit": true,
+    "reference_frame": 1,
+    "reference_file": "",
+    "start": 1,
+    "stop": null,
+    "offset": 1,
+    "extra_commands": ""
+   }
+  }
+ ]
+}

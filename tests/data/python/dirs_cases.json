@@ -1,0 +1,217 @@
+{
+  "how": "working directory = {cwd}; Project() with the four fields set; the out_dir / cache_dir / workflow_dir properties; sanitize_project(); Project.group()",
+  "dirs": [
+    {
+      "output.out_dir": "MDATK_output",
+      "output.cache_dir": "",
+      "workflow.out_dir": "",
+      "workflow.project_name": "project",
+      "out_dir": "{cwd}/MDATK_output",
+      "cache_dir": "{cwd}/MDATK_output/MDATK_cache",
+      "workflow_dir": "{cwd}/MDATK_output/project_workflow"
+    },
+    {
+      "output.out_dir": "",
+      "output.cache_dir": "",
+      "workflow.out_dir": "",
+      "workflow.project_name": "project",
+      "out_dir": "{cwd}/MDATK_output",
+      "cache_dir": "{cwd}/MDATK_output/MDATK_cache",
+      "workflow_dir": "{cwd}/MDATK_output/project_workflow"
+    },
+    {
+      "output.out_dir": "/abs/out/",
+      "output.cache_dir": "",
+      "workflow.out_dir": "",
+      "workflow.project_name": "apt 1",
+      "out_dir": "/abs/out",
+      "cache_dir": "/abs/out/MDATK_cache",
+      "workflow_dir": "/abs/out/apt-1_workflow"
+    },
+    {
+      "output.out_dir": "/abs/out/../o2",
+      "output.cache_dir": "cache/./x",
+      "workflow.out_dir": "",
+      "workflow.project_name": "  ..My Plan!!  ",
+      "out_dir": "/abs/o2",
+      "cache_dir": "{cwd}/cache/x",
+      "workflow_dir": "/abs/o2/My-Plan_workflow"
+    },
+    {
+      "output.out_dir": "rel//out",
+      "output.cache_dir": "/abs/cache/",
+      "workflow.out_dir": "wf",
+      "workflow.project_name": "",
+      "out_dir": "{cwd}/rel/out",
+      "cache_dir": "/abs/cache",
+      "workflow_dir": "{cwd}/wf"
+    },
+    {
+      "output.out_dir": "rel",
+      "output.cache_dir": "",
+      "workflow.out_dir": "/abs/wf/",
+      "workflow.project_name": "café-ü.v1_",
+      "out_dir": "{cwd}/rel",
+      "cache_dir": "{cwd}/rel/MDATK_cache",
+      "workflow_dir": "/abs/wf"
+    },
+    {
+      "output.out_dir": "rel",
+      "output.cache_dir": "",
+      "workflow.out_dir": "",
+      "workflow.project_name": "---",
+      "out_dir": "{cwd}/rel",
+      "cache_dir": "{cwd}/rel/MDATK_cache",
+      "workflow_dir": "{cwd}/rel/project_workflow"
+    },
+    {
+      "output.out_dir": "rel",
+      "output.cache_dir": "",
+      "workflow.out_dir": "",
+      "workflow.project_name": "a..b",
+      "out_dir": "{cwd}/rel",
+      "cache_dir": "{cwd}/rel/MDATK_cache",
+      "workflow_dir": "{cwd}/rel/a..b_workflow"
+    }
+  ],
+  "sanitize_project": [
+    {
+      "name": "project",
+      "sanitized": "project"
+    },
+    {
+      "name": "",
+      "sanitized": "project"
+    },
+    {
+      "name": "   ",
+      "sanitized": "project"
+    },
+    {
+      "name": "apt 1",
+      "sanitized": "apt-1"
+    },
+    {
+      "name": "  ..My Plan!!  ",
+      "sanitized": "My-Plan"
+    },
+    {
+      "name": "café",
+      "sanitized": "caf"
+    },
+    {
+      "name": "a/b\\c",
+      "sanitized": "a-b-c"
+    },
+    {
+      "name": "-._x._-",
+      "sanitized": "x"
+    },
+    {
+      "name": "x y",
+      "sanitized": "x-y"
+    },
+    {
+      "name": "\t a\tb \n",
+      "sanitized": "a-b"
+    },
+    {
+      "name": "　z　",
+      "sanitized": "z"
+    },
+    {
+      "name": "A_b.c-d",
+      "sanitized": "A_b.c-d"
+    },
+    {
+      "name": "éé",
+      "sanitized": "project"
+    },
+    {
+      "name": "..",
+      "sanitized": "project"
+    },
+    {
+      "name": "a  b",
+      "sanitized": "a-b"
+    },
+    {
+      "name": "a​b",
+      "sanitized": "a-b"
+    }
+  ],
+  "group": [
+    {
+      "groups": [
+        "Aptamer",
+        "Target"
+      ],
+      "name": "Aptamer",
+      "found": {
+        "name": "Aptamer",
+        "residues": "1-12",
+        "selection": "",
+        "color": "#2a78d6"
+      }
+    },
+    {
+      "groups": [
+        "Aptamer",
+        "Target"
+      ],
+      "name": "Target",
+      "found": {
+        "name": "Target",
+        "residues": "13-24",
+        "selection": "",
+        "color": "#eb6834"
+      }
+    },
+    {
+      "groups": [
+        "Aptamer",
+        "Target"
+      ],
+      "name": "aptamer",
+      "error": {
+        "type": "KeyError",
+        "args0": "no residue group named 'aptamer' (defined: Aptamer, Target)",
+        "str": "\"no residue group named 'aptamer' (defined: Aptamer, Target)\""
+      }
+    },
+    {
+      "groups": [
+        "Aptamer",
+        "Target"
+      ],
+      "name": "Nope",
+      "error": {
+        "type": "KeyError",
+        "args0": "no residue group named 'Nope' (defined: Aptamer, Target)",
+        "str": "\"no residue group named 'Nope' (defined: Aptamer, Target)\""
+      }
+    },
+    {
+      "groups": [],
+      "name": "X",
+      "error": {
+        "type": "KeyError",
+        "args0": "no residue group named 'X' (defined: none)",
+        "str": "\"no residue group named 'X' (defined: none)\""
+      }
+    },
+    {
+      "groups": [
+        "A",
+        "A"
+      ],
+      "name": "A",
+      "found": {
+        "name": "A",
+        "residues": "",
+        "selection": "",
+        "color": "#2a78d6"
+      }
+    }
+  ]
+}

@@ -14,8 +14,9 @@ std::string_view logLevelName(LogLevel level);
 
 using LogSink = std::function<void(LogLevel level, std::string_view message)>;
 
-// Installs the process-wide sink and returns the previous one. The default sink writes warnings
-// and errors to stderr as "<LEVEL>: <message>" and drops the rest. Thread-safe.
+// Installs the process-wide sink (an empty one: the default sink) and returns the previous one.
+// The default sink writes warnings and errors to stderr as "<LEVEL>: <message>" and drops the
+// rest. Thread-safe; messages reach the sink one at a time.
 LogSink setLogSink(LogSink sink);
 
 void logMessage(LogLevel level, std::string_view message);

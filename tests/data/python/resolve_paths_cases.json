@@ -1,0 +1,642 @@
+{
+  "how": "HOME=/home/tester (root's home from the passwd database: /root); base_dir = /base/proj; Project.resolve_paths(base_dir)",
+  "base_dir": "/base/proj",
+  "home": "/home/tester",
+  "project_before": {
+    "notes": "",
+    "inputs": {
+      "topology": "top.parm7",
+      "trajectories": [
+        "a.nc",
+        "../up/b.nc",
+        "/abs//x/../c.nc",
+        "~/d.nc",
+        "",
+        "./e.nc",
+        "sub//f.nc"
+      ],
+      "start": 0,
+      "stop": null,
+      "step": 1,
+      "dt_ps": null,
+      "time_unit": "ns",
+      "external": [
+        {
+          "path": "data/rmsd.dat",
+          "label": "",
+          "x_column": "",
+          "x_unit": "ps",
+          "columns": [],
+          "delimiter": ""
+        },
+        {
+          "path": "",
+          "label": "",
+          "x_column": "",
+          "x_unit": "ps",
+          "columns": [],
+          "delimiter": ""
+        },
+        {
+          "path": "~",
+          "label": "",
+          "x_column": "",
+          "x_unit": "ps",
+          "columns": [],
+          "delimiter": ""
+        }
+      ]
+    },
+    "cleaning": {
+      "enabled": false,
+      "cpptraj_path": "bin/cpptraj",
+      "conda_env": "",
+      "conda_exe": "bin/conda",
+      "solvent_mask": ":WAT,HOH,TIP3,SOL,T3P,T4P,SPC",
+      "ion_mask": ":Na+,Cl-,K+,NA,CL,K,Na,Cl,SOD,CLA,POT",
+      "extra_strip_mask": "",
+      "autoimage": true,
+      "autoimage_anchor": "",
+      "fit": true,
+      "fit_mask": "@P,C4'",
+      "fit_reference": "first",
+      "remove_box_after_fit": true,
+      "reference_frame": 1,
+      "reference_file": "ref.pdb",
+      "start": 1,
+      "stop": null,
+      "offset": 1,
+      "extra_commands": "",
+      "output_dir": "cleaned/"
+    },
+    "groups": [
+      {
+        "name": "Aptamer",
+        "residues": "1-12",
+        "selection": "",
+        "color": "#2a78d6"
+      },
+      {
+        "name": "Target",
+        "residues": "13-24",
+        "selection": "",
+        "color": "#eb6834"
+      }
+    ],
+    "analyses": {
+      "rmsd": {
+        "enabled": true,
+        "targets": [
+          {
+            "label": "Complex",
+            "selection": "(group:Aptamer or group:Target) and not name H*",
+            "fit_selection": ""
+          },
+          {
+            "label": "Backbone",
+            "selection": "(group:Aptamer or group:Target) and name C4'",
+            "fit_selection": ""
+          }
+        ],
+        "reference_frame": 0,
+        "superposition": true,
+        "mass_weighted": false
+      },
+      "contacts": {
+        "enabled": true,
+        "group_a": "Aptamer",
+        "group_b": "Target",
+        "cutoff": 4.5,
+        "heavy_only": true
+      },
+      "hbonds": {
+        "enabled": true,
+        "group_a": "Aptamer",
+        "group_b": "Target",
+        "distance_cutoff": 3.5,
+        "use_angle": true,
+        "angle_cutoff": 135.0,
+        "donor_elements": "N,O",
+        "acceptor_elements": "N,O"
+      },
+      "mg": {
+        "enabled": true,
+        "mg_selection": "resname MG Mg MG2 or name MG Mg",
+        "ligand_selection": "group:Aptamer or group:Target",
+        "ligand_elements": "O",
+        "group_a": "Aptamer",
+        "group_b": "Target",
+        "inner_cutoff": 2.6,
+        "outer_cutoff": 4.5,
+        "bridge_shell": "inner",
+        "geometry": false,
+        "angle_tolerance": 25.0,
+        "occupancy_selection": "",
+        "occupancy_elements": "N,O"
+      },
+      "stacking": {
+        "enabled": true,
+        "selection": "group:Aptamer or group:Target",
+        "scope": "all",
+        "group_a": "Aptamer",
+        "group_b": "Target",
+        "distance_cutoff": 4.5,
+        "angle_cutoff": 30.0,
+        "offset_cutoff": 2.5,
+        "planarity_cutoff": 0.25
+      },
+      "energy": {
+        "enabled": true,
+        "group_a": "Aptamer",
+        "group_b": "Target",
+        "cutoff": 12.0,
+        "dielectric": 1.0,
+        "distance_dependent": false,
+        "use_parm7": true,
+        "target_value": null,
+        "exclude_bonded": 3
+      },
+      "basepairs": {
+        "engine": "builtin",
+        "stride": 10,
+        "cutoff": 3.5,
+        "wobble": true,
+        "noncanonical": false
+      },
+      "use_pbc": false,
+      "proximity_search_radius": 8.0
+    },
+    "visual": {
+      "structure_groups": [],
+      "trace_atoms": "C4',CA",
+      "representations": [],
+      "renderer": "auto",
+      "rep_rest": "trace",
+      "backbone_atom": "P",
+      "rep_hydrogens": false,
+      "show_ions": true,
+      "align_frames": true,
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "zoom": 1.0,
+      "center_on": "",
+      "center_follow": false,
+      "color_mode": "groups",
+      "base_color": "#b5b3ad",
+      "chain_palette": "tab10",
+      "proximity_set": "Target",
+      "proximity_cutoff": 4.0,
+      "proximity_color": "#e34948",
+      "glow_mode": "fade",
+      "glow_color": "#ffb000",
+      "fade_frames": 15,
+      "glow_strength": 1.0,
+      "ion_color": "#008300",
+      "line_width": 2.2,
+      "point_size": 22.0,
+      "depth_cue": true,
+      "theme": "light",
+      "font_size": 11.0,
+      "show_time_label": true,
+      "label_every": 0,
+      "label_residues": "",
+      "title": ""
+    },
+    "density": {
+      "map_path": "~nosuchuser_xyz/map.mrc",
+      "show": true,
+      "resolution": 5.0,
+      "level": 2.0,
+      "color": "#2a78d6",
+      "opacity": 0.45,
+      "front": false,
+      "fit_frame": "ref",
+      "search": "global",
+      "angular_step": 30.0,
+      "auto_fit": true,
+      "transform": [],
+      "anchor": [],
+      "fit_cc": 0.0,
+      "fit_info": ""
+    },
+    "layout": {
+      "preset": "large_plus_3",
+      "panels": [
+        {
+          "type": "structure",
+          "series": [],
+          "title": "Structure",
+          "options": {}
+        },
+        {
+          "type": "timeseries",
+          "series": [
+            "rmsd/Complex"
+          ],
+          "title": "RMSD",
+          "options": {}
+        },
+        {
+          "type": "timeseries",
+          "series": [
+            "hbonds/count"
+          ],
+          "title": "Inter-strand H-bonds",
+          "options": {}
+        },
+        {
+          "type": "contact_map",
+          "series": [
+            "contacts/map"
+          ],
+          "title": "",
+          "options": {
+            "mode": "instant",
+            "transpose": true
+          }
+        }
+      ]
+    },
+    "output": {
+      "out_dir": "MDATK_output",
+      "cache_dir": "",
+      "video": {
+        "enabled": true,
+        "filename": "videos/v.mp4",
+        "fps": 24,
+        "width": 1920,
+        "height": 1080,
+        "dpi": 120,
+        "codec": "libx264",
+        "crf": 20,
+        "frame_stride": 1,
+        "ffmpeg_path": "bin/ffmpeg"
+      },
+      "charts": {
+        "enabled": true,
+        "series": [],
+        "include_heatmaps": false,
+        "formats": [
+          "png"
+        ],
+        "dpi": 300,
+        "width": 8.0,
+        "height": 4.5,
+        "style": "mdatk",
+        "color": "",
+        "line_width": 1.5,
+        "title": "",
+        "xlabel": "",
+        "ylabel": "",
+        "smoothing": 0,
+        "show_target": true,
+        "prefix": "MDATK_chart"
+      },
+      "pdb": {
+        "enabled": false,
+        "frames": "",
+        "times": "",
+        "selection": "",
+        "prefix": "MDATK_frame"
+      },
+      "write_params_log": true,
+      "timestamp_files": true
+    },
+    "workflow": {
+      "project_name": "project",
+      "stamp": "",
+      "use_stamp": true,
+      "out_dir": "wf/./x/..",
+      "step_folders": true,
+      "nodes": [
+        {
+          "id": "n1",
+          "tool": "input-file",
+          "step": 0,
+          "title": "",
+          "x": 40.0,
+          "y": 40.0,
+          "settings": {
+            "path": "maps/map.mrc",
+            "kind": "map"
+          },
+          "files": {
+            "structure": " a.pdb ; ; /abs/b.pdb;~/c.pdb ",
+            "empty": "",
+            "blank": " ; "
+          }
+        },
+        {
+          "id": "n2",
+          "tool": "input-file",
+          "step": 0,
+          "title": "",
+          "x": 40.0,
+          "y": 40.0,
+          "settings": {
+            "path": "",
+            "kind": "pdb"
+          },
+          "files": {}
+        },
+        {
+          "id": "n3",
+          "tool": "input-file",
+          "step": 0,
+          "title": "",
+          "x": 40.0,
+          "y": 40.0,
+          "settings": {
+            "path": 5,
+            "kind": "pdb"
+          },
+          "files": {}
+        },
+        {
+          "id": "n4",
+          "tool": "amber-build",
+          "step": 1,
+          "title": "",
+          "x": 40.0,
+          "y": 40.0,
+          "settings": {
+            "path": "not/a/path/setting.pdb"
+          },
+          "files": {
+            "structure": "inputs/model.pdb"
+          }
+        },
+        {
+          "id": "n5",
+          "tool": "no-such-tool",
+          "step": 1,
+          "title": "",
+          "x": 40.0,
+          "y": 40.0,
+          "settings": {
+            "path": "x.pdb"
+          },
+          "files": {
+            "x": "y.pdb"
+          }
+        }
+      ],
+      "edges": [],
+      "scratch": [
+        {
+          "id": "wizard-input-file",
+          "tool": "input-file",
+          "step": 1,
+          "title": "",
+          "x": 40.0,
+          "y": 40.0,
+          "settings": {
+            "path": "s.pdb"
+          },
+          "files": {
+            "p": "q.pdb"
+          }
+        }
+      ]
+    }
+  },
+  "changes": [
+    {
+      "path": "inputs.topology",
+      "before": "top.parm7",
+      "after": "/base/proj/top.parm7"
+    },
+    {
+      "path": "inputs.trajectories[0]",
+      "before": "a.nc",
+      "after": "/base/proj/a.nc"
+    },
+    {
+      "path": "inputs.trajectories[1]",
+      "before": "../up/b.nc",
+      "after": "/base/up/b.nc"
+    },
+    {
+      "path": "inputs.trajectories[3]",
+      "before": "~/d.nc",
+      "after": "/home/tester/d.nc"
+    },
+    {
+      "path": "inputs.trajectories[5]",
+      "before": "./e.nc",
+      "after": "/base/proj/e.nc"
+    },
+    {
+      "path": "inputs.trajectories[6]",
+      "before": "sub//f.nc",
+      "after": "/base/proj/sub/f.nc"
+    },
+    {
+      "path": "inputs.external[0].path",
+      "before": "data/rmsd.dat",
+      "after": "/base/proj/data/rmsd.dat"
+    },
+    {
+      "path": "inputs.external[2].path",
+      "before": "~",
+      "after": "/home/tester"
+    },
+    {
+      "path": "cleaning.cpptraj_path",
+      "before": "bin/cpptraj",
+      "after": "/base/proj/bin/cpptraj"
+    },
+    {
+      "path": "cleaning.reference_file",
+      "before": "ref.pdb",
+      "after": "/base/proj/ref.pdb"
+    },
+    {
+      "path": "cleaning.output_dir",
+      "before": "cleaned/",
+      "after": "/base/proj/cleaned"
+    },
+    {
+      "path": "density.map_path",
+      "before": "~nosuchuser_xyz/map.mrc",
+      "after": "/base/proj/~nosuchuser_xyz/map.mrc"
+    },
+    {
+      "path": "output.out_dir",
+      "before": "MDATK_output",
+      "after": "/base/proj/MDATK_output"
+    },
+    {
+      "path": "workflow.out_dir",
+      "before": "wf/./x/..",
+      "after": "/base/proj/wf"
+    },
+    {
+      "path": "workflow.nodes[0].settings.path",
+      "before": "maps/map.mrc",
+      "after": "/base/proj/maps/map.mrc"
+    },
+    {
+      "path": "workflow.nodes[0].files.structure",
+      "before": " a.pdb ; ; /abs/b.pdb;~/c.pdb ",
+      "after": "/base/proj/a.pdb;/abs/b.pdb;/home/tester/c.pdb"
+    },
+    {
+      "path": "workflow.nodes[0].files.blank",
+      "before": " ; ",
+      "after": ""
+    },
+    {
+      "path": "workflow.nodes[3].files.structure",
+      "before": "inputs/model.pdb",
+      "after": "/base/proj/inputs/model.pdb"
+    },
+    {
+      "path": "workflow.nodes[4].files.x",
+      "before": "y.pdb",
+      "after": "/base/proj/y.pdb"
+    },
+    {
+      "path": "workflow.scratch[0].settings.path",
+      "before": "s.pdb",
+      "after": "/base/proj/s.pdb"
+    },
+    {
+      "path": "workflow.scratch[0].files.p",
+      "before": "q.pdb",
+      "after": "/base/proj/q.pdb"
+    }
+  ],
+  "unchanged_fields_note": "every path not listed under changes is untouched, e.g. output.video.filename, output.video.ffmpeg_path, cleaning.conda_exe, settings of tools without path_settings, non-string settings",
+  "cpptraj_path": [
+    {
+      "before": "cpptraj",
+      "after": "cpptraj"
+    },
+    {
+      "before": "bin/cpptraj",
+      "after": "/base/proj/bin/cpptraj"
+    },
+    {
+      "before": "/opt/amber/bin/cpptraj",
+      "after": "/opt/amber/bin/cpptraj"
+    },
+    {
+      "before": "~/amber/bin/cpptraj",
+      "after": "/home/tester/amber/bin/cpptraj"
+    },
+    {
+      "before": "~",
+      "after": "~"
+    },
+    {
+      "before": "",
+      "after": ""
+    },
+    {
+      "before": "./cpptraj",
+      "after": "/base/proj/cpptraj"
+    }
+  ],
+  "fix": [
+    {
+      "before": "",
+      "after": ""
+    },
+    {
+      "before": "a",
+      "after": "/base/proj/a"
+    },
+    {
+      "before": "a/",
+      "after": "/base/proj/a"
+    },
+    {
+      "before": "./a",
+      "after": "/base/proj/a"
+    },
+    {
+      "before": "a/./b",
+      "after": "/base/proj/a/b"
+    },
+    {
+      "before": "a//b",
+      "after": "/base/proj/a/b"
+    },
+    {
+      "before": "a/../b",
+      "after": "/base/proj/b"
+    },
+    {
+      "before": "../a",
+      "after": "/base/a"
+    },
+    {
+      "before": "../../../../x",
+      "after": "/x"
+    },
+    {
+      "before": "/abs/../x",
+      "after": "/abs/../x"
+    },
+    {
+      "before": "//net/x",
+      "after": "//net/x"
+    },
+    {
+      "before": "///x",
+      "after": "///x"
+    },
+    {
+      "before": "~",
+      "after": "/home/tester"
+    },
+    {
+      "before": "~/",
+      "after": "/home/tester/"
+    },
+    {
+      "before": "~/x/../y",
+      "after": "/home/tester/x/../y"
+    },
+    {
+      "before": "~root/x",
+      "after": "/root/x"
+    },
+    {
+      "before": "~nosuchuser_xyz/x",
+      "after": "/base/proj/~nosuchuser_xyz/x"
+    },
+    {
+      "before": "a\\b",
+      "after": "/base/proj/a\\b"
+    },
+    {
+      "before": " a ",
+      "after": "/base/proj/ a "
+    },
+    {
+      "before": "café.pdb",
+      "after": "/base/proj/café.pdb"
+    },
+    {
+      "before": ".",
+      "after": "/base/proj"
+    }
+  ],
+  "fix_relative_base": [
+    {
+      "base_dir": "relbase/sub",
+      "before": "a",
+      "after": "relbase/sub/a"
+    },
+    {
+      "base_dir": "relbase/sub",
+      "before": "../a",
+      "after": "relbase/a"
+    }
+  ]
+}

@@ -1,0 +1,233 @@
+{
+  "how": "blob = json.dumps(_to_plain(obj), sort_keys=True, separators=(',', ':'), default=str); stable_hash(obj, n) = sha256(blob.encode('utf-8')).hexdigest()[:n]",
+  "cases": [
+    {
+      "name": "empty_dict",
+      "input_repr": "{}",
+      "blob": "{}",
+      "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "stable_hash_16": "44136fa355b3678a",
+      "stable_hash_8": "44136fa3",
+      "stable_hash_64": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "stable_hash_100": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "stable_hash_0": ""
+    },
+    {
+      "name": "simple",
+      "input_repr": "{'b': 1, 'a': [1, 2.5, 'x', True, None]}",
+      "blob": "{\"a\":[1,2.5,\"x\",true,null],\"b\":1}",
+      "sha256": "b4643e9de89170ba89413d223e33266979cbb8ce6fe29dec9b18fd4bd49949ad",
+      "stable_hash_16": "b4643e9de89170ba",
+      "stable_hash_8": "b4643e9d",
+      "stable_hash_64": "b4643e9de89170ba89413d223e33266979cbb8ce6fe29dec9b18fd4bd49949ad",
+      "stable_hash_100": "b4643e9de89170ba89413d223e33266979cbb8ce6fe29dec9b18fd4bd49949ad",
+      "stable_hash_0": ""
+    },
+    {
+      "name": "none_values_in_dicts_dropped",
+      "input_repr": "{'a': None, 'b': {'c': None, 'd': 0}}",
+      "blob": "{\"b\":{\"d\":0}}",
+      "sha256": "8f7716695ccb32d020457ce33f5fdc56c43053cbe261591fb43d3fd3da353c22",
+      "stable_hash_16": "8f7716695ccb32d0",
+      "stable_hash_8": "8f771669",
+      "stable_hash_64": "8f7716695ccb32d020457ce33f5fdc56c43053cbe261591fb43d3fd3da353c22",
+      "stable_hash_100": "8f7716695ccb32d020457ce33f5fdc56c43053cbe261591fb43d3fd3da353c22",
+      "stable_hash_0": ""
+    },
+    {
+      "name": "floats",
+      "input_repr": "{'f': [0.1, 1.0, 1e-07, 1e+16, 1000000000000000.0, 123456789.123, -0.0, 2.5e-05, 1e+22, 0.0001]}",
+      "blob": "{\"f\":[0.1,1.0,1e-07,1e+16,1000000000000000.0,123456789.123,-0.0,2.5e-05,1e+22,0.0001]}",
+      "sha256": "548fc43af8d70d86ead04923757ebdaad9d2559097f406c042c096102a4a1d6c",
+      "stable_hash_16": "548fc43af8d70d86",
+      "stable_hash_8": "548fc43a",
+      "stable_hash_64": "548fc43af8d70d86ead04923757ebdaad9d2559097f406c042c096102a4a1d6c",
+      "stable_hash_100": "548fc43af8d70d86ead04923757ebdaad9d2559097f406c042c096102a4a1d6c",
+      "stable_hash_0": ""
+    },
+    {
+      "name": "nonfinite",
+      "input_repr": "{'f': [nan, inf, -inf]}",
+      "blob": "{\"f\":[NaN,Infinity,-Infinity]}",
+      "sha256": "3d47602b3c940a718f315f9e0d95e4173a9b5f4149e146fd115d8133a9354fc7",
+      "stable_hash_16": "3d47602b3c940a71",
+      "stable_hash_8": "3d47602b",
+      "stable_hash_64": "3d47602b3c940a718f315f9e0d95e4173a9b5f4149e146fd115d8133a9354fc7",
+      "stable_hash_100": "3d47602b3c940a718f315f9e0d95e4173a9b5f4149e146fd115d8133a9354fc7",
+      "stable_hash_0": ""
+    },
+    {
+      "name": "unicode_escaped",
+      "input_repr": "{'s': 'café Å – 😀 \\x00 \\x1f \\x7f \" \\\\ / \\n\\t\\r\\x08\\x0c'}",
+      "blob": "{\"s\":\"caf\\u00e9 \\u00c5 \\u2013 \\ud83d\\ude00 \\u0000 \\u001f \\u007f \\\" \\\\ / \\n\\t\\r\\b\\f\"}",
+      "sha256": "b2525da0312f1a37633feca3a84147f7c372b7377bb62d7d894bc01a1c59741e",
+      "stable_hash_16": "b2525da0312f1a37",
+      "stable_hash_8": "b2525da0",
+      "stable_hash_64": "b2525da0312f1a37633feca3a84147f7c372b7377bb62d7d894bc01a1c59741e",
+      "stable_hash_100": "b2525da0312f1a37633feca3a84147f7c372b7377bb62d7d894bc01a1c59741e",
+      "stable_hash_0": ""
+    },
+    {
+      "name": "key_order_codepoints",
+      "input_repr": "{'b': 1, 'B': 2, 'a': 3, '_': 4, 'é': 5, 'z': 6, '10': 7, '9': 8, '！': 9, '😀': 10}",
+      "blob": "{\"10\":7,\"9\":8,\"B\":2,\"_\":4,\"a\":3,\"b\":1,\"z\":6,\"\\u00e9\":5,\"\\uff01\":9,\"\\ud83d\\ude00\":10}",
+      "sha256": "bf7d85e4390d040680dde0eaba771262af3a466980efd4e57ed4baf0c2fa637f",
+      "stable_hash_16": "bf7d85e4390d0406",
+      "stable_hash_8": "bf7d85e4",
+      "stable_hash_64": "bf7d85e4390d040680dde0eaba771262af3a466980efd4e57ed4baf0c2fa637f",
+      "stable_hash_100": "bf7d85e4390d040680dde0eaba771262af3a466980efd4e57ed4baf0c2fa637f",
+      "stable_hash_0": ""
+    },
+    {
+      "name": "tuple_to_list",
+      "input_repr": "{'t': (1, 2)}",
+      "blob": "{\"t\":[1,2]}",
+      "sha256": "ffe123b7f9907d93f3878dc605913bd7b83eed2938122e84abff011238e727d8",
+      "stable_hash_16": "ffe123b7f9907d93",
+      "stable_hash_8": "ffe123b7",
+      "stable_hash_64": "ffe123b7f9907d93f3878dc605913bd7b83eed2938122e84abff011238e727d8",
+      "stable_hash_100": "ffe123b7f9907d93f3878dc605913bd7b83eed2938122e84abff011238e727d8",
+      "stable_hash_0": ""
+    },
+    {
+      "name": "int_keys_to_str",
+      "input_repr": "{1: 'a', 2: 'b'}",
+      "blob": "{\"1\":\"a\",\"2\":\"b\"}",
+      "sha256": "a71fc868af5e004c2efbfdf16bb2b679c348f2e25065b30b06df846eb32074a5",
+      "stable_hash_16": "a71fc868af5e004c",
+      "stable_hash_8": "a71fc868",
+      "stable_hash_64": "a71fc868af5e004c2efbfdf16bb2b679c348f2e25065b30b06df846eb32074a5",
+      "stable_hash_100": "a71fc868af5e004c2efbfdf16bb2b679c348f2e25065b30b06df846eb32074a5",
+      "stable_hash_0": ""
+    },
+    {
+      "name": "datetime_default_str",
+      "input_repr": "{'t': datetime.datetime(2026, 10, 15, 14, 32, 5), 'd': datetime.date(2026, 1, 2), 'u': datetime.datetime(2026, 10, 15, 14, 32, 5, 250000, tzinfo=datetime.timezone.utc)}",
+      "blob": "{\"d\":\"2026-01-02\",\"t\":\"2026-10-15 14:32:05\",\"u\":\"2026-10-15 14:32:05.250000+00:00\"}",
+      "sha256": "6d656a509d5ce0e55c4cf49868e3e116769fc61020211cb8d4e55b50b298f71b",
+      "stable_hash_16": "6d656a509d5ce0e5",
+      "stable_hash_8": "6d656a50",
+      "stable_hash_64": "6d656a509d5ce0e55c4cf49868e3e116769fc61020211cb8d4e55b50b298f71b",
+      "stable_hash_100": "6d656a509d5ce0e55c4cf49868e3e116769fc61020211cb8d4e55b50b298f71b",
+      "stable_hash_0": ""
+    },
+    {
+      "name": "big_int",
+      "input_repr": "{'i': 9223372036854775808, 'j': -9223372036854775808, 'k': 12345678901234567890123}",
+      "blob": "{\"i\":9223372036854775808,\"j\":-9223372036854775808,\"k\":12345678901234567890123}",
+      "sha256": "d10f840fa98634d21e080c7a65daf0de0925c4c7631dfd8dff550ba1dedddc97",
+      "stable_hash_16": "d10f840fa98634d2",
+      "stable_hash_8": "d10f840f",
+      "stable_hash_64": "d10f840fa98634d21e080c7a65daf0de0925c4c7631dfd8dff550ba1dedddc97",
+      "stable_hash_100": "d10f840fa98634d21e080c7a65daf0de0925c4c7631dfd8dff550ba1dedddc97",
+      "stable_hash_0": ""
+    },
+    {
+      "name": "bools",
+      "input_repr": "{'t': True, 'f': False}",
+      "blob": "{\"f\":false,\"t\":true}",
+      "sha256": "c22848c47426fcf4d27e55573c22f1d23546315c251e8e4bc384820ba5fae568",
+      "stable_hash_16": "c22848c47426fcf4",
+      "stable_hash_8": "c22848c4",
+      "stable_hash_64": "c22848c47426fcf4d27e55573c22f1d23546315c251e8e4bc384820ba5fae568",
+      "stable_hash_100": "c22848c47426fcf4d27e55573c22f1d23546315c251e8e4bc384820ba5fae568",
+      "stable_hash_0": ""
+    },
+    {
+      "name": "nested_lists",
+      "input_repr": "[[1, [2, [3]]], []]",
+      "blob": "[[1,[2,[3]]],[]]",
+      "sha256": "e9aa57613acca9b617e817b8f650c8dd9d13e6f862b66672a4843656989679fa",
+      "stable_hash_16": "e9aa57613acca9b6",
+      "stable_hash_8": "e9aa5761",
+      "stable_hash_64": "e9aa57613acca9b617e817b8f650c8dd9d13e6f862b66672a4843656989679fa",
+      "stable_hash_100": "e9aa57613acca9b617e817b8f650c8dd9d13e6f862b66672a4843656989679fa",
+      "stable_hash_0": ""
+    },
+    {
+      "name": "plain_string",
+      "input_repr": "'abc'",
+      "blob": "\"abc\"",
+      "sha256": "6cc43f858fbb763301637b5af970e2a46b46f461f27e5a0f41e009c59b827b25",
+      "stable_hash_16": "6cc43f858fbb7633",
+      "stable_hash_8": "6cc43f85",
+      "stable_hash_64": "6cc43f858fbb763301637b5af970e2a46b46f461f27e5a0f41e009c59b827b25",
+      "stable_hash_100": "6cc43f858fbb763301637b5af970e2a46b46f461f27e5a0f41e009c59b827b25",
+      "stable_hash_0": ""
+    },
+    {
+      "name": "plain_number",
+      "input_repr": "3",
+      "blob": "3",
+      "sha256": "4e07408562bedb8b60ce05c1decfe3ad16b72230967de01f640b7e4729b49fce",
+      "stable_hash_16": "4e07408562bedb8b",
+      "stable_hash_8": "4e074085",
+      "stable_hash_64": "4e07408562bedb8b60ce05c1decfe3ad16b72230967de01f640b7e4729b49fce",
+      "stable_hash_100": "4e07408562bedb8b60ce05c1decfe3ad16b72230967de01f640b7e4729b49fce",
+      "stable_hash_0": ""
+    },
+    {
+      "name": "group",
+      "input_repr": "ResidueGroup(...)",
+      "blob": "{\"color\":\"#2a78d6\",\"name\":\"Aptamer\",\"residues\":\"1-12\",\"selection\":\"\"}",
+      "sha256": "480b6377c1660d8f29732ec8a22254b9e38dec185405a4b72eedcfc52833ded7",
+      "stable_hash_16": "480b6377c1660d8f",
+      "stable_hash_8": "480b6377",
+      "stable_hash_64": "480b6377c1660d8f29732ec8a22254b9e38dec185405a4b72eedcfc52833ded7",
+      "stable_hash_100": "480b6377c1660d8f29732ec8a22254b9e38dec185405a4b72eedcfc52833ded7",
+      "stable_hash_0": ""
+    },
+    {
+      "name": "default_project",
+      "input_repr": "Project(...)",
+      "blob": "{\"analyses\":{\"basepairs\":{\"cutoff\":3.5,\"engine\":\"builtin\",\"noncanonical\":false,\"stride\":10,\"wobble\":true},\"contacts\":{\"cutoff\":4.5,\"enabled\":true,\"group_a\":\"Aptamer\",\"group_b\":\"Target\",\"heavy_only\":true},\"energy\":{\"cutoff\":12.0,\"dielectric\":1.0,\"distance_dependent\":false,\"enabled\":true,\"exclude_bonded\":3,\"group_a\":\"Aptamer\",\"group_b\":\"Target\",\"target_value\":null,\"use_parm7\":true},\"hbonds\":{\"acceptor_elements\":\"N,O\",\"angle_cutoff\":135.0,\"distance_cutoff\":3.5,\"donor_elements\":\"N,O\",\"enabled\":true,\"group_a\":\"Aptamer\",\"group_b\":\"Target\",\"use_angle\":true},\"mg\":{\"angle_tolerance\":25.0,\"bridge_shell\":\"inner\",\"enabled\":true,\"geometry\":false,\"group_a\":\"Aptamer\",\"group_b\":\"Target\",\"inner_cutoff\":2.6,\"ligand_elements\":\"O\",\"ligand_selection\":\"group:Aptamer or group:Target\",\"mg_selection\":\"resname MG Mg MG2 or name MG Mg\",\"occupancy_elements\":\"N,O\",\"occupancy_selection\":\"\",\"outer_cutoff\":4.5},\"proximity_search_radius\":8.0,\"rmsd\":{\"enabled\":true,\"mass_weighted\":false,\"reference_frame\":0,\"superposition\":true,\"targets\":[{\"fit_selection\":\"\",\"label\":\"Complex\",\"selection\":\"(group:Aptamer or group:Target) and not name H*\"},{\"fit_selection\":\"\",\"label\":\"Backbone\",\"selection\":\"(group:Aptamer or group:Target) and name C4'\"}]},\"stacking\":{\"angle_cutoff\":30.0,\"distance_cutoff\":4.5,\"enabled\":true,\"group_a\":\"Aptamer\",\"group_b\":\"Target\",\"offset_cutoff\":2.5,\"planarity_cutoff\":0.25,\"scope\":\"all\",\"selection\":\"group:Aptamer or group:Target\"},\"use_pbc\":false},\"cleaning\":{\"autoimage\":true,\"autoimage_anchor\":\"\",\"conda_env\":\"\",\"conda_exe\":\"\",\"cpptraj_path\":\"cpptraj\",\"enabled\":false,\"extra_commands\":\"\",\"extra_strip_mask\":\"\",\"fit\":true,\"fit_mask\":\"@P,C4'\",\"fit_reference\":\"first\",\"ion_mask\":\":Na+,Cl-,K+,NA,CL,K,Na,Cl,SOD,CLA,POT\",\"offset\":1,\"output_dir\":\"\",\"reference_file\":\"\",\"reference_frame\":1,\"remove_box_after_fit\":true,\"solvent_mask\":\":WAT,HOH,TIP3,SOL,T3P,T4P,SPC\",\"start\":1,\"stop\":null},\"density\":{\"anchor\":[],\"angular_step\":30.0,\"auto_fit\":true,\"color\":\"#2a78d6\",\"fit_cc\":0.0,\"fit_frame\":\"ref\",\"fit_info\":\"\",\"front\":false,\"level\":2.0,\"map_path\":\"\",\"opacity\":0.45,\"resolution\":5.0,\"search\":\"global\",\"show\":true,\"transform\":[]},\"groups\":[{\"color\":\"#2a78d6\",\"name\":\"Aptamer\",\"residues\":\"1-12\",\"selection\":\"\"},{\"color\":\"#eb6834\",\"name\":\"Target\",\"residues\":\"13-24\",\"selection\":\"\"}],\"inputs\":{\"dt_ps\":null,\"external\":[],\"start\":0,\"step\":1,\"stop\":null,\"time_unit\":\"ns\",\"topology\":\"\",\"trajectories\":[]},\"layout\":{\"panels\":[{\"options\":{},\"series\":[],\"title\":\"Structure\",\"type\":\"structure\"},{\"options\":{},\"series\":[\"rmsd/Complex\"],\"title\":\"RMSD\",\"type\":\"timeseries\"},{\"options\":{},\"series\":[\"hbonds/count\"],\"title\":\"Inter-strand H-bonds\",\"type\":\"timeseries\"},{\"options\":{\"mode\":\"instant\",\"transpose\":true},\"series\":[\"contacts/map\"],\"title\":\"\",\"type\":\"contact_map\"}],\"preset\":\"large_plus_3\"},\"notes\":\"\",\"output\":{\"cache_dir\":\"\",\"charts\":{\"color\":\"\",\"dpi\":300,\"enabled\":true,\"formats\":[\"png\"],\"height\":4.5,\"include_heatmaps\":false,\"line_width\":1.5,\"prefix\":\"MDATK_chart\",\"series\":[],\"show_target\":true,\"smoothing\":0,\"style\":\"mdatk\",\"title\":\"\",\"width\":8.0,\"xlabel\":\"\",\"ylabel\":\"\"},\"out_dir\":\"MDATK_output\",\"pdb\":{\"enabled\":false,\"frames\":\"\",\"prefix\":\"MDATK_frame\",\"selection\":\"\",\"times\":\"\"},\"timestamp_files\":true,\"video\":{\"codec\":\"libx264\",\"crf\":20,\"dpi\":120,\"enabled\":true,\"ffmpeg_path\":\"ffmpeg\",\"filename\":\"MDATK_video.mp4\",\"fps\":24,\"frame_stride\":1,\"height\":1080,\"width\":1920},\"write_params_log\":true},\"visual\":{\"align_frames\":true,\"backbone_atom\":\"P\",\"base_color\":\"#b5b3ad\",\"center_follow\":false,\"center_on\":\"\",\"chain_palette\":\"tab10\",\"color_mode\":\"groups\",\"depth_cue\":true,\"fade_frames\":15,\"font_size\":11.0,\"glow_color\":\"#ffb000\",\"glow_mode\":\"fade\",\"glow_strength\":1.0,\"ion_color\":\"#008300\",\"label_every\":0,\"label_residues\":\"\",\"line_width\":2.2,\"point_size\":22.0,\"proximity_color\":\"#e34948\",\"proximity_cutoff\":4.0,\"proximity_set\":\"Target\",\"renderer\":\"auto\",\"rep_hydrogens\":false,\"rep_rest\":\"trace\",\"representations\":[],\"rotation\":[0.0,0.0,0.0],\"show_ions\":true,\"show_time_label\":true,\"structure_groups\":[],\"theme\":\"light\",\"title\":\"\",\"trace_atoms\":\"C4',CA\",\"zoom\":1.0},\"workflow\":{\"edges\":[],\"nodes\":[],\"out_dir\":\"\",\"project_name\":\"project\",\"scratch\":[],\"stamp\":\"\",\"step_folders\":true,\"use_stamp\":true}}",
+      "sha256": "9244786f4fbf6710176d1d19e3090c556e0699a62f24c2ec3fe9451943dee639",
+      "stable_hash_16": "9244786f4fbf6710",
+      "stable_hash_8": "9244786f",
+      "stable_hash_64": "9244786f4fbf6710176d1d19e3090c556e0699a62f24c2ec3fe9451943dee639",
+      "stable_hash_100": "9244786f4fbf6710176d1d19e3090c556e0699a62f24c2ec3fe9451943dee639",
+      "stable_hash_0": ""
+    },
+    {
+      "name": "default_project_dict",
+      "input_repr": "{'notes': '', 'inputs': {'topology': '', 'trajectories': [], 'start': 0, 'stop': None, 'step': 1, 'dt_ps': None, 'time_unit': 'ns', 'external': []}, 'cleaning': {'enabled': False, 'cpptraj_path': 'cpptraj', 'conda_env': '', 'conda_exe': '', 'solvent_mask': ':WAT,HOH,TIP3,SOL,T3P,T4P,SPC', 'ion_mask': ':Na+,Cl-,K+,NA,CL,K,Na,Cl,SOD,CLA,POT', 'extra_strip_mask': '', 'autoimage': True, 'autoimage_anchor': '', 'fit': True, 'fit_mask': \"@P,C4'\", 'fit_reference': 'first', 'remove_box_after_fit': True, 'reference_frame': 1, 'reference_file': '', 'start': 1, 'stop': None, 'offset': 1, 'extra_commands': '', 'output_dir': ''}, 'groups': [{'name': 'Aptamer', 'residues': '1-12', 'selection': '', 'color': '#2a78d6'}, {'name': 'Target', 'residues': '13-24', 'selection': '', 'color': '#eb6834'}], 'analyses': {'rmsd': {'enabled': True, 'targets': [{'label': 'Complex', 'selection': '(group:Aptamer or group:Target) and not name H*', 'fit_selection': ''}, {'label': 'Backbone', 'selection': \"(group:Aptamer or group:Target) and name C4'\", 'fit_selection': ''}], 'reference_frame': 0, 'superposition': True, 'mass_weighted': False}, 'contacts': {'enabled': True, 'group_a': 'Aptamer', 'group_b': 'Target', 'cutoff': 4.5, 'heavy_only': True}, 'hbonds': {'enabled': True, 'group_a': 'Aptamer', 'group_b': 'Target', 'distance_cutoff': 3.5, 'use_angle': True, 'angle_cutoff': 135.0, 'donor_elements': 'N,O', 'acceptor_elements': 'N,O'}, 'mg': {'enabled': True, 'mg_selection': 'resname MG Mg MG2 or name MG Mg', 'ligand_selection': 'group:Aptamer or group:Target', 'ligand_elements': 'O', 'group_a': 'Aptamer', 'group_b': 'Target', 'inner_cutoff': 2.6, 'outer_cutoff': 4.5, 'bridge_shell': 'inner', 'geometry': False, 'angle_tolerance': 25.0, 'occupancy_selection': '', 'occupancy_elements': 'N,O'}, 'stacking': {'enabled': True, 'selection': 'group:Aptamer or group:Target', 'scope': 'all', 'group_a': 'Aptamer', 'group_b': 'Target', 'distance_cutoff': 4.5, 'angle_cutoff': 30.0, 'offset_cutoff': 2.5, 'planarity_cutoff': 0.25}, 'energy': {'enabled': True, 'group_a': 'Aptamer', 'group_b': 'Target', 'cutoff': 12.0, 'dielectric': 1.0, 'distance_dependent': False, 'use_parm7': True, 'target_value': None, 'exclude_bonded': 3}, 'basepairs': {'engine': 'builtin', 'stride': 10, 'cutoff': 3.5, 'wobble': True, 'noncanonical': False}, 'use_pbc': False, 'proximity_search_radius': 8.0}, 'visual': {'structure_groups': [], 'trace_atoms': \"C4',CA\", 'representations': [], 'renderer': 'auto', 'rep_rest': 'trace', 'backbone_atom': 'P', 'rep_hydrogens': False, 'show_ions': True, 'align_frames': True, 'rotation': [0.0, 0.0, 0.0], 'zoom': 1.0, 'center_on': '', 'center_follow': False, 'color_mode': 'groups', 'base_color': '#b5b3ad', 'chain_palette': 'tab10', 'proximity_set': 'Target', 'proximity_cutoff': 4.0, 'proximity_color': '#e34948', 'glow_mode': 'fade', 'glow_color': '#ffb000', 'fade_frames': 15, 'glow_strength': 1.0, 'ion_color': '#008300', 'line_width': 2.2, 'point_size': 22.0, 'depth_cue': True, 'theme': 'light', 'font_size': 11.0, 'show_time_label': True, 'label_every': 0, 'label_residues': '', 'title': ''}, 'density': {'map_path': '', 'show': True, 'resolution': 5.0, 'level': 2.0, 'color': '#2a78d6', 'opacity': 0.45, 'front': False, 'fit_frame': 'ref', 'search': 'global', 'angular_step': 30.0, 'auto_fit': True, 'transform': [], 'anchor': [], 'fit_cc': 0.0, 'fit_info': ''}, 'layout': {'preset': 'large_plus_3', 'panels': [{'type': 'structure', 'series': [], 'title': 'Structure', 'options': {}}, {'type': 'timeseries', 'series': ['rmsd/Complex'], 'title': 'RMSD', 'options': {}}, {'type': 'timeseries', 'series': ['hbonds/count'], 'title': 'Inter-strand H-bonds', 'options': {}}, {'type': 'contact_map', 'series': ['contacts/map'], 'title': '', 'options': {'mode': 'instant', 'transpose': True}}]}, 'output': {'out_dir': 'MDATK_output', 'cache_dir': '', 'video': {'enabled': True, 'filename': 'MDATK_video.mp4', 'fps': 24, 'width': 1920, 'height': 1080, 'dpi': 120, 'codec': 'libx264', 'crf': 20, 'frame_stride': 1, 'ffmpeg_path': 'ffmpeg'}, 'charts': {'enabled': True, 'series': [], 'include_heatmaps': False, 'formats': ['png'], 'dpi': 300, 'width': 8.0, 'height': 4.5, 'style': 'mdatk', 'color': '', 'line_width': 1.5, 'title': '', 'xlabel': '', 'ylabel': '', 'smoothing': 0, 'show_target': True, 'prefix': 'MDATK_chart'}, 'pdb': {'enabled': False, 'frames': '', 'times': '', 'selection': '', 'prefix': 'MDATK_frame'}, 'write_params_log': True, 'timestamp_files': True}, 'workflow': {'project_name': 'project', 'stamp': '', 'use_stamp': True, 'out_dir': '', 'step_folders': True, 'nodes': [], 'edges': [], 'scratch': []}}",
+      "blob": "{\"analyses\":{\"basepairs\":{\"cutoff\":3.5,\"engine\":\"builtin\",\"noncanonical\":false,\"stride\":10,\"wobble\":true},\"contacts\":{\"cutoff\":4.5,\"enabled\":true,\"group_a\":\"Aptamer\",\"group_b\":\"Target\",\"heavy_only\":true},\"energy\":{\"cutoff\":12.0,\"dielectric\":1.0,\"distance_dependent\":false,\"enabled\":true,\"exclude_bonded\":3,\"group_a\":\"Aptamer\",\"group_b\":\"Target\",\"use_parm7\":true},\"hbonds\":{\"acceptor_elements\":\"N,O\",\"angle_cutoff\":135.0,\"distance_cutoff\":3.5,\"donor_elements\":\"N,O\",\"enabled\":true,\"group_a\":\"Aptamer\",\"group_b\":\"Target\",\"use_angle\":true},\"mg\":{\"angle_tolerance\":25.0,\"bridge_shell\":\"inner\",\"enabled\":true,\"geometry\":false,\"group_a\":\"Aptamer\",\"group_b\":\"Target\",\"inner_cutoff\":2.6,\"ligand_elements\":\"O\",\"ligand_selection\":\"group:Aptamer or group:Target\",\"mg_selection\":\"resname MG Mg MG2 or name MG Mg\",\"occupancy_elements\":\"N,O\",\"occupancy_selection\":\"\",\"outer_cutoff\":4.5},\"proximity_search_radius\":8.0,\"rmsd\":{\"enabled\":true,\"mass_weighted\":false,\"reference_frame\":0,\"superposition\":true,\"targets\":[{\"fit_selection\":\"\",\"label\":\"Complex\",\"selection\":\"(group:Aptamer or group:Target) and not name H*\"},{\"fit_selection\":\"\",\"label\":\"Backbone\",\"selection\":\"(group:Aptamer or group:Target) and name C4'\"}]},\"stacking\":{\"angle_cutoff\":30.0,\"distance_cutoff\":4.5,\"enabled\":true,\"group_a\":\"Aptamer\",\"group_b\":\"Target\",\"offset_cutoff\":2.5,\"planarity_cutoff\":0.25,\"scope\":\"all\",\"selection\":\"group:Aptamer or group:Target\"},\"use_pbc\":false},\"cleaning\":{\"autoimage\":true,\"autoimage_anchor\":\"\",\"conda_env\":\"\",\"conda_exe\":\"\",\"cpptraj_path\":\"cpptraj\",\"enabled\":false,\"extra_commands\":\"\",\"extra_strip_mask\":\"\",\"fit\":true,\"fit_mask\":\"@P,C4'\",\"fit_reference\":\"first\",\"ion_mask\":\":Na+,Cl-,K+,NA,CL,K,Na,Cl,SOD,CLA,POT\",\"offset\":1,\"output_dir\":\"\",\"reference_file\":\"\",\"reference_frame\":1,\"remove_box_after_fit\":true,\"solvent_mask\":\":WAT,HOH,TIP3,SOL,T3P,T4P,SPC\",\"start\":1},\"density\":{\"anchor\":[],\"angular_step\":30.0,\"auto_fit\":true,\"color\":\"#2a78d6\",\"fit_cc\":0.0,\"fit_frame\":\"ref\",\"fit_info\":\"\",\"front\":false,\"level\":2.0,\"map_path\":\"\",\"opacity\":0.45,\"resolution\":5.0,\"search\":\"global\",\"show\":true,\"transform\":[]},\"groups\":[{\"color\":\"#2a78d6\",\"name\":\"Aptamer\",\"residues\":\"1-12\",\"selection\":\"\"},{\"color\":\"#eb6834\",\"name\":\"Target\",\"residues\":\"13-24\",\"selection\":\"\"}],\"inputs\":{\"external\":[],\"start\":0,\"step\":1,\"time_unit\":\"ns\",\"topology\":\"\",\"trajectories\":[]},\"layout\":{\"panels\":[{\"options\":{},\"series\":[],\"title\":\"Structure\",\"type\":\"structure\"},{\"options\":{},\"series\":[\"rmsd/Complex\"],\"title\":\"RMSD\",\"type\":\"timeseries\"},{\"options\":{},\"series\":[\"hbonds/count\"],\"title\":\"Inter-strand H-bonds\",\"type\":\"timeseries\"},{\"options\":{\"mode\":\"instant\",\"transpose\":true},\"series\":[\"contacts/map\"],\"title\":\"\",\"type\":\"contact_map\"}],\"preset\":\"large_plus_3\"},\"notes\":\"\",\"output\":{\"cache_dir\":\"\",\"charts\":{\"color\":\"\",\"dpi\":300,\"enabled\":true,\"formats\":[\"png\"],\"height\":4.5,\"include_heatmaps\":false,\"line_width\":1.5,\"prefix\":\"MDATK_chart\",\"series\":[],\"show_target\":true,\"smoothing\":0,\"style\":\"mdatk\",\"title\":\"\",\"width\":8.0,\"xlabel\":\"\",\"ylabel\":\"\"},\"out_dir\":\"MDATK_output\",\"pdb\":{\"enabled\":false,\"frames\":\"\",\"prefix\":\"MDATK_frame\",\"selection\":\"\",\"times\":\"\"},\"timestamp_files\":true,\"video\":{\"codec\":\"libx264\",\"crf\":20,\"dpi\":120,\"enabled\":true,\"ffmpeg_path\":\"ffmpeg\",\"filename\":\"MDATK_video.mp4\",\"fps\":24,\"frame_stride\":1,\"height\":1080,\"width\":1920},\"write_params_log\":true},\"visual\":{\"align_frames\":true,\"backbone_atom\":\"P\",\"base_color\":\"#b5b3ad\",\"center_follow\":false,\"center_on\":\"\",\"chain_palette\":\"tab10\",\"color_mode\":\"groups\",\"depth_cue\":true,\"fade_frames\":15,\"font_size\":11.0,\"glow_color\":\"#ffb000\",\"glow_mode\":\"fade\",\"glow_strength\":1.0,\"ion_color\":\"#008300\",\"label_every\":0,\"label_residues\":\"\",\"line_width\":2.2,\"point_size\":22.0,\"proximity_color\":\"#e34948\",\"proximity_cutoff\":4.0,\"proximity_set\":\"Target\",\"renderer\":\"auto\",\"rep_hydrogens\":false,\"rep_rest\":\"trace\",\"representations\":[],\"rotation\":[0.0,0.0,0.0],\"show_ions\":true,\"show_time_label\":true,\"structure_groups\":[],\"theme\":\"light\",\"title\":\"\",\"trace_atoms\":\"C4',CA\",\"zoom\":1.0},\"workflow\":{\"edges\":[],\"nodes\":[],\"out_dir\":\"\",\"project_name\":\"project\",\"scratch\":[],\"stamp\":\"\",\"step_folders\":true,\"use_stamp\":true}}",
+      "sha256": "3a407810e5e203eee365ce8106d335a6cbced5024ebcba831e069dbfe94eee55",
+      "stable_hash_16": "3a407810e5e203ee",
+      "stable_hash_8": "3a407810",
+      "stable_hash_64": "3a407810e5e203eee365ce8106d335a6cbced5024ebcba831e069dbfe94eee55",
+      "stable_hash_100": "3a407810e5e203eee365ce8106d335a6cbced5024ebcba831e069dbfe94eee55",
+      "stable_hash_0": ""
+    },
+    {
+      "name": "cleaning_params_vars",
+      "input_repr": "{'solvent_mask': ':WAT,HOH,TIP3,SOL,T3P,T4P,SPC', 'ion_mask': ':Na+,Cl-,K+,NA,CL,K,Na,Cl,SOD,CLA,POT', 'extra_strip_mask': '', 'autoimage': True, 'autoimage_anchor': '', 'fit': True, 'fit_mask': \"@P,C4'\", 'fit_reference': 'first', 'remove_box_after_fit': True, 'reference_frame': 1, 'reference_file': '', 'start': 1, 'stop': None, 'offset': 1, 'extra_commands': ''}",
+      "blob": "{\"autoimage\":true,\"autoimage_anchor\":\"\",\"extra_commands\":\"\",\"extra_strip_mask\":\"\",\"fit\":true,\"fit_mask\":\"@P,C4'\",\"fit_reference\":\"first\",\"ion_mask\":\":Na+,Cl-,K+,NA,CL,K,Na,Cl,SOD,CLA,POT\",\"offset\":1,\"reference_file\":\"\",\"reference_frame\":1,\"remove_box_after_fit\":true,\"solvent_mask\":\":WAT,HOH,TIP3,SOL,T3P,T4P,SPC\",\"start\":1}",
+      "sha256": "39ee7c025ee605c12c1dccde4fb4fe18e6e670a2ef82395eef16fa0358a284ce",
+      "stable_hash_16": "39ee7c025ee605c1",
+      "stable_hash_8": "39ee7c02",
+      "stable_hash_64": "39ee7c025ee605c12c1dccde4fb4fe18e6e670a2ef82395eef16fa0358a284ce",
+      "stable_hash_100": "39ee7c025ee605c12c1dccde4fb4fe18e6e670a2ef82395eef16fa0358a284ce",
+      "stable_hash_0": ""
+    }
+  ],
+  "file_fingerprint": {
+    "note": "file_fingerprint of a 5-byte file whose mtime was set with os.utime(ns=...)",
+    "mtime_set_ns": 1700000000123456789,
+    "result": {
+      "path": "{tmpfile}",
+      "size": 5,
+      "mtime_ns": 1700000000123456789
+    },
+    "key_order": [
+      "path",
+      "size",
+      "mtime_ns"
+    ],
+    "missing_file_error": {
+      "type": "FileNotFoundError",
+      "errno": 2,
+      "message": "[Errno 2] No such file or directory: '{tmpfile}'"
+    }
+  }
+}

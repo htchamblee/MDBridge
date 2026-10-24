@@ -143,6 +143,7 @@ std::vector<std::u32string> splitChunks(const std::u32string& s) {
 bool isPythonSpace(char32_t code) { return inRanges(kSpaceRanges, code); }
 bool isPythonWordCharacter(char32_t code) { return inRanges(kWordRanges, code); }
 bool isPythonDigit(char32_t code) { return inRanges(kDigitRanges, code); }
+bool isPythonPrintable(char32_t code) { return inRanges(kPrintableRanges, code); }
 
 std::u32string decodeUtf8(std::string_view text) {
     std::u32string out;
@@ -151,6 +152,18 @@ std::u32string decodeUtf8(std::string_view text) {
         char32_t code = 0;
         const std::size_t length = decodeOne(text, i, code);
         out.push_back(length ? code : kReplacement);
+        i += length ? length : 1;
+    }
+    return out;
+}
+
+std::u32string decodeUtf8Surrogateescape(std::string_view text) {
+    std::u32string out;
+    out.reserve(text.size());
+    for (std::size_t i = 0; i < text.size();) {
+        char32_t code = 0;
+        const std::size_t length = decodeOne(text, i, code);
+        out.push_back(length ? code : char32_t{0xDC00} + static_cast<unsigned char>(text[i]));
         i += length ? length : 1;
     }
     return out;

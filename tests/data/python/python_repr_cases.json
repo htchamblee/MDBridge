@@ -1,0 +1,210 @@
+{
+  "how": "values = tomllib.loads(input_toml); for each: repr(v) (the {value!r} of error messages), str(v) (what a str field stores), type(v).__name__ (the 'got <type>' of 'expected an object')",
+  "input_toml": "s1 = \"far\"\ns2 = \"it's\"\ns3 = \"it's \\\"q\\\"\"\ns4 = \"tab\\tnl\\nbs\\\\ bell\\u0007 del\\u007f\"\ns5 = \"é Å –   ​ 😀 ퟿\"\ni1 = 1\ni2 = -0\ni3 = 12345678901234567890\nf1 = 1.0\nf2 = 0.1\nf3 = 1e-7\nf4 = 1e16\nf5 = 1e15\nf6 = nan\nf7 = -inf\nf8 = -0.0\nf9 = 2.5e-5\nb1 = true\nb2 = false\na1 = []\na2 = [1, \"x\", 2.5, true, [], {}]\nt1 = {}\nt2 = { a = 1, \"b c\" = \"d\" }\nd1 = 2026-10-15T14:32:05\nd2 = 2026-10-15T14:32:05.250\nd3 = 2026-10-15T14:32:05Z\nd4 = 2026-10-15T14:32:05.000001-05:30\nd5 = 2026-01-02\nd6 = 07:08:09\nd7 = 07:08:00\nd8 = 07:08:09.5\nd9 = 00:00:00\nd10 = 2026-10-15T14:32:00\nd11 = 2026-10-15T00:00:00+00:00\n",
+  "cases": [
+    {
+      "key": "s1",
+      "repr": "'far'",
+      "str": "far",
+      "type_name": "str"
+    },
+    {
+      "key": "s2",
+      "repr": "\"it's\"",
+      "str": "it's",
+      "type_name": "str"
+    },
+    {
+      "key": "s3",
+      "repr": "'it\\'s \"q\"'",
+      "str": "it's \"q\"",
+      "type_name": "str"
+    },
+    {
+      "key": "s4",
+      "repr": "'tab\\tnl\\nbs\\\\ bell\\x07 del\\x7f'",
+      "str": "tab\tnl\nbs\\ bell\u0007 del",
+      "type_name": "str"
+    },
+    {
+      "key": "s5",
+      "repr": "'é Å – \\xa0 \\u200b 😀 \\ud7ff'",
+      "str": "é Å –   ​ 😀 ퟿",
+      "type_name": "str"
+    },
+    {
+      "key": "i1",
+      "repr": "1",
+      "str": "1",
+      "type_name": "int"
+    },
+    {
+      "key": "i2",
+      "repr": "0",
+      "str": "0",
+      "type_name": "int"
+    },
+    {
+      "key": "i3",
+      "repr": "12345678901234567890",
+      "str": "12345678901234567890",
+      "type_name": "int"
+    },
+    {
+      "key": "f1",
+      "repr": "1.0",
+      "str": "1.0",
+      "type_name": "float"
+    },
+    {
+      "key": "f2",
+      "repr": "0.1",
+      "str": "0.1",
+      "type_name": "float"
+    },
+    {
+      "key": "f3",
+      "repr": "1e-07",
+      "str": "1e-07",
+      "type_name": "float"
+    },
+    {
+      "key": "f4",
+      "repr": "1e+16",
+      "str": "1e+16",
+      "type_name": "float"
+    },
+    {
+      "key": "f5",
+      "repr": "1000000000000000.0",
+      "str": "1000000000000000.0",
+      "type_name": "float"
+    },
+    {
+      "key": "f6",
+      "repr": "nan",
+      "str": "nan",
+      "type_name": "float"
+    },
+    {
+      "key": "f7",
+      "repr": "-inf",
+      "str": "-inf",
+      "type_name": "float"
+    },
+    {
+      "key": "f8",
+      "repr": "-0.0",
+      "str": "-0.0",
+      "type_name": "float"
+    },
+    {
+      "key": "f9",
+      "repr": "2.5e-05",
+      "str": "2.5e-05",
+      "type_name": "float"
+    },
+    {
+      "key": "b1",
+      "repr": "True",
+      "str": "True",
+      "type_name": "bool"
+    },
+    {
+      "key": "b2",
+      "repr": "False",
+      "str": "False",
+      "type_name": "bool"
+    },
+    {
+      "key": "a1",
+      "repr": "[]",
+      "str": "[]",
+      "type_name": "list"
+    },
+    {
+      "key": "a2",
+      "repr": "[1, 'x', 2.5, True, [], {}]",
+      "str": "[1, 'x', 2.5, True, [], {}]",
+      "type_name": "list"
+    },
+    {
+      "key": "t1",
+      "repr": "{}",
+      "str": "{}",
+      "type_name": "dict"
+    },
+    {
+      "key": "t2",
+      "repr": "{'a': 1, 'b c': 'd'}",
+      "str": "{'a': 1, 'b c': 'd'}",
+      "type_name": "dict"
+    },
+    {
+      "key": "d1",
+      "repr": "datetime.datetime(2026, 10, 15, 14, 32, 5)",
+      "str": "2026-10-15 14:32:05",
+      "type_name": "datetime"
+    },
+    {
+      "key": "d2",
+      "repr": "datetime.datetime(2026, 10, 15, 14, 32, 5, 250000)",
+      "str": "2026-10-15 14:32:05.250000",
+      "type_name": "datetime"
+    },
+    {
+      "key": "d3",
+      "repr": "datetime.datetime(2026, 10, 15, 14, 32, 5, tzinfo=datetime.timezone.utc)",
+      "str": "2026-10-15 14:32:05+00:00",
+      "type_name": "datetime"
+    },
+    {
+      "key": "d4",
+      "repr": "datetime.datetime(2026, 10, 15, 14, 32, 5, 1, tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=66600)))",
+      "str": "2026-10-15 14:32:05.000001-05:30",
+      "type_name": "datetime"
+    },
+    {
+      "key": "d5",
+      "repr": "datetime.date(2026, 1, 2)",
+      "str": "2026-01-02",
+      "type_name": "date"
+    },
+    {
+      "key": "d6",
+      "repr": "datetime.time(7, 8, 9)",
+      "str": "07:08:09",
+      "type_name": "time"
+    },
+    {
+      "key": "d7",
+      "repr": "datetime.time(7, 8)",
+      "str": "07:08:00",
+      "type_name": "time"
+    },
+    {
+      "key": "d8",
+      "repr": "datetime.time(7, 8, 9, 500000)",
+      "str": "07:08:09.500000",
+      "type_name": "time"
+    },
+    {
+      "key": "d9",
+      "repr": "datetime.time(0, 0)",
+      "str": "00:00:00",
+      "type_name": "time"
+    },
+    {
+      "key": "d10",
+      "repr": "datetime.datetime(2026, 10, 15, 14, 32)",
+      "str": "2026-10-15 14:32:00",
+      "type_name": "datetime"
+    },
+    {
+      "key": "d11",
+      "repr": "datetime.datetime(2026, 10, 15, 0, 0, tzinfo=datetime.timezone.utc)",
+      "str": "2026-10-15 00:00:00+00:00",
+      "type_name": "datetime"
+    }
+  ]
+}

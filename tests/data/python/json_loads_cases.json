@@ -1,0 +1,2315 @@
+{
+ "how": "json.loads(text) (Python 3.13.17): repr() of the result, or str() of the JSONDecodeError; lossy: \"int64\" (an integer outside 64 bits) or \"surrogate\" (a lone surrogate, repr_mdbridge with U+FFFD in its place)",
+ "cases": [
+  {
+   "text": "",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": " ",
+   "error": "Expecting value: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "x",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "[",
+   "error": "Expecting value: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "[1,",
+   "error": "Expecting value: line 1 column 4 (char 3)"
+  },
+  {
+   "text": "[1,]",
+   "error": "Illegal trailing comma before end of array: line 1 column 3 (char 2)"
+  },
+  {
+   "text": "{\"a\":1,}",
+   "error": "Illegal trailing comma before end of object: line 1 column 7 (char 6)"
+  },
+  {
+   "text": "{",
+   "error": "Expecting property name enclosed in double quotes: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "{\"a\"",
+   "error": "Expecting ':' delimiter: line 1 column 5 (char 4)"
+  },
+  {
+   "text": "{\"a\" 1}",
+   "error": "Expecting ':' delimiter: line 1 column 6 (char 5)"
+  },
+  {
+   "text": "{\"a\":}",
+   "error": "Expecting value: line 1 column 6 (char 5)"
+  },
+  {
+   "text": "{1:2}",
+   "error": "Expecting property name enclosed in double quotes: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "[1 2]",
+   "error": "Expecting ',' delimiter: line 1 column 4 (char 3)"
+  },
+  {
+   "text": "{\"a\":1 \"b\":2}",
+   "error": "Expecting ',' delimiter: line 1 column 8 (char 7)"
+  },
+  {
+   "text": "\"abc",
+   "error": "Unterminated string starting at: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "\"a\\x\"",
+   "error": "Invalid \\escape: line 1 column 3 (char 2)"
+  },
+  {
+   "text": "\"a\\u12\"",
+   "error": "Invalid \\uXXXX escape: line 1 column 4 (char 3)"
+  },
+  {
+   "text": "\"a\\u12g4\"",
+   "error": "Invalid \\uXXXX escape: line 1 column 4 (char 3)"
+  },
+  {
+   "text": "\"\u0001\"",
+   "error": "Invalid control character at: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "01",
+   "error": "Extra data: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "1.",
+   "error": "Extra data: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "-",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "-a",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "1e",
+   "error": "Extra data: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "1e+",
+   "error": "Extra data: line 1 column 2 (char 1)"
+  },
+  {
+   "text": ".5",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "+1",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "NaN",
+   "repr": "nan"
+  },
+  {
+   "text": "-Infinity",
+   "repr": "-inf"
+  },
+  {
+   "text": "Infinity",
+   "repr": "inf"
+  },
+  {
+   "text": "nan",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "tru",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "true false",
+   "error": "Extra data: line 1 column 6 (char 5)"
+  },
+  {
+   "text": "[] x",
+   "error": "Extra data: line 1 column 4 (char 3)"
+  },
+  {
+   "text": "\"\\ud800\"",
+   "repr": "'\\ud800'",
+   "lossy": "surrogate",
+   "repr_mdbridge": "'�'"
+  },
+  {
+   "text": "\"\\udc00\\ud800\"",
+   "repr": "'\\udc00\\ud800'",
+   "lossy": "surrogate",
+   "repr_mdbridge": "'��'"
+  },
+  {
+   "text": "\"\\ud83d\\ude00\"",
+   "repr": "'😀'"
+  },
+  {
+   "text": "\"\\ud83d\\ude00",
+   "error": "Unterminated string starting at: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "\"\\ud83d\\u0041\"",
+   "repr": "'\\ud83dA'",
+   "lossy": "surrogate",
+   "repr_mdbridge": "'�A'"
+  },
+  {
+   "text": "\"\\ud83d\\uzzzz\"",
+   "error": "Invalid \\uXXXX escape: line 1 column 9 (char 8)"
+  },
+  {
+   "text": "\"\\ud83d\\\"",
+   "error": "Unterminated string starting at: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "\"\\ud83dx\"",
+   "repr": "'\\ud83dx'",
+   "lossy": "surrogate",
+   "repr_mdbridge": "'�x'"
+  },
+  {
+   "text": "1\n2",
+   "error": "Extra data: line 2 column 1 (char 2)"
+  },
+  {
+   "text": "[\n1,\n]",
+   "error": "Illegal trailing comma before end of array: line 2 column 2 (char 3)"
+  },
+  {
+   "text": "﻿1",
+   "error": "Unexpected UTF-8 BOM (decode using utf-8-sig): line 1 column 1 (char 0)"
+  },
+  {
+   "text": "{\"a\":1,\"a\":2,\"b\":3}",
+   "repr": "{'a': 2, 'b': 3}"
+  },
+  {
+   "text": "{\"b\":1,\"a\":2,\"b\":{\"c\":3}}",
+   "repr": "{'b': {'c': 3}, 'a': 2}"
+  },
+  {
+   "text": "-0",
+   "repr": "0"
+  },
+  {
+   "text": "-0.0",
+   "repr": "-0.0"
+  },
+  {
+   "text": "1E5",
+   "repr": "100000.0"
+  },
+  {
+   "text": "1e-400",
+   "repr": "0.0"
+  },
+  {
+   "text": "-1e-400",
+   "repr": "-0.0"
+  },
+  {
+   "text": "1e400",
+   "repr": "inf"
+  },
+  {
+   "text": "-1e400",
+   "repr": "-inf"
+  },
+  {
+   "text": "123456789012345678901234567890",
+   "repr": "123456789012345678901234567890",
+   "lossy": "int64"
+  },
+  {
+   "text": "9223372036854775807",
+   "repr": "9223372036854775807"
+  },
+  {
+   "text": "9223372036854775808",
+   "repr": "9223372036854775808",
+   "lossy": "int64"
+  },
+  {
+   "text": "-9223372036854775808",
+   "repr": "-9223372036854775808"
+  },
+  {
+   "text": "-9223372036854775809",
+   "repr": "-9223372036854775809",
+   "lossy": "int64"
+  },
+  {
+   "text": "\"\\/\"",
+   "repr": "'/'"
+  },
+  {
+   "text": "\"é\"",
+   "repr": "'é'"
+  },
+  {
+   "text": "  {\"a\" : [ 1 , 2 ] }  ",
+   "repr": "{'a': [1, 2]}"
+  },
+  {
+   "text": "\"\\",
+   "error": "Unterminated string starting at: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "\"\\u",
+   "error": "Invalid \\uXXXX escape: line 1 column 3 (char 2)"
+  },
+  {
+   "text": "[1,,2]",
+   "error": "Expecting value: line 1 column 4 (char 3)"
+  },
+  {
+   "text": "{,}",
+   "error": "Expecting property name enclosed in double quotes: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "{\"a\":1,,}",
+   "error": "Expecting property name enclosed in double quotes: line 1 column 8 (char 7)"
+  },
+  {
+   "text": "[,]",
+   "error": "Expecting value: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "\"a\nb\"",
+   "error": "Invalid control character at: line 1 column 3 (char 2)"
+  },
+  {
+   "text": "\"\t\"",
+   "error": "Invalid control character at: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "\"\"",
+   "repr": "'\\x7f'"
+  },
+  {
+   "text": "-Infinityx",
+   "error": "Extra data: line 1 column 10 (char 9)"
+  },
+  {
+   "text": "Infinit",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "nul",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "é",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "[\"é\", x]",
+   "error": "Expecting value: line 1 column 7 (char 6)"
+  },
+  {
+   "text": "[\"😀\",\n \"é\" x]",
+   "error": "Expecting ',' delimiter: line 2 column 6 (char 11)"
+  },
+  {
+   "text": "{\"éé\": 1, \"k\": [true, false, null]}",
+   "repr": "{'éé': 1, 'k': [True, False, None]}"
+  },
+  {
+   "text": "0.1",
+   "repr": "0.1"
+  },
+  {
+   "text": "5e-324",
+   "repr": "5e-324"
+  },
+  {
+   "text": "2.4703282292062328e-324",
+   "repr": "5e-324"
+  },
+  {
+   "text": "2.4703282292062327e-324",
+   "repr": "0.0"
+  },
+  {
+   "text": "1.7976931348623157e308",
+   "repr": "1.7976931348623157e+308"
+  },
+  {
+   "text": "1.7976931348623158e308",
+   "repr": "1.7976931348623157e+308"
+  },
+  {
+   "text": "1.7976931348623159e308",
+   "repr": "inf"
+  },
+  {
+   "text": "2.2250738585072011e-308",
+   "repr": "2.225073858507201e-308"
+  },
+  {
+   "text": "0.1000000000000000055511151231257827021181583404541015625",
+   "repr": "0.1"
+  },
+  {
+   "text": "1e22",
+   "repr": "1e+22"
+  },
+  {
+   "text": "1e23",
+   "repr": "1e+23"
+  },
+  {
+   "text": "-1.5e-07",
+   "repr": "-1.5e-07"
+  },
+  {
+   "text": "1.0",
+   "repr": "1.0"
+  },
+  {
+   "text": "100",
+   "repr": "100"
+  },
+  {
+   "text": "[[[[]]]]",
+   "repr": "[[[[]]]]"
+  },
+  {
+   "text": "{\"a\":{\"b\":{\"c\":[{}]}}}",
+   "repr": "{'a': {'b': {'c': [{}]}}}"
+  },
+  {
+   "text": "\"\\b\\f\\n\\r\\t\\\"\\\\\"",
+   "repr": "'\\x08\\x0c\\n\\r\\t\"\\\\'"
+  },
+  {
+   "text": "\"\\u0000x\"",
+   "repr": "'\\x00x'"
+  },
+  {
+   "text": "\"\\u00e9\\u00C9\"",
+   "repr": "'éÉ'"
+  },
+  {
+   "text": "\t\n\r [1]\r\n",
+   "repr": "[1]"
+  },
+  {
+   "text": "  [1]",
+   "error": "Expecting value: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "[1] ",
+   "error": "Extra data: line 1 column 4 (char 3)"
+  },
+  {
+   "text": "null",
+   "repr": "None"
+  },
+  {
+   "text": "true",
+   "repr": "True"
+  },
+  {
+   "text": "false",
+   "repr": "False"
+  },
+  {
+   "text": "\"\\uD83D\\uDE00\"",
+   "repr": "'😀'"
+  },
+  {
+   "text": "{\"a\":1}{",
+   "error": "Extra data: line 1 column 8 (char 7)"
+  },
+  {
+   "text": "[1]]",
+   "error": "Extra data: line 1 column 4 (char 3)"
+  },
+  {
+   "text": "{}}",
+   "error": "Extra data: line 1 column 3 (char 2)"
+  },
+  {
+   "text": "{\"a\"::1}",
+   "error": "Expecting value: line 1 column 6 (char 5)"
+  },
+  {
+   "text": "{\"a\":1,\"b\"}",
+   "error": "Expecting ':' delimiter: line 1 column 11 (char 10)"
+  },
+  {
+   "text": "[-]",
+   "error": "Expecting value: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "[-01]",
+   "error": "Expecting ',' delimiter: line 1 column 4 (char 3)"
+  },
+  {
+   "text": "[0.]",
+   "error": "Expecting ',' delimiter: line 1 column 3 (char 2)"
+  },
+  {
+   "text": "[1.e5]",
+   "error": "Expecting ',' delimiter: line 1 column 3 (char 2)"
+  },
+  {
+   "text": "[1e5.]",
+   "error": "Expecting ',' delimiter: line 1 column 5 (char 4)"
+  },
+  {
+   "text": "[.e]",
+   "error": "Expecting value: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "0e0",
+   "repr": "0.0"
+  },
+  {
+   "text": "0E-0",
+   "repr": "0.0"
+  },
+  {
+   "text": "-0e+00",
+   "repr": "-0.0"
+  },
+  {
+   "text": "1.5E+3",
+   "repr": "1500.0"
+  },
+  {
+   "text": "[1,2,3,",
+   "error": "Expecting value: line 1 column 8 (char 7)"
+  },
+  {
+   "text": "\"unterminated \\u00e9",
+   "error": "Unterminated string starting at: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "{\"\\ud800\": \"\\udfff\"}",
+   "repr": "{'\\ud800': '\\udfff'}",
+   "lossy": "surrogate",
+   "repr_mdbridge": "{'�': '�'}"
+  },
+  {
+   "text": "\"\\r\\d800\"",
+   "error": "Invalid \\escape: line 1 column 4 (char 3)"
+  },
+  {
+   "text": "\"\\b\\ f\\n\\r\\t\\\"\\\\\"",
+   "error": "Invalid \\escape: line 1 column 4 (char 3)"
+  },
+  {
+   "text": "[-+]",
+   "error": "Expecting value: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "\"ad\\12g4\"u",
+   "error": "Invalid \\escape: line 1 column 4 (char 3)"
+  },
+  {
+   "text": "\"\\00ee9\\u00C9\"",
+   "error": "Invalid \\escape: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "0e",
+   "error": "Extra data: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "1.797693134é623159e308",
+   "error": "Extra data: line 1 column 12 (char 11)"
+  },
+  {
+   "text": "1.797693134862315ae308",
+   "error": "Extra data: line 1 column 18 (char 17)"
+  },
+  {
+   "text": "\"\"",
+   "repr": "''"
+  },
+  {
+   "text": "+1",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "[]",
+   "repr": "[]"
+  },
+  {
+   "text": "[.e]",
+   "error": "Expecting value: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "-Infinity8x",
+   "error": "Extra data: line 1 column 10 (char 9)"
+  },
+  {
+   "text": ".[5",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "\\",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "[] d",
+   "error": "Extra data: line 1 column 4 (char 3)"
+  },
+  {
+   "text": "[dNx",
+   "error": "Expecting value: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "2.2250738585072011e-30\\",
+   "error": "Extra data: line 1 column 23 (char 22)"
+  },
+  {
+   "text": "{\"a\":{}b\":{\"c\":[{}\n}}}",
+   "error": "Expecting ',' delimiter: line 1 column 8 (char 7)"
+  },
+  {
+   "text": "[1,]",
+   "error": "Illegal trailing comma before end of array: line 1 column 3 (char 2)"
+  },
+  {
+   "text": "1ée+8",
+   "error": "Extra data: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "Ifinity",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "1797693134[62315Ne308",
+   "error": "Extra data: line 1 column 11 (char 10)"
+  },
+  {
+   "text": "\"\nb\"",
+   "error": "Invalid control character at: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "\"a\\uN\"",
+   "error": "Invalid \\uXXXX escape: line 1 column 4 (char 3)"
+  },
+  {
+   "text": "1{\"a\"}",
+   "error": "Extra data: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "[\n1 \n]",
+   "repr": "[1]"
+  },
+  {
+   "text": "[\"-]",
+   "error": "Unterminated string starting at: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "{,u",
+   "error": "Expecting property name enclosed in double quotes: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "9223372068547r75807",
+   "error": "Extra data: line 1 column 14 (char 13)"
+  },
+  {
+   "text": "{a\":1,\"a\":2,b\":3}",
+   "error": "Expecting property name enclosed in double quotes: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "D1 2]",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": " 0-",
+   "error": "Extra data: line 1 column 3 (char 2)"
+  },
+  {
+   "text": "9\"da\nb\"",
+   "error": "Extra data: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "{}",
+   "repr": "{}"
+  },
+  {
+   "text": "\\u9d83\\uzzzz\"",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "\"\\u9",
+   "error": "Invalid \\uXXXX escape: line 1 column 3 (char 2)"
+  },
+  {
+   "text": "\"a\\u182g4\"",
+   "error": "Invalid \\uXXXX escape: line 1 column 4 (char 3)"
+  },
+  {
+   "text": ",.e]",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "\"utermin}ated \\u00e9",
+   "error": "Unterminated string starting at: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "[[[é]]]]",
+   "error": "Expecting value: line 1 column 4 (char 3)"
+  },
+  {
+   "text": "1-5Ex+3",
+   "error": "Extra data: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "-,nfinityx",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "{\"\\ud800\": -\\udfff\"}",
+   "error": "Expecting value: line 1 column 12 (char 11)"
+  },
+  {
+   "text": ":[1 2]]",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "\"a1t\nb\"",
+   "error": "Invalid control character at: line 1 column 5 (char 4)"
+  },
+  {
+   "text": "{a\"]::}",
+   "error": "Expecting property name enclosed in double quotes: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "  {\"\" :é [ 1 , 2 ] }  ",
+   "error": "Expecting value: line 1 column 8 (char 7)"
+  },
+  {
+   "text": "\"\\ud83d\\ uzzzz\"",
+   "error": "Invalid \\escape: line 1 column 8 (char 7)"
+  },
+  {
+   "text": "\"\\u8D00\"",
+   "repr": "'贀'"
+  },
+  {
+   "text": "12345678901234567890123456890",
+   "repr": "12345678901234567890123456890",
+   "lossy": "int64"
+  },
+  {
+   "text": "-e40.",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "\n.5",
+   "error": "Expecting value: line 2 column 1 (char 1)"
+  },
+  {
+   "text": "0E-:",
+   "error": "Extra data: line 1 column 2 (char 1)"
+  },
+  {
+   "text": ",a\\u12g4\"",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "\"\\ud83dE\"",
+   "repr": "'\\ud83dE'",
+   "lossy": "surrogate",
+   "repr_mdbridge": "'�E'"
+  },
+  {
+   "text": "{\"a\":{ab\":{\"c\":[{}]}}}",
+   "error": "Expecting property name enclosed in double quotes: line 1 column 7 (char 6)"
+  },
+  {
+   "text": "{0e+00",
+   "error": "Expecting property name enclosed in double quotes: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "{\"}\":1\"b\"}",
+   "error": "Expecting ',' delimiter: line 1 column 7 (char 6)"
+  },
+  {
+   "text": "]nfnity",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": ".a\\bE\"",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "91a0",
+   "error": "Extra data: line 1 column 3 (char 2)"
+  },
+  {
+   "text": "1.5+3",
+   "error": "Extra data: line 1 column 4 (char 3)"
+  },
+  {
+   "text": "{\"a\":\\1}",
+   "error": "Expecting value: line 1 column 6 (char 5)"
+  },
+  {
+   "text": "0.10000000000000000555111512312578270u2118158,3404541015625",
+   "error": "Extra data: line 1 column 38 (char 37)"
+  },
+  {
+   "text": "{\"a\":{\"b\":{\"c\":[{}]}}}}",
+   "error": "Extra data: line 1 column 23 (char 22)"
+  },
+  {
+   "text": "a",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "éu",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "﻿1D",
+   "error": "Unexpected UTF-8 BOM (decode using utf-8-sig): line 1 column 1 (char 0)"
+  },
+  {
+   "text": ".",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "1e-80[0",
+   "error": "Extra data: line 1 column 6 (char 5)"
+  },
+  {
+   "text": " [] x",
+   "error": "Extra data: line 1 column 5 (char 4)"
+  },
+  {
+   "text": "12",
+   "repr": "12"
+  },
+  {
+   "text": "]",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "1.-976931348623159e308",
+   "error": "Extra data: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "2.47032822{92062327e-324",
+   "error": "Extra data: line 1 column 11 (char 10)"
+  },
+  {
+   "text": "I",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "00]",
+   "error": "Extra data: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "Nx",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "nuul",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "\"\\ud3d\\ude+\"",
+   "error": "Invalid \\uXXXX escape: line 1 column 3 (char 2)"
+  },
+  {
+   "text": "{}\"a\":1 é\"b\":2I}",
+   "error": "Extra data: line 1 column 3 (char 2)"
+  },
+  {
+   "text": "INnfi]niy",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "0eeN",
+   "error": "Extra data: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "\"a\\u12\"N",
+   "error": "Invalid \\uXXXX escape: line 1 column 4 (char 3)"
+  },
+  {
+   "text": "{\"a\":1 +\"b\":2}N",
+   "error": "Expecting ',' delimiter: line 1 column 8 (char 7)"
+  },
+  {
+   "text": " 9",
+   "repr": "9"
+  },
+  {
+   "text": "a-\"",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "-t1e400",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "\\0e00",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "1e40}",
+   "error": "Extra data: line 1 column 5 (char 4)"
+  },
+  {
+   "text": "tru .",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "\"\\u00e9\\u00C9\"",
+   "repr": "'éÉ'"
+  },
+  {
+   "text": "{\"a\\:e1,}",
+   "error": "Invalid \\escape: line 1 column 4 (char 3)"
+  },
+  {
+   "text": "{\"aD:1,",
+   "error": "Unterminated string starting at: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "]-",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "1e400",
+   "repr": "inf"
+  },
+  {
+   "text": "{}5",
+   "error": "Extra data: line 1 column 3 (char 2)"
+  },
+  {
+   "text": "{\"a\":{\"b\":{\",\"e:[{}]}}",
+   "error": "Expecting ':' delimiter: line 1 column 15 (char 14)"
+  },
+  {
+   "text": "\"\\uD}",
+   "error": "Invalid \\uXXXX escape: line 1 column 3 (char 2)"
+  },
+  {
+   "text": "+1a00",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "u1+0",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "\"\\b\\{\\n\\r\\t\\\"\\\\\",",
+   "error": "Invalid \\escape: line 1 column 4 (char 3)"
+  },
+  {
+   "text": "e",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": ". ",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "{\na\"b\"",
+   "error": "Expecting property name enclosed in double quotes: line 2 column 1 (char 2)"
+  },
+  {
+   "text": "{\"a\"{\"b\":{\"c\":[{}]}}",
+   "error": "Expecting ':' delimiter: line 1 column 5 (char 4)"
+  },
+  {
+   "text": "2.47\n03282292062N27e-8324",
+   "error": "Extra data: line 2 column 1 (char 5)"
+  },
+  {
+   "text": "fals-e",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "2.47032222062328e-324",
+   "repr": "0.0"
+  },
+  {
+   "text": "1] ",
+   "error": "Extra data: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "\"/\"",
+   "repr": "'/'"
+  },
+  {
+   "text": "[ ",
+   "error": "Expecting value: line 1 column 3 (char 2)"
+  },
+  {
+   "text": "00",
+   "error": "Extra data: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "[\n1N,\n]",
+   "error": "Expecting ',' delimiter: line 2 column 2 (char 3)"
+  },
+  {
+   "text": "}1400",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "D[1,",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "-0",
+   "repr": "0"
+  },
+  {
+   "text": "[1] ",
+   "error": "Extra data: line 1 column 4 (char 3)"
+  },
+  {
+   "text": "1eN.{",
+   "error": "Extra data: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "2.703282292062329e-324",
+   "repr": "5e-324"
+  },
+  {
+   "text": "\" ][1]",
+   "error": "Unterminated string starting at: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "[\"é\", ex",
+   "error": "Expecting value: line 1 column 7 (char 6)"
+  },
+  {
+   "text": ".5",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "01e-400e",
+   "error": "Extra data: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "r",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "\"a1u102r\"",
+   "repr": "'a1u102r'"
+  },
+  {
+   "text": "[1,nD]",
+   "error": "Expecting value: line 1 column 4 (char 3)"
+  },
+  {
+   "text": "92233720368:54775807",
+   "error": "Extra data: line 1 column 12 (char 11)"
+  },
+  {
+   "text": "\t\n\r [10]\n",
+   "repr": "[10]"
+  },
+  {
+   "text": "aN",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "0-a",
+   "error": "Extra data: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "{\"b\":1,\"a{\":2r\"b\":{\"c\":I3}}",
+   "error": "Expecting ',' delimiter: line 1 column 14 (char 13)"
+  },
+  {
+   "text": "\"\\ud800\"",
+   "repr": "'\\ud800'",
+   "lossy": "surrogate",
+   "repr_mdbridge": "'�'"
+  },
+  {
+   "text": "\"\\b\\+f\\n\\r\\t\\\"\\\\\"",
+   "error": "Invalid \\escape: line 1 column 4 (char 3)"
+  },
+  {
+   "text": "[1u5]",
+   "error": "Expecting ',' delimiter: line 1 column 3 (char 2)"
+  },
+  {
+   "text": "{\"a\" de1",
+   "error": "Expecting ':' delimiter: line 1 column 6 (char 5)"
+  },
+  {
+   "text": "\"0e0",
+   "error": "Unterminated string starting at: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "9na\\x\"",
+   "error": "Extra data: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "1E400",
+   "repr": "inf"
+  },
+  {
+   "text": "\"1ud83dx\"",
+   "repr": "'1ud83dx'"
+  },
+  {
+   "text": "-1e0",
+   "repr": "-1.0"
+  },
+  {
+   "text": "{\"a\"u}",
+   "error": "Expecting ':' delimiter: line 1 column 5 (char 4)"
+  },
+  {
+   "text": "\"\\9ud83\\u 0041\"",
+   "error": "Invalid \\escape: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "1.797693138628159er308",
+   "error": "Extra data: line 1 column 18 (char 17)"
+  },
+  {
+   "text": "12345rD78901234568901234567890",
+   "error": "Extra data: line 1 column 6 (char 5)"
+  },
+  {
+   "text": "-Nen-40",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "\"u",
+   "error": "Unterminated string starting at: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "0",
+   "repr": "0"
+  },
+  {
+   "text": "[,,2]",
+   "error": "Expecting value: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "{\"a\":{\"b}\"I:{\"c\":[{}]}}}",
+   "error": "Expecting ':' delimiter: line 1 column 11 (char 10)"
+  },
+  {
+   "text": "01",
+   "error": "Extra data: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "-0ee+00",
+   "error": "Extra data: line 1 column 3 (char 2)"
+  },
+  {
+   "text": "[1 2",
+   "error": "Expecting ',' delimiter: line 1 column 4 (char 3)"
+  },
+  {
+   "text": "u\"é",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "{1e",
+   "error": "Expecting property name enclosed in double quotes: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "\"\"a:c",
+   "error": "Extra data: line 1 column 3 (char 2)"
+  },
+  {
+   "text": "é00",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "{1:t}",
+   "error": "Expecting property name enclosed in double quotes: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "e80",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "2.4703e28292062327e.-324",
+   "error": "Extra data: line 1 column 19 (char 18)"
+  },
+  {
+   "text": "[1,t9]",
+   "error": "Expecting value: line 1 column 4 (char 3)"
+  },
+  {
+   "text": "\"\\ud80\"",
+   "error": "Invalid \\uXXXX escape: line 1 column 3 (char 2)"
+  },
+  {
+   "text": "1E ",
+   "error": "Extra data: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "[1,x]",
+   "error": "Expecting value: line 1 column 4 (char 3)"
+  },
+  {
+   "text": "922337203854r\"5807",
+   "error": "Extra data: line 1 column 13 (char 12)"
+  },
+  {
+   "text": "[.e",
+   "error": "Expecting value: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "+,",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "1 é2}",
+   "error": "Extra data: line 1 column 3 (char 2)"
+  },
+  {
+   "text": "-922372036854775808",
+   "repr": "-922372036854775808"
+  },
+  {
+   "text": "]\"\\u",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": ",E-0",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "é\\ud83d\\u.041\"",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "-.5e-087",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "[1,",
+   "error": "Expecting value: line 1 column 4 (char 3)"
+  },
+  {
+   "text": "D]ru:",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "﻿1r}",
+   "error": "Unexpected UTF-8 BOM (decode using utf-8-sig): line 1 column 1 (char 0)"
+  },
+  {
+   "text": "2.4703282\\9\"2062328e-324",
+   "error": "Extra data: line 1 column 10 (char 9)"
+  },
+  {
+   "text": ",\n2",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "0t[0",
+   "error": "Extra data: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "u\"ae\"",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "5e32I4",
+   "error": "Extra data: line 1 column 5 (char 4)"
+  },
+  {
+   "text": "[\"😀\",0 \"é\" x]",
+   "error": "Expecting ',' delimiter: line 1 column 8 (char 7)"
+  },
+  {
+   "text": "1",
+   "repr": "1"
+  },
+  {
+   "text": "I\"éE\"\"",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "[1t]",
+   "error": "Expecting ',' delimiter: line 1 column 3 (char 2)"
+  },
+  {
+   "text": "0N\"1",
+   "error": "Extra data: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "+\"a\":1,,}",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "10]0",
+   "error": "Extra data: line 1 column 3 (char 2)"
+  },
+  {
+   "text": "{\"a\"",
+   "error": "Expecting ':' delimiter: line 1 column 5 (char 4)"
+  },
+  {
+   "text": "1.E+n3",
+   "error": "Extra data: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "a",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "\"a\nnb\"}",
+   "error": "Invalid control character at: line 1 column 3 (char 2)"
+  },
+  {
+   "text": "{\"a\":{\"b\":{\"c\"[{}]}}}",
+   "error": "Expecting ':' delimiter: line 1 column 15 (char 14)"
+  },
+  {
+   "text": "2.2250738n585N7x2011e-308",
+   "error": "Extra data: line 1 column 10 (char 9)"
+  },
+  {
+   "text": "[01]n",
+   "error": "Expecting ',' delimiter: line 1 column 3 (char 2)"
+  },
+  {
+   "text": "1.7969313486213158e308",
+   "repr": "1.7969313486213159e+308"
+  },
+  {
+   "text": "[e]1",
+   "error": "Expecting value: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "\t\"",
+   "error": "Unterminated string starting at: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "-1e-40]]",
+   "error": "Extra data: line 1 column 7 (char 6)"
+  },
+  {
+   "text": "{\"a\":1 \"e\":2}[\\",
+   "error": "Expecting ',' delimiter: line 1 column 8 (char 7)"
+  },
+  {
+   "text": "2.70328229206u327e-324",
+   "error": "Extra data: line 1 column 14 (char 13)"
+  },
+  {
+   "text": "\"a\\12\"",
+   "error": "Invalid \\escape: line 1 column 3 (char 2)"
+  },
+  {
+   "text": "u1,,2",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": " ae",
+   "error": "Expecting value: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "-1.5\n-07",
+   "error": "Extra data: line 2 column 1 (char 5)"
+  },
+  {
+   "text": "Ifiit1",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "x{\"a\"{:1 \"b\":2}",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "eE22",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "-0]e+00",
+   "error": "Extra data: line 1 column 3 (char 2)"
+  },
+  {
+   "text": "rue false",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "r1 ",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "\"\\uD8\"D\\uDE001",
+   "error": "Invalid \\uXXXX escape: line 1 column 3 (char 2)"
+  },
+  {
+   "text": "1234567890123456708901234567890",
+   "repr": "1234567890123456708901234567890",
+   "lossy": "int64"
+  },
+  {
+   "text": "}\"b\"1,a\":2,\"b\":{\"c\":3}}",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "uab",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "\"\\ud88d\\uzzzz\"",
+   "error": "Invalid \\uXXXX escape: line 1 column 9 (char 8)"
+  },
+  {
+   "text": "{,d",
+   "error": "Expecting property name enclosed in double quotes: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "{\"a\":1 ]b\"D:2}",
+   "error": "Expecting ',' delimiter: line 1 column 8 (char 7)"
+  },
+  {
+   "text": "u0",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "{é",
+   "error": "Expecting property name enclosed in double quotes: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "\"\\ud83d\\udeD001\"",
+   "repr": "'🛐01'"
+  },
+  {
+   "text": "naD",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "+1N",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": ",}",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "0[+1",
+   "error": "Extra data: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "1E5",
+   "repr": "100000.0"
+  },
+  {
+   "text": "x",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "\"\t\"8",
+   "error": "Invalid control character at: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "{\"a\":19,,}",
+   "error": "Expecting property name enclosed in double quotes: line 1 column 9 (char 8)"
+  },
+  {
+   "text": "reue alse",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "\"\\ud83d\\}ude00\"",
+   "error": "Invalid \\escape: line 1 column 8 (char 7)"
+  },
+  {
+   "text": "\"\\n-ud8001",
+   "error": "Unterminated string starting at: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "{\"a\"::1a.",
+   "error": "Expecting value: line 1 column 6 (char 5)"
+  },
+  {
+   "text": "[é x",
+   "error": "Expecting value: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "E0e0",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "0",
+   "repr": "0"
+  },
+  {
+   "text": "I}}é",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": ".e",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "\"a\\u124\"",
+   "error": "Invalid \\uXXXX escape: line 1 column 4 (char 3)"
+  },
+  {
+   "text": "{a\":In,}",
+   "error": "Expecting property name enclosed in double quotes: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "x.470328229206d\n327e-324",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "2.470[282292062328e-324",
+   "error": "Extra data: line 1 column 6 (char 5)"
+  },
+  {
+   "text": "\"\\\"n,d83d\\ude00\"",
+   "repr": "'\"n,d83d\\ude00'",
+   "lossy": "surrogate",
+   "repr_mdbridge": "'\"n,d83d�'"
+  },
+  {
+   "text": "{",
+   "error": "Expecting property name enclosed in double quotes: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "15",
+   "repr": "15"
+  },
+  {
+   "text": "-1d-40",
+   "error": "Extra data: line 1 column 3 (char 2)"
+  },
+  {
+   "text": "\"a.-\"[",
+   "error": "Extra data: line 1 column 6 (char 5)"
+  },
+  {
+   "text": "I\"\"ab\"",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "E[-]",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "[u,]",
+   "error": "Expecting value: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "d",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "-0.N",
+   "error": "Extra data: line 1 column 3 (char 2)"
+  },
+  {
+   "text": "\"abc",
+   "error": "Unterminated string starting at: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "afals",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "-e-00",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "{\"a\"8:},}",
+   "error": "Expecting ':' delimiter: line 1 column 5 (char 4)"
+  },
+  {
+   "text": "{\"\"\n:}{",
+   "error": "Expecting value: line 2 column 2 (char 5)"
+  },
+  {
+   "text": "[D1.,\n]",
+   "error": "Expecting value: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "1,",
+   "error": "Extra data: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "{}n",
+   "error": "Extra data: line 1 column 3 (char 2)"
+  },
+  {
+   "text": "2.470328I292,62328ex-324",
+   "error": "Extra data: line 1 column 9 (char 8)"
+  },
+  {
+   "text": "-\"\\0u",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "[.]",
+   "error": "Expecting value: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "\"\\b\\f\\n\\\\\\t\\\"\\\\\"",
+   "repr": "'\\x08\\x0c\\n\\\\\\t\"\\\\'"
+  },
+  {
+   "text": "-0.0n",
+   "error": "Extra data: line 1 column 5 (char 4)"
+  },
+  {
+   "text": "0",
+   "repr": "0"
+  },
+  {
+   "text": "92233\\7E203685475807",
+   "error": "Extra data: line 1 column 6 (char 5)"
+  },
+  {
+   "text": "Infin{t",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "-Inf9nityx",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "[1,",
+   "error": "Expecting value: line 1 column 4 (char 3)"
+  },
+  {
+   "text": "Ininit",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "\"\\é d83d\\\"x",
+   "error": "Invalid \\escape: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "\"\\u\nd83d\\ud00\"",
+   "error": "Invalid \\uXXXX escape: line 1 column 3 (char 2)"
+  },
+  {
+   "text": "[-I1]",
+   "error": "Expecting value: line 1 column 2 (char 1)"
+  },
+  {
+   "text": ".d",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "[n 2",
+   "error": "Expecting value: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "\"\"",
+   "repr": "''"
+  },
+  {
+   "text": "1}r",
+   "error": "Extra data: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "{.",
+   "error": "Expecting property name enclosed in double quotes: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "\"a\\x",
+   "error": "Invalid \\escape: line 1 column 3 (char 2)"
+  },
+  {
+   "text": "fa8lne",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "r",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "2.225073585072011N-308",
+   "error": "Extra data: line 1 column 18 (char 17)"
+  },
+  {
+   "text": "9e+",
+   "error": "Extra data: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "922337203654,75808",
+   "error": "Extra data: line 1 column 13 (char 12)"
+  },
+  {
+   "text": "23456789012345678901234567890",
+   "repr": "23456789012345678901234567890",
+   "lossy": "int64"
+  },
+  {
+   "text": "a1{",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "\"\\ud83\\u00e1\"",
+   "error": "Invalid \\uXXXX escape: line 1 column 3 (char 2)"
+  },
+  {
+   "text": ".1de{22",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "\\1]",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "n [ll",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "\t\n\r [-]1]\r\n",
+   "error": "Expecting value: line 2 column 4 (char 5)"
+  },
+  {
+   "text": "\"D\"",
+   "repr": "'D'"
+  },
+  {
+   "text": "1.7976931348623157e309",
+   "repr": "inf"
+  },
+  {
+   "text": "{\"n\":1,19b\"}",
+   "error": "Expecting property name enclosed in double quotes: line 1 column 8 (char 7)"
+  },
+  {
+   "text": "\"\\n\\ufffd\"",
+   "repr": "'\\n�'"
+  },
+  {
+   "text": "[\n\"\\u0001😀é\\\"\"\n]",
+   "repr": "['\\x01😀\\x7fé\"']"
+  },
+  {
+   "text": "[\n{\n\"\\u00e9\": \"\",\n\"b\": [\n-789\n]\n}\n]",
+   "repr": "[{'é': '', 'b': [-789]}]"
+  },
+  {
+   "text": "[\nnull,\n[\n4938016281759418963,\n\" z \\ufffd\"\n]\n]",
+   "repr": "[None, [4938016281759418963, ' z �']]"
+  },
+  {
+   "text": "\"\"",
+   "repr": "''"
+  },
+  {
+   "text": "true",
+   "repr": "True"
+  },
+  {
+   "text": "\"\"",
+   "repr": "'\\x7f\\x7f'"
+  },
+  {
+   "text": "null",
+   "repr": "None"
+  },
+  {
+   "text": "\"a\"",
+   "repr": "'a'"
+  },
+  {
+   "text": "4.50073149420437736e+299",
+   "repr": "4.500731494204377e+299"
+  },
+  {
+   "text": "\"\\u0001\\\\\"",
+   "repr": "'\\x01\\\\'"
+  },
+  {
+   "text": "\"z�\\\"\\\\é\"",
+   "repr": "'z�\"\\\\é'"
+  },
+  {
+   "text": "-5949061602000923722",
+   "repr": "-5949061602000923722"
+  },
+  {
+   "text": "\"\\\"\\ud83d\\ude00\"",
+   "repr": "'\"😀'"
+  },
+  {
+   "text": "-2.828E+02",
+   "repr": "-282.8"
+  },
+  {
+   "text": "\"\\t\\n\"",
+   "repr": "'\\t\\n'"
+  },
+  {
+   "text": "\"\\t/z\\\\\"",
+   "repr": "'\\t\\x7f/z\\\\'"
+  },
+  {
+   "text": "[]",
+   "repr": "[]"
+  },
+  {
+   "text": "\"�a\"",
+   "repr": "'�a'"
+  },
+  {
+   "text": "[\n  true,\n  [\n    3.31136545906595364e+299,\n    \"\\n\\\\ a \",\n    {\n      \"\": [\n        \"\"\n      ]\n    }\n  ],\n  \"é\\\\\\n \\n\"\n]",
+   "repr": "[True, [3.3113654590659536e+299, '\\n\\\\\\u2028a\\u2028', {'': ['']}], 'é\\\\\\n \\n']"
+  },
+  {
+   "text": "{}",
+   "repr": "{}"
+  },
+  {
+   "text": "true",
+   "repr": "True"
+  },
+  {
+   "text": "\"\\n\\ufffd\"",
+   "repr": "'\\n�'"
+  },
+  {
+   "text": "[]",
+   "repr": "[]"
+  },
+  {
+   "text": "0",
+   "repr": "0"
+  },
+  {
+   "text": "\"\\né\"",
+   "repr": "'\\né'"
+  },
+  {
+   "text": "\"\\n😀\\\\\"",
+   "repr": "'\\x7f\\n\\x7f😀\\\\'"
+  },
+  {
+   "text": "13565.625",
+   "repr": "13565.625"
+  },
+  {
+   "text": "[{\"é\": 1.74527884657401672e+299, \"a\": {}}]",
+   "repr": "[{'é': 1.7452788465740167e+299, 'a': {}}]"
+  },
+  {
+   "text": "[151,{\"é\":\"\\u0001😀é\\u0001\\t\"},-1]",
+   "repr": "[151, {'é': '\\x01😀é\\x01\\t'}, -1]"
+  },
+  {
+   "text": "{\"a\":[null,[[6.17012500000000000e+04,true,\"\\n\\n\\t\\\\\\\\\"],{},\"\\ud83d\\ude00\\u00e9\"]],\"b\":\"\\\\\\ud83d\\ude00\"}",
+   "repr": "{'a': [None, [[61701.25, True, '\\n\\n\\t\\\\\\\\'], {}, '😀é']], 'b': '\\\\😀'}"
+  },
+  {
+   "text": "null",
+   "repr": "None"
+  },
+  {
+   "text": "[]",
+   "repr": "[]"
+  },
+  {
+   "text": "\" \"",
+   "repr": "'\\u2028'"
+  },
+  {
+   "text": "{\n  \"b\": false,\n  \"\": [],\n  \"a\": -1\n}",
+   "repr": "{'b': False, '': [], 'a': -1}"
+  },
+  {
+   "text": "\"\\t \"",
+   "repr": "'\\t\\u2028'"
+  },
+  {
+   "text": "\"\\t /\"",
+   "repr": "'\\x7f\\t /'"
+  },
+  {
+   "text": "-5.377E+04",
+   "repr": "-53770.0"
+  },
+  {
+   "text": "\"\\\\\\ufffd\\u2028\"",
+   "repr": "'\\\\�\\u2028'"
+  },
+  {
+   "text": "null",
+   "repr": "None"
+  },
+  {
+   "text": "{\n\"\\u00e9\":null\n}",
+   "repr": "{'é': None}"
+  },
+  {
+   "text": "-1.79785116525314129639158207285e+189",
+   "repr": "-1.7978511652531413e+189"
+  },
+  {
+   "text": "\"\\n\\t\\ufffd\\ufffdz\"",
+   "repr": "'\\n\\t��z'"
+  },
+  {
+   "text": "\"/\\ufffd\"",
+   "repr": "'/�'"
+  },
+  {
+   "text": "null",
+   "repr": "None"
+  },
+  {
+   "text": "[[\"z�z\"],false,\" \\\"é \"]",
+   "repr": "[['z�z'], False, '\\u2028\"é\\x7f\\u2028']"
+  },
+  {
+   "text": "-1",
+   "repr": "-1"
+  },
+  {
+   "text": "\"�\"",
+   "repr": "'�'"
+  },
+  {
+   "text": "-193.36179548556868",
+   "repr": "-193.36179548556868"
+  },
+  {
+   "text": "\"\\u2028\"",
+   "repr": "'\\u2028'"
+  },
+  {
+   "text": "25.7560348103681917564244940877",
+   "repr": "25.75603481036819"
+  },
+  {
+   "text": "[1.6568915960689458713743554075e+142,\"a\\\\\\u0001\\t\",[-4503018312765401341,\"\\\"a  \\t\",{\"\":true,\"é\":\"z\\né\"}]]",
+   "repr": "[1.656891596068946e+142, 'a\\\\\\x01\\t', [-4503018312765401341, '\"a \\u2028\\t', {'': True, 'é': 'z\\n\\x7fé'}]]"
+  },
+  {
+   "text": "\" z \\u2028\\\\\"",
+   "repr": "' z \\u2028\\\\'"
+  },
+  {
+   "text": "\"\\u007f\\u0001\\u0001z\"",
+   "repr": "'\\x7f\\x01\\x01z'"
+  },
+  {
+   "text": "{\"k k\":null,\"a\":false}",
+   "repr": "{'k k': None, 'a': False}"
+  },
+  {
+   "text": "[\n-5347228779210040040\n]",
+   "repr": "[-5347228779210040040]"
+  },
+  {
+   "text": "\"\"",
+   "repr": "''"
+  },
+  {
+   "text": "\"/\"",
+   "repr": "'/'"
+  },
+  {
+   "text": "\"a\\\\\\\"\"",
+   "repr": "'a\\\\\"\\x7f'"
+  },
+  {
+   "text": "5.14485450321762542e+299",
+   "repr": "5.1448545032176254e+299"
+  },
+  {
+   "text": "\"\"",
+   "repr": "''"
+  },
+  {
+   "text": "[\"\\u007f\"]",
+   "repr": "['\\x7f']"
+  },
+  {
+   "text": "\"\"",
+   "repr": "''"
+  },
+  {
+   "text": "\"\\\\\"",
+   "repr": "'\\x7f\\\\'"
+  },
+  {
+   "text": "1.770E-301",
+   "repr": "1.77e-301"
+  },
+  {
+   "text": "-1",
+   "repr": "-1"
+  },
+  {
+   "text": "-956",
+   "repr": "-956"
+  },
+  {
+   "text": "[[\"\\\"\", 7], [[0], \"\\u2028\\\"/\\ufffd\", \"\"]]",
+   "repr": "[['\"', 7], [[0], '\\u2028\"/�', '']]"
+  },
+  {
+   "text": "\"\\u2028a\"",
+   "repr": "'\\u2028a'"
+  },
+  {
+   "text": "[\n  [\n    {},\n    [],\n    \"\\ud83d\\ude00\"\n  ],\n  -1,\n  -211.811245032324791282007936388\n]",
+   "repr": "[[{}, [], '😀'], -1, -211.8112450323248]"
+  },
+  {
+   "text": "[\n  null,\n  {\n    \"k k\":\" \",\n    \"é\":[]\n  }\n]",
+   "repr": "[None, {'k k': '\\x7f\\u2028', 'é': []}]"
+  },
+  {
+   "text": "\" \\n\"",
+   "repr": "' \\n'"
+  },
+  {
+   "text": "\"\"",
+   "repr": "''"
+  },
+  {
+   "text": "[{},1.576E+299]",
+   "repr": "[{}, 1.576e+299]"
+  },
+  {
+   "text": "0",
+   "repr": "0"
+  },
+  {
+   "text": "\"\"",
+   "repr": "''"
+  },
+  {
+   "text": "-82835.875",
+   "repr": "-82835.875"
+  },
+  {
+   "text": "\"zz\\\\ é\"",
+   "repr": "'zz\\\\ é'"
+  },
+  {
+   "text": "0",
+   "repr": "0"
+  },
+  {
+   "text": "3.06317016435808020e-301",
+   "repr": "3.06317016435808e-301"
+  },
+  {
+   "text": "{}",
+   "repr": "{}"
+  },
+  {
+   "text": "[\n\"\\\"a\\u007f\\t\\n\"\n]",
+   "repr": "['\"a\\x7f\\t\\n']"
+  },
+  {
+   "text": "4.683E+04",
+   "repr": "46830.0"
+  },
+  {
+   "text": "[]",
+   "repr": "[]"
+  },
+  {
+   "text": "\"\"",
+   "repr": "''"
+  },
+  {
+   "text": "[\n  {},\n  [\n    {},\n    \"\\\\\\u0001\\n� \"\n  ],\n  \"\"\n]",
+   "repr": "[{}, [{}, '\\\\\\x01\\n�\\u2028'], '']"
+  },
+  {
+   "text": "\"\\u0001�az\"",
+   "repr": "'\\x01�az'"
+  },
+  {
+   "text": "\"é /z\"",
+   "repr": "'é /z'"
+  },
+  {
+   "text": "6.66010176760819989534413347927e-301",
+   "repr": "6.6601017676082e-301"
+  },
+  {
+   "text": "-878",
+   "repr": "-878"
+  },
+  {
+   "text": "\"\"",
+   "repr": "''"
+  },
+  {
+   "text": "[\n\"/\\u007f/z\",\n[\n0\n],\n[\ntrue,\n[],\ntrue\n]\n]",
+   "repr": "['/\\x7f/z', [0], [True, [], True]]"
+  },
+  {
+   "text": "true",
+   "repr": "True"
+  },
+  {
+   "text": "\"z\"",
+   "repr": "'z'"
+  },
+  {
+   "text": "[\nfalse\n]",
+   "repr": "[False]"
+  },
+  {
+   "text": "3422966579007492439",
+   "repr": "3422966579007492439"
+  },
+  {
+   "text": "6820837814071076312",
+   "repr": "6820837814071076312"
+  },
+  {
+   "text": "[\n  [\n    [\n      true,\n      [\n        7,\n        -1.330970770928238e-88,\n        \"\\u2028\\ufffd\\u007f\"\n      ],\n      4.642710890412686e+299\n    ],\n    \"\\t\\u007f\"\n  ],\n  8.075003340687893e+297\n]",
+   "repr": "[[[True, [7, -1.330970770928238e-88, '\\u2028�\\x7f'], 4.642710890412686e+299], '\\t\\x7f'], 8.075003340687893e+297]"
+  },
+  {
+   "text": "false",
+   "repr": "False"
+  },
+  {
+   "text": "\"\\u0001 \\\\\\t \"",
+   "repr": "'\\x01\\u2028\\\\\\t\\u2028'"
+  },
+  {
+   "text": "false",
+   "repr": "False"
+  },
+  {
+   "text": "9.33748363614073693514687561403e+145",
+   "repr": "9.337483636140737e+145"
+  },
+  {
+   "text": "\"\\\\/z\"",
+   "repr": "'\\\\/z'"
+  },
+  {
+   "text": "null",
+   "repr": "None"
+  },
+  {
+   "text": "828",
+   "repr": "828"
+  },
+  {
+   "text": "[\n2.92420508487407915e+02,\ntrue,\n\" é\"\n]",
+   "repr": "[292.4205084874079, True, '\\u2028é']"
+  },
+  {
+   "text": "{}",
+   "repr": "{}"
+  },
+  {
+   "text": "7.873E-301",
+   "repr": "7.873e-301"
+  },
+  {
+   "text": "null",
+   "repr": "None"
+  },
+  {
+   "text": "\"\"",
+   "repr": "''"
+  },
+  {
+   "text": "[\n-355\n]",
+   "repr": "[-355]"
+  },
+  {
+   "text": "\"z \\n\"",
+   "repr": "'z\\u2028\\n'"
+  },
+  {
+   "text": "[]",
+   "repr": "[]"
+  },
+  {
+   "text": "\"\"",
+   "repr": "''"
+  },
+  {
+   "text": "\" a\\u007f\\u0001\\t\"",
+   "repr": "' a\\x7f\\x01\\t'"
+  },
+  {
+   "text": "\"\\u2028\\ufffdaa\\u0001\"",
+   "repr": "'\\u2028�aa\\x01'"
+  },
+  {
+   "text": "[]",
+   "repr": "[]"
+  },
+  {
+   "text": "845",
+   "repr": "845"
+  },
+  {
+   "text": "-2.182E-144",
+   "repr": "-2.182e-144"
+  },
+  {
+   "text": "8.411235102127358e+195",
+   "repr": "8.411235102127358e+195"
+  },
+  {
+   "text": "\"\\t \\n\\ufffda\"",
+   "repr": "'\\t \\n�a'"
+  },
+  {
+   "text": "\"/ é\"",
+   "repr": "'/\\u2028é'"
+  },
+  {
+   "text": "\"\\u2028a\"",
+   "repr": "'\\u2028a'"
+  },
+  {
+   "text": "[]",
+   "repr": "[]"
+  },
+  {
+   "text": "\"\\\"\"",
+   "repr": "'\"'"
+  },
+  {
+   "text": "\"\\u0001 \"",
+   "repr": "'\\x01 '"
+  },
+  {
+   "text": "\" a\"",
+   "repr": "'\\u2028a\\x7f'"
+  },
+  {
+   "text": "\"\\u0001z\\t\"",
+   "repr": "'\\x01z\\t'"
+  },
+  {
+   "text": "[\"\\u0001\\t \",true,-6.730E+02]",
+   "repr": "['\\x01\\t ', True, -673.0]"
+  },
+  {
+   "text": "null",
+   "repr": "None"
+  },
+  {
+   "text": "[\"\", [-1], \"\"]",
+   "repr": "['', [-1], '']"
+  },
+  {
+   "text": "{}",
+   "repr": "{}"
+  },
+  {
+   "text": "[\n[\ntrue,\n\"\\\\� \",\ntrue\n]\n]",
+   "repr": "[[True, '\\\\�\\x7f ', True]]"
+  },
+  {
+   "text": "\"\\naz\\\"\"",
+   "repr": "'\\naz\"'"
+  },
+  {
+   "text": "{\n\"k k\":\"\\\\\\\"\\n�é\",\n\"b\":1.06245635788591820498726579729e+299\n}",
+   "repr": "{'k k': '\\\\\"\\n�é', 'b': 1.0624563578859182e+299}"
+  },
+  {
+   "text": "true",
+   "repr": "True"
+  },
+  {
+   "text": "true",
+   "repr": "True"
+  },
+  {
+   "text": "[\" \\ufffd\\\"/\\\\\", {\"a\": [{\"\": \"\\\\\\ufffd\\\\/\", \"\\u00e9\": false, \"a\": -2641531080996424961}, null, \"\"], \"k k\": 2.2492647681868482e+299}]",
+   "repr": "[' �\"/\\\\', {'a': [{'': '\\\\�\\\\/', 'é': False, 'a': -2641531080996424961}, None, ''], 'k k': 2.2492647681868482e+299}]"
+  },
+  {
+   "text": "7",
+   "repr": "7"
+  },
+  {
+   "text": "{\n\"b\": 132.3308801510068\n}",
+   "repr": "{'b': 132.3308801510068}"
+  },
+  {
+   "text": "\"z\\n\"",
+   "repr": "'z\\n'"
+  },
+  {
+   "text": "2274589909624529487",
+   "repr": "2274589909624529487"
+  },
+  {
+   "text": "-9.136E+04",
+   "repr": "-91360.0"
+  },
+  {
+   "text": "\" a \"",
+   "repr": "' a\\u2028'"
+  },
+  {
+   "text": "\"\\u0001 \\u0001\"",
+   "repr": "'\\x01\\u2028\\x01'"
+  },
+  {
+   "text": "\"\\n\"",
+   "repr": "'\\n'"
+  },
+  {
+   "text": "[\"/\\u007f/\\ud83d\\ude00\"]",
+   "repr": "['/\\x7f/😀']"
+  },
+  {
+   "text": "[\n  \"\\ta\\ud83d\\ude00\\n\\u007f\"\n]",
+   "repr": "['\\ta😀\\n\\x7f']"
+  },
+  {
+   "text": "\"z\\n \\n\"",
+   "repr": "'z\\n \\n'"
+  },
+  {
+   "text": "\"\\ufffda\"",
+   "repr": "'�a'"
+  }
+ ]
+}
