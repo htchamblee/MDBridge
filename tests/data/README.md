@@ -40,4 +40,13 @@ repeated in `tests/core/test_text.cpp`).
 The generators fix the clocks (`saved`, entry times, durations), so their output is reproducible
 and equal to the committed files.
 
+`topology/` holds the topology fixtures and what MDAnalysis 2.11.0 builds from them:
+`fixture_chains.pdb`, `fixture_noelements.pdb`, `fixture_segids.pdb`, `fixture_chains_ba.pdb` and
+`demo_dry.parm7` (MDATK's dry demo system) from
+`python3 -I -B tests/parity/make_selection_fixtures.py <MDATK checkout> tests/data/topology`, and their
+`*.topology.json` dumps from
+`python3 -I tests/parity/dump_topologies.py tests/data/topology tests/data/topology/*.pdb tests/data/topology/demo_dry.parm7`
+(both with MDAnalysis installed). `golden_model.json` holds MDATK's chain numbering and Reporter events
+for them.
+
 Never put research structures or trajectories of real projects here.
