@@ -153,11 +153,20 @@ struct Frame {
     std::optional<std::array<float, 6>> box;  // a, b, c (Å), alpha, beta, gamma (degrees)
 };
 
+// What a trajectory reader knows about its file beyond the frames; the PDB export writes it
+// (MDAnalysis' reader attributes header, compound and remarks; std::nullopt: the reader has none).
+struct TrajectoryInfo {
+    std::optional<std::string> header;  // PDB HEADER text, Amber mdcrd title line
+    std::optional<std::vector<std::string>> compounds;  // PDB COMPND lines
+    std::optional<std::vector<std::string>> remarks;  // PDB REMARK lines
+};
+
 // Frames of a system, with a current frame as MDAnalysis' trajectory has one. Implementations
 // read files (io) or hold frames in memory.
 class Trajectory {
 public:
     virtual ~Trajectory() = default;
+    virtual TrajectoryInfo info() const { return {}; }
     virtual std::int64_t frameCount() const = 0;
     // ps between frames: the file's time step, or the one given when it was opened
     virtual double dt() const = 0;

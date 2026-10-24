@@ -27,6 +27,21 @@ target_compile_definitions(mdbridge_core_tests PRIVATE MDBRIDGE_TEST_DATA="${CMA
 mdbridge_target_warnings(mdbridge_core_tests)
 gtest_discover_tests(mdbridge_core_tests DISCOVERY_MODE PRE_TEST)
 
+# io: topologies, trajectories, PDB files and tables read and written as MDATK does
+add_executable(mdbridge_io_tests
+    io/test_external.cpp
+    io/test_loader.cpp
+    io/test_netcdf.cpp
+    io/test_parm7.cpp
+    io/test_pdb.cpp
+    io/test_pdb_export.cpp
+    io/test_trajectory.cpp)
+target_include_directories(mdbridge_io_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/core")
+target_link_libraries(mdbridge_io_tests PRIVATE mdbridge::io GTest::gtest_main)
+target_compile_definitions(mdbridge_io_tests PRIVATE MDBRIDGE_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data")
+mdbridge_target_warnings(mdbridge_io_tests)
+gtest_discover_tests(mdbridge_io_tests DISCOVERY_MODE PRE_TEST)
+
 # the committed SPIR-V matches the shader sources (tools/compile_shaders.py)
 add_test(NAME render.shaders_up_to_date
          COMMAND ${CMAKE_COMMAND} -DSHADER_DIR=${PROJECT_SOURCE_DIR}/src/render/shaders

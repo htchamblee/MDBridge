@@ -41,6 +41,7 @@ if(MDBRIDGE_BUILD_TESTS)
 endif()
 
 add_subdirectory(src/core)
+add_subdirectory(src/io)
 if(MDBRIDGE_BUILD_APP)
     # Qt's package links OpenGL into every Qt program. With GLVND that would be libOpenGL.so.0 and
     # libGLX.so.0, and libOpenGL.so.0 is missing on many systems; Qt itself needs libGL.so.1, which

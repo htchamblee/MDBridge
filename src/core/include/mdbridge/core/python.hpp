@@ -33,6 +33,18 @@ double pythonRound(double x, int digits);
 // lone surrogates (\udcXX), as in a Python str of an undecodable file name.
 std::string pythonJsonCompact(const Value& value);
 
+// int(text) and float(text) of a str, as Python parses them: surrounding Unicode whitespace, a
+// sign, single underscores between digits, Unicode decimal digits; float also nan / inf /
+// infinity in any case, overflow to inf and underflow to 0. Throws ValueError with Python's
+// message: "invalid literal for int() with base 10: '<repr>'", "could not convert string to float:
+// '<repr>'"; an int beyond 64 bits throws std::overflow_error("Python int too large to convert to
+// C long").
+std::int64_t pythonInt(std::string_view text);
+double pythonFloat(std::string_view text);
+// The same without exceptions.
+std::optional<std::int64_t> tryPythonInt(std::string_view text);
+std::optional<double> tryPythonFloat(std::string_view text);
+
 // POSIX os.path (posixpath) on UTF-8 strings.
 namespace posixpath {
 // "~" and "~user" expansion; $HOME first for "~" (set, even empty), else the passwd entry
