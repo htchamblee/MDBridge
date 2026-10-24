@@ -2,8 +2,8 @@
 #
 # - linux:       build and unit tests on Rocky Linux 9 (the oldest supported glibc), AppImage,
 #                glibc check, smoke test with the Vulkan view (lavapipe) and the software view
-# - appimage-*:  the AppImage on Ubuntu 22.04 (with Vulkan) and on a Rocky Linux 9 desktop
-#                baseline without any Vulkan driver (software view)
+# - appimage-*:  the AppImage on Ubuntu 22.04 (with Vulkan) and on a bare Rocky Linux 9 (command
+#                line without X11 / OpenGL, then the interface without a Vulkan driver)
 # - windows:     MSVC 2022 build and tests, zip and installer; smoke test of the installed program
 # - parity:      MDATK v0.0.4.1 writes project files and records what it reads from them;
 #                the AppImage must read them the same way
@@ -126,7 +126,7 @@ jobs:
             --gui --expect-renderer vulkan --version "${{ needs.linux.outputs.version }}"
 
   appimage-rocky:
-    name: AppImage on Rocky Linux 9 without Vulkan (software view)
+    name: AppImage on a bare Rocky Linux 9 (no X11, OpenGL or Vulkan)
     needs: linux
     runs-on: ubuntu-latest
     container: rockylinux:9
@@ -139,14 +139,14 @@ jobs:
         with:
           name: mdbridge-linux-x86_64
           path: dist
-      - name: What every desktop has (X11, OpenGL dispatch, fonts); no Qt, no Vulkan
+      - name: Command line on the bare system (the AppImage's fallback libraries stand in)
         run: |
-          dnf install -y --setopt=install_weak_deps=False python3 xorg-x11-server-Xvfb xorg-x11-xauth \
-            libX11 libX11-xcb libxcb fontconfig dejavu-sans-fonts libglvnd-egl libglvnd-glx \
-            mesa-libGL mesa-libEGL findutils
-      - name: Smoke test
-        run: |
+          dnf install -y --setopt=install_weak_deps=False python3 findutils
           chmod +x dist/*.AppImage
+          python3 packaging/smoke_test.py dist/MDBridge-*-x86_64.AppImage --version "${{ needs.linux.outputs.version }}"
+      - name: Interface under Xvfb, without a Vulkan driver (software view)
+        run: |
+          dnf install -y --setopt=install_weak_deps=False xorg-x11-server-Xvfb xorg-x11-xauth dejavu-sans-fonts
           xvfb-run -a -s "-screen 0 1600x1000x24" python3 packaging/smoke_test.py dist/MDBridge-*-x86_64.AppImage \
             --gui --expect-renderer software --version "${{ needs.linux.outputs.version }}"
 

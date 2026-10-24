@@ -9,6 +9,27 @@
 HERE="$(dirname "$(readlink -f "$0")")"
 MDBRIDGE="$HERE/usr/bin/mdbridge"
 
+# Minimal and server installs (a cluster node used over ssh -X, containers) may lack libraries that
+# Qt needs and every desktop has (OpenGL / EGL dispatch, X11, fontconfig). The AppImage carries
+# copies in usr/lib/fallback, used only when the host lacks one of them: on desktops the host's
+# copies must win, as they belong to its graphics driver.
+host_has() {
+    { ldconfig -p 2>/dev/null || /sbin/ldconfig -p 2>/dev/null; } |
+        awk -v n="$1" '$1 == n && /x86-64/ {found = 1} END {exit !found}' && return 0
+    for d in /usr/lib64 /lib64 /usr/lib/x86_64-linux-gnu /lib/x86_64-linux-gnu; do
+        [ -e "$d/$1" ] && return 0
+    done
+    return 1
+}
+for lib in "$HERE"/usr/lib/fallback/*; do
+    [ -e "$lib" ] || continue
+    if ! host_has "$(basename "$lib")"; then
+        LD_LIBRARY_PATH="$HERE/usr/lib/fallback:$HERE/usr/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+        export LD_LIBRARY_PATH
+        break
+    fi
+done
+
 # X11, also in Wayland sessions (through XWayland): the AppImage has no Wayland platform plugin yet
 QT_QPA_PLATFORM="${QT_QPA_PLATFORM:-xcb}"
 export QT_QPA_PLATFORM

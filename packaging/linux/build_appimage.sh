@@ -4,8 +4,9 @@
 #   packaging/linux/build_appimage.sh [--build DIR] [--out DIR] [--work DIR]
 #
 # Steps: cmake --install into an AppDir -> linuxdeploy and its Qt plugin bundle Qt (xcb and offscreen
-# platform plugins) and the libraries that not every Linux system has -> licences of those
-# libraries -> appimagetool. Result: OUT/MDBridge-<version>-x86_64.AppImage (default OUT: dist/).
+# platform plugins) and the libraries that not every Linux system has -> fallback copies of the
+# desktop libraries Qt needs, for hosts without them -> check of what the host must provide ->
+# licences -> appimagetool. Result: OUT/MDBridge-<version>-x86_64.AppImage (default OUT: dist/).
 #
 # --build: the configured and built CMake tree (default: build/release; docs/BUILDING.md). Build on
 # the oldest distribution the AppImage must run on (glibc is the host's): Rocky Linux 9 for
@@ -88,14 +89,35 @@ if ls "$APPDIR"/usr/lib/libvulkan.so* > /dev/null 2>&1; then
     exit 1
 fi
 
+echo "== fallback libraries (used only on hosts without them)"
+# Qt needs these desktop libraries as soon as it loads, also for the command line. Desktops have
+# them (and their copies must match the graphics driver), but minimal and server installs (a cluster
+# node used over ssh -X, CI runners) may lack them: AppRun puts usr/lib/fallback on the library
+# path only on hosts that miss one of them.
+FALLBACK_LIBS="libGL.so.1 libEGL.so.1 libX11.so.6 libX11-xcb.so.1 libxcb.so.1 libfontconfig.so.1 libfreetype.so.6"
+# what even minimal systems have; never bundled
+HOST_CORE='^(ld-linux-x86-64\.so\.2|lib(c|m|dl|pthread|rt)\.so\.[0-9]+|libstdc\+\+\.so\.6|libgcc_s\.so\.1|libz\.so\.1|libgpg-error\.so\.0)$'
+FALLBACK="$APPDIR/usr/lib/fallback"
+mkdir -p "$FALLBACK"
+for key in $FALLBACK_LIBS; do
+    path="$(ldconfig -p | awk -v n="$key" '$1 == n && /x86-64/ {print $NF; exit}')"
+    [ -n "$path" ] || { echo "$key is not installed on the build machine" >&2; exit 1; }
+    { echo "$key $path"; ldd "$path" | awk '$2 == "=>" && $3 ~ /^\// {print $1, $3}'; } |
+        while read -r name file; do
+            if [[ ! "$name" =~ $HOST_CORE ]] && [ ! -e "$APPDIR/usr/lib/$name" ] && [ ! -e "$FALLBACK/$name" ]; then
+                cp -L "$file" "$FALLBACK/$name"
+            fi
+        done
+done
+echo "   $(cd "$FALLBACK" && echo *)"
+
 echo "== libraries taken from the host"
-# what every Linux desktop has; anything else must be bundled (e.g. libOpenGL.so.0 is often missing)
-HOST_ALLOWED='^(ld-linux-x86-64\.so\.2|lib(c|m|dl|pthread|rt)\.so\.[0-9]+|libstdc\+\+\.so\.6|libgcc_s\.so\.1|libz\.so\.1|libX11(-xcb)?\.so\.[0-9]+|libxcb\.so\.1|libfontconfig\.so\.1|libfreetype\.so\.6|libGL\.so\.1|libEGL\.so\.1|libgpg-error\.so\.0)$'
+# everything else must be in the AppImage (e.g. libOpenGL.so.0 is missing on many systems)
 host_libs="$(find "$APPDIR/usr" -type f \( -name '*.so*' -o -perm -u+x \) -exec sh -c \
     'readelf -d "$1" 2>/dev/null | sed -n "s/.*(NEEDED).*\[\(.*\)\]/\1/p"' _ {} \; | sort -u |
-    while read -r lib; do [ -e "$APPDIR/usr/lib/$lib" ] || echo "$lib"; done)"
+    while read -r lib; do [ -e "$APPDIR/usr/lib/$lib" ] || [ -e "$FALLBACK/$lib" ] || echo "$lib"; done)"
 echo "   $(echo $host_libs)"
-unexpected="$(echo "$host_libs" | grep -vE "$HOST_ALLOWED" || true)"
+unexpected="$(echo "$host_libs" | grep -vE "$HOST_CORE" || true)"
 if [ -n "$unexpected" ]; then
     echo "the AppImage would need these libraries from the host: $(echo $unexpected)" >&2
     exit 1
@@ -104,7 +126,7 @@ fi
 echo "== licences of the bundled system libraries"
 LICENSES="$APPDIR/usr/share/doc/mdbridge/licenses/system"
 mkdir -p "$LICENSES"
-for lib in "$APPDIR"/usr/lib/*.so*; do
+for lib in "$APPDIR"/usr/lib/*.so* "$FALLBACK"/*.so*; do
     name="$(basename "$lib")"
     [ -e "$QT_DIR/lib/$name" ] && continue  # Qt's own (and its ICU): Qt's notice covers them
     source="$(ldconfig -p | awk -v n="$name" '$1 == n {print $NF; exit}')"

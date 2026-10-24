@@ -20,9 +20,13 @@ licences at https://doc.qt.io/qt-6/licenses-used-in-qt.html. The corresponding s
 version in these builds (6.11.3) is
 https://download.qt.io/official_releases/qt/6.11/6.11.3/single/qt-everywhere-src-6.11.3.tar.xz.
 
-**Not bundled.** The Vulkan loader and graphics drivers belong to the user's system. The AppImage
-also carries a few X11 / XCB client libraries of its build system (Rocky Linux 9) that Qt's
-platform plugin needs; their licences (MIT / X11) are in the same folder.
+**System libraries.** The Vulkan loader and graphics drivers belong to the user's system and are
+not bundled. The AppImage carries libraries of its build system (Rocky Linux 9) that Qt needs and
+not every Linux system has (XCB utilities, xkbcommon, ...), and fallback copies of the OpenGL / EGL
+dispatch (libglvnd), X11, fontconfig and FreeType libraries, used only on systems without them.
+All are separate shared libraries under permissive licences (MIT / X11 style, FreeType's FTL,
+D-Bus under AFL 2.1) or the LGPL 2.1 (libsystemd, libgcrypt, needed by Qt's D-Bus support); their
+licence texts are in `licenses/system`.
 
 Unit-test tools (GoogleTest, BSD-3-Clause) are used only to build and test MDBridge and are not
 part of any build.
