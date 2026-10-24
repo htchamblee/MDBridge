@@ -1,0 +1,8 @@
+Copyright (c) 2026 the MDBridge author (GitHub: htchamblee). All rights reserved.
+
+MDBridge has no licence yet. Its licence will be chosen after legal review (see LICENSING.md);
+until then no permission to use, copy, modify or distribute this software is granted, except as
+required for viewing it on GitHub under GitHub's Terms of Service.
+
+Third-party components bundled in MDBridge builds keep their own licences: see
+THIRD_PARTY_NOTICES.md and the "licenses" folder of a build.

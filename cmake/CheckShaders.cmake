@@ -1,0 +1,31 @@
+# Fails when a shader source changed after its SPIR-V was generated.
+#
+#   cmake -DSHADER_DIR=<src/render/shaders> -P cmake/CheckShaders.cmake
+#
+# src/render/shaders/spirv.hpp lists "sha256 <hash> <file>" for every source it was compiled from.
+file(STRINGS "${SHADER_DIR}/spirv.hpp" entries REGEX "^//   sha256 [0-9a-f]+ ")
+if(NOT entries)
+    message(FATAL_ERROR "${SHADER_DIR}/spirv.hpp lists no shader sources")
+endif()
+set(stale)
+foreach(entry IN LISTS entries)
+    string(REGEX REPLACE "^//   sha256 ([0-9a-f]+) (.+)$" "\\1;\\2" parts "${entry}")
+    list(GET parts 0 recorded)
+    list(GET parts 1 name)
+    file(SHA256 "${SHADER_DIR}/${name}" actual)
+    if(NOT actual STREQUAL recorded)
+        list(APPEND stale "${name}")
+    endif()
+endforeach()
+file(GLOB sources RELATIVE "${SHADER_DIR}" "${SHADER_DIR}/*.vert" "${SHADER_DIR}/*.frag" "${SHADER_DIR}/*.comp")
+foreach(name IN LISTS sources)
+    string(FIND "${entries}" " ${name}" at)
+    if(at EQUAL -1)
+        list(APPEND stale "${name} (not compiled)")
+    endif()
+endforeach()
+if(stale)
+    message(FATAL_ERROR "SPIR-V out of date for: ${stale}. Run: python tools/compile_shaders.py")
+endif()
+list(LENGTH entries count)
+message(STATUS "SPIR-V matches its ${count} shader sources")

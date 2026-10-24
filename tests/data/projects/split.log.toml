@@ -1,0 +1,33 @@
+# Step log of the MDATK project split.mdatk.toml (moved here when the project file grew too large).
+
+# ---- step log (entries are appended; newest last) ----
+
+# One entry per step run in this project: analyses, renders, generated scripts that MDATK ran, PDB
+# clean-ups, density fits.
+[[log]]
+# What ran: 'render', 'workflow write', 'pdb clean', or the planner step number of a generated
+# script that MDATK ran (e.g. '03').
+step = "pdb clean"
+# Short human-readable description.
+title = "L-RNA naming"
+# ok, failed or cancelled.
+status = "ok"
+# When the step started.
+time = 2026-10-24T06:39:23
+# Wall time in seconds.
+duration_s = 0.0
+
+[[log]]
+step = "04"
+title = "analysis"
+status = "ok"
+time = 2026-10-24T06:39:23
+duration_s = 0.0
+summary = "RMSD, contacts, H-bonds"
+
+[[log]]
+step = "05"
+title = "video"
+status = "ok"
+time = 2026-10-24T06:39:23
+duration_s = 0.0

@@ -1,0 +1,25 @@
+#!/bin/sh
+# MDBridge AppImage entry point.
+#
+#   ./MDBridge-x86_64.AppImage                      the interface
+#   ./MDBridge-x86_64.AppImage project.mdatk.toml   the interface with that project
+#   ./MDBridge-x86_64.AppImage COMMAND ...           the command line (--help lists the commands)
+#
+# A symbolic link to the AppImage named "mdbridge-gui" always starts the interface.
+HERE="$(dirname "$(readlink -f "$0")")"
+MDBRIDGE="$HERE/usr/bin/mdbridge"
+
+# X11, also in Wayland sessions (through XWayland): the AppImage has no Wayland platform plugin yet
+QT_QPA_PLATFORM="${QT_QPA_PLATFORM:-xcb}"
+export QT_QPA_PLATFORM
+
+case "$(basename "${ARGV0:-$0}")" in
+    mdbridge-gui*) exec "$MDBRIDGE" gui "$@" ;;
+esac
+if [ $# -eq 0 ]; then
+    exec "$MDBRIDGE" gui
+fi
+if [ $# -eq 1 ] && [ -f "$1" ]; then  # a project file (double-click / "Open with")
+    exec "$MDBRIDGE" gui "$1"
+fi
+exec "$MDBRIDGE" "$@"

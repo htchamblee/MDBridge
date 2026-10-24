@@ -1,0 +1,26 @@
+set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
+set(BUILD_GMOCK OFF CACHE BOOL "" FORCE)
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)  # MSVC: the same runtime as MDBridge
+FetchContent_MakeAvailable(googletest)
+include(GoogleTest)
+
+# core: project files read exactly as MDATK reads them (fixtures in data/, see data/README.md)
+add_executable(mdbridge_core_tests
+    core/test_json.cpp
+    core/test_project_file.cpp)
+target_link_libraries(mdbridge_core_tests PRIVATE mdbridge::core GTest::gtest_main)
+target_compile_definitions(mdbridge_core_tests PRIVATE MDBRIDGE_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data")
+mdbridge_target_warnings(mdbridge_core_tests)
+gtest_discover_tests(mdbridge_core_tests DISCOVERY_MODE PRE_TEST)
+
+# the committed SPIR-V matches the shader sources (tools/compile_shaders.py)
+add_test(NAME render.shaders_up_to_date
+         COMMAND ${CMAKE_COMMAND} -DSHADER_DIR=${PROJECT_SOURCE_DIR}/src/render/shaders
+                 -P ${PROJECT_SOURCE_DIR}/cmake/CheckShaders.cmake)
+
+if(MDBRIDGE_BUILD_APP)
+    add_executable(mdbridge_render_tests render/test_vulkan_probe.cpp)
+    target_link_libraries(mdbridge_render_tests PRIVATE mdbridge::render Vulkan::Headers GTest::gtest_main)
+    mdbridge_target_warnings(mdbridge_render_tests)
+    gtest_discover_tests(mdbridge_render_tests DISCOVERY_MODE PRE_TEST)
+endif()

@@ -1,0 +1,19 @@
+/build/
+/build-*/
+/dist/
+/out/
+CMakeUserPresets.json
+.vs/
+.vscode/
+.idea/
+*.user
+__pycache__/
+*.py[cod]
+
+# project files and outputs written while trying things out
+MDATK_output/
+MDATK_cache/
+.*.mdatk.toml.lock
+
+# Claude Code agent worktrees
+.claude/worktrees/

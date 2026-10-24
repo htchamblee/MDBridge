@@ -1,0 +1,31 @@
+{
+  "notes": "literal string: C:\\Users\\no escapes",
+  "input": {
+    "topology": "system.parm7",
+    "trajectory": "md.nc"
+  },
+  "output": {
+    "out_dir": "results",
+    "video": {
+      "fps": 30,
+      "crf": 18
+    }
+  },
+  "groups": [
+    {
+      "name": "Aptamer",
+      "residues": "1-12"
+    },
+    {
+      "name": "Target",
+      "residues": "13-24",
+      "color": "#eb6834"
+    }
+  ],
+  "analyses": {
+    "contacts": {
+      "cutoff": 4.5,
+      "enabled": true
+    }
+  }
+}

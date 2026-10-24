@@ -1,0 +1,7 @@
+format = "mdatk-project"
+format_version = 1
+mdatk_version = "0.0.4.1"
+saved = 2026-10-15T14:32:05
+# the step log moved to a file that is missing: the project still opens, without a log
+log_file = "missing.log.toml"
+notes = "The log file is gone."

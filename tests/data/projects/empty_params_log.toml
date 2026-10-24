@@ -1,0 +1,4 @@
+# A parameter log without parameters: opens as a project with default settings.
+format = "mdatk-params-log"
+mdatk_version = "0.0.4.1"
+created = 2026-10-15T14:32:05

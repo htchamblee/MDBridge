@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=MDBridge
+GenericName=MD trajectory analysis
+Comment=Analyse MD trajectories of RNA systems and render multi-panel videos (successor of MDATK)
+Exec=mdbridge gui %f
+Icon=mdbridge
+Terminal=false
+Categories=Science;Chemistry;Education;
+MimeType=application/toml;

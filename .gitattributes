@@ -1,0 +1,6 @@
+# LF everywhere: shader hashes and byte-for-byte comparisons must hold on Windows checkouts too.
+* text=auto eol=lf
+# test inputs and references keep their exact bytes (one fixture has CRLF line endings on purpose)
+tests/data/** -text
+*.png binary
+*.ico binary

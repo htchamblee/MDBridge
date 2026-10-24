@@ -1,0 +1,18 @@
+# A project written by hand: no format marker, MDATK's alias spellings, CRLF line endings.
+notes = 'literal string: C:\Users\no escapes'
+input.topology = "system.parm7"   # dotted keys, alias of "inputs"
+input.trajectory = "md.nc"        # alias of "trajectories", a single file
+output = { out_dir = "results", video = { fps = 30, crf = 18 } }
+
+[[groups]]
+name = "Aptamer"
+residues = "1-12"
+
+[[groups]]
+name = "Target"
+residues = "13-24"
+color = "#eb6834"
+
+[analyses.contacts]
+cutoff = 4.5
+enabled = true

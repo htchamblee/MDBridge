@@ -1,0 +1,15 @@
+{
+  "notes": "Every TOML date and time form; fractional seconds beyond microseconds are truncated as tomllib does.",
+  "times": {
+    "local_datetime": "2026-10-15T14:32:05",
+    "local_datetime_space": "2026-10-15T14:32:05",
+    "fraction": "2026-10-15T14:32:05.250000",
+    "fraction_nanoseconds": "2026-10-15T14:32:05.123456",
+    "utc": "2026-10-15T14:32:05+00:00",
+    "offset": "2026-10-15T14:32:05-05:30",
+    "offset_fraction": "1979-05-27T00:32:00.999999+07:00",
+    "local_date": "2026-10-15",
+    "local_time": "07:32:00",
+    "local_time_fraction": "00:32:00.500000"
+  }
+}

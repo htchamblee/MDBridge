@@ -1,0 +1,705 @@
+{
+  "notes": "Aim: compare three \"quoted\" runs of the Mg²⁺-bound aptamer (5 Å cutoff).\nTabs\there, a backslash \\ and a control character \u0001.\nUnicode: ψ-angle, 🧬, naïve café.",
+  "inputs": {
+    "topology": "system.parm7",
+    "trajectories": [
+      "md1.nc",
+      "md2.nc"
+    ],
+    "start": 0,
+    "step": 2,
+    "dt_ps": 2.5,
+    "time_unit": "ns",
+    "external": [
+      {
+        "path": "rmsd.dat",
+        "label": "cpptraj RMSD",
+        "x_column": "",
+        "x_unit": "ps",
+        "columns": [
+          "2",
+          "rmsd"
+        ],
+        "delimiter": ""
+      }
+    ]
+  },
+  "cleaning": {
+    "enabled": false,
+    "cpptraj_path": "cpptraj",
+    "conda_env": "",
+    "conda_exe": "",
+    "solvent_mask": ":WAT,HOH,TIP3,SOL,T3P,T4P,SPC",
+    "ion_mask": ":Na+,Cl-,K+,NA,CL,K,Na,Cl,SOD,CLA,POT",
+    "extra_strip_mask": "",
+    "autoimage": true,
+    "autoimage_anchor": "",
+    "fit": true,
+    "fit_mask": "@P,C4'",
+    "fit_reference": "first",
+    "remove_box_after_fit": true,
+    "reference_frame": 1,
+    "reference_file": "",
+    "start": 1,
+    "offset": 1,
+    "extra_commands": "",
+    "output_dir": ""
+  },
+  "analyses": {
+    "use_pbc": false,
+    "proximity_search_radius": 8.0,
+    "rmsd": {
+      "enabled": true,
+      "reference_frame": 0,
+      "superposition": true,
+      "mass_weighted": false,
+      "targets": [
+        {
+          "label": "Complex",
+          "selection": "(group:Aptamer or group:Target) and not name H*",
+          "fit_selection": ""
+        },
+        {
+          "label": "Backbone",
+          "selection": "(group:Aptamer or group:Target) and name C4'",
+          "fit_selection": ""
+        }
+      ]
+    },
+    "contacts": {
+      "enabled": true,
+      "group_a": "Aptamer",
+      "group_b": "Target",
+      "cutoff": 4.5,
+      "heavy_only": true
+    },
+    "hbonds": {
+      "enabled": true,
+      "group_a": "Aptamer",
+      "group_b": "Target",
+      "distance_cutoff": 3.5,
+      "use_angle": true,
+      "angle_cutoff": 135.0,
+      "donor_elements": "N,O",
+      "acceptor_elements": "N,O"
+    },
+    "mg": {
+      "enabled": true,
+      "mg_selection": "resname MG Mg MG2 or name MG Mg",
+      "ligand_selection": "group:Aptamer or group:Target",
+      "ligand_elements": "O",
+      "group_a": "Aptamer",
+      "group_b": "Target",
+      "inner_cutoff": 2.6,
+      "outer_cutoff": 4.5,
+      "bridge_shell": "inner",
+      "geometry": false,
+      "angle_tolerance": 25.0,
+      "occupancy_selection": "",
+      "occupancy_elements": "N,O"
+    },
+    "stacking": {
+      "enabled": true,
+      "selection": "group:Aptamer or group:Target",
+      "scope": "all",
+      "group_a": "Aptamer",
+      "group_b": "Target",
+      "distance_cutoff": 4.5,
+      "angle_cutoff": 30.0,
+      "offset_cutoff": 2.5,
+      "planarity_cutoff": 0.25
+    },
+    "energy": {
+      "enabled": true,
+      "group_a": "Aptamer",
+      "group_b": "Target",
+      "cutoff": 12.0,
+      "dielectric": 1.0,
+      "distance_dependent": false,
+      "use_parm7": true,
+      "exclude_bonded": 3
+    },
+    "basepairs": {
+      "engine": "builtin",
+      "stride": 10,
+      "cutoff": 3.5,
+      "wobble": true,
+      "noncanonical": false
+    }
+  },
+  "visual": {
+    "structure_groups": [],
+    "trace_atoms": "C4',CA",
+    "renderer": "auto",
+    "rep_rest": "trace",
+    "backbone_atom": "P",
+    "rep_hydrogens": false,
+    "show_ions": true,
+    "align_frames": true,
+    "rotation": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "zoom": 1.0,
+    "center_on": "",
+    "center_follow": false,
+    "color_mode": "groups",
+    "base_color": "#b5b3ad",
+    "chain_palette": "tab10",
+    "proximity_set": "Target",
+    "proximity_cutoff": 4.0,
+    "proximity_color": "#e34948",
+    "glow_mode": "fade",
+    "glow_color": "#ffb000",
+    "fade_frames": 15,
+    "glow_strength": 1.0,
+    "ion_color": "#008300",
+    "line_width": 2.2,
+    "point_size": 22.0,
+    "depth_cue": true,
+    "theme": "light",
+    "font_size": 11.0,
+    "show_time_label": true,
+    "label_every": 0,
+    "label_residues": "",
+    "title": "",
+    "representations": [
+      {
+        "style": "cartoon",
+        "groups": [
+          "Aptamer"
+        ],
+        "color": "nucleotide",
+        "size": 1.2,
+        "opacity": 0.85,
+        "sugars": true
+      },
+      {
+        "style": "vdw",
+        "groups": [
+          "Mg"
+        ],
+        "color": "element",
+        "size": 0.5,
+        "opacity": 1.0,
+        "sugars": false
+      }
+    ]
+  },
+  "density": {
+    "map_path": "",
+    "show": true,
+    "resolution": 5.0,
+    "level": 2.0,
+    "color": "#2a78d6",
+    "opacity": 0.45,
+    "front": false,
+    "fit_frame": "ref",
+    "search": "global",
+    "angular_step": 30.0,
+    "auto_fit": true,
+    "transform": [],
+    "anchor": [],
+    "fit_cc": 0.0,
+    "fit_info": ""
+  },
+  "layout": {
+    "preset": "large_plus_3",
+    "panels": [
+      {
+        "type": "structure",
+        "series": [],
+        "title": "Structure",
+        "options": {}
+      },
+      {
+        "type": "timeseries",
+        "series": [
+          "rmsd/Complex"
+        ],
+        "title": "RMSD",
+        "options": {}
+      },
+      {
+        "type": "timeseries",
+        "series": [
+          "hbonds/count"
+        ],
+        "title": "Inter-strand H-bonds",
+        "options": {}
+      },
+      {
+        "type": "contact_map",
+        "series": [
+          "contacts/map"
+        ],
+        "title": "",
+        "options": {
+          "mode": "instant",
+          "transpose": true
+        }
+      },
+      {
+        "type": "timeseries",
+        "series": [
+          "rmsd/Complex",
+          "external/cpptraj RMSD/rmsd"
+        ],
+        "title": "RMSD",
+        "options": {
+          "smooth": 5,
+          "progressive": true,
+          "target": 1e-07,
+          "vmax": 1e+16,
+          "vmin": 100000.0,
+          "low": -0.0,
+          "nan": NaN,
+          "inf": Infinity,
+          "custom": [
+            1,
+            2.5,
+            "x",
+            true
+          ]
+        }
+      },
+      {
+        "type": "contact_map",
+        "series": [
+          "contacts/map"
+        ],
+        "title": "Contacts",
+        "options": {
+          "transpose": true
+        }
+      }
+    ]
+  },
+  "output": {
+    "out_dir": "MDATK_output",
+    "cache_dir": "",
+    "write_params_log": true,
+    "timestamp_files": true,
+    "video": {
+      "enabled": true,
+      "filename": "MDATK_video.mp4",
+      "fps": 24,
+      "width": 1920,
+      "height": 1080,
+      "dpi": 120,
+      "codec": "libx264",
+      "crf": 20,
+      "frame_stride": 1,
+      "ffmpeg_path": "ffmpeg"
+    },
+    "charts": {
+      "enabled": true,
+      "series": [],
+      "include_heatmaps": false,
+      "formats": [
+        "png"
+      ],
+      "dpi": 300,
+      "width": 8.0,
+      "height": 4.5,
+      "style": "mdatk",
+      "color": "",
+      "line_width": 1.5,
+      "title": "",
+      "xlabel": "",
+      "ylabel": "",
+      "smoothing": 0,
+      "show_target": true,
+      "prefix": "MDATK_chart"
+    },
+    "pdb": {
+      "enabled": false,
+      "frames": "",
+      "times": "",
+      "selection": "",
+      "prefix": "MDATK_frame"
+    }
+  },
+  "workflow": {
+    "project_name": "apt1",
+    "stamp": "20261015-1432",
+    "use_stamp": true,
+    "out_dir": "",
+    "step_folders": true,
+    "scratch": [],
+    "nodes": [
+      {
+        "id": "n1",
+        "tool": "amber-build",
+        "step": 1,
+        "title": "",
+        "x": 60.0,
+        "y": 80.0,
+        "settings": {
+          "prep": true,
+          "strip_5p": true,
+          "gap_ter": true,
+          "strip_water": true,
+          "rna_ff": "ol3cp",
+          "cp_source": "lib",
+          "cp_frcmod": "frcmod.99bsc0-chiol3-CaseP",
+          "extra_frcmod": "",
+          "extra_libs": "",
+          "leap_before_params": "",
+          "leap_before_load": "",
+          "leap_after_load": "",
+          "water": "spce",
+          "box": "oct",
+          "buffer": 15.0,
+          "neutralize": true,
+          "cation": "Na+",
+          "mg_count": 4,
+          "mg_balance": true,
+          "salt_pairs": 0,
+          "mg_model": "126",
+          "mg_cl_pair": true,
+          "nbfix19": true,
+          "bph0": true,
+          "split_types": false,
+          "hmr": false,
+          "parmed_extra": "",
+          "lrna": true,
+          "lrna_ranges": "",
+          "lrna_terminals": true,
+          "lrna_fixes": true,
+          "lrna_types": "LD LH",
+          "two_pass": false,
+          "save_pdb": true,
+          "conda_env": "",
+          "env_setup": ""
+        },
+        "files": {
+          "structure": "model.pdb"
+        }
+      },
+      {
+        "id": "n2",
+        "tool": "amber-md",
+        "step": 2,
+        "title": "Production MD",
+        "x": 320.0,
+        "y": 80.0,
+        "files": {},
+        "settings": {
+          "amber_version": "26",
+          "engine": "pmemd.cuda",
+          "nproc": 8,
+          "mpi_launcher": "mpirun -np {n}",
+          "gpu": "",
+          "min_engine": "same",
+          "input_velocities": false,
+          "restraint_ref": "previous",
+          "separate_production": true,
+          "resume": true,
+          "dry_pdb": true,
+          "strip_mask": ":WAT,HOH,Na+,Cl-,K+,MG",
+          "dry_traj": false,
+          "dry_mask": ":WAT,HOH,Na+,Cl-,K+,MG",
+          "conda_env": "",
+          "env_setup": "",
+          "stages": [
+            {
+              "name": "min1",
+              "title": "Minimize water/ions, RNA restrained",
+              "kind": "min",
+              "maxcyc": 2000,
+              "ncyc": 500,
+              "ntmin": "1",
+              "nstlim": 50000,
+              "dt": 0.002,
+              "restart": "auto",
+              "ensemble": "nvt",
+              "thermostat": "langevin",
+              "gamma_ln": 1.0,
+              "tautp": 1.0,
+              "vrand": 1000,
+              "tempi": 0.0,
+              "temp0": 300.0,
+              "ramp": false,
+              "ramp_steps": 20000,
+              "barostat": "berendsen",
+              "pres0": 1.0,
+              "taup": 1.0,
+              "mcbarint": 100,
+              "ntp": "1",
+              "shake": true,
+              "cut": 10.0,
+              "posres": true,
+              "posres_mask": "",
+              "posres_wt": 10.0,
+              "distres": false,
+              "listout": false,
+              "ntpr": 100,
+              "ntwx": 500,
+              "ntwr": 5000,
+              "netcdf": true,
+              "iwrap": false,
+              "segments": 1,
+              "production": false,
+              "extra_cntrl": "",
+              "extra_namelists": ""
+            },
+            {
+              "name": "min2",
+              "title": "Unrestrained min, helix pairs held",
+              "kind": "min",
+              "maxcyc": 2000,
+              "ncyc": 500,
+              "ntmin": "1",
+              "nstlim": 50000,
+              "dt": 0.002,
+              "restart": "auto",
+              "ensemble": "nvt",
+              "thermostat": "langevin",
+              "gamma_ln": 1.0,
+              "tautp": 1.0,
+              "vrand": 1000,
+              "tempi": 0.0,
+              "temp0": 300.0,
+              "ramp": false,
+              "ramp_steps": 20000,
+              "barostat": "berendsen",
+              "pres0": 1.0,
+              "taup": 1.0,
+              "mcbarint": 100,
+              "ntp": "1",
+              "shake": true,
+              "cut": 10.0,
+              "posres": false,
+              "posres_mask": "",
+              "posres_wt": 10.0,
+              "distres": true,
+              "listout": false,
+              "ntpr": 100,
+              "ntwx": 500,
+              "ntwr": 5000,
+              "netcdf": true,
+              "iwrap": false,
+              "segments": 1,
+              "production": false,
+              "extra_cntrl": "",
+              "extra_namelists": ""
+            },
+            {
+              "name": "heat",
+              "title": "Heat 0 -> 300 K, helix pairs held",
+              "kind": "md",
+              "maxcyc": 2000,
+              "ncyc": 500,
+              "ntmin": "1",
+              "nstlim": 25000,
+              "dt": 0.002,
+              "restart": "auto",
+              "ensemble": "nvt",
+              "thermostat": "langevin",
+              "gamma_ln": 1.0,
+              "tautp": 1.0,
+              "vrand": 1000,
+              "tempi": 0.0,
+              "temp0": 300.0,
+              "ramp": false,
+              "ramp_steps": 20000,
+              "barostat": "berendsen",
+              "pres0": 1.0,
+              "taup": 1.0,
+              "mcbarint": 100,
+              "ntp": "1",
+              "shake": true,
+              "tol": 1e-06,
+              "cut": 10.0,
+              "posres": false,
+              "posres_mask": "",
+              "posres_wt": 10.0,
+              "distres": true,
+              "listout": false,
+              "ntpr": 500,
+              "ntwx": 500,
+              "ntwr": 5000,
+              "netcdf": true,
+              "iwrap": false,
+              "segments": 1,
+              "production": false,
+              "extra_cntrl": "",
+              "extra_namelists": ""
+            },
+            {
+              "name": "eq",
+              "title": "NPT eq, light restraint",
+              "kind": "md",
+              "maxcyc": 2000,
+              "ncyc": 500,
+              "ntmin": "1",
+              "nstlim": 50000,
+              "dt": 0.002,
+              "restart": "auto",
+              "ensemble": "npt",
+              "thermostat": "langevin",
+              "gamma_ln": 1.0,
+              "tautp": 1.0,
+              "vrand": 1000,
+              "tempi": 0.0,
+              "temp0": 300.0,
+              "ramp": false,
+              "ramp_steps": 20000,
+              "barostat": "berendsen",
+              "pres0": 1.0,
+              "taup": 1.0,
+              "mcbarint": 100,
+              "ntp": "1",
+              "shake": true,
+              "cut": 10.0,
+              "posres": false,
+              "posres_mask": "",
+              "posres_wt": 10.0,
+              "distres": true,
+              "listout": false,
+              "ntpr": 500,
+              "ntwx": 500,
+              "ntwr": 5000,
+              "netcdf": true,
+              "iwrap": false,
+              "segments": 1,
+              "production": false,
+              "extra_cntrl": "",
+              "extra_namelists": ""
+            },
+            {
+              "name": "eq-free",
+              "title": "Unrestrained NPT eq",
+              "kind": "md",
+              "maxcyc": 2000,
+              "ncyc": 500,
+              "ntmin": "1",
+              "nstlim": 50000,
+              "dt": 0.002,
+              "restart": "auto",
+              "ensemble": "npt",
+              "thermostat": "langevin",
+              "gamma_ln": 1.0,
+              "tautp": 1.0,
+              "vrand": 1000,
+              "tempi": 0.0,
+              "temp0": 300.0,
+              "ramp": false,
+              "ramp_steps": 20000,
+              "barostat": "berendsen",
+              "pres0": 1.0,
+              "taup": 1.0,
+              "mcbarint": 100,
+              "ntp": "1",
+              "shake": true,
+              "cut": 10.0,
+              "posres": false,
+              "posres_mask": "",
+              "posres_wt": 10.0,
+              "distres": true,
+              "listout": true,
+              "ntpr": 500,
+              "ntwx": 500,
+              "ntwr": 5000,
+              "netcdf": true,
+              "iwrap": false,
+              "segments": 1,
+              "production": false,
+              "extra_cntrl": "",
+              "extra_namelists": ""
+            },
+            {
+              "name": "prod",
+              "title": "Production, helix pairs held",
+              "kind": "md",
+              "maxcyc": 2000,
+              "ncyc": 500,
+              "ntmin": "1",
+              "nstlim": 150000000,
+              "dt": 0.002,
+              "restart": "auto",
+              "ensemble": "npt",
+              "thermostat": "langevin",
+              "gamma_ln": 1.0,
+              "tautp": 1.0,
+              "vrand": 1000,
+              "tempi": 0.0,
+              "temp0": 300.0,
+              "ramp": false,
+              "ramp_steps": 20000,
+              "barostat": "berendsen",
+              "pres0": 1.0,
+              "taup": 1.0,
+              "mcbarint": 100,
+              "ntp": "1",
+              "shake": true,
+              "cut": 10.0,
+              "posres": false,
+              "posres_mask": "",
+              "posres_wt": 10.0,
+              "distres": true,
+              "listout": false,
+              "ntpr": 500,
+              "ntwx": 5000,
+              "ntwr": 50000,
+              "netcdf": true,
+              "iwrap": false,
+              "segments": 1,
+              "production": true,
+              "extra_cntrl": "",
+              "extra_namelists": ""
+            }
+          ]
+        }
+      },
+      {
+        "id": "n3",
+        "tool": "note",
+        "step": 0,
+        "title": "Why: compare with the cryo-EM map",
+        "x": 60.0,
+        "y": 300.0,
+        "files": {},
+        "settings": {
+          "text": ""
+        }
+      }
+    ],
+    "edges": [
+      {
+        "source": "n1",
+        "output": "topology",
+        "target": "n2",
+        "input": "topology"
+      },
+      {
+        "source": "n1",
+        "output": "coordinates",
+        "target": "n2",
+        "input": "coordinates"
+      }
+    ]
+  },
+  "groups": [
+    {
+      "name": "Aptamer",
+      "residues": "A:1-40, 45",
+      "selection": "",
+      "color": "#2a78d6"
+    },
+    {
+      "name": "Target",
+      "residues": "B:1-30",
+      "selection": "",
+      "color": "#eb6834"
+    },
+    {
+      "name": "Mg",
+      "residues": "",
+      "selection": "resname MG",
+      "color": "#4caf50"
+    }
+  ]
+}
