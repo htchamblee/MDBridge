@@ -1,0 +1,658 @@
+# Molecular Dynamic Analysis Tool Kit (MDATK) project file.
+# Plain TOML: every entry is explained by the comment above it. Edit with care; MDATK rewrites this
+# file (keeping the step log) when the project is saved.
+
+# File type marker of an MDATK project; do not change.
+format = "mdatk-project"
+# Version of the project file layout.
+format_version = 1
+# Molecular Dynamic Analysis Tool Kit (MDATK) version that wrote this file.
+mdatk_version = "0.0.4.1"
+# When the settings were last saved.
+saved = 2026-10-15T14:32:00
+# File next to the project that holds its step log ("": the log is at the end of this file; it moves
+# out once the project file would grow too large).
+log_file = ""
+# Free-text notes about the project (what, why, decisions, to-dos)
+notes = """
+Aim: compare
+three \"quoted\" runs"""
+
+# Input files and frame range
+[inputs]
+# Topology: Amber .parm7 / .prmtop (preferred), PDB, PSF, GRO, ...
+topology = ""
+# Trajectory files in order; several files are concatenated
+trajectories = []
+# First analysed frame (0-based; of the cleaned trajectory when cleaning is on)
+start = 0
+# Stop before this frame (0-based, exclusive; not set: up to the last frame)
+# stop =   (not set)
+# Analyse every n-th frame
+step = 1
+# Time between stored frames in ps (not set: from the trajectory's time stamps)
+# dt_ps =   (not set)
+# Unit shown on time axes: "ps", "ns", "us" or "frame"
+time_unit = "ns"
+# External data files shown as extra traces (interpolated onto the analysed frames)
+external = []
+
+# Trajectory cleaning with cpptraj
+[cleaning]
+# Strip, image and fit the trajectory with cpptraj before the analyses
+enabled = false
+# cpptraj executable: a name on PATH or an absolute path
+cpptraj_path = "cpptraj"
+# Conda environment providing cpptraj (a name such as AmberTools26 or a prefix path); every call
+# runs through 'conda run -n <env>'
+conda_env = ""
+# conda / mamba / micromamba executable ("": found automatically)
+conda_exe = ""
+# cpptraj mask of the solvent residues to strip
+solvent_mask = ":WAT,HOH,TIP3,SOL,T3P,T4P,SPC"
+# cpptraj mask of the ions to strip (Mg2+ is kept by default)
+ion_mask = ":Na+,Cl-,K+,NA,CL,K,Na,Cl,SOD,CLA,POT"
+# Further atoms to strip (cpptraj mask; optional)
+extra_strip_mask = ""
+# Re-image molecules into the primary box (cpptraj autoimage)
+autoimage = true
+# Anchor mask for autoimage ("": cpptraj's default, the first molecule)
+autoimage_anchor = ""
+# RMS-fit every frame onto the reference
+fit = true
+# cpptraj mask of the atoms used for the RMS fit
+fit_mask = "@P,C4'"
+# Fit reference: the "first" frame, a given "frame" number or a "file"
+fit_reference = "first"
+# Remove the box after fitting (a rotated box cannot be stored in NetCDF)
+remove_box_after_fit = true
+# Reference frame for fit_reference = "frame" (1-based, cpptraj convention)
+reference_frame = 1
+# Reference structure for fit_reference = "file"
+reference_file = ""
+# First frame read by cpptraj (1-based trajin argument)
+start = 1
+# Last frame read by cpptraj (1-based, inclusive; not set: the last frame)
+# stop =   (not set)
+# Read every n-th frame (cpptraj trajin offset)
+offset = 1
+# Advanced: cpptraj commands inserted before trajout
+extra_commands = ""
+# Folder for the cleaned files ("": <cache_dir>/cleaned)
+output_dir = ""
+
+# Analyses
+[analyses]
+# Minimum-image distances (cleaned, imaged systems rarely need it)
+use_pbc = false
+# Largest proximity cutoff usable later without re-analysing (Å)
+proximity_search_radius = 8.0
+
+# RMSD time series
+[analyses.rmsd]
+# Compute RMSD time series
+enabled = true
+# Reference structure: index into the analysed frames (0: the first)
+reference_frame = 0
+# Superpose each frame onto the reference before computing the RMSD
+superposition = true
+# Mass-weighted superposition and RMSD
+mass_weighted = false
+
+# One RMSD series per target
+[[analyses.rmsd.targets]]
+# Name of the series (data key rmsd/<label>)
+label = "Complex"
+# Atoms whose RMSD is computed (selection; group:<name> allowed)
+selection = "(group:Aptamer or group:Target) and not name H*"
+# Atoms superposed before computing the RMSD ("": the same atoms)
+fit_selection = ""
+
+[[analyses.rmsd.targets]]
+# Name of the series (data key rmsd/<label>)
+label = "Backbone"
+# Atoms whose RMSD is computed (selection; group:<name> allowed)
+selection = "(group:Aptamer or group:Target) and name C4'"
+# Atoms superposed before computing the RMSD ("": the same atoms)
+fit_selection = ""
+
+# Heavy-atom contacts between two groups
+[analyses.contacts]
+# Count heavy-atom contacts between two groups
+enabled = true
+# First residue group
+group_a = "Aptamer"
+# Second residue group
+group_b = "Target"
+# Contact distance cutoff (Å)
+cutoff = 4.5
+# Ignore hydrogens
+heavy_only = true
+
+# Hydrogen bonds between two groups
+[analyses.hbonds]
+# Count hydrogen bonds between two groups
+enabled = true
+# First residue group
+group_a = "Aptamer"
+# Second residue group
+group_b = "Target"
+# Maximum donor-acceptor distance (Å)
+distance_cutoff = 3.5
+# Also require a minimum D-H...A angle (needs hydrogens in the topology)
+use_angle = true
+# Minimum D-H...A angle (degrees)
+angle_cutoff = 135.0
+# Elements that can donate (comma separated)
+donor_elements = "N,O"
+# Elements that can accept (comma separated)
+acceptor_elements = "N,O"
+
+# Mg2+ coordination, bridges and occupancy
+[analyses.mg]
+# Analyse Mg2+ coordination: inner/outer-sphere contacts, bridges and occupancy
+enabled = true
+# Selection of the Mg2+ ions
+mg_selection = "resname MG Mg MG2 or name MG Mg"
+# Atoms that can coordinate Mg2+
+ligand_selection = "group:Aptamer or group:Target"
+# Elements of the coordinating atoms (comma separated)
+ligand_elements = "O"
+# First group of a Mg2+ bridge
+group_a = "Aptamer"
+# Second group of a Mg2+ bridge
+group_b = "Target"
+# Inner-sphere Mg-O distance cutoff (Å)
+inner_cutoff = 2.6
+# Outer-sphere (water-mediated) Mg-O distance cutoff (Å)
+outer_cutoff = 4.5
+# Shell that counts as a bridge: "inner" or "outer"
+bridge_shell = "inner"
+# Require octahedral O-Mg-O angles (about 90 or 180 degrees)
+geometry = false
+# Allowed deviation from the octahedral angles (degrees)
+angle_tolerance = 25.0
+# Atoms whose Mg2+ occupancy is reported ("": the ligand selection)
+occupancy_selection = ""
+# Elements counted for the occupancy (comma separated)
+occupancy_elements = "N,O"
+
+# Base stacking
+[analyses.stacking]
+# Detect base stacking from ring geometry
+enabled = true
+# Residues whose rings are considered
+selection = "group:Aptamer or group:Target"
+# "all" ring pairs, or "inter" (group A against group B only)
+scope = "all"
+# First group for scope = "inter"
+group_a = "Aptamer"
+# Second group for scope = "inter"
+group_b = "Target"
+# Maximum ring-centroid distance (Å)
+distance_cutoff = 4.5
+# Maximum angle between the ring normals (degrees)
+angle_cutoff = 30.0
+# Maximum lateral displacement of the centroids (Å)
+offset_cutoff = 2.5
+# Maximum RMS deviation of ring atoms from their plane (Å)
+planarity_cutoff = 0.25
+
+# Non-bonded interaction energy
+[analyses.energy]
+# Non-bonded interaction energy between two groups
+enabled = true
+# First residue group
+group_a = "Aptamer"
+# Second residue group
+group_b = "Target"
+# Pair distance cutoff (Å)
+cutoff = 12.0
+# Relative dielectric constant
+dielectric = 1.0
+# Distance-dependent dielectric (epsilon = dielectric x r)
+distance_dependent = false
+# Use the exact Lennard-Jones parameters of a parm7 topology
+use_parm7 = true
+# Reference energy drawn on charts and panels (kcal/mol; not set: none)
+# target_value =   (not set)
+# Exclude pairs within n bonds (0: exclude none)
+exclude_bonded = 3
+
+# Base pairs (secondary structure)
+[analyses.basepairs]
+# Base pairs of the residues in the structure view, for the secondary-structure panel and PDB
+# annotation; computed whenever a panel needs them. Engine: "builtin" (canonical pairs from H-bond
+# geometry) or "barnaba" (optional)
+engine = "builtin"
+# Re-detect the pairs every n-th analysed frame (pairs hold in between)
+stride = 10
+# Builtin: maximum donor-acceptor distance of a base-pair H-bond (Å)
+cutoff = 3.5
+# Builtin: also count G-U wobble pairs
+wobble = true
+# Barnaba: also keep non-canonical (non Watson-Crick) pairs
+noncanonical = false
+
+# Structure view: colouring, glow, 3D representations, labels
+[visual]
+# Residue groups shown in the structure view (empty: all)
+structure_groups = []
+# Atom used for each residue's 2D trace point, first one found wins (P, C4', C1', CA ...)
+trace_atoms = "C4',CA"
+# 3D representations (empty: the 2D backbone trace)
+representations = []
+# 3D renderer: "auto" / "software" (built-in) or "vtk" (optional)
+renderer = "auto"
+# Residues no representation draws: "trace" (3D trace) or "hide"
+rep_rest = "trace"
+# Spline control atom of ribbons, cartoons and traces: "P" or "C4'"
+backbone_atom = "P"
+# Include hydrogens in all-atom representations
+rep_hydrogens = false
+# Show Mg2+ ions in the structure view
+show_ions = true
+# Superpose each frame's trace onto the reference frame
+align_frames = true
+# View rotation in degrees about X, Y and Z (R = Rz Ry Rx)
+rotation = [0.0, 0.0, 0.0]
+# Magnification of the structure view (1: the whole model fits; 2: twice as large)
+zoom = 1.0
+# View centre: "" (centre of the model), "origin" (0, 0, 0 of the coordinates) or a residue, e.g.
+# "12" or "B:12"
+center_on = ""
+# Keep the centre residue in the middle in every frame (not only the first)
+center_follow = false
+# Residue colouring: "chain", "groups" or "proximity"
+color_mode = "groups"
+# Colour of residues no group or proximity colour applies to
+base_color = "#b5b3ad"
+# Matplotlib palette for chain colouring
+chain_palette = "tab10"
+# Group (or sel:<selection>) whose proximity colours and glows residues
+proximity_set = "Target"
+# Distance that counts as proximity (Å)
+proximity_cutoff = 4.0
+# Colour of residues in proximity
+proximity_color = "#e34948"
+# Glow of residues near the proximity set: "none", "ever" (whole movie), "fade" or "current"
+glow_mode = "fade"
+# Glow colour
+glow_color = "#ffb000"
+# Frames over which the glow fades (glow_mode = "fade")
+fade_frames = 15
+# Glow intensity factor
+glow_strength = 1.0
+# Colour of Mg2+ ions
+ion_color = "#008300"
+# Line width of the 2D trace (points)
+line_width = 2.2
+# Marker size of the 2D trace points
+point_size = 22.0
+# Fade distant parts toward the background colour
+depth_cue = true
+# "light" or "dark"
+theme = "light"
+# Base font size (points)
+font_size = 11.0
+# Show the time label in the structure view
+show_time_label = true
+# Residue-number tags on every n-th residue (0: off)
+label_every = 0
+# Explicit residue numbers / ranges to tag, e.g. "1, 12, 24"
+label_residues = ""
+# Figure title ("": none)
+title = ""
+
+# Density map shadow and fit
+[density]
+# Density map file (.mrc / .map / .ccp4)
+map_path = ""
+# Draw the map shadow
+show = true
+# Resolution in Å; width of the simulated map used for fitting
+resolution = 5.0
+# Contour level in map standard deviations above the mean
+level = 2.0
+# Shadow colour
+color = "#2a78d6"
+# Shadow opacity, 0 (invisible) to 1
+opacity = 0.45
+# Draw the shadow in front of 3D representations (else behind them)
+front = false
+# "ref" (the first analysed frame) or a trajectory frame number to fit on
+fit_frame = "ref"
+# Automatic fit: "global" search or "manual" (refine the stored placement)
+search = "global"
+# Degrees between sampled orientations of the global search
+angular_step = 30.0
+# Fit before rendering when no placement is stored
+auto_fit = true
+# Placement: 3x3 rotation (row-major) + translation, model -> map
+transform = []
+# Backbone points of the reference frame the placement was made on (the map follows the molecule
+# when the reference changes: other start frame, cleaned vs raw files)
+anchor = []
+# Correlation of the stored placement (0: not fitted)
+fit_cc = 0.0
+# Summary of the last fit
+fit_info = ""
+
+# Figure layout: grid and panels
+[layout]
+# Grid layout (see 'mdatk list')
+preset = "large_plus_3"
+
+# Panels in slot order
+[[layout.panels]]
+# Panel type: structure, timeseries, dual_axis, heatmap or contact_map
+type = "structure"
+# Data keys shown, e.g. rmsd/Complex or contacts/per_residue_a
+series = []
+# Panel title ("": automatic)
+title = "Structure"
+# Panel-specific options, e.g. axis limits or the contact-map mode
+options = {}
+
+[[layout.panels]]
+# Panel type: structure, timeseries, dual_axis, heatmap or contact_map
+type = "timeseries"
+# Data keys shown, e.g. rmsd/Complex or contacts/per_residue_a
+series = ["rmsd/Complex"]
+# Panel title ("": automatic)
+title = "RMSD"
+
+# Panel-specific options, e.g. axis limits or the contact-map mode
+[layout.panels.options]
+# Time series: running mean over this many frames (0 or 1 = raw data).
+smooth = 5
+# Time series: draw the curves up to the current movie frame only.
+progressive = true
+# Panel option 'custom' (see the panel type's description).
+custom = 1
+
+[[layout.panels]]
+# Panel type: structure, timeseries, dual_axis, heatmap or contact_map
+type = "timeseries"
+# Data keys shown, e.g. rmsd/Complex or contacts/per_residue_a
+series = ["hbonds/count"]
+# Panel title ("": automatic)
+title = "Inter-strand H-bonds"
+# Panel-specific options, e.g. axis limits or the contact-map mode
+options = {}
+
+[[layout.panels]]
+# Panel type: structure, timeseries, dual_axis, heatmap or contact_map
+type = "contact_map"
+# Data keys shown, e.g. rmsd/Complex or contacts/per_residue_a
+series = ["contacts/map"]
+# Panel title ("": automatic)
+title = ""
+
+# Panel-specific options, e.g. axis limits or the contact-map mode
+[layout.panels.options]
+# Contact map: 'instant' (evolves with the movie), 'frame' (one fixed frame) or 'frequency'
+# (fraction of frames in contact).
+mode = "instant"
+# Contact map: true puts the first group (e.g. the aptamer) along x and the second along y.
+transpose = true
+
+# Outputs: folders, video, charts, PDB frames
+[output]
+# Output folder (a relative path is relative to the project file)
+out_dir = "MDATK_output"
+# Cache of analyses and cleaned trajectories ("": <out_dir>/MDATK_cache)
+cache_dir = ""
+# Write MDATK_params_log.toml (settings, versions, cache keys, citations) next to the outputs
+write_params_log = true
+# Time-stamp output file names, e.g. MDATK_video_2026-10-15_143205.mp4 (cache and log keep fixed
+# names)
+timestamp_files = true
+
+# MP4 video
+[output.video]
+# Write the MP4 video
+enabled = true
+# Video file name (time-stamped when output.timestamp_files is on)
+filename = "MDATK_video.mp4"
+# Frames per second
+fps = 24
+# Width in pixels
+width = 1920
+# Height in pixels
+height = 1080
+# Figure resolution; sets text and line sizes relative to the frame
+dpi = 120
+# FFmpeg video codec
+codec = "libx264"
+# Constant rate factor: lower means better quality and larger files (libx264: 18-28)
+crf = 20
+# Use every n-th analysed frame
+frame_stride = 1
+# FFmpeg executable
+ffmpeg_path = "ffmpeg"
+
+# Time charts
+[output.charts]
+# Write high-resolution time charts
+enabled = true
+# Data keys to chart (empty: every scalar series)
+series = []
+# Also chart per-residue heatmaps
+include_heatmaps = false
+# File formats, e.g. png, pdf, svg
+formats = ["png"]
+# Raster resolution
+dpi = 300
+# Width in inches
+width = 8.0
+# Height in inches
+height = 4.5
+# "mdatk" (built-in look) or any matplotlib style name
+style = "mdatk"
+# Line colour ("": the first palette colour)
+color = ""
+# Line width (points)
+line_width = 1.5
+# Chart title ("": the series label; "{label}" placeholders allowed)
+title = ""
+# x-axis label ("": automatic)
+xlabel = ""
+# y-axis label ("": automatic)
+ylabel = ""
+# Running-average window in frames (0: off)
+smoothing = 0
+# Draw the energy target value when one is set
+show_target = true
+# File name prefix
+prefix = "MDATK_chart"
+
+# PDB export of selected frames
+[output.pdb]
+# Export selected frames as PDB files
+enabled = false
+# Frames to export, e.g. "0, 10, 20-50:10, last"
+frames = ""
+# Times to export, e.g. "1.5ns, 2000ps" (no unit: inputs.time_unit)
+times = ""
+# Group names (comma separated) or a selection ("": everything)
+selection = ""
+# File name prefix
+prefix = "MDATK_frame"
+
+# Project Planner and script wizard
+[workflow]
+# Project name used in every generated file name
+project_name = "project"
+# Time stamp in generated file names (fixed once files are written)
+stamp = ""
+# Put the time stamp into file names
+use_stamp = true
+# Folder of the generated files ("": <output.out_dir>/<project_name>_workflow)
+out_dir = ""
+# One sub-folder per step, e.g. 03_amber-build/
+step_folders = true
+# Planner connections
+edges = []
+# Stand-alone script wizard settings, one entry per step type
+scratch = []
+
+# Planner steps
+[[workflow.nodes]]
+# Unique id of the step
+id = "n1"
+# Step type: the script generator (see 'mdatk workflow tools')
+tool = "amber-build"
+# Step number; orders the steps and their file names
+step = 1
+# Box title ("": the step type's label)
+title = ""
+# Position of the box on the planner canvas
+x = 40.0
+# Position of the box on the planner canvas
+y = 40.0
+
+# The step's options (each one is explained by its comment)
+[workflow.nodes.settings]
+# Prepare the PDB for tleap: Write a cleaned copy of the input first: hydrogens removed (tleap
+# rebuilds them), TER records between chains, first MODEL only. Rosetta / FARFAR2 models need this.
+prep = true
+# Remove 5′-terminal phosphates: Drop P/OP1/OP2 of each chain's first residue: Amber's 5′-terminal
+# residues (G5, A5 ...) have no phosphate.
+strip_5p = true
+# Break chains at numbering gaps: Insert a TER record where residue numbers jump, so tleap does not
+# bond across a gap.
+gap_ter = true
+# Remove waters from the input: Crystal waters are dropped; the solvent box is built by tleap.
+strip_water = true
+# RNA force field: leaprc file for RNA. 'OL3 + CP' adds the phosphate oxygen vdW correction of
+# Steinbrecher et al. (JCTC 2012) from the frcmod below; NBfix19 / 0BPh assume it. Choices: ol3cp,
+# ol3, ljbb, roc, yil, shaw.
+rna_ff = "ol3cp"
+# CP parameters: Retyped library: the build script writes RNA_CP.lib (AmberTools' RNA.lib with the
+# phosphate oxygens retyped OP / OR) and frcmod.cp (the CP Lennard-Jones values plus the parm10.dat
+# bonded terms for the new types), so only phosphate oxygens change and the NBfix19 / 0BPh masks
+# address them as @%OP / @%OR. Own frcmod: load a CP parameter file you provide (masks stay @%O2 /
+# @%OS). Choices: lib, frcmod.
+cp_source = "lib"
+# CP frcmod file: Parameter file with the CP phosphate correction: a name in leap's search path /
+# the step folder, or an absolute path.
+cp_frcmod = "frcmod.99bsc0-chiol3-CaseP"
+# Extra parameter files: One frcmod file per line, loaded with loadamberparams after the force field
+# (e.g. frcmod.LRNA).
+extra_frcmod = ""
+# Extra residue libraries: One library (.lib / .off) per line, loaded with loadOff (e.g. LRNA.lib).
+extra_libs = ""
+# Leap commands before parameter files: Inserted right after the leaprc files, e.g. addAtomTypes for
+# new atom types.
+leap_before_params = ""
+# Leap commands before loadpdb: Inserted before the PDB is read, e.g. addPdbResMap entries.
+leap_before_load = ""
+# Leap commands after loadpdb: Inserted after the PDB is read and before solvation, e.g. bond
+# commands.
+leap_after_load = ""
+# Water model: Water model; its leaprc also loads the matching monovalent / divalent ion parameters.
+# Choices: spce, tip3p, opc, opc3, tip4pew, fb3, tip4pd, tip4p2005, none.
+water = "spce"
+# Box shape: Truncated octahedron (solvateoct) needs ~30 % less water than a rectangular box.
+# Choices: oct, rect, cubic.
+box = "oct"
+# Buffer: Minimum distance between the RNA and the box edge.
+buffer = 15.0
+# Neutralise with monovalent cations: addIonsRand <cation> 0 neutralises the RNA's phosphate charge.
+neutralize = true
+# Cation: Monovalent cation for neutralisation and salt. Choices: Na+, K+.
+cation = "Na+"
+# Mg²⁺ ions: Number of Mg²⁺ ions (residue MG) added at random positions.
+mg_count = 4
+# Balance Mg²⁺ with Cl⁻: Add two Cl⁻ per Mg²⁺ so the box stays neutral.
+mg_balance = true
+# Extra salt pairs: Additional cation/Cl⁻ pairs (≈ concentration [M] × number of waters / 55.5).
+salt_pairs = 0
+# Mg²⁺ Lennard-Jones model: 12-6: the Li & Merz parameters loaded with the water model. 12-6-4 (Li &
+# Merz): loads frcmod.ions234lm_1264_<water> and adds the C4 terms with ParmEd add12_6_4 (Amber
+# only; GROMACS cannot represent C4). microMg / nanoMg (Grotz, Cruz-León & Schwierz): optimised 12-6
+# Mg²⁺ with explicit Mg²⁺-RNA pair terms tuned to phosphate binding - written as a frcmod plus
+# ParmEd changeLJPair lines, and carried into GROMACS as [ nonbond_params ]. microMg keeps the
+# experimental (µs) water exchange; nanoMg exchanges water faster for better sampling of ion
+# binding. Choices: 126, 1264, micro, nano.
+mg_model = "126"
+# Mg²⁺-Cl⁻ pair term: Apply the authors' Mg²⁺-Cl⁻ pair term (optimised with their Cl⁻ model; Amber's
+# Cl⁻ parameters are kept for everything else). Without it Mg²⁺-Cl⁻ follows the combination rule
+# with the optimised Mg²⁺, which is not a published combination and gives much too strong Mg²⁺-Cl⁻
+# contacts.
+mg_cl_pair = true
+# NBfix19 (gHBfix19 as LJ pairs): Off-diagonal Lennard-Jones terms for -NH...N- and
+# -OH...O(phosphate) pairs (Kuehrova & Mlynsky JCTC 2019; Mlynsky et al. 2026). The masks assume OL3
+# + CP.
+nbfix19 = true
+# 0BPh pairs: Extra H5/H4 – O5' Lennard-Jones pairs of the 0BPh modification (Mlýnský et al. 2023):
+# masks @%OR with the CP library, @%OS otherwise.
+bph0 = true
+# Separate HO and O2 Lennard-Jones types first: addLJType @%HO and @%O2 before the pair changes.
+# tleap merges atom types with equal LJ parameters: HO shares its LJ type with water HW and O2 with
+# base carbonyl O, so without this the HO-O2 / HO-OS pairs also change water-H and carbonyl-O
+# interactions.
+split_types = false
+# Hydrogen mass repartitioning: ParmEd HMassRepartition (hydrogens 3.024 Da) so MD can use a 4 fs
+# time step with SHAKE.
+hmr = false
+# Extra ParmEd commands: Added before outparm, e.g. the L-RNA changeLJPair lines.
+parmed_extra = ""
+# Name L-nucleotides for leap: Before tleap, residues whose sugar chirality (C1'/C3'/C4') is L get
+# L-RNA names (Dudek & Trylska: LA LC LG LU, terminals LA5/LA3 ...), the other RNA residues Amber
+# names. Runs the PDB tools that MDATK copies into the step folder (replaces to_lrna.sh); a
+# structure without L residues is only checked.
+lrna = true
+# Force L for: Residues that are L whatever their geometry says (overrides the detection), e.g.
+# 'C:45-73', 'A:45-73, A:80-90' or 'C' for a whole chain.
+lrna_ranges = ""
+# 5'/3' terminal names: LA5/LA3 ... at chain ends as in nucleic12_LRNA.lib. Off: plain LA/LC/LG/LU
+# at the ends (as to_lrna.sh wrote), for libraries that map terminals with addPdbResMap.
+lrna_terminals = true
+# NBfix19 / 0BPh / CP for L-RNA: Declare the L-RNA library's atom types for tleap (addAtomTypes) and
+# add the NBfix19 / 0BPh pairs for its bridging-oxygen type (HO, H5, H4 against LD, as for OS / OR
+# in D-RNA). ParmEd skips them when the structure has no L residues. The CP correction of L residues
+# comes with the L-RNA parameter file (e.g. frcmod.LRNA).
+lrna_fixes = true
+# L-RNA atom types: Atom types of the L-RNA library declared as sp3 oxygens before it is loaded; the
+# first one is the bridging phosphate oxygen used in the NBfix19 / 0BPh pairs.
+lrna_types = "LD LH"
+# Two-pass build: L-RNA naming -> dry tleap -> ParmEd -> ambpdb -> solvated tleap -> ParmEd. The
+# ambpdb PDB keeps the dry topology's residue names (Amber terminal names are re-applied).
+two_pass = false
+# Also save a PDB of the built system: tleap savepdb after solvation - handy for a visual check.
+save_pdb = true
+# Conda environment: Activate this conda environment at the top of the script (eval "$(conda
+# shell.bash hook)"; conda activate <name>). Leave empty when the programs are already on PATH.
+conda_env = ""
+# Setup commands: Shell lines run before any program, e.g. 'module load ...' on a cluster or 'source
+# /opt/amber26/amber.sh' on a workstation.
+env_setup = ""
+
+# Hand-picked input files for ports that no connection feeds ({port = path})
+[workflow.nodes.files]
+# File chosen by hand for the step's 'structure' input (paths relative to this file; ';' separates
+# several).
+structure = "model.pdb"
+
+# Residue groups
+[[groups]]
+# Group name, used in selections (group:<name>), panels and legends
+name = "Aptamer"
+# Residue numbers or ranges, e.g. "1-40, 45"; may be chain-qualified ("A:1-40")
+residues = "1-12"
+# MDAnalysis selection that replaces 'residues' when given
+selection = ""
+# Colour of the group in the structure view, legends and charts (#rrggbb)
+color = "#2a78d6"
+
+[[groups]]
+# Group name, used in selections (group:<name>), panels and legends
+name = "Target"
+# Residue numbers or ranges, e.g. "1-40, 45"; may be chain-qualified ("A:1-40")
+residues = "13-24"
+# MDAnalysis selection that replaces 'residues' when given
+selection = ""
+# Colour of the group in the structure view, legends and charts (#rrggbb)
+color = "#eb6834"

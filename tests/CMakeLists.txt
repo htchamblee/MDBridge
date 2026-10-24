@@ -15,7 +15,8 @@ add_executable(mdbridge_core_tests
     core/test_python.cpp
     core/test_step_log.cpp
     core/test_step_types.cpp
-    core/test_text.cpp)
+    core/test_text.cpp
+    core/test_toml_writer.cpp)
 target_link_libraries(mdbridge_core_tests PRIVATE mdbridge::core GTest::gtest_main)
 target_compile_definitions(mdbridge_core_tests PRIVATE MDBRIDGE_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data")
 mdbridge_target_warnings(mdbridge_core_tests)

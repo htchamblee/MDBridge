@@ -11,6 +11,7 @@
 
 #include "mdbridge/core/json.hpp"
 #include "mdbridge/core/paths.hpp"
+#include "project_internal.hpp"
 
 namespace mdbridge::core {
 
@@ -39,25 +40,6 @@ std::string readText(const fs::path& path) {
         throw ProjectError(display(path) + ": cannot read the file");
     }
     return std::move(text).str();
-}
-
-bool endsWithIgnoringCase(std::string_view text, std::string_view suffix) {
-    if (text.size() < suffix.size()) {
-        return false;
-    }
-    return std::equal(suffix.begin(), suffix.end(), text.end() - static_cast<std::ptrdiff_t>(suffix.size()),
-                      [](char a, char b) {
-                          auto lower = [](char c) { return c >= 'A' && c <= 'Z' ? static_cast<char>(c - 'A' + 'a') : c; };
-                          return lower(a) == lower(b);
-                      });
-}
-
-// projectfile._reject_json
-void rejectJson(const fs::path& path) {
-    if (endsWithIgnoringCase(display(path), ".json")) {
-        throw ProjectError(display(path) + ": JSON presets are no longer supported; MDBridge uses TOML "
-                                           "project files (" + std::string(kProjectSuffix) + ")");
-    }
 }
 
 DateTime convertDate(const toml::date& d, DateTime::Kind kind) {
@@ -165,7 +147,7 @@ Value parseToml(std::string_view text, std::string_view source) {
 }
 
 ProjectFile readProject(const fs::path& path) {
-    rejectJson(path);
+    detail::rejectJson(path);
     Value data = parseToml(readText(path), display(path));
 
     ProjectFile file;
