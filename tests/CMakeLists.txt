@@ -60,6 +60,7 @@ gtest_discover_tests(mdbridge_chem_tests DISCOVERY_MODE PRE_TEST)
 # MDATK computes it (data/analysis, tests/parity/make_analysis_framework_cases.py), and the analyses
 # against MDATK's runs (tests/parity/make_analysis_cases.py)
 add_executable(mdbridge_analysis_tests
+    analysis/test_contacts_hbonds.cpp
     analysis/test_energy.cpp
     analysis/test_framework.cpp
     analysis/test_rmsd_analysis.cpp
