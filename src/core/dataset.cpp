@@ -287,23 +287,23 @@ void AnalysisResult::addPairmap(const std::string& out, const std::string& prefi
     assign(tableEntry(outputs(), "pairmaps"), out, std::move(d));
 }
 
-const NumArray* AnalysisResult::array(std::string_view name) const {
+const NumArray* AnalysisResult::array(std::string_view arrayName) const {
     for (const auto& [k, v] : arrays) {
-        if (k == name) {
+        if (k == arrayName) {
             return &v;
         }
     }
     return nullptr;
 }
 
-void AnalysisResult::setArray(const std::string& name, NumArray values) {
+void AnalysisResult::setArray(const std::string& arrayName, NumArray values) {
     for (auto& [k, v] : arrays) {
-        if (k == name) {
+        if (k == arrayName) {
             v = std::move(values);
             return;
         }
     }
-    arrays.emplace_back(name, std::move(values));
+    arrays.emplace_back(arrayName, std::move(values));
 }
 
 // ---------------------------------------------------------------- Series, PairMap
