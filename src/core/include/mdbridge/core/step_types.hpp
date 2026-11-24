@@ -129,7 +129,8 @@ const StepType& stepType(std::string_view name);
 
 // Adds a step type (registry.register). Throws std::invalid_argument for an empty or taken name
 // ("bad or duplicate tool name 'x'") and for option keys used twice ("x: duplicate option keys
-// ['a', 'b']").
+// ['a', 'b']"). The built-in step types are set up on first use (thread-safe); registering more
+// invalidates references to step types obtained before, so do it at start-up.
 void registerStepType(StepType type);
 
 // CATEGORIES of registry.py, and the step types grouped by them (tools_by_category; step types of
