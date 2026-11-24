@@ -12,6 +12,10 @@ Per file: atoms (names, types, resindex and every optional per-atom attribute MD
 the format, null when absent), residues (resids, resnums, resnames, icodes, segindex), segments
 (segids), bonds (sorted [i, j] with i < j, null when the format has none) and, when the file has
 coordinates, the first frame (positions as float32 values, dimensions or null).
+
+MDAnalysis runs with MDBridge's independent residue, element and mass tables patched in
+(independent_tables.py; tests/data/README.md): every dump applies the patch first, also when this
+module is imported by another generator.
 """
 
 import json
@@ -24,6 +28,9 @@ import numpy as np
 
 warnings.filterwarnings("ignore")
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import independent_tables  # noqa: E402
+
 
 def attribute(group, name, convert):
     try:
@@ -34,6 +41,7 @@ def attribute(group, name, convert):
 
 
 def dump(path):
+    independent_tables.apply()
     u = mda.Universe(path)
     atoms, residues, segments = u.atoms, u.residues, u.segments
     out = {

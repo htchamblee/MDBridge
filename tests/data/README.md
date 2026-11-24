@@ -1,5 +1,35 @@
 # Test data
 
+## MDAnalysis with MDBridge's independent tables
+
+Wherever expected data comes from MDAnalysis 2.11.0, it is MDAnalysis 2.11.0's behaviour with
+MDBridge's independent residue-name, atom-name, element and mass tables patched in, not
+MDAnalysis' own tables. The owner decided that MDBridge carries no data tables extracted from
+MDAnalysis: its tables are rebuilt from independent, attributable public sources (the wwPDB
+Chemical Component Dictionary, the PDB format v3.3 and IUPAC-IUB residue names, the CIAAW 2024
+abridged standard atomic weights and NUBASE2020 most stable isotopes, the Amber 2024 and GROMACS
+manuals, OpenMM 8.1.2's force-field files; see `data/sources/ATTRIBUTION.md`).
+`tools/gen_data_tables.py` writes them to `src/core/data_tables_independent.inc` from the extracts
+committed under `data/sources/`. MDBridge's results therefore differ from stock MDAnalysis
+wherever these tables matter, and the expected data describes that behaviour: MDAnalysis'
+algorithms, unchanged, reading MDBridge's tables.
+
+`tests/parity/independent_tables.py` loads the tables with `tools/gen_data_tables.py`'s own
+functions (from `data/sources/`, not from the `.inc`) and replaces MDAnalysis' data in place
+before a generator uses it: the residue sets of the `protein`, `nucleic` and `water` macros and
+the atom-name sets of `backbone`, `nucleicbackbone`, `nucleicbase` and `nucleicsugar`; the
+guessers' element symbols (`Z2SYMB` / `SYMB2Z`), masses (every element, under its symbol and its
+upper-case spelling), special atom-name -> element table (the force-field name -> element table,
+by name, as MDAnalysis looks names up: it has no residue scope; virtual sites map to no element,
+mass 0) and guessable one- and two-letter elements; PDBWriter's ion names and Hg / Cl residue
+lists, and its include / exclude pairs (empty: no independent counterpart). Only data is
+replaced, no MDAnalysis function. The generators that depend on these tables apply the patch:
+`dump_topologies.py` (every dump, also when imported), `make_atom_selection_cases.py`,
+`make_selections_cases.py`, `make_parm7_cases.py`, `make_loader_cases.py` and
+`make_export_cases.py`; the others do not touch them. `tools/gen_selection_tables.py` and
+`tools/gen_pdb_tables.py` no longer write any of these tables, only the property names of the
+selection language and Python's Unicode data.
+
 `projects/` holds project files; `expected/` holds what MDATK v0.0.4.1 (the reference
 implementation) reads from each of them. `tests/core/test_project_file.cpp` checks that MDBridge
 reads every file in `projects/` the same way, byte for byte in the JSON form of the result.
@@ -117,8 +147,8 @@ python3 -I -B tests/parity/make_step_type_cases.py /tmp/mdatk tests/data/step-ty
 `demo_dry.parm7` (MDATK's dry demo system) from
 `python3 -I -B tests/parity/make_selection_fixtures.py <MDATK checkout> tests/data/topology`, and their
 `*.topology.json` dumps from
-`python3 -I tests/parity/dump_topologies.py tests/data/topology tests/data/topology/*.pdb tests/data/topology/demo_dry.parm7`
-(both with MDAnalysis installed). `golden_model.json` holds MDATK's chain numbering and Reporter events
+`python3 -I -B tests/parity/dump_topologies.py tests/data/topology tests/data/topology/*.pdb tests/data/topology/demo_dry.parm7`
+(both with MDAnalysis installed; the dumps use MDBridge's independent tables, see above). `golden_model.json` holds MDATK's chain numbering and Reporter events
 for them.
 
 `selections/` holds what MDAnalysis' `select_atoms` and MDATK's selection layer compute, for
@@ -138,7 +168,8 @@ MDATK checkout at `v0.0.4.1` (nothing is written into it):
 ```bash
 python3 -I -B tests/parity/make_atom_selection_cases.py /tmp/mdatk tests/data/selections
 python3 -I -B tests/parity/make_selections_cases.py /tmp/mdatk tests/data/selections
-python3 -I tools/gen_selection_tables.py     # src/core/selection_tables.inc (macro name lists)
+python3 -I tools/gen_selection_tables.py     # src/core/selection_tables.inc (prop / same property names)
+python3 -I tools/gen_data_tables.py          # src/core/data_tables_independent.inc (macro names, elements, masses)
 ```
 
 `io/parm7/` holds what MDATK's parm7 module (`mdatk/io/parm7.py`) and MDAnalysis 2.11.0's
@@ -254,12 +285,13 @@ use the loader's files, so run the loader generator first):
 python3 -I -B tests/parity/make_pdb_cases.py /tmp/mdatk tests/data/io/pdb         # numpy and pytest
 /opt/mdbridge-venv/bin/python -I -B tests/parity/make_loader_cases.py /tmp/mdatk tests/data/io/loader
 /opt/mdbridge-venv/bin/python -I -B tests/parity/make_export_cases.py /tmp/mdatk tests/data/io/pdb/export
-/opt/mdbridge-venv/bin/python -I tools/gen_pdb_tables.py   # src/io/pdb_tables.inc
+python3 -I tools/gen_pdb_tables.py                       # src/io/pdb_tables.inc (Python 3.13)
 ```
 
 `src/io/pdb_tables.inc` holds data the PDB code needs: Python's `str.upper()` mapping and the
-characters `str.isalpha()` excludes from `\w` (Unicode 15.1), MDAnalysis' element, type and mass
-tables of its guessers and PDBParser, and the name lists of PDBWriter's atom-name alignment.
+characters `str.isalpha()` excludes from `\w` (Unicode 15.1). The element, mass and atom-name
+tables of the guessers, PDBParser and the PDB writer are MDBridge's independent tables
+(`src/core/data_tables_independent.inc`, see the first section).
 
 `io/maps/` holds density maps and what MDATK's map code (`mdatk/io/mrc.py`, the map functions of
 `mdatk/density.py`, `mdatk density info`) gives for them, for `src/io/mrc.cpp`
@@ -352,6 +384,11 @@ runs it on every push with Python 3.13, MDATK `v0.0.4.1` and the environment pin
 ```bash
 python3 tests/parity/regenerate_all.py --mdatk /tmp/mdatk --out /tmp/fresh --python /tmp/regen/bin/python
 ```
+
+`tools/gen_data_tables.py` runs first, on the committed `data/sources/` extracts copied into the
+fresh tree (they are inputs, cut from downloads by `tools/extract_ccd.py` and
+`tools/extract_openmm.py`, and not regenerated), so `src/core/data_tables_independent.inc` is
+checked like the other tables, and the patched generators read the same tables.
 
 It handles the special cases noted above (`--fixed-clock`, `manifest.txt` and the two extra vector
 files deleted, the loader before the export, MDATK's lock files and MDAnalysis' hidden

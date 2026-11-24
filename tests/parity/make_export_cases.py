@@ -42,6 +42,11 @@ from mdatk import selections  # noqa: E402
 from mdatk.io import loader, pdb_export  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+import independent_tables  # noqa: E402
+
+independent_tables.apply()  # MDAnalysis with MDBridge's independent tables (tests/data/README.md)
+
 DATA = os.path.normpath(os.path.join(HERE, "..", "data"))
 OUT = os.path.abspath(sys.argv[2])
 FILES = os.path.join(OUT, "files")

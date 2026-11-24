@@ -49,6 +49,9 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 DATA = os.path.normpath(os.path.join(HERE, "..", "data"))
 sys.path.insert(0, HERE)
 import dump_topologies  # noqa: E402
+import independent_tables  # noqa: E402
+
+independent_tables.apply()  # MDAnalysis with MDBridge's independent tables (tests/data/README.md)
 
 OUT = os.path.abspath(sys.argv[2])
 FILES = os.path.join(OUT, "files")

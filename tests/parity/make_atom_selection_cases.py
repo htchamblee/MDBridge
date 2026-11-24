@@ -31,6 +31,11 @@ from MDAnalysis.coordinates.memory import MemoryReader
 warnings.filterwarnings("ignore")
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+import independent_tables  # noqa: E402
+
+independent_tables.apply()  # MDAnalysis with MDBridge's independent tables (tests/data/README.md)
+
 TOPOLOGY = os.path.join(HERE, "..", "data", "topology")
 FIXTURES = ["fixture_chains.pdb", "fixture_noelements.pdb", "fixture_segids.pdb",
             "fixture_chains_ba.pdb", "demo_dry.parm7"]

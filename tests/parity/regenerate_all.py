@@ -9,9 +9,13 @@ documented order into FRESH_DIR, a new folder tree that mirrors the repository: 
 for the test data, FRESH_DIR/src/core and src/io for the tables of tools/gen_*.py. The generators are
 copied to FRESH_DIR/tests/parity and FRESH_DIR/tools first and run from there, so the ones that read
 earlier outputs (the topology fixtures, the loader's files, demo_dry.parm7 ...) read the fresh ones,
-never the committed ones. Then every committed file is compared with its fresh copy; each difference
-is printed with a unified-diff excerpt (a hex excerpt for binary files). Exit status 1 on any
-difference, missing or unexpected file, or generator failure.
+never the committed ones. The committed public-source extracts of data/sources/ (inputs, made by
+tools/extract_*.py from downloads) are copied to FRESH_DIR/data/sources: tools/gen_data_tables.py
+writes src/core/data_tables_independent.inc from them, and tests/parity/independent_tables.py loads
+the same tables through it to patch MDAnalysis in the generators that depend on them. Then every
+committed file is compared with its fresh copy; each difference is printed with a unified-diff
+excerpt (a hex excerpt for binary files). Exit status 1 on any difference, missing or unexpected
+file, or generator failure.
 
 PY (default: this interpreter) runs the generators; it needs Python 3.13 (textwrap, json's messages
 and the Unicode tables depend on the version), MDAnalysis 2.11.0, numpy and scipy (MDATK's
@@ -34,6 +38,9 @@ Special cases handled here (tests/data/README.md):
   which is deleted; make_writer_vectors.py writes two files besides the six the tests use, which
   are deleted (round2_vectors.json is python/round2_vectors.json's twin, unicode_classes.json
   was folded into src/core/unicode_tables.inc).
+* Expected data is MDAnalysis 2.11.0 with MDBridge's independent tables patched in
+  (independent_tables.py, applied by the generators that depend on the tables); it needs only the
+  copied data/sources/ and tools/gen_data_tables.py, which run first.
 * gen_step_types.py writes tests/data/step-types/step_types.json besides its table; the step-type
   cases run after it. The loader cases run before the export cases (which use the loader's files),
   the topology fixtures and their dumps before everything that reads them.
@@ -84,7 +91,9 @@ PATCH_RE = re.compile(rb"(?<![0-9.])3\.13\.[0-9]+(?![0-9.])")
 
 # the tables of tools/gen_*.py
 TABLES = ["src/core/unicode_tables.inc", "src/core/case_tables.inc", "src/core/citation_data.inc",
-          "src/core/step_types.inc", "src/core/selection_tables.inc", "src/io/pdb_tables.inc"]
+          "src/core/step_types.inc", "src/core/data_tables_independent.inc", "src/core/selection_tables.inc",
+          "src/io/pdb_tables.inc"]
+SOURCES = "data/sources"  # committed inputs of tools/gen_data_tables.py, copied into the fresh tree
 
 # Outputs that legitimately depend on the CPU: compared byte for byte, and where the bytes differ, as
 # JSON documents with the same structure, strings and case count whose numbers agree within
@@ -169,6 +178,8 @@ STEPS = [
     Step("citation_data", "tools/gen_citation_data.py", lambda ctx: [M(ctx)], ["src/core/citation_data.inc"]),
     Step("step_types", "tools/gen_step_types.py", lambda ctx: [M(ctx)],
          ["src/core/step_types.inc", f"{DATA}/step-types/step_types.json"]),
+    Step("data_tables", "tools/gen_data_tables.py", lambda ctx: [], ["src/core/data_tables_independent.inc"],
+         flags=["-I", "-B"]),
     Step("selection_tables", "tools/gen_selection_tables.py", lambda ctx: [], ["src/core/selection_tables.inc"],
          flags=["-I"]),
     Step("pdb_tables", "tools/gen_pdb_tables.py", lambda ctx: [], ["src/io/pdb_tables.inc"], flags=["-I"]),
@@ -200,7 +211,7 @@ STEPS = [
          lambda ctx: [d(ctx, "topology"), *topology_files(ctx)],
          [f"{DATA}/topology/{n}.topology.json" for n in ("fixture_chains.pdb", "fixture_noelements.pdb",
                                                          "fixture_segids.pdb", "fixture_chains_ba.pdb",
-                                                         "demo_dry.parm7")], flags=["-I"]),
+                                                         "demo_dry.parm7")], flags=["-I", "-B"]),
     Step("atom_selection", "tests/parity/make_atom_selection_cases.py", lambda ctx: [M(ctx), d(ctx, "selections")],
          [f"{DATA}/selections/atom_selection_cases.json", f"{DATA}/selections/atom_selection_distance_cases.json"]),
     Step("selections", "tests/parity/make_selections_cases.py", lambda ctx: [M(ctx), d(ctx, "selections")],
@@ -350,12 +361,16 @@ def excerpt(rel: str, old: bytes, new: bytes, max_lines: int) -> list[str]:
 
 
 def prepare(root: str, steps: list[Step], only: bool) -> None:
-    """The fresh tree: the generators, empty output folders and (with --only) the committed inputs."""
+    """The fresh tree: the generators, the source extracts, empty output folders and (with --only)
+    the committed inputs."""
     for sub in ("tools", "tests/parity"):
         os.makedirs(os.path.join(root, sub))
         for name in os.listdir(os.path.join(ROOT, sub)):
             if name.endswith(".py"):
                 shutil.copyfile(os.path.join(ROOT, sub, name), os.path.join(root, sub, name))
+    for rel in committed_files([SOURCES]):
+        os.makedirs(os.path.dirname(os.path.join(root, rel)), exist_ok=True)
+        shutil.copyfile(os.path.join(ROOT, rel), os.path.join(root, rel))
     for sub in ("src/core", "src/io", DATA):
         os.makedirs(os.path.join(root, sub), exist_ok=True)
     for step in STEPS:
