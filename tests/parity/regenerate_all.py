@@ -225,6 +225,10 @@ STEPS = [
     case_step("loader", "make_loader_cases.py", "io/loader"),
     case_step("export", "make_export_cases.py", "io/pdb/export"),          # uses the loader's files
     case_step("maps", "make_map_cases.py", "io/maps"),
+    # the commands of the command line on files the steps above wrote (demo system, loader, export
+    # and map files, the parameter log of projects/)
+    Step("cli", "tests/parity/cli_parity.py", lambda ctx: ["--mdatk", M(ctx), "--write", d(ctx, "cli/cli_cases.json")],
+         [f"{DATA}/cli/cli_cases.json"]),
     case_step("rigid", "make_rigid_cases.py", "rigid"),
     case_step("citations", "make_citation_cases.py", "citations"),
     case_step("cif", "make_cif_cases.py", "io/cif", pytest=True),

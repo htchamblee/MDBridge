@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <iostream>
+#include <optional>
 #include <string>
 
 #include <CLI/CLI.hpp>
@@ -10,6 +11,7 @@
 #include <windows.h>
 #endif
 
+#include "commands.hpp"
 #include "gui/gui.hpp"
 #include "mdbridge/core/json.hpp"
 #include "mdbridge/core/paths.hpp"
@@ -147,10 +149,13 @@ int cliMain(int argc, char** argv) {
     bool graphicsJson = false;
     graphicsCommand->add_flag("--json", graphicsJson, "print the report as JSON");
 
+    CoreCommands mdatkCommands(app);  // init, info, export-pdb, density info
+
     try {
         app.parse(argc, utf8);
     } catch (const CLI::ParseError& error) {
-        return app.exit(error);
+        const int code = app.exit(error);
+        return code == 0 ? 0 : 2;  // usage errors exit with 2, as MDATK's (argparse)
     }
     if (gui->parsed()) {
         return startGui(guiArgs, argc, argv);
@@ -160,6 +165,10 @@ int cliMain(int argc, char** argv) {
     }
     if (graphicsCommand->parsed()) {
         return graphics(graphicsJson);
+    }
+    Console console = standardConsole();
+    if (const std::optional<int> code = mdatkCommands.run(console)) {
+        return *code;
     }
     std::cout << app.help();
     return 0;

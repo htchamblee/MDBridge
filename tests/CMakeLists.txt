@@ -47,6 +47,20 @@ target_compile_definitions(mdbridge_io_tests PRIVATE MDBRIDGE_TEST_DATA="${CMAKE
 mdbridge_target_warnings(mdbridge_io_tests)
 gtest_discover_tests(mdbridge_io_tests DISCOVERY_MODE PRE_TEST)
 
+# app/commands: MDATK's init, info, export-pdb and density info, run in-process against what MDATK
+# printed and wrote (data/cli, tests/parity/cli_parity.py); no Qt needed
+add_executable(mdbridge_cli_tests cli/test_commands.cpp)
+target_include_directories(mdbridge_cli_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/core")
+target_link_libraries(mdbridge_cli_tests PRIVATE mdbridge::commands GTest::gtest_main)
+target_compile_definitions(mdbridge_cli_tests PRIVATE MDBRIDGE_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data")
+mdbridge_target_warnings(mdbridge_cli_tests)
+gtest_discover_tests(mdbridge_cli_tests DISCOVERY_MODE PRE_TEST)
+
+# the same commands as a program, for tests/parity/cli_parity.py --mdbridge on builds without Qt
+add_executable(mdbridge_commands_cli cli/commands_cli.cpp)
+target_link_libraries(mdbridge_commands_cli PRIVATE mdbridge::commands)
+mdbridge_target_warnings(mdbridge_commands_cli)
+
 # the committed SPIR-V matches the shader sources (tools/compile_shaders.py)
 add_test(NAME render.shaders_up_to_date
          COMMAND ${CMAKE_COMMAND} -DSHADER_DIR=${PROJECT_SOURCE_DIR}/src/render/shaders

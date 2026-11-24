@@ -8,9 +8,9 @@ manage a language runtime: a Linux AppImage and a Windows installer.
 The plan (modules, libraries, migration order, definition of done) is in
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-## Status: milestone 1, the skeleton
+## Status: milestone 2 done (`core` + `io`); next: milestone 3, the analyses
 
-Milestone 1 proves the delivery path before any science moves:
+**Milestone 1, the skeleton**, proved the delivery path before any science moved:
 
 - **Builds**: CMake, C++20; Qt 6 is the only dependency to install, the rest is fetched (pinned and
   hash-checked) at configure time. CI builds a Linux AppImage on Rocky Linux 9 (glibc 2.34) and a
@@ -18,12 +18,30 @@ Milestone 1 proves the delivery path before any science moves:
 - **3D view**: a Vulkan 1.3 window inside the Qt interface, with a software view (QPainter) as
   the fallback on machines without Vulkan 1.3 (older GPUs, virtual machines, remote displays), or
   when Vulkan fails to start. It shows a placeholder scene until the `render` milestone.
-- **Project files**: opens existing MDATK project files (`.mdatk.toml`) and parameter logs
-  (`MDATK_params_log.toml`), including step logs moved to `<name>.log.toml`. They read exactly as
-  MDATK v0.0.4.1 reads them: CI compares against MDATK itself on every push.
 
-Not yet: the typed parameter model and writing project files (milestone 2), trajectories,
-analyses, rendering, charts, videos and the MDATK command set (milestones 2 to 7).
+**Milestone 2, `core` and `io`**, reads and writes everything MDATK v0.0.4.1 reads and writes
+before its analyses start, checked against MDATK itself in CI:
+
+- **Project files**: MDATK's typed parameter model; project files (`.mdatk.toml`) and parameter logs
+  (`MDATK_params_log.toml`) read and written byte for byte as MDATK does (comments, step logs, logs
+  moved to `<name>.log.toml`, locking), citations and the step log of every run.
+- **Systems**: topologies and trajectories read as MDAnalysis reads them (Amber parm7, PDB, GRO;
+  DCD, XTC, TRR, Amber NetCDF, Amber ASCII restart / mdcrd), MDAnalysis' selection language and
+  MDATK's residue groups, PDB export of frames, MRC / CCP4 density maps (plain or gzip, read,
+  written, simulated from a model), mmCIF restraint dictionaries.
+- **Command line**: MDATK's `init` (`init-params`), `info`, `export-pdb` and `density info`, with
+  MDATK's options, output, files, messages and exit codes (`tests/parity/cli_parity.py` runs both
+  on the same inputs in CI).
+- **Clean room**: MDAnalysis' behaviour (LGPL) is reimplemented from its documented behaviour and
+  observed results, never from its source; MDBridge's residue, element and mass tables are rebuilt
+  from independent public sources (`data/sources/ATTRIBUTION.md`), so guessed masses and elements,
+  some selection macros and PDB atom-name columns can differ from stock MDAnalysis by design
+  (`tests/data/README.md`).
+
+Next, milestone 3: the analyses (RMSD, contacts, H-bonds, Mg2+ coordination, stacking, energy, base
+pairs) and MDATK's `analyze` command, compared with MDATK on the test trajectories. Rendering,
+charts and videos, the interface pages, PDB hygiene and the workflow planner follow (milestones 4
+to 7); until then MDBridge's command line offers only the commands it has.
 
 ## Using it
 
@@ -33,6 +51,10 @@ chmod +x MDBridge-0.1.0-x86_64.AppImage
 ./MDBridge-0.1.0-x86_64.AppImage project.mdatk.toml       # ... with a project
 ./MDBridge-0.1.0-x86_64.AppImage project show project.mdatk.toml   # summary on the command line
 ./MDBridge-0.1.0-x86_64.AppImage graphics                 # Vulkan devices, or why the software view is used
+./MDBridge-0.1.0-x86_64.AppImage init run.mdatk.toml --top sys.parm7 --traj md.nc   # MDATK's commands
+./MDBridge-0.1.0-x86_64.AppImage info -p run.mdatk.toml
+./MDBridge-0.1.0-x86_64.AppImage export-pdb -p run.mdatk.toml --frame-list "0, last"
+./MDBridge-0.1.0-x86_64.AppImage density info map.mrc
 ./MDBridge-0.1.0-x86_64.AppImage --help
 ```
 
