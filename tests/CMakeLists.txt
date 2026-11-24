@@ -31,6 +31,7 @@ gtest_discover_tests(mdbridge_core_tests DISCOVERY_MODE PRE_TEST)
 
 # io: topologies, trajectories, PDB files and tables read and written as MDATK does
 add_executable(mdbridge_io_tests
+    io/test_cif.cpp
     io/test_external.cpp
     io/test_loader.cpp
     io/test_mrc.cpp

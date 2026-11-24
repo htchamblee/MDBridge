@@ -315,4 +315,28 @@ python3 -I -B tools/gen_citation_data.py /tmp/mdatk        # src/core/citation_d
 python3 -I -B tests/parity/make_citation_cases.py /tmp/mdatk tests/data/citations
 ```
 
+`io/cif/cif_cases.json` holds what MDATK's mmCIF code (the mmCIF part of `mdatk/dictionaries.py`)
+gives, for `src/io/cif.cpp` (`tests/io/test_cif.cpp`). Paths in results and messages are written
+`{root}`.
+
+| Key | Content |
+|---|---|
+| `parse` | about 140 texts: MDATK's parser fixture, the synthetic acedrg / eLBOW dictionaries of its `tests/test_dictionaries.py` and what `finish_dictionary` makes of them, crafted texts (quoting rules, text fields, loops, pairs, several blocks, comments, keywords in any case, `global_` sections, line breaks of `str.splitlines`, Unicode whitespace and tags, invalid UTF-8 as `hex`, every error) and random token soups. For each: `list(_cif_tokens)` or its error, `parse_cif` or its error, `write_cif` of the result and `parse_cif` of that, and `block` / `get` / `col` / `column` lookups in several cases |
+| `write` | `write_cif` of documents built directly (every quoting branch, multi-row and ragged pair items, ragged loops, line breaks in cells, empty items, non-ASCII widths) and `parse_cif` of the text |
+| `cif_value` | `cif_value` of about 50 values |
+| `lower` | `str.lower()` of strings around final sigma, U+0130, the Kelvin sign and other cased / case-ignorable characters, and SHA-256 hashes of `lower()` over every code point alone and in sigma contexts (`core::pythonLower`, which the case-insensitive lookups use) |
+| `dictionary` | `is_dictionary_file` of files given as byte parts (hex, repeat count) around the 2,000,000-character limit (CRLF, CR, 4-byte characters, invalid UTF-8), of a folder and of a missing file |
+| `find` | `find_dictionary` scenarios (MDATK's test plus code / `tmp` / age / path ordering, hidden names, glob patterns and sets, folders named `*.cif`, names with glob characters, relative and absolute sources and excludes); files carry their age in seconds, which the test recreates |
+
+`src/core/case_tables.inc` (the Unicode data of `core::pythonLower`) is written by
+`python3 -I tools/gen_case_tables.py` from the running Python's `str.lower()`.
+
+To regenerate, with Python 3.13 and pytest installed and an MDATK checkout at `v0.0.4.1` (nothing
+is written into it; the output is reproducible):
+
+```bash
+python3 -I tools/gen_case_tables.py                       # src/core/case_tables.inc
+python3 -I -B tests/parity/make_cif_cases.py /tmp/mdatk tests/data/io/cif
+```
+
 Never put research structures or trajectories of real projects here.
