@@ -233,6 +233,12 @@ STEPS = [
     case_step("citations", "make_citation_cases.py", "citations"),
     case_step("cif", "make_cif_cases.py", "io/cif", pytest=True),
     case_step("secstruct", "make_secstruct_cases.py", "chem"),
+    # milestone-3 spec probes (docs/specs/m3-rmsd.md, m3-universe-notes.md): read the demo system,
+    # the loader's files and the trajectories written above
+    Step("rmsd", "tests/parity/make_rmsd_cases.py", lambda ctx: [M(ctx), d(ctx, "analysis")],
+         [f"{DATA}/analysis/rmsd_cases.json"]),
+    Step("universe", "tests/parity/make_universe_cases.py", lambda ctx: [M(ctx), d(ctx, "analysis")],
+         [f"{DATA}/analysis/universe_cases.json", f"{DATA}/analysis/universe_files"]),
 ]
 
 
