@@ -232,6 +232,9 @@ STEPS = [
     case_step("rigid", "make_rigid_cases.py", "rigid"),
     case_step("citations", "make_citation_cases.py", "citations"),
     case_step("cif", "make_cif_cases.py", "io/cif", pytest=True),
+    # milestone 3: the analysis framework (registry, instance ids, labels, cache keys, runner)
+    Step("analysis_framework", "tests/parity/make_analysis_framework_cases.py",
+         lambda ctx: [M(ctx), d(ctx, "analysis")], [f"{DATA}/analysis/framework_cases.json"]),
 ]
 
 

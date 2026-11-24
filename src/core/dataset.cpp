@@ -164,8 +164,7 @@ std::size_t numpyIndex(std::int64_t index, std::size_t size) {
 // ---------------------------------------------------------------- NumArray
 
 template <class T>
-NumArray::NumArray(std::vector<T> values, std::vector<std::size_t> shape)
-    : m_shape(std::move(shape)) {
+NumArray::NumArray(std::vector<T> values, std::vector<std::size_t> shape) {
     const std::size_t count = values.size();
     if constexpr (std::is_same_v<T, bool>) {
         m_data = std::vector<std::uint8_t>(values.begin(), values.end());
@@ -173,6 +172,11 @@ NumArray::NumArray(std::vector<T> values, std::vector<std::size_t> shape)
     } else {
         m_data = std::move(values);
     }
+    setShape(std::move(shape), count);
+}
+
+void NumArray::setShape(std::vector<std::size_t> shape, std::size_t count) {
+    m_shape = std::move(shape);
     if (m_shape.empty()) {
         m_shape = {count};
     }
@@ -183,6 +187,55 @@ NumArray::NumArray(std::vector<T> values, std::vector<std::size_t> shape)
     if (product != count) {
         throw std::invalid_argument("NumArray: the shape does not match the number of values");
     }
+}
+
+namespace {
+
+// Code points of UTF-8 text (a byte that does not continue a sequence starts a character).
+std::size_t codePoints(std::string_view text) {
+    std::size_t n = 0;
+    for (const char c : text) {
+        n += (static_cast<unsigned char>(c) & 0xC0) != 0x80 ? 1 : 0;
+    }
+    return n;
+}
+
+// The first `width` characters of UTF-8 text.
+std::string firstCharacters(const std::string& text, std::size_t width) {
+    std::size_t seen = 0;
+    for (std::size_t pos = 0; pos < text.size(); ++pos) {
+        if ((static_cast<unsigned char>(text[pos]) & 0xC0) != 0x80 && seen++ == width) {
+            return text.substr(0, pos);
+        }
+    }
+    return text;
+}
+
+}  // namespace
+
+NumArray::NumArray(std::vector<std::string> values, std::vector<std::size_t> shape)
+    : NumArray(strings(std::move(values), 0, std::move(shape))) {}
+
+NumArray NumArray::strings(std::vector<std::string> values, std::size_t width, std::vector<std::size_t> shape) {
+    if (width == 0) {
+        width = 1;
+        for (const std::string& v : values) {
+            width = std::max(width, codePoints(v));
+        }
+    }
+    for (std::string& v : values) {
+        v = firstCharacters(v, width);
+        while (!v.empty() && v.back() == '\0') {
+            v.pop_back();
+        }
+    }
+    NumArray out;
+    const std::size_t count = values.size();
+    out.m_data = std::move(values);
+    out.m_width = width;
+    out.m_dtypeName = "<U" + std::to_string(width);
+    out.setShape(std::move(shape), count);
+    return out;
 }
 
 template NumArray::NumArray(std::vector<bool>, std::vector<std::size_t>);
@@ -199,7 +252,8 @@ NumArray::DType NumArray::dtype() const {
     case 2: return DType::Int32;
     case 3: return DType::Int64;
     case 4: return DType::Float32;
-    default: return DType::Float64;
+    case 5: return DType::Float64;
+    default: return DType::String;
     }
 }
 
@@ -211,6 +265,7 @@ std::string_view NumArray::dtypeName() const {
     case DType::Int64: return "int64";
     case DType::Float32: return "float32";
     case DType::Float64: return "float64";
+    case DType::String: return m_dtypeName;
     }
     return "";
 }
@@ -233,16 +288,21 @@ template std::span<const std::int32_t> NumArray::values() const;
 template std::span<const std::int64_t> NumArray::values() const;
 template std::span<const float> NumArray::values() const;
 template std::span<const double> NumArray::values() const;
+template std::span<const std::string> NumArray::values() const;
 
 std::vector<double> NumArray::toDouble() const {
     return std::visit(
-        [](const auto& v) {
-            std::vector<double> out;
-            out.reserve(v.size());
-            for (const auto x : v) {
-                out.push_back(static_cast<double>(x));
+        [this](const auto& v) -> std::vector<double> {
+            if constexpr (std::is_same_v<std::decay_t<decltype(v)>, std::vector<std::string>>) {
+                throw std::invalid_argument("NumArray: the values are " + std::string(dtypeName()));
+            } else {
+                std::vector<double> out;
+                out.reserve(v.size());
+                for (const auto x : v) {
+                    out.push_back(static_cast<double>(x));
+                }
+                return out;
             }
-            return out;
         },
         m_data);
 }

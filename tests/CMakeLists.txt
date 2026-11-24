@@ -47,6 +47,16 @@ target_compile_definitions(mdbridge_io_tests PRIVATE MDBRIDGE_TEST_DATA="${CMAKE
 mdbridge_target_warnings(mdbridge_io_tests)
 gtest_discover_tests(mdbridge_io_tests DISCOVERY_MODE PRE_TEST)
 
+# analysis: the framework (registry, instance ids, labels, cache keys, runner, common helpers) as
+# MDATK computes it (data/analysis, tests/parity/make_analysis_framework_cases.py)
+add_executable(mdbridge_analysis_tests
+    analysis/test_framework.cpp)
+target_include_directories(mdbridge_analysis_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/core")
+target_link_libraries(mdbridge_analysis_tests PRIVATE mdbridge::analysis GTest::gtest_main)
+target_compile_definitions(mdbridge_analysis_tests PRIVATE MDBRIDGE_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data")
+mdbridge_target_warnings(mdbridge_analysis_tests)
+gtest_discover_tests(mdbridge_analysis_tests DISCOVERY_MODE PRE_TEST)
+
 # app/commands: MDATK's init, info, export-pdb and density info, run in-process against what MDATK
 # printed and wrote (data/cli, tests/parity/cli_parity.py); no Qt needed
 add_executable(mdbridge_cli_tests cli/test_commands.cpp)

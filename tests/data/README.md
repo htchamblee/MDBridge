@@ -432,6 +432,26 @@ job, against the AppImage):
 /opt/mdbridge-venv/bin/python -I -B tests/parity/cli_parity.py --mdatk /tmp/mdatk --mdbridge build/tests/mdbridge_commands_cli
 ```
 
+`analysis/framework_cases.json` holds what MDATK's analysis framework (`mdatk/analysis/base.py`,
+`__init__.py`, `common.py`) computes, for `src/analysis/` (`tests/analysis/test_framework.cpp`):
+the registry (names, labels, versions, `internal`, group slots, output-label templates); for five
+projects given as the plain data `Project.from_dict` reads (the defaults, nested and self-referencing
+groups with unusual names, disabled analyses, repeated group names, no groups) every analysis's
+`enabled`, `repr(params_for)`, `selection_texts`, `expected_outputs`, `groups`, `output_label` of its
+outputs and of unknown names, `cache_key` for two fixed input fingerprints (no file is read),
+`referenced_groups` and `new_result`; `expected_keys` with and without disabled analyses;
+`referenced_groups` of extra texts; per instance id `parse_instance`, `instance_id` and what
+`instance_project` gives (the same description, or the KeyError / ValueError); `key_label` of data
+keys; `split_key`; `residue_rows` and `without` on index lists of a small fake topology;
+`per_row_counts` of random CSR triplets (float32 values as `float.hex()`); and `run_analyses` of
+recording analyses over a MemoryReader trajectory (log lines, progress calls, setup / process /
+finalize calls, times). MDATK runs in-process with the independent tables applied (first section).
+The data keys must equal MDATK's exactly; the analysis cache itself is MDBridge's own.
+
+```bash
+/opt/mdbridge-venv/bin/python -I -B tests/parity/make_analysis_framework_cases.py /tmp/mdatk tests/data/analysis
+```
+
 ## Checking that the data is reproducible
 
 `tests/parity/regenerate_all.py` runs every generator above (and `tools/gen_*.py`) in this order
