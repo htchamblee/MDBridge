@@ -13,6 +13,7 @@ add_library(mdbridge_analysis STATIC
     mg.cpp
     registry.cpp
     rmsd.cpp
+    rmsd_qcp.cpp
     runner.cpp
     spatial.cpp
     stacking.cpp

@@ -69,6 +69,9 @@ gtest_discover_tests(mdbridge_analysis_tests DISCOVERY_MODE PRE_TEST)
 # analysis spatial helpers (mdatk/spatial.py)
 add_subdirectory(analysis_spatial)
 
+# optimal-superposition RMSD (docs/specs/m3-rmsd.md)
+add_subdirectory(analysis_rmsd)
+
 # app/commands: MDATK's init, info, export-pdb and density info, run in-process against what MDATK
 # printed and wrote (data/cli, tests/parity/cli_parity.py); no Qt needed
 add_executable(mdbridge_cli_tests cli/test_commands.cpp)
