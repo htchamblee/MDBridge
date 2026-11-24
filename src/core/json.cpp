@@ -1,4 +1,5 @@
 #include "mdbridge/core/json.hpp"
+#include "mdbridge/core/python.hpp"
 
 #include <algorithm>
 #include <charconv>
@@ -503,40 +504,9 @@ private:
         return value;
     }
 
-    // float(text) for a number of the JSON grammar: correctly rounded; too large -> inf, too
-    // small -> 0, keeping the sign
-    static double parseFloat(std::string_view number) {
-        double value = 0;
-        const auto result = std::from_chars(number.data(), number.data() + number.size(), value);
-        if (result.ec != std::errc::result_out_of_range) {
-            return value;
-        }
-        const bool negative = number.front() == '-';
-        // decimal exponent of the first significant digit
-        const std::size_t e = number.find_first_of("eE");
-        const std::string_view mantissa = number.substr(negative ? 1 : 0, e - (negative ? 1 : 0));
-        const std::size_t point = std::min(mantissa.find('.'), mantissa.size());
-        const std::size_t first = mantissa.find_first_not_of("0.");
-        if (first == std::string_view::npos) {
-            return negative ? -0.0 : 0.0;
-        }
-        long long magnitude = first < point ? static_cast<long long>(point - first) - 1
-                                            : -static_cast<long long>(first - point);
-        if (e != std::string_view::npos) {
-            std::string_view digits = number.substr(e + 1);
-            const bool down = digits.front() == '-';
-            if (digits.front() == '-' || digits.front() == '+') {
-                digits.remove_prefix(1);
-            }
-            long long exponent = 0;
-            for (const char c : digits) {
-                exponent = std::min(exponent * 10 + (c - '0'), 1'000'000'000LL);
-            }
-            magnitude += down ? -exponent : exponent;
-        }
-        const double out = magnitude > 0 ? std::numeric_limits<double>::infinity() : 0.0;
-        return negative ? -out : out;
-    }
+    // float(text) for a number of the JSON grammar, as Python's float() reads it (correctly
+    // rounded, subnormals included; too large -> inf). Every JSON number is a valid float() text.
+    static double parseFloat(std::string_view number) { return *tryPythonFloat(number); }
 
     std::string_view m_text;
     std::string_view m_source;

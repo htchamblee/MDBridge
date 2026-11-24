@@ -176,7 +176,9 @@ struct ProjectLock::State {
 
 ProjectLock::ProjectLock(const fs::path& path) : m_state(std::make_unique<State>()) {
     m_state->thread = std::unique_lock<std::recursive_mutex>(projectMutex());
-#ifndef _WIN32
+#ifdef _WIN32
+    (void)path;
+#else
     // MDATK has no lock file on Windows (no fcntl there) and neither has MDBridge.
     const fs::path lock = pathFromUtf8(posixpath::dirname(absolutePath(path))) /
                           ("." + pathToUtf8(path.filename()) + ".lock");
