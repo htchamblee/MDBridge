@@ -5,6 +5,8 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <limits>
+#include <optional>
 #include <stdexcept>
 
 #include "binary_file.hpp"
@@ -190,11 +192,42 @@ private:
         return raw;
     }
 
-    // Unit cell of a frame from the six stored doubles. CLEAN ROOM: reimplement from
-    // scratchpad/cleanroom/dcd-unitcell.md
-    static std::optional<std::array<float, 6>> unitCell(const std::array<double, 6>& cell) {
-        (void)cell;
-        throw std::logic_error("clean room: DCD unit cell not implemented");
+    // numpy's float64 -> float32 cast: values beyond the float32 range become infinite
+    static float narrow(double x) {
+        constexpr double kLimit = 3.4028235677973366e38;  // halfway between FLT_MAX and 2^128
+        if (x >= kLimit) {
+            return std::numeric_limits<float>::infinity();
+        }
+        if (x <= -kLimit) {
+            return -std::numeric_limits<float>::infinity();
+        }
+        return static_cast<float>(x);
+    }
+
+    // The frame's unit cell from the six stored doubles s = [A, gamma, B, beta, alpha, C]: the
+    // angle terms are cosines when all lie in [-1, 1]; otherwise a negative entry or an angle term
+    // above 180 means the lower triangle of the box matrix (new CHARMM); otherwise degrees.
+    // std::nullopt when a, b and c all come out zero.
+    static std::optional<std::array<float, 6>> unitCell(const std::array<double, 6>& s) {
+        const std::array<double, 3> terms = {s[4], s[3], s[1]};  // alpha, beta, gamma
+        const auto isCosine = [](double t) { return t >= -1.0 && t <= 1.0; };
+        std::array<float, 6> box{};
+        if (std::all_of(terms.begin(), terms.end(), isCosine)) {
+            box = {narrow(s[0]), narrow(s[2]), narrow(s[5]), 0.0f, 0.0f, 0.0f};
+            for (std::size_t i = 0; i < 3; ++i) {
+                box[3 + i] = narrow(90.0 - std::asin(terms[i]) * (180.0 / kPi));
+            }
+        } else if (std::any_of(s.begin(), s.end(), [](double v) { return v < 0.0; }) ||
+                   std::any_of(terms.begin(), terms.end(), [](double t) { return t > 180.0; })) {
+            box = triclinicBox({s[0], s[1], s[3]}, {s[1], s[2], s[4]}, {s[3], s[4], s[5]});
+        } else {
+            box = {narrow(s[0]),     narrow(s[2]),     narrow(s[5]),
+                   narrow(terms[0]), narrow(terms[1]), narrow(terms[2])};
+        }
+        if (box[0] == 0.0f && box[1] == 0.0f && box[2] == 0.0f) {
+            return std::nullopt;
+        }
+        return box;
     }
 
     BinaryFile m_file;
