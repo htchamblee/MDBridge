@@ -4,6 +4,7 @@
 #include <cmath>
 #include <numbers>
 
+#include "mdbridge/core/linalg.hpp"
 #include "mdbridge/core/python.hpp"
 
 // Compiled without floating-point contraction (see CMakeLists.txt): every product and sum is
@@ -12,49 +13,6 @@
 namespace mdbridge::core {
 
 namespace {
-
-// Singular values of a 3x3 matrix: one-sided Jacobi (Hestenes) rotations of column pairs until
-// the columns are orthogonal to working precision; the column norms are then the singular values.
-Vec3 singularValues(const Mat3& a) {
-    Mat3 b = a;
-    constexpr double eps = 1e-17;
-    for (int sweep = 0; sweep < 64; ++sweep) {
-        bool rotated = false;
-        for (int p = 0; p < 2; ++p) {
-            for (int q = p + 1; q < 3; ++q) {
-                double alpha = 0, beta = 0, gamma = 0;
-                for (int i = 0; i < 3; ++i) {
-                    alpha += b[i][p] * b[i][p];
-                    beta += b[i][q] * b[i][q];
-                    gamma += b[i][p] * b[i][q];
-                }
-                if (gamma == 0.0 || std::abs(gamma) <= eps * std::sqrt(alpha * beta)) {
-                    continue;
-                }
-                rotated = true;
-                const double zeta = (beta - alpha) / (2.0 * gamma);
-                const double t =
-                    (zeta >= 0 ? 1.0 : -1.0) / (std::abs(zeta) + std::hypot(1.0, zeta));
-                const double c = 1.0 / std::sqrt(1.0 + t * t);
-                const double s = c * t;
-                for (int i = 0; i < 3; ++i) {
-                    const double bp = b[i][p], bq = b[i][q];
-                    b[i][p] = c * bp - s * bq;
-                    b[i][q] = s * bp + c * bq;
-                }
-            }
-        }
-        if (!rotated) {
-            break;
-        }
-    }
-    Vec3 out{};
-    for (int k = 0; k < 3; ++k) {
-        out[static_cast<std::size_t>(k)] =
-            std::sqrt(b[0][k] * b[0][k] + b[1][k] * b[1][k] + b[2][k] * b[2][k]);
-    }
-    return out;
-}
 
 // The orthogonal polar factor U V^T of a = U S V^T (what MDATK takes from numpy's SVD), by Newton's
 // iteration x <- (x + x^-T) / 2: for singular values within 1 % of 1 it converges in four or five
@@ -82,12 +40,6 @@ Mat3 polarFactor(const Mat3& a) {
         x = next;
     }
     return x;
-}
-
-double det3(const Mat3& r) {
-    return r[0][0] * (r[1][1] * r[2][2] - r[1][2] * r[2][1]) -
-           r[0][1] * (r[1][0] * r[2][2] - r[1][2] * r[2][0]) +
-           r[0][2] * (r[1][0] * r[2][1] - r[1][1] * r[2][0]);
 }
 
 Mat3 matmul(const Mat3& a, const Mat3& b) {
@@ -138,7 +90,7 @@ RigidTransform RigidTransform::fromList(std::span<const double> numbers) {
             }
         }
     }
-    for (const double s : singularValues(r)) {
+    for (const double s : jacobiSingularValues(r)) {  // one-sided Jacobi, core/linalg
         if (std::abs(s - 1.0) > 0.01) {
             throw ValueError(notRotation);
         }

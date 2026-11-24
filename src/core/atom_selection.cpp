@@ -24,6 +24,7 @@
 #include <vector>
 
 #include "mdbridge/core/detail/data_tables.hpp"
+#include "mdbridge/core/detail/neighbors.hpp"
 #include "mdbridge/core/json.hpp"
 #include "mdbridge/core/python.hpp"
 #include "mdbridge/core/text.hpp"
@@ -626,183 +627,30 @@ private:
     }
 };
 
-// Cells of a uniform grid holding reference points: every point within `reach` of a query lies in
-// the 27 cells around the query's cell. Fractional coordinates of the box when periodic.
-class CellGrid {
-public:
-    static std::optional<CellGrid> build(const Geometry& g, const std::vector<float>& ref,
-                                         double reach) {
-        CellGrid grid;
-        const std::size_t count = ref.size() / 3;
-        if (!(reach > 0.0) || !std::isfinite(reach) || count == 0) {
+// The selections' cell grid (core/detail/neighbors.hpp) for a geometry: fractional coordinates of
+// the cell when periodic (none for an orthorhombic box below FLT_EPSILON; open boundaries for an
+// invalid triclinic cell), the points' bounding box otherwise.
+using CellGrid = detail::CellGrid<float>;
+
+std::optional<CellGrid> buildCellGrid(const Geometry& g, const std::vector<float>& ref, double reach) {
+    if (g.mode == Geometry::Mode::Ortho) {
+        if (!(g.box[0] > FLT_EPSILON && g.box[1] > FLT_EPSILON && g.box[2] > FLT_EPSILON)) {
             return std::nullopt;
         }
-        const double cell = reach * (1.0 + 1e-4) + 1e-4;
-        if (g.mode == Geometry::Mode::Ortho || g.mode == Geometry::Mode::Triclinic) {
-            std::array<double, 9> m{};
-            if (g.mode == Geometry::Mode::Ortho) {
-                if (!(g.box[0] > FLT_EPSILON && g.box[1] > FLT_EPSILON && g.box[2] > FLT_EPSILON)) {
-                    return std::nullopt;
-                }
-                m = {g.box[0], 0, 0, 0, g.box[1], 0, 0, 0, g.box[2]};
-            } else {
-                for (std::size_t i = 0; i < 9; ++i) {
-                    m[i] = g.tri[i];
-                }
-                if (!(m[0] > 0 && m[4] > 0 && m[8] > 0)) {
-                    return buildOpen(ref, cell, grid);
-                }
-            }
-            grid.m_periodic = true;
-            grid.m_box = m;
-            const double volume = m[0] * m[4] * m[8];
-            const double bc = std::sqrt(std::pow(m[4] * m[8], 2) + std::pow(m[3] * m[8], 2) +
-                                        std::pow(m[3] * m[7] - m[4] * m[6], 2));
-            const double ca = m[0] * std::sqrt(m[8] * m[8] + m[7] * m[7]);
-            const double heights[3] = {volume / bc, volume / ca, m[8]};
-            for (std::size_t i = 0; i < 3; ++i) {
-                const double cells = std::floor(heights[i] / cell);
-                if (!(cells >= 3)) {
-                    return std::nullopt;
-                }
-                grid.m_dims[i] = static_cast<std::int64_t>(std::min(cells, 256.0));
-            }
-        } else {
-            return buildOpen(ref, cell, grid);
-        }
-        grid.fill(ref);
-        return grid;
+        const std::array<double, 9> m = {g.box[0], 0, 0, 0, g.box[1], 0, 0, 0, g.box[2]};
+        return CellGrid::build(ref, reach, &m);
     }
-
-    // Calls visit(reference index) for the candidates near p until it returns true.
-    template <class F>
-    bool any(const float* p, F&& visit) const {
-        std::array<std::int64_t, 3> c{};
-        if (!cellOf(p, c, true)) {
-            return false;
+    if (g.mode == Geometry::Mode::Triclinic) {
+        std::array<double, 9> m{};
+        for (std::size_t i = 0; i < 9; ++i) {
+            m[i] = g.tri[i];
         }
-        for (std::int64_t dx = -1; dx <= 1; ++dx) {
-            for (std::int64_t dy = -1; dy <= 1; ++dy) {
-                for (std::int64_t dz = -1; dz <= 1; ++dz) {
-                    std::array<std::int64_t, 3> q = {c[0] + dx, c[1] + dy, c[2] + dz};
-                    bool inside = true;
-                    for (std::size_t i = 0; i < 3; ++i) {
-                        if (m_periodic) {
-                            q[i] = (q[i] % m_dims[i] + m_dims[i]) % m_dims[i];
-                        } else {
-                            inside = inside && q[i] >= 0 && q[i] < m_dims[i];
-                        }
-                    }
-                    if (!inside) {
-                        continue;
-                    }
-                    const auto k =
-                        static_cast<std::size_t>((q[0] * m_dims[1] + q[1]) * m_dims[2] + q[2]);
-                    for (std::size_t s = m_start[k]; s < m_start[k + 1]; ++s) {
-                        if (visit(m_items[s])) {
-                            return true;
-                        }
-                    }
-                }
-            }
-        }
-        return false;
-    }
-
-private:
-    static std::optional<CellGrid> buildOpen(const std::vector<float>& ref, double cell,
-                                             CellGrid& grid) {
-        const std::size_t count = ref.size() / 3;
-        std::array<double, 3> lo{}, hi{};
-        for (std::size_t i = 0; i < 3; ++i) {
-            lo[i] = std::numeric_limits<double>::infinity();
-            hi[i] = -std::numeric_limits<double>::infinity();
-        }
-        for (std::size_t a = 0; a < count; ++a) {
-            for (std::size_t i = 0; i < 3; ++i) {
-                const double v = ref[3 * a + i];
-                if (!std::isfinite(v)) {
-                    return std::nullopt;
-                }
-                lo[i] = std::min(lo[i], v);
-                hi[i] = std::max(hi[i], v);
-            }
-        }
-        double total = 1;
-        for (std::size_t i = 0; i < 3; ++i) {
-            grid.m_dims[i] =
-                static_cast<std::int64_t>(std::min(std::floor((hi[i] - lo[i]) / cell) + 1, 1024.0));
-            total *= static_cast<double>(grid.m_dims[i]);
-        }
-        if (total > 4.0 * static_cast<double>(count) + 1e6) {
-            return std::nullopt;
-        }
-        grid.m_low = lo;
-        grid.m_cell = cell;
-        grid.fill(ref);
-        return grid;
-    }
-
-    bool cellOf(const float* p, std::array<std::int64_t, 3>& c, bool query) const {
-        if (m_periodic) {
-            const double z = p[2] / m_box[8];
-            const double y = (p[1] - z * m_box[7]) / m_box[4];
-            const double x = (p[0] - y * m_box[3] - z * m_box[6]) / m_box[0];
-            const double s[3] = {x, y, z};
-            for (std::size_t i = 0; i < 3; ++i) {
-                if (!std::isfinite(s[i])) {
-                    return false;
-                }
-                const double f = s[i] - std::floor(s[i]);
-                c[i] = std::min(m_dims[i] - 1,
-                                static_cast<std::int64_t>(f * static_cast<double>(m_dims[i])));
-            }
-            return true;
-        }
-        for (std::size_t i = 0; i < 3; ++i) {
-            const double v = p[i];
-            if (!std::isfinite(v)) {
-                return false;
-            }
-            const double k = std::floor((v - m_low[i]) / m_cell);
-            if (query && (k < -1 || k > static_cast<double>(m_dims[i]))) {
-                return false;
-            }
-            c[i] = static_cast<std::int64_t>(k);
-        }
-        return true;
-    }
-
-    void fill(const std::vector<float>& ref) {
-        const std::size_t count = ref.size() / 3;
-        const auto cells = static_cast<std::size_t>(m_dims[0] * m_dims[1] * m_dims[2]);
-        std::vector<std::size_t> cellOfPoint(count);
-        m_start.assign(cells + 1, 0);
-        for (std::size_t a = 0; a < count; ++a) {
-            std::array<std::int64_t, 3> c{};
-            cellOf(&ref[3 * a], c, false);
-            const auto k = static_cast<std::size_t>((c[0] * m_dims[1] + c[1]) * m_dims[2] + c[2]);
-            cellOfPoint[a] = k;
-            ++m_start[k + 1];
-        }
-        for (std::size_t k = 0; k < cells; ++k) {
-            m_start[k + 1] += m_start[k];
-        }
-        m_items.resize(count);
-        std::vector<std::size_t> fillAt(m_start.begin(), m_start.end() - 1);
-        for (std::size_t a = 0; a < count; ++a) {
-            m_items[fillAt[cellOfPoint[a]]++] = a;
+        if (m[0] > 0 && m[4] > 0 && m[8] > 0) {
+            return CellGrid::build(ref, reach, &m);
         }
     }
-
-    bool m_periodic = false;
-    std::array<double, 9> m_box{};
-    std::array<double, 3> m_low{};
-    double m_cell = 1;
-    std::array<std::int64_t, 3> m_dims{1, 1, 1};
-    std::vector<std::size_t> m_start;
-    std::vector<std::size_t> m_items;
-};
+    return CellGrid::build(ref, reach, nullptr);
+}
 
 // Largest minus smallest coordinate along each axis over the points of both sets (float32).
 std::array<float, 3> pointExtent(const std::vector<float>& ref, const std::vector<float>& conf) {
@@ -914,7 +762,7 @@ std::vector<std::array<bool, 2>> withinCutoffs(const Geometry& g, const std::vec
     const double reach = inner ? std::max(outer, *inner) : outer;
     std::optional<CellGrid> grid;
     if (static_cast<double>(nr) * static_cast<double>(nc) > 4e6) {
-        grid = CellGrid::build(g, ref, reach);
+        grid = buildCellGrid(g, ref, reach);
     }
     for (std::size_t c = 0; c < nc; ++c) {
         if (grid) {

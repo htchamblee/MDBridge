@@ -66,6 +66,9 @@ target_compile_definitions(mdbridge_analysis_tests PRIVATE MDBRIDGE_TEST_DATA="$
 mdbridge_target_warnings(mdbridge_analysis_tests)
 gtest_discover_tests(mdbridge_analysis_tests DISCOVERY_MODE PRE_TEST)
 
+# analysis spatial helpers (mdatk/spatial.py)
+add_subdirectory(analysis_spatial)
+
 # app/commands: MDATK's init, info, export-pdb and density info, run in-process against what MDATK
 # printed and wrote (data/cli, tests/parity/cli_parity.py); no Qt needed
 add_executable(mdbridge_cli_tests cli/test_commands.cpp)

@@ -14,6 +14,7 @@ add_library(mdbridge_analysis STATIC
     registry.cpp
     rmsd.cpp
     runner.cpp
+    spatial.cpp
     stacking.cpp
     structure.cpp)
 add_library(mdbridge::analysis ALIAS mdbridge_analysis)
