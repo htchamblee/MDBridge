@@ -80,11 +80,18 @@ NumArray makeArray(const Value& spec) {
     }
     if (dtype == "int8" || dtype == "int32" || dtype == "int64") {
         const std::vector<std::int64_t> v = ints(values);
+        auto narrowed = [&v]<class T>(T) {
+            std::vector<T> out;
+            for (const std::int64_t x : v) {
+                out.push_back(static_cast<T>(x));
+            }
+            return out;
+        };
         if (dtype == "int8") {
-            return NumArray(std::vector<std::int8_t>(v.begin(), v.end()), shape);
+            return NumArray(narrowed(std::int8_t{}), shape);
         }
         if (dtype == "int32") {
-            return NumArray(std::vector<std::int32_t>(v.begin(), v.end()), shape);
+            return NumArray(narrowed(std::int32_t{}), shape);
         }
         return NumArray(v, shape);
     }
