@@ -37,6 +37,19 @@ Not adopted yet; it takes effect only after legal review and a formal change of 
    | MDAnalysis (interim) | check the bundled version's licence | verify before bundling | planned |
    | Barnaba | GPL v3 | never bundled; replaced by MDBridge's own base-pair annotation | - |
 
+   Code ported from permissive projects keeps its notice in the source file, in
+   `THIRD_PARTY_NOTICES.md` and in `packaging/licenses/`:
+
+   | Source | Licence | Ported into | Since |
+   |---|---|---|---|
+   | NumPy | BSD-3 | `numpy.interp` (`src/io/external.cpp`), pairwise summation (`src/io/mrc.cpp`) | milestone 2 |
+   | CPython | PSF 2 | textwrap / splitlines (`src/core/text.cpp`), json.loads scanner (`src/core/json.cpp`), fnmatch / glob (`src/core/atom_selection.cpp`, `src/io/cif.cpp`) | milestone 2 |
+   | chemfiles, based on xdrfile 1.1.4 | BSD-3, BSD-2 | XTC decompression (`src/io/gromacs.cpp`); xdrfile releases before 1.1.4 were LGPL and must not be used | milestone 2 |
+
+   MDAnalysis (LGPL) defines the behaviour MDBridge reproduces, but none of its code may be
+   copied or translated: reimplement from observed behaviour or from behaviour-only descriptions
+   written by someone else (clean room).
+
    Test-only tools (GoogleTest, BSD-3) are not bundled. External programs MDBridge writes scripts
    for (cpptraj, Amber, GROMACS, Rosetta, Phenix, Coot, ...) are not distributed with it and keep
    their own licences.

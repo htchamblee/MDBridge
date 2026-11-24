@@ -1,3 +1,8 @@
+// The glob-pattern translation of fnmatch.fnmatchcase (Lib/fnmatch.py)
+// is ported from CPython (Python Software Foundation License Version 2; full text in
+// packaging/licenses/Python-LICENSE.txt, see THIRD_PARTY_NOTICES.md):
+// Copyright (c) 2001-2024 Python Software Foundation; All Rights Reserved
+
 #include "mdbridge/core/atom_selection.hpp"
 
 #include <algorithm>

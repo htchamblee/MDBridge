@@ -1,3 +1,8 @@
+// The glob and fnmatch pattern handling of find_dictionary (Lib/glob.py, Lib/fnmatch.py)
+// is ported from CPython (Python Software Foundation License Version 2; full text in
+// packaging/licenses/Python-LICENSE.txt, see THIRD_PARTY_NOTICES.md):
+// Copyright (c) 2001-2024 Python Software Foundation; All Rights Reserved
+
 #include "mdbridge/io/cif.hpp"
 
 #include <algorithm>

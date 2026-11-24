@@ -1,3 +1,8 @@
+// The JSON parsing of json.loads (Modules/_json.c scanner and Lib/json/decoder.py messages)
+// is ported from CPython (Python Software Foundation License Version 2; full text in
+// packaging/licenses/Python-LICENSE.txt, see THIRD_PARTY_NOTICES.md):
+// Copyright (c) 2001-2024 Python Software Foundation; All Rights Reserved
+
 #include "mdbridge/core/json.hpp"
 #include "mdbridge/core/python.hpp"
 

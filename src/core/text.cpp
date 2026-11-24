@@ -1,3 +1,8 @@
+// Python's textwrap algorithm (Lib/textwrap.py) and the line boundaries of str.splitlines
+// is ported from CPython (Python Software Foundation License Version 2; full text in
+// packaging/licenses/Python-LICENSE.txt, see THIRD_PARTY_NOTICES.md):
+// Copyright (c) 2001-2024 Python Software Foundation; All Rights Reserved
+
 #include "mdbridge/core/text.hpp"
 
 #include <algorithm>

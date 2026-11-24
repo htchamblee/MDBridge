@@ -12,6 +12,7 @@ programs on Windows).
 | CLI11 | 2.7.2 | BSD-3-Clause (`CLI11-LICENSE.txt`) | command line parsing (compiled in) | https://github.com/CLIUtils/CLI11 |
 | Vulkan-Headers | 1.4.363 | Apache 2.0 or MIT (`Vulkan-Headers-*.txt`) | Vulkan API declarations (compiled in) | https://github.com/KhronosGroup/Vulkan-Headers |
 | zlib | 1.3.1 | zlib licence (`zlib-LICENSE.txt`) | reading gzip-compressed density maps (compiled in) | https://github.com/madler/zlib |
+| CPython (algorithms only) | 3.13 | Python Software Foundation License 2 (`Python-LICENSE.txt`) | textwrap and str.splitlines rules in `src/core/text.cpp`, the json.loads scanner in `src/core/json.cpp`, fnmatch / glob pattern handling in `src/core/atom_selection.cpp` and `src/io/cif.cpp`, ported to C++ (compiled in) | https://github.com/python/cpython |
 | NumPy (interpolation and summation routines only) | 2.5.5 | BSD-3-Clause (`numpy-LICENSE.txt`) | `numpy.interp` ported to C++ in `src/io/external.cpp`, the pairwise summation of float arrays (`loops_utils.h.src`) in `src/io/mrc.cpp` (compiled in) | https://github.com/numpy/numpy |
 | chemfiles (XTC decompression only) | commit 920a1347 | BSD-3-Clause (`chemfiles-LICENSE.txt`) | XTC coordinate decompression ported to C++ in `src/io/gromacs.cpp` (compiled in) | https://github.com/chemfiles/chemfiles |
 | xdrfile (via chemfiles' port) | as in chemfiles | BSD-2-Clause (`xdrfile-LICENSE.txt`) | the XTC decompression routines chemfiles took from xdrfile, in `src/io/gromacs.cpp` (compiled in) | https://github.com/chemfiles/chemfiles (src/files/XDRFile.cpp) |
