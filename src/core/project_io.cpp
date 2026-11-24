@@ -9,6 +9,7 @@
 #include <utility>
 
 #include "mdbridge/core/clock.hpp"
+#include "mdbridge/core/ntpath.hpp"
 #include "mdbridge/core/paths.hpp"
 #include "mdbridge/core/python.hpp"
 #include "mdbridge/core/step_types.hpp"
@@ -91,9 +92,7 @@ std::string displayPath(const fs::path& path) { return pathToUtf8(path); }
 
 std::string absolutePath(const fs::path& path) {
 #ifdef _WIN32
-    std::error_code ec;
-    const fs::path absolute = fs::absolute(path, ec);
-    return pathToUtf8((ec ? path : absolute).lexically_normal());
+    return ntpath::abspath(pathToUtf8(path), currentDirectory());
 #else
     return posixpath::abspath(pathToUtf8(path), currentDirectory());
 #endif
@@ -101,8 +100,7 @@ std::string absolutePath(const fs::path& path) {
 
 std::string absoluteDirectory(const fs::path& path) {
 #ifdef _WIN32
-    const std::u8string text = pathFromUtf8(absolutePath(path)).parent_path().generic_u8string();
-    return std::string(text.begin(), text.end());
+    return ntpath::dirname(absolutePath(path));
 #else
     return posixpath::dirname(absolutePath(path));
 #endif

@@ -12,12 +12,13 @@ namespace mdbridge::core::detail {
 // A path as UTF-8 text, for messages ("{path}" in MDATK's messages is the path as given).
 std::string displayPath(const std::filesystem::path& path);
 
-// os.path.abspath of a path, as UTF-8 text (POSIX string rules; std::filesystem on Windows).
+// os.path.abspath of a path against the current directory, as UTF-8 text: posixpath's rules; on
+// Windows ntpath::abspath (MDBridge's Windows rules, ntpath.hpp), in generic form ("C:/p/x.toml").
 std::string absolutePath(const std::filesystem::path& path);
 
-// os.path.dirname(os.path.abspath(path)): the folder of a project, as UTF-8 text (POSIX string
-// rules). On Windows the folder std::filesystem gives, with '/' separators, so that the POSIX
-// rules of resolvePaths join and normalise below it ("C:/projects/p" + "../x" is "C:/projects/x").
+// os.path.dirname(os.path.abspath(path)): the folder of a project, as UTF-8 text (posixpath; on
+// Windows ntpath::dirname of the generic absolute path, "C:/projects/p"), the base against which
+// resolvePaths makes the project's relative paths absolute.
 std::string absoluteDirectory(const std::filesystem::path& path);
 
 // projectfile._reject_json: throws ProjectError for a .json path (any case).
