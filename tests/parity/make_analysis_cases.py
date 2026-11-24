@@ -15,6 +15,20 @@ copies (written by earlier generators). Writes into OUT_DIR:
                         conftest.make_universe) and the analyses run on them
   demo_dry_cases.json   the demo project (mdatk.demo.demo_project, as `mdatk demo` writes it) on
                         demo_dry.parm7 + demo_dry.nc: every analysis, all 24 frames
+  demo_dry_variants.json
+                        the demo project with per-analysis settings changed, other readers (DCD,
+                        XTC, TRR copies), use_pbc, frame selections, instances and errors
+  systems/              new small systems: periodic_ortho.parm7 / .nc and periodic_tric.parm7 / .nc
+                        (a 4-bp duplex and its Mg ions wrapped into a 25 A cubic and a triclinic
+                        cell, 6 frames), pdb_nobonds.pdb / .gro / .dcd (the demo without CONECT and
+                        element columns, chain IDs A / B / C, 8 frames), noh.pdb / .dcd (the demo's
+                        heavy atoms, 4 frames), aromatic.pdb (PHE / TYR / TRP / HIE / HSD / HIS next
+                        to bases, 3 models)
+  systems_cases.json    the analyses on those systems
+  spatial_cases.json    mdatk.spatial: _usable_box, pairs_within (no box, orthorhombic, triclinic,
+                        unusable boxes; points outside the cell, exact cutoffs, a == b),
+                        minimum_image_vectors (half-length ties, angles within / beyond allclose)
+                        and kabsch (weights, < 3 points, reflections, collinear points)
 
 Every case is one run of the analysis runner, built like Pipeline.analyze builds it: a project
 (the base project with `--set`-style overrides, mdatk.cli.apply_override), the analysis instances
@@ -554,7 +568,8 @@ def instrument(obj, margins, setup_frames):
 
 # --- running a case ---------------------------------------------------------------------------------
 
-ALL = list(ANALYSES)  # registry order: contacts, energy, hbonds, mg, rmsd, stacking, trace, proximity, atoms, basepairs
+# registry order: contacts, energy, hbonds, mg, rmsd, stacking, trace, proximity, atoms, basepairs
+ALL = list(ANALYSES)
 
 
 class System:
@@ -625,8 +640,7 @@ def run_case(name, system, base, overrides=(), instances=None, note=""):
             results = None
     case["log"] = [placeholders(line) for line in logs]
     case["progress"] = progress
-    case["python_warnings"] = [f"{w.category.__name__}: {placeholders(w.message)}" for w in caught
-                               if "MDAnalysis" not in str(w.filename)]
+    case["python_warnings"] = [f"{w.category.__name__}: {placeholders(w.message)}" for w in caught]
     case["setup_frame"] = setup_frames
     if results is None:
         return case
@@ -832,10 +846,458 @@ def demo_cases():
             "cases": cases}
 
 
+def demo_variants():
+    nc = file_system("demo_dry", DEMO_TOP, [DEMO_NC])
+    readers = {ext: file_system(f"demo_dry_{ext}", DEMO_TOP, [os.path.join(DEMO_FILES, f"demo_dry.{ext}")])
+               for ext in ("dcd", "xtc", "trr")}
+    cases = []
+
+    def case(name, overrides=(), instances=None, system=nc):
+        cases.append(run_case(name, system, demo_base, list(overrides), instances))
+
+    for ext, system in readers.items():  # other readers: DCD (times in AKMA units), lossy XTC, TRR
+        case(f"reader_{ext}", system=system)
+    case("use_pbc", ["analyses.use_pbc=true"])
+    case("frames_slice", ["inputs.start=3", "inputs.stop=20", "inputs.step=4"])
+    case("frames_negative", ["inputs.start=-5"], ["contacts", "rmsd", "trace", "basepairs"])
+    case("dt_given", ["inputs.dt_ps=2.5", "inputs.step=6"], ["contacts", "rmsd"])
+    # rmsd
+    case("rmsd_mass_weighted", ["analyses.rmsd.mass_weighted=true"], ["rmsd"])
+    case("rmsd_fit_selection", ["analyses.rmsd.targets.0.fit_selection=group:Aptamer and name C4'",
+                                "analyses.rmsd.targets.1.fit_selection=group:Target"], ["rmsd"])
+    case("rmsd_fit_selection_mass_weighted", ["analyses.rmsd.targets.0.fit_selection=group:Aptamer",
+                                              "analyses.rmsd.mass_weighted=true"], ["rmsd"])
+    case("rmsd_no_superposition", ["analyses.rmsd.superposition=false"], ["rmsd"])
+    for ref in (5, 999, -3):
+        case(f"rmsd_reference_{ref}", [f"analyses.rmsd.reference_frame={ref}"], ["rmsd"])
+    case("rmsd_reference_5_slice", ["analyses.rmsd.reference_frame=5", "inputs.start=2", "inputs.step=3"],
+         ["rmsd"])
+    targets = [{"label": "a b/c", "selection": "resid 1-3", "fit_selection": ""},
+               {"label": "", "selection": "name P", "fit_selection": "resid 13-24 and name P"},
+               {"label": "__", "selection": "resname XX", "fit_selection": ""},
+               {"label": "Ünïcode+.-x", "selection": "nucleic and not name H*", "fit_selection": ""}]
+    case("rmsd_targets", ["analyses.rmsd.targets=" + json.dumps(targets)], ["rmsd"])
+    case("rmsd_no_targets", ["analyses.rmsd.targets=[]"], ["rmsd"])
+    # contacts
+    case("contacts_same_group", ["analyses.contacts.group_b=Aptamer"], ["contacts"])
+    case("contacts_all_atoms", ["analyses.contacts.heavy_only=false"], ["contacts"])
+    case("contacts_cutoff_3", ["analyses.contacts.cutoff=3.0"], ["contacts"])
+    case("contacts_cutoff_8", ["analyses.contacts.cutoff=8.0"], ["contacts"])
+    # hbonds
+    case("hbonds_no_angle", ["analyses.hbonds.use_angle=false"], ["hbonds"])
+    case("hbonds_strict", ["analyses.hbonds.angle_cutoff=150", "analyses.hbonds.distance_cutoff=3.2"], ["hbonds"])
+    case("hbonds_elements", ["analyses.hbonds.donor_elements=n", "analyses.hbonds.acceptor_elements= O ,P,"],
+         ["hbonds"])
+    # mg
+    case("mg_geometry", ["analyses.mg.geometry=true"], ["mg"])
+    case("mg_geometry_tolerance", ["analyses.mg.geometry=true", "analyses.mg.angle_tolerance=10"], ["mg"])
+    case("mg_outer_shell", ["analyses.mg.bridge_shell=outer"], ["mg"])
+    case("mg_occupancy_selection", ["analyses.mg.occupancy_selection=resid 1-6 or resname MG",
+                                    "analyses.mg.occupancy_elements=O"], ["mg"])
+    case("mg_cutoffs", ["analyses.mg.inner_cutoff=2.2", "analyses.mg.outer_cutoff=3.5",
+                        "analyses.mg.ligand_elements=O,N"], ["mg"])
+    case("mg_no_ions", ["analyses.mg.mg_selection=resname XX"], ["mg", "trace", "proximity", "basepairs"])
+    # stacking
+    case("stacking_inter", ["analyses.stacking.scope=inter"], ["stacking"])
+    case("stacking_strict", ["analyses.stacking.planarity_cutoff=0.05", "analyses.stacking.angle_cutoff=20",
+                             "analyses.stacking.offset_cutoff=1.5"], ["stacking"])
+    case("stacking_no_rings", ["analyses.stacking.selection=resname MG"], ["stacking"])
+    case("stacking_one_group", ["analyses.stacking.selection=group:Aptamer"], ["stacking"])
+    # energy
+    case("energy_generic_lj", ["analyses.energy.use_parm7=false"], ["energy"])
+    for depth in (0, 1, 5):
+        case(f"energy_exclude_{depth}", [f"analyses.energy.exclude_bonded={depth}"], ["energy"])
+    case("energy_plain_coulomb", ["analyses.energy.distance_dependent=false", "analyses.energy.dielectric=1.0"],
+         ["energy"])
+    case("energy_cutoff_8", ["analyses.energy.cutoff=8.0", "analyses.energy.target_value=null"], ["energy"])
+    # basepairs
+    for stride in (1, 7):
+        case(f"basepairs_stride_{stride}", [f"analyses.basepairs.stride={stride}"], ["basepairs"])
+    case("basepairs_no_wobble", ["analyses.basepairs.stride=1", "analyses.basepairs.wobble=false"], ["basepairs"])
+    case("basepairs_cutoff_3", ["analyses.basepairs.stride=1", "analyses.basepairs.cutoff=3.0"], ["basepairs"])
+    # trace / proximity / atoms
+    case("trace_no_align", ["visual.align_frames=false", "inputs.step=3"], ["trace", "atoms"])
+    case("trace_no_ions", ["visual.show_ions=false"], ["trace"])
+    case("trace_atoms_p", ["visual.trace_atoms=P", "inputs.step=3"], ["trace", "atoms"])
+    case("trace_atoms_none", ["visual.trace_atoms=XX", "inputs.step=3"], ["trace", "atoms"])
+    case("structure_target_only", ['visual.structure_groups=["Target"]', "inputs.step=3"],
+         ["trace", "proximity", "atoms", "basepairs"])
+    case("structure_unknown_group", ['visual.structure_groups=["Nope"]'], ["trace"])
+    case("proximity_selection", ["visual.proximity_set=sel:resid 3"], ["proximity"])
+    case("proximity_aptamer_radius_4", ["visual.proximity_set=Aptamer", "analyses.proximity_search_radius=4.0"],
+         ["proximity"])
+    case("proximity_unknown", ["visual.proximity_set=Nope"], ["proximity"])
+    case("atoms_hydrogens", ["visual.rep_hydrogens=true", "inputs.step=6"], ["atoms"])
+    # instances
+    case("instances", ["analyses.stacking.scope=inter"],
+         ["contacts@Target+Aptamer", "energy@Target+Aptamer", "hbonds@Target+Aptamer", "mg@Target+Aptamer",
+          "rmsd@Aptamer", "rmsd@Target", "stacking@Target+Aptamer"])
+    # errors
+    case("instance_unknown_group", [], ["contacts@Aptamer+Nope"])
+    case("instance_group_count", [], ["contacts@Aptamer"])
+    case("instance_no_groups", [], ["trace@Aptamer"])
+    case("unknown_analysis", [], ["contacts", "nope"])
+    for name in ("contacts", "hbonds", "energy"):
+        case(f"{name}_group_inside", ["groups.1.residues=1-6"], [name])
+    case("contacts_unknown_group", ["analyses.contacts.group_a=Nope"], ["contacts"])
+    case("mg_unknown_groups", ["analyses.mg.group_a=Nope", "analyses.mg.group_b=Target"], ["mg"])
+    case("empty_group", ["groups.1.residues=100-110"], ["contacts"])
+    return {"systems": {"demo_dry": {"topology": "{data}/topology/demo_dry.parm7",
+                                     "trajectories": ["{data}/io/trajectories/demo_dry.nc"]},
+                        **{f"demo_dry_{ext}": {"topology": "{data}/topology/demo_dry.parm7",
+                                               "trajectories": [f"{{data}}/io/trajectories/files/demo_dry.{ext}"]}
+                           for ext in ("dcd", "xtc", "trr")}},
+            "base_project": "mdatk.demo.demo_project('demo_dry.parm7', 'demo_dry.nc', 'MDATK_output', 12, "
+                            "cleaning=False, mid_time_ps=120.0)",
+            "cases": cases}
+
+
+# --- new small systems ------------------------------------------------------------------------------
+
+SYSTEMS = os.path.join(OUT, "systems")
+
+
+def pdb_atom_line(serial, name, resname, chain, resid, xyz, element="", hetatm=False):
+    field = name if len(name) >= 4 else " " + name.ljust(3)
+    record = "HETATM" if hetatm else "ATOM  "
+    line = (f"{record}{serial:5d} {field:4s} {resname:>3s} {chain:1s}{resid:4d}    "
+            f"{xyz[0]:8.3f}{xyz[1]:8.3f}{xyz[2]:8.3f}{1.0:6.2f}{0.0:6.2f}          ")
+    return line + (f"{element:>2s}" if element else "")
+
+
+def write_pdb(path, models, atoms, box=None):
+    """atoms: [(name, resname, chain, resid, element, hetatm)]; models: [n_atoms x 3] per model."""
+    lines = ["REMARK   1 MDBRIDGE TEST SYSTEM (tests/parity/make_analysis_cases.py)"]
+    if box is not None:
+        lines.append(f"CRYST1{box[0]:9.3f}{box[1]:9.3f}{box[2]:9.3f}{box[3]:7.2f}{box[4]:7.2f}{box[5]:7.2f}"
+                     " P 1           1")
+    for m, xyz in enumerate(models):
+        if len(models) > 1:
+            lines.append(f"MODEL     {m + 1:4d}")
+        for k, (name, resname, chain, resid, element, het) in enumerate(atoms):
+            lines.append(pdb_atom_line(k + 1, name, resname, chain, resid, xyz[k], element, het))
+        lines.append("TER")
+        if len(models) > 1:
+            lines.append("ENDMDL")
+    lines.append("END")
+    with open(path, "w", encoding="ascii", newline="\n") as fh:
+        fh.write("\n".join(lines) + "\n")
+
+
+def write_mda(path, topology, coords, box, dt=10.0, fmt=None):
+    import MDAnalysis as mda
+    from MDAnalysis.coordinates.memory import MemoryReader
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        u = mda.Universe(topology, np.asarray(coords, dtype=np.float32), format=MemoryReader, dt=dt,
+                         dimensions=box)
+        with mda.Writer(path, n_atoms=u.atoms.n_atoms, format=fmt) as w:
+            for _ in u.trajectory:
+                w.write(u.atoms)
+
+
+def demo_frames():
+    u = loader.load_universe(DEMO_TOP, [DEMO_NC])
+    coords = np.array([ts.positions.copy() for ts in u.trajectory], dtype=np.float32)
+    return u, coords, u.trajectory.ts.dimensions.astype(np.float64)
+
+
+def periodic_systems():
+    from MDAnalysis.lib.distances import apply_PBC
+    from mdatk.demo import build_system, write_topology, write_trajectory
+
+    topo, coords, _ = build_system("GCAU", n_frames=6, dt_ps=10.0, solvent=False, seed=11)
+    n_solute = sum(1 for a in topo["atoms"] if a["el"] != "MG")
+    centre = coords[0, :n_solute].astype(np.float64).mean(axis=0)
+    shifted = coords.astype(np.float64) - centre + np.array([1.0, 2.0, 0.5])  # the molecule straddles a corner
+    out = {}
+    for name, box in (("periodic_ortho", np.array([25.0, 25.0, 25.0, 90.0, 90.0, 90.0])),
+                      ("periodic_tric", np.array([25.0, 27.0, 29.0, 60.0, 70.0, 80.0]))):
+        wrapped = np.array([apply_PBC(f.astype(np.float32), box.astype(np.float32)) for f in shifted],
+                           dtype=np.float32)
+        top = os.path.join(SYSTEMS, f"{name}.parm7")
+        traj = os.path.join(SYSTEMS, f"{name}.nc")
+        write_topology(top, topo, box[:3])
+        write_trajectory(traj, top, wrapped, box, 10.0)
+        out[name] = (top, traj)
+    return out
+
+
+def pdb_systems():
+    u, coords, box = demo_frames()
+    atoms = u.atoms
+    chain = ["A" if r <= 12 else "B" if r <= 24 else "C" for r in atoms.resids]
+    out = {}
+    # pdb_nobonds: no CONECT, no element column (elements and masses guessed), chain IDs
+    rows = [(str(a.name), str(a.resname), c, int(a.resid), "", str(a.resname) == "MG") for a, c in zip(atoms, chain)]
+    pdb = os.path.join(SYSTEMS, "pdb_nobonds.pdb")
+    write_pdb(pdb, [coords[0]], rows, box)
+    dcd = os.path.join(SYSTEMS, "pdb_nobonds.dcd")
+    write_mda(dcd, pdb, coords[:8], box, fmt="DCD")
+    gro = os.path.join(SYSTEMS, "pdb_nobonds.gro")
+    write_mda(gro, pdb, coords[:1], box, fmt="GRO")
+    out["pdb_nobonds"] = (pdb, dcd, gro)
+    # noh: the heavy atoms, with an element column
+    from mdatk.selections import atom_elements
+    el = atom_elements(atoms)
+    keep = np.flatnonzero(el != "H")
+    rows = [(str(atoms[k].name), str(atoms[k].resname), chain[k], int(atoms[k].resid), el[k].capitalize(),
+             str(atoms[k].resname) == "MG") for k in keep]
+    noh = os.path.join(SYSTEMS, "noh.pdb")
+    write_pdb(noh, [coords[0, keep]], rows, box)
+    noh_dcd = os.path.join(SYSTEMS, "noh.dcd")
+    write_mda(noh_dcd, noh, coords[::6, keep], box, fmt="DCD")
+    out["noh"] = (noh, noh_dcd)
+    return out
+
+
+def _polygon(n, radius, start_deg=0.0):
+    ang = np.radians(start_deg + 360.0 / n * np.arange(n))
+    return np.stack([radius * np.cos(ang), radius * np.sin(ang), np.zeros(n)], axis=1)
+
+
+def aromatic_residue(resname):
+    """Atom name -> local coordinates: ring in the xy plane centred at the origin, side chain to -x."""
+    if resname in ("PHE", "TYR"):
+        ring = dict(zip(("CZ", "CE2", "CD2", "CG", "CD1", "CE1"), _polygon(6, 1.39)))  # CG at 180 deg
+        if resname == "TYR":
+            ring["OH"] = np.array([1.39 + 1.36, 0.0, 0.0])
+        cg = ring["CG"]
+    elif resname == "TRP":
+        hexagon = dict(zip(("CH2", "CZ3", "CE3", "CD2", "CE2", "CZ2"), _polygon(6, 1.40, -30.0)))
+        r5, a5 = 1.4 / (2 * np.sin(np.radians(36))), 1.4 / (2 * np.tan(np.radians(36)))
+        c5 = np.array([-1.40 * np.cos(np.radians(30)) - a5, 0.0, 0.0])
+        five = {}
+        for name, deg in (("CG", 108.0), ("CD1", 180.0), ("NE1", 252.0)):
+            five[name] = c5 + r5 * np.array([np.cos(np.radians(deg)), np.sin(np.radians(deg)), 0.0])
+        ring = {**hexagon, **five}
+        cg = ring["CG"]
+    else:  # HIS, HIE, HSD
+        ring = dict(zip(("CG", "ND1", "CE1", "NE2", "CD2"), _polygon(5, 1.4 / (2 * np.sin(np.radians(36))), 180.0)))
+        cg = ring["CG"]
+    out = dict(ring)
+    out["CB"] = cg + 1.51 * cg / np.linalg.norm(cg)
+    out["CA"] = out["CB"] + np.array([-1.0, 1.1, 0.3])
+    out["N"] = out["CA"] + np.array([-0.5, 1.3, -0.4])
+    out["C"] = out["CA"] + np.array([-1.4, -0.3, 0.2])
+    out["O"] = out["C"] + np.array([-0.6, -1.0, 0.4])
+    return out
+
+
+def _rotation_to_z(normal):
+    n = normal / np.linalg.norm(normal)
+    z = np.array([0.0, 0.0, 1.0])
+    v = np.cross(n, z)
+    s, c = np.linalg.norm(v), float(np.dot(n, z))
+    if s < 1e-12:
+        return np.eye(3) if c > 0 else np.diag([1.0, -1.0, -1.0])
+    k = np.array([[0, -v[2], v[1]], [v[2], 0, -v[0]], [-v[1], v[0], 0]]) / s
+    return np.eye(3) + s * k + (1 - c) * (k @ k)
+
+
+def _rx(deg):
+    a = np.radians(deg)
+    return np.array([[1, 0, 0], [0, np.cos(a), -np.sin(a)], [0, np.sin(a), np.cos(a)]])
+
+
+def aromatic_system():
+    """Bases with aromatic side chains stacked on them, and a His-His pair, in 3 models."""
+    from mdatk.demo import nucleotide
+
+    # (first residue, partner, per model: (dx, dz, tilt about x in degrees, out-of-plane lift of one atom))
+    pairs = [("G", "PHE", [(0.0, 3.4, 0, 0), (2.0, 3.4, 0, 0), (0.0, 3.4, 0, 0.6)]),
+             ("C", "TYR", [(1.0, 3.5, 0, 0), (0.0, 3.5, 25, 0), (0.0, 3.5, 40, 0)]),
+             ("A", "TRP", [(0.0, 3.6, 0, 0), (0.0, 4.4, 0, 0), (0.0, 4.7, 0, 0)]),
+             ("U", "HIE", [(0.0, 3.4, 0, 0), (0.5, 3.4, 10, 0), (0.0, 3.4, 0, 0.3)]),
+             ("HSD", "HIS", [(0.0, 3.5, 0, 0), (0.0, 3.5, 10, 0), (6.0, 3.5, 0, 0)])]
+    first, second = [], []
+    for slot, (res1, res2, _) in enumerate(pairs):
+        if len(res1) == 1:
+            nt, _bonds = nucleotide(res1)
+            names = [a["name"] for a in nt]
+            xyz = np.array([a["xyz"] for a in nt], dtype=np.float64)
+            els = [a["el"].capitalize() for a in nt]
+            ring = stacking_mod.PURINE if res1 in ("A", "G") else stacking_mod.PYRIMIDINE
+            ring_xyz = np.array([xyz[names.index(n)] for n in ring])
+        else:
+            local = aromatic_residue(res1)
+            names, xyz = list(local), np.array(list(local.values()))
+            els = [n[0] for n in names]
+            ring_xyz = np.array([local[n] for n in stacking_mod.AROMATIC_RESIDUES[res1]])
+        c = ring_xyz.mean(axis=0)
+        normal = np.linalg.svd(ring_xyz - c)[2][2]
+        placed = (xyz - c) @ _rotation_to_z(normal).T + np.array([0.0, 20.0 * slot, 0.0])
+        first.append((res1, names, els, placed))
+        second.append((res2, aromatic_residue(res2)))
+    atoms, models = [], [[], [], []]
+    for slot, (res1, names, els, placed) in enumerate(first):
+        resid = slot + 1
+        for n, e in zip(names, els):
+            atoms.append((n, res1, "A" if len(res1) == 1 else "B", resid, e, False))
+        for m in range(3):
+            models[m].extend(placed)
+    for slot, (res2, local) in enumerate(second):
+        resid = len(pairs) + slot + 1
+        names = list(local)
+        ring_names = stacking_mod.AROMATIC_RESIDUES[res2]
+        for n in names:
+            atoms.append((n, res2, "B", resid, n[0], False))
+        for m in range(3):
+            dx, dz, tilt, lift = pairs[slot][2][m]
+            xyz = np.array([local[n] for n in names])
+            if lift:
+                xyz[names.index(ring_names[0])] += np.array([0.0, 0.0, lift])
+            xyz = xyz @ _rx(tilt).T + np.array([dx, 20.0 * slot, dz])
+            models[m].extend(xyz)
+    # resids: G C A U HSD 1-5 (chain A / B), their partners PHE TYR TRP HIE HIS 6-10 (chain B)
+    path = os.path.join(SYSTEMS, "aromatic.pdb")
+    write_pdb(path, [np.array(m) for m in models], atoms)
+    return path
+
+
+def systems_cases():
+    os.makedirs(SYSTEMS, exist_ok=True)
+    periodic = periodic_systems()
+    pdbs = pdb_systems()
+    aromatic = aromatic_system()
+    cases, systems = [], {}
+
+    def sys_(name, top, trajs=()):
+        systems[name] = {"topology": placeholders(top), "trajectories": [placeholders(t) for t in trajs]}
+        return file_system(name, top, trajs)
+
+    four = lambda: demo_project("periodic.parm7", "periodic.nc", "MDATK_output", 4, cleaning=False)  # noqa: E731
+    for name, (top, traj) in periodic.items():
+        s = sys_(name, top, [traj])
+        cases.append(run_case(f"{name}_open", s, four, [], ALL))
+        cases.append(run_case(f"{name}_pbc", s, four, ["analyses.use_pbc=true"], ALL))
+        cases.append(run_case(f"{name}_pbc_cutoff_12", s, four,
+                              ["analyses.use_pbc=true", "analyses.contacts.cutoff=12.0",
+                               "analyses.hbonds.distance_cutoff=12.0", "analyses.proximity_search_radius=12.0",
+                               "analyses.stacking.distance_cutoff=12.0", "analyses.mg.outer_cutoff=12.0"],
+                              ["contacts", "energy", "hbonds", "mg", "stacking", "proximity"]))
+        cases.append(run_case(f"{name}_pbc_geometry", s, four,
+                              ["analyses.use_pbc=true", "analyses.mg.geometry=true", "analyses.mg.bridge_shell=outer",
+                               "analyses.hbonds.use_angle=true"], ["hbonds", "mg"]))
+    pdb, dcd, gro = pdbs["pdb_nobonds"]
+    demo = demo_base
+    for name, top, trajs in (("pdb_nobonds", pdb, []), ("pdb_nobonds_dcd", pdb, [dcd]),
+                             ("gro_nobonds", gro, []), ("gro_nobonds_dcd", gro, [dcd])):
+        s = sys_(name, top, trajs)
+        cases.append(run_case(name, s, demo, [], ALL))
+    s = sys_("pdb_nobonds_dcd", pdb, [dcd])
+    cases.append(run_case("pdb_nobonds_dcd_mass_weighted", s, demo,
+                          ["analyses.rmsd.mass_weighted=true", "analyses.rmsd.targets.1.fit_selection=resid 1-12"],
+                          ["rmsd"]))
+    cases.append(run_case("pdb_nobonds_dcd_pbc", s, demo, ["analyses.use_pbc=true"],
+                          ["contacts", "hbonds", "energy", "atoms"]))
+    noh, noh_dcd = pdbs["noh"]
+    s = sys_("noh", noh, [noh_dcd])
+    cases.append(run_case("noh", s, demo, [], ALL))
+    cases.append(run_case("noh_no_angle", s, demo, ["analyses.hbonds.use_angle=false"], ["hbonds"]))
+    s = sys_("aromatic", aromatic)
+    arom = micro_base({"Aptamer": "1-4", "Target": "5-10"})
+    cases.append(run_case("aromatic", s, arom, [], ALL))
+    cases.append(run_case("aromatic_inter", s, arom, ["analyses.stacking.scope=inter"], ["stacking"]))
+    cases.append(run_case("aromatic_strict", s, arom, ["analyses.stacking.planarity_cutoff=0.1",
+                                                       "analyses.stacking.angle_cutoff=15",
+                                                       "analyses.stacking.distance_cutoff=4.0"], ["stacking"]))
+    cases.append(run_case("aromatic_proteins", s, arom, ["analyses.stacking.selection=resname PHE TYR TRP HIS HIE HSD"],
+                          ["stacking"]))
+    return {"systems": systems,
+            "base_projects": {
+                "periodic_*": "mdatk.demo.demo_project('periodic.parm7', 'periodic.nc', 'MDATK_output', 4, "
+                              "cleaning=False)",
+                "pdb_nobonds*, gro_nobonds*, noh": "the demo project (demo_dry_cases.json)",
+                "aromatic": "tests/conftest.micro_project({'Aptamer': '1-4', 'Target': '5-10'})"},
+            "cases": cases}
+
+
+# --- mdatk.spatial ----------------------------------------------------------------------------------
+
+def spatial_cases():
+    rng = np.random.default_rng(20261124)
+    hexes = lambda a: [fhex(v) for v in np.asarray(a, dtype=np.float64).reshape(-1)]  # noqa: E731
+
+    usable = []
+    for box in (None, [10, 10, 10, 90, 90, 90], [10, 0, 10, 90, 90, 90], [10, 10, -1, 90, 90, 90],
+                [10, 10, 10], [10, 10, 10, 90, 90, 90, 1], [1e-30, 1, 1, 0, 0, 0], [5, 6, 7, 60, 70, 80],
+                [float("nan"), 1, 1, 90, 90, 90], [[10, 10, 10, 90, 90, 90]]):
+        out = S._usable_box(box)
+        usable.append({"box": tagged(box), "result": None if out is None else hexes(out)})
+
+    pairs = []
+    boxes = {"none": None, "ortho": np.array([20.0, 20.0, 20.0, 90.0, 90.0, 90.0]),
+             "ortho_uneven": np.array([12.0, 30.0, 18.5, 90.0, 90.0, 90.0]),
+             "triclinic": np.array([20.0, 22.0, 24.0, 70.0, 80.0, 100.0]),
+             "zero": np.array([0.0, 0.0, 0.0, 90.0, 90.0, 90.0]), "short": np.array([20.0, 20.0, 20.0])}
+
+    def add_pairs(name, a, b, cutoff, box_name):
+        i, j, d = S.pairs_within(a, b, cutoff, boxes[box_name])
+        pairs.append({"name": name, "a": hexes(a), "b": hexes(b), "cutoff": fhex(cutoff), "box": box_name,
+                      "i": [int(v) for v in i], "j": [int(v) for v in j], "d": hexes(d),
+                      "dtypes": [i.dtype.str, j.dtype.str, d.dtype.str]})
+
+    for box_name in boxes:
+        for n_a, n_b, cutoff in ((60, 50, 4.0), (30, 30, 7.5), (5, 40, 9.5), (0, 10, 3.0), (10, 0, 3.0)):
+            a = rng.uniform(-5, 25, (n_a, 3))
+            b = rng.uniform(-5, 25, (n_b, 3))
+            add_pairs(f"random_{n_a}_{n_b}_{cutoff:g}", a, b, cutoff, box_name)
+        a = rng.uniform(0, 20, (25, 3))
+        add_pairs("self", a, a, 5.0, box_name)
+    exact = np.array([[0.0, 0.0, 0.0], [1.0, 2.0, 2.0]])
+    for box_name in ("none", "ortho"):
+        add_pairs("exact_cutoff", exact[:1], exact[1:], 3.0, box_name)
+        add_pairs("across_face", np.array([[0.2, 5.0, 5.0]]), np.array([[19.2, 5.0, 5.0]]), 2.0, box_name)
+        add_pairs("far_outside", np.array([[-41.0, 5.0, 5.0], [65.0, -30.0, 2.0]]),
+                  np.array([[0.5, 5.0, 5.0], [4.0, 9.0, 1.5]]), 3.0, box_name)
+        add_pairs("duplicates", np.array([[1.0, 1.0, 1.0]] * 3), np.array([[1.5, 1.0, 1.0]] * 2), 1.0, box_name)
+    add_pairs("cutoff_half_box", rng.uniform(0, 20, (15, 3)), rng.uniform(0, 20, (15, 3)), 10.0, "ortho")
+    add_pairs("cutoff_beyond_half_box", rng.uniform(0, 20, (15, 3)), rng.uniform(0, 20, (15, 3)), 12.0, "ortho")
+
+    images = []
+    image_boxes = [None, [10.0, 10.0, 10.0, 90.0, 90.0, 90.0], [7.0, 11.0, 13.0, 90.0, 90.0, 90.0],
+                   [10.0, 10.0, 10.0, 90.000001, 90.0, 89.999999], [10.0, 10.0, 10.0, 90.001, 90.0, 90.0],
+                   [10.0, 10.0, 10.0, 60.0, 70.0, 80.0], [0.0, 10.0, 10.0, 90.0, 90.0, 90.0]]
+    ties = np.array([[5.0, -5.0, 15.0], [-15.0, 25.0, 0.0], [4.999999, 5.000001, -5.0], [0.0, 0.0, 0.0]])
+    for box in image_boxes:
+        v = np.vstack([rng.uniform(-30, 30, (12, 3)), ties])
+        images.append({"box": None if box is None else hexes(box), "vectors": hexes(v),
+                       "result": hexes(S.minimum_image_vectors(v, box))})
+
+    kab = []
+
+    def add_kabsch(name, mobile, reference, weights=None):
+        r, mc, rc = S.kabsch(mobile, reference, weights)
+        kab.append({"name": name, "mobile": hexes(mobile), "reference": hexes(reference),
+                    "weights": None if weights is None else hexes(weights),
+                    "rotation": hexes(r), "mobile_center": hexes(mc), "reference_center": hexes(rc)})
+
+    for n in (1, 2, 3, 5, 20):
+        x = rng.normal(scale=4.0, size=(n, 3))
+        rot = euler_to_matrix(list(rng.uniform(-180, 180, 3)))
+        y = x @ rot.T + rng.normal(size=3) * 5 + rng.normal(scale=0.3, size=(n, 3))
+        add_kabsch(f"random_{n}", x, y)
+        add_kabsch(f"random_{n}_weighted", x, y, rng.uniform(0.5, 16.0, n))
+    x = rng.normal(size=(8, 3))
+    add_kabsch("identical", x, x)
+    add_kabsch("reflection", x, x * np.array([-1.0, 1.0, 1.0]))
+    line = np.outer(np.arange(6.0), [1.0, 2.0, 0.5])
+    add_kabsch("collinear", line, line @ euler_to_matrix([10, 20, 30]).T)
+    plane = np.column_stack([rng.normal(size=(7, 2)), np.zeros(7)])
+    add_kabsch("planar", plane, plane @ euler_to_matrix([0, 0, 75]).T + 1.0)
+    add_kabsch("zero_weight", x, x @ euler_to_matrix([5, 5, 5]).T, np.array([0, 1, 1, 1, 0, 2, 3, 1.0]))
+    return {"usable_box": usable, "pairs_within": pairs, "minimum_image_vectors": images, "kabsch": kab}
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
     write_json("micro_cases.json", micro_cases())
     write_json("demo_dry_cases.json", demo_cases())
+    write_json("demo_dry_variants.json", demo_variants())
+    write_json("systems_cases.json", systems_cases())
+    write_json("spatial_cases.json", spatial_cases())
     remove_offsets()
 
 
