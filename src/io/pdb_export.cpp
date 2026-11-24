@@ -37,28 +37,10 @@ bool containsPair(const std::pair<std::string_view, std::string_view> (&list)[N]
         return pair.first == first && pair.second == second;
     });
 }
-
-// The atom-name field (columns 13-16): names of four characters and more fill it from column 13;
-// one-character names start in column 14; two- and three-character names start in column 14
-// unless they name an ion or one of the listed residue / atom combinations.
+// The atom-name field (columns 13-16). CLEAN ROOM: reimplement from scratchpad/cleanroom/pdb-atom-name.md
 U32 atomNameField(const std::string& name, const std::string& resname) {
-    const U32 text = toU32(name);
-    if (text.empty()) {
-        return U"    ";
-    }
-    if (text.size() >= 4) {
-        return text.substr(0, 4);
-    }
-    if (text.size() == 1) {
-        return U" " + text + U"  ";
-    }
-    const std::string head = toUtf8(text.substr(0, 2));
-    const bool first = (resname == name || contains(kIons, head) || name == "UNK" ||
-                        (contains(kSpecialHg, resname) && head == "HG") ||
-                        (contains(kSpecialCl, resname) && head == "CL") ||
-                        containsPair(kIncludePairs, resname, name)) &&
-                       !containsPair(kExcludePairs, resname, name);
-    return first ? ljust(text, 4) : U" " + ljust(text, 3);
+    (void)name; (void)resname;
+    throw std::logic_error("clean room: atom name field not implemented");
 }
 
 // util.ltruncate_int: the last `digits` characters of str(value) as an int
