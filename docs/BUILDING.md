@@ -10,6 +10,9 @@
 | Build tool | Ninja (or Make) | Visual Studio's MSBuild |
 | Python 3 | parity scripts, smoke test, shader compiler wrapper | same |
 
+GCC and MSVC are the only supported compilers. Clang is not supported: builds and CI do not use it,
+and code need not compile with it.
+
 Everything else is fetched by CMake at configure time into the build folder, pinned to a release
 and checked against its SHA-512 (`cmake/Dependencies.cmake`): toml++, CLI11, the Vulkan headers and
 GoogleTest. Nothing is installed on the system. The Vulkan *loader* is not needed to build: the
