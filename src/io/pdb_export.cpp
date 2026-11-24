@@ -37,10 +37,28 @@ bool containsPair(const std::pair<std::string_view, std::string_view> (&list)[N]
         return pair.first == first && pair.second == second;
     });
 }
-// The atom-name field (columns 13-16). CLEAN ROOM: reimplement from scratchpad/cleanroom/pdb-atom-name.md
+
+// Columns 13-16: the atom name starts in column 14 unless it has four or more characters, or it is
+// a two or three character name that the writer's lists put in column 13 (the residue's own name,
+// ion prefixes, UNK, mercury / chlorine residues, included pairs), barring the excluded pairs.
 U32 atomNameField(const std::string& name, const std::string& resname) {
-    (void)name; (void)resname;
-    throw std::logic_error("clean room: atom name field not implemented");
+    const U32 text = toU32(name);
+    if (text.empty()) {
+        return U32(4, U' ');
+    }
+    if (text.size() >= 4) {
+        return text.substr(0, 4);
+    }
+    bool column13 = false;
+    if (text.size() > 1) {
+        const std::string prefix = toUtf8(slice(text, 0, 2));
+        column13 = resname == name || contains(kIons, prefix) || name == "UNK" ||
+                   (prefix == "HG" && contains(kSpecialHg, resname)) ||
+                   (prefix == "CL" && contains(kSpecialCl, resname)) ||
+                   containsPair(kIncludePairs, resname, name);
+        column13 = column13 && !containsPair(kExcludePairs, resname, name);
+    }
+    return column13 ? ljust(text, 4) : U" " + ljust(text, 3);
 }
 
 // util.ltruncate_int: the last `digits` characters of str(value) as an int
