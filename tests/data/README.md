@@ -26,8 +26,8 @@ guessable one- and two-letter elements; PDBWriter's ion names and Hg / Cl residu
 lists, and its include / exclude pairs (empty: no independent counterpart). Only data is
 replaced, no MDAnalysis function. The generators that depend on these tables apply the patch:
 `dump_topologies.py` (every dump, also when imported), `make_atom_selection_cases.py`,
-`make_selections_cases.py`, `make_parm7_cases.py`, `make_loader_cases.py`, `make_export_cases.py` and
-`cli_parity.py` (its MDATK side); the others do not touch them. `tools/gen_selection_tables.py` and
+`make_selections_cases.py`, `make_parm7_cases.py`, `make_loader_cases.py`, `make_export_cases.py`,
+`make_rmsd_cases.py`, `make_universe_cases.py` and `cli_parity.py` (its MDATK side); the others do not touch them. `tools/gen_selection_tables.py` and
 `tools/gen_pdb_tables.py` no longer write any of these tables, only the property names of the
 selection language and Python's Unicode data.
 
@@ -430,6 +430,27 @@ job, against the AppImage):
 ```bash
 /opt/mdbridge-venv/bin/python -I -B tests/parity/cli_parity.py --mdatk /tmp/mdatk --write tests/data/cli/cli_cases.json
 /opt/mdbridge-venv/bin/python -I -B tests/parity/cli_parity.py --mdatk /tmp/mdatk --mdbridge build/tests/mdbridge_commands_cli
+```
+
+`analysis/` holds the probe data of the milestone-3 behaviour specifications (`docs/specs/m3-*.md`),
+for the tests of `src/analysis/`:
+
+| File | Content |
+|---|---|
+| `rmsd_cases.json` | `docs/specs/m3-rmsd.md`: MDAnalysis 2.11.0's `rms.rmsd(a, b, weights, center=True, superposition=True)` of about 240 coordinate pairs (general structures with noise from 0 to 5 Å, identical / translated / rotated copies, planar sets, one and two atoms, collinear and coincident atoms, weights leaving one or two atoms, NaN / infinite inputs and weights, negative, zero-sum, tiny and huge weights, empty inputs, shape and weight errors) with the result, error or numpy warnings, `scale` (E0 / N, the scale of the tolerance) and a `degenerate` flag; and the series MDATK's rmsd analysis computes on the demo trajectory (targets as atom-index runs, masses or no weights, reference frames 0 / 5 / 23) |
+| `universe_cases.json` | `docs/specs/m3-universe-notes.md`: iteration over `trajectory[int64 array]` on the demo NetCDF / XTC / DCD / TRR files, a multi-model PDB and a GRO file (order, repeats, negative and out-of-range indices, stopping early; the current frame afterwards); cells read back from files with zero lengths / angles; per topology (parm7, PDB with and without CONECT, GRO) whether charges and chain IDs exist, the errors when not, bonds in order, fragment indices and, per atom group, its bonds, fragment indices, residues, residue atoms, boolean-mask subsets and unions |
+| `universe_files/*` | the crafted inputs of `universe_cases.json`: `frag_conect.pdb` (CONECT records out of order, four fragments), `conect_lonely.pdb` (a CONECT record without partners), `cell_*.nc` / `.dcd` / `.xtc` / `.trr` (cells with a zero length, zero lengths, all zeros, a zero angle, orthorhombic) |
+
+Floats are `float.hex()` strings. Both generators run MDAnalysis with the independent tables (first
+section); neither imports MDATK (its checkout is only the common first argument). No LAPACK result is
+recorded, so the files do not depend on the CPU (`make_rmsd_cases.py --report` prints the spread
+between MDAnalysis and an SVD superposition that the spec's tolerances rest on). To regenerate, with
+Python 3.13 and MDAnalysis 2.11.0 in `/opt/mdbridge-venv` (the output is reproducible; the universe
+cases read `io/loader/files` and `io/trajectories`, so run those generators first):
+
+```bash
+/opt/mdbridge-venv/bin/python -I -B tests/parity/make_rmsd_cases.py /tmp/mdatk tests/data/analysis
+/opt/mdbridge-venv/bin/python -I -B tests/parity/make_universe_cases.py /tmp/mdatk tests/data/analysis
 ```
 
 ## Checking that the data is reproducible
