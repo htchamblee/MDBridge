@@ -274,13 +274,23 @@ TEST(PairsWithin, SpecialInputs) {
     EXPECT_EQ(open.size(), 1u);
 }
 
-TEST(PairsWithin, PeriodicPathIsAHookForW1_1) {
+TEST(PairsWithin, UsableBoxTakesThePeriodicPath) {
+    // float64 points are rounded to float32, as MDATK passes them to capped_distance
     const std::vector<double> a = {0.2, 5, 5}, b = {9.2, 5, 5};
-    EXPECT_THROW((void)pairsWithin(a, b, 2.0, Box{10, 10, 10, 90, 90, 90}), std::logic_error);
-    EXPECT_THROW((void)pairsWithin(asFloat(a), asFloat(b), 2.0, Box{10, 10, 10, 90, 90, 90}),
-                 std::logic_error);
+    const Box box{10, 10, 10, 90, 90, 90};
+    const PairList fromDouble = pairsWithin(a, b, 2.0, box);
+    const PairList fromFloat = pairsWithin(asFloat(a), asFloat(b), 2.0, box);
+    const PairList direct = pairsWithinPeriodic(asFloat(a), asFloat(b), 2.0, box);
+    EXPECT_EQ(triples(fromDouble), triples(direct));
+    EXPECT_EQ(triples(fromFloat), triples(direct));
+    ASSERT_EQ(direct.size(), 1u);
+    // brute force (1 x 1 points): f32 difference 9 scaled by fl32(1 / 10), nearest image
+    const double s = 9.0 * static_cast<double>(static_cast<float>(1.0 / 10.0));
+    EXPECT_EQ(direct.d[0], std::abs(10.0 * (s - std::round(s))));
     // empty inputs return before the box is looked at
-    EXPECT_TRUE(pairsWithin(std::vector<double>{}, b, 2.0, Box{10, 10, 10, 90, 90, 90}).empty());
+    EXPECT_TRUE(pairsWithin(std::vector<double>{}, b, 2.0, box).empty());
+    EXPECT_THROW((void)pairsWithinPeriodic(std::vector<float>{0, 0}, asFloat(b), 2.0, box),
+                 std::invalid_argument);
 }
 
 // tests/test_analyses.py::test_pairs_within_matches_brute_force_and_pbc, open part
@@ -313,8 +323,8 @@ TEST(PairsWithin, MdatkTestMatchesBruteForce) {
     }
 }
 
-// the periodic part of the same MDATK test: enabled by W1.1 (periodic neighbour search)
-TEST(PairsWithin, DISABLED_MdatkTestPeriodic) {
+// the periodic part of the same MDATK test
+TEST(PairsWithin, MdatkTestPeriodic) {
     const PairList got =
         pairsWithin(std::vector<double>{0.2, 5, 5}, std::vector<double>{9.2, 5, 5}, 2.0,
                     Box{10, 10, 10, 90, 90, 90});
