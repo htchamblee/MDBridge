@@ -351,6 +351,40 @@ TEST(Dataset, NumArray) {
     EXPECT_EQ(NumArray(std::vector<std::int8_t>{-1}).dtypeName(), "int8");
     EXPECT_EQ(NumArray(std::vector<float>{0.5f}).toDouble(), std::vector<double>{0.5});
     EXPECT_EQ(NumArray().size(), 0u);
+    EXPECT_EQ(NumArray(std::vector<double>{1}).stringWidth(), 0u);
+}
+
+// numpy unicode arrays: np.array(values, dtype=str) and assignment to a '<U8' array (trace resname)
+TEST(Dataset, NumArrayStrings) {
+    const NumArray names(std::vector<std::string>{"G", "Mg2+", "Åx"});
+    EXPECT_EQ(names.dtype(), NumArray::DType::String);
+    EXPECT_EQ(names.dtypeName(), "<U4");
+    EXPECT_EQ(names.stringWidth(), 4u);
+    EXPECT_EQ(names.values<std::string>()[2], "Åx");
+    EXPECT_THROW(names.toDouble(), std::invalid_argument);
+    EXPECT_THROW(names.values<double>(), std::invalid_argument);
+
+    const NumArray truncated = NumArray::strings({"ABCDEFGHIJ", "ééééééééé", "x中"}, 8);
+    EXPECT_EQ(truncated.dtypeName(), "<U8");
+    EXPECT_EQ(truncated.values<std::string>()[0], "ABCDEFGH");
+    EXPECT_EQ(truncated.values<std::string>()[1], "éééééééé");
+    EXPECT_EQ(truncated.values<std::string>()[2], "x中");
+
+    const NumArray empty(std::vector<std::string>{});
+    EXPECT_EQ(empty.dtypeName(), "<U1");  // np.zeros(0, dtype=str)
+    EXPECT_EQ(empty.size(), 0u);
+    EXPECT_EQ(NumArray(std::vector<std::string>{"", ""}).dtypeName(), "<U1");
+    // numpy drops trailing NULs, the width counts them
+    const NumArray nul(std::vector<std::string>{std::string("ab\0\0", 4), std::string("a\0b", 3)});
+    EXPECT_EQ(nul.dtypeName(), "<U4");
+    EXPECT_EQ(nul.values<std::string>()[0], "ab");
+    EXPECT_EQ(nul.values<std::string>()[1], std::string("a\0b", 3));
+
+    const NumArray grid = NumArray::strings({"a", "b", "c", "d", "e", "f"}, 2, {2, 3});
+    EXPECT_EQ(grid.shape(), (std::vector<std::size_t>{2, 3}));
+    EXPECT_THROW(NumArray::strings({"a"}, 1, {2}), std::invalid_argument);
+    EXPECT_EQ(grid, NumArray::strings({"a", "b", "c", "d", "e", "f"}, 2, {2, 3}));
+    EXPECT_NE(grid, NumArray::strings({"a", "b", "c", "d", "e", "f"}, 3, {2, 3}));
 }
 
 TEST(Dataset, ResultArraysAndOutputs) {

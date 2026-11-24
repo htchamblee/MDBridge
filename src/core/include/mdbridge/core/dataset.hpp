@@ -21,7 +21,8 @@ namespace mdbridge::core {
 // A numpy array: element type, shape (row-major) and values.
 class NumArray {
 public:
-    enum class DType { Bool, Int8, Int32, Int64, Float32, Float64 };
+    // String: numpy's fixed-width unicode strings ('<U<width>'), UTF-8 encoded here
+    enum class DType { Bool, Int8, Int32, Int64, Float32, Float64, String };
 
     NumArray() = default;
     // A 1-D array, or one of the given shape (the product of `shape` must equal values.size()).
@@ -29,26 +30,42 @@ public:
     // in dataset.cpp).
     template <class T>
     explicit NumArray(std::vector<T> values, std::vector<std::size_t> shape = {});
+    // A string array as np.array(values, dtype=str) makes it: the width is the longest value's
+    // length in characters (code points), at least 1.
+    explicit NumArray(std::vector<std::string> values, std::vector<std::size_t> shape = {});
+    // A string array of numpy dtype '<U<width>' (width >= 1; 0 chooses as above): values longer than
+    // `width` characters are truncated, as assigning them to such an array does, and trailing NUL
+    // characters are dropped, as numpy drops them.
+    static NumArray strings(std::vector<std::string> values, std::size_t width = 0,
+                            std::vector<std::size_t> shape = {});
 
     DType dtype() const;
-    std::string_view dtypeName() const;  // "bool", "int8", ... as numpy names them
+    // "bool", "int8", ... as numpy names them (dtype.name); "<U8" (dtype.str) for strings
+    std::string_view dtypeName() const;
+    // Characters per element of a string array ('<U8': 8); 0 for other types.
+    std::size_t stringWidth() const { return m_width; }
     const std::vector<std::size_t>& shape() const { return m_shape; }
     std::size_t size() const;
 
-    // The values with their own type. Throws std::invalid_argument for another type.
+    // The values with their own type (std::string for strings). Throws std::invalid_argument for
+    // another type.
     template <class T>
     std::span<const T> values() const;
-    // astype(float64)
+    // astype(float64). Throws std::invalid_argument for strings.
     std::vector<double> toDouble() const;
 
     bool operator==(const NumArray&) const = default;
 
 private:
+    void setShape(std::vector<std::size_t> shape, std::size_t count);
+
     std::variant<std::vector<std::uint8_t>, std::vector<std::int8_t>, std::vector<std::int32_t>,
-                 std::vector<std::int64_t>, std::vector<float>, std::vector<double>>
+                 std::vector<std::int64_t>, std::vector<float>, std::vector<double>, std::vector<std::string>>
         m_data;
     std::vector<std::size_t> m_shape;
     bool m_bool = false;  // the uint8 storage holds numpy bools
+    std::size_t m_width = 0;  // characters per string ('<U<width>'); 0 for other types
+    std::string m_dtypeName;  // "<U<width>" for strings
 };
 
 using NamedArrays = std::vector<std::pair<std::string, NumArray>>;  // insertion order, like a dict

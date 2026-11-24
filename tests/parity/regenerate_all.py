@@ -244,6 +244,9 @@ STEPS = [
          [f"{DATA}/analysis/rmsd_cases.json"]),
     Step("universe", "tests/parity/make_universe_cases.py", lambda ctx: [M(ctx), d(ctx, "analysis")],
          [f"{DATA}/analysis/universe_cases.json", f"{DATA}/analysis/universe_files"]),
+    # milestone 3: the analysis framework (registry, instance ids, labels, cache keys, runner)
+    Step("analysis_framework", "tests/parity/make_analysis_framework_cases.py",
+         lambda ctx: [M(ctx), d(ctx, "analysis")], [f"{DATA}/analysis/framework_cases.json"]),
 ]
 
 
