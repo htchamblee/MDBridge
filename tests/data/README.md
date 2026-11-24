@@ -296,4 +296,23 @@ at `v0.0.4.1` (nothing is written into it; the output is reproducible):
 /opt/mdbridge-venv/bin/python -I -B tests/parity/make_rigid_cases.py /tmp/mdatk tests/data/rigid
 ```
 
+`citations/citation_cases.json` holds what MDATK's citation module (`mdatk/citations.py`)
+computes, for `src/core/citations.cpp` (`tests/core/test_citations.cpp`): `REFERENCES` and
+`RESOURCES` with every field (the same data as `src/core/citation_data.inc`), `unique`,
+`keys_for`, `references`, `bibtex`, `text_lines` and `grouped` of about 160 id and key lists
+(single entries, all, duplicates, unknown and empty entries, random subsets), `comment_lines` of
+about 1200 resource lists, prefixes (non-ASCII included), widths (down to textwrap's "invalid
+width" errors) and headings (`None`, empty, long), `pipeline_resources` of about 80 projects made
+with `Project.from_dict` (cleaning, video, renderers, base-pair engines, secondary panels with
+every kind of `source` option) and `project_resources` with stand-in plans (`generating` is what
+MDBridge's caller passes: the resources of the steps whose tool generates a script, in plan order).
+
+To regenerate, with Python 3.13 and an MDATK checkout at `v0.0.4.1` (nothing is written into it;
+the output is reproducible and the build needs no Python):
+
+```bash
+python3 -I -B tools/gen_citation_data.py /tmp/mdatk        # src/core/citation_data.inc
+python3 -I -B tests/parity/make_citation_cases.py /tmp/mdatk tests/data/citations
+```
+
 Never put research structures or trajectories of real projects here.
