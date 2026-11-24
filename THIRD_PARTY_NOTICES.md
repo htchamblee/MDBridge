@@ -16,6 +16,7 @@ programs on Windows).
 | NumPy (interpolation and summation routines only) | 2.5.5 | BSD-3-Clause (`numpy-LICENSE.txt`) | `numpy.interp` ported to C++ in `src/io/external.cpp`, the pairwise summation of float arrays (`loops_utils.h.src`) in `src/io/mrc.cpp` (compiled in) | https://github.com/numpy/numpy |
 | chemfiles (XTC decompression only) | commit 920a1347 | BSD-3-Clause (`chemfiles-LICENSE.txt`) | XTC coordinate decompression ported to C++ in `src/io/gromacs.cpp` (compiled in) | https://github.com/chemfiles/chemfiles |
 | xdrfile (via chemfiles' port) | as in chemfiles | BSD-2-Clause (`xdrfile-LICENSE.txt`) | the XTC decompression routines chemfiles took from xdrfile, in `src/io/gromacs.cpp` (compiled in) | https://github.com/chemfiles/chemfiles (src/files/XDRFile.cpp) |
+| OpenMM (force-field residue and atom names only) | 8.1.2 | MIT (`OpenMM-LICENSE.txt`) | residue and atom names with their elements in `src/core/data_tables_independent.inc`, used by the selection macros, element and mass guessing and the PDB writer (compiled in); the same tables also use the wwPDB Chemical Component Dictionary (CC0) and CIAAW/IUPAC atomic weights, see `data/sources/ATTRIBUTION.md` | https://github.com/openmm/openmm |
 
 **Qt (LGPL v3).** MDBridge links Qt dynamically. The Qt libraries are separate files: in the
 AppImage under `usr/lib` (`./MDBridge-*.AppImage --appimage-extract` unpacks them), on Windows next
