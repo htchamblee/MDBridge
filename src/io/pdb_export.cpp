@@ -27,19 +27,10 @@ using namespace detail;
 
 namespace tables = core::detail::tables;
 
-// Whether a name starting with these two characters is a metal / ion atom written from column 13:
-// a monatomic ion's name, unless its first letter is an element of the standard residues (C, H,
-// N, O, ...), where CA, CD, HG, ND, ... are far more often a carbon, hydrogen or nitrogen with a
-// locant (HG and CL are decided by their residue below).
-bool ionPrefix(std::string_view prefix) {
-    return tables::contains(tables::kIndMonatomicIonNames, prefix) &&
-           !tables::contains(tables::kIndGuessOneLetterElements, prefix.substr(0, 1));
-}
-
 // Columns 13-16: the atom name starts in column 14 unless it has four or more characters, or it is
-// a two or three character name that goes in column 13: the residue's own name, an ion prefix,
-// UNK, HG of a residue whose HG is mercury, CL of a residue whose CL is chlorine (the lists of
-// mdbridge/core/detail/data_tables.hpp, from the wwPDB CCD).
+// a two or three character name that goes in column 13: the residue's own name, a name starting
+// with a monatomic ion's name, UNK, HG of a residue whose HG is mercury, CL of a residue whose CL
+// is chlorine (the lists of mdbridge/core/detail/data_tables.hpp, from the wwPDB CCD).
 U32 atomNameField(const std::string& name, const std::string& resname) {
     const U32 text = toU32(name);
     if (text.empty()) {
@@ -51,7 +42,8 @@ U32 atomNameField(const std::string& name, const std::string& resname) {
     bool column13 = false;
     if (text.size() > 1) {
         const std::string prefix = toUtf8(slice(text, 0, 2));
-        column13 = resname == name || ionPrefix(prefix) || name == "UNK" ||
+        column13 = resname == name || tables::contains(tables::kIndMonatomicIonNames, prefix) ||
+                   name == "UNK" ||
                    (prefix == "HG" && tables::contains(tables::kIndMercuryHgResidues, resname)) ||
                    (prefix == "CL" && tables::contains(tables::kIndChlorineClResidues, resname));
     }

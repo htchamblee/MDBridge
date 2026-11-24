@@ -29,6 +29,8 @@ static_assert(std::is_sorted(std::begin(kIndGuessTwoLetterElements), std::end(kI
 static_assert(std::is_sorted(std::begin(kIndMonatomicIonNames), std::end(kIndMonatomicIonNames)));
 static_assert(std::is_sorted(std::begin(kIndMercuryHgResidues), std::end(kIndMercuryHgResidues)));
 static_assert(std::is_sorted(std::begin(kIndChlorineClResidues), std::end(kIndChlorineClResidues)));
+static_assert(std::is_sorted(std::begin(kIndForceFieldNameElements), std::end(kIndForceFieldNameElements),
+                             [](const IndNameElement& a, const IndNameElement& b) { return a.name < b.name; }));
 static_assert(std::size(kIndElements) == 118 && kIndElements[0].z == 1 && kIndElements[117].z == 118);
 
 // ASCII case-insensitive equality (element symbols, residue and atom names).
@@ -63,6 +65,14 @@ constexpr const IndElement* elementBySymbolIgnoringCase(std::string_view symbol)
         }
     }
     return nullptr;
+}
+
+// The force-field table's entry for an exact (upper-case) atom name; nullptr when it has none.
+constexpr const IndNameElement* forceFieldNameElement(std::string_view name) {
+    const auto* end = std::end(kIndForceFieldNameElements);
+    const auto* it = std::lower_bound(std::begin(kIndForceFieldNameElements), end, name,
+                                      [](const IndNameElement& e, std::string_view n) { return e.name < n; });
+    return it != end && it->name == name ? it : nullptr;
 }
 
 }  // namespace mdbridge::core::detail::tables

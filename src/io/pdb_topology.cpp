@@ -78,66 +78,34 @@ ReaderError topologyLoadError(const std::string& fileText, const char* parser,
 // tables of mdbridge/core/detail/data_tables.hpp, so names those tables treat differently get
 // other types and masses than MDAnalysis gives them.
 
-// What the force-field name table says about an atom of a residue: its element, or "" for a
-// virtual site. Names and residues compare in any letter case; "*water*" entries apply to every
-// water residue.
-std::optional<std::string_view> forceFieldElement(std::string_view name, std::string_view resname) {
-    const bool water = tables::contains(tables::kIndWaterResidues, toUtf8(upper(toU32(resname))));
-    for (const tables::IndNameElement& entry : tables::kIndForceFieldNameElements) {
-        const bool residue = entry.residue == "*water*"
-                                 ? water
-                                 : tables::equalsIgnoringCase(entry.residue, resname);
-        if (residue && tables::equalsIgnoringCase(entry.name, name)) {
-            return entry.element;
-        }
+// The element of an exact (upper-case) atom name of the force-field table, upper case as guessed
+// types are spelled ("CL", "NA"); "" for a virtual site (no element, mass 0).
+std::optional<std::string> specialElement(std::string_view key) {
+    if (const tables::IndNameElement* entry = tables::forceFieldNameElement(key)) {
+        return toUtf8(upper(toU32(entry->element)));
     }
     return std::nullopt;
 }
 
-// A guessed type is the element symbol in upper case ("CL", "NA"), as MDAnalysis spells guessed
-// types; a virtual site gets the empty type (no element, mass 0).
-std::optional<std::string> specialElement(std::string_view name, std::string_view resname) {
-    if (const auto element = forceFieldElement(name, resname)) {
-        return toUtf8(upper(toU32(*element)));
-    }
-    return std::nullopt;
-}
-
-bool isOneLetterElement(const U32& upperOption) {
-    return upperOption.size() == 1 &&
-           tables::contains(tables::kIndGuessOneLetterElements, toUtf8(upperOption));
-}
-
-// Whether a prefix option of the name may be guessed as an element: a one-letter element in any
-// case; a two-letter element as the name spells it in the symbol's own capitalisation ("Cl",
-// "Ca"), or in upper case when its first letter is no one-letter element (MG, ZN, LI). An
-// upper-case CA, CD, CL, NA, SE reads as a one-letter element and a locant (carbons alpha and
-// delta, a heme nitrogen); upper-case ion names of known ion residues are the force-field table's.
-bool isShortElement(const U32& upperOption, const U32& spelled) {
-    if (upperOption.size() == 1) {
-        return isOneLetterElement(upperOption);
-    }
-    if (upperOption.size() != 2) {
-        return false;
-    }
-    if (spelled.size() == 2 && tables::contains(tables::kIndGuessTwoLetterElements, toUtf8(spelled))) {
-        return true;
-    }
-    const std::string key = toUtf8(upperOption);
-    return !isOneLetterElement(upperOption.substr(0, 1)) &&
+// An upper-case prefix that is a guessable element ("C", "NA").
+bool isShortElement(std::string_view key) {
+    const auto matches = [&](std::string_view element) {
+        return tables::equalsIgnoringCase(element, key);
+    };
+    return std::any_of(std::begin(tables::kIndGuessOneLetterElements),
+                       std::end(tables::kIndGuessOneLetterElements), matches) ||
            std::any_of(std::begin(tables::kIndGuessTwoLetterElements),
-                       std::end(tables::kIndGuessTwoLetterElements),
-                       [&](std::string_view e) { return tables::equalsIgnoringCase(e, key); });
+                       std::end(tables::kIndGuessTwoLetterElements), matches);
 }
 
 bool isElementSymbol(std::string_view key) { return tables::elementBySymbol(key) != nullptr; }
 
-std::string guessTypeFromName(const std::string& atomName, std::string_view resname) {
+std::string guessTypeFromName(const std::string& atomName) {
     const U32 text = toU32(atomName);
     if (text.empty()) {
         return {};
     }
-    if (const auto special = specialElement(atomName, resname)) {
+    if (const auto special = specialElement(toUtf8(upper(text)))) {
         return *special;
     }
     U32 bare;
@@ -156,21 +124,13 @@ std::string guessTypeFromName(const std::string& atomName, std::string_view resn
     if (stem.empty()) {
         return toUtf8(bare);
     }
-    if (const auto special = specialElement(toUtf8(letters), resname)) {
+    if (const auto special = specialElement(toUtf8(stem))) {
         return *special;
     }
-    // upper() can change the length (U+00DF -> SS); the name then has no spelling to compare
-    // with a two-letter symbol and only the one-letter test applies.
-    const bool sameLength = letters.size() == stem.size();
     for (std::size_t length = stem.size(); length > 0; --length) {
         const U32 candidate = stem.substr(0, length);
-        const U32 written = sameLength ? letters.substr(0, length) : U32();
-        const std::pair<U32, U32> options[] = {
-            {candidate, written},
-            {candidate.substr(0, length - 1), sameLength ? written.substr(0, length - 1) : U32()},
-            {candidate.substr(1), sameLength ? written.substr(1) : U32()}};
-        for (const auto& [option, spelled] : options) {
-            if (isShortElement(option, spelled)) {
+        for (const U32& option : {candidate, candidate.substr(0, length - 1), candidate.substr(1)}) {
+            if (isShortElement(toUtf8(option))) {
                 return toUtf8(option);
             }
         }
@@ -181,8 +141,8 @@ std::string guessTypeFromName(const std::string& atomName, std::string_view resn
     return {};
 }
 
-// The atomic weight of an element symbol or a guessed type, the symbol in any letter case; 0 when
-// the key is no element (an unknown or empty type, a virtual site).
+// The atomic weight of an element symbol or a guessed type: the symbol as spelled, else in upper
+// case ("NA" for Na); 0 when the key is no element (an unknown or empty type, a virtual site).
 double massOf(const std::string& key) {
     if (const tables::IndElement* element = tables::elementBySymbol(key)) {
         return element->mass;
@@ -215,9 +175,7 @@ void guessTypesAndMasses(core::Topology& top, const std::optional<std::vector<st
     top.types.resize(n);
     for (std::size_t i = 0; i < n; ++i) {
         const std::string type =
-            givenTypes ? (*givenTypes)[i]
-                       : guessTypeFromName(top.strings[top.names[i]],
-                                           top.resname(top.atomResidue[i]));
+            givenTypes ? (*givenTypes)[i] : guessTypeFromName(top.strings[top.names[i]]);
         top.types[i] = top.strings.intern(type);
         masses[i] = massOf(elements ? (*elements)[i] : type);
     }
