@@ -59,6 +59,7 @@ gtest_discover_tests(mdbridge_chem_tests DISCOVERY_MODE PRE_TEST)
 # analysis: the framework (registry, instance ids, labels, cache keys, runner, common helpers) as
 # MDATK computes it (data/analysis, tests/parity/make_analysis_framework_cases.py)
 add_executable(mdbridge_analysis_tests
+    analysis/test_contacts_hbonds.cpp
     analysis/test_framework.cpp)
 target_include_directories(mdbridge_analysis_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/core")
 target_link_libraries(mdbridge_analysis_tests PRIVATE mdbridge::analysis GTest::gtest_main)
