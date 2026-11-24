@@ -809,61 +809,12 @@ private:
     std::vector<std::size_t> m_items;
 };
 
-// capped_distance picks its grid search (nsgrid) for larger sets, which rejects some inputs the
-// brute-force search accepts; the results are the brute-force ones either way.
+// Errors that MDAnalysis' grid search raises for some inputs; results are brute-force either way.
+// CLEAN ROOM: reimplement from scratchpad/cleanroom/selection-grid-method.md
 void checkGridSearch(const Geometry& g, const std::vector<float>& ref,
                      const std::vector<float>& conf, double cutoff) {
-    const std::size_t nr = ref.size() / 3, nc = conf.size() / 3;
-    if (nr < 10 || nc < 10) {
-        return;
-    }
-    std::array<float, 3> size{};
-    std::array<float, 3> lo{}, hi{};
-    for (std::size_t i = 0; i < 3; ++i) {
-        lo[i] = std::numeric_limits<float>::infinity();
-        hi[i] = -std::numeric_limits<float>::infinity();
-    }
-    for (const auto* xyz : {&ref, &conf}) {
-        for (std::size_t a = 0; a < xyz->size() / 3; ++a) {
-            for (std::size_t i = 0; i < 3; ++i) {
-                lo[i] = std::min(lo[i], (*xyz)[3 * a + i]);
-                hi[i] = std::max(hi[i], (*xyz)[3 * a + i]);
-            }
-        }
-    }
-    if (!g.dims) {
-        for (std::size_t i = 0; i < 3; ++i) {
-            size[i] = hi[i] - lo[i];
-        }
-    } else if (g.mode == Geometry::Mode::Ortho) {
-        size = g.box;
-    } else {
-        for (std::size_t i = 0; i < 3; ++i) {
-            const float column[3] = {g.tri[i], g.tri[3 + i], g.tri[6 + i]};
-            size[i] = std::max({column[0], column[1], column[2]}) -
-                      std::min({column[0], column[1], column[2]});
-        }
-    }
-    const bool grid = static_cast<double>(nr) * static_cast<double>(nc) >= 1e8 ||
-                      !(toFloat32(cutoff) > 0.3f * size[0] || toFloat32(cutoff) > 0.3f * size[1] ||
-                        toFloat32(cutoff) > 0.3f * size[2]);
-    if (!grid) {
-        return;
-    }
-    std::array<float, 3> box{};
-    if (g.dims) {
-        box = {(*g.dims)[0], (*g.dims)[1], (*g.dims)[2]};
-    } else {
-        float extent = std::max({hi[0] - lo[0], hi[1] - lo[1], hi[2] - lo[2]});
-        extent = std::max(extent, toFloat32(2 * cutoff));
-        box.fill(extent + toFloat32(2.2 * cutoff));
-    }
-    if (box[0] == 0.0f || box[1] == 0.0f || box[2] == 0.0f) {
-        throw AtomSelectionError("Any of the box dimensions cannot be 0");
-    }
-    if (cutoff < 0) {
-        throw AtomSelectionError("Cutoff must be positive");
-    }
+    (void)g; (void)ref; (void)conf; (void)cutoff;
+    throw std::logic_error("clean room: grid-search rule not implemented");
 }
 
 // For every configuration point: whether some reference point lies within each cutoff
@@ -1332,114 +1283,7 @@ bool isConnectivity(std::string_view name) {
 
 bool isPropName(const Token& value) { return propAttribute(value).has_value(); }
 
-struct PropNode : Node {
-    Token prop;
-    bool absolute = false;
-    std::string op;
-    double value = 0;
-
-    template <class T>
-    bool compare(T x, double y) const {
-        if (op == ">") {
-            return x > y;
-        }
-        if (op == "<") {
-            return x < y;
-        }
-        if (op == ">=") {
-            return x >= y;
-        }
-        if (op == "<=") {
-            return x <= y;
-        }
-        if (op == "!=") {
-            return x != y;
-        }
-        return isClose(static_cast<double>(x), y);
-    }
-
-    bool compare32(float x) const {
-        if (op == "==") {
-            return isClose32(x, value);
-        }
-        const float y = toFloat32(value);
-        if (op == ">") {
-            return x > y;
-        }
-        if (op == "<") {
-            return x < y;
-        }
-        if (op == ">=") {
-            return x >= y;
-        }
-        if (op == "<=") {
-            return x <= y;
-        }
-        return x != y;
-    }
-
-    Mask apply(const Context& ctx) const override {
-        const auto attr = propAttribute(prop);
-        if (!attr) {
-            throw AtomSelectionError("Expected one of " + std::string(kPropNamesRepr));
-        }
-        if (!prop) {
-            throw AtomSelectionError("attribute name must be string, not 'NoneType'");
-        }
-        const std::string& p = *prop;
-        const std::string missing =
-            "This Universe does not contain " + std::string(*attr) + " information";
-        Mask out(ctx.n);
-        if (p == "x" || p == "y" || p == "z") {
-            const auto& xyz = ctx.positions(missing.c_str());
-            const std::size_t col = p == "x" ? 0 : p == "y" ? 1 : 2;
-            for (std::size_t a = 0; a < ctx.n; ++a) {
-                const float v = xyz[3 * a + col];
-                out[a] = compare32(absolute ? std::fabs(v) : v);
-            }
-            return out;
-        }
-        if (const auto ints = intValues(ctx, p); ints && p != "bynum") {
-            for (std::size_t a = 0; a < ctx.n; ++a) {
-                const std::int64_t v = (*ints)[a];
-                out[a] = compare(static_cast<double>(absolute && v < 0 ? -v : v), value);
-            }
-            return out;
-        }
-        if (p == "mass" || p == "charge" || p == "occupancy" || p == "tempfactor") {
-            const auto floats = floatValues(ctx, p);
-            if (!floats) {
-                throw AtomSelectionError(missing);
-            }
-            for (std::size_t a = 0; a < ctx.n; ++a) {
-                const double v = (*floats)[a];
-                out[a] = compare(absolute ? std::fabs(v) : v, value);
-            }
-            return out;
-        }
-        if (p == "type_index" || (isConnectivity(p) && ctx.top.bonds)) {
-            throw AtomSelectionError("prop " + p + " is not supported by MDBridge");
-        }
-        const StringField field = stringField(ctx.top, *attr);
-        const bool stringAttribute = p == "name" || p == "type" || p == "element" ||
-                                     p == "record_type" || p == "chainID" || p == "altLoc" ||
-                                     p == "resname" || p == "icode" || p == "segid";
-        if (!stringAttribute || !field.ids) {
-            throw AtomSelectionError(missing);
-        }
-        if (absolute) {
-            throw AtomSelectionError("bad operand type for abs(): 'str'");
-        }
-        if (op == "==") {
-            throw AtomSelectionError("unsupported operand type(s) for -: 'str' and 'float'");
-        }
-        if (op != "!=") {
-            throw AtomSelectionError("'" + op +
-                                     "' not supported between instances of 'str' and 'float'");
-        }
-        return Mask(ctx.n, 1);
-    }
-};
+// The prop node: CLEAN ROOM: reimplement from scratchpad/cleanroom/selection-values.md (c)
 
 // ---- same <property> as <selection> ----------------------------------------------------------
 
@@ -1805,16 +1649,9 @@ private:
                                  "'");
     }
 
+    // CLEAN ROOM: reimplement from scratchpad/cleanroom/selection-values.md (a)
     std::vector<std::string> grabNotKeywords() {
-        std::vector<std::string> values;
-        while (!isKeyword(front())) {
-            std::string v = *pop();
-            if (!v.empty() && v[0] == '\\') {
-                v.erase(0, 1);
-            }
-            values.push_back(std::move(v));
-        }
-        return values;
+        throw std::logic_error("clean room: value collection not implemented");
     }
 
     NodePtr parseExpression(int precedence) {
@@ -2002,44 +1839,9 @@ private:
         return node;
     }
 
-    // values of resid / numeric keywords: at least one, range parts joined
+    // values of resid / numeric keywords. CLEAN ROOM: reimplement from scratchpad/cleanroom/selection-values.md (a), (b)
     std::vector<std::string> rangeValues() {
-        std::vector<std::string> values = grabNotKeywords();
-        if (values.empty()) {
-            throw ValueError("Unexpected token: '" + show(front()) + "'");
-        }
-        return joinSeparatedValues(values);
-    }
-
-    static std::vector<std::string> joinSeparatedValues(const std::vector<std::string>& values) {
-        auto isDelimiter = [](const std::string& v) { return v == "to" || v == ":" || v == "-"; };
-        auto join = [](auto first, auto last) {
-            std::string out;
-            for (auto it = first; it != last; ++it) {
-                out += (it == first ? "" : " ") + *it;
-            }
-            return out;
-        };
-        std::vector<std::string> out;
-        std::size_t i = 0;
-        while (i < values.size()) {
-            const std::string& v = values[i++];
-            if (isDelimiter(v)) {
-                if (out.empty() || i >= values.size()) {
-                    throw AtomSelectionError(
-                        "Invalid expression given: " + join(out.begin(), out.end()) + " " + v +
-                        " " + join(values.begin() + static_cast<std::ptrdiff_t>(i), values.end()));
-                }
-                out.back() += " " + v + " " + values[i++];
-            } else if (!out.empty() && (v.compare(0, 2, "--") == 0 || v.compare(0, 2, "to") == 0 ||
-                                        v[0] == ':' || out.back().ends_with("to") ||
-                                        out.back().ends_with(":") || out.back().ends_with("-"))) {
-                out.back() += " " + v;
-            } else {
-                out.push_back(v);
-            }
-        }
-        return out;
+        throw std::logic_error("clean room: range values not implemented");
     }
 
     NodePtr resid() {
@@ -2108,81 +1910,8 @@ private:
         return node;
     }
 
-    NodePtr property() {
-        static constexpr std::string_view kSymbols[] = {"<=", ">=", "==", "!=", "<", ">"};
-        auto split = [](const std::string& text, std::string_view sep) {
-            std::vector<std::string> parts;
-            std::size_t start = 0;
-            for (;;) {
-                const std::size_t at = text.find(sep, start);
-                if (at == std::string::npos) {
-                    parts.push_back(text.substr(start));
-                    return parts;
-                }
-                parts.push_back(text.substr(start, at - start));
-                start = at + sep.size();
-            }
-        };
-        auto node = std::make_unique<PropNode>();
-        Token prop = pop();
-        if (prop && *prop == "abs") {
-            node->absolute = true;
-            prop = pop();
-        }
-        if (!prop) {
-            throw AtomSelectionError("'NoneType' object has no attribute 'split'");
-        }
-        Token oper;
-        for (const std::string_view symbol : kSymbols) {
-            const auto parts = split(*prop, symbol);
-            if (parts.size() == 2) {
-                prop = parts[0];
-                oper = std::string(symbol) + parts[1];
-                break;
-            }
-        }
-        if (!oper) {
-            oper = pop();
-        }
-        Token value;
-        for (const std::string_view symbol : kSymbols) {
-            if (!oper) {
-                throw AtomSelectionError("argument of type 'NoneType' is not iterable");
-            }
-            if (oper->find(symbol) != std::string::npos) {
-                const auto parts = split(*oper, symbol);
-                if (parts.size() > 2) {
-                    throw ValueError("too many values to unpack (expected 2)");
-                }
-                if (!parts[1].empty()) {
-                    oper = std::string(symbol);
-                    value = parts[1];
-                }
-                break;
-            }
-        }
-        if (!value) {
-            value = pop();
-        }
-        if (isPropName(value)) {
-            static const std::map<std::string, std::string, std::less<>> kOpposite = {
-                {"==", "=="}, {"!=", "!="}, {"<", ">="}, {">=", "<"}, {">", "<="}, {"<=", ">"}};
-            const auto flipped = kOpposite.find(*oper);
-            if (flipped == kOpposite.end()) {
-                throw KeyError{};
-            }
-            std::swap(prop, value);
-            oper = flipped->second;
-        }
-        const std::string& op = *oper;
-        if (op != ">" && op != "<" && op != ">=" && op != "<=" && op != "==" && op != "!=") {
-            throw ValueError("Invalid operator : '" + op +
-                             "' Use one of : 'dict_keys(['>', '<', '>=', '<=', '==', '!='])'");
-        }
-        node->prop = prop;
-        node->op = op;
-        node->value = pyFloat(value);
-        return node;
+    NodePtr property() {  // CLEAN ROOM: reimplement from scratchpad/cleanroom/selection-values.md (c)
+        throw std::logic_error("clean room: prop not implemented");
     }
 
     NodePtr same() {

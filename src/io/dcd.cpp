@@ -190,33 +190,11 @@ private:
         return raw;
     }
 
-    // DCDReader._frame_to_ts: [A, gamma, B, beta, alpha, C] as lengths and angles.
+    // Unit cell of a frame from the six stored doubles. CLEAN ROOM: reimplement from
+    // scratchpad/cleanroom/dcd-unitcell.md
     static std::optional<std::array<float, 6>> unitCell(const std::array<double, 6>& cell) {
-        std::array<double, 6> uc = {cell[0], cell[2], cell[5], cell[4], cell[3], cell[1]};
-        const auto inUnit = [](double x) { return -1.0 <= x && x <= 1.0; };
-        std::array<float, 6> box{};
-        if (inUnit(uc[3]) && inUnit(uc[4]) && inUnit(uc[5])) {
-            for (std::size_t i = 3; i < 6; ++i) {
-                uc[i] = 90.0 - std::asin(uc[i]) * 90.0 / (kPi / 2);
-            }
-            for (std::size_t i = 0; i < 6; ++i) {
-                box[i] = static_cast<float>(uc[i]);
-            }
-        } else if (std::any_of(uc.begin(), uc.end(), [](double x) { return x < 0.0; }) ||
-                   uc[3] > 180.0 || uc[4] > 180.0 || uc[5] > 180.0) {
-            const std::array<double, 3> e1 = {cell[0], cell[1], cell[3]};
-            const std::array<double, 3> e2 = {cell[1], cell[2], cell[4]};
-            const std::array<double, 3> e3 = {cell[3], cell[4], cell[5]};
-            box = triclinicBox(e1, e2, e3);
-        } else {
-            for (std::size_t i = 0; i < 6; ++i) {
-                box[i] = static_cast<float>(uc[i]);
-            }
-        }
-        if (box[0] == 0.0f && box[1] == 0.0f && box[2] == 0.0f) {
-            return std::nullopt;
-        }
-        return box;
+        (void)cell;
+        throw std::logic_error("clean room: DCD unit cell not implemented");
     }
 
     BinaryFile m_file;
