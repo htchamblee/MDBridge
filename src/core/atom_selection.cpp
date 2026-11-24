@@ -114,15 +114,6 @@ bool isClose32(float x, float y) {
     return (std::fabs(x - y) <= threshold && std::isfinite(y)) || x == y;
 }
 
-std::string asciiLower(std::string text) {
-    for (char& c : text) {
-        if (c >= 'A' && c <= 'Z') {
-            c = static_cast<char>(c - 'A' + 'a');
-        }
-    }
-    return text;
-}
-
 // ---- regular expressions of the parser (re.match semantics: backtracking, prefix) -------------
 
 struct Match {
@@ -1204,7 +1195,57 @@ std::string singularName(std::string_view keyword) {
     return std::string(keyword);
 }
 
-// Range nodes for the numeric keywords: CLEAN ROOM (selection-parser.md §6, selection-values.md)
+// index, bynum, resnum, ... <values>: each value an exact integer or an inclusive range
+struct IntRangeNode : Node {
+    std::string keyword;
+    std::vector<PyInt> singles;
+    std::vector<std::pair<PyInt, PyInt>> ranges;
+
+    Mask apply(const Context& ctx) const override {
+        const auto values = intValues(ctx, keyword);
+        if (!values) {
+            throw AtomSelectionError(missingAttribute(keyword));
+        }
+        const std::int64_t shift = keyword == "bynum" ? 1 : 0;  // bynum counts from 1
+        Mask out(ctx.n);
+        for (std::size_t a = 0; a < ctx.n; ++a) {
+            const std::int64_t v = (*values)[a] + shift;
+            bool hit = std::any_of(singles.begin(), singles.end(),
+                                   [v](const PyInt& x) { return equal(v, x); });
+            for (std::size_t k = 0; !hit && k < ranges.size(); ++k) {
+                hit = atLeast(v, ranges[k].first) && atMost(v, ranges[k].second);
+            }
+            out[a] = hit;
+        }
+        return out;
+    }
+};
+
+// mass, charge, ... <values>: a single value matches within np.isclose's default tolerances, a
+// range inclusively and exactly
+struct FloatRangeNode : Node {
+    std::string keyword;
+    std::vector<double> singles;
+    std::vector<std::pair<double, double>> ranges;
+
+    Mask apply(const Context& ctx) const override {
+        const auto values = floatValues(ctx, keyword);
+        if (!values) {
+            throw AtomSelectionError(missingAttribute(singularName(keyword)));
+        }
+        Mask out(ctx.n);
+        for (std::size_t a = 0; a < ctx.n; ++a) {
+            const double v = (*values)[a];
+            bool hit = std::any_of(singles.begin(), singles.end(),
+                                   [v](double x) { return isClose(v, x); });
+            for (std::size_t k = 0; !hit && k < ranges.size(); ++k) {
+                hit = v >= ranges[k].first && v <= ranges[k].second;
+            }
+            out[a] = hit;
+        }
+        return out;
+    }
+};
 
 struct MissingNode : Node {
     std::string message;
@@ -1212,7 +1253,89 @@ struct MissingNode : Node {
     Mask apply(const Context&) const override { throw AtomSelectionError(message); }
 };
 
-// ---- resid with insertion codes: CLEAN ROOM (selection-values.md (b), selection-parser.md §6)
+// ---- resid <values>: residue numbers with optional insertion codes --------------------------
+
+struct ResidBound {
+    PyInt number;
+    std::string icode;  // "" when none was given
+};
+
+bool sameNumber(const PyInt& a, const PyInt& b) {
+    return a.overflow == b.overflow && (a.overflow != 0 || a.value == b.value);
+}
+
+bool below(const PyInt& a, const PyInt& b) {
+    if (a.overflow != b.overflow) {
+        return a.overflow < b.overflow;
+    }
+    return a.overflow == 0 && a.value < b.value;
+}
+
+// Without an insertion-code attribute: plain integer matching, and no code may be given. With
+// one: a bare number means the empty code; a range between different numbers takes the codes from
+// the lower bound's code on at its number, every residue strictly between, and the codes up to
+// the upper bound's code at its number (applied as such to reversed bounds too).
+struct ResidNode : Node {
+    std::vector<ResidBound> singles;
+    std::vector<std::pair<ResidBound, ResidBound>> ranges;
+
+    Mask apply(const Context& ctx) const override {
+        const Topology& t = ctx.top;
+        if (!t.icodes) {
+            const auto coded = [](const ResidBound& b) { return !b.icode.empty(); };
+            const bool anyCode =
+                std::any_of(singles.begin(), singles.end(), coded) ||
+                std::any_of(ranges.begin(), ranges.end(),
+                            [&](const auto& r) { return coded(r.first) || coded(r.second); });
+            if (anyCode) {
+                throw AtomSelectionError(
+                    "Selection specified icodes, while the topology doesn't have any.");
+            }
+            return ctx.byResidue([&](std::size_t r) {
+                const std::int64_t v = t.resids[r];
+                return std::any_of(singles.begin(), singles.end(),
+                                   [v](const ResidBound& b) { return equal(v, b.number); }) ||
+                       std::any_of(ranges.begin(), ranges.end(), [v](const auto& b) {
+                           return atLeast(v, b.first.number) && atMost(v, b.second.number);
+                       });
+            });
+        }
+        for (const auto& [lo, hi] : ranges) {
+            // the residue numbers strictly between the bounds must be countable in 64 bits
+            if (below(lo.number, hi.number) &&
+                (lo.number.overflow != 0 || hi.number.overflow != 0 ||
+                 static_cast<std::uint64_t>(hi.number.value) -
+                         static_cast<std::uint64_t>(lo.number.value) >
+                     static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max()))) {
+                throw AtomSelectionError("Maximum allowed size exceeded");
+            }
+        }
+        return ctx.byResidue([&](std::size_t r) {
+            const std::int64_t v = t.resids[r];
+            const std::string& code = t.strings[(*t.icodes)[r]];
+            for (const ResidBound& b : singles) {
+                if (equal(v, b.number) && code == b.icode) {
+                    return true;
+                }
+            }
+            for (const auto& [lo, hi] : ranges) {
+                if (sameNumber(lo.number, hi.number)) {
+                    if (equal(v, lo.number) && code >= lo.icode && code <= hi.icode) {
+                        return true;
+                    }
+                    continue;
+                }
+                const bool inside = atLeast(v, lo.number) && !equal(v, lo.number) &&
+                                    atMost(v, hi.number) && !equal(v, hi.number);
+                if (inside || (equal(v, lo.number) && code >= lo.icode) ||
+                    (equal(v, hi.number) && code <= hi.icode)) {
+                    return true;
+                }
+            }
+            return false;
+        });
+    }
+};
 
 // ---- atom <segid> <resid> <name> -------------------------------------------------------------
 
@@ -1566,7 +1689,7 @@ struct SphereNode : Node {
         }
         const auto& xyz = ctx.positions(kNoDimensions);
         const Geometry g = Geometry::of(*ctx.frame);
-                for (std::size_t a = 0; a < ctx.n; ++a) {
+        for (std::size_t a = 0; a < ctx.n; ++a) {
             const double d = g.distance(center.data(), &xyz[3 * a]);
             out[a] = d <= outer && (!inner || d > *inner);
         }
@@ -1590,15 +1713,700 @@ struct UnsupportedNode : Node {
     }
 };
 
-// ---- parser: CLEAN ROOM, reimplement from scratchpad/cleanroom/selection-values.md and
-// selection-parser.md (tokeniser, keyword table, grammar, construction of the nodes above)
+// ---- tokens ----------------------------------------------------------------------------------
+
+// The code point at text[at] and its length in bytes; an invalid sequence counts as one byte that
+// is not whitespace.
+std::pair<char32_t, std::size_t> codePointAt(std::string_view text, std::size_t at) {
+    const auto lead = static_cast<unsigned char>(text[at]);
+    std::size_t length = 1;
+    char32_t code = lead;
+    if (lead >= 0xF0 && lead < 0xF8) {
+        length = 4;
+        code = lead & 0x07u;
+    } else if (lead >= 0xE0) {
+        length = lead < 0xF0 ? 3 : 1;
+        code = lead & 0x0Fu;
+    } else if (lead >= 0xC0) {
+        length = 2;
+        code = lead & 0x1Fu;
+    }
+    if (length == 1 || at + length > text.size()) {
+        return {lead >= 0x80 ? U'�' : code, 1};
+    }
+    for (std::size_t k = 1; k < length; ++k) {
+        const auto next = static_cast<unsigned char>(text[at + k]);
+        if ((next & 0xC0u) != 0x80u) {
+            return {U'�', 1};
+        }
+        code = (code << 6) | (next & 0x3Fu);
+    }
+    return {code, length};
+}
+
+// Words separated by Unicode whitespace; every parenthesis is a word of its own.
+std::vector<std::string> tokenize(std::string_view text) {
+    std::vector<std::string> words;
+    std::string word;
+    const auto flush = [&] {
+        if (!word.empty()) {
+            words.push_back(std::move(word));
+            word.clear();
+        }
+    };
+    for (std::size_t at = 0; at < text.size();) {
+        const auto [code, length] = codePointAt(text, at);
+        if (isPythonSpace(code)) {
+            flush();
+        } else if (code == U'(' || code == U')') {
+            flush();
+            words.emplace_back(1, static_cast<char>(code));
+        } else {
+            word.append(text.substr(at, length));
+        }
+        at += length;
+    }
+    flush();
+    return words;
+}
+
+// ---- keyword table ---------------------------------------------------------------------------
+
+enum class Kind {
+    Not,
+    Global,
+    All,
+    Macro,
+    Aromatic,
+    ByRes,
+    Bonded,
+    Same,
+    Around,
+    SphZone,
+    SphLayer,
+    IsoLayer,
+    CyZone,
+    CyLayer,
+    Point,
+    Atom,
+    Group,
+    Prop,
+    Smarts,
+    Text,  // glob patterns on a string attribute
+    Integer,
+    Real,
+    Resid,
+    Aromaticity,
+    Chirality,
+};
+
+struct Keyword {
+    std::string_view word;
+    Kind kind;
+    std::string_view field{};  // Text: the attribute (plural name)
+    std::span<const std::string_view> resnames{};  // Macro
+    std::span<const std::string_view> names{};  // Macro: atom names, empty for all atoms
+};
+
+const std::vector<Keyword>& keywords() {
+    static const std::vector<Keyword> table = {
+        {"not", Kind::Not},
+        {"global", Kind::Global},
+        {"all", Kind::All},
+        {"protein", Kind::Macro, {}, kProteinResnames},
+        {"nucleic", Kind::Macro, {}, kNucleicResnames},
+        {"water", Kind::Macro, {}, kWaterResnames},
+        {"backbone", Kind::Macro, {}, kProteinResnames, kBackboneNames},
+        {"nucleicbackbone", Kind::Macro, {}, kNucleicResnames, kNucleicBackboneNames},
+        {"nucleicbase", Kind::Macro, {}, kNucleicResnames, kNucleicBaseNames},
+        {"nucleicsugar", Kind::Macro, {}, kNucleicResnames, kNucleicSugarNames},
+        {"aromatic", Kind::Aromatic},
+        {"byres", Kind::ByRes},
+        {"bonded", Kind::Bonded},
+        {"same", Kind::Same},
+        {"around", Kind::Around},
+        {"sphzone", Kind::SphZone},
+        {"sphlayer", Kind::SphLayer},
+        {"isolayer", Kind::IsoLayer},
+        {"cyzone", Kind::CyZone},
+        {"cylayer", Kind::CyLayer},
+        {"point", Kind::Point},
+        {"atom", Kind::Atom},
+        {"group", Kind::Group},
+        {"prop", Kind::Prop},
+        {"smarts", Kind::Smarts},
+        {"name", Kind::Text, "names"},
+        {"type", Kind::Text, "types"},
+        {"element", Kind::Text, "elements"},
+        {"record_type", Kind::Text, "record_types"},
+        {"chainID", Kind::Text, "chainIDs"},
+        {"chainid", Kind::Text, "chainIDs"},
+        {"altLoc", Kind::Text, "altLocs"},
+        {"altloc", Kind::Text, "altLocs"},
+        {"resname", Kind::Text, "resnames"},
+        {"icode", Kind::Text, "icodes"},
+        {"moltype", Kind::Text, "moltypes"},
+        {"segid", Kind::Text, "segids"},
+        {"index", Kind::Integer},
+        {"resindex", Kind::Integer},
+        {"segindex", Kind::Integer},
+        {"id", Kind::Integer},
+        {"bynum", Kind::Integer},
+        {"formalcharge", Kind::Integer},
+        {"nbindex", Kind::Integer},
+        {"resnum", Kind::Integer},
+        {"molnum", Kind::Integer},
+        {"model", Kind::Integer},
+        {"radius", Kind::Real},
+        {"tempfactor", Kind::Real},
+        {"bfactor", Kind::Real},
+        {"mass", Kind::Real},
+        {"charge", Kind::Real},
+        {"occupancy", Kind::Real},
+        {"gbscreen", Kind::Real},
+        {"solventradius", Kind::Real},
+        {"rmin", Kind::Real},
+        {"epsilon", Kind::Real},
+        {"rmin14", Kind::Real},
+        {"epsilon14", Kind::Real},
+        {"resid", Kind::Resid},
+        {"aromaticity", Kind::Aromaticity},
+        {"chirality", Kind::Chirality},
+    };
+    return table;
+}
+
+const Keyword* findKeyword(const Token& token) {
+    if (!token) {
+        return nullptr;
+    }
+    for (const Keyword& k : keywords()) {
+        if (k.word == *token) {
+            return &k;
+        }
+    }
+    return nullptr;
+}
+
+// prop's operand swap found an operator without a reversed form: reported as an unknown token
+struct KeyError {};
+
+// ---- parser ----------------------------------------------------------------------------------
+
+// Recursive descent over the tokens with one token of look-ahead. The token list ends with one
+// END marker (std::nullopt); keywords that read raw arguments may consume it, after which looking
+// at or taking another token fails as reading past the end of Python's deque does.
+class Parser {
+public:
+    explicit Parser(const std::vector<std::string>& words) {
+        m_tokens.assign(words.begin(), words.end());
+        m_tokens.emplace_back(std::nullopt);
+    }
+
+    NodePtr parse() {
+        NodePtr node = expression();
+        const Token rest = front();
+        if (rest) {
+            throw AtomSelectionError("Unexpected token at end of selection string: '" + *rest +
+                                     "'");
+        }
+        return node;
+    }
+
+private:
+    // Deeper nesting than MDAnalysis (which stops at Python's recursion limit) still fails, before
+    // the native stack runs out.
+    static constexpr int kMaxDepth = 1000;
+
+    class Deeper {
+    public:
+        explicit Deeper(int& depth) : m_depth(depth) {
+            if (++m_depth > kMaxDepth) {
+                throw AtomSelectionError("maximum recursion depth exceeded");
+            }
+        }
+        ~Deeper() { --m_depth; }
+        Deeper(const Deeper&) = delete;
+        Deeper& operator=(const Deeper&) = delete;
+
+    private:
+        int& m_depth;
+    };
+
+    Token front() const {
+        if (m_pos >= m_tokens.size()) {
+            throw AtomSelectionError("deque index out of range");
+        }
+        return m_tokens[m_pos];
+    }
+
+    Token pop() {
+        if (m_pos >= m_tokens.size()) {
+            throw AtomSelectionError("pop from an empty deque");
+        }
+        return m_tokens[m_pos++];
+    }
+
+    static bool isOperator(const Token& token) {
+        return token && (*token == "and" || *token == "or");
+    }
+
+    // what ends a list of values: END, and / or, parentheses and every keyword
+    static bool isKeyword(const Token& token) {
+        return !token || isOperator(token) || *token == "(" || *token == ")" ||
+               findKeyword(token) != nullptr;
+    }
+
+    // primary { (and | or) primary }, combined left to right
+    NodePtr expression() {
+        const int depthBefore = m_depth;
+        NodePtr node = primary();
+        try {
+            while (isOperator(front())) {
+                const bool isAnd = *pop() == "and";
+                if (++m_depth > kMaxDepth) {
+                    throw AtomSelectionError("maximum recursion depth exceeded");
+                }
+                NodePtr right = primary();
+                node = std::make_unique<LogicNode>(isAnd, std::move(node), std::move(right));
+            }
+        } catch (...) {
+            m_depth = depthBefore;
+            throw;
+        }
+        m_depth = depthBefore;
+        return node;
+    }
+
+    NodePtr primary() {
+        const Deeper deeper(m_depth);
+        const Token token = pop();
+        if (token && *token == "(") {
+            NodePtr inner = expression();
+            const Token close = front();
+            if (!close || *close != ")") {
+                throw AtomSelectionError("Unexpected token: '" + show(close) + "' Expected: ')'");
+            }
+            pop();
+            return inner;
+        }
+        const Keyword* keyword = findKeyword(token);
+        if (!keyword) {
+            throw AtomSelectionError("Unknown selection token: '" + show(token) + "'");
+        }
+        // a keyword's own arguments: value problems are reported as "Selection failed"
+        try {
+            return keywordSelection(*keyword);
+        } catch (const AtomSelectionError&) {
+            throw;
+        } catch (const KeyError&) {
+            throw AtomSelectionError("Unknown selection token: '" + std::string(keyword->word) +
+                                     "'");
+        } catch (const ValueError& e) {
+            throw AtomSelectionError("Selection failed: '" + std::string(e.what()) + "'");
+        }
+    }
+
+    NodePtr keywordSelection(const Keyword& keyword) {
+        switch (keyword.kind) {
+        case Kind::Not:
+            return std::make_unique<NotNode>(primary());
+        case Kind::Global:
+            return std::make_unique<GlobalNode>(primary());
+        case Kind::All:
+            return std::make_unique<AllNode>();
+        case Kind::Macro: {
+            auto node = std::make_unique<MacroNode>();
+            node->resnames = keyword.resnames;
+            node->names = keyword.names;
+            return node;
+        }
+        case Kind::Aromatic:
+            return std::make_unique<MissingNode>(missingAttribute("aromaticity"));
+        case Kind::ByRes:
+            return std::make_unique<ByResNode>(expression());
+        case Kind::Bonded:
+            return std::make_unique<BondedNode>(expression());
+        case Kind::Same:
+            return sameAs();
+        case Kind::Around:
+        case Kind::IsoLayer: {
+            auto node = std::make_unique<AroundNode>();
+            if (keyword.kind == Kind::IsoLayer) {
+                node->inner = pyFloat(pop());
+            }
+            node->outer = pyFloat(pop());
+            node->sel = expression();
+            return node;
+        }
+        case Kind::SphZone:
+        case Kind::SphLayer: {
+            auto node = std::make_unique<SphereNode>();
+            if (keyword.kind == Kind::SphLayer) {
+                node->inner = pyFloat(pop());
+            }
+            node->outer = pyFloat(pop());
+            node->sel = expression();
+            return node;
+        }
+        case Kind::Point: {
+            auto node = std::make_unique<SphereNode>();
+            for (float& coordinate : node->point) {
+                coordinate = toFloat32(pyFloat(pop()));
+            }
+            node->outer = pyFloat(pop());
+            return node;
+        }
+        case Kind::CyZone:
+        case Kind::CyLayer: {
+            const int count = keyword.kind == Kind::CyZone ? 3 : 4;
+            for (int k = 0; k < count; ++k) {
+                pyFloat(pop());
+            }
+            auto node = std::make_unique<UnsupportedNode>();
+            node->keyword = std::string(keyword.word);
+            node->sel = expression();
+            return node;
+        }
+        case Kind::Smarts:
+            return smarts();
+        case Kind::Atom: {
+            auto node = std::make_unique<AtomNode>();
+            node->segid = pop();
+            node->resid = pyInt(pop());
+            node->name = pop();
+            return node;
+        }
+        case Kind::Group: {
+            const Token name = pop();
+            if (name && *name == "updating") {
+                throw AtomSelectionError(
+                    "The 'updating' keyword is reserved and cannot be used as a selection group "
+                    "name.");
+            }
+            throw ValueError("Failed to find group: " + show(name));  // no groups are passed
+        }
+        case Kind::Prop:
+            return property();
+        case Kind::Text: {
+            auto node = std::make_unique<StringNode>();
+            node->field = std::string(keyword.field);
+            node->patterns = requiredValues();
+            return node;
+        }
+        case Kind::Chirality:
+            requiredValues();
+            return std::make_unique<MissingNode>(missingAttribute("chirality"));
+        case Kind::Aromaticity:
+            for (const std::string& value : grabNotKeywords()) {
+                const std::string lowered = pythonLower(value);
+                if (lowered != "true" && lowered != "false") {
+                    throw ValueError("'" + value +
+                                     "' is an invalid value for boolean selection. Use 'True' or "
+                                     "'False'");
+                }
+            }
+            return std::make_unique<MissingNode>(missingAttribute("aromaticity"));
+        case Kind::Integer:
+            return integers(std::string(keyword.word));
+        case Kind::Real:
+            return reals(std::string(keyword.word));
+        case Kind::Resid:
+            return resids();
+        }
+        throw std::logic_error("unhandled selection keyword");
+    }
+
+    // same <property> as <selection>
+    NodePtr sameAs() {
+        auto node = std::make_unique<SameNode>();
+        node->prop = pop();
+        const bool known =
+            !node->prop || std::find(std::begin(kSameNames), std::end(kSameNames),
+                                     *node->prop) != std::end(kSameNames);
+        if (!known) {
+            throw ValueError("Unknown same property : " + *node->prop +
+                             "Choose one of : " + std::string(kSameNamesRepr));
+        }
+        const Token as = front();
+        if (!as || *as != "as") {
+            throw AtomSelectionError("Unexpected token: '" + show(as) + "' Expected: 'as'");
+        }
+        pop();
+        node->sel = expression();
+        return node;
+    }
+
+    // smarts <pattern>: raw tokens up to a keyword, and / or or END; parentheses are part of the
+    // pattern as long as they balance
+    NodePtr smarts() {
+        int open = 0;
+        for (;;) {
+            const Token t = front();
+            if (t && *t == "(") {
+                ++open;
+            } else if (t && *t == ")") {
+                if (open == 0) {
+                    break;
+                }
+                --open;
+            } else if (isKeyword(t)) {
+                break;
+            }
+            pop();
+        }
+        auto node = std::make_unique<UnsupportedNode>();
+        node->keyword = "smarts";
+        return node;
+    }
+
+    // value keywords: at least one value
+    std::vector<std::string> requiredValues() {
+        std::vector<std::string> values = grabNotKeywords();
+        if (values.empty()) {
+            throw ValueError("Unexpected token '" + show(front()) + "'");
+        }
+        return values;
+    }
+
+    // The value tokens after a keyword: every token up to the next keyword, each without one
+    // leading backslash (the keyword test sees the token as typed, so "\and" is the value "and").
+    std::vector<std::string> grabNotKeywords() {
+        std::vector<std::string> values;
+        while (!isKeyword(front())) {
+            std::string value = *pop();
+            if (!value.empty() && value.front() == '\\') {
+                value.erase(0, 1);
+            }
+            values.push_back(std::move(value));
+        }
+        return values;
+    }
+
+    // The values of resid and the numeric keywords, joined into range pieces: a separator token
+    // (to, :, -) glues the previous piece, itself and the next token; a token starting with "--",
+    // "to" or ":", or following a piece that ends in to, : or -, continues the previous piece.
+    std::vector<std::string> rangeValues() {
+        const std::vector<std::string> tokens = grabNotKeywords();
+        if (tokens.empty()) {
+            throw ValueError("Unexpected token: '" + show(front()) + "'");
+        }
+        const auto startsWith = [](const std::string& text, std::string_view prefix) {
+            return text.compare(0, prefix.size(), prefix) == 0;
+        };
+        const auto endsWith = [](const std::string& text, std::string_view suffix) {
+            return text.size() >= suffix.size() &&
+                   text.compare(text.size() - suffix.size(), suffix.size(), suffix) == 0;
+        };
+        const auto joined = [](auto first, auto last) {
+            std::string out;
+            for (auto it = first; it != last; ++it) {
+                out += (it == first ? "" : " ") + *it;
+            }
+            return out;
+        };
+        std::vector<std::string> pieces;
+        for (std::size_t i = 0; i < tokens.size(); ++i) {
+            const std::string& token = tokens[i];
+            if (token == "to" || token == ":" || token == "-") {
+                if (pieces.empty() || i + 1 == tokens.size()) {
+                    throw AtomSelectionError(
+                        "Invalid expression given: " + joined(pieces.begin(), pieces.end()) +
+                        " " + token + " " +
+                        joined(tokens.begin() + static_cast<std::ptrdiff_t>(i + 1), tokens.end()));
+                }
+                pieces.back() += " " + token + " " + tokens[i + 1];
+                ++i;
+                continue;
+            }
+            const bool continues =
+                !pieces.empty() &&
+                (startsWith(token, "--") || startsWith(token, "to") || startsWith(token, ":") ||
+                 endsWith(pieces.back(), "to") || endsWith(pieces.back(), ":") ||
+                 endsWith(pieces.back(), "-"));
+            if (continues) {
+                pieces.back() += " " + token;
+            } else {
+                pieces.push_back(token);
+            }
+        }
+        return pieces;
+    }
+
+    // a whole piece as a Python int, std::nullopt when it is not one
+    static std::optional<PyInt> wholeInt(const std::string& piece) {
+        try {
+            return pyInt(piece);
+        } catch (const ValueError&) {
+            return std::nullopt;
+        }
+    }
+
+    NodePtr integers(std::string keyword) {
+        static const Rx range = sequence({group(0, intPattern()), rangeSeparator(),
+                                          group(1, intPattern())});
+        auto node = std::make_unique<IntRangeNode>();
+        node->keyword = std::move(keyword);
+        for (const std::string& piece : rangeValues()) {
+            if (const auto single = wholeInt(piece)) {
+                node->singles.push_back(*single);
+            } else if (const auto bounds = reMatch(range, 2, piece)) {
+                node->ranges.emplace_back(pyInt((*bounds)[0]), pyInt((*bounds)[1]));
+            } else {
+                throw ValueError("Failed to parse number: " + piece);
+            }
+        }
+        return node;
+    }
+
+    NodePtr reals(std::string keyword) {
+        static const Rx range = sequence({group(0, floatPattern()), rangeSeparator(),
+                                          group(1, floatPattern())});
+        auto node = std::make_unique<FloatRangeNode>();
+        node->keyword = std::move(keyword);
+        for (const std::string& piece : rangeValues()) {
+            if (const auto single = tryPythonFloat(piece)) {
+                node->singles.push_back(*single);
+            } else if (const auto bounds = reMatch(range, 2, piece)) {
+                const double lower = pythonFloat((*bounds)[0]);
+                node->ranges.emplace_back(lower, pythonFloat((*bounds)[1]));
+            } else {
+                throw ValueError("Failed to parse number: " + piece);
+            }
+        }
+        return node;
+    }
+
+    NodePtr resids() {
+        static const Rx single = sequence({group(0, intPattern()), group(1, wordOptional()), end()});
+        static const Rx range =
+            sequence({group(0, intPattern()), group(1, wordOptional()), rangeSeparator(),
+                      group(2, intPattern()), group(3, wordOptional())});
+        auto node = std::make_unique<ResidNode>();
+        for (const std::string& piece : rangeValues()) {
+            if (const auto one = reMatch(single, 2, piece)) {
+                node->singles.push_back({pyInt((*one)[0]), (*one)[1]});
+            } else if (const auto two = reMatch(range, 4, piece)) {
+                node->ranges.emplace_back(ResidBound{pyInt((*two)[0]), (*two)[1]},
+                                          ResidBound{pyInt((*two)[2]), (*two)[3]});
+            } else {
+                throw ValueError("Failed to parse value: " + piece);
+            }
+        }
+        return node;
+    }
+
+    // Non-overlapping occurrences of `symbol` in `text`.
+    static std::size_t occurrences(const std::string& text, std::string_view symbol) {
+        std::size_t count = 0;
+        for (std::size_t at = text.find(symbol); at != std::string::npos;
+             at = text.find(symbol, at + symbol.size())) {
+            ++count;
+        }
+        return count;
+    }
+
+    // prop [abs] <property> <op> <value> (or <value> <op> <property>), from raw tokens; the
+    // operator may be written into the property or value token ("x<5", "x <5", "x< 5").
+    NodePtr property() {
+        static constexpr std::array<std::string_view, 6> kSymbols = {"<=", ">=", "==",
+                                                                     "!=", "<",  ">"};
+        auto node = std::make_unique<PropNode>();
+        Token prop = pop();
+        if (prop && *prop == "abs") {
+            node->absolute = true;
+            prop = pop();
+        }
+        if (!prop) {
+            throw AtomSelectionError("'NoneType' object has no attribute 'split'");
+        }
+        // an operator symbol found exactly once in the property token splits it
+        Token opText;
+        for (const std::string_view symbol : kSymbols) {
+            if (occurrences(*prop, symbol) == 1) {
+                const std::size_t at = prop->find(symbol);
+                opText = prop->substr(at);
+                prop = prop->substr(0, at);
+                break;
+            }
+        }
+        if (!opText) {
+            opText = pop();
+        }
+        if (!opText) {
+            throw AtomSelectionError("argument of type 'NoneType' is not iterable");
+        }
+        // the value may follow the first operator symbol inside the operator text
+        Token valueText;
+        std::string op = *opText;
+        for (const std::string_view symbol : kSymbols) {
+            const std::size_t count = occurrences(*opText, symbol);
+            if (count == 0) {
+                continue;
+            }
+            if (count > 1) {
+                throw ValueError("too many values to unpack (expected 2)");
+            }
+            const std::size_t after = opText->find(symbol) + symbol.size();
+            if (after < opText->size()) {
+                op = std::string(symbol);
+                valueText = opText->substr(after);
+            }
+            break;
+        }
+        if (!valueText) {
+            valueText = pop();
+        }
+        // a property name in the value position: swap, negating the operator
+        if (isPropName(valueText)) {
+            static const std::map<std::string, std::string, std::less<>> kNegated = {
+                {"<", ">="}, {">", "<="}, {"<=", ">"}, {">=", "<"}, {"==", "=="}, {"!=", "!="}};
+            const auto it = kNegated.find(op);
+            if (it == kNegated.end()) {
+                throw KeyError{};
+            }
+            op = it->second;
+            std::swap(prop, valueText);
+        }
+        if (std::find(kSymbols.begin(), kSymbols.end(), op) == kSymbols.end()) {
+            throw ValueError("Invalid operator : '" + op +
+                             "' Use one of : 'dict_keys(['>', '<', '>=', '<=', '==', '!='])'");
+        }
+        node->value = pythonFloat(*valueText);
+        node->property = std::move(prop);
+        node->op = std::move(op);
+        return node;
+    }
+
+    std::vector<Token> m_tokens;
+    std::size_t m_pos = 0;
+    int m_depth = 0;
+};
 
 }  // namespace
 
 std::vector<std::int32_t> selectAtoms(const Topology& topology, const Frame* current,
                                       std::string_view selection) {
-    (void)topology; (void)current; (void)selection;
-    throw std::logic_error("clean room: selection parser not implemented");
+    if (selection.empty()) {
+        return {};  // MDAnalysis warns and selects nothing
+    }
+    try {
+        Parser parser(tokenize(selection));
+        const NodePtr tree = parser.parse();
+        const Context ctx{topology, current, topology.atomCount()};
+        const Mask mask = tree->apply(ctx);
+        std::vector<std::int32_t> atoms;
+        for (std::size_t a = 0; a < mask.size(); ++a) {
+            if (mask[a]) {
+                atoms.push_back(static_cast<std::int32_t>(a));
+            }
+        }
+        return atoms;
+    } catch (const AtomSelectionError&) {
+        throw;
+    } catch (const ValueError& e) {
+        throw AtomSelectionError(e.what());
+    }
 }
 
 }  // namespace mdbridge::core
