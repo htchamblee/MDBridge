@@ -295,7 +295,7 @@ TEST(ProjectIo, OptionalValuesAndRoundTrip) {
     p.layout.panels.push_back(panel);
     const fs::path path = dir / "o.mdatk.toml";
     saveProject(path, p);
-    EXPECT_NE(readFile(path).find("\n# stop =   (not set)\n"), std::string::npos);
+    EXPECT_NE(readFile(path).find(nativeLines("\n# stop =   (not set)\n")), std::string::npos);
     const Project q = loadProject(path);
     EXPECT_FALSE(q.inputs.stop.has_value());
     EXPECT_EQ(q.inputs.dt_ps, 2.5);
