@@ -29,7 +29,8 @@ struct ResidueRange {
 };
 
 // "1-40, 45, A:50-60" -> {(none, 1, 40), (none, 45, 45), (A, 50, 60)}; reversed ranges are
-// swapped. Throws SelectionError with MDATK's message.
+// swapped. Throws SelectionError with MDATK's message, and for numbers beyond 64 bits (which
+// MDATK accepts; rangesToSelection keeps them).
 std::vector<ResidueRange> parseResidueRanges(std::string_view text);
 
 // The ranges as a selection: "(resid 1:40) or (chainID A and resid 50:60)"; chains are chainID
@@ -77,5 +78,19 @@ std::vector<double> parseTimeSpec(std::string_view text, std::string_view defaul
 
 // ps per unit (ps, ns, us, fs). Throws ValueError for other units.
 double timeUnitFactor(std::string_view unit);
+
+// The atoms the PDB export writes (mdatk/io/pdb_export.py resolve_export_selection): "" -> all
+// atoms, "Aptamer, Target" (only group names) -> the union of the groups, else select().
+AtomGroup resolveExportSelection(const System& system, std::string_view text,
+                                 const std::vector<ResidueGroup>& groups);
+
+// The frames the PDB export writes (frames_from_specs): parseFrameSpec(framesText) and, for each
+// time of parseTimeSpec(timesText, timeUnit; "frame" reads as ps), the nearest frame, sorted and
+// unique. Frame times are index * dtPs when dtPs is given and not 0, else the frames' times (read
+// by seeking through the trajectory, which is left at frame 0). A time farther than half the
+// median frame step from its frame logs a warning.
+std::vector<std::int64_t> framesFromSpecs(Trajectory& trajectory, std::string_view framesText,
+                                          std::string_view timesText, std::string_view timeUnit,
+                                          std::optional<double> dtPs = std::nullopt);
 
 }  // namespace mdbridge::core

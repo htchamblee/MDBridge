@@ -118,4 +118,24 @@ python3 -I -B tests/parity/make_step_type_cases.py /tmp/mdatk tests/data/step-ty
 (both with MDAnalysis installed). `golden_model.json` holds MDATK's chain numbering and Reporter events
 for them.
 
+`selections/` holds what MDAnalysis' `select_atoms` and MDATK's selection layer compute, for
+`src/core/atom_selection.cpp` (`tests/core/test_atom_selection.cpp`) and `src/core/selections.cpp`
+(`tests/core/test_selections.cpp`). Selected atoms are `[first, last]` runs of indices; errors are
+`str(exception)` (the text MDATK puts into its messages).
+
+| File | Content |
+|---|---|
+| `atom_selection_cases.json` | per fixture of `topology/` (rebuilt from the dumps, first frame included): about 6000 selection strings each with the selected atoms or the error: every keyword with matching, glob and malformed values, resid ranges with insertion codes, numbers beyond 64 bits, Unicode digits and whitespace, `prop` / `same` on every property, macros, syntax errors, random boolean combinations and random token sequences. `unsupported` marks the cases MDBridge rejects on purpose (`smarts`, `cyzone` / `cylayer` with coordinates, `type_index`, bond / angle objects of topologies with bonds) |
+| `atom_selection_distance_cases.json` | frames with random positions for `fixture_chains.pdb` and `demo_dry.parm7`: no box, orthorhombic, triclinic, skewed, zero and invalid boxes, atoms inside and far outside the cell; `around`, `sphzone`, `sphlayer`, `isolayer`, `point`, `prop`, `same x`, `cyzone` on each |
+| `selections_cases.json` | every function of `mdatk/selections.py` (residue ranges, groups nested / cyclic / duplicated / 8 and 9 levels deep, `select` on every fixture, element guessing, labels, frame and time lists) and `resolve_export_selection` / `frames_from_specs` of `mdatk/io/pdb_export.py` with the warnings they log; `python_numbers` holds `int()` / `float()` of awkward strings |
+
+To regenerate, with MDAnalysis 2.11.0 (and, for the second, MDATK's dependencies) installed and an
+MDATK checkout at `v0.0.4.1` (nothing is written into it):
+
+```bash
+python3 -I -B tests/parity/make_atom_selection_cases.py /tmp/mdatk tests/data/selections
+python3 -I -B tests/parity/make_selections_cases.py /tmp/mdatk tests/data/selections
+python3 -I tools/gen_selection_tables.py     # src/core/selection_tables.inc (macro name lists)
+```
+
 Never put research structures or trajectories of real projects here.

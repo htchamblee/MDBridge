@@ -5,7 +5,11 @@
 #include <cmath>
 #include <cstdlib>
 #include <filesystem>
+#include <limits>
+#include <optional>
 #include <stdexcept>
+#include <string>
+#include <utility>
 #include <vector>
 
 #if !defined(_WIN32)
@@ -14,6 +18,7 @@
 #include <unistd.h>
 #endif
 
+#include "mdbridge/core/errors.hpp"
 #include "mdbridge/core/json.hpp"
 #include "mdbridge/core/paths.hpp"
 #include "mdbridge/core/text.hpp"
@@ -321,6 +326,291 @@ std::optional<std::string> userHome(const std::string& name) {
 }
 #endif
 
+bool isAsciiSpace(char c) {
+    return c == ' ' || c == '\t' || c == '\n' || c == '\v' || c == '\f' || c == '\r';
+}
+bool isAsciiDigit(char c) { return c >= '0' && c <= '9'; }
+
+int decimalValue(char32_t code) {
+    // Unicode decimal digits come in runs of ten that start at a zero
+    char32_t first = code;
+    while (first > 0 && isPythonDigit(first - 1)) {
+        --first;
+    }
+    return static_cast<int>((code - first) % 10);
+}
+
+// The string _PyUnicode_TransformDecimalAndSpaceToASCII and the underscore rule leave: ASCII with
+// Unicode digits as 0-9 and Unicode whitespace as spaces, single underscores between digits
+// removed. std::nullopt for any other character, an embedded NUL or a misplaced underscore.
+std::optional<std::string> asciiNumberText(std::string_view text) {
+    std::string out;
+    char previous = '\0';
+    for (const char32_t code : decodeUtf8(text)) {
+        char c;
+        if (code < 127) {
+            c = static_cast<char>(code);
+        } else if (isPythonSpace(code)) {
+            c = ' ';
+        } else if (isPythonDigit(code)) {
+            c = static_cast<char>('0' + decimalValue(code));
+        } else {
+            return std::nullopt;
+        }
+        if (c == '\0') {
+            return std::nullopt;
+        }
+        if (c == '_') {
+            if (!isAsciiDigit(previous)) {
+                return std::nullopt;
+            }
+        } else {
+            if (previous == '_' && !isAsciiDigit(c)) {
+                return std::nullopt;
+            }
+            out += c;
+        }
+        previous = c;
+    }
+    if (previous == '_') {
+        return std::nullopt;
+    }
+    return out;
+}
+
+bool startsWithNoCase(std::string_view text, std::size_t at, std::string_view word) {
+    if (text.size() - at < word.size()) {
+        return false;
+    }
+    for (std::size_t i = 0; i < word.size(); ++i) {
+        char c = text[at + i];
+        if (c >= 'A' && c <= 'Z') {
+            c = static_cast<char>(c - 'A' + 'a');
+        }
+        if (c != word[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+// round-half-even of digits * 10^exponent / 2^-1074, times 2^-1074: the exact value of a decimal
+// below the normal range (some from_chars implementations report those as out of range)
+double subnormalValue(const std::string& digits, std::int64_t exponent) {
+    std::vector<unsigned char> big;  // decimal digits, least significant first
+    for (auto it = digits.rbegin(); it != digits.rend(); ++it) {
+        big.push_back(static_cast<unsigned char>(*it - '0'));
+    }
+    for (int k = 0; k < 1074; ++k) {
+        int carry = 0;
+        for (unsigned char& d : big) {
+            const int v = d * 2 + carry;
+            d = static_cast<unsigned char>(v % 10);
+            carry = v / 10;
+        }
+        if (carry) {
+            big.push_back(static_cast<unsigned char>(carry));
+        }
+    }
+    const auto fraction = static_cast<std::size_t>(-exponent);
+    std::uint64_t n = 0;
+    for (std::size_t i = big.size(); i-- > fraction;) {
+        n = n * 10 + big[i];
+    }
+    if (fraction > 0 && fraction <= big.size()) {
+        const int top = big[fraction - 1];
+        bool rest = false;
+        for (std::size_t i = 0; i + 1 < fraction; ++i) {
+            rest = rest || big[i] != 0;
+        }
+        if (top > 5 || (top == 5 && (rest || (n & 1)))) {
+            ++n;
+        }
+    }
+    return std::ldexp(static_cast<double>(n), -1074);
+}
+
+// digits (no leading zeros, at least one non-zero) * 10^exponent, correctly rounded
+double decimalToDouble(std::string digits, std::int64_t exponent) {
+    while (digits.size() > 1 && digits.back() == '0') {
+        digits.pop_back();
+        ++exponent;
+    }
+    constexpr std::size_t kMaxDigits = 800;  // more than any halfway case needs
+    if (digits.size() > kMaxDigits) {
+        const bool sticky = digits.find_first_not_of('0', kMaxDigits) != std::string::npos;
+        exponent += static_cast<std::int64_t>(digits.size() - kMaxDigits);
+        digits.resize(kMaxDigits);
+        if (sticky) {
+            digits += '1';
+            --exponent;
+        }
+    }
+    const std::int64_t lead = exponent + static_cast<std::int64_t>(digits.size());
+    if (lead > 310) {
+        return std::numeric_limits<double>::infinity();
+    }
+    if (lead < -330) {
+        return 0.0;
+    }
+    const std::string text = digits + "e" + std::to_string(exponent);
+    double value = 0;
+    const auto result = std::from_chars(text.data(), text.data() + text.size(), value);
+    if (result.ec == std::errc::result_out_of_range) {
+        return lead > 0 ? std::numeric_limits<double>::infinity()
+                        : subnormalValue(digits, exponent);
+    }
+    return value;
+}
+
+// float(text) of a Python str; std::nullopt where Python raises ValueError
+std::optional<double> parseFloat(std::string_view text) {
+    const std::optional<std::string> ascii = asciiNumberText(text);
+    if (!ascii) {
+        return std::nullopt;
+    }
+    std::string_view s = *ascii;
+    while (!s.empty() && isAsciiSpace(s.front())) {
+        s.remove_prefix(1);
+    }
+    while (!s.empty() && isAsciiSpace(s.back())) {
+        s.remove_suffix(1);
+    }
+    if (s.empty()) {
+        return std::nullopt;
+    }
+    std::size_t i = 0;
+    const bool negative = s[0] == '-';
+    if (s[0] == '-' || s[0] == '+') {
+        ++i;
+    }
+    std::string digits;
+    std::size_t intDigits = 0, fracDigits = 0;
+    while (i < s.size() && isAsciiDigit(s[i])) {
+        digits += s[i++];
+        ++intDigits;
+    }
+    if (i < s.size() && s[i] == '.') {
+        ++i;
+        while (i < s.size() && isAsciiDigit(s[i])) {
+            digits += s[i++];
+            ++fracDigits;
+        }
+    }
+    const double sign = negative ? -1.0 : 1.0;
+    if (intDigits + fracDigits == 0) {  // _Py_parse_inf_or_nan
+        if (startsWithNoCase(s, i, "inf")) {
+            i += 3;
+            if (startsWithNoCase(s, i, "inity")) {
+                i += 5;
+            }
+            if (i != s.size()) {
+                return std::nullopt;
+            }
+            return sign * std::numeric_limits<double>::infinity();
+        }
+        if (startsWithNoCase(s, i, "nan") && i + 3 == s.size()) {
+            return std::copysign(std::numeric_limits<double>::quiet_NaN(), sign);
+        }
+        return std::nullopt;
+    }
+    std::int64_t exponent = 0;
+    if (i < s.size() && (s[i] == 'e' || s[i] == 'E')) {
+        std::size_t j = i + 1;
+        bool expNegative = false;
+        if (j < s.size() && (s[j] == '+' || s[j] == '-')) {
+            expNegative = s[j] == '-';
+            ++j;
+        }
+        if (j < s.size() && isAsciiDigit(s[j])) {
+            while (j < s.size() && isAsciiDigit(s[j])) {
+                if (exponent < 1'000'000'000) {
+                    exponent = exponent * 10 + (s[j] - '0');
+                }
+                ++j;
+            }
+            if (expNegative) {
+                exponent = -exponent;
+            }
+            i = j;
+        }
+    }
+    if (i != s.size()) {
+        return std::nullopt;
+    }
+    exponent -= static_cast<std::int64_t>(fracDigits);
+    const std::size_t nonZero = digits.find_first_not_of('0');
+    if (nonZero == std::string::npos) {
+        return sign * 0.0;
+    }
+    return sign * decimalToDouble(digits.substr(nonZero), exponent);
+}
+
+
+// int(text) of a Python str: the digits as a decimal string with its sign; std::nullopt where
+// Python raises ValueError
+std::optional<std::pair<bool, std::string>> parseInt(std::string_view text) {
+    const std::optional<std::string> ascii = asciiNumberText(text);
+    if (!ascii) {
+        return std::nullopt;
+    }
+    std::string_view s = *ascii;
+    while (!s.empty() && isAsciiSpace(s.front())) {
+        s.remove_prefix(1);
+    }
+    while (!s.empty() && isAsciiSpace(s.back())) {
+        s.remove_suffix(1);
+    }
+    bool negative = false;
+    if (!s.empty() && (s[0] == '-' || s[0] == '+')) {
+        negative = s[0] == '-';
+        s.remove_prefix(1);
+    }
+    if (s.empty()) {
+        return std::nullopt;
+    }
+    for (const char c : s) {
+        if (!isAsciiDigit(c)) {
+            return std::nullopt;
+        }
+    }
+    const std::size_t nonZero = s.find_first_not_of('0');
+    const std::string digits =
+        nonZero == std::string_view::npos ? "0" : std::string(s.substr(nonZero));
+    return std::pair<bool, std::string>(negative, digits);
+}
+
+// "%.200R": the repr cut to 200 characters
+std::string truncatedRepr(std::string_view text) {
+    const std::u32string repr = decodeUtf8(pythonRepr(Value(std::string(text))));
+    return encodeUtf8(std::u32string_view(repr).substr(0, 200));
+}
+
+std::optional<std::int64_t> toInt64(bool negative, const std::string& digits) {
+    if (digits.size() > 19) {
+        return std::nullopt;
+    }
+    std::uint64_t magnitude = 0;
+    for (const char c : digits) {
+        magnitude = magnitude * 10 + static_cast<std::uint64_t>(c - '0');
+    }
+    constexpr auto kMax = static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max());
+    if (digits.size() == 19 && digits > "9223372036854775808") {
+        return std::nullopt;
+    }
+    if (negative) {
+        if (magnitude > kMax + 1) {
+            return std::nullopt;
+        }
+        return magnitude == kMax + 1 ? std::numeric_limits<std::int64_t>::min()
+                                     : -static_cast<std::int64_t>(magnitude);
+    }
+    if (magnitude > kMax) {
+        return std::nullopt;
+    }
+    return static_cast<std::int64_t>(magnitude);
+}
+
 }  // namespace
 
 std::string pythonRepr(const Value& value) {
@@ -407,6 +697,37 @@ std::string pythonJsonCompact(const Value& value) {
     appendJsonCompact(out, value);
     return out;
 }
+
+std::int64_t pythonInt(std::string_view text) {
+    const auto parsed = parseInt(text);
+    if (!parsed) {
+        throw ValueError("invalid literal for int() with base 10: " + truncatedRepr(text));
+    }
+    const std::optional<std::int64_t> value = toInt64(parsed->first, parsed->second);
+    if (!value) {
+        throw std::overflow_error("Python int too large to convert to C long");
+    }
+    return *value;
+}
+
+double pythonFloat(std::string_view text) {
+    const std::optional<double> value = parseFloat(text);
+    if (!value) {
+        throw ValueError("could not convert string to float: " +
+                         pythonRepr(Value(std::string(text))));
+    }
+    return *value;
+}
+
+std::optional<std::int64_t> tryPythonInt(std::string_view text) {
+    const auto parsed = parseInt(text);
+    if (!parsed) {
+        return std::nullopt;
+    }
+    return toInt64(parsed->first, parsed->second);
+}
+
+std::optional<double> tryPythonFloat(std::string_view text) { return parseFloat(text); }
 
 namespace posixpath {
 
