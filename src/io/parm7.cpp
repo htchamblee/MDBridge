@@ -4,6 +4,7 @@
 #include <array>
 #include <charconv>
 #include <cmath>
+#include <cstdint>
 #include <cstdio>
 #include <fstream>
 #include <limits>
@@ -16,6 +17,7 @@
 #include "mdbridge/core/paths.hpp"
 #include "mdbridge/core/python.hpp"
 #include "mdbridge/core/text.hpp"
+#include "readers.hpp"
 #include "text_file.hpp"
 
 namespace mdbridge::io {
@@ -289,521 +291,567 @@ void checkAscii(const std::string& text) {
     }
 }
 
-// ---------------------------------------------------------------- MDAnalysis' TOPParser
+// ---------------------------------------------------------------- topology (MDAnalysis TOPParser)
+//
+// One pass over the lines: the two header lines, the POINTERS counts, then the %FLAG sections.
+// The sections the topology uses are read with a line count that follows from the POINTERS
+// counts (not from their %FORMAT); the others are skipped. Python exceptions other than
+// ValueError become detail::ReaderError carrying the Python class name.
 
-constexpr std::array<const char*, 119> kElements = {
-    "",   "H",  "He", "Li", "Be", "B",  "C",  "N",  "O",  "F",  "Ne", "Na", "Mg", "Al", "Si",
-    "P",  "S",  "Cl", "Ar", "K",  "Ca", "Sc", "Ti", "V",  "Cr", "Mn", "Fe", "Co", "Ni", "Cu",
-    "Zn", "Ga", "Ge", "As", "Se", "Br", "Kr", "Rb", "Sr", "Y",  "Zr", "Nb", "Mo", "Tc", "Ru",
-    "Rh", "Pd", "Ag", "Cd", "In", "Sn", "Sb", "Te", "I",  "Xe", "Cs", "Ba", "La", "Ce", "Pr",
-    "Nd", "Pm", "Sm", "Eu", "Gd", "Tb", "Dy", "Ho", "Er", "Tm", "Yb", "Lu", "Hf", "Ta", "W",
-    "Re", "Os", "Ir", "Pt", "Au", "Hg", "Tl", "Pb", "Bi", "Po", "At", "Rn", "Fr", "Ra", "Ac",
-    "Th", "Pa", "U",  "Np", "Pu", "Am", "Cm", "Bk", "Cf", "Es", "Fm", "Md", "No", "Lr", "Rf",
-    "Db", "Sg", "Bh", "Hs", "Mt", "Ds", "Rg", "Cn", "Nh", "Fl", "Mc", "Lv", "Ts", "Og"};
+using detail::ReaderError;
 
-enum class Attr {
-    Names,
-    Charges,
-    Elements,
-    Masses,
-    TypeIndices,
-    Types,
-    Resnames,
-    ResPointers,
-    BondH,
-    BondA,
-    AngH,
-    AngA,
-    DihH,
-    DihA,
-    ChainIds
+// Element symbols by atomic number (index Z - 1).
+constexpr std::array<std::string_view, 118> kElementSymbols = {
+    "H",  "He", "Li", "Be", "B",  "C",  "N",  "O",  "F",  "Ne", "Na", "Mg", "Al", "Si", "P",
+    "S",  "Cl", "Ar", "K",  "Ca", "Sc", "Ti", "V",  "Cr", "Mn", "Fe", "Co", "Ni", "Cu", "Zn",
+    "Ga", "Ge", "As", "Se", "Br", "Kr", "Rb", "Sr", "Y",  "Zr", "Nb", "Mo", "Tc", "Ru", "Rh",
+    "Pd", "Ag", "Cd", "In", "Sn", "Sb", "Te", "I",  "Xe", "Cs", "Ba", "La", "Ce", "Pr", "Nd",
+    "Pm", "Sm", "Eu", "Gd", "Tb", "Dy", "Ho", "Er", "Tm", "Yb", "Lu", "Hf", "Ta", "W",  "Re",
+    "Os", "Ir", "Pt", "Au", "Hg", "Tl", "Pb", "Bi", "Po", "At", "Rn", "Fr", "Ra", "Ac", "Th",
+    "Pa", "U",  "Np", "Pu", "Am", "Cm", "Bk", "Cf", "Es", "Fm", "Md", "No", "Lr", "Rf", "Db",
+    "Sg", "Bh", "Hs", "Mt", "Ds", "Rg", "Cn", "Nh", "Fl", "Mc", "Lv", "Ts", "Og"};
+
+// How the field texts of a section become values.
+enum class FieldKind {
+    Text,     // the stripped text
+    Charge,   // float32(x) / float32(18.2223), in float32
+    Real,     // double
+    Element,  // atomic number -> element symbol
+    Integer,  // int
+    Pointer,  // int - 1
+    Index,    // int // 3
 };
 
-struct KnownSection {
+struct SectionRule {
     std::u32string_view flag;
-    int perRecord;
-    int perLine;
-    Attr attr;
-    std::size_t pointer;  // index into POINTERS
+    std::string_view key;
+    std::size_t pointer;  // the POINTERS entry with the record count
+    std::int64_t perRecord;
+    std::int64_t perLine;  // values per line, for the line count
+    FieldKind kind;
 };
 
-constexpr KnownSection kKnown[] = {
-    {U"ATOM_NAME", 1, 20, Attr::Names, 0},
-    {U"CHARGE", 1, 5, Attr::Charges, 0},
-    {U"ATOMIC_NUMBER", 1, 10, Attr::Elements, 0},
-    {U"MASS", 1, 5, Attr::Masses, 0},
-    {U"ATOM_TYPE_INDEX", 1, 10, Attr::TypeIndices, 0},
-    {U"AMBER_ATOM_TYPE", 1, 20, Attr::Types, 0},
-    {U"RESIDUE_LABEL", 1, 20, Attr::Resnames, 11},
-    {U"RESIDUE_POINTER", 1, 10, Attr::ResPointers, 11},
-    {U"BONDS_INC_HYDROGEN", 3, 10, Attr::BondH, 2},
-    {U"BONDS_WITHOUT_HYDROGEN", 3, 10, Attr::BondA, 3},
-    {U"ANGLES_INC_HYDROGEN", 4, 10, Attr::AngH, 4},
-    {U"ANGLES_WITHOUT_HYDROGEN", 4, 10, Attr::AngA, 5},
-    {U"DIHEDRALS_INC_HYDROGEN", 5, 10, Attr::DihH, 6},
-    {U"DIHEDRALS_WITHOUT_HYDROGEN", 5, 10, Attr::DihA, 7},
-    {U"RESIDUE_CHAINID", 1, 20, Attr::ChainIds, 11},
-};
+constexpr std::array<SectionRule, 15> kSectionRules = {{
+    {U"ATOM_NAME", "name", 0, 1, 20, FieldKind::Text},
+    {U"CHARGE", "charge", 0, 1, 5, FieldKind::Charge},
+    {U"ATOMIC_NUMBER", "elements", 0, 1, 10, FieldKind::Element},
+    {U"MASS", "mass", 0, 1, 5, FieldKind::Real},
+    {U"ATOM_TYPE_INDEX", "type_indices", 0, 1, 10, FieldKind::Integer},
+    {U"AMBER_ATOM_TYPE", "types", 0, 1, 20, FieldKind::Text},
+    {U"RESIDUE_LABEL", "resname", 11, 1, 20, FieldKind::Text},
+    {U"RESIDUE_POINTER", "respoint", 11, 1, 10, FieldKind::Pointer},
+    {U"BONDS_INC_HYDROGEN", "bondh", 2, 3, 10, FieldKind::Index},
+    {U"BONDS_WITHOUT_HYDROGEN", "bonda", 3, 3, 10, FieldKind::Index},
+    {U"ANGLES_INC_HYDROGEN", "angh", 4, 4, 10, FieldKind::Index},
+    {U"ANGLES_WITHOUT_HYDROGEN", "anga", 5, 4, 10, FieldKind::Index},
+    {U"DIHEDRALS_INC_HYDROGEN", "dihh", 6, 5, 10, FieldKind::Index},
+    {U"DIHEDRALS_WITHOUT_HYDROGEN", "diha", 7, 5, 10, FieldKind::Index},
+    {U"RESIDUE_CHAINID", "chainid", 11, 1, 20, FieldKind::Text},
+}};
 
-// The names MDAnalysis reports in its messages (KeyError of a missing section, length checks).
-const char* attrName(Attr attr) {
-    switch (attr) {
-    case Attr::Names: return "name";
-    case Attr::Charges: return "charge";
-    case Attr::Elements: return "elements";
-    case Attr::Masses: return "mass";
-    case Attr::TypeIndices: return "type_indices";
-    case Attr::Types: return "types";
-    case Attr::Resnames: return "resname";
-    case Attr::ResPointers: return "respoint";
-    case Attr::BondH: return "bondh";
-    case Attr::BondA: return "bonda";
-    case Attr::AngH: return "angh";
-    case Attr::AngA: return "anga";
-    case Attr::DihH: return "dihh";
-    case Attr::DihA: return "diha";
-    case Attr::ChainIds: return "segids";
+const SectionRule* findRule(std::u32string_view flag) {
+    for (const SectionRule& rule : kSectionRules) {
+        if (rule.flag == flag) {
+            return &rule;
+        }
     }
-    return "";
+    return nullptr;
 }
 
-// The attribute names of the Universe's length check.
-const char* topologyAttrName(Attr attr) {
-    switch (attr) {
-    case Attr::Names: return "names";
-    case Attr::Charges: return "charges";
-    case Attr::Elements: return "elements";
-    case Attr::Masses: return "masses";
-    case Attr::TypeIndices: return "type_indices";
-    case Attr::Types: return "types";
-    default: return "";
+// The values one section gave: texts (Text, Element), integers or reals.
+struct Collected {
+    std::vector<std::string> texts;
+    std::vector<std::int64_t> integers;
+    std::vector<double> reals;
+
+    std::size_t size() const { return texts.size() + integers.size() + reals.size(); }
+};
+
+// One item of a Fortran format: `repeat` fields of `width` columns, or `repeat` skipped columns.
+struct FormatItem {
+    std::size_t repeat = 1;
+    std::size_t width = 0;
+    bool skip = false;
+};
+
+bool isAsciiDigit(char32_t c) { return c >= U'0' && c <= U'9'; }
+
+std::size_t parseCount(std::u32string_view digits) {
+    try {
+        return static_cast<std::size_t>(core::pythonInt(utf8(digits)));
+    } catch (const std::overflow_error&) {
+        return std::numeric_limits<std::size_t>::max();
     }
 }
 
-std::int64_t floorDiv(std::int64_t a, std::int64_t b) {
-    const std::int64_t q = a / b;
-    return (a % b != 0 && ((a < 0) != (b < 0))) ? q - 1 : q;
-}
-
-struct Field {
-    std::size_t start;
-    std::size_t stop;
-};
-
-// FORTRANReader(fmt).entries: comma-separated [count]<letter><width>[.d] items and [count]X skips.
-std::vector<Field> fortranFields(std::u32string_view fmt) {
-    std::vector<Field> fields;
-    std::size_t position = 0;
+// The items of a %FORMAT text: comma-separated [repeat]letter[width][.decimals] with a letter of
+// I F E A X in either case; only the start of an item has to have this shape.
+std::vector<FormatItem> parseFortranFormat(std::u32string_view text) {
+    std::vector<FormatItem> items;
     std::size_t begin = 0;
-    const auto bad = [&] {
-        return ValueError("unrecognized FORTRAN format " + repr(utf8(fmt)));
-    };
-    while (begin <= fmt.size()) {
-        std::size_t end = fmt.find(U',', begin);
-        if (end == std::u32string_view::npos) {
-            end = fmt.size();
-        }
-        std::u32string_view item = fmt.substr(begin, end - begin);
-        while (!item.empty() && core::isPythonSpace(item.back())) {
-            item.remove_suffix(1);
-        }
+    while (true) {
+        const std::size_t comma = text.find(U',', begin);
+        const std::u32string_view item = comma == std::u32string_view::npos
+                                             ? text.substr(begin)
+                                             : text.substr(begin, comma - begin);
         std::size_t i = 0;
-        std::size_t count = 0;
-        bool hasCount = false;
-        while (i < item.size() && item[i] >= U'0' && item[i] <= U'9') {
-            count = count * 10 + static_cast<std::size_t>(item[i] - U'0');
-            hasCount = true;
+        while (i < item.size() && isAsciiDigit(item[i])) {
             ++i;
         }
-        if (!hasCount) {
-            count = 1;
+        const std::u32string_view repeat = item.substr(0, i);
+        char32_t letter = i < item.size() ? item[i] : U' ';
+        if (letter >= U'A' && letter <= U'Z') {
+            letter = static_cast<char32_t>(letter - U'A' + U'a');
         }
-        if (i >= item.size()) {
-            throw bad();
+        if (std::u32string_view(U"ifeax").find(letter) == std::u32string_view::npos) {
+            throw ValueError("unrecognized FORTRAN format " + repr(utf8(item)));
         }
-        const char32_t letter = item[i] | 0x20;
         ++i;
-        if (letter == U'x' && i == item.size()) {
-            position += count;
-        } else if (letter == U'a' || letter == U'i' || letter == U'e' || letter == U'f' ||
-                   letter == U'd') {
-            std::size_t width = 0;
-            const std::size_t widthStart = i;
-            while (i < item.size() && item[i] >= U'0' && item[i] <= U'9') {
-                width = width * 10 + static_cast<std::size_t>(item[i] - U'0');
-                ++i;
-            }
-            if (i == widthStart) {
-                throw bad();
-            }
-            if (i < item.size() && item[i] == U'.') {
-                ++i;
-                while (i < item.size() && item[i] >= U'0' && item[i] <= U'9') {
-                    ++i;
-                }
-            }
-            if (i != item.size()) {
-                throw bad();
-            }
-            for (std::size_t k = 0; k < count; ++k) {
-                fields.push_back({position, position + width});
-                position += width;
-            }
+        const std::size_t widthStart = i;
+        while (i < item.size() && isAsciiDigit(item[i])) {
+            ++i;
+        }
+        FormatItem parsed;
+        parsed.repeat = repeat.empty() ? 1 : parseCount(repeat);
+        if (letter == U'x') {
+            parsed.skip = true;
         } else {
-            throw bad();
+            const std::u32string_view width = item.substr(widthStart, i - widthStart);
+            parsed.width = width.empty() ? 0 : parseCount(width);
         }
-        begin = end + 1;
-    }
-    return fields;
-}
-
-// The attributes TOPParser collects, by section.
-struct TopAttrs {
-    std::vector<Attr> order;  // first insertion of each attribute
-    std::map<Attr, std::vector<std::string>> strings;
-    std::map<Attr, std::vector<double>> reals;
-    std::map<Attr, std::vector<std::int64_t>> ints;
-
-    void touch(Attr attr) {
-        if (std::find(order.begin(), order.end(), attr) == order.end()) {
-            order.push_back(attr);
-        }
-    }
-    bool has(Attr attr) const { return std::find(order.begin(), order.end(), attr) != order.end(); }
-    std::size_t size(Attr attr) const {
-        if (auto it = strings.find(attr); it != strings.end()) {
-            return it->second.size();
-        }
-        if (auto it = reals.find(attr); it != reals.end()) {
-            return it->second.size();
-        }
-        return ints.at(attr).size();
-    }
-};
-
-class TopReader {
-public:
-    explicit TopReader(const std::filesystem::path& path)
-        : m_path(detail::pathText(path)), m_lines(detail::readTextLines(path)) {}
-
-    std::shared_ptr<core::Topology> parse();
-
-private:
-    std::string m_path;
-    Lines m_lines;
-    std::size_t m_next = 0;
-
-    bool atEnd() const { return m_next >= m_lines.size(); }
-    const std::u32string& next() {
-        if (atEnd()) {
-            throw ValueError(m_path + ": unexpected end of file");
-        }
-        return m_lines[m_next++];
-    }
-    void readSection(const KnownSection& known, std::int64_t numlines, TopAttrs& attrs);
-};
-
-void TopReader::readSection(const KnownSection& known, std::int64_t numlines, TopAttrs& attrs) {
-    std::u32string fmt;
-    for (;;) {
-        const std::u32string& line = next();
-        if (startsWith(line, U"%FORMAT")) {
-            const std::u32string_view rest =
-                std::u32string_view(line).substr(std::min<std::size_t>(8, line.size()));
-            fmt = rest.substr(0, rest.find(U')'));
+        items.push_back(parsed);
+        if (comma == std::u32string_view::npos) {
             break;
         }
-        if (!startsWith(line, U"%COMMENT")) {
+        begin = comma + 1;
+    }
+    return items;
+}
+
+// Moves `column` on by `step`, at most to `end`.
+std::size_t advance(std::size_t column, std::size_t step, std::size_t end) {
+    return step > end - column ? end : column + step;
+}
+
+// The stripped non-empty field texts of one line laid out by `items`, appended to `out`.
+void splitFields(std::u32string_view line, const std::vector<FormatItem>& items,
+                 std::vector<std::u32string>& out) {
+    std::size_t column = 0;
+    for (const FormatItem& item : items) {
+        if (column >= line.size()) {
+            return;
+        }
+        if (item.skip) {
+            column = advance(column, item.repeat, line.size());
+            continue;
+        }
+        if (item.width == 0) {
+            continue;
+        }
+        for (std::size_t r = 0; r < item.repeat && column < line.size(); ++r) {
+            std::u32string field = strip(line.substr(column, item.width));
+            if (!field.empty()) {
+                out.push_back(std::move(field));
+            }
+            column = advance(column, item.width, line.size());
+        }
+    }
+}
+
+// x // 3, rounding toward -inf
+std::int64_t floorDiv3(std::int64_t x) {
+    std::int64_t q = x / 3;
+    if (x % 3 != 0 && x < 0) {
+        --q;
+    }
+    return q;
+}
+
+// ceil(a / b) for b > 0
+std::int64_t ceilDiv(std::int64_t a, std::int64_t b) {
+    std::int64_t q = a / b;
+    if (a % b != 0 && a > 0) {
+        ++q;
+    }
+    return q;
+}
+
+// float32(x) / float32(18.2223), divided in float32
+double amberCharge(double x) {
+    float single = 0.0F;
+    if (std::isfinite(x) && std::fabs(x) >= 0x1.ffffffp+127) {  // rounds to infinity
+        single = x < 0 ? -std::numeric_limits<float>::infinity()
+                       : std::numeric_limits<float>::infinity();
+    } else {
+        single = static_cast<float>(x);
+    }
+    const float scale = 18.2223F;  // 18.222299575805664
+    const float quotient = single / scale;
+    return static_cast<double>(quotient);
+}
+
+void convertField(const SectionRule& rule, const std::u32string& field, Collected& into) {
+    const std::string text = utf8(field);
+    switch (rule.kind) {
+    case FieldKind::Text: into.texts.push_back(text); break;
+    case FieldKind::Charge: into.reals.push_back(amberCharge(core::pythonFloat(text))); break;
+    case FieldKind::Real: into.reals.push_back(core::pythonFloat(text)); break;
+    case FieldKind::Element: {
+        const std::int64_t z = core::pythonInt(text);
+        if (z > static_cast<std::int64_t>(kElementSymbols.size())) {
+            throw ReaderError("KeyError", std::to_string(z));
+        }
+        into.texts.emplace_back(z <= 0 ? std::string_view()
+                                       : kElementSymbols[static_cast<std::size_t>(z - 1)]);
+        break;
+    }
+    case FieldKind::Integer: into.integers.push_back(core::pythonInt(text)); break;
+    case FieldKind::Pointer: into.integers.push_back(core::pythonInt(text) - 1); break;
+    case FieldKind::Index: into.integers.push_back(floorDiv3(core::pythonInt(text))); break;
+    }
+}
+
+[[noreturn]] void raiseIndexError(const std::string& message) {
+    throw ReaderError("IndexError", message);
+}
+
+// The tuples of a bond / angle / dihedral section: the first n - 1 values of each chunk of n.
+std::vector<std::vector<std::int64_t>> recordTuples(const Collected& section, std::size_t n,
+                                                    const char* what) {
+    std::vector<std::vector<std::int64_t>> out;
+    const std::vector<std::int64_t>& v = section.integers;
+    for (std::size_t k = 0; k < v.size(); k += n) {
+        const std::size_t end = std::min(v.size(), k + n - 1);
+        if (end - k < n - 1) {
+            if (n == 5) {
+                raiseIndexError("tuple index out of range");
+            }
+            throw ValueError(std::string(what) + " must be an iterable of tuples with " +
+                             std::to_string(n - 1) + " atom indices");
+        }
+        out.emplace_back(v.begin() + static_cast<std::ptrdiff_t>(k),
+                         v.begin() + static_cast<std::ptrdiff_t>(end));
+    }
+    return out;
+}
+
+class Parm7TopologyReader {
+public:
+    explicit Parm7TopologyReader(const std::filesystem::path& path)
+        : m_file(detail::pathText(path)), m_lines(detail::readTextLines(path)) {}
+
+    std::shared_ptr<core::Topology> read() {
+        readHeader();
+        readPointers();
+        walkSections();
+        return build();
+    }
+
+private:
+    std::string m_file;
+    Lines m_lines;
+    std::size_t m_next = 0;
+    std::vector<std::int64_t> m_pointers;
+    std::map<std::string, Collected, std::less<>> m_sections;
+    std::vector<std::string> m_order;  // section keys in the order first met
+
+    const std::u32string* nextLine() {
+        return m_next < m_lines.size() ? &m_lines[m_next++] : nullptr;
+    }
+
+    // Python's next() on the file: StopIteration at the end (MDBridge names the file).
+    const std::u32string& requireLine() {
+        const std::u32string* line = nextLine();
+        if (!line) {
+            throw ReaderError("StopIteration", m_file + ": the parm7 file ends unexpectedly");
+        }
+        return *line;
+    }
+
+    void readHeader() {
+        if (!startsWith(requireLine(), U"%VE")) {
+            throw ValueError(m_file + " is not a valid TOP file. %VE Missing in header");
+        }
+        const std::vector<std::u32string> tokens = splitWhitespace(requireLine());
+        if (tokens.size() < 2) {
+            raiseIndexError("list index out of range");
+        }
+        if (tokens[1] == U"CTITLE") {
+            throw ValueError(m_file +
+                             " is detected as a Chamber-style TOP file. At this time MDAnalysis "
+                             "does not support such topologies");
+        }
+        if (tokens[1] != U"TITLE") {
+            throw ValueError(m_file + " is not a valid TOP file. 'TITLE' missing in header");
+        }
+    }
+
+    void readPointers() {
+        while (!startsWith(requireLine(), U"%FLAG POINTERS")) {
+        }
+        requireLine();  // the %FORMAT line, not examined
+        for (int k = 0; k < 4; ++k) {
+            for (const std::u32string& token : splitWhitespace(requireLine())) {
+                m_pointers.push_back(core::pythonInt(utf8(token)));
+            }
+        }
+    }
+
+    std::int64_t pointer(std::size_t index) const {
+        if (index >= m_pointers.size()) {
+            raiseIndexError("list index out of range");
+        }
+        return m_pointers[index];
+    }
+
+    // The text after the first %FLAG (at `at`) up to any later %FLAG, stripped.
+    static std::u32string sectionName(std::u32string_view line, std::size_t at) {
+        std::u32string_view rest = line.substr(at + 5);
+        const std::size_t again = rest.find(U"%FLAG");
+        if (again != std::u32string_view::npos) {
+            rest = rest.substr(0, again);
+        }
+        return strip(rest);
+    }
+
+    void walkSections() {
+        const std::u32string* line = nextLine();
+        bool afterPointers = true;
+        std::optional<std::int64_t> previousLines;  // line count of the known section just read
+        while (line) {
+            if (previousLines == 0 && strip(*line).empty()) {
+                line = nextLine();  // one blank line after an empty section
+                if (!line) {
+                    return;
+                }
+            }
+            const std::size_t at = line->find(U"%FLAG");
+            if (at == std::u32string::npos) {
+                if (afterPointers) {
+                    raiseIndexError("list index out of range");
+                }
+                raiseIndexError("%FLAG section not found, formatting error for PARM7 file " +
+                                m_file + " ");
+            }
+            const SectionRule* rule = findRule(sectionName(*line, at));
+            if (!rule) {
+                line = skipUnknownSection(afterPointers);
+                afterPointers = false;
+                previousLines.reset();
+                continue;
+            }
+            afterPointers = false;
+            previousLines = readKnownSection(*rule);
+            line = nextLine();
+        }
+    }
+
+    // Skips to the next line starting with %FLAG and returns it (nullptr at the end of the file).
+    const std::u32string* skipUnknownSection(bool firstSection) {
+        const std::u32string* line = nextLine();
+        while (line && !startsWith(*line, U"%FLAG")) {
+            line = nextLine();
+        }
+        if (line && firstSection) {
+            throw ReaderError("UnboundLocalError",
+                              "cannot access local variable 'numlines' where it is not associated "
+                              "with a value");
+        }
+        return line;
+    }
+
+    std::vector<FormatItem> readSectionFormat() {
+        while (true) {
+            const std::u32string& line = requireLine();
+            if (startsWith(line, U"%COMMENT")) {
+                continue;
+            }
+            if (startsWith(line, U"%FORMAT")) {
+                std::u32string_view text = std::u32string_view(line).substr(
+                    std::min<std::size_t>(8, line.size()));
+                const std::size_t close = text.find(U')');
+                if (close != std::u32string_view::npos) {
+                    text = text.substr(0, close);
+                }
+                return parseFortranFormat(text);
+            }
             throw ValueError(
                 "Invalid header line. Does not begin with either %FLAG, %FORMAT nor %COMMENT:\n" +
                 utf8(line));
         }
     }
-    const std::vector<Field> fields = fortranFields(fmt);
-    std::vector<std::string> values;
-    for (std::int64_t n = 0; n < numlines; ++n) {
-        const std::u32string& line = next();
-        for (const Field& field : fields) {
-            if (field.start >= line.size()) {
-                continue;
-            }
-            const std::u32string value =
-                strip(std::u32string_view(line).substr(field.start, field.stop - field.start));
-            if (!value.empty()) {
-                values.push_back(utf8(value));
-            }
-        }
-    }
-    const Attr attr = known.attr;
-    attrs.touch(attr);
-    attrs.strings.erase(attr);
-    attrs.reals.erase(attr);
-    attrs.ints.erase(attr);
-    switch (attr) {
-    case Attr::Names:
-    case Attr::Types:
-    case Attr::Resnames:
-    case Attr::ChainIds: attrs.strings[attr] = std::move(values); break;
-    case Attr::Charges: {
-        std::vector<double> out;
-        for (const std::string& v : values) {
-            const float charge = static_cast<float>(core::pythonFloat(v)) / 18.2223f;
-            out.push_back(static_cast<double>(charge));
-        }
-        attrs.reals[attr] = std::move(out);
-        break;
-    }
-    case Attr::Masses: {
-        std::vector<double> out;
-        for (const std::string& v : values) {
-            out.push_back(core::pythonFloat(v));
-        }
-        attrs.reals[attr] = std::move(out);
-        break;
-    }
-    case Attr::Elements: {
-        std::vector<std::string> out;
-        for (const std::string& v : values) {
-            const std::int64_t z = core::pythonInt(v);
-            if (z > static_cast<std::int64_t>(kElements.size()) - 1) {
-                throw ValueError(std::to_string(z));  // KeyError
-            }
-            out.push_back(z > 0 ? kElements[static_cast<std::size_t>(z)] : "");
-        }
-        attrs.strings[attr] = std::move(out);
-        break;
-    }
-    default: {
-        std::vector<std::int64_t> out;
-        for (const std::string& v : values) {
-            const std::int64_t x = core::pythonInt(v);
-            out.push_back(attr == Attr::ResPointers   ? x - 1
-                          : attr == Attr::TypeIndices ? x
-                                                      : floorDiv(x, 3));
-        }
-        if (known.perRecord >
-            1) {  // parse_chunks: the atoms of each record, without the parameter index
-            std::vector<std::int64_t> atoms;
-            const auto per = static_cast<std::size_t>(known.perRecord);
-            for (std::size_t k = 0; k + per <= out.size(); k += per) {
-                atoms.insert(atoms.end(), out.begin() + static_cast<std::ptrdiff_t>(k),
-                             out.begin() + static_cast<std::ptrdiff_t>(k + per - 1));
-            }
-            out = std::move(atoms);
-        }
-        attrs.ints[attr] = std::move(out);
-        break;
-    }
-    }
-}
 
-// header.split("%FLAG")[1].strip()
-std::optional<std::u32string> flagName(std::u32string_view line) {
-    const std::size_t at = line.find(U"%FLAG");
-    if (at == std::u32string_view::npos) {
-        return std::nullopt;
-    }
-    std::u32string_view rest = line.substr(at + 5);
-    return strip(rest.substr(0, rest.find(U"%FLAG")));
-}
-
-std::shared_ptr<core::Topology> TopReader::parse() {
-    if (!startsWith(next(), U"%VE")) {
-        throw ValueError(m_path + " is not a valid TOP file. %VE Missing in header");
-    }
-    const std::vector<std::u32string> title = splitWhitespace(next());
-    if (title.size() < 2) {
-        throw ValueError("list index out of range");
-    }
-    if (title[1] != U"TITLE") {
-        if (title[1] == U"CTITLE") {
-            throw ValueError(
-                m_path +
-                " is detected as a Chamber-style TOP file. At this time MDAnalysis does "
-                "not support such topologies");
+    // Reads the header and data lines of a known section; returns its line count.
+    std::int64_t readKnownSection(const SectionRule& rule) {
+        const std::vector<FormatItem> format = readSectionFormat();
+        const std::int64_t lineCount = ceilDiv(pointer(rule.pointer) * rule.perRecord, rule.perLine);
+        Collected collected;
+        std::vector<std::u32string> fields;
+        for (std::int64_t k = 0; k < lineCount; ++k) {
+            fields.clear();
+            splitFields(requireLine(), format, fields);
+            for (const std::u32string& field : fields) {
+                convertField(rule, field, collected);
+            }
         }
-        throw ValueError(m_path + " is not a valid TOP file. 'TITLE' missing in header");
-    }
-    while (!startsWith(next(), U"%FLAG POINTERS")) {
-    }
-    next();
-    std::vector<std::int64_t> pointers;
-    for (int k = 0; k < 4; ++k) {
-        for (const std::u32string& token : splitWhitespace(next())) {
-            pointers.push_back(core::pythonInt(utf8(token)));
+        const std::string key(rule.key);
+        if (m_sections.find(key) == m_sections.end()) {
+            m_order.push_back(key);
         }
+        m_sections[key] = std::move(collected);
+        return lineCount;
     }
 
-    TopAttrs attrs;
-    std::optional<std::int64_t> numlines;
-    std::optional<std::u32string> section = flagName(next());
-    if (!section) {
-        throw ValueError("list index out of range");
+    const Collected* section(std::string_view key) const {
+        const auto it = m_sections.find(key);
+        return it == m_sections.end() ? nullptr : &it->second;
     }
-    while (section) {
-        const KnownSection* known = nullptr;
-        for (const KnownSection& k : kKnown) {
-            if (k.flag == *section) {
-                known = &k;
+
+    std::shared_ptr<core::Topology> build() const {
+        static constexpr std::array<std::string_view, 9> kRequired = {
+            "name", "respoint", "resname", "bonda", "bondh", "anga", "angh", "diha", "dihh"};
+        for (const std::string_view required : kRequired) {
+            if (!section(required)) {
+                throw ReaderError("KeyError", "'" + std::string(required) + "'");
             }
         }
-        const std::u32string* line = nullptr;
-        if (known) {
-            if (known->pointer >= pointers.size()) {
-                throw ValueError("list index out of range");
-            }
-            const std::int64_t num = pointers[known->pointer] * known->perRecord;
-            numlines = floorDiv(num, known->perLine) + (num % known->perLine != 0 ? 1 : 0);
-            readSection(*known, *numlines, attrs);
-            if (!atEnd()) {
-                line = &next();
-                if (*numlines == 0 && strip(*line).empty()) {
-                    line = atEnd() ? nullptr : &next();
+        // bonds, angles and dihedrals: the topology keeps the bonds; the others are only checked
+        std::vector<std::vector<std::int64_t>> bondTuples =
+            recordTuples(*section("bonda"), 3, "bonds");
+        for (std::vector<std::int64_t>& t : recordTuples(*section("bondh"), 3, "bonds")) {
+            bondTuples.push_back(std::move(t));
+        }
+        (void)recordTuples(*section("anga"), 4, "angles");
+        (void)recordTuples(*section("angh"), 4, "angles");
+        (void)recordTuples(*section("diha"), 5, "dihedrals");
+        (void)recordTuples(*section("dihh"), 5, "dihedrals");
+
+        auto topology = std::make_shared<core::Topology>();
+        core::Topology& top = *topology;
+        const std::vector<std::string>& names = section("name")->texts;
+        const std::size_t atomCount = names.size();
+        for (const std::string& name : names) {
+            top.names.push_back(top.strings.intern(name));
+        }
+
+        // Universe construction: per-atom attributes against the atom count, in section order
+        static constexpr std::array<std::pair<std::string_view, std::string_view>, 5> kPerAtom = {{
+            {"charge", "charges"},
+            {"elements", "elements"},
+            {"mass", "masses"},
+            {"types", "types"},
+            {"type_indices", "type_indices"},
+        }};
+        for (const std::string& key : m_order) {
+            for (const auto& [sectionKey, attribute] : kPerAtom) {
+                const std::size_t have = section(key)->size();
+                if (key == sectionKey && have != atomCount) {
+                    throw ValueError("Length of " + std::string(attribute) +
+                                     " does not match number of atoms.\nExpect: " +
+                                     std::to_string(atomCount) + " Have: " + std::to_string(have));
                 }
+            }
+        }
+        if (const Collected* charges = section("charge")) {
+            top.charges = charges->reals;
+        }
+        if (const Collected* elements = section("elements")) {
+            std::vector<std::uint32_t> symbols;
+            for (const std::string& symbol : elements->texts) {
+                symbols.push_back(top.strings.intern(symbol));
+            }
+            top.elements = std::move(symbols);
+        }
+        if (const Collected* masses = section("mass")) {
+            top.masses = masses->reals;
+        }
+        if (const Collected* types = section("types")) {
+            for (const std::string& type : types->texts) {
+                top.types.push_back(top.strings.intern(type));
+            }
+        }
+        std::vector<std::int64_t> serials(atomCount);
+        for (std::size_t i = 0; i < atomCount; ++i) {
+            serials[i] = static_cast<std::int64_t>(i) + 1;
+        }
+        top.ids = std::move(serials);
+
+        // bonds, oriented first <= last, then looked up as numpy indexes the atoms
+        const auto n = static_cast<std::int64_t>(atomCount);
+        std::vector<core::Bond> bonds;
+        for (std::vector<std::int64_t>& t : bondTuples) {
+            if (t.front() > t.back()) {
+                std::reverse(t.begin(), t.end());
+            }
+            core::Bond bond{};
+            for (std::size_t k = 0; k < 2; ++k) {
+                if (t[k] >= n || t[k] < -n) {
+                    raiseIndexError("index " + std::to_string(t[k]) +
+                                    " is out of bounds for axis 0 with size " +
+                                    std::to_string(atomCount));
+                }
+                bond[k] = static_cast<std::int32_t>(t[k] < 0 ? t[k] + n : t[k]);
+            }
+            if (bond[0] != bond[1]) {  // MDBridge's bonds join two different atoms
+                bonds.push_back(bond);
+            }
+        }
+        top.bonds = std::move(bonds);
+
+        // residues: names from RESIDUE_LABEL, membership from RESIDUE_POINTER (slice rules)
+        const std::vector<std::string>& resnames = section("resname")->texts;
+        const std::size_t residueCount = resnames.size();
+        for (std::size_t r = 0; r < residueCount; ++r) {
+            top.resnames.push_back(top.strings.intern(resnames[r]));
+            top.resids.push_back(static_cast<std::int64_t>(r) + 1);
+        }
+        top.resnums = top.resids;
+        top.atomResidue.assign(atomCount, 0);
+        const std::vector<std::int64_t>& starts = section("respoint")->integers;
+        const auto clampBound = [n](std::int64_t b) {
+            if (b < 0) {
+                return std::max<std::int64_t>(b + n, 0);
+            }
+            return std::min(b, n);
+        };
+        for (std::size_t r = 0; r < starts.size(); ++r) {
+            const std::int64_t first = clampBound(starts[r]);
+            const std::int64_t last = r + 1 < starts.size() ? clampBound(starts[r + 1]) : n;
+            for (std::int64_t a = first; a < last; ++a) {
+                top.atomResidue[static_cast<std::size_t>(a)] = static_cast<std::int32_t>(r);
+            }
+        }
+        for (const std::int32_t r : top.atomResidue) {
+            if (static_cast<std::size_t>(r) >= residueCount) {
+                throw ValueError(m_file + ": RESIDUE_POINTER puts atoms in residue " +
+                                 std::to_string(r) + " but RESIDUE_LABEL has " +
+                                 std::to_string(residueCount) +
+                                 " residues; MDBridge cannot represent such a topology");
+            }
+        }
+
+        // segments: runs of equal RESIDUE_CHAINID values, or a single segment SYSTEM
+        const Collected* chains = section("chainid");
+        if (chains && chains->texts.size() == residueCount) {
+            std::vector<std::uint32_t> perAtom;
+            for (const std::int32_t r : top.atomResidue) {
+                perAtom.push_back(top.strings.intern(chains->texts[static_cast<std::size_t>(r)]));
+            }
+            top.chainIDs = std::move(perAtom);
+            for (std::size_t r = 0; r < residueCount; ++r) {
+                if (r == 0 || chains->texts[r] != chains->texts[r - 1]) {
+                    top.segids.push_back(top.strings.intern(chains->texts[r]));
+                }
+                top.residueSegment.push_back(static_cast<std::int32_t>(top.segids.size() - 1));
             }
         } else {
-            while (!atEnd()) {
-                line = &next();
-                if (startsWith(*line, U"%FLAG")) {
-                    break;
-                }
-                line = nullptr;
-            }
-            if (line) {
-                if (!numlines) {
-                    throw ValueError(
-                        "cannot access local variable 'numlines' where it is not associated with a "
-                        "value");
-                }
-                if (*numlines == 0 && strip(*line).empty()) {
-                    line = atEnd() ? nullptr : &next();
-                }
-            }
+            top.segids.push_back(top.strings.intern("SYSTEM"));
+            top.residueSegment.assign(residueCount, 0);
         }
-        if (!line) {
-            break;
-        }
-        section = flagName(*line);
-        if (!section) {
-            throw ValueError("%FLAG section not found, formatting error for PARM7 file " + m_path +
-                             " ");
-        }
+        top.finish();
+        return topology;
     }
-
-    const auto require = [&](Attr attr) {
-        if (!attrs.has(attr)) {
-            throw ValueError(std::string("'") + attrName(attr) + "'");  // KeyError
-        }
-    };
-    require(Attr::Names);
-    const std::size_t nAtoms = attrs.size(Attr::Names);
-    require(Attr::ResPointers);
-    std::vector<std::int64_t> pointersOfResidues = attrs.ints[Attr::ResPointers];
-    pointersOfResidues.push_back(static_cast<std::int64_t>(nAtoms));
-    std::vector<std::int32_t> residx(nAtoms, 0);
-    const auto clampIndex = [&](std::int64_t x) {
-        const auto n = static_cast<std::int64_t>(nAtoms);
-        if (x < 0) {
-            x = std::max<std::int64_t>(x + n, 0);
-        }
-        return std::min(x, n);
-    };
-    for (std::size_t r = 0; r + 1 < pointersOfResidues.size(); ++r) {
-        const std::int64_t from = clampIndex(pointersOfResidues[r]);
-        const std::int64_t to = clampIndex(pointersOfResidues[r + 1]);
-        for (std::int64_t a = from; a < to; ++a) {
-            residx[static_cast<std::size_t>(a)] = static_cast<std::int32_t>(r);
-        }
-    }
-    require(Attr::Resnames);
-    const std::size_t nResidues = attrs.size(Attr::Resnames);
-    for (const Attr attr :
-         {Attr::BondA, Attr::BondH, Attr::AngA, Attr::AngH, Attr::DihA, Attr::DihH}) {
-        require(attr);
-    }
-
-    // the Universe's length checks, in the order of the attributes
-    for (const Attr attr : attrs.order) {
-        const std::string name = topologyAttrName(attr);
-        if (!name.empty() && attrs.size(attr) != nAtoms) {
-            throw ValueError("Length of " + name + " does not match number of atoms.\nExpect: " +
-                             std::to_string(nAtoms) + " Have: " + std::to_string(attrs.size(attr)));
-        }
-    }
-
-    auto topology = std::make_shared<core::Topology>();
-    core::StringPool& pool = topology->strings;
-    const auto intern = [&](const std::vector<std::string>& values) {
-        std::vector<std::uint32_t> out;
-        out.reserve(values.size());
-        for (const std::string& v : values) {
-            out.push_back(pool.intern(v));
-        }
-        return out;
-    };
-    topology->names = intern(attrs.strings[Attr::Names]);
-    if (attrs.has(Attr::Types)) {
-        topology->types = intern(attrs.strings[Attr::Types]);
-    }
-    if (attrs.has(Attr::Elements)) {
-        topology->elements = intern(attrs.strings[Attr::Elements]);
-    }
-    if (attrs.has(Attr::Charges)) {
-        topology->charges = attrs.reals[Attr::Charges];
-    }
-    if (attrs.has(Attr::Masses)) {
-        topology->masses = attrs.reals[Attr::Masses];
-    }
-    topology->atomResidue = residx;
-    std::vector<std::int64_t> ids(nAtoms);
-    for (std::size_t a = 0; a < nAtoms; ++a) {
-        ids[a] = static_cast<std::int64_t>(a) + 1;
-    }
-    topology->ids = std::move(ids);
-    topology->resnames = intern(attrs.strings[Attr::Resnames]);
-    for (std::size_t r = 0; r < nResidues; ++r) {
-        topology->resids.push_back(static_cast<std::int64_t>(r) + 1);
-    }
-    topology->resnums = topology->resids;
-
-    const std::vector<std::string>* chains =
-        attrs.has(Attr::ChainIds) ? &attrs.strings[Attr::ChainIds] : nullptr;
-    if (chains && chains->size() == nResidues) {
-        topology->residueSegment.resize(nResidues);
-        for (std::size_t r = 0; r < nResidues; ++r) {
-            if (r == 0 || (*chains)[r] != (*chains)[r - 1]) {
-                topology->segids.push_back(pool.intern((*chains)[r]));
-            }
-            topology->residueSegment[r] = static_cast<std::int32_t>(topology->segids.size()) - 1;
-        }
-        std::vector<std::uint32_t> chainIDs;
-        for (const std::int32_t r : residx) {
-            chainIDs.push_back(pool.intern((*chains)[static_cast<std::size_t>(r)]));
-        }
-        topology->chainIDs = std::move(chainIDs);
-    } else {
-        topology->segids.push_back(pool.intern("SYSTEM"));
-        topology->residueSegment.assign(nResidues, 0);
-    }
-
-    std::vector<core::Bond> bonds;
-    for (const Attr attr : {Attr::BondA, Attr::BondH}) {
-        const std::vector<std::int64_t>& atoms = attrs.ints[attr];
-        for (std::size_t k = 0; k + 1 < atoms.size(); k += 2) {
-            if (atoms[k] != atoms[k + 1]) {  // core::Topology has no bonds of an atom to itself
-                bonds.push_back(
-                    {static_cast<std::int32_t>(atoms[k]), static_cast<std::int32_t>(atoms[k + 1])});
-            }
-        }
-    }
-    topology->bonds = std::move(bonds);
-    try {
-        topology->finish();
-    } catch (const std::invalid_argument& e) {
-        throw ValueError(m_path + ": " + e.what());
-    }
-    return topology;
-}
+};
 
 }  // namespace
 
@@ -1034,7 +1082,7 @@ void writeParm7(const std::filesystem::path& path, const std::vector<Parm7Sectio
 }
 
 std::shared_ptr<core::Topology> readParm7Topology(const std::filesystem::path& path) {
-    return TopReader(path).parse();
+    return Parm7TopologyReader(path).read();
 }
 
 bool isParm7(std::string_view path) {
