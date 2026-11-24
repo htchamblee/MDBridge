@@ -1,0 +1,20 @@
+# Residue names stated in the GROMACS reference manual (https://manual.gromacs.org/current/,
+# retrieved 2026-11-24): Table 12 "Internal GROMACS residue naming convention"
+# (reference-manual/topologies/pdb2gmx-input-files.html) and the topology examples
+# (reference-manual/topologies/topology-file-formats.html: molecule type SOL for water).
+# name	class	meaning
+ARG	protein	protonated arginine
+ARGN	protein	neutral arginine
+ASP	protein	negatively charged aspartic acid
+ASPH	protein	neutral aspartic acid
+CYS	protein	neutral cysteine
+CYS2	protein	cysteine with sulfur bound to another cysteine or a heme
+GLU	protein	negatively charged glutamic acid
+GLUH	protein	neutral glutamic acid
+HISD	protein	neutral histidine with N-delta protonated
+HISE	protein	neutral histidine with N-epsilon protonated
+HISH	protein	positive histidine with both N-delta and N-epsilon protonated
+HIS1	protein	histidine bound to a heme
+LYSN	protein	neutral lysine
+LYS	protein	protonated lysine
+SOL	water	water molecule type in the topology examples
