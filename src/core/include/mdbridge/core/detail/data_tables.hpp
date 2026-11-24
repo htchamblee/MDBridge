@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <span>
+#include <utility>
 #include <string_view>
 
 namespace mdbridge::core::detail::tables {
@@ -31,6 +32,10 @@ static_assert(std::is_sorted(std::begin(kIndMercuryHgResidues), std::end(kIndMer
 static_assert(std::is_sorted(std::begin(kIndChlorineClResidues), std::end(kIndChlorineClResidues)));
 static_assert(std::is_sorted(std::begin(kIndForceFieldNameElements), std::end(kIndForceFieldNameElements),
                              [](const IndNameElement& a, const IndNameElement& b) { return a.name < b.name; }));
+static_assert(std::is_sorted(std::begin(kIndResidueAtomElements), std::end(kIndResidueAtomElements),
+                             [](const IndResidueAtomElement& a, const IndResidueAtomElement& b) {
+                                 return a.residue != b.residue ? a.residue < b.residue : a.name < b.name;
+                             }));
 static_assert(std::size(kIndElements) == 118 && kIndElements[0].z == 1 && kIndElements[117].z == 118);
 
 // ASCII case-insensitive equality (element symbols, residue and atom names).
@@ -73,6 +78,19 @@ constexpr const IndNameElement* forceFieldNameElement(std::string_view name) {
     const auto* it = std::lower_bound(std::begin(kIndForceFieldNameElements), end, name,
                                       [](const IndNameElement& e, std::string_view n) { return e.name < n; });
     return it != end && it->name == name ? it : nullptr;
+}
+
+// The element the residue decides for an atom: the entry for the exact (upper-case) residue and
+// atom names, nullptr when there is none.
+constexpr const IndResidueAtomElement* residueAtomElement(std::string_view residue,
+                                                          std::string_view name) {
+    const auto* end = std::end(kIndResidueAtomElements);
+    const auto* it = std::lower_bound(
+        std::begin(kIndResidueAtomElements), end, std::pair(residue, name),
+        [](const IndResidueAtomElement& e, const std::pair<std::string_view, std::string_view>& key) {
+            return e.residue != key.first ? e.residue < key.first : e.name < key.second;
+        });
+    return it != end && it->residue == residue && it->name == name ? it : nullptr;
 }
 
 }  // namespace mdbridge::core::detail::tables

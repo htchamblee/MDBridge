@@ -27,10 +27,19 @@ using namespace detail;
 
 namespace tables = core::detail::tables;
 
+// Whether the residue makes the atom a two-letter element (MDBridge's residue rule, a deliberate
+// improvement over MDAnalysis' writer: calcium CA of residue CA, mercury HG of EMC, ...).
+bool residueTwoLetterElement(const U32& name, const std::string& resname) {
+    const tables::IndResidueAtomElement* ion =
+        tables::residueAtomElement(toUtf8(upper(toU32(resname))), toUtf8(upper(name)));
+    return ion != nullptr && ion->element.size() == 2;
+}
+
 // Columns 13-16: the atom name starts in column 14 unless it has four or more characters, or it is
-// a two or three character name that goes in column 13: the residue's own name, a name starting
-// with a monatomic ion's name, UNK, HG of a residue whose HG is mercury, CL of a residue whose CL
-// is chlorine (the lists of mdbridge/core/detail/data_tables.hpp, from the wwPDB CCD).
+// a shorter name that goes in column 13: an atom the residue makes a two-letter element, or a two
+// or three character name that is the residue's own name, starts with a monatomic ion's name, is
+// UNK, is the HG of a residue whose HG is mercury or the CL of a residue whose CL is chlorine (the
+// lists of mdbridge/core/detail/data_tables.hpp, from the wwPDB CCD).
 U32 atomNameField(const std::string& name, const std::string& resname) {
     const U32 text = toU32(name);
     if (text.empty()) {
@@ -39,8 +48,8 @@ U32 atomNameField(const std::string& name, const std::string& resname) {
     if (text.size() >= 4) {
         return text.substr(0, 4);
     }
-    bool column13 = false;
-    if (text.size() > 1) {
+    bool column13 = residueTwoLetterElement(text, resname);
+    if (!column13 && text.size() > 1) {
         const std::string prefix = toUtf8(slice(text, 0, 2));
         column13 = resname == name || tables::contains(tables::kIndMonatomicIonNames, prefix) ||
                    name == "UNK" ||

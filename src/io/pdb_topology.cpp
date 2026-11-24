@@ -100,10 +100,17 @@ bool isShortElement(std::string_view key) {
 
 bool isElementSymbol(std::string_view key) { return tables::elementBySymbol(key) != nullptr; }
 
-std::string guessTypeFromName(const std::string& atomName) {
+// MDBridge's residue rule first (a deliberate improvement over MDAnalysis, which reads the name
+// alone): an atom whose (residue, name), in upper case, is in kIndResidueAtomElements is that
+// element ("CA" of residue CA is calcium); every other atom gets MDAnalysis' name-only guess.
+std::string guessTypeFromName(const std::string& atomName, const std::string& resname) {
     const U32 text = toU32(atomName);
     if (text.empty()) {
         return {};
+    }
+    if (const tables::IndResidueAtomElement* ion =
+            tables::residueAtomElement(toUtf8(upper(toU32(resname))), toUtf8(upper(text)))) {
+        return toUtf8(upper(toU32(ion->element)));
     }
     if (const auto special = specialElement(toUtf8(upper(text)))) {
         return *special;
@@ -175,7 +182,9 @@ void guessTypesAndMasses(core::Topology& top, const std::optional<std::vector<st
     top.types.resize(n);
     for (std::size_t i = 0; i < n; ++i) {
         const std::string type =
-            givenTypes ? (*givenTypes)[i] : guessTypeFromName(top.strings[top.names[i]]);
+            givenTypes ? (*givenTypes)[i]
+                       : guessTypeFromName(top.strings[top.names[i]],
+                                           top.resname(top.atomResidue[i]));
         top.types[i] = top.strings.intern(type);
         masses[i] = massOf(elements ? (*elements)[i] : type);
     }
