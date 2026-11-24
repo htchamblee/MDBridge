@@ -1,0 +1,1017 @@
+{
+ "files": {
+  "rmsd.dat": "#Frame  rmsd  other\n1 0.0 5\n2 1.0 6\n3 2.0 7\n",
+  "e.csv": "time_ns,energy\n0,1\n0.02,3\n",
+  "unsorted.dat": "# t a b\n30 3 30\n10 1 10\nnan 9 90\n20 2 20\n0 0 0\n20 5 50\n",
+  "dupes.dat": "t v v w\n0 1 2 3\n10 4 5 6\n",
+  "noheader.dat": "0 1 2\n100 3 4\n200 5 6\n",
+  "a.b.dat": "t,x y\n0,1\n1000,2\n",
+  "odd name!.dat": "t v\n0 1\n5 2\n",
+  "fs.dat": "t v\n0 0\n1e6 1\n",
+  "frames.dat": "f v\n0 0\n1 1\n2 4\n3 9\n",
+  "spaces.dat": "time value (kcal/mol)\n0 1\n",
+  "bad.dat": "t v\n0 x\n"
+ },
+ "cases": [
+  {
+   "name": "mdatk_test_1",
+   "frames": [
+    0,
+    1,
+    2
+   ],
+   "time_ps": [
+    "0.0",
+    "10.0",
+    "20.0"
+   ],
+   "specs": [
+    {
+     "path": "rmsd.dat",
+     "label": "cpp",
+     "x_column": "Frame",
+     "x_unit": "frame1",
+     "columns": [
+      "rmsd"
+     ]
+    }
+   ],
+   "arrays": [
+    [
+     "s0_1",
+     [
+      "0.0",
+      "1.0",
+      "2.0"
+     ]
+    ]
+   ],
+   "meta_repr": "{'outputs': {'series': {'cpp.rmsd': {'array': 's0_1', 'label': 'cpp: rmsd', 'unit': ''}}, 'matrices': {}, 'pairmaps': {}}}"
+  },
+  {
+   "name": "mdatk_test_2",
+   "frames": [
+    0,
+    1,
+    2
+   ],
+   "time_ps": [
+    "0.0",
+    "10.0",
+    "20.0"
+   ],
+   "specs": [
+    {
+     "path": "e.csv",
+     "x_unit": "ns"
+    }
+   ],
+   "arrays": [
+    [
+     "s0_1",
+     [
+      "1.0",
+      "2.0",
+      "3.0"
+     ]
+    ]
+   ],
+   "meta_repr": "{'outputs': {'series': {'e.energy': {'array': 's0_1', 'label': 'e: energy', 'unit': ''}}, 'matrices': {}, 'pairmaps': {}}}"
+  },
+  {
+   "name": "all_columns",
+   "frames": [
+    0,
+    1,
+    2,
+    3,
+    5
+   ],
+   "time_ps": [
+    "-5.0",
+    "0.0",
+    "10.0",
+    "25.0",
+    "1000.0"
+   ],
+   "specs": [
+    {
+     "path": "rmsd.dat",
+     "x_unit": "frame1"
+    }
+   ],
+   "arrays": [
+    [
+     "s0_1",
+     [
+      "0.0",
+      "1.0",
+      "2.0",
+      "nan",
+      "nan"
+     ]
+    ],
+    [
+     "s0_2",
+     [
+      "5.0",
+      "6.0",
+      "7.0",
+      "nan",
+      "nan"
+     ]
+    ]
+   ],
+   "meta_repr": "{'outputs': {'series': {'rmsd.rmsd': {'array': 's0_1', 'label': 'rmsd: rmsd', 'unit': ''}, 'rmsd.other': {'array': 's0_2', 'label': 'rmsd: other', 'unit': ''}}, 'matrices': {}, 'pairmaps': {}}}"
+  },
+  {
+   "name": "skip_empty_path",
+   "frames": [
+    0,
+    1,
+    2,
+    3,
+    5
+   ],
+   "time_ps": [
+    "-5.0",
+    "0.0",
+    "10.0",
+    "25.0",
+    "1000.0"
+   ],
+   "specs": [
+    {
+     "path": "",
+     "label": "none"
+    },
+    {
+     "path": "rmsd.dat",
+     "x_unit": "frame",
+     "columns": [
+      "2",
+      "rmsd"
+     ]
+    }
+   ],
+   "arrays": [
+    [
+     "s1_2",
+     [
+      "nan",
+      "5.0",
+      "6.0",
+      "7.0",
+      "nan"
+     ]
+    ],
+    [
+     "s1_1",
+     [
+      "nan",
+      "0.0",
+      "1.0",
+      "2.0",
+      "nan"
+     ]
+    ]
+   ],
+   "meta_repr": "{'outputs': {'series': {'rmsd.other': {'array': 's1_2', 'label': 'rmsd: other', 'unit': ''}, 'rmsd.rmsd': {'array': 's1_1', 'label': 'rmsd: rmsd', 'unit': ''}}, 'matrices': {}, 'pairmaps': {}}}"
+  },
+  {
+   "name": "unsorted_nan",
+   "frames": [
+    0,
+    1,
+    2,
+    3,
+    5
+   ],
+   "time_ps": [
+    "-5.0",
+    "0.0",
+    "10.0",
+    "25.0",
+    "1000.0"
+   ],
+   "specs": [
+    {
+     "path": "unsorted.dat"
+    }
+   ],
+   "arrays": [
+    [
+     "s0_1",
+     [
+      "nan",
+      "0.0",
+      "1.0",
+      "4.0",
+      "nan"
+     ]
+    ],
+    [
+     "s0_2",
+     [
+      "nan",
+      "0.0",
+      "10.0",
+      "40.0",
+      "nan"
+     ]
+    ]
+   ],
+   "meta_repr": "{'outputs': {'series': {'unsorted.a': {'array': 's0_1', 'label': 'unsorted: a', 'unit': ''}, 'unsorted.b': {'array': 's0_2', 'label': 'unsorted: b', 'unit': ''}}, 'matrices': {}, 'pairmaps': {}}}"
+  },
+  {
+   "name": "duplicate_names",
+   "frames": [
+    0,
+    1,
+    2,
+    3,
+    5
+   ],
+   "time_ps": [
+    "-5.0",
+    "0.0",
+    "10.0",
+    "25.0",
+    "1000.0"
+   ],
+   "specs": [
+    {
+     "path": "dupes.dat"
+    },
+    {
+     "path": "dupes.dat",
+     "columns": [
+      "v",
+      "2",
+      "w"
+     ],
+     "label": "d2"
+    }
+   ],
+   "arrays": [
+    [
+     "s0_1",
+     [
+      "nan",
+      "1.0",
+      "4.0",
+      "nan",
+      "nan"
+     ]
+    ],
+    [
+     "s0_3",
+     [
+      "nan",
+      "3.0",
+      "6.0",
+      "nan",
+      "nan"
+     ]
+    ],
+    [
+     "s1_1",
+     [
+      "nan",
+      "1.0",
+      "4.0",
+      "nan",
+      "nan"
+     ]
+    ],
+    [
+     "s1_2",
+     [
+      "nan",
+      "2.0",
+      "5.0",
+      "nan",
+      "nan"
+     ]
+    ],
+    [
+     "s1_3",
+     [
+      "nan",
+      "3.0",
+      "6.0",
+      "nan",
+      "nan"
+     ]
+    ]
+   ],
+   "meta_repr": "{'outputs': {'series': {'dupes.v': {'array': 's0_1', 'label': 'dupes: v', 'unit': ''}, 'dupes.w': {'array': 's0_3', 'label': 'dupes: w', 'unit': ''}, 'd2.v': {'array': 's1_2', 'label': 'd2: v', 'unit': ''}, 'd2.w': {'array': 's1_3', 'label': 'd2: w', 'unit': ''}}, 'matrices': {}, 'pairmaps': {}}}"
+  },
+  {
+   "name": "fallback_header",
+   "frames": [
+    0,
+    1,
+    2,
+    3,
+    5
+   ],
+   "time_ps": [
+    "-5.0",
+    "0.0",
+    "10.0",
+    "25.0",
+    "1000.0"
+   ],
+   "specs": [
+    {
+     "path": "noheader.dat",
+     "x_unit": "ps"
+    }
+   ],
+   "arrays": [
+    [
+     "s0_1",
+     [
+      "nan",
+      "1.0",
+      "1.2",
+      "1.5",
+      "nan"
+     ]
+    ],
+    [
+     "s0_2",
+     [
+      "nan",
+      "2.0",
+      "2.2",
+      "2.5",
+      "nan"
+     ]
+    ]
+   ],
+   "meta_repr": "{'outputs': {'series': {'noheader.col1': {'array': 's0_1', 'label': 'noheader: col1', 'unit': ''}, 'noheader.col2': {'array': 's0_2', 'label': 'noheader: col2', 'unit': ''}}, 'matrices': {}, 'pairmaps': {}}}"
+  },
+  {
+   "name": "last_column",
+   "frames": [
+    0,
+    1,
+    2,
+    3,
+    5
+   ],
+   "time_ps": [
+    "-5.0",
+    "0.0",
+    "10.0",
+    "25.0",
+    "1000.0"
+   ],
+   "specs": [
+    {
+     "path": "noheader.dat",
+     "columns": [
+      ""
+     ]
+    }
+   ],
+   "arrays": [
+    [
+     "s0_-1",
+     [
+      "nan",
+      "2.0",
+      "2.2",
+      "2.5",
+      "nan"
+     ]
+    ]
+   ],
+   "meta_repr": "{'outputs': {'series': {'noheader.col2': {'array': 's0_-1', 'label': 'noheader: col2', 'unit': ''}}, 'matrices': {}, 'pairmaps': {}}}"
+  },
+  {
+   "name": "label_from_name",
+   "frames": [
+    0,
+    1,
+    2,
+    3,
+    5
+   ],
+   "time_ps": [
+    "-5.0",
+    "0.0",
+    "10.0",
+    "25.0",
+    "1000.0"
+   ],
+   "specs": [
+    {
+     "path": "a.b.dat",
+     "delimiter": ",",
+     "x_unit": "us"
+    }
+   ],
+   "arrays": [
+    [
+     "s0_1",
+     [
+      "nan",
+      "1.0",
+      "1.00000001",
+      "1.000000025",
+      "1.000001"
+     ]
+    ]
+   ],
+   "meta_repr": "{'outputs': {'series': {'a.b.x_y': {'array': 's0_1', 'label': 'a.b: x y', 'unit': ''}}, 'matrices': {}, 'pairmaps': {}}}"
+  },
+  {
+   "name": "odd_label",
+   "frames": [
+    0,
+    1,
+    2,
+    3,
+    5
+   ],
+   "time_ps": [
+    "-5.0",
+    "0.0",
+    "10.0",
+    "25.0",
+    "1000.0"
+   ],
+   "specs": [
+    {
+     "path": "odd name!.dat",
+     "label": "  my label/é "
+    },
+    {
+     "path": "odd name!.dat",
+     "label": "___"
+    }
+   ],
+   "arrays": [
+    [
+     "s0_1",
+     [
+      "nan",
+      "1.0",
+      "nan",
+      "nan",
+      "nan"
+     ]
+    ],
+    [
+     "s1_1",
+     [
+      "nan",
+      "1.0",
+      "nan",
+      "nan",
+      "nan"
+     ]
+    ]
+   ],
+   "meta_repr": "{'outputs': {'series': {'my_label_.v': {'array': 's0_1', 'label': '  my label/é : v', 'unit': ''}, '.v': {'array': 's1_1', 'label': '___: v', 'unit': ''}}, 'matrices': {}, 'pairmaps': {}}}"
+  },
+  {
+   "name": "fs_unit",
+   "frames": [
+    0,
+    1,
+    2,
+    3,
+    5
+   ],
+   "time_ps": [
+    "-5.0",
+    "0.0",
+    "10.0",
+    "25.0",
+    "1000.0"
+   ],
+   "specs": [
+    {
+     "path": "fs.dat",
+     "x_unit": "fs"
+    }
+   ],
+   "arrays": [
+    [
+     "s0_1",
+     [
+      "nan",
+      "0.0",
+      "0.01",
+      "0.025",
+      "1.0"
+     ]
+    ]
+   ],
+   "meta_repr": "{'outputs': {'series': {'fs.v': {'array': 's0_1', 'label': 'fs: v', 'unit': ''}}, 'matrices': {}, 'pairmaps': {}}}"
+  },
+  {
+   "name": "empty_unit",
+   "frames": [
+    0,
+    1,
+    2,
+    3,
+    5
+   ],
+   "time_ps": [
+    "-5.0",
+    "0.0",
+    "10.0",
+    "25.0",
+    "1000.0"
+   ],
+   "specs": [
+    {
+     "path": "fs.dat",
+     "x_unit": ""
+    }
+   ],
+   "arrays": [
+    [
+     "s0_1",
+     [
+      "nan",
+      "0.0",
+      "9.999999999999999e-06",
+      "2.4999999999999998e-05",
+      "0.001"
+     ]
+    ]
+   ],
+   "meta_repr": "{'outputs': {'series': {'fs.v': {'array': 's0_1', 'label': 'fs: v', 'unit': ''}}, 'matrices': {}, 'pairmaps': {}}}"
+  },
+  {
+   "name": "frames",
+   "frames": [
+    0,
+    1,
+    2,
+    3,
+    5
+   ],
+   "time_ps": [
+    "-5.0",
+    "0.0",
+    "10.0",
+    "25.0",
+    "1000.0"
+   ],
+   "specs": [
+    {
+     "path": "frames.dat",
+     "x_unit": "frame"
+    },
+    {
+     "path": "frames.dat",
+     "x_unit": "frame1",
+     "label": "f1"
+    }
+   ],
+   "arrays": [
+    [
+     "s0_1",
+     [
+      "0.0",
+      "1.0",
+      "4.0",
+      "9.0",
+      "nan"
+     ]
+    ],
+    [
+     "s1_1",
+     [
+      "1.0",
+      "4.0",
+      "9.0",
+      "nan",
+      "nan"
+     ]
+    ]
+   ],
+   "meta_repr": "{'outputs': {'series': {'frames.v': {'array': 's0_1', 'label': 'frames: v', 'unit': ''}, 'f1.v': {'array': 's1_1', 'label': 'f1: v', 'unit': ''}}, 'matrices': {}, 'pairmaps': {}}}"
+  },
+  {
+   "name": "x_by_index",
+   "frames": [
+    0,
+    1,
+    2,
+    3,
+    5
+   ],
+   "time_ps": [
+    "-5.0",
+    "0.0",
+    "10.0",
+    "25.0",
+    "1000.0"
+   ],
+   "specs": [
+    {
+     "path": "rmsd.dat",
+     "x_column": "2",
+     "x_unit": "frame"
+    }
+   ],
+   "arrays": [
+    [
+     "s0_0",
+     [
+      "nan",
+      "nan",
+      "nan",
+      "nan",
+      "1.0"
+     ]
+    ],
+    [
+     "s0_1",
+     [
+      "nan",
+      "nan",
+      "nan",
+      "nan",
+      "0.0"
+     ]
+    ]
+   ],
+   "meta_repr": "{'outputs': {'series': {'rmsd.Frame': {'array': 's0_0', 'label': 'rmsd: Frame', 'unit': ''}, 'rmsd.rmsd': {'array': 's0_1', 'label': 'rmsd: rmsd', 'unit': ''}}, 'matrices': {}, 'pairmaps': {}}}"
+  },
+  {
+   "name": "x_is_column",
+   "frames": [
+    0,
+    1,
+    2,
+    3,
+    5
+   ],
+   "time_ps": [
+    "-5.0",
+    "0.0",
+    "10.0",
+    "25.0",
+    "1000.0"
+   ],
+   "specs": [
+    {
+     "path": "rmsd.dat",
+     "columns": [
+      "Frame",
+      "0"
+     ]
+    }
+   ],
+   "arrays": [
+    [
+     "s0_0",
+     [
+      "nan",
+      "nan",
+      "nan",
+      "nan",
+      "nan"
+     ]
+    ]
+   ],
+   "meta_repr": "{'outputs': {'series': {'rmsd.Frame': {'array': 's0_0', 'label': 'rmsd: Frame', 'unit': ''}}, 'matrices': {}, 'pairmaps': {}}}"
+  },
+  {
+   "name": "same_key_twice",
+   "frames": [
+    0,
+    1,
+    2,
+    3,
+    5
+   ],
+   "time_ps": [
+    "-5.0",
+    "0.0",
+    "10.0",
+    "25.0",
+    "1000.0"
+   ],
+   "specs": [
+    {
+     "path": "rmsd.dat",
+     "label": "x"
+    },
+    {
+     "path": "rmsd.dat",
+     "label": "x"
+    }
+   ],
+   "arrays": [
+    [
+     "s0_1",
+     [
+      "nan",
+      "nan",
+      "nan",
+      "nan",
+      "nan"
+     ]
+    ],
+    [
+     "s0_2",
+     [
+      "nan",
+      "nan",
+      "nan",
+      "nan",
+      "nan"
+     ]
+    ],
+    [
+     "s1_1",
+     [
+      "nan",
+      "nan",
+      "nan",
+      "nan",
+      "nan"
+     ]
+    ],
+    [
+     "s1_2",
+     [
+      "nan",
+      "nan",
+      "nan",
+      "nan",
+      "nan"
+     ]
+    ]
+   ],
+   "meta_repr": "{'outputs': {'series': {'x.rmsd': {'array': 's1_1', 'label': 'x: rmsd', 'unit': ''}, 'x.other': {'array': 's1_2', 'label': 'x: other', 'unit': ''}}, 'matrices': {}, 'pairmaps': {}}}"
+  },
+  {
+   "name": "spaces_header",
+   "frames": [
+    0,
+    1,
+    2,
+    3,
+    5
+   ],
+   "time_ps": [
+    "-5.0",
+    "0.0",
+    "10.0",
+    "25.0",
+    "1000.0"
+   ],
+   "specs": [
+    {
+     "path": "spaces.dat"
+    }
+   ],
+   "arrays": [
+    [
+     "s0_1",
+     [
+      "nan",
+      "1.0",
+      "nan",
+      "nan",
+      "nan"
+     ]
+    ]
+   ],
+   "meta_repr": "{'outputs': {'series': {'spaces.col1': {'array': 's0_1', 'label': 'spaces: col1', 'unit': ''}}, 'matrices': {}, 'pairmaps': {}}}"
+  },
+  {
+   "name": "empty_dataset",
+   "frames": [],
+   "time_ps": [],
+   "specs": [
+    {
+     "path": "rmsd.dat"
+    }
+   ],
+   "arrays": [
+    [
+     "s0_1",
+     []
+    ],
+    [
+     "s0_2",
+     []
+    ]
+   ],
+   "meta_repr": "{'outputs': {'series': {'rmsd.rmsd': {'array': 's0_1', 'label': 'rmsd: rmsd', 'unit': ''}, 'rmsd.other': {'array': 's0_2', 'label': 'rmsd: other', 'unit': ''}}, 'matrices': {}, 'pairmaps': {}}}"
+  },
+  {
+   "name": "bad_unit",
+   "frames": [
+    0,
+    1,
+    2,
+    3,
+    5
+   ],
+   "time_ps": [
+    "-5.0",
+    "0.0",
+    "10.0",
+    "25.0",
+    "1000.0"
+   ],
+   "specs": [
+    {
+     "path": "rmsd.dat",
+     "x_unit": "ms"
+    }
+   ],
+   "error": "unknown time unit 'ms'",
+   "error_type": "ValueError"
+  },
+  {
+   "name": "bad_unit_frame_ok",
+   "frames": [
+    0,
+    1,
+    2,
+    3,
+    5
+   ],
+   "time_ps": [
+    "-5.0",
+    "0.0",
+    "10.0",
+    "25.0",
+    "1000.0"
+   ],
+   "specs": [
+    {
+     "path": "rmsd.dat",
+     "x_unit": "frames"
+    }
+   ],
+   "error": "unknown time unit 'frames'",
+   "error_type": "ValueError"
+  },
+  {
+   "name": "missing_column",
+   "frames": [
+    0,
+    1,
+    2,
+    3,
+    5
+   ],
+   "time_ps": [
+    "-5.0",
+    "0.0",
+    "10.0",
+    "25.0",
+    "1000.0"
+   ],
+   "specs": [
+    {
+     "path": "rmsd.dat",
+     "columns": [
+      "nope"
+     ]
+    }
+   ],
+   "error": "column 'nope' not found (available: Frame, rmsd, other)",
+   "error_type": "ValueError"
+  },
+  {
+   "name": "missing_x_column",
+   "frames": [
+    0,
+    1,
+    2,
+    3,
+    5
+   ],
+   "time_ps": [
+    "-5.0",
+    "0.0",
+    "10.0",
+    "25.0",
+    "1000.0"
+   ],
+   "specs": [
+    {
+     "path": "rmsd.dat",
+     "x_column": "time"
+    }
+   ],
+   "error": "column 'time' not found (available: Frame, rmsd, other)",
+   "error_type": "ValueError"
+  },
+  {
+   "name": "index_out_of_range",
+   "frames": [
+    0,
+    1,
+    2,
+    3,
+    5
+   ],
+   "time_ps": [
+    "-5.0",
+    "0.0",
+    "10.0",
+    "25.0",
+    "1000.0"
+   ],
+   "specs": [
+    {
+     "path": "rmsd.dat",
+     "columns": [
+      "3"
+     ]
+    }
+   ],
+   "error": "column '3' not found (available: Frame, rmsd, other)",
+   "error_type": "ValueError"
+  },
+  {
+   "name": "bad_file",
+   "frames": [
+    0,
+    1,
+    2,
+    3,
+    5
+   ],
+   "time_ps": [
+    "-5.0",
+    "0.0",
+    "10.0",
+    "25.0",
+    "1000.0"
+   ],
+   "specs": [
+    {
+     "path": "rmsd.dat"
+    },
+    {
+     "path": "bad.dat"
+    }
+   ],
+   "error": "{dir}/bad.dat: non-numeric data line '0 x'",
+   "error_type": "ValueError"
+  },
+  {
+   "name": "missing_file",
+   "frames": [
+    0,
+    1,
+    2,
+    3,
+    5
+   ],
+   "time_ps": [
+    "-5.0",
+    "0.0",
+    "10.0",
+    "25.0",
+    "1000.0"
+   ],
+   "specs": [
+    {
+     "path": "no_such_file.dat"
+    }
+   ],
+   "error": "[Errno 2] No such file or directory: '{dir}/no_such_file.dat'",
+   "error_type": "FileNotFoundError"
+  },
+  {
+   "name": "no_specs",
+   "frames": [
+    0,
+    1,
+    2,
+    3,
+    5
+   ],
+   "time_ps": [
+    "-5.0",
+    "0.0",
+    "10.0",
+    "25.0",
+    "1000.0"
+   ],
+   "specs": [],
+   "arrays": [],
+   "meta_repr": "{}"
+  }
+ ]
+}

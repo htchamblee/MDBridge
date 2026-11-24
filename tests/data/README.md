@@ -138,4 +138,44 @@ python3 -I -B tests/parity/make_selections_cases.py /tmp/mdatk tests/data/select
 python3 -I tools/gen_selection_tables.py     # src/core/selection_tables.inc (macro name lists)
 ```
 
+`io/parm7/` holds what MDATK's parm7 module (`mdatk/io/parm7.py`) and MDAnalysis 2.11.0's
+TOPParser make of parm7 files, for `src/io/parm7.cpp` (`tests/io/test_parm7.cpp`). Floats are
+`float.hex()` strings; errors are `{"type", "message"}` with the file's path written `{path}`.
+
+| File | Content |
+|---|---|
+| `read_cases.json` | `read_sections` of about 75 crafted files (bytes as hex, with the `wanted` set): `%FORMAT` spellings (spaces, lower case, Unicode digits, two parentheses, width 0, bad lines), D exponents, blank fields, long and short lines, repeated flags, `%VERSION` / `%COMMENT` lines, CRLF / CR / mixed line ends, Unicode and invalid UTF-8, bad and overflowing numbers, random sections; and of `topology/demo_dry.parm7` |
+| `writer_cases.json` | the bytes `write_parm7` writes for sections of every kind (or its error and what it wrote before it: non-ASCII text, NaN / infinity as integers, values of another type), and `_format_values` of 300 random doubles and edge values |
+| `lj_cases.json` | `LJTable.from_parm7(demo_dry.parm7)`, `pair_coefficients` of about 1800 atom pairs (negative indices included), the types and `mdatk.demo.LJ_TYPES` MDATK's own LJ test uses, and the "missing parm7 sections" errors |
+| `topology/*.parm7`, `*.topology.json` | variants of a small 40-atom system written by `write_parm7` (line ends, `RESIDUE_CHAINID` sections that are used or skipped, atomic numbers 0 / -1 / missing, other formats, `%COMMENT` lines, unknown sections, empty bond sections, residue pointers) with the dump of `tests/parity/dump_topologies.py` |
+| `topology_errors.json` | the variants TOPParser (or the Universe's length check) rejects, with `str(exception)` |
+| `is_parm7_cases.json` | the extension test MDATK uses for parm7 topologies |
+
+`io/external/` holds what MDATK's external-series reader (`mdatk/io/external.py`) and numpy
+compute, for `src/io/external.cpp` (`tests/io/test_external.cpp`). Floats are `repr()` strings;
+errors are `str(exception)` with the folder written `{dir}`.
+
+| File | Content |
+|---|---|
+| `table_cases.json` | `read_table` of about 60 files (bytes as hex): CSV, tabs, whitespace and per-line detection, explicit delimiters, comment lines and the header taken from them, xvg files, ragged rows, Unicode whitespace and digits, CR / CRLF, invalid UTF-8, errors |
+| `column_cases.json` | `_column_index` (names before indices, Unicode digits, errors) and `_sanitize` |
+| `interp_cases.json` | `numpy.interp(x, xp, fp, left, right)` of 2000 random small inputs (duplicates, unsorted points, NaN and infinities everywhere) and 16 long ones; its errors |
+| `load_cases.json` | `load_external` of files and specs on datasets: array names and values and `repr(meta)`, or the error |
+
+`dataset/dataset_cases.json` holds what MDATK's data model (`mdatk/data.py`) computes, for
+`src/core/dataset.cpp` (`tests/core/test_dataset.cpp`): results built with `add_series` /
+`add_matrix` / `add_pairmap` (their `repr(meta)`), datasets of them and about 65 queries each
+(`time`, `time_label`, `keys`, `has`, `kind_of`, `series`, `matrix`, `pairmap` with `dense` and
+`frequency`, `describe`) with their values or KeyError / ValueError messages, `CSRBuilder` runs
+and the TypeErrors of `add_*`.
+
+To regenerate, with Python 3.13, numpy and (for parm7) MDAnalysis 2.11.0 installed and an MDATK
+checkout at `v0.0.4.1` (nothing is written into it):
+
+```bash
+python3 -I -B tests/parity/make_parm7_cases.py /tmp/mdatk tests/data/io/parm7
+python3 -I -B tests/parity/make_external_cases.py /tmp/mdatk tests/data/io/external
+python3 -I -B tests/parity/make_dataset_cases.py /tmp/mdatk tests/data/dataset
+```
+
 Never put research structures or trajectories of real projects here.

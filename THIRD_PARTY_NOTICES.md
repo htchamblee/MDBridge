@@ -11,6 +11,7 @@ programs on Windows).
 | toml++ | 3.4.0 | MIT (`tomlplusplus-LICENSE.txt`) | reading project files (compiled in) | https://github.com/marzer/tomlplusplus |
 | CLI11 | 2.7.2 | BSD-3-Clause (`CLI11-LICENSE.txt`) | command line parsing (compiled in) | https://github.com/CLIUtils/CLI11 |
 | Vulkan-Headers | 1.4.363 | Apache 2.0 or MIT (`Vulkan-Headers-*.txt`) | Vulkan API declarations (compiled in) | https://github.com/KhronosGroup/Vulkan-Headers |
+| NumPy (interpolation routine only) | 2.5.5 | BSD-3-Clause (`numpy-LICENSE.txt`) | `numpy.interp` ported to C++ in `src/io/external.cpp` (compiled in) | https://github.com/numpy/numpy |
 
 **Qt (LGPL v3).** MDBridge links Qt dynamically. The Qt libraries are separate files: in the
 AppImage under `usr/lib` (`./MDBridge-*.AppImage --appimage-extract` unpacks them), on Windows next

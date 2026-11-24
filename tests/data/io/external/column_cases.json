@@ -1,0 +1,2422 @@
+{
+ "column_index": [
+  {
+   "header": [
+    "Frame",
+    "rmsd",
+    "1",
+    "x"
+   ],
+   "spec": "",
+   "default": 0,
+   "index": 0
+  },
+  {
+   "header": [
+    "Frame",
+    "rmsd",
+    "1",
+    "x"
+   ],
+   "spec": "",
+   "default": -1,
+   "index": -1
+  },
+  {
+   "header": [
+    "Frame",
+    "rmsd",
+    "1",
+    "x"
+   ],
+   "spec": "rmsd",
+   "default": 0,
+   "index": 1
+  },
+  {
+   "header": [
+    "Frame",
+    "rmsd",
+    "1",
+    "x"
+   ],
+   "spec": "rmsd",
+   "default": -1,
+   "index": 1
+  },
+  {
+   "header": [
+    "Frame",
+    "rmsd",
+    "1",
+    "x"
+   ],
+   "spec": "Frame",
+   "default": 0,
+   "index": 0
+  },
+  {
+   "header": [
+    "Frame",
+    "rmsd",
+    "1",
+    "x"
+   ],
+   "spec": "Frame",
+   "default": -1,
+   "index": 0
+  },
+  {
+   "header": [
+    "Frame",
+    "rmsd",
+    "1",
+    "x"
+   ],
+   "spec": "1",
+   "default": 0,
+   "index": 2
+  },
+  {
+   "header": [
+    "Frame",
+    "rmsd",
+    "1",
+    "x"
+   ],
+   "spec": "1",
+   "default": -1,
+   "index": 2
+  },
+  {
+   "header": [
+    "Frame",
+    "rmsd",
+    "1",
+    "x"
+   ],
+   "spec": "0",
+   "default": 0,
+   "index": 0
+  },
+  {
+   "header": [
+    "Frame",
+    "rmsd",
+    "1",
+    "x"
+   ],
+   "spec": "0",
+   "default": -1,
+   "index": 0
+  },
+  {
+   "header": [
+    "Frame",
+    "rmsd",
+    "1",
+    "x"
+   ],
+   "spec": "3",
+   "default": 0,
+   "index": 3
+  },
+  {
+   "header": [
+    "Frame",
+    "rmsd",
+    "1",
+    "x"
+   ],
+   "spec": "3",
+   "default": -1,
+   "index": 3
+  },
+  {
+   "header": [
+    "Frame",
+    "rmsd",
+    "1",
+    "x"
+   ],
+   "spec": "4",
+   "default": 0,
+   "error": "column '4' not found (available: Frame, rmsd, 1, x)"
+  },
+  {
+   "header": [
+    "Frame",
+    "rmsd",
+    "1",
+    "x"
+   ],
+   "spec": "4",
+   "default": -1,
+   "error": "column '4' not found (available: Frame, rmsd, 1, x)"
+  },
+  {
+   "header": [
+    "Frame",
+    "rmsd",
+    "1",
+    "x"
+   ],
+   "spec": "٣",
+   "default": 0,
+   "index": 3
+  },
+  {
+   "header": [
+    "Frame",
+    "rmsd",
+    "1",
+    "x"
+   ],
+   "spec": "٣",
+   "default": -1,
+   "index": 3
+  },
+  {
+   "header": [
+    "Frame",
+    "rmsd",
+    "1",
+    "x"
+   ],
+   "spec": "１",
+   "default": 0,
+   "index": 1
+  },
+  {
+   "header": [
+    "Frame",
+    "rmsd",
+    "1",
+    "x"
+   ],
+   "spec": "１",
+   "default": -1,
+   "index": 1
+  },
+  {
+   "header": [
+    "Frame",
+    "rmsd",
+    "1",
+    "x"
+   ],
+   "spec": "01",
+   "default": 0,
+   "index": 1
+  },
+  {
+   "header": [
+    "Frame",
+    "rmsd",
+    "1",
+    "x"
+   ],
+   "spec": "01",
+   "default": -1,
+   "index": 1
+  },
+  {
+   "header": [
+    "Frame",
+    "rmsd",
+    "1",
+    "x"
+   ],
+   "spec": "-1",
+   "default": 0,
+   "error": "column '-1' not found (available: Frame, rmsd, 1, x)"
+  },
+  {
+   "header": [
+    "Frame",
+    "rmsd",
+    "1",
+    "x"
+   ],
+   "spec": "-1",
+   "default": -1,
+   "error": "column '-1' not found (available: Frame, rmsd, 1, x)"
+  },
+  {
+   "header": [
+    "Frame",
+    "rmsd",
+    "1",
+    "x"
+   ],
+   "spec": " 1",
+   "default": 0,
+   "error": "column ' 1' not found (available: Frame, rmsd, 1, x)"
+  },
+  {
+   "header": [
+    "Frame",
+    "rmsd",
+    "1",
+    "x"
+   ],
+   "spec": " 1",
+   "default": -1,
+   "error": "column ' 1' not found (available: Frame, rmsd, 1, x)"
+  },
+  {
+   "header": [
+    "Frame",
+    "rmsd",
+    "1",
+    "x"
+   ],
+   "spec": "1 ",
+   "default": 0,
+   "error": "column '1 ' not found (available: Frame, rmsd, 1, x)"
+  },
+  {
+   "header": [
+    "Frame",
+    "rmsd",
+    "1",
+    "x"
+   ],
+   "spec": "1 ",
+   "default": -1,
+   "error": "column '1 ' not found (available: Frame, rmsd, 1, x)"
+  },
+  {
+   "header": [
+    "Frame",
+    "rmsd",
+    "1",
+    "x"
+   ],
+   "spec": "1\n",
+   "default": 0,
+   "error": "column '1\\n' not found (available: Frame, rmsd, 1, x)"
+  },
+  {
+   "header": [
+    "Frame",
+    "rmsd",
+    "1",
+    "x"
+   ],
+   "spec": "1\n",
+   "default": -1,
+   "error": "column '1\\n' not found (available: Frame, rmsd, 1, x)"
+  },
+  {
+   "header": [
+    "Frame",
+    "rmsd",
+    "1",
+    "x"
+   ],
+   "spec": "x",
+   "default": 0,
+   "index": 3
+  },
+  {
+   "header": [
+    "Frame",
+    "rmsd",
+    "1",
+    "x"
+   ],
+   "spec": "x",
+   "default": -1,
+   "index": 3
+  },
+  {
+   "header": [
+    "Frame",
+    "rmsd",
+    "1",
+    "x"
+   ],
+   "spec": "99999999999999999999999",
+   "default": 0,
+   "error": "column '99999999999999999999999' not found (available: Frame, rmsd, 1, x)"
+  },
+  {
+   "header": [
+    "Frame",
+    "rmsd",
+    "1",
+    "x"
+   ],
+   "spec": "99999999999999999999999",
+   "default": -1,
+   "error": "column '99999999999999999999999' not found (available: Frame, rmsd, 1, x)"
+  },
+  {
+   "header": [
+    "Frame",
+    "rmsd",
+    "1",
+    "x"
+   ],
+   "spec": "²",
+   "default": 0,
+   "error": "column '²' not found (available: Frame, rmsd, 1, x)"
+  },
+  {
+   "header": [
+    "Frame",
+    "rmsd",
+    "1",
+    "x"
+   ],
+   "spec": "²",
+   "default": -1,
+   "error": "column '²' not found (available: Frame, rmsd, 1, x)"
+  },
+  {
+   "header": [
+    "Frame",
+    "rmsd",
+    "1",
+    "x"
+   ],
+   "spec": "a",
+   "default": 0,
+   "error": "column 'a' not found (available: Frame, rmsd, 1, x)"
+  },
+  {
+   "header": [
+    "Frame",
+    "rmsd",
+    "1",
+    "x"
+   ],
+   "spec": "a",
+   "default": -1,
+   "error": "column 'a' not found (available: Frame, rmsd, 1, x)"
+  },
+  {
+   "header": [
+    "Frame",
+    "rmsd",
+    "1",
+    "x"
+   ],
+   "spec": "b",
+   "default": 0,
+   "error": "column 'b' not found (available: Frame, rmsd, 1, x)"
+  },
+  {
+   "header": [
+    "Frame",
+    "rmsd",
+    "1",
+    "x"
+   ],
+   "spec": "b",
+   "default": -1,
+   "error": "column 'b' not found (available: Frame, rmsd, 1, x)"
+  },
+  {
+   "header": [
+    "Frame",
+    "rmsd",
+    "1",
+    "x"
+   ],
+   "spec": "col1",
+   "default": 0,
+   "error": "column 'col1' not found (available: Frame, rmsd, 1, x)"
+  },
+  {
+   "header": [
+    "Frame",
+    "rmsd",
+    "1",
+    "x"
+   ],
+   "spec": "col1",
+   "default": -1,
+   "error": "column 'col1' not found (available: Frame, rmsd, 1, x)"
+  },
+  {
+   "header": [
+    "Frame",
+    "rmsd",
+    "1",
+    "x"
+   ],
+   "spec": "é",
+   "default": 0,
+   "error": "column 'é' not found (available: Frame, rmsd, 1, x)"
+  },
+  {
+   "header": [
+    "Frame",
+    "rmsd",
+    "1",
+    "x"
+   ],
+   "spec": "é",
+   "default": -1,
+   "error": "column 'é' not found (available: Frame, rmsd, 1, x)"
+  },
+  {
+   "header": [
+    "Frame",
+    "rmsd",
+    "1",
+    "x"
+   ],
+   "spec": "2",
+   "default": 0,
+   "index": 2
+  },
+  {
+   "header": [
+    "Frame",
+    "rmsd",
+    "1",
+    "x"
+   ],
+   "spec": "2",
+   "default": -1,
+   "index": 2
+  },
+  {
+   "header": [
+    "Frame",
+    "rmsd",
+    "1",
+    "x"
+   ],
+   "spec": "frame",
+   "default": 0,
+   "error": "column 'frame' not found (available: Frame, rmsd, 1, x)"
+  },
+  {
+   "header": [
+    "Frame",
+    "rmsd",
+    "1",
+    "x"
+   ],
+   "spec": "frame",
+   "default": -1,
+   "error": "column 'frame' not found (available: Frame, rmsd, 1, x)"
+  },
+  {
+   "header": [
+    "Frame",
+    "rmsd",
+    "1",
+    "x"
+   ],
+   "spec": "1.0",
+   "default": 0,
+   "error": "column '1.0' not found (available: Frame, rmsd, 1, x)"
+  },
+  {
+   "header": [
+    "Frame",
+    "rmsd",
+    "1",
+    "x"
+   ],
+   "spec": "1.0",
+   "default": -1,
+   "error": "column '1.0' not found (available: Frame, rmsd, 1, x)"
+  },
+  {
+   "header": [
+    "Frame",
+    "rmsd",
+    "1",
+    "x"
+   ],
+   "spec": "+1",
+   "default": 0,
+   "error": "column '+1' not found (available: Frame, rmsd, 1, x)"
+  },
+  {
+   "header": [
+    "Frame",
+    "rmsd",
+    "1",
+    "x"
+   ],
+   "spec": "+1",
+   "default": -1,
+   "error": "column '+1' not found (available: Frame, rmsd, 1, x)"
+  },
+  {
+   "header": [
+    "Frame",
+    "rmsd",
+    "1",
+    "x"
+   ],
+   "spec": "٠",
+   "default": 0,
+   "index": 0
+  },
+  {
+   "header": [
+    "Frame",
+    "rmsd",
+    "1",
+    "x"
+   ],
+   "spec": "٠",
+   "default": -1,
+   "index": 0
+  },
+  {
+   "header": [
+    "a",
+    "a",
+    "b"
+   ],
+   "spec": "",
+   "default": 0,
+   "index": 0
+  },
+  {
+   "header": [
+    "a",
+    "a",
+    "b"
+   ],
+   "spec": "",
+   "default": -1,
+   "index": -1
+  },
+  {
+   "header": [
+    "a",
+    "a",
+    "b"
+   ],
+   "spec": "rmsd",
+   "default": 0,
+   "error": "column 'rmsd' not found (available: a, a, b)"
+  },
+  {
+   "header": [
+    "a",
+    "a",
+    "b"
+   ],
+   "spec": "rmsd",
+   "default": -1,
+   "error": "column 'rmsd' not found (available: a, a, b)"
+  },
+  {
+   "header": [
+    "a",
+    "a",
+    "b"
+   ],
+   "spec": "Frame",
+   "default": 0,
+   "error": "column 'Frame' not found (available: a, a, b)"
+  },
+  {
+   "header": [
+    "a",
+    "a",
+    "b"
+   ],
+   "spec": "Frame",
+   "default": -1,
+   "error": "column 'Frame' not found (available: a, a, b)"
+  },
+  {
+   "header": [
+    "a",
+    "a",
+    "b"
+   ],
+   "spec": "1",
+   "default": 0,
+   "index": 1
+  },
+  {
+   "header": [
+    "a",
+    "a",
+    "b"
+   ],
+   "spec": "1",
+   "default": -1,
+   "index": 1
+  },
+  {
+   "header": [
+    "a",
+    "a",
+    "b"
+   ],
+   "spec": "0",
+   "default": 0,
+   "index": 0
+  },
+  {
+   "header": [
+    "a",
+    "a",
+    "b"
+   ],
+   "spec": "0",
+   "default": -1,
+   "index": 0
+  },
+  {
+   "header": [
+    "a",
+    "a",
+    "b"
+   ],
+   "spec": "3",
+   "default": 0,
+   "error": "column '3' not found (available: a, a, b)"
+  },
+  {
+   "header": [
+    "a",
+    "a",
+    "b"
+   ],
+   "spec": "3",
+   "default": -1,
+   "error": "column '3' not found (available: a, a, b)"
+  },
+  {
+   "header": [
+    "a",
+    "a",
+    "b"
+   ],
+   "spec": "4",
+   "default": 0,
+   "error": "column '4' not found (available: a, a, b)"
+  },
+  {
+   "header": [
+    "a",
+    "a",
+    "b"
+   ],
+   "spec": "4",
+   "default": -1,
+   "error": "column '4' not found (available: a, a, b)"
+  },
+  {
+   "header": [
+    "a",
+    "a",
+    "b"
+   ],
+   "spec": "٣",
+   "default": 0,
+   "error": "column '٣' not found (available: a, a, b)"
+  },
+  {
+   "header": [
+    "a",
+    "a",
+    "b"
+   ],
+   "spec": "٣",
+   "default": -1,
+   "error": "column '٣' not found (available: a, a, b)"
+  },
+  {
+   "header": [
+    "a",
+    "a",
+    "b"
+   ],
+   "spec": "１",
+   "default": 0,
+   "index": 1
+  },
+  {
+   "header": [
+    "a",
+    "a",
+    "b"
+   ],
+   "spec": "１",
+   "default": -1,
+   "index": 1
+  },
+  {
+   "header": [
+    "a",
+    "a",
+    "b"
+   ],
+   "spec": "01",
+   "default": 0,
+   "index": 1
+  },
+  {
+   "header": [
+    "a",
+    "a",
+    "b"
+   ],
+   "spec": "01",
+   "default": -1,
+   "index": 1
+  },
+  {
+   "header": [
+    "a",
+    "a",
+    "b"
+   ],
+   "spec": "-1",
+   "default": 0,
+   "error": "column '-1' not found (available: a, a, b)"
+  },
+  {
+   "header": [
+    "a",
+    "a",
+    "b"
+   ],
+   "spec": "-1",
+   "default": -1,
+   "error": "column '-1' not found (available: a, a, b)"
+  },
+  {
+   "header": [
+    "a",
+    "a",
+    "b"
+   ],
+   "spec": " 1",
+   "default": 0,
+   "error": "column ' 1' not found (available: a, a, b)"
+  },
+  {
+   "header": [
+    "a",
+    "a",
+    "b"
+   ],
+   "spec": " 1",
+   "default": -1,
+   "error": "column ' 1' not found (available: a, a, b)"
+  },
+  {
+   "header": [
+    "a",
+    "a",
+    "b"
+   ],
+   "spec": "1 ",
+   "default": 0,
+   "error": "column '1 ' not found (available: a, a, b)"
+  },
+  {
+   "header": [
+    "a",
+    "a",
+    "b"
+   ],
+   "spec": "1 ",
+   "default": -1,
+   "error": "column '1 ' not found (available: a, a, b)"
+  },
+  {
+   "header": [
+    "a",
+    "a",
+    "b"
+   ],
+   "spec": "1\n",
+   "default": 0,
+   "error": "column '1\\n' not found (available: a, a, b)"
+  },
+  {
+   "header": [
+    "a",
+    "a",
+    "b"
+   ],
+   "spec": "1\n",
+   "default": -1,
+   "error": "column '1\\n' not found (available: a, a, b)"
+  },
+  {
+   "header": [
+    "a",
+    "a",
+    "b"
+   ],
+   "spec": "x",
+   "default": 0,
+   "error": "column 'x' not found (available: a, a, b)"
+  },
+  {
+   "header": [
+    "a",
+    "a",
+    "b"
+   ],
+   "spec": "x",
+   "default": -1,
+   "error": "column 'x' not found (available: a, a, b)"
+  },
+  {
+   "header": [
+    "a",
+    "a",
+    "b"
+   ],
+   "spec": "99999999999999999999999",
+   "default": 0,
+   "error": "column '99999999999999999999999' not found (available: a, a, b)"
+  },
+  {
+   "header": [
+    "a",
+    "a",
+    "b"
+   ],
+   "spec": "99999999999999999999999",
+   "default": -1,
+   "error": "column '99999999999999999999999' not found (available: a, a, b)"
+  },
+  {
+   "header": [
+    "a",
+    "a",
+    "b"
+   ],
+   "spec": "²",
+   "default": 0,
+   "error": "column '²' not found (available: a, a, b)"
+  },
+  {
+   "header": [
+    "a",
+    "a",
+    "b"
+   ],
+   "spec": "²",
+   "default": -1,
+   "error": "column '²' not found (available: a, a, b)"
+  },
+  {
+   "header": [
+    "a",
+    "a",
+    "b"
+   ],
+   "spec": "a",
+   "default": 0,
+   "index": 0
+  },
+  {
+   "header": [
+    "a",
+    "a",
+    "b"
+   ],
+   "spec": "a",
+   "default": -1,
+   "index": 0
+  },
+  {
+   "header": [
+    "a",
+    "a",
+    "b"
+   ],
+   "spec": "b",
+   "default": 0,
+   "index": 2
+  },
+  {
+   "header": [
+    "a",
+    "a",
+    "b"
+   ],
+   "spec": "b",
+   "default": -1,
+   "index": 2
+  },
+  {
+   "header": [
+    "a",
+    "a",
+    "b"
+   ],
+   "spec": "col1",
+   "default": 0,
+   "error": "column 'col1' not found (available: a, a, b)"
+  },
+  {
+   "header": [
+    "a",
+    "a",
+    "b"
+   ],
+   "spec": "col1",
+   "default": -1,
+   "error": "column 'col1' not found (available: a, a, b)"
+  },
+  {
+   "header": [
+    "a",
+    "a",
+    "b"
+   ],
+   "spec": "é",
+   "default": 0,
+   "error": "column 'é' not found (available: a, a, b)"
+  },
+  {
+   "header": [
+    "a",
+    "a",
+    "b"
+   ],
+   "spec": "é",
+   "default": -1,
+   "error": "column 'é' not found (available: a, a, b)"
+  },
+  {
+   "header": [
+    "a",
+    "a",
+    "b"
+   ],
+   "spec": "2",
+   "default": 0,
+   "index": 2
+  },
+  {
+   "header": [
+    "a",
+    "a",
+    "b"
+   ],
+   "spec": "2",
+   "default": -1,
+   "index": 2
+  },
+  {
+   "header": [
+    "a",
+    "a",
+    "b"
+   ],
+   "spec": "frame",
+   "default": 0,
+   "error": "column 'frame' not found (available: a, a, b)"
+  },
+  {
+   "header": [
+    "a",
+    "a",
+    "b"
+   ],
+   "spec": "frame",
+   "default": -1,
+   "error": "column 'frame' not found (available: a, a, b)"
+  },
+  {
+   "header": [
+    "a",
+    "a",
+    "b"
+   ],
+   "spec": "1.0",
+   "default": 0,
+   "error": "column '1.0' not found (available: a, a, b)"
+  },
+  {
+   "header": [
+    "a",
+    "a",
+    "b"
+   ],
+   "spec": "1.0",
+   "default": -1,
+   "error": "column '1.0' not found (available: a, a, b)"
+  },
+  {
+   "header": [
+    "a",
+    "a",
+    "b"
+   ],
+   "spec": "+1",
+   "default": 0,
+   "error": "column '+1' not found (available: a, a, b)"
+  },
+  {
+   "header": [
+    "a",
+    "a",
+    "b"
+   ],
+   "spec": "+1",
+   "default": -1,
+   "error": "column '+1' not found (available: a, a, b)"
+  },
+  {
+   "header": [
+    "a",
+    "a",
+    "b"
+   ],
+   "spec": "٠",
+   "default": 0,
+   "index": 0
+  },
+  {
+   "header": [
+    "a",
+    "a",
+    "b"
+   ],
+   "spec": "٠",
+   "default": -1,
+   "index": 0
+  },
+  {
+   "header": [
+    "col0",
+    "col1"
+   ],
+   "spec": "",
+   "default": 0,
+   "index": 0
+  },
+  {
+   "header": [
+    "col0",
+    "col1"
+   ],
+   "spec": "",
+   "default": -1,
+   "index": -1
+  },
+  {
+   "header": [
+    "col0",
+    "col1"
+   ],
+   "spec": "rmsd",
+   "default": 0,
+   "error": "column 'rmsd' not found (available: col0, col1)"
+  },
+  {
+   "header": [
+    "col0",
+    "col1"
+   ],
+   "spec": "rmsd",
+   "default": -1,
+   "error": "column 'rmsd' not found (available: col0, col1)"
+  },
+  {
+   "header": [
+    "col0",
+    "col1"
+   ],
+   "spec": "Frame",
+   "default": 0,
+   "error": "column 'Frame' not found (available: col0, col1)"
+  },
+  {
+   "header": [
+    "col0",
+    "col1"
+   ],
+   "spec": "Frame",
+   "default": -1,
+   "error": "column 'Frame' not found (available: col0, col1)"
+  },
+  {
+   "header": [
+    "col0",
+    "col1"
+   ],
+   "spec": "1",
+   "default": 0,
+   "index": 1
+  },
+  {
+   "header": [
+    "col0",
+    "col1"
+   ],
+   "spec": "1",
+   "default": -1,
+   "index": 1
+  },
+  {
+   "header": [
+    "col0",
+    "col1"
+   ],
+   "spec": "0",
+   "default": 0,
+   "index": 0
+  },
+  {
+   "header": [
+    "col0",
+    "col1"
+   ],
+   "spec": "0",
+   "default": -1,
+   "index": 0
+  },
+  {
+   "header": [
+    "col0",
+    "col1"
+   ],
+   "spec": "3",
+   "default": 0,
+   "error": "column '3' not found (available: col0, col1)"
+  },
+  {
+   "header": [
+    "col0",
+    "col1"
+   ],
+   "spec": "3",
+   "default": -1,
+   "error": "column '3' not found (available: col0, col1)"
+  },
+  {
+   "header": [
+    "col0",
+    "col1"
+   ],
+   "spec": "4",
+   "default": 0,
+   "error": "column '4' not found (available: col0, col1)"
+  },
+  {
+   "header": [
+    "col0",
+    "col1"
+   ],
+   "spec": "4",
+   "default": -1,
+   "error": "column '4' not found (available: col0, col1)"
+  },
+  {
+   "header": [
+    "col0",
+    "col1"
+   ],
+   "spec": "٣",
+   "default": 0,
+   "error": "column '٣' not found (available: col0, col1)"
+  },
+  {
+   "header": [
+    "col0",
+    "col1"
+   ],
+   "spec": "٣",
+   "default": -1,
+   "error": "column '٣' not found (available: col0, col1)"
+  },
+  {
+   "header": [
+    "col0",
+    "col1"
+   ],
+   "spec": "１",
+   "default": 0,
+   "index": 1
+  },
+  {
+   "header": [
+    "col0",
+    "col1"
+   ],
+   "spec": "１",
+   "default": -1,
+   "index": 1
+  },
+  {
+   "header": [
+    "col0",
+    "col1"
+   ],
+   "spec": "01",
+   "default": 0,
+   "index": 1
+  },
+  {
+   "header": [
+    "col0",
+    "col1"
+   ],
+   "spec": "01",
+   "default": -1,
+   "index": 1
+  },
+  {
+   "header": [
+    "col0",
+    "col1"
+   ],
+   "spec": "-1",
+   "default": 0,
+   "error": "column '-1' not found (available: col0, col1)"
+  },
+  {
+   "header": [
+    "col0",
+    "col1"
+   ],
+   "spec": "-1",
+   "default": -1,
+   "error": "column '-1' not found (available: col0, col1)"
+  },
+  {
+   "header": [
+    "col0",
+    "col1"
+   ],
+   "spec": " 1",
+   "default": 0,
+   "error": "column ' 1' not found (available: col0, col1)"
+  },
+  {
+   "header": [
+    "col0",
+    "col1"
+   ],
+   "spec": " 1",
+   "default": -1,
+   "error": "column ' 1' not found (available: col0, col1)"
+  },
+  {
+   "header": [
+    "col0",
+    "col1"
+   ],
+   "spec": "1 ",
+   "default": 0,
+   "error": "column '1 ' not found (available: col0, col1)"
+  },
+  {
+   "header": [
+    "col0",
+    "col1"
+   ],
+   "spec": "1 ",
+   "default": -1,
+   "error": "column '1 ' not found (available: col0, col1)"
+  },
+  {
+   "header": [
+    "col0",
+    "col1"
+   ],
+   "spec": "1\n",
+   "default": 0,
+   "error": "column '1\\n' not found (available: col0, col1)"
+  },
+  {
+   "header": [
+    "col0",
+    "col1"
+   ],
+   "spec": "1\n",
+   "default": -1,
+   "error": "column '1\\n' not found (available: col0, col1)"
+  },
+  {
+   "header": [
+    "col0",
+    "col1"
+   ],
+   "spec": "x",
+   "default": 0,
+   "error": "column 'x' not found (available: col0, col1)"
+  },
+  {
+   "header": [
+    "col0",
+    "col1"
+   ],
+   "spec": "x",
+   "default": -1,
+   "error": "column 'x' not found (available: col0, col1)"
+  },
+  {
+   "header": [
+    "col0",
+    "col1"
+   ],
+   "spec": "99999999999999999999999",
+   "default": 0,
+   "error": "column '99999999999999999999999' not found (available: col0, col1)"
+  },
+  {
+   "header": [
+    "col0",
+    "col1"
+   ],
+   "spec": "99999999999999999999999",
+   "default": -1,
+   "error": "column '99999999999999999999999' not found (available: col0, col1)"
+  },
+  {
+   "header": [
+    "col0",
+    "col1"
+   ],
+   "spec": "²",
+   "default": 0,
+   "error": "column '²' not found (available: col0, col1)"
+  },
+  {
+   "header": [
+    "col0",
+    "col1"
+   ],
+   "spec": "²",
+   "default": -1,
+   "error": "column '²' not found (available: col0, col1)"
+  },
+  {
+   "header": [
+    "col0",
+    "col1"
+   ],
+   "spec": "a",
+   "default": 0,
+   "error": "column 'a' not found (available: col0, col1)"
+  },
+  {
+   "header": [
+    "col0",
+    "col1"
+   ],
+   "spec": "a",
+   "default": -1,
+   "error": "column 'a' not found (available: col0, col1)"
+  },
+  {
+   "header": [
+    "col0",
+    "col1"
+   ],
+   "spec": "b",
+   "default": 0,
+   "error": "column 'b' not found (available: col0, col1)"
+  },
+  {
+   "header": [
+    "col0",
+    "col1"
+   ],
+   "spec": "b",
+   "default": -1,
+   "error": "column 'b' not found (available: col0, col1)"
+  },
+  {
+   "header": [
+    "col0",
+    "col1"
+   ],
+   "spec": "col1",
+   "default": 0,
+   "index": 1
+  },
+  {
+   "header": [
+    "col0",
+    "col1"
+   ],
+   "spec": "col1",
+   "default": -1,
+   "index": 1
+  },
+  {
+   "header": [
+    "col0",
+    "col1"
+   ],
+   "spec": "é",
+   "default": 0,
+   "error": "column 'é' not found (available: col0, col1)"
+  },
+  {
+   "header": [
+    "col0",
+    "col1"
+   ],
+   "spec": "é",
+   "default": -1,
+   "error": "column 'é' not found (available: col0, col1)"
+  },
+  {
+   "header": [
+    "col0",
+    "col1"
+   ],
+   "spec": "2",
+   "default": 0,
+   "error": "column '2' not found (available: col0, col1)"
+  },
+  {
+   "header": [
+    "col0",
+    "col1"
+   ],
+   "spec": "2",
+   "default": -1,
+   "error": "column '2' not found (available: col0, col1)"
+  },
+  {
+   "header": [
+    "col0",
+    "col1"
+   ],
+   "spec": "frame",
+   "default": 0,
+   "error": "column 'frame' not found (available: col0, col1)"
+  },
+  {
+   "header": [
+    "col0",
+    "col1"
+   ],
+   "spec": "frame",
+   "default": -1,
+   "error": "column 'frame' not found (available: col0, col1)"
+  },
+  {
+   "header": [
+    "col0",
+    "col1"
+   ],
+   "spec": "1.0",
+   "default": 0,
+   "error": "column '1.0' not found (available: col0, col1)"
+  },
+  {
+   "header": [
+    "col0",
+    "col1"
+   ],
+   "spec": "1.0",
+   "default": -1,
+   "error": "column '1.0' not found (available: col0, col1)"
+  },
+  {
+   "header": [
+    "col0",
+    "col1"
+   ],
+   "spec": "+1",
+   "default": 0,
+   "error": "column '+1' not found (available: col0, col1)"
+  },
+  {
+   "header": [
+    "col0",
+    "col1"
+   ],
+   "spec": "+1",
+   "default": -1,
+   "error": "column '+1' not found (available: col0, col1)"
+  },
+  {
+   "header": [
+    "col0",
+    "col1"
+   ],
+   "spec": "٠",
+   "default": 0,
+   "index": 0
+  },
+  {
+   "header": [
+    "col0",
+    "col1"
+   ],
+   "spec": "٠",
+   "default": -1,
+   "index": 0
+  },
+  {
+   "header": [
+    "é",
+    "2"
+   ],
+   "spec": "",
+   "default": 0,
+   "index": 0
+  },
+  {
+   "header": [
+    "é",
+    "2"
+   ],
+   "spec": "",
+   "default": -1,
+   "index": -1
+  },
+  {
+   "header": [
+    "é",
+    "2"
+   ],
+   "spec": "rmsd",
+   "default": 0,
+   "error": "column 'rmsd' not found (available: é, 2)"
+  },
+  {
+   "header": [
+    "é",
+    "2"
+   ],
+   "spec": "rmsd",
+   "default": -1,
+   "error": "column 'rmsd' not found (available: é, 2)"
+  },
+  {
+   "header": [
+    "é",
+    "2"
+   ],
+   "spec": "Frame",
+   "default": 0,
+   "error": "column 'Frame' not found (available: é, 2)"
+  },
+  {
+   "header": [
+    "é",
+    "2"
+   ],
+   "spec": "Frame",
+   "default": -1,
+   "error": "column 'Frame' not found (available: é, 2)"
+  },
+  {
+   "header": [
+    "é",
+    "2"
+   ],
+   "spec": "1",
+   "default": 0,
+   "index": 1
+  },
+  {
+   "header": [
+    "é",
+    "2"
+   ],
+   "spec": "1",
+   "default": -1,
+   "index": 1
+  },
+  {
+   "header": [
+    "é",
+    "2"
+   ],
+   "spec": "0",
+   "default": 0,
+   "index": 0
+  },
+  {
+   "header": [
+    "é",
+    "2"
+   ],
+   "spec": "0",
+   "default": -1,
+   "index": 0
+  },
+  {
+   "header": [
+    "é",
+    "2"
+   ],
+   "spec": "3",
+   "default": 0,
+   "error": "column '3' not found (available: é, 2)"
+  },
+  {
+   "header": [
+    "é",
+    "2"
+   ],
+   "spec": "3",
+   "default": -1,
+   "error": "column '3' not found (available: é, 2)"
+  },
+  {
+   "header": [
+    "é",
+    "2"
+   ],
+   "spec": "4",
+   "default": 0,
+   "error": "column '4' not found (available: é, 2)"
+  },
+  {
+   "header": [
+    "é",
+    "2"
+   ],
+   "spec": "4",
+   "default": -1,
+   "error": "column '4' not found (available: é, 2)"
+  },
+  {
+   "header": [
+    "é",
+    "2"
+   ],
+   "spec": "٣",
+   "default": 0,
+   "error": "column '٣' not found (available: é, 2)"
+  },
+  {
+   "header": [
+    "é",
+    "2"
+   ],
+   "spec": "٣",
+   "default": -1,
+   "error": "column '٣' not found (available: é, 2)"
+  },
+  {
+   "header": [
+    "é",
+    "2"
+   ],
+   "spec": "１",
+   "default": 0,
+   "index": 1
+  },
+  {
+   "header": [
+    "é",
+    "2"
+   ],
+   "spec": "１",
+   "default": -1,
+   "index": 1
+  },
+  {
+   "header": [
+    "é",
+    "2"
+   ],
+   "spec": "01",
+   "default": 0,
+   "index": 1
+  },
+  {
+   "header": [
+    "é",
+    "2"
+   ],
+   "spec": "01",
+   "default": -1,
+   "index": 1
+  },
+  {
+   "header": [
+    "é",
+    "2"
+   ],
+   "spec": "-1",
+   "default": 0,
+   "error": "column '-1' not found (available: é, 2)"
+  },
+  {
+   "header": [
+    "é",
+    "2"
+   ],
+   "spec": "-1",
+   "default": -1,
+   "error": "column '-1' not found (available: é, 2)"
+  },
+  {
+   "header": [
+    "é",
+    "2"
+   ],
+   "spec": " 1",
+   "default": 0,
+   "error": "column ' 1' not found (available: é, 2)"
+  },
+  {
+   "header": [
+    "é",
+    "2"
+   ],
+   "spec": " 1",
+   "default": -1,
+   "error": "column ' 1' not found (available: é, 2)"
+  },
+  {
+   "header": [
+    "é",
+    "2"
+   ],
+   "spec": "1 ",
+   "default": 0,
+   "error": "column '1 ' not found (available: é, 2)"
+  },
+  {
+   "header": [
+    "é",
+    "2"
+   ],
+   "spec": "1 ",
+   "default": -1,
+   "error": "column '1 ' not found (available: é, 2)"
+  },
+  {
+   "header": [
+    "é",
+    "2"
+   ],
+   "spec": "1\n",
+   "default": 0,
+   "error": "column '1\\n' not found (available: é, 2)"
+  },
+  {
+   "header": [
+    "é",
+    "2"
+   ],
+   "spec": "1\n",
+   "default": -1,
+   "error": "column '1\\n' not found (available: é, 2)"
+  },
+  {
+   "header": [
+    "é",
+    "2"
+   ],
+   "spec": "x",
+   "default": 0,
+   "error": "column 'x' not found (available: é, 2)"
+  },
+  {
+   "header": [
+    "é",
+    "2"
+   ],
+   "spec": "x",
+   "default": -1,
+   "error": "column 'x' not found (available: é, 2)"
+  },
+  {
+   "header": [
+    "é",
+    "2"
+   ],
+   "spec": "99999999999999999999999",
+   "default": 0,
+   "error": "column '99999999999999999999999' not found (available: é, 2)"
+  },
+  {
+   "header": [
+    "é",
+    "2"
+   ],
+   "spec": "99999999999999999999999",
+   "default": -1,
+   "error": "column '99999999999999999999999' not found (available: é, 2)"
+  },
+  {
+   "header": [
+    "é",
+    "2"
+   ],
+   "spec": "²",
+   "default": 0,
+   "error": "column '²' not found (available: é, 2)"
+  },
+  {
+   "header": [
+    "é",
+    "2"
+   ],
+   "spec": "²",
+   "default": -1,
+   "error": "column '²' not found (available: é, 2)"
+  },
+  {
+   "header": [
+    "é",
+    "2"
+   ],
+   "spec": "a",
+   "default": 0,
+   "error": "column 'a' not found (available: é, 2)"
+  },
+  {
+   "header": [
+    "é",
+    "2"
+   ],
+   "spec": "a",
+   "default": -1,
+   "error": "column 'a' not found (available: é, 2)"
+  },
+  {
+   "header": [
+    "é",
+    "2"
+   ],
+   "spec": "b",
+   "default": 0,
+   "error": "column 'b' not found (available: é, 2)"
+  },
+  {
+   "header": [
+    "é",
+    "2"
+   ],
+   "spec": "b",
+   "default": -1,
+   "error": "column 'b' not found (available: é, 2)"
+  },
+  {
+   "header": [
+    "é",
+    "2"
+   ],
+   "spec": "col1",
+   "default": 0,
+   "error": "column 'col1' not found (available: é, 2)"
+  },
+  {
+   "header": [
+    "é",
+    "2"
+   ],
+   "spec": "col1",
+   "default": -1,
+   "error": "column 'col1' not found (available: é, 2)"
+  },
+  {
+   "header": [
+    "é",
+    "2"
+   ],
+   "spec": "é",
+   "default": 0,
+   "index": 0
+  },
+  {
+   "header": [
+    "é",
+    "2"
+   ],
+   "spec": "é",
+   "default": -1,
+   "index": 0
+  },
+  {
+   "header": [
+    "é",
+    "2"
+   ],
+   "spec": "2",
+   "default": 0,
+   "index": 1
+  },
+  {
+   "header": [
+    "é",
+    "2"
+   ],
+   "spec": "2",
+   "default": -1,
+   "index": 1
+  },
+  {
+   "header": [
+    "é",
+    "2"
+   ],
+   "spec": "frame",
+   "default": 0,
+   "error": "column 'frame' not found (available: é, 2)"
+  },
+  {
+   "header": [
+    "é",
+    "2"
+   ],
+   "spec": "frame",
+   "default": -1,
+   "error": "column 'frame' not found (available: é, 2)"
+  },
+  {
+   "header": [
+    "é",
+    "2"
+   ],
+   "spec": "1.0",
+   "default": 0,
+   "error": "column '1.0' not found (available: é, 2)"
+  },
+  {
+   "header": [
+    "é",
+    "2"
+   ],
+   "spec": "1.0",
+   "default": -1,
+   "error": "column '1.0' not found (available: é, 2)"
+  },
+  {
+   "header": [
+    "é",
+    "2"
+   ],
+   "spec": "+1",
+   "default": 0,
+   "error": "column '+1' not found (available: é, 2)"
+  },
+  {
+   "header": [
+    "é",
+    "2"
+   ],
+   "spec": "+1",
+   "default": -1,
+   "error": "column '+1' not found (available: é, 2)"
+  },
+  {
+   "header": [
+    "é",
+    "2"
+   ],
+   "spec": "٠",
+   "default": 0,
+   "index": 0
+  },
+  {
+   "header": [
+    "é",
+    "2"
+   ],
+   "spec": "٠",
+   "default": -1,
+   "index": 0
+  },
+  {
+   "header": [],
+   "spec": "",
+   "default": 0,
+   "index": 0
+  },
+  {
+   "header": [],
+   "spec": "",
+   "default": -1,
+   "index": -1
+  },
+  {
+   "header": [],
+   "spec": "rmsd",
+   "default": 0,
+   "error": "column 'rmsd' not found (available: )"
+  },
+  {
+   "header": [],
+   "spec": "rmsd",
+   "default": -1,
+   "error": "column 'rmsd' not found (available: )"
+  },
+  {
+   "header": [],
+   "spec": "Frame",
+   "default": 0,
+   "error": "column 'Frame' not found (available: )"
+  },
+  {
+   "header": [],
+   "spec": "Frame",
+   "default": -1,
+   "error": "column 'Frame' not found (available: )"
+  },
+  {
+   "header": [],
+   "spec": "1",
+   "default": 0,
+   "error": "column '1' not found (available: )"
+  },
+  {
+   "header": [],
+   "spec": "1",
+   "default": -1,
+   "error": "column '1' not found (available: )"
+  },
+  {
+   "header": [],
+   "spec": "0",
+   "default": 0,
+   "error": "column '0' not found (available: )"
+  },
+  {
+   "header": [],
+   "spec": "0",
+   "default": -1,
+   "error": "column '0' not found (available: )"
+  },
+  {
+   "header": [],
+   "spec": "3",
+   "default": 0,
+   "error": "column '3' not found (available: )"
+  },
+  {
+   "header": [],
+   "spec": "3",
+   "default": -1,
+   "error": "column '3' not found (available: )"
+  },
+  {
+   "header": [],
+   "spec": "4",
+   "default": 0,
+   "error": "column '4' not found (available: )"
+  },
+  {
+   "header": [],
+   "spec": "4",
+   "default": -1,
+   "error": "column '4' not found (available: )"
+  },
+  {
+   "header": [],
+   "spec": "٣",
+   "default": 0,
+   "error": "column '٣' not found (available: )"
+  },
+  {
+   "header": [],
+   "spec": "٣",
+   "default": -1,
+   "error": "column '٣' not found (available: )"
+  },
+  {
+   "header": [],
+   "spec": "１",
+   "default": 0,
+   "error": "column '１' not found (available: )"
+  },
+  {
+   "header": [],
+   "spec": "１",
+   "default": -1,
+   "error": "column '１' not found (available: )"
+  },
+  {
+   "header": [],
+   "spec": "01",
+   "default": 0,
+   "error": "column '01' not found (available: )"
+  },
+  {
+   "header": [],
+   "spec": "01",
+   "default": -1,
+   "error": "column '01' not found (available: )"
+  },
+  {
+   "header": [],
+   "spec": "-1",
+   "default": 0,
+   "error": "column '-1' not found (available: )"
+  },
+  {
+   "header": [],
+   "spec": "-1",
+   "default": -1,
+   "error": "column '-1' not found (available: )"
+  },
+  {
+   "header": [],
+   "spec": " 1",
+   "default": 0,
+   "error": "column ' 1' not found (available: )"
+  },
+  {
+   "header": [],
+   "spec": " 1",
+   "default": -1,
+   "error": "column ' 1' not found (available: )"
+  },
+  {
+   "header": [],
+   "spec": "1 ",
+   "default": 0,
+   "error": "column '1 ' not found (available: )"
+  },
+  {
+   "header": [],
+   "spec": "1 ",
+   "default": -1,
+   "error": "column '1 ' not found (available: )"
+  },
+  {
+   "header": [],
+   "spec": "1\n",
+   "default": 0,
+   "error": "column '1\\n' not found (available: )"
+  },
+  {
+   "header": [],
+   "spec": "1\n",
+   "default": -1,
+   "error": "column '1\\n' not found (available: )"
+  },
+  {
+   "header": [],
+   "spec": "x",
+   "default": 0,
+   "error": "column 'x' not found (available: )"
+  },
+  {
+   "header": [],
+   "spec": "x",
+   "default": -1,
+   "error": "column 'x' not found (available: )"
+  },
+  {
+   "header": [],
+   "spec": "99999999999999999999999",
+   "default": 0,
+   "error": "column '99999999999999999999999' not found (available: )"
+  },
+  {
+   "header": [],
+   "spec": "99999999999999999999999",
+   "default": -1,
+   "error": "column '99999999999999999999999' not found (available: )"
+  },
+  {
+   "header": [],
+   "spec": "²",
+   "default": 0,
+   "error": "column '²' not found (available: )"
+  },
+  {
+   "header": [],
+   "spec": "²",
+   "default": -1,
+   "error": "column '²' not found (available: )"
+  },
+  {
+   "header": [],
+   "spec": "a",
+   "default": 0,
+   "error": "column 'a' not found (available: )"
+  },
+  {
+   "header": [],
+   "spec": "a",
+   "default": -1,
+   "error": "column 'a' not found (available: )"
+  },
+  {
+   "header": [],
+   "spec": "b",
+   "default": 0,
+   "error": "column 'b' not found (available: )"
+  },
+  {
+   "header": [],
+   "spec": "b",
+   "default": -1,
+   "error": "column 'b' not found (available: )"
+  },
+  {
+   "header": [],
+   "spec": "col1",
+   "default": 0,
+   "error": "column 'col1' not found (available: )"
+  },
+  {
+   "header": [],
+   "spec": "col1",
+   "default": -1,
+   "error": "column 'col1' not found (available: )"
+  },
+  {
+   "header": [],
+   "spec": "é",
+   "default": 0,
+   "error": "column 'é' not found (available: )"
+  },
+  {
+   "header": [],
+   "spec": "é",
+   "default": -1,
+   "error": "column 'é' not found (available: )"
+  },
+  {
+   "header": [],
+   "spec": "2",
+   "default": 0,
+   "error": "column '2' not found (available: )"
+  },
+  {
+   "header": [],
+   "spec": "2",
+   "default": -1,
+   "error": "column '2' not found (available: )"
+  },
+  {
+   "header": [],
+   "spec": "frame",
+   "default": 0,
+   "error": "column 'frame' not found (available: )"
+  },
+  {
+   "header": [],
+   "spec": "frame",
+   "default": -1,
+   "error": "column 'frame' not found (available: )"
+  },
+  {
+   "header": [],
+   "spec": "1.0",
+   "default": 0,
+   "error": "column '1.0' not found (available: )"
+  },
+  {
+   "header": [],
+   "spec": "1.0",
+   "default": -1,
+   "error": "column '1.0' not found (available: )"
+  },
+  {
+   "header": [],
+   "spec": "+1",
+   "default": 0,
+   "error": "column '+1' not found (available: )"
+  },
+  {
+   "header": [],
+   "spec": "+1",
+   "default": -1,
+   "error": "column '+1' not found (available: )"
+  },
+  {
+   "header": [],
+   "spec": "٠",
+   "default": 0,
+   "error": "column '٠' not found (available: )"
+  },
+  {
+   "header": [],
+   "spec": "٠",
+   "default": -1,
+   "error": "column '٠' not found (available: )"
+  }
+ ],
+ "sanitize": [
+  [
+   "cpp.rmsd",
+   "cpp.rmsd"
+  ],
+  [
+   "cpp: rmsd",
+   "cpp_rmsd"
+  ],
+  [
+   "",
+   "value"
+  ],
+  [
+   "___",
+   "value"
+  ],
+  [
+   "a b c",
+   "a_b_c"
+  ],
+  [
+   "énergie",
+   "nergie"
+  ],
+  [
+   "xΔG",
+   "x_G"
+  ],
+  [
+   "--x++",
+   "--x++"
+  ],
+  [
+   "a..b",
+   "a..b"
+  ],
+  [
+   "_a_",
+   "a"
+  ],
+  [
+   "😀",
+   "value"
+  ],
+  [
+   "tab\tsep",
+   "tab_sep"
+  ],
+  [
+   "a/b\\c",
+   "a_b_c"
+  ],
+  [
+   "ok-name_1.2+3",
+   "ok-name_1.2+3"
+  ],
+  [
+   "  ",
+   "value"
+  ],
+  [
+   "é",
+   "value"
+  ],
+  [
+   "aééb",
+   "a_b"
+  ],
+  [
+   "x\n",
+   "x"
+  ],
+  [
+   "\u0000",
+   "value"
+  ]
+ ]
+}

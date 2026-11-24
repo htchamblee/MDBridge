@@ -1,0 +1,1147 @@
+[
+ {
+  "name": "mdatk_test.dat",
+  "bytes": "234672616d652020726d736420206f746865720a3120302e3020350a3220312e3020360a3320322e3020370a",
+  "delimiter": "",
+  "header": [
+   "Frame",
+   "rmsd",
+   "other"
+  ],
+  "rows": [
+   [
+    "1.0",
+    "0.0",
+    "5.0"
+   ],
+   [
+    "2.0",
+    "1.0",
+    "6.0"
+   ],
+   [
+    "3.0",
+    "2.0",
+    "7.0"
+   ]
+  ],
+  "shape": [
+   3,
+   3
+  ]
+ },
+ {
+  "name": "mdatk_test.csv",
+  "bytes": "74696d655f6e732c656e657267790a302c310a302e30322c330a",
+  "delimiter": "",
+  "header": [
+   "time_ns",
+   "energy"
+  ],
+  "rows": [
+   [
+    "0.0",
+    "1.0"
+   ],
+   [
+    "0.02",
+    "3.0"
+   ]
+  ],
+  "shape": [
+   2,
+   2
+  ]
+ },
+ {
+  "name": "tabs.tsv",
+  "bytes": "61096209630a31093209330a34093509360a",
+  "delimiter": "",
+  "header": [
+   "a",
+   "b",
+   "c"
+  ],
+  "rows": [
+   [
+    "1.0",
+    "2.0",
+    "3.0"
+   ],
+   [
+    "4.0",
+    "5.0",
+    "6.0"
+   ]
+  ],
+  "shape": [
+   2,
+   3
+  ]
+ },
+ {
+  "name": "tabs_spaces.tsv",
+  "bytes": "61092062200920630a203120093209330a",
+  "delimiter": "",
+  "header": [
+   "a",
+   "b",
+   "c"
+  ],
+  "rows": [
+   [
+    "1.0",
+    "2.0",
+    "3.0"
+   ]
+  ],
+  "shape": [
+   1,
+   3
+  ]
+ },
+ {
+  "name": "per_line.txt",
+  "bytes": "7820790a312c320a3309340a3520360a",
+  "delimiter": "",
+  "header": [
+   "x",
+   "y"
+  ],
+  "rows": [
+   [
+    "1.0",
+    "2.0"
+   ],
+   [
+    "3.0",
+    "4.0"
+   ],
+   [
+    "5.0",
+    "6.0"
+   ]
+  ],
+  "shape": [
+   3,
+   2
+  ]
+ },
+ {
+  "name": "explicit_semicolon.txt",
+  "bytes": "613b620a313b320a333b20340a",
+  "delimiter": ";",
+  "header": [
+   "a",
+   "b"
+  ],
+  "rows": [
+   [
+    "1.0",
+    "2.0"
+   ],
+   [
+    "3.0",
+    "4.0"
+   ]
+  ],
+  "shape": [
+   2,
+   2
+  ]
+ },
+ {
+  "name": "explicit_space.txt",
+  "bytes": "6120620a3120320a332020340a",
+  "delimiter": " ",
+  "error": "{dir}/explicit_space.txt: non-numeric data line '3  4'"
+ },
+ {
+  "name": "explicit_multi.txt",
+  "bytes": "613a3a620a313a3a320a",
+  "delimiter": "::",
+  "header": [
+   "a",
+   "b"
+  ],
+  "rows": [
+   [
+    "1.0",
+    "2.0"
+   ]
+  ],
+  "shape": [
+   1,
+   2
+  ]
+ },
+ {
+  "name": "explicit_comma_in_ws.txt",
+  "bytes": "3120320a3320340a",
+  "delimiter": ",",
+  "error": "{dir}/explicit_comma_in_ws.txt: non-numeric data line '3 4'"
+ },
+ {
+  "name": "comments.dat",
+  "bytes": "232066697273740a40207469746c650a3b2073656d690a252070657263656e740a232020636f6c5f61202020636f6c5f620a3120320a2320616674657220646174610a3320340a",
+  "delimiter": "",
+  "header": [
+   "col_a",
+   "col_b"
+  ],
+  "rows": [
+   [
+    "1.0",
+    "2.0"
+   ],
+   [
+    "3.0",
+    "4.0"
+   ]
+  ],
+  "shape": [
+   2,
+   2
+  ]
+ },
+ {
+  "name": "xvg.xvg",
+  "bytes": "232047524f4d4143530a40202020207469746c652022524d5344220a4020202020786178697320206c6162656c202254696d652028707329220a40545950452078790a302e3020302e310a31302e3020302e320a260a",
+  "delimiter": "",
+  "error": "{dir}/xvg.xvg: non-numeric data line '&'"
+ },
+ {
+  "name": "xvg_no_amp.xvg",
+  "bytes": "40207330206c6567656e642022726d7364220a3020310a3120320a",
+  "delimiter": "",
+  "header": [
+   "col0",
+   "col1"
+  ],
+  "rows": [
+   [
+    "0.0",
+    "1.0"
+   ],
+   [
+    "1.0",
+    "2.0"
+   ]
+  ],
+  "shape": [
+   2,
+   2
+  ]
+ },
+ {
+  "name": "comment_csv.csv",
+  "bytes": "2320742c2076616c75650a302c310a312c320a",
+  "delimiter": "",
+  "header": [
+   "t",
+   "value"
+  ],
+  "rows": [
+   [
+    "0.0",
+    "1.0"
+   ],
+   [
+    "1.0",
+    "2.0"
+   ]
+  ],
+  "shape": [
+   2,
+   2
+  ]
+ },
+ {
+  "name": "comment_width_mismatch.dat",
+  "bytes": "232061206220630a3120320a",
+  "delimiter": "",
+  "header": [
+   "col0",
+   "col1"
+  ],
+  "rows": [
+   [
+    "1.0",
+    "2.0"
+   ]
+  ],
+  "shape": [
+   1,
+   2
+  ]
+ },
+ {
+  "name": "header_and_comment.dat",
+  "bytes": "23207020710a7820790a3120320a",
+  "delimiter": "",
+  "header": [
+   "x",
+   "y"
+  ],
+  "rows": [
+   [
+    "1.0",
+    "2.0"
+   ]
+  ],
+  "shape": [
+   1,
+   2
+  ]
+ },
+ {
+  "name": "header_width_mismatch.dat",
+  "bytes": "782079207a0a3120320a3320340a",
+  "delimiter": "",
+  "header": [
+   "col0",
+   "col1"
+  ],
+  "rows": [
+   [
+    "1.0",
+    "2.0"
+   ],
+   [
+    "3.0",
+    "4.0"
+   ]
+  ],
+  "shape": [
+   2,
+   2
+  ]
+ },
+ {
+  "name": "two_headers.dat",
+  "bytes": "7820790a7520760a3120320a",
+  "delimiter": "",
+  "error": "{dir}/two_headers.dat: non-numeric data line 'u v'"
+ },
+ {
+  "name": "header_after_data.dat",
+  "bytes": "3120320a7820790a",
+  "delimiter": "",
+  "error": "{dir}/header_after_data.dat: non-numeric data line 'x y'"
+ },
+ {
+  "name": "ragged.dat",
+  "bytes": "31203220330a3420350a362037203820390a",
+  "delimiter": "",
+  "header": [
+   "col0",
+   "col1"
+  ],
+  "rows": [
+   [
+    "1.0",
+    "2.0"
+   ],
+   [
+    "4.0",
+    "5.0"
+   ],
+   [
+    "6.0",
+    "7.0"
+   ]
+  ],
+  "shape": [
+   3,
+   2
+  ]
+ },
+ {
+  "name": "empty.dat",
+  "bytes": "",
+  "delimiter": "",
+  "error": "{dir}/empty.dat: no numeric data found"
+ },
+ {
+  "name": "blank_lines.dat",
+  "bytes": "0a2020200a090a",
+  "delimiter": "",
+  "error": "{dir}/blank_lines.dat: no numeric data found"
+ },
+ {
+  "name": "only_comments.dat",
+  "bytes": "23206120620a4020630a",
+  "delimiter": "",
+  "error": "{dir}/only_comments.dat: no numeric data found"
+ },
+ {
+  "name": "only_header.dat",
+  "bytes": "6120620a",
+  "delimiter": "",
+  "error": "{dir}/only_header.dat: no numeric data found"
+ },
+ {
+  "name": "unicode_ws.dat",
+  "bytes": "74c2a0760a31e28083320a33e38080340ac2a0352036c2a00a",
+  "delimiter": "",
+  "header": [
+   "t",
+   "v"
+  ],
+  "rows": [
+   [
+    "1.0",
+    "2.0"
+   ],
+   [
+    "3.0",
+    "4.0"
+   ],
+   [
+    "5.0",
+    "6.0"
+   ]
+  ],
+  "shape": [
+   3,
+   2
+  ]
+ },
+ {
+  "name": "ctrl_ws.dat",
+  "bytes": "311c320a330c340a350b360a",
+  "delimiter": "",
+  "header": [
+   "col0",
+   "col1"
+  ],
+  "rows": [
+   [
+    "1.0",
+    "2.0"
+   ],
+   [
+    "3.0",
+    "4.0"
+   ],
+   [
+    "5.0",
+    "6.0"
+   ]
+  ],
+  "shape": [
+   3,
+   2
+  ]
+ },
+ {
+  "name": "numbers.dat",
+  "bytes": "315f303030206e616e0a696e66202d496e66696e6974790a20316535202b312e350ad9a1d9a2202e350a",
+  "delimiter": "",
+  "header": [
+   "col0",
+   "col1"
+  ],
+  "rows": [
+   [
+    "1000.0",
+    "nan"
+   ],
+   [
+    "inf",
+    "-inf"
+   ],
+   [
+    "100000.0",
+    "1.5"
+   ],
+   [
+    "12.0",
+    "0.5"
+   ]
+  ],
+  "shape": [
+   4,
+   2
+  ]
+ },
+ {
+  "name": "bad_underscore.dat",
+  "bytes": "3120320a315f5f3020330a",
+  "delimiter": "",
+  "error": "{dir}/bad_underscore.dat: non-numeric data line '1__0 3'"
+ },
+ {
+  "name": "crlf.csv",
+  "bytes": "612c620d0a312c320d0a332c340d0a",
+  "delimiter": "",
+  "header": [
+   "a",
+   "b"
+  ],
+  "rows": [
+   [
+    "1.0",
+    "2.0"
+   ],
+   [
+    "3.0",
+    "4.0"
+   ]
+  ],
+  "shape": [
+   2,
+   2
+  ]
+ },
+ {
+  "name": "cr.csv",
+  "bytes": "612c620d312c320d332c340d",
+  "delimiter": "",
+  "header": [
+   "a",
+   "b"
+  ],
+  "rows": [
+   [
+    "1.0",
+    "2.0"
+   ],
+   [
+    "3.0",
+    "4.0"
+   ]
+  ],
+  "shape": [
+   2,
+   2
+  ]
+ },
+ {
+  "name": "invalid_utf8.dat",
+  "bytes": "23207420fffe2076616c0a3120320ac32820330a",
+  "delimiter": "",
+  "error": "{dir}/invalid_utf8.dat: non-numeric data line '�( 3'"
+ },
+ {
+  "name": "invalid_utf8_header.dat",
+  "bytes": "7420e28220760a3120320a",
+  "delimiter": "",
+  "header": [
+   "col0",
+   "col1"
+  ],
+  "rows": [
+   [
+    "1.0",
+    "2.0"
+   ]
+  ],
+  "shape": [
+   1,
+   2
+  ]
+ },
+ {
+  "name": "hash_only.dat",
+  "bytes": "230a3120320a",
+  "delimiter": "",
+  "header": [
+   "col0",
+   "col1"
+  ],
+  "rows": [
+   [
+    "1.0",
+    "2.0"
+   ]
+  ],
+  "shape": [
+   1,
+   2
+  ]
+ },
+ {
+  "name": "empty_tokens.csv",
+  "bytes": "612c620a312c2c320a",
+  "delimiter": "",
+  "error": "{dir}/empty_tokens.csv: non-numeric data line '1,,2'"
+ },
+ {
+  "name": "empty_token_first.csv",
+  "bytes": "312c2c320a332c342c350a",
+  "delimiter": "",
+  "header": [
+   "1",
+   "",
+   "2"
+  ],
+  "rows": [
+   [
+    "3.0",
+    "4.0",
+    "5.0"
+   ]
+  ],
+  "shape": [
+   1,
+   3
+  ]
+ },
+ {
+  "name": "trailing_comma.csv",
+  "bytes": "312c322c0a",
+  "delimiter": "",
+  "error": "{dir}/trailing_comma.csv: no numeric data found"
+ },
+ {
+  "name": "comma_spaces.csv",
+  "bytes": "61202c20620a31202c20320a",
+  "delimiter": "",
+  "header": [
+   "a",
+   "b"
+  ],
+  "rows": [
+   [
+    "1.0",
+    "2.0"
+   ]
+  ],
+  "shape": [
+   1,
+   2
+  ]
+ },
+ {
+  "name": "leading_ws.dat",
+  "bytes": "20202023206320640a2020203120320a",
+  "delimiter": "",
+  "header": [
+   "c",
+   "d"
+  ],
+  "rows": [
+   [
+    "1.0",
+    "2.0"
+   ]
+  ],
+  "shape": [
+   1,
+   2
+  ]
+ },
+ {
+  "name": "comment_strip_chars.dat",
+  "bytes": "23403b25206120620a3120320a",
+  "delimiter": "",
+  "header": [
+   "a",
+   "b"
+  ],
+  "rows": [
+   [
+    "1.0",
+    "2.0"
+   ]
+  ],
+  "shape": [
+   1,
+   2
+  ]
+ },
+ {
+  "name": "comment_inner_hash.dat",
+  "bytes": "2320612023620a3120320a",
+  "delimiter": "",
+  "header": [
+   "a",
+   "#b"
+  ],
+  "rows": [
+   [
+    "1.0",
+    "2.0"
+   ]
+  ],
+  "shape": [
+   1,
+   2
+  ]
+ },
+ {
+  "name": "comment_tabs.dat",
+  "bytes": "23096109620a3109320a",
+  "delimiter": "",
+  "header": [
+   "col0",
+   "col1"
+  ],
+  "rows": [
+   [
+    "1.0",
+    "2.0"
+   ]
+  ],
+  "shape": [
+   1,
+   2
+  ]
+ },
+ {
+  "name": "comment_after_header.dat",
+  "bytes": "7820790a23207020710a3120320a",
+  "delimiter": "",
+  "header": [
+   "x",
+   "y"
+  ],
+  "rows": [
+   [
+    "1.0",
+    "2.0"
+   ]
+  ],
+  "shape": [
+   1,
+   2
+  ]
+ },
+ {
+  "name": "numeric_header.dat",
+  "bytes": "3120320a3320340a",
+  "delimiter": "",
+  "header": [
+   "col0",
+   "col1"
+  ],
+  "rows": [
+   [
+    "1.0",
+    "2.0"
+   ],
+   [
+    "3.0",
+    "4.0"
+   ]
+  ],
+  "shape": [
+   2,
+   2
+  ]
+ },
+ {
+  "name": "bad_float_e.dat",
+  "bytes": "3120320a332031650a",
+  "delimiter": "",
+  "error": "{dir}/bad_float_e.dat: non-numeric data line '3 1e'"
+ },
+ {
+  "name": "unicode_header.dat",
+  "bytes": "74656d707320c3a96e657267696520ce94470a30203120320a",
+  "delimiter": "",
+  "header": [
+   "temps",
+   "énergie",
+   "ΔG"
+  ],
+  "rows": [
+   [
+    "0.0",
+    "1.0",
+    "2.0"
+   ]
+  ],
+  "shape": [
+   1,
+   3
+  ]
+ },
+ {
+  "name": "one_column.dat",
+  "bytes": "760a310a320a",
+  "delimiter": "",
+  "header": [
+   "v"
+  ],
+  "rows": [
+   [
+    "1.0"
+   ],
+   [
+    "2.0"
+   ]
+  ],
+  "shape": [
+   2,
+   1
+  ]
+ },
+ {
+  "name": "long_header.dat",
+  "bytes": "612062206320640a3120320a",
+  "delimiter": "",
+  "header": [
+   "col0",
+   "col1"
+  ],
+  "rows": [
+   [
+    "1.0",
+    "2.0"
+   ]
+  ],
+  "shape": [
+   1,
+   2
+  ]
+ },
+ {
+  "name": "bom.csv",
+  "bytes": "efbbbf612c620a312c320a",
+  "delimiter": "",
+  "header": [
+   "﻿a",
+   "b"
+  ],
+  "rows": [
+   [
+    "1.0",
+    "2.0"
+   ]
+  ],
+  "shape": [
+   1,
+   2
+  ]
+ },
+ {
+  "name": "nul.dat",
+  "bytes": "61006220630a3120320a",
+  "delimiter": "",
+  "header": [
+   "a\u0000b",
+   "c"
+  ],
+  "rows": [
+   [
+    "1.0",
+    "2.0"
+   ]
+  ],
+  "shape": [
+   1,
+   2
+  ]
+ },
+ {
+  "name": "vertical_tab_line.dat",
+  "bytes": "6120620a3120320b3320340a",
+  "delimiter": "",
+  "header": [
+   "col0",
+   "col1",
+   "col2",
+   "col3"
+  ],
+  "rows": [
+   [
+    "1.0",
+    "2.0",
+    "3.0",
+    "4.0"
+   ]
+  ],
+  "shape": [
+   1,
+   4
+  ]
+ },
+ {
+  "name": "random_0.dat",
+  "bytes": "2563302063310d0a31652d330d0a31652d330d0a31382031652d330d0a31652d330d0a23206d69640a",
+  "delimiter": "",
+  "header": [
+   "col0"
+  ],
+  "rows": [
+   [
+    "0.001"
+   ],
+   [
+    "0.001"
+   ],
+   [
+    "18.0"
+   ],
+   [
+    "0.001"
+   ]
+  ],
+  "shape": [
+   4,
+   1
+  ]
+ },
+ {
+  "name": "random_1.dat",
+  "bytes": "31652d33202031652d3320203533302e34202031652d330a3330202031652d3320206e616e0a",
+  "delimiter": "",
+  "header": [
+   "col0",
+   "col1",
+   "col2"
+  ],
+  "rows": [
+   [
+    "0.001",
+    "0.001",
+    "530.4"
+   ],
+   [
+    "30.0",
+    "0.001",
+    "nan"
+   ]
+  ],
+  "shape": [
+   2,
+   3
+  ]
+ },
+ {
+  "name": "random_2.dat",
+  "bytes": "4063302063310a31652d332c31652d330a23206d69640a2d343435202d3333372e392032380a31652d332031652d330a31652d332c6e616e2c6e616e0a3634202031652d330a6e616e0a",
+  "delimiter": "",
+  "header": [
+   "col0"
+  ],
+  "rows": [
+   [
+    "0.001"
+   ],
+   [
+    "-445.0"
+   ],
+   [
+    "0.001"
+   ],
+   [
+    "0.001"
+   ],
+   [
+    "64.0"
+   ],
+   [
+    "nan"
+   ]
+  ],
+  "shape": [
+   6,
+   1
+  ]
+ },
+ {
+  "name": "random_3.dat",
+  "bytes": "4063300a6e616e0a31652d330a6e616e0a2d31362e31320a3737382e360a",
+  "delimiter": "",
+  "header": [
+   "c0"
+  ],
+  "rows": [
+   [
+    "nan"
+   ],
+   [
+    "0.001"
+   ],
+   [
+    "nan"
+   ],
+   [
+    "-16.12"
+   ],
+   [
+    "778.6"
+   ]
+  ],
+  "shape": [
+   5,
+   1
+  ]
+ },
+ {
+  "name": "random_4.dat",
+  "bytes": "4063300d0a31652d330d0a23206d69640d0a6e616e0d0a6e616e0d0a6e616e0d0a2d3136300a",
+  "delimiter": "",
+  "header": [
+   "c0"
+  ],
+  "rows": [
+   [
+    "0.001"
+   ],
+   [
+    "nan"
+   ],
+   [
+    "nan"
+   ],
+   [
+    "nan"
+   ],
+   [
+    "-160.0"
+   ]
+  ],
+  "shape": [
+   5,
+   1
+  ]
+ },
+ {
+  "name": "random_5.dat",
+  "bytes": "3731203739372e392038390a6e616e2c3539362c31652d332c6e616e0a31652d332c206e616e0a312c31652d330a",
+  "delimiter": "",
+  "header": [
+   "col0",
+   "col1"
+  ],
+  "rows": [
+   [
+    "71.0",
+    "797.9"
+   ],
+   [
+    "nan",
+    "596.0"
+   ],
+   [
+    "0.001",
+    "nan"
+   ],
+   [
+    "1.0",
+    "0.001"
+   ]
+  ],
+  "shape": [
+   4,
+   2
+  ]
+ },
+ {
+  "name": "random_6.dat",
+  "bytes": "63300d0a39380d0a23206d69640a",
+  "delimiter": "",
+  "header": [
+   "c0"
+  ],
+  "rows": [
+   [
+    "98.0"
+   ]
+  ],
+  "shape": [
+   1,
+   1
+  ]
+ },
+ {
+  "name": "random_7.dat",
+  "bytes": "3b63302063312063322063330d0a3432202031652d3320206e616e202038320d0a6e616e20202d3736332e3720203734382e3620206e616e202033340d0a3330206e616e202d3834382e362031652d332032300d0a6e616e2c2031652d332c206e616e2c2031652d330a",
+  "delimiter": "",
+  "header": [
+   "c0",
+   "c1",
+   "c2",
+   "c3"
+  ],
+  "rows": [
+   [
+    "42.0",
+    "0.001",
+    "nan",
+    "82.0"
+   ],
+   [
+    "nan",
+    "-763.7",
+    "748.6",
+    "nan"
+   ],
+   [
+    "30.0",
+    "nan",
+    "-848.6",
+    "0.001"
+   ],
+   [
+    "nan",
+    "0.001",
+    "nan",
+    "0.001"
+   ]
+  ],
+  "shape": [
+   4,
+   4
+  ]
+ },
+ {
+  "name": "random_8.dat",
+  "bytes": "63302063310a31652d330a23206d69640a3730093239312e340931652d330a23206d69640a",
+  "delimiter": "",
+  "header": [
+   "col0"
+  ],
+  "rows": [
+   [
+    "0.001"
+   ],
+   [
+    "70.0"
+   ]
+  ],
+  "shape": [
+   2,
+   1
+  ]
+ },
+ {
+  "name": "random_9.dat",
+  "bytes": "2363302063312063322063332063340d0a6e616e203735203838203330332e310d0a3736322e310931652d330931652d33096e616e096e616e096e616e0d0a6e616e2031652d33203432206e616e2031652d330a",
+  "delimiter": "",
+  "header": [
+   "col0",
+   "col1",
+   "col2",
+   "col3"
+  ],
+  "rows": [
+   [
+    "nan",
+    "75.0",
+    "88.0",
+    "303.1"
+   ],
+   [
+    "762.1",
+    "0.001",
+    "0.001",
+    "nan"
+   ],
+   [
+    "nan",
+    "0.001",
+    "42.0",
+    "nan"
+   ]
+  ],
+  "shape": [
+   3,
+   4
+  ]
+ }
+]

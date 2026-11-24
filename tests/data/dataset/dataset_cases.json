@@ -1,0 +1,5611 @@
+{
+ "cases": [
+  {
+   "name": "full",
+   "frames": [
+    0,
+    10,
+    20,
+    30
+   ],
+   "time_ps": [
+    "0x0.0p+0",
+    "0x1.9000000000000p+6",
+    "0x1.f420000000000p+10",
+    "0x1.e848000000000p+19"
+   ],
+   "time_unit": "ns",
+   "results": [
+    {
+     "name": "rmsd",
+     "key": "abc",
+     "arrays": [
+      [
+       "rmsd",
+       {
+        "dtype": "float64",
+        "shape": [
+         4
+        ],
+        "values": [
+         "0x0.0p+0",
+         "0x1.8000000000000p+0",
+         "nan",
+         "0x1.2000000000000p+1"
+        ]
+       }
+      ],
+      [
+       "count",
+       {
+        "dtype": "int32",
+        "shape": [
+         4
+        ],
+        "values": [
+         1,
+         2,
+         3,
+         4
+        ]
+       }
+      ],
+      [
+       "flags",
+       {
+        "dtype": "bool",
+        "shape": [
+         4
+        ],
+        "values": [
+         true,
+         false,
+         true,
+         true
+        ]
+       }
+      ],
+      [
+       "single",
+       {
+        "dtype": "float32",
+        "shape": [
+         4
+        ],
+        "values": [
+         "0x1.99999a0000000p-4",
+         "0x1.99999a0000000p-3",
+         "0x1.5798ee0000000p-27",
+         "0x1.ff933c0000000p+127"
+        ]
+       }
+      ]
+     ],
+     "meta": {},
+     "ops": [
+      [
+       "add_series",
+       [
+        "value",
+        "rmsd",
+        "RMSD",
+        "Å"
+       ],
+       {}
+      ],
+      [
+       "add_series",
+       [
+        "count",
+        "count",
+        "Contacts",
+        "count"
+       ],
+       {
+        "target": 3
+       }
+      ],
+      [
+       "add_series",
+       [
+        "flags",
+        "flags",
+        "Flag"
+       ],
+       {
+        "target": 0.5,
+        "color": "red"
+       }
+      ],
+      [
+       "add_series",
+       [
+        "single",
+        "single",
+        "Single",
+        ""
+       ],
+       {
+        "target": null
+       }
+      ],
+      [
+       "add_series",
+       [
+        "missing",
+        "nope",
+        "Missing array"
+       ],
+       {}
+      ],
+      [
+       "add_series",
+       [
+        "value",
+        "rmsd",
+        "RMSD again",
+        "nm"
+       ],
+       {}
+      ]
+     ],
+     "outputs_repr": "{'outputs': {'series': {'value': {'array': 'rmsd', 'label': 'RMSD again', 'unit': 'nm'}, 'count': {'array': 'count', 'label': 'Contacts', 'unit': 'count', 'target': 3}, 'flags': {'array': 'flags', 'label': 'Flag', 'unit': '', 'target': 0.5, 'color': 'red'}, 'single': {'array': 'single', 'label': 'Single', 'unit': '', 'target': None}, 'missing': {'array': 'nope', 'label': 'Missing array', 'unit': ''}}, 'matrices': {}, 'pairmaps': {}}}"
+    },
+    {
+     "name": "contacts",
+     "key": "",
+     "arrays": [
+      [
+       "per_res",
+       {
+        "dtype": "int32",
+        "shape": [
+         3,
+         4
+        ],
+        "values": [
+         0,
+         1,
+         2,
+         3,
+         4,
+         5,
+         6,
+         7,
+         8,
+         9,
+         10,
+         11
+        ]
+       }
+      ],
+      [
+       "occ",
+       {
+        "dtype": "int8",
+        "shape": [
+         2,
+         4
+        ],
+        "values": [
+         0,
+         1,
+         2,
+         -1,
+         1,
+         1,
+         0,
+         3
+        ]
+       }
+      ],
+      [
+       "vals",
+       {
+        "dtype": "float64",
+        "shape": [
+         2,
+         4
+        ],
+        "values": [
+         "0x1.0000000000000p-1",
+         "0x1.0000000000000p-1",
+         "0x1.0000000000000p-1",
+         "0x1.0000000000000p-1",
+         "0x1.0000000000000p-1",
+         "0x1.0000000000000p-1",
+         "0x1.0000000000000p-1",
+         "0x1.0000000000000p-1"
+        ]
+       }
+      ],
+      [
+       "cm_offsets",
+       {
+        "dtype": "int64",
+        "shape": [
+         5
+        ],
+        "values": [
+         0,
+         2,
+         3,
+         3,
+         6
+        ]
+       }
+      ],
+      [
+       "cm_i",
+       {
+        "dtype": "int32",
+        "shape": [
+         6
+        ],
+        "values": [
+         0,
+         1,
+         1,
+         0,
+         2,
+         0
+        ]
+       }
+      ],
+      [
+       "cm_j",
+       {
+        "dtype": "int32",
+        "shape": [
+         6
+        ],
+        "values": [
+         1,
+         2,
+         2,
+         0,
+         -1,
+         1
+        ]
+       }
+      ],
+      [
+       "cm_v",
+       {
+        "dtype": "float32",
+        "shape": [
+         6
+        ],
+        "values": [
+         "0x1.0000000000000p+0",
+         "0x1.0000000000000p-1",
+         "0x1.0000000000000p-2",
+         "0x1.0000000000000p+1",
+         "0x1.0000000000000p+0",
+         "0x1.0000000000000p+0"
+        ]
+       }
+      ],
+      [
+       "bad_offsets",
+       {
+        "dtype": "int64",
+        "shape": [
+         3
+        ],
+        "values": [
+         0,
+         1,
+         2
+        ]
+       }
+      ],
+      [
+       "bad_i",
+       {
+        "dtype": "int32",
+        "shape": [
+         2
+        ],
+        "values": [
+         5,
+         0
+        ]
+       }
+      ],
+      [
+       "bad_j",
+       {
+        "dtype": "int32",
+        "shape": [
+         2
+        ],
+        "values": [
+         0,
+         0
+        ]
+       }
+      ],
+      [
+       "bad_v",
+       {
+        "dtype": "float32",
+        "shape": [
+         2
+        ],
+        "values": [
+         "0x1.0000000000000p+0",
+         "0x1.0000000000000p+0"
+        ]
+       }
+      ],
+      [
+       "fl_offsets",
+       {
+        "dtype": "float64",
+        "shape": [
+         3
+        ],
+        "values": [
+         "0x0.0p+0",
+         "0x1.0000000000000p+0",
+         "0x1.0000000000000p+1"
+        ]
+       }
+      ],
+      [
+       "fl_i",
+       {
+        "dtype": "float64",
+        "shape": [
+         2
+        ],
+        "values": [
+         "0x1.ccccccccccccdp-1",
+         "0x1.0000000000000p+0"
+        ]
+       }
+      ],
+      [
+       "fl_j",
+       {
+        "dtype": "int64",
+        "shape": [
+         2
+        ],
+        "values": [
+         0,
+         1
+        ]
+       }
+      ],
+      [
+       "fl_v",
+       {
+        "dtype": "int32",
+        "shape": [
+         2
+        ],
+        "values": [
+         3,
+         4
+        ]
+       }
+      ],
+      [
+       "e_offsets",
+       {
+        "dtype": "int64",
+        "shape": [
+         0
+        ],
+        "values": []
+       }
+      ],
+      [
+       "e_i",
+       {
+        "dtype": "int32",
+        "shape": [
+         0
+        ],
+        "values": []
+       }
+      ],
+      [
+       "e_j",
+       {
+        "dtype": "int32",
+        "shape": [
+         0
+        ],
+        "values": []
+       }
+      ],
+      [
+       "e_v",
+       {
+        "dtype": "float32",
+        "shape": [
+         0
+        ],
+        "values": []
+       }
+      ],
+      [
+       "z_offsets",
+       {
+        "dtype": "int64",
+        "shape": [
+         1
+        ],
+        "values": [
+         0
+        ]
+       }
+      ],
+      [
+       "z_i",
+       {
+        "dtype": "int32",
+        "shape": [
+         2
+        ],
+        "values": [
+         0,
+         1
+        ]
+       }
+      ],
+      [
+       "z_j",
+       {
+        "dtype": "int32",
+        "shape": [
+         2
+        ],
+        "values": [
+         1,
+         1
+        ]
+       }
+      ],
+      [
+       "z_v",
+       {
+        "dtype": "float32",
+        "shape": [
+         2
+        ],
+        "values": [
+         "0x1.0000000000000p+0",
+         "0x1.0000000000000p+0"
+        ]
+       }
+      ]
+     ],
+     "meta": {
+      "residues": [
+       "A:G1",
+       "A:C2",
+       "B:U3"
+      ],
+      "chars": "xyz",
+      "classes_meta": [
+       1,
+       2
+      ]
+     },
+     "ops": [
+      [
+       "add_matrix",
+       [
+        "per_residue",
+        "per_res",
+        "residues",
+        "Contacts per residue"
+       ],
+       {}
+      ],
+      [
+       "add_matrix",
+       [
+        "occupancy",
+        "occ",
+        "residues",
+        "Mg occupancy",
+        "class"
+       ],
+       {
+        "classes": [
+         "none",
+         "inner",
+         "outer",
+         "both"
+        ],
+        "unit": ""
+       }
+      ],
+      [
+       "add_matrix",
+       [
+        "values",
+        "vals",
+        "chars",
+        "Values",
+        "value"
+       ],
+       {
+        "unit": "kcal/mol"
+       }
+      ],
+      [
+       "add_matrix",
+       [
+        "norows",
+        "vals",
+        "absent",
+        "No rows"
+       ],
+       {}
+      ],
+      [
+       "add_pairmap",
+       [
+        "map",
+        "cm",
+        "residues",
+        "residues",
+        "Contact map"
+       ],
+       {}
+      ],
+      [
+       "add_pairmap",
+       [
+        "bad",
+        "bad",
+        "residues",
+        "residues",
+        "Bad map"
+       ],
+       {}
+      ],
+      [
+       "add_pairmap",
+       [
+        "floats",
+        "fl",
+        "residues",
+        "chars",
+        "Float map"
+       ],
+       {
+        "note": 1
+       }
+      ],
+      [
+       "add_pairmap",
+       [
+        "empty",
+        "e",
+        "residues",
+        "residues",
+        "Empty map"
+       ],
+       {}
+      ],
+      [
+       "add_pairmap",
+       [
+        "zero",
+        "z",
+        "residues",
+        "residues",
+        "Zero frames"
+       ],
+       {}
+      ],
+      [
+       "add_pairmap",
+       [
+        "noarrays",
+        "none",
+        "residues",
+        "residues",
+        "No arrays"
+       ],
+       {}
+      ]
+     ],
+     "outputs_repr": "{'residues': ['A:G1', 'A:C2', 'B:U3'], 'chars': 'xyz', 'classes_meta': [1, 2], 'outputs': {'series': {}, 'matrices': {'per_residue': {'array': 'per_res', 'rows': 'residues', 'label': 'Contacts per residue', 'kind': 'count'}, 'occupancy': {'array': 'occ', 'rows': 'residues', 'label': 'Mg occupancy', 'kind': 'class', 'classes': ['none', 'inner', 'outer', 'both'], 'unit': ''}, 'values': {'array': 'vals', 'rows': 'chars', 'label': 'Values', 'kind': 'value', 'unit': 'kcal/mol'}, 'norows': {'array': 'vals', 'rows': 'absent', 'label': 'No rows', 'kind': 'count'}}, 'pairmaps': {'map': {'prefix': 'cm', 'rows': 'residues', 'cols': 'residues', 'label': 'Contact map'}, 'bad': {'prefix': 'bad', 'rows': 'residues', 'cols': 'residues', 'label': 'Bad map'}, 'floats': {'prefix': 'fl', 'rows': 'residues', 'cols': 'chars', 'label': 'Float map', 'note': 1}, 'empty': {'prefix': 'e', 'rows': 'residues', 'cols': 'residues', 'label': 'Empty map'}, 'zero': {'prefix': 'z', 'rows': 'residues', 'cols': 'residues', 'label': 'Zero frames'}, 'noarrays': {'prefix': 'none', 'rows': 'residues', 'cols': 'residues', 'label': 'No arrays'}}}}"
+    },
+    {
+     "name": "external",
+     "key": "",
+     "arrays": [
+      [
+       "s0_1",
+       {
+        "dtype": "float64",
+        "shape": [
+         4
+        ],
+        "values": [
+         "0x1.0000000000000p+0",
+         "0x1.0000000000000p+1",
+         "0x1.8000000000000p+1",
+         "0x1.0000000000000p+2"
+        ]
+       }
+      ]
+     ],
+     "meta": {},
+     "ops": [
+      [
+       "add_series",
+       [
+        "cpp.rmsd",
+        "s0_1",
+        "cpp: rmsd",
+        ""
+       ],
+       {}
+      ]
+     ],
+     "outputs_repr": "{'outputs': {'series': {'cpp.rmsd': {'array': 's0_1', 'label': 'cpp: rmsd', 'unit': ''}}, 'matrices': {}, 'pairmaps': {}}}"
+    },
+    {
+     "name": "empty",
+     "key": "",
+     "arrays": [],
+     "meta": {},
+     "ops": [],
+     "outputs_repr": "{}"
+    },
+    {
+     "name": "raw",
+     "key": "",
+     "arrays": [
+      [
+       "x",
+       {
+        "dtype": "float64",
+        "shape": [
+         4
+        ],
+        "values": [
+         "0x1.0000000000000p+2",
+         "0x1.8000000000000p+1",
+         "0x1.0000000000000p+1",
+         "0x1.0000000000000p+0"
+        ]
+       }
+      ]
+     ],
+     "meta": {
+      "outputs": {
+       "series": {
+        "plain": {
+         "array": "x"
+        },
+        "none": null
+       },
+       "matrices": {},
+       "pairmaps": {
+        "m": {
+         "prefix": "p",
+         "rows": "r",
+         "cols": "c"
+        }
+       }
+      }
+     },
+     "ops": [],
+     "outputs_repr": "{'outputs': {'series': {'plain': {'array': 'x'}, 'none': None}, 'matrices': {}, 'pairmaps': {'m': {'prefix': 'p', 'rows': 'r', 'cols': 'c'}}}}"
+    },
+    {
+     "name": "a",
+     "key": "",
+     "arrays": [
+      [
+       "x",
+       {
+        "dtype": "float64",
+        "shape": [
+         4
+        ],
+        "values": [
+         "0x1.0000000000000p+0",
+         "0x1.0000000000000p+0",
+         "0x1.0000000000000p+0",
+         "0x1.0000000000000p+0"
+        ]
+       }
+      ]
+     ],
+     "meta": {},
+     "ops": [
+      [
+       "add_series",
+       [
+        "b/c",
+        "x",
+        "Nested"
+       ],
+       {}
+      ]
+     ],
+     "outputs_repr": "{'outputs': {'series': {'b/c': {'array': 'x', 'label': 'Nested', 'unit': ''}}, 'matrices': {}, 'pairmaps': {}}}"
+    }
+   ],
+   "queries": [
+    [
+     "time",
+     null,
+     {
+      "value": [
+       "0x0.0p+0",
+       "0x1.999999999999ap-4",
+       "0x1.0010624dd2f1bp+1",
+       "0x1.f400000000000p+9"
+      ]
+     }
+    ],
+    [
+     "time",
+     "ps",
+     {
+      "value": [
+       "0x0.0p+0",
+       "0x1.9000000000000p+6",
+       "0x1.f420000000000p+10",
+       "0x1.e848000000000p+19"
+      ]
+     }
+    ],
+    [
+     "time",
+     "ns",
+     {
+      "value": [
+       "0x0.0p+0",
+       "0x1.999999999999ap-4",
+       "0x1.0010624dd2f1bp+1",
+       "0x1.f400000000000p+9"
+      ]
+     }
+    ],
+    [
+     "time",
+     "us",
+     {
+      "value": [
+       "0x0.0p+0",
+       "0x1.a36e2eb1c432dp-14",
+       "0x1.0635a426bb55bp-9",
+       "0x1.0000000000000p+0"
+      ]
+     }
+    ],
+    [
+     "time",
+     "fs",
+     {
+      "value": [
+       "0x0.0p+0",
+       "0x1.86a0000000000p+16",
+       "0x1.e867400000000p+20",
+       "0x1.dcd6500000000p+29"
+      ]
+     }
+    ],
+    [
+     "time",
+     "frame",
+     {
+      "value": [
+       "0x0.0p+0",
+       "0x1.4000000000000p+3",
+       "0x1.4000000000000p+4",
+       "0x1.e000000000000p+4"
+      ]
+     }
+    ],
+    [
+     "time",
+     "ms",
+     {
+      "error": "unknown time unit 'ms'",
+      "type": "ValueError"
+     }
+    ],
+    [
+     "time",
+     "",
+     {
+      "value": [
+       "0x0.0p+0",
+       "0x1.999999999999ap-4",
+       "0x1.0010624dd2f1bp+1",
+       "0x1.f400000000000p+9"
+      ]
+     }
+    ],
+    [
+     "time_label",
+     null,
+     {
+      "value": "Time (ns)"
+     }
+    ],
+    [
+     "time_label",
+     "ps",
+     {
+      "value": "Time (ps)"
+     }
+    ],
+    [
+     "time_label",
+     "us",
+     {
+      "value": "Time (µs)"
+     }
+    ],
+    [
+     "time_label",
+     "frame",
+     {
+      "value": "Frame"
+     }
+    ],
+    [
+     "time_label",
+     "fs",
+     {
+      "value": "Time"
+     }
+    ],
+    [
+     "time_label",
+     "x",
+     {
+      "value": "Time"
+     }
+    ],
+    [
+     "time_label",
+     "",
+     {
+      "value": "Time (ns)"
+     }
+    ],
+    [
+     "keys",
+     "series",
+     {
+      "value": [
+       "rmsd/value",
+       "rmsd/count",
+       "rmsd/flags",
+       "rmsd/single",
+       "rmsd/missing",
+       "external/cpp.rmsd",
+       "raw/plain",
+       "raw/none",
+       "a/b/c"
+      ]
+     }
+    ],
+    [
+     "keys",
+     "matrices",
+     {
+      "value": [
+       "contacts/per_residue",
+       "contacts/occupancy",
+       "contacts/values",
+       "contacts/norows"
+      ]
+     }
+    ],
+    [
+     "keys",
+     "pairmaps",
+     {
+      "value": [
+       "contacts/map",
+       "contacts/bad",
+       "contacts/floats",
+       "contacts/empty",
+       "contacts/zero",
+       "contacts/noarrays",
+       "raw/m"
+      ]
+     }
+    ],
+    [
+     "keys",
+     "other",
+     {
+      "value": []
+     }
+    ],
+    [
+     "describe",
+     null,
+     {
+      "value": {
+       "series": [
+        "rmsd/value",
+        "rmsd/count",
+        "rmsd/flags",
+        "rmsd/single",
+        "rmsd/missing",
+        "external/cpp.rmsd",
+        "raw/plain",
+        "raw/none",
+        "a/b/c"
+       ],
+       "matrices": [
+        "contacts/per_residue",
+        "contacts/occupancy",
+        "contacts/values",
+        "contacts/norows"
+       ],
+       "pairmaps": [
+        "contacts/map",
+        "contacts/bad",
+        "contacts/floats",
+        "contacts/empty",
+        "contacts/zero",
+        "contacts/noarrays",
+        "raw/m"
+       ]
+      }
+     }
+    ],
+    [
+     "has",
+     "rmsd/value",
+     {
+      "value": true
+     }
+    ],
+    [
+     "has",
+     "rmsd",
+     {
+      "value": false
+     }
+    ],
+    [
+     "has",
+     "nope/value",
+     {
+      "value": false
+     }
+    ],
+    [
+     "has",
+     "rmsd/nope",
+     {
+      "value": false
+     }
+    ],
+    [
+     "has",
+     "contacts/map",
+     {
+      "value": true
+     }
+    ],
+    [
+     "has",
+     "a/b/c",
+     {
+      "value": true
+     }
+    ],
+    [
+     "has",
+     "/",
+     {
+      "value": false
+     }
+    ],
+    [
+     "has",
+     "",
+     {
+      "value": false
+     }
+    ],
+    [
+     "kind_of",
+     "rmsd/value",
+     {
+      "value": "series"
+     }
+    ],
+    [
+     "kind_of",
+     "contacts/per_residue",
+     {
+      "value": "matrices"
+     }
+    ],
+    [
+     "kind_of",
+     "contacts/map",
+     {
+      "value": "pairmaps"
+     }
+    ],
+    [
+     "kind_of",
+     "rmsd/nope",
+     {
+      "error": "rmsd/nope",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "kind_of",
+     "x",
+     {
+      "error": "x",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "rmsd/value",
+     {
+      "value": {
+       "key": "rmsd/value",
+       "values": {
+        "dtype": "float64",
+        "shape": [
+         4
+        ],
+        "values": [
+         "0x0.0p+0",
+         "0x1.8000000000000p+0",
+         "nan",
+         "0x1.2000000000000p+1"
+        ]
+       },
+       "label": "RMSD again",
+       "unit": "nm",
+       "target": null,
+       "axis_label": "RMSD again (nm)"
+      }
+     }
+    ],
+    [
+     "series",
+     "rmsd/count",
+     {
+      "value": {
+       "key": "rmsd/count",
+       "values": {
+        "dtype": "float64",
+        "shape": [
+         4
+        ],
+        "values": [
+         "0x1.0000000000000p+0",
+         "0x1.0000000000000p+1",
+         "0x1.8000000000000p+1",
+         "0x1.0000000000000p+2"
+        ]
+       },
+       "label": "Contacts",
+       "unit": "count",
+       "target": "0x1.8000000000000p+1",
+       "axis_label": "Contacts"
+      }
+     }
+    ],
+    [
+     "series",
+     "rmsd/flags",
+     {
+      "value": {
+       "key": "rmsd/flags",
+       "values": {
+        "dtype": "float64",
+        "shape": [
+         4
+        ],
+        "values": [
+         "0x1.0000000000000p+0",
+         "0x0.0p+0",
+         "0x1.0000000000000p+0",
+         "0x1.0000000000000p+0"
+        ]
+       },
+       "label": "Flag",
+       "unit": "",
+       "target": "0x1.0000000000000p-1",
+       "axis_label": "Flag"
+      }
+     }
+    ],
+    [
+     "series",
+     "rmsd/single",
+     {
+      "value": {
+       "key": "rmsd/single",
+       "values": {
+        "dtype": "float64",
+        "shape": [
+         4
+        ],
+        "values": [
+         "0x1.99999a0000000p-4",
+         "0x1.99999a0000000p-3",
+         "0x1.5798ee0000000p-27",
+         "0x1.ff933c0000000p+127"
+        ]
+       },
+       "label": "Single",
+       "unit": "",
+       "target": null,
+       "axis_label": "Single"
+      }
+     }
+    ],
+    [
+     "series",
+     "rmsd/missing",
+     {
+      "error": "nope",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "rmsd",
+     {
+      "error": "data key 'rmsd' must look like '<analysis>/<output>'",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "nope/x",
+     {
+      "error": "analysis 'nope' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "rmsd/nope",
+     {
+      "error": "rmsd has no serie output 'nope'",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "contacts/per_residue",
+     {
+      "error": "contacts has no serie output 'per_residue'",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "external/cpp.rmsd",
+     {
+      "value": {
+       "key": "external/cpp.rmsd",
+       "values": {
+        "dtype": "float64",
+        "shape": [
+         4
+        ],
+        "values": [
+         "0x1.0000000000000p+0",
+         "0x1.0000000000000p+1",
+         "0x1.8000000000000p+1",
+         "0x1.0000000000000p+2"
+        ]
+       },
+       "label": "cpp: rmsd",
+       "unit": "",
+       "target": null,
+       "axis_label": "cpp: rmsd"
+      }
+     }
+    ],
+    [
+     "series",
+     "raw/plain",
+     {
+      "value": {
+       "key": "raw/plain",
+       "values": {
+        "dtype": "float64",
+        "shape": [
+         4
+        ],
+        "values": [
+         "0x1.0000000000000p+2",
+         "0x1.8000000000000p+1",
+         "0x1.0000000000000p+1",
+         "0x1.0000000000000p+0"
+        ]
+       },
+       "label": "raw/plain",
+       "unit": "",
+       "target": null,
+       "axis_label": "raw/plain"
+      }
+     }
+    ],
+    [
+     "series",
+     "raw/none",
+     {
+      "error": "raw has no serie output 'none'",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "a/b/c",
+     {
+      "value": {
+       "key": "a/b/c",
+       "values": {
+        "dtype": "float64",
+        "shape": [
+         4
+        ],
+        "values": [
+         "0x1.0000000000000p+0",
+         "0x1.0000000000000p+0",
+         "0x1.0000000000000p+0",
+         "0x1.0000000000000p+0"
+        ]
+       },
+       "label": "Nested",
+       "unit": "",
+       "target": null,
+       "axis_label": "Nested"
+      }
+     }
+    ],
+    [
+     "series",
+     "empty/x",
+     {
+      "error": "empty has no serie output 'x'",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "rmsd/",
+     {
+      "error": "rmsd has no serie output ''",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "é/x",
+     {
+      "error": "analysis 'é' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "rmsd/é'\"",
+     {
+      "error": "rmsd has no serie output 'é\\'\"'",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "matrix",
+     "contacts/per_residue",
+     {
+      "value": {
+       "key": "contacts/per_residue",
+       "values": {
+        "dtype": "int32",
+        "shape": [
+         3,
+         4
+        ],
+        "values": [
+         0,
+         1,
+         2,
+         3,
+         4,
+         5,
+         6,
+         7,
+         8,
+         9,
+         10,
+         11
+        ]
+       },
+       "row_labels": [
+        "A:G1",
+        "A:C2",
+        "B:U3"
+       ],
+       "label": "Contacts per residue",
+       "kind": "count",
+       "classes": null,
+       "unit": ""
+      }
+     }
+    ],
+    [
+     "matrix",
+     "contacts/occupancy",
+     {
+      "value": {
+       "key": "contacts/occupancy",
+       "values": {
+        "dtype": "int8",
+        "shape": [
+         2,
+         4
+        ],
+        "values": [
+         0,
+         1,
+         2,
+         -1,
+         1,
+         1,
+         0,
+         3
+        ]
+       },
+       "row_labels": [
+        "A:G1",
+        "A:C2",
+        "B:U3"
+       ],
+       "label": "Mg occupancy",
+       "kind": "class",
+       "classes": [
+        "none",
+        "inner",
+        "outer",
+        "both"
+       ],
+       "unit": ""
+      }
+     }
+    ],
+    [
+     "matrix",
+     "contacts/values",
+     {
+      "value": {
+       "key": "contacts/values",
+       "values": {
+        "dtype": "float64",
+        "shape": [
+         2,
+         4
+        ],
+        "values": [
+         "0x1.0000000000000p-1",
+         "0x1.0000000000000p-1",
+         "0x1.0000000000000p-1",
+         "0x1.0000000000000p-1",
+         "0x1.0000000000000p-1",
+         "0x1.0000000000000p-1",
+         "0x1.0000000000000p-1",
+         "0x1.0000000000000p-1"
+        ]
+       },
+       "row_labels": [
+        "x",
+        "y",
+        "z"
+       ],
+       "label": "Values",
+       "kind": "value",
+       "classes": null,
+       "unit": "kcal/mol"
+      }
+     }
+    ],
+    [
+     "matrix",
+     "contacts/norows",
+     {
+      "value": {
+       "key": "contacts/norows",
+       "values": {
+        "dtype": "float64",
+        "shape": [
+         2,
+         4
+        ],
+        "values": [
+         "0x1.0000000000000p-1",
+         "0x1.0000000000000p-1",
+         "0x1.0000000000000p-1",
+         "0x1.0000000000000p-1",
+         "0x1.0000000000000p-1",
+         "0x1.0000000000000p-1",
+         "0x1.0000000000000p-1",
+         "0x1.0000000000000p-1"
+        ]
+       },
+       "row_labels": [],
+       "label": "No rows",
+       "kind": "count",
+       "classes": null,
+       "unit": ""
+      }
+     }
+    ],
+    [
+     "matrix",
+     "contacts/map",
+     {
+      "error": "contacts has no matrice output 'map'",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "matrix",
+     "rmsd/value",
+     {
+      "error": "rmsd has no matrice output 'value'",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "pairmap",
+     "contacts/map",
+     {
+      "value": {
+       "key": "contacts/map",
+       "offsets": [
+        0,
+        2,
+        3,
+        3,
+        6
+       ],
+       "i": [
+        0,
+        1,
+        1,
+        0,
+        2,
+        0
+       ],
+       "j": [
+        1,
+        2,
+        2,
+        0,
+        -1,
+        1
+       ],
+       "values": [
+        "0x1.0000000000000p+0",
+        "0x1.0000000000000p-1",
+        "0x1.0000000000000p-2",
+        "0x1.0000000000000p+1",
+        "0x1.0000000000000p+0",
+        "0x1.0000000000000p+0"
+       ],
+       "row_labels": [
+        "A:G1",
+        "A:C2",
+        "B:U3"
+       ],
+       "col_labels": [
+        "A:G1",
+        "A:C2",
+        "B:U3"
+       ],
+       "label": "Contact map",
+       "shape": [
+        3,
+        3
+       ],
+       "dense": [
+        {
+         "value": [
+          "0x0.0p+0",
+          "0x1.0000000000000p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x1.0000000000000p-1",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0"
+         ]
+        },
+        {
+         "value": [
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x1.0000000000000p-2",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0"
+         ]
+        },
+        {
+         "value": [
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0"
+         ]
+        },
+        {
+         "value": [
+          "0x1.0000000000000p+1",
+          "0x1.0000000000000p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x1.0000000000000p+0"
+         ]
+        }
+       ],
+       "frequency": {
+        "value": [
+         "0x1.0000000000000p-2",
+         "0x1.0000000000000p-1",
+         "0x0.0p+0",
+         "0x0.0p+0",
+         "0x0.0p+0",
+         "0x1.0000000000000p-1",
+         "0x0.0p+0",
+         "0x0.0p+0",
+         "0x1.0000000000000p-2"
+        ]
+       }
+      }
+     }
+    ],
+    [
+     "pairmap",
+     "contacts/bad",
+     {
+      "value": {
+       "key": "contacts/bad",
+       "offsets": [
+        0,
+        1,
+        2
+       ],
+       "i": [
+        5,
+        0
+       ],
+       "j": [
+        0,
+        0
+       ],
+       "values": [
+        "0x1.0000000000000p+0",
+        "0x1.0000000000000p+0"
+       ],
+       "row_labels": [
+        "A:G1",
+        "A:C2",
+        "B:U3"
+       ],
+       "col_labels": [
+        "A:G1",
+        "A:C2",
+        "B:U3"
+       ],
+       "label": "Bad map",
+       "shape": [
+        3,
+        3
+       ],
+       "dense": [
+        {
+         "error": "index 5 is out of bounds for axis 0 with size 3"
+        },
+        {
+         "value": [
+          "0x1.0000000000000p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0"
+         ]
+        }
+       ],
+       "frequency": {
+        "error": "index 5 is out of bounds for axis 0 with size 3"
+       }
+      }
+     }
+    ],
+    [
+     "pairmap",
+     "contacts/floats",
+     {
+      "value": {
+       "key": "contacts/floats",
+       "offsets": [
+        0,
+        1,
+        2
+       ],
+       "i": [
+        0,
+        1
+       ],
+       "j": [
+        0,
+        1
+       ],
+       "values": [
+        "0x1.8000000000000p+1",
+        "0x1.0000000000000p+2"
+       ],
+       "row_labels": [
+        "A:G1",
+        "A:C2",
+        "B:U3"
+       ],
+       "col_labels": [
+        "x",
+        "y",
+        "z"
+       ],
+       "label": "Float map",
+       "shape": [
+        3,
+        3
+       ],
+       "dense": [
+        {
+         "value": [
+          "0x1.8000000000000p+1",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0"
+         ]
+        },
+        {
+         "value": [
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x1.0000000000000p+2",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0"
+         ]
+        }
+       ],
+       "frequency": {
+        "value": [
+         "0x1.0000000000000p-1",
+         "0x0.0p+0",
+         "0x0.0p+0",
+         "0x0.0p+0",
+         "0x1.0000000000000p-1",
+         "0x0.0p+0",
+         "0x0.0p+0",
+         "0x0.0p+0",
+         "0x0.0p+0"
+        ]
+       }
+      }
+     }
+    ],
+    [
+     "pairmap",
+     "contacts/empty",
+     {
+      "value": {
+       "key": "contacts/empty",
+       "offsets": [],
+       "i": [],
+       "j": [],
+       "values": [],
+       "row_labels": [
+        "A:G1",
+        "A:C2",
+        "B:U3"
+       ],
+       "col_labels": [
+        "A:G1",
+        "A:C2",
+        "B:U3"
+       ],
+       "label": "Empty map",
+       "shape": [
+        3,
+        3
+       ],
+       "dense": [],
+       "frequency": {
+        "value": [
+         "-0x0.0p+0",
+         "-0x0.0p+0",
+         "-0x0.0p+0",
+         "-0x0.0p+0",
+         "-0x0.0p+0",
+         "-0x0.0p+0",
+         "-0x0.0p+0",
+         "-0x0.0p+0",
+         "-0x0.0p+0"
+        ]
+       }
+      }
+     }
+    ],
+    [
+     "pairmap",
+     "contacts/zero",
+     {
+      "value": {
+       "key": "contacts/zero",
+       "offsets": [
+        0
+       ],
+       "i": [
+        0,
+        1
+       ],
+       "j": [
+        1,
+        1
+       ],
+       "values": [
+        "0x1.0000000000000p+0",
+        "0x1.0000000000000p+0"
+       ],
+       "row_labels": [
+        "A:G1",
+        "A:C2",
+        "B:U3"
+       ],
+       "col_labels": [
+        "A:G1",
+        "A:C2",
+        "B:U3"
+       ],
+       "label": "Zero frames",
+       "shape": [
+        3,
+        3
+       ],
+       "dense": [],
+       "frequency": {
+        "value": [
+         "0x0.0p+0",
+         "0x0.0p+0",
+         "0x0.0p+0",
+         "0x0.0p+0",
+         "0x0.0p+0",
+         "0x0.0p+0",
+         "0x0.0p+0",
+         "0x0.0p+0",
+         "0x0.0p+0"
+        ]
+       }
+      }
+     }
+    ],
+    [
+     "pairmap",
+     "contacts/noarrays",
+     {
+      "error": "none_offsets",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "pairmap",
+     "raw/m",
+     {
+      "error": "p_offsets",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "pairmap",
+     "contacts/per_residue",
+     {
+      "error": "contacts has no pairmap output 'per_residue'",
+      "type": "KeyError"
+     }
+    ]
+   ]
+  },
+  {
+   "name": "replaced",
+   "frames": [
+    5,
+    6,
+    7,
+    8
+   ],
+   "time_ps": [
+    "0x1.0000000000000p+0",
+    "0x1.0000000000000p+1",
+    "0x1.8000000000000p+1",
+    "0x1.0000000000000p+2"
+   ],
+   "time_unit": "frame",
+   "results": [
+    {
+     "name": "rmsd",
+     "key": "abc",
+     "arrays": [
+      [
+       "rmsd",
+       {
+        "dtype": "float64",
+        "shape": [
+         4
+        ],
+        "values": [
+         "0x0.0p+0",
+         "0x1.8000000000000p+0",
+         "nan",
+         "0x1.2000000000000p+1"
+        ]
+       }
+      ],
+      [
+       "count",
+       {
+        "dtype": "int32",
+        "shape": [
+         4
+        ],
+        "values": [
+         1,
+         2,
+         3,
+         4
+        ]
+       }
+      ],
+      [
+       "flags",
+       {
+        "dtype": "bool",
+        "shape": [
+         4
+        ],
+        "values": [
+         true,
+         false,
+         true,
+         true
+        ]
+       }
+      ],
+      [
+       "single",
+       {
+        "dtype": "float32",
+        "shape": [
+         4
+        ],
+        "values": [
+         "0x1.99999a0000000p-4",
+         "0x1.99999a0000000p-3",
+         "0x1.5798ee0000000p-27",
+         "0x1.ff933c0000000p+127"
+        ]
+       }
+      ]
+     ],
+     "meta": {},
+     "ops": [
+      [
+       "add_series",
+       [
+        "value",
+        "rmsd",
+        "RMSD",
+        "Å"
+       ],
+       {}
+      ],
+      [
+       "add_series",
+       [
+        "count",
+        "count",
+        "Contacts",
+        "count"
+       ],
+       {
+        "target": 3
+       }
+      ],
+      [
+       "add_series",
+       [
+        "flags",
+        "flags",
+        "Flag"
+       ],
+       {
+        "target": 0.5,
+        "color": "red"
+       }
+      ],
+      [
+       "add_series",
+       [
+        "single",
+        "single",
+        "Single",
+        ""
+       ],
+       {
+        "target": null
+       }
+      ],
+      [
+       "add_series",
+       [
+        "missing",
+        "nope",
+        "Missing array"
+       ],
+       {}
+      ],
+      [
+       "add_series",
+       [
+        "value",
+        "rmsd",
+        "RMSD again",
+        "nm"
+       ],
+       {}
+      ]
+     ],
+     "outputs_repr": "{'outputs': {'series': {'value': {'array': 'rmsd', 'label': 'RMSD again', 'unit': 'nm'}, 'count': {'array': 'count', 'label': 'Contacts', 'unit': 'count', 'target': 3}, 'flags': {'array': 'flags', 'label': 'Flag', 'unit': '', 'target': 0.5, 'color': 'red'}, 'single': {'array': 'single', 'label': 'Single', 'unit': '', 'target': None}, 'missing': {'array': 'nope', 'label': 'Missing array', 'unit': ''}}, 'matrices': {}, 'pairmaps': {}}}"
+    },
+    {
+     "name": "external",
+     "key": "",
+     "arrays": [
+      [
+       "s0_1",
+       {
+        "dtype": "float64",
+        "shape": [
+         4
+        ],
+        "values": [
+         "0x1.0000000000000p+0",
+         "0x1.0000000000000p+1",
+         "0x1.8000000000000p+1",
+         "0x1.0000000000000p+2"
+        ]
+       }
+      ]
+     ],
+     "meta": {},
+     "ops": [
+      [
+       "add_series",
+       [
+        "cpp.rmsd",
+        "s0_1",
+        "cpp: rmsd",
+        ""
+       ],
+       {}
+      ]
+     ],
+     "outputs_repr": "{'outputs': {'series': {'cpp.rmsd': {'array': 's0_1', 'label': 'cpp: rmsd', 'unit': ''}}, 'matrices': {}, 'pairmaps': {}}}"
+    },
+    {
+     "name": "external",
+     "key": "",
+     "arrays": [
+      [
+       "s0_1",
+       {
+        "dtype": "float64",
+        "shape": [
+         4
+        ],
+        "values": [
+         "0x1.2000000000000p+3",
+         "0x1.2000000000000p+3",
+         "0x1.2000000000000p+3",
+         "0x1.2000000000000p+3"
+        ]
+       }
+      ]
+     ],
+     "meta": {},
+     "ops": [
+      [
+       "add_series",
+       [
+        "cpp.rmsd",
+        "s0_1",
+        "cpp: rmsd",
+        ""
+       ],
+       {}
+      ]
+     ],
+     "outputs_repr": "{'outputs': {'series': {'cpp.rmsd': {'array': 's0_1', 'label': 'cpp: rmsd', 'unit': ''}}, 'matrices': {}, 'pairmaps': {}}}"
+    },
+    {
+     "name": "contacts",
+     "key": "",
+     "arrays": [
+      [
+       "per_res",
+       {
+        "dtype": "int32",
+        "shape": [
+         3,
+         4
+        ],
+        "values": [
+         0,
+         1,
+         2,
+         3,
+         4,
+         5,
+         6,
+         7,
+         8,
+         9,
+         10,
+         11
+        ]
+       }
+      ],
+      [
+       "occ",
+       {
+        "dtype": "int8",
+        "shape": [
+         2,
+         4
+        ],
+        "values": [
+         0,
+         1,
+         2,
+         -1,
+         1,
+         1,
+         0,
+         3
+        ]
+       }
+      ],
+      [
+       "vals",
+       {
+        "dtype": "float64",
+        "shape": [
+         2,
+         4
+        ],
+        "values": [
+         "0x1.0000000000000p-1",
+         "0x1.0000000000000p-1",
+         "0x1.0000000000000p-1",
+         "0x1.0000000000000p-1",
+         "0x1.0000000000000p-1",
+         "0x1.0000000000000p-1",
+         "0x1.0000000000000p-1",
+         "0x1.0000000000000p-1"
+        ]
+       }
+      ],
+      [
+       "cm_offsets",
+       {
+        "dtype": "int64",
+        "shape": [
+         5
+        ],
+        "values": [
+         0,
+         2,
+         3,
+         3,
+         6
+        ]
+       }
+      ],
+      [
+       "cm_i",
+       {
+        "dtype": "int32",
+        "shape": [
+         6
+        ],
+        "values": [
+         0,
+         1,
+         1,
+         0,
+         2,
+         0
+        ]
+       }
+      ],
+      [
+       "cm_j",
+       {
+        "dtype": "int32",
+        "shape": [
+         6
+        ],
+        "values": [
+         1,
+         2,
+         2,
+         0,
+         -1,
+         1
+        ]
+       }
+      ],
+      [
+       "cm_v",
+       {
+        "dtype": "float32",
+        "shape": [
+         6
+        ],
+        "values": [
+         "0x1.0000000000000p+0",
+         "0x1.0000000000000p-1",
+         "0x1.0000000000000p-2",
+         "0x1.0000000000000p+1",
+         "0x1.0000000000000p+0",
+         "0x1.0000000000000p+0"
+        ]
+       }
+      ],
+      [
+       "bad_offsets",
+       {
+        "dtype": "int64",
+        "shape": [
+         3
+        ],
+        "values": [
+         0,
+         1,
+         2
+        ]
+       }
+      ],
+      [
+       "bad_i",
+       {
+        "dtype": "int32",
+        "shape": [
+         2
+        ],
+        "values": [
+         5,
+         0
+        ]
+       }
+      ],
+      [
+       "bad_j",
+       {
+        "dtype": "int32",
+        "shape": [
+         2
+        ],
+        "values": [
+         0,
+         0
+        ]
+       }
+      ],
+      [
+       "bad_v",
+       {
+        "dtype": "float32",
+        "shape": [
+         2
+        ],
+        "values": [
+         "0x1.0000000000000p+0",
+         "0x1.0000000000000p+0"
+        ]
+       }
+      ],
+      [
+       "fl_offsets",
+       {
+        "dtype": "float64",
+        "shape": [
+         3
+        ],
+        "values": [
+         "0x0.0p+0",
+         "0x1.0000000000000p+0",
+         "0x1.0000000000000p+1"
+        ]
+       }
+      ],
+      [
+       "fl_i",
+       {
+        "dtype": "float64",
+        "shape": [
+         2
+        ],
+        "values": [
+         "0x1.ccccccccccccdp-1",
+         "0x1.0000000000000p+0"
+        ]
+       }
+      ],
+      [
+       "fl_j",
+       {
+        "dtype": "int64",
+        "shape": [
+         2
+        ],
+        "values": [
+         0,
+         1
+        ]
+       }
+      ],
+      [
+       "fl_v",
+       {
+        "dtype": "int32",
+        "shape": [
+         2
+        ],
+        "values": [
+         3,
+         4
+        ]
+       }
+      ],
+      [
+       "e_offsets",
+       {
+        "dtype": "int64",
+        "shape": [
+         0
+        ],
+        "values": []
+       }
+      ],
+      [
+       "e_i",
+       {
+        "dtype": "int32",
+        "shape": [
+         0
+        ],
+        "values": []
+       }
+      ],
+      [
+       "e_j",
+       {
+        "dtype": "int32",
+        "shape": [
+         0
+        ],
+        "values": []
+       }
+      ],
+      [
+       "e_v",
+       {
+        "dtype": "float32",
+        "shape": [
+         0
+        ],
+        "values": []
+       }
+      ],
+      [
+       "z_offsets",
+       {
+        "dtype": "int64",
+        "shape": [
+         1
+        ],
+        "values": [
+         0
+        ]
+       }
+      ],
+      [
+       "z_i",
+       {
+        "dtype": "int32",
+        "shape": [
+         2
+        ],
+        "values": [
+         0,
+         1
+        ]
+       }
+      ],
+      [
+       "z_j",
+       {
+        "dtype": "int32",
+        "shape": [
+         2
+        ],
+        "values": [
+         1,
+         1
+        ]
+       }
+      ],
+      [
+       "z_v",
+       {
+        "dtype": "float32",
+        "shape": [
+         2
+        ],
+        "values": [
+         "0x1.0000000000000p+0",
+         "0x1.0000000000000p+0"
+        ]
+       }
+      ]
+     ],
+     "meta": {
+      "residues": [
+       "A:G1",
+       "A:C2",
+       "B:U3"
+      ],
+      "chars": "xyz",
+      "classes_meta": [
+       1,
+       2
+      ]
+     },
+     "ops": [
+      [
+       "add_matrix",
+       [
+        "per_residue",
+        "per_res",
+        "residues",
+        "Contacts per residue"
+       ],
+       {}
+      ],
+      [
+       "add_matrix",
+       [
+        "occupancy",
+        "occ",
+        "residues",
+        "Mg occupancy",
+        "class"
+       ],
+       {
+        "classes": [
+         "none",
+         "inner",
+         "outer",
+         "both"
+        ],
+        "unit": ""
+       }
+      ],
+      [
+       "add_matrix",
+       [
+        "values",
+        "vals",
+        "chars",
+        "Values",
+        "value"
+       ],
+       {
+        "unit": "kcal/mol"
+       }
+      ],
+      [
+       "add_matrix",
+       [
+        "norows",
+        "vals",
+        "absent",
+        "No rows"
+       ],
+       {}
+      ],
+      [
+       "add_pairmap",
+       [
+        "map",
+        "cm",
+        "residues",
+        "residues",
+        "Contact map"
+       ],
+       {}
+      ],
+      [
+       "add_pairmap",
+       [
+        "bad",
+        "bad",
+        "residues",
+        "residues",
+        "Bad map"
+       ],
+       {}
+      ],
+      [
+       "add_pairmap",
+       [
+        "floats",
+        "fl",
+        "residues",
+        "chars",
+        "Float map"
+       ],
+       {
+        "note": 1
+       }
+      ],
+      [
+       "add_pairmap",
+       [
+        "empty",
+        "e",
+        "residues",
+        "residues",
+        "Empty map"
+       ],
+       {}
+      ],
+      [
+       "add_pairmap",
+       [
+        "zero",
+        "z",
+        "residues",
+        "residues",
+        "Zero frames"
+       ],
+       {}
+      ],
+      [
+       "add_pairmap",
+       [
+        "noarrays",
+        "none",
+        "residues",
+        "residues",
+        "No arrays"
+       ],
+       {}
+      ]
+     ],
+     "outputs_repr": "{'residues': ['A:G1', 'A:C2', 'B:U3'], 'chars': 'xyz', 'classes_meta': [1, 2], 'outputs': {'series': {}, 'matrices': {'per_residue': {'array': 'per_res', 'rows': 'residues', 'label': 'Contacts per residue', 'kind': 'count'}, 'occupancy': {'array': 'occ', 'rows': 'residues', 'label': 'Mg occupancy', 'kind': 'class', 'classes': ['none', 'inner', 'outer', 'both'], 'unit': ''}, 'values': {'array': 'vals', 'rows': 'chars', 'label': 'Values', 'kind': 'value', 'unit': 'kcal/mol'}, 'norows': {'array': 'vals', 'rows': 'absent', 'label': 'No rows', 'kind': 'count'}}, 'pairmaps': {'map': {'prefix': 'cm', 'rows': 'residues', 'cols': 'residues', 'label': 'Contact map'}, 'bad': {'prefix': 'bad', 'rows': 'residues', 'cols': 'residues', 'label': 'Bad map'}, 'floats': {'prefix': 'fl', 'rows': 'residues', 'cols': 'chars', 'label': 'Float map', 'note': 1}, 'empty': {'prefix': 'e', 'rows': 'residues', 'cols': 'residues', 'label': 'Empty map'}, 'zero': {'prefix': 'z', 'rows': 'residues', 'cols': 'residues', 'label': 'Zero frames'}, 'noarrays': {'prefix': 'none', 'rows': 'residues', 'cols': 'residues', 'label': 'No arrays'}}}}"
+    }
+   ],
+   "queries": [
+    [
+     "time",
+     null,
+     {
+      "value": [
+       "0x1.4000000000000p+2",
+       "0x1.8000000000000p+2",
+       "0x1.c000000000000p+2",
+       "0x1.0000000000000p+3"
+      ]
+     }
+    ],
+    [
+     "time",
+     "ps",
+     {
+      "value": [
+       "0x1.0000000000000p+0",
+       "0x1.0000000000000p+1",
+       "0x1.8000000000000p+1",
+       "0x1.0000000000000p+2"
+      ]
+     }
+    ],
+    [
+     "time",
+     "ns",
+     {
+      "value": [
+       "0x1.0624dd2f1a9fcp-10",
+       "0x1.0624dd2f1a9fcp-9",
+       "0x1.89374bc6a7efap-9",
+       "0x1.0624dd2f1a9fcp-8"
+      ]
+     }
+    ],
+    [
+     "time",
+     "us",
+     {
+      "value": [
+       "0x1.0c6f7a0b5ed8dp-20",
+       "0x1.0c6f7a0b5ed8dp-19",
+       "0x1.92a737110e454p-19",
+       "0x1.0c6f7a0b5ed8dp-18"
+      ]
+     }
+    ],
+    [
+     "time",
+     "fs",
+     {
+      "value": [
+       "0x1.f400000000000p+9",
+       "0x1.f400000000000p+10",
+       "0x1.7700000000000p+11",
+       "0x1.f400000000000p+11"
+      ]
+     }
+    ],
+    [
+     "time",
+     "frame",
+     {
+      "value": [
+       "0x1.4000000000000p+2",
+       "0x1.8000000000000p+2",
+       "0x1.c000000000000p+2",
+       "0x1.0000000000000p+3"
+      ]
+     }
+    ],
+    [
+     "time",
+     "ms",
+     {
+      "error": "unknown time unit 'ms'",
+      "type": "ValueError"
+     }
+    ],
+    [
+     "time",
+     "",
+     {
+      "value": [
+       "0x1.4000000000000p+2",
+       "0x1.8000000000000p+2",
+       "0x1.c000000000000p+2",
+       "0x1.0000000000000p+3"
+      ]
+     }
+    ],
+    [
+     "time_label",
+     null,
+     {
+      "value": "Frame"
+     }
+    ],
+    [
+     "time_label",
+     "ps",
+     {
+      "value": "Time (ps)"
+     }
+    ],
+    [
+     "time_label",
+     "us",
+     {
+      "value": "Time (µs)"
+     }
+    ],
+    [
+     "time_label",
+     "frame",
+     {
+      "value": "Frame"
+     }
+    ],
+    [
+     "time_label",
+     "fs",
+     {
+      "value": "Time"
+     }
+    ],
+    [
+     "time_label",
+     "x",
+     {
+      "value": "Time"
+     }
+    ],
+    [
+     "time_label",
+     "",
+     {
+      "value": "Frame"
+     }
+    ],
+    [
+     "keys",
+     "series",
+     {
+      "value": [
+       "rmsd/value",
+       "rmsd/count",
+       "rmsd/flags",
+       "rmsd/single",
+       "rmsd/missing",
+       "external/cpp.rmsd"
+      ]
+     }
+    ],
+    [
+     "keys",
+     "matrices",
+     {
+      "value": [
+       "contacts/per_residue",
+       "contacts/occupancy",
+       "contacts/values",
+       "contacts/norows"
+      ]
+     }
+    ],
+    [
+     "keys",
+     "pairmaps",
+     {
+      "value": [
+       "contacts/map",
+       "contacts/bad",
+       "contacts/floats",
+       "contacts/empty",
+       "contacts/zero",
+       "contacts/noarrays"
+      ]
+     }
+    ],
+    [
+     "keys",
+     "other",
+     {
+      "value": []
+     }
+    ],
+    [
+     "describe",
+     null,
+     {
+      "value": {
+       "series": [
+        "rmsd/value",
+        "rmsd/count",
+        "rmsd/flags",
+        "rmsd/single",
+        "rmsd/missing",
+        "external/cpp.rmsd"
+       ],
+       "matrices": [
+        "contacts/per_residue",
+        "contacts/occupancy",
+        "contacts/values",
+        "contacts/norows"
+       ],
+       "pairmaps": [
+        "contacts/map",
+        "contacts/bad",
+        "contacts/floats",
+        "contacts/empty",
+        "contacts/zero",
+        "contacts/noarrays"
+       ]
+      }
+     }
+    ],
+    [
+     "has",
+     "rmsd/value",
+     {
+      "value": true
+     }
+    ],
+    [
+     "has",
+     "rmsd",
+     {
+      "value": false
+     }
+    ],
+    [
+     "has",
+     "nope/value",
+     {
+      "value": false
+     }
+    ],
+    [
+     "has",
+     "rmsd/nope",
+     {
+      "value": false
+     }
+    ],
+    [
+     "has",
+     "contacts/map",
+     {
+      "value": true
+     }
+    ],
+    [
+     "has",
+     "a/b/c",
+     {
+      "value": false
+     }
+    ],
+    [
+     "has",
+     "/",
+     {
+      "value": false
+     }
+    ],
+    [
+     "has",
+     "",
+     {
+      "value": false
+     }
+    ],
+    [
+     "kind_of",
+     "rmsd/value",
+     {
+      "value": "series"
+     }
+    ],
+    [
+     "kind_of",
+     "contacts/per_residue",
+     {
+      "value": "matrices"
+     }
+    ],
+    [
+     "kind_of",
+     "contacts/map",
+     {
+      "value": "pairmaps"
+     }
+    ],
+    [
+     "kind_of",
+     "rmsd/nope",
+     {
+      "error": "rmsd/nope",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "kind_of",
+     "x",
+     {
+      "error": "x",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "rmsd/value",
+     {
+      "value": {
+       "key": "rmsd/value",
+       "values": {
+        "dtype": "float64",
+        "shape": [
+         4
+        ],
+        "values": [
+         "0x0.0p+0",
+         "0x1.8000000000000p+0",
+         "nan",
+         "0x1.2000000000000p+1"
+        ]
+       },
+       "label": "RMSD again",
+       "unit": "nm",
+       "target": null,
+       "axis_label": "RMSD again (nm)"
+      }
+     }
+    ],
+    [
+     "series",
+     "rmsd/count",
+     {
+      "value": {
+       "key": "rmsd/count",
+       "values": {
+        "dtype": "float64",
+        "shape": [
+         4
+        ],
+        "values": [
+         "0x1.0000000000000p+0",
+         "0x1.0000000000000p+1",
+         "0x1.8000000000000p+1",
+         "0x1.0000000000000p+2"
+        ]
+       },
+       "label": "Contacts",
+       "unit": "count",
+       "target": "0x1.8000000000000p+1",
+       "axis_label": "Contacts"
+      }
+     }
+    ],
+    [
+     "series",
+     "rmsd/flags",
+     {
+      "value": {
+       "key": "rmsd/flags",
+       "values": {
+        "dtype": "float64",
+        "shape": [
+         4
+        ],
+        "values": [
+         "0x1.0000000000000p+0",
+         "0x0.0p+0",
+         "0x1.0000000000000p+0",
+         "0x1.0000000000000p+0"
+        ]
+       },
+       "label": "Flag",
+       "unit": "",
+       "target": "0x1.0000000000000p-1",
+       "axis_label": "Flag"
+      }
+     }
+    ],
+    [
+     "series",
+     "rmsd/single",
+     {
+      "value": {
+       "key": "rmsd/single",
+       "values": {
+        "dtype": "float64",
+        "shape": [
+         4
+        ],
+        "values": [
+         "0x1.99999a0000000p-4",
+         "0x1.99999a0000000p-3",
+         "0x1.5798ee0000000p-27",
+         "0x1.ff933c0000000p+127"
+        ]
+       },
+       "label": "Single",
+       "unit": "",
+       "target": null,
+       "axis_label": "Single"
+      }
+     }
+    ],
+    [
+     "series",
+     "rmsd/missing",
+     {
+      "error": "nope",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "rmsd",
+     {
+      "error": "data key 'rmsd' must look like '<analysis>/<output>'",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "nope/x",
+     {
+      "error": "analysis 'nope' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "rmsd/nope",
+     {
+      "error": "rmsd has no serie output 'nope'",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "contacts/per_residue",
+     {
+      "error": "contacts has no serie output 'per_residue'",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "external/cpp.rmsd",
+     {
+      "value": {
+       "key": "external/cpp.rmsd",
+       "values": {
+        "dtype": "float64",
+        "shape": [
+         4
+        ],
+        "values": [
+         "0x1.2000000000000p+3",
+         "0x1.2000000000000p+3",
+         "0x1.2000000000000p+3",
+         "0x1.2000000000000p+3"
+        ]
+       },
+       "label": "cpp: rmsd",
+       "unit": "",
+       "target": null,
+       "axis_label": "cpp: rmsd"
+      }
+     }
+    ],
+    [
+     "series",
+     "raw/plain",
+     {
+      "error": "analysis 'raw' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "raw/none",
+     {
+      "error": "analysis 'raw' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "a/b/c",
+     {
+      "error": "analysis 'a' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "empty/x",
+     {
+      "error": "analysis 'empty' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "rmsd/",
+     {
+      "error": "rmsd has no serie output ''",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "é/x",
+     {
+      "error": "analysis 'é' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "rmsd/é'\"",
+     {
+      "error": "rmsd has no serie output 'é\\'\"'",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "matrix",
+     "contacts/per_residue",
+     {
+      "value": {
+       "key": "contacts/per_residue",
+       "values": {
+        "dtype": "int32",
+        "shape": [
+         3,
+         4
+        ],
+        "values": [
+         0,
+         1,
+         2,
+         3,
+         4,
+         5,
+         6,
+         7,
+         8,
+         9,
+         10,
+         11
+        ]
+       },
+       "row_labels": [
+        "A:G1",
+        "A:C2",
+        "B:U3"
+       ],
+       "label": "Contacts per residue",
+       "kind": "count",
+       "classes": null,
+       "unit": ""
+      }
+     }
+    ],
+    [
+     "matrix",
+     "contacts/occupancy",
+     {
+      "value": {
+       "key": "contacts/occupancy",
+       "values": {
+        "dtype": "int8",
+        "shape": [
+         2,
+         4
+        ],
+        "values": [
+         0,
+         1,
+         2,
+         -1,
+         1,
+         1,
+         0,
+         3
+        ]
+       },
+       "row_labels": [
+        "A:G1",
+        "A:C2",
+        "B:U3"
+       ],
+       "label": "Mg occupancy",
+       "kind": "class",
+       "classes": [
+        "none",
+        "inner",
+        "outer",
+        "both"
+       ],
+       "unit": ""
+      }
+     }
+    ],
+    [
+     "matrix",
+     "contacts/values",
+     {
+      "value": {
+       "key": "contacts/values",
+       "values": {
+        "dtype": "float64",
+        "shape": [
+         2,
+         4
+        ],
+        "values": [
+         "0x1.0000000000000p-1",
+         "0x1.0000000000000p-1",
+         "0x1.0000000000000p-1",
+         "0x1.0000000000000p-1",
+         "0x1.0000000000000p-1",
+         "0x1.0000000000000p-1",
+         "0x1.0000000000000p-1",
+         "0x1.0000000000000p-1"
+        ]
+       },
+       "row_labels": [
+        "x",
+        "y",
+        "z"
+       ],
+       "label": "Values",
+       "kind": "value",
+       "classes": null,
+       "unit": "kcal/mol"
+      }
+     }
+    ],
+    [
+     "matrix",
+     "contacts/norows",
+     {
+      "value": {
+       "key": "contacts/norows",
+       "values": {
+        "dtype": "float64",
+        "shape": [
+         2,
+         4
+        ],
+        "values": [
+         "0x1.0000000000000p-1",
+         "0x1.0000000000000p-1",
+         "0x1.0000000000000p-1",
+         "0x1.0000000000000p-1",
+         "0x1.0000000000000p-1",
+         "0x1.0000000000000p-1",
+         "0x1.0000000000000p-1",
+         "0x1.0000000000000p-1"
+        ]
+       },
+       "row_labels": [],
+       "label": "No rows",
+       "kind": "count",
+       "classes": null,
+       "unit": ""
+      }
+     }
+    ],
+    [
+     "matrix",
+     "contacts/map",
+     {
+      "error": "contacts has no matrice output 'map'",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "matrix",
+     "rmsd/value",
+     {
+      "error": "rmsd has no matrice output 'value'",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "pairmap",
+     "contacts/map",
+     {
+      "value": {
+       "key": "contacts/map",
+       "offsets": [
+        0,
+        2,
+        3,
+        3,
+        6
+       ],
+       "i": [
+        0,
+        1,
+        1,
+        0,
+        2,
+        0
+       ],
+       "j": [
+        1,
+        2,
+        2,
+        0,
+        -1,
+        1
+       ],
+       "values": [
+        "0x1.0000000000000p+0",
+        "0x1.0000000000000p-1",
+        "0x1.0000000000000p-2",
+        "0x1.0000000000000p+1",
+        "0x1.0000000000000p+0",
+        "0x1.0000000000000p+0"
+       ],
+       "row_labels": [
+        "A:G1",
+        "A:C2",
+        "B:U3"
+       ],
+       "col_labels": [
+        "A:G1",
+        "A:C2",
+        "B:U3"
+       ],
+       "label": "Contact map",
+       "shape": [
+        3,
+        3
+       ],
+       "dense": [
+        {
+         "value": [
+          "0x0.0p+0",
+          "0x1.0000000000000p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x1.0000000000000p-1",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0"
+         ]
+        },
+        {
+         "value": [
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x1.0000000000000p-2",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0"
+         ]
+        },
+        {
+         "value": [
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0"
+         ]
+        },
+        {
+         "value": [
+          "0x1.0000000000000p+1",
+          "0x1.0000000000000p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x1.0000000000000p+0"
+         ]
+        }
+       ],
+       "frequency": {
+        "value": [
+         "0x1.0000000000000p-2",
+         "0x1.0000000000000p-1",
+         "0x0.0p+0",
+         "0x0.0p+0",
+         "0x0.0p+0",
+         "0x1.0000000000000p-1",
+         "0x0.0p+0",
+         "0x0.0p+0",
+         "0x1.0000000000000p-2"
+        ]
+       }
+      }
+     }
+    ],
+    [
+     "pairmap",
+     "contacts/bad",
+     {
+      "value": {
+       "key": "contacts/bad",
+       "offsets": [
+        0,
+        1,
+        2
+       ],
+       "i": [
+        5,
+        0
+       ],
+       "j": [
+        0,
+        0
+       ],
+       "values": [
+        "0x1.0000000000000p+0",
+        "0x1.0000000000000p+0"
+       ],
+       "row_labels": [
+        "A:G1",
+        "A:C2",
+        "B:U3"
+       ],
+       "col_labels": [
+        "A:G1",
+        "A:C2",
+        "B:U3"
+       ],
+       "label": "Bad map",
+       "shape": [
+        3,
+        3
+       ],
+       "dense": [
+        {
+         "error": "index 5 is out of bounds for axis 0 with size 3"
+        },
+        {
+         "value": [
+          "0x1.0000000000000p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0"
+         ]
+        }
+       ],
+       "frequency": {
+        "error": "index 5 is out of bounds for axis 0 with size 3"
+       }
+      }
+     }
+    ],
+    [
+     "pairmap",
+     "contacts/floats",
+     {
+      "value": {
+       "key": "contacts/floats",
+       "offsets": [
+        0,
+        1,
+        2
+       ],
+       "i": [
+        0,
+        1
+       ],
+       "j": [
+        0,
+        1
+       ],
+       "values": [
+        "0x1.8000000000000p+1",
+        "0x1.0000000000000p+2"
+       ],
+       "row_labels": [
+        "A:G1",
+        "A:C2",
+        "B:U3"
+       ],
+       "col_labels": [
+        "x",
+        "y",
+        "z"
+       ],
+       "label": "Float map",
+       "shape": [
+        3,
+        3
+       ],
+       "dense": [
+        {
+         "value": [
+          "0x1.8000000000000p+1",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0"
+         ]
+        },
+        {
+         "value": [
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x1.0000000000000p+2",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0",
+          "0x0.0p+0"
+         ]
+        }
+       ],
+       "frequency": {
+        "value": [
+         "0x1.0000000000000p-1",
+         "0x0.0p+0",
+         "0x0.0p+0",
+         "0x0.0p+0",
+         "0x1.0000000000000p-1",
+         "0x0.0p+0",
+         "0x0.0p+0",
+         "0x0.0p+0",
+         "0x0.0p+0"
+        ]
+       }
+      }
+     }
+    ],
+    [
+     "pairmap",
+     "contacts/empty",
+     {
+      "value": {
+       "key": "contacts/empty",
+       "offsets": [],
+       "i": [],
+       "j": [],
+       "values": [],
+       "row_labels": [
+        "A:G1",
+        "A:C2",
+        "B:U3"
+       ],
+       "col_labels": [
+        "A:G1",
+        "A:C2",
+        "B:U3"
+       ],
+       "label": "Empty map",
+       "shape": [
+        3,
+        3
+       ],
+       "dense": [],
+       "frequency": {
+        "value": [
+         "-0x0.0p+0",
+         "-0x0.0p+0",
+         "-0x0.0p+0",
+         "-0x0.0p+0",
+         "-0x0.0p+0",
+         "-0x0.0p+0",
+         "-0x0.0p+0",
+         "-0x0.0p+0",
+         "-0x0.0p+0"
+        ]
+       }
+      }
+     }
+    ],
+    [
+     "pairmap",
+     "contacts/zero",
+     {
+      "value": {
+       "key": "contacts/zero",
+       "offsets": [
+        0
+       ],
+       "i": [
+        0,
+        1
+       ],
+       "j": [
+        1,
+        1
+       ],
+       "values": [
+        "0x1.0000000000000p+0",
+        "0x1.0000000000000p+0"
+       ],
+       "row_labels": [
+        "A:G1",
+        "A:C2",
+        "B:U3"
+       ],
+       "col_labels": [
+        "A:G1",
+        "A:C2",
+        "B:U3"
+       ],
+       "label": "Zero frames",
+       "shape": [
+        3,
+        3
+       ],
+       "dense": [],
+       "frequency": {
+        "value": [
+         "0x0.0p+0",
+         "0x0.0p+0",
+         "0x0.0p+0",
+         "0x0.0p+0",
+         "0x0.0p+0",
+         "0x0.0p+0",
+         "0x0.0p+0",
+         "0x0.0p+0",
+         "0x0.0p+0"
+        ]
+       }
+      }
+     }
+    ],
+    [
+     "pairmap",
+     "contacts/noarrays",
+     {
+      "error": "none_offsets",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "pairmap",
+     "raw/m",
+     {
+      "error": "analysis 'raw' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "pairmap",
+     "contacts/per_residue",
+     {
+      "error": "contacts has no pairmap output 'per_residue'",
+      "type": "KeyError"
+     }
+    ]
+   ]
+  },
+  {
+   "name": "units",
+   "frames": [
+    0,
+    1
+   ],
+   "time_ps": [
+    "0x1.0000000000000p-1",
+    "0x1.8000000000000p+0"
+   ],
+   "time_unit": "us",
+   "results": [
+    {
+     "name": "empty",
+     "key": "",
+     "arrays": [],
+     "meta": {},
+     "ops": [],
+     "outputs_repr": "{}"
+    }
+   ],
+   "queries": [
+    [
+     "time",
+     null,
+     {
+      "value": [
+       "0x1.0c6f7a0b5ed8dp-21",
+       "0x1.92a737110e454p-20"
+      ]
+     }
+    ],
+    [
+     "time",
+     "ps",
+     {
+      "value": [
+       "0x1.0000000000000p-1",
+       "0x1.8000000000000p+0"
+      ]
+     }
+    ],
+    [
+     "time",
+     "ns",
+     {
+      "value": [
+       "0x1.0624dd2f1a9fcp-11",
+       "0x1.89374bc6a7efap-10"
+      ]
+     }
+    ],
+    [
+     "time",
+     "us",
+     {
+      "value": [
+       "0x1.0c6f7a0b5ed8dp-21",
+       "0x1.92a737110e454p-20"
+      ]
+     }
+    ],
+    [
+     "time",
+     "fs",
+     {
+      "value": [
+       "0x1.f400000000000p+8",
+       "0x1.7700000000000p+10"
+      ]
+     }
+    ],
+    [
+     "time",
+     "frame",
+     {
+      "value": [
+       "0x0.0p+0",
+       "0x1.0000000000000p+0"
+      ]
+     }
+    ],
+    [
+     "time",
+     "ms",
+     {
+      "error": "unknown time unit 'ms'",
+      "type": "ValueError"
+     }
+    ],
+    [
+     "time",
+     "",
+     {
+      "value": [
+       "0x1.0c6f7a0b5ed8dp-21",
+       "0x1.92a737110e454p-20"
+      ]
+     }
+    ],
+    [
+     "time_label",
+     null,
+     {
+      "value": "Time (µs)"
+     }
+    ],
+    [
+     "time_label",
+     "ps",
+     {
+      "value": "Time (ps)"
+     }
+    ],
+    [
+     "time_label",
+     "us",
+     {
+      "value": "Time (µs)"
+     }
+    ],
+    [
+     "time_label",
+     "frame",
+     {
+      "value": "Frame"
+     }
+    ],
+    [
+     "time_label",
+     "fs",
+     {
+      "value": "Time"
+     }
+    ],
+    [
+     "time_label",
+     "x",
+     {
+      "value": "Time"
+     }
+    ],
+    [
+     "time_label",
+     "",
+     {
+      "value": "Time (µs)"
+     }
+    ],
+    [
+     "keys",
+     "series",
+     {
+      "value": []
+     }
+    ],
+    [
+     "keys",
+     "matrices",
+     {
+      "value": []
+     }
+    ],
+    [
+     "keys",
+     "pairmaps",
+     {
+      "value": []
+     }
+    ],
+    [
+     "keys",
+     "other",
+     {
+      "value": []
+     }
+    ],
+    [
+     "describe",
+     null,
+     {
+      "value": {
+       "series": [],
+       "matrices": [],
+       "pairmaps": []
+      }
+     }
+    ],
+    [
+     "has",
+     "rmsd/value",
+     {
+      "value": false
+     }
+    ],
+    [
+     "has",
+     "rmsd",
+     {
+      "value": false
+     }
+    ],
+    [
+     "has",
+     "nope/value",
+     {
+      "value": false
+     }
+    ],
+    [
+     "has",
+     "rmsd/nope",
+     {
+      "value": false
+     }
+    ],
+    [
+     "has",
+     "contacts/map",
+     {
+      "value": false
+     }
+    ],
+    [
+     "has",
+     "a/b/c",
+     {
+      "value": false
+     }
+    ],
+    [
+     "has",
+     "/",
+     {
+      "value": false
+     }
+    ],
+    [
+     "has",
+     "",
+     {
+      "value": false
+     }
+    ],
+    [
+     "kind_of",
+     "rmsd/value",
+     {
+      "error": "rmsd/value",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "kind_of",
+     "contacts/per_residue",
+     {
+      "error": "contacts/per_residue",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "kind_of",
+     "contacts/map",
+     {
+      "error": "contacts/map",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "kind_of",
+     "rmsd/nope",
+     {
+      "error": "rmsd/nope",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "kind_of",
+     "x",
+     {
+      "error": "x",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "rmsd/value",
+     {
+      "error": "analysis 'rmsd' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "rmsd/count",
+     {
+      "error": "analysis 'rmsd' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "rmsd/flags",
+     {
+      "error": "analysis 'rmsd' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "rmsd/single",
+     {
+      "error": "analysis 'rmsd' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "rmsd/missing",
+     {
+      "error": "analysis 'rmsd' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "rmsd",
+     {
+      "error": "data key 'rmsd' must look like '<analysis>/<output>'",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "nope/x",
+     {
+      "error": "analysis 'nope' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "rmsd/nope",
+     {
+      "error": "analysis 'rmsd' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "contacts/per_residue",
+     {
+      "error": "analysis 'contacts' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "external/cpp.rmsd",
+     {
+      "error": "analysis 'external' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "raw/plain",
+     {
+      "error": "analysis 'raw' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "raw/none",
+     {
+      "error": "analysis 'raw' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "a/b/c",
+     {
+      "error": "analysis 'a' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "empty/x",
+     {
+      "error": "empty has no serie output 'x'",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "rmsd/",
+     {
+      "error": "analysis 'rmsd' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "é/x",
+     {
+      "error": "analysis 'é' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "rmsd/é'\"",
+     {
+      "error": "analysis 'rmsd' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "matrix",
+     "contacts/per_residue",
+     {
+      "error": "analysis 'contacts' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "matrix",
+     "contacts/occupancy",
+     {
+      "error": "analysis 'contacts' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "matrix",
+     "contacts/values",
+     {
+      "error": "analysis 'contacts' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "matrix",
+     "contacts/norows",
+     {
+      "error": "analysis 'contacts' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "matrix",
+     "contacts/map",
+     {
+      "error": "analysis 'contacts' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "matrix",
+     "rmsd/value",
+     {
+      "error": "analysis 'rmsd' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "pairmap",
+     "contacts/map",
+     {
+      "error": "analysis 'contacts' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "pairmap",
+     "contacts/bad",
+     {
+      "error": "analysis 'contacts' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "pairmap",
+     "contacts/floats",
+     {
+      "error": "analysis 'contacts' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "pairmap",
+     "contacts/empty",
+     {
+      "error": "analysis 'contacts' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "pairmap",
+     "contacts/zero",
+     {
+      "error": "analysis 'contacts' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "pairmap",
+     "contacts/noarrays",
+     {
+      "error": "analysis 'contacts' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "pairmap",
+     "raw/m",
+     {
+      "error": "analysis 'raw' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "pairmap",
+     "contacts/per_residue",
+     {
+      "error": "analysis 'contacts' has not been computed",
+      "type": "KeyError"
+     }
+    ]
+   ]
+  },
+  {
+   "name": "odd_unit",
+   "frames": [
+    0,
+    1
+   ],
+   "time_ps": [
+    "0x1.0000000000000p-1",
+    "0x1.8000000000000p+0"
+   ],
+   "time_unit": "ms",
+   "results": [],
+   "queries": [
+    [
+     "time",
+     null,
+     {
+      "error": "unknown time unit 'ms'",
+      "type": "ValueError"
+     }
+    ],
+    [
+     "time",
+     "ps",
+     {
+      "value": [
+       "0x1.0000000000000p-1",
+       "0x1.8000000000000p+0"
+      ]
+     }
+    ],
+    [
+     "time",
+     "ns",
+     {
+      "value": [
+       "0x1.0624dd2f1a9fcp-11",
+       "0x1.89374bc6a7efap-10"
+      ]
+     }
+    ],
+    [
+     "time",
+     "us",
+     {
+      "value": [
+       "0x1.0c6f7a0b5ed8dp-21",
+       "0x1.92a737110e454p-20"
+      ]
+     }
+    ],
+    [
+     "time",
+     "fs",
+     {
+      "value": [
+       "0x1.f400000000000p+8",
+       "0x1.7700000000000p+10"
+      ]
+     }
+    ],
+    [
+     "time",
+     "frame",
+     {
+      "value": [
+       "0x0.0p+0",
+       "0x1.0000000000000p+0"
+      ]
+     }
+    ],
+    [
+     "time",
+     "ms",
+     {
+      "error": "unknown time unit 'ms'",
+      "type": "ValueError"
+     }
+    ],
+    [
+     "time",
+     "",
+     {
+      "error": "unknown time unit 'ms'",
+      "type": "ValueError"
+     }
+    ],
+    [
+     "time_label",
+     null,
+     {
+      "value": "Time"
+     }
+    ],
+    [
+     "time_label",
+     "ps",
+     {
+      "value": "Time (ps)"
+     }
+    ],
+    [
+     "time_label",
+     "us",
+     {
+      "value": "Time (µs)"
+     }
+    ],
+    [
+     "time_label",
+     "frame",
+     {
+      "value": "Frame"
+     }
+    ],
+    [
+     "time_label",
+     "fs",
+     {
+      "value": "Time"
+     }
+    ],
+    [
+     "time_label",
+     "x",
+     {
+      "value": "Time"
+     }
+    ],
+    [
+     "time_label",
+     "",
+     {
+      "value": "Time"
+     }
+    ],
+    [
+     "keys",
+     "series",
+     {
+      "value": []
+     }
+    ],
+    [
+     "keys",
+     "matrices",
+     {
+      "value": []
+     }
+    ],
+    [
+     "keys",
+     "pairmaps",
+     {
+      "value": []
+     }
+    ],
+    [
+     "keys",
+     "other",
+     {
+      "value": []
+     }
+    ],
+    [
+     "describe",
+     null,
+     {
+      "value": {
+       "series": [],
+       "matrices": [],
+       "pairmaps": []
+      }
+     }
+    ],
+    [
+     "has",
+     "rmsd/value",
+     {
+      "value": false
+     }
+    ],
+    [
+     "has",
+     "rmsd",
+     {
+      "value": false
+     }
+    ],
+    [
+     "has",
+     "nope/value",
+     {
+      "value": false
+     }
+    ],
+    [
+     "has",
+     "rmsd/nope",
+     {
+      "value": false
+     }
+    ],
+    [
+     "has",
+     "contacts/map",
+     {
+      "value": false
+     }
+    ],
+    [
+     "has",
+     "a/b/c",
+     {
+      "value": false
+     }
+    ],
+    [
+     "has",
+     "/",
+     {
+      "value": false
+     }
+    ],
+    [
+     "has",
+     "",
+     {
+      "value": false
+     }
+    ],
+    [
+     "kind_of",
+     "rmsd/value",
+     {
+      "error": "rmsd/value",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "kind_of",
+     "contacts/per_residue",
+     {
+      "error": "contacts/per_residue",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "kind_of",
+     "contacts/map",
+     {
+      "error": "contacts/map",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "kind_of",
+     "rmsd/nope",
+     {
+      "error": "rmsd/nope",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "kind_of",
+     "x",
+     {
+      "error": "x",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "rmsd/value",
+     {
+      "error": "analysis 'rmsd' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "rmsd/count",
+     {
+      "error": "analysis 'rmsd' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "rmsd/flags",
+     {
+      "error": "analysis 'rmsd' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "rmsd/single",
+     {
+      "error": "analysis 'rmsd' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "rmsd/missing",
+     {
+      "error": "analysis 'rmsd' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "rmsd",
+     {
+      "error": "data key 'rmsd' must look like '<analysis>/<output>'",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "nope/x",
+     {
+      "error": "analysis 'nope' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "rmsd/nope",
+     {
+      "error": "analysis 'rmsd' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "contacts/per_residue",
+     {
+      "error": "analysis 'contacts' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "external/cpp.rmsd",
+     {
+      "error": "analysis 'external' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "raw/plain",
+     {
+      "error": "analysis 'raw' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "raw/none",
+     {
+      "error": "analysis 'raw' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "a/b/c",
+     {
+      "error": "analysis 'a' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "empty/x",
+     {
+      "error": "analysis 'empty' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "rmsd/",
+     {
+      "error": "analysis 'rmsd' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "é/x",
+     {
+      "error": "analysis 'é' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "rmsd/é'\"",
+     {
+      "error": "analysis 'rmsd' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "matrix",
+     "contacts/per_residue",
+     {
+      "error": "analysis 'contacts' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "matrix",
+     "contacts/occupancy",
+     {
+      "error": "analysis 'contacts' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "matrix",
+     "contacts/values",
+     {
+      "error": "analysis 'contacts' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "matrix",
+     "contacts/norows",
+     {
+      "error": "analysis 'contacts' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "matrix",
+     "contacts/map",
+     {
+      "error": "analysis 'contacts' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "matrix",
+     "rmsd/value",
+     {
+      "error": "analysis 'rmsd' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "pairmap",
+     "contacts/map",
+     {
+      "error": "analysis 'contacts' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "pairmap",
+     "contacts/bad",
+     {
+      "error": "analysis 'contacts' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "pairmap",
+     "contacts/floats",
+     {
+      "error": "analysis 'contacts' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "pairmap",
+     "contacts/empty",
+     {
+      "error": "analysis 'contacts' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "pairmap",
+     "contacts/zero",
+     {
+      "error": "analysis 'contacts' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "pairmap",
+     "contacts/noarrays",
+     {
+      "error": "analysis 'contacts' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "pairmap",
+     "raw/m",
+     {
+      "error": "analysis 'raw' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "pairmap",
+     "contacts/per_residue",
+     {
+      "error": "analysis 'contacts' has not been computed",
+      "type": "KeyError"
+     }
+    ]
+   ]
+  },
+  {
+   "name": "empty_unit",
+   "frames": [],
+   "time_ps": [],
+   "time_unit": "",
+   "results": [],
+   "queries": [
+    [
+     "time",
+     null,
+     {
+      "error": "unknown time unit ''",
+      "type": "ValueError"
+     }
+    ],
+    [
+     "time",
+     "ps",
+     {
+      "value": []
+     }
+    ],
+    [
+     "time",
+     "ns",
+     {
+      "value": []
+     }
+    ],
+    [
+     "time",
+     "us",
+     {
+      "value": []
+     }
+    ],
+    [
+     "time",
+     "fs",
+     {
+      "value": []
+     }
+    ],
+    [
+     "time",
+     "frame",
+     {
+      "value": []
+     }
+    ],
+    [
+     "time",
+     "ms",
+     {
+      "error": "unknown time unit 'ms'",
+      "type": "ValueError"
+     }
+    ],
+    [
+     "time",
+     "",
+     {
+      "error": "unknown time unit ''",
+      "type": "ValueError"
+     }
+    ],
+    [
+     "time_label",
+     null,
+     {
+      "value": "Time"
+     }
+    ],
+    [
+     "time_label",
+     "ps",
+     {
+      "value": "Time (ps)"
+     }
+    ],
+    [
+     "time_label",
+     "us",
+     {
+      "value": "Time (µs)"
+     }
+    ],
+    [
+     "time_label",
+     "frame",
+     {
+      "value": "Frame"
+     }
+    ],
+    [
+     "time_label",
+     "fs",
+     {
+      "value": "Time"
+     }
+    ],
+    [
+     "time_label",
+     "x",
+     {
+      "value": "Time"
+     }
+    ],
+    [
+     "time_label",
+     "",
+     {
+      "value": "Time"
+     }
+    ],
+    [
+     "keys",
+     "series",
+     {
+      "value": []
+     }
+    ],
+    [
+     "keys",
+     "matrices",
+     {
+      "value": []
+     }
+    ],
+    [
+     "keys",
+     "pairmaps",
+     {
+      "value": []
+     }
+    ],
+    [
+     "keys",
+     "other",
+     {
+      "value": []
+     }
+    ],
+    [
+     "describe",
+     null,
+     {
+      "value": {
+       "series": [],
+       "matrices": [],
+       "pairmaps": []
+      }
+     }
+    ],
+    [
+     "has",
+     "rmsd/value",
+     {
+      "value": false
+     }
+    ],
+    [
+     "has",
+     "rmsd",
+     {
+      "value": false
+     }
+    ],
+    [
+     "has",
+     "nope/value",
+     {
+      "value": false
+     }
+    ],
+    [
+     "has",
+     "rmsd/nope",
+     {
+      "value": false
+     }
+    ],
+    [
+     "has",
+     "contacts/map",
+     {
+      "value": false
+     }
+    ],
+    [
+     "has",
+     "a/b/c",
+     {
+      "value": false
+     }
+    ],
+    [
+     "has",
+     "/",
+     {
+      "value": false
+     }
+    ],
+    [
+     "has",
+     "",
+     {
+      "value": false
+     }
+    ],
+    [
+     "kind_of",
+     "rmsd/value",
+     {
+      "error": "rmsd/value",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "kind_of",
+     "contacts/per_residue",
+     {
+      "error": "contacts/per_residue",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "kind_of",
+     "contacts/map",
+     {
+      "error": "contacts/map",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "kind_of",
+     "rmsd/nope",
+     {
+      "error": "rmsd/nope",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "kind_of",
+     "x",
+     {
+      "error": "x",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "rmsd/value",
+     {
+      "error": "analysis 'rmsd' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "rmsd/count",
+     {
+      "error": "analysis 'rmsd' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "rmsd/flags",
+     {
+      "error": "analysis 'rmsd' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "rmsd/single",
+     {
+      "error": "analysis 'rmsd' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "rmsd/missing",
+     {
+      "error": "analysis 'rmsd' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "rmsd",
+     {
+      "error": "data key 'rmsd' must look like '<analysis>/<output>'",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "nope/x",
+     {
+      "error": "analysis 'nope' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "rmsd/nope",
+     {
+      "error": "analysis 'rmsd' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "contacts/per_residue",
+     {
+      "error": "analysis 'contacts' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "external/cpp.rmsd",
+     {
+      "error": "analysis 'external' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "raw/plain",
+     {
+      "error": "analysis 'raw' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "raw/none",
+     {
+      "error": "analysis 'raw' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "a/b/c",
+     {
+      "error": "analysis 'a' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "empty/x",
+     {
+      "error": "analysis 'empty' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "rmsd/",
+     {
+      "error": "analysis 'rmsd' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "é/x",
+     {
+      "error": "analysis 'é' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "series",
+     "rmsd/é'\"",
+     {
+      "error": "analysis 'rmsd' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "matrix",
+     "contacts/per_residue",
+     {
+      "error": "analysis 'contacts' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "matrix",
+     "contacts/occupancy",
+     {
+      "error": "analysis 'contacts' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "matrix",
+     "contacts/values",
+     {
+      "error": "analysis 'contacts' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "matrix",
+     "contacts/norows",
+     {
+      "error": "analysis 'contacts' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "matrix",
+     "contacts/map",
+     {
+      "error": "analysis 'contacts' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "matrix",
+     "rmsd/value",
+     {
+      "error": "analysis 'rmsd' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "pairmap",
+     "contacts/map",
+     {
+      "error": "analysis 'contacts' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "pairmap",
+     "contacts/bad",
+     {
+      "error": "analysis 'contacts' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "pairmap",
+     "contacts/floats",
+     {
+      "error": "analysis 'contacts' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "pairmap",
+     "contacts/empty",
+     {
+      "error": "analysis 'contacts' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "pairmap",
+     "contacts/zero",
+     {
+      "error": "analysis 'contacts' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "pairmap",
+     "contacts/noarrays",
+     {
+      "error": "analysis 'contacts' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "pairmap",
+     "raw/m",
+     {
+      "error": "analysis 'raw' has not been computed",
+      "type": "KeyError"
+     }
+    ],
+    [
+     "pairmap",
+     "contacts/per_residue",
+     {
+      "error": "analysis 'contacts' has not been computed",
+      "type": "KeyError"
+     }
+    ]
+   ]
+  }
+ ],
+ "csr": [
+  {
+   "frames": [],
+   "arrays": [
+    [
+     "cm_offsets",
+     {
+      "dtype": "int64",
+      "shape": [
+       1
+      ],
+      "values": [
+       0
+      ]
+     }
+    ],
+    [
+     "cm_i",
+     {
+      "dtype": "int32",
+      "shape": [
+       0
+      ],
+      "values": []
+     }
+    ],
+    [
+     "cm_j",
+     {
+      "dtype": "int32",
+      "shape": [
+       0
+      ],
+      "values": []
+     }
+    ],
+    [
+     "cm_v",
+     {
+      "dtype": "float32",
+      "shape": [
+       0
+      ],
+      "values": []
+     }
+    ]
+   ]
+  },
+  {
+   "frames": [
+    [
+     [],
+     [],
+     []
+    ]
+   ],
+   "arrays": [
+    [
+     "cm_offsets",
+     {
+      "dtype": "int64",
+      "shape": [
+       2
+      ],
+      "values": [
+       0,
+       0
+      ]
+     }
+    ],
+    [
+     "cm_i",
+     {
+      "dtype": "int32",
+      "shape": [
+       0
+      ],
+      "values": []
+     }
+    ],
+    [
+     "cm_j",
+     {
+      "dtype": "int32",
+      "shape": [
+       0
+      ],
+      "values": []
+     }
+    ],
+    [
+     "cm_v",
+     {
+      "dtype": "float32",
+      "shape": [
+       0
+      ],
+      "values": []
+     }
+    ]
+   ]
+  },
+  {
+   "frames": [
+    [
+     [
+      0,
+      1
+     ],
+     [
+      1,
+      2
+     ],
+     [
+      "0x1.0000000000000p-1",
+      "0x1.0000000000000p-2"
+     ]
+    ],
+    [
+     [],
+     [],
+     []
+    ],
+    [
+     [
+      2
+     ],
+     [
+      0
+     ],
+     [
+      "0x1.5798ee2308c3ap-27"
+     ]
+    ]
+   ],
+   "arrays": [
+    [
+     "cm_offsets",
+     {
+      "dtype": "int64",
+      "shape": [
+       4
+      ],
+      "values": [
+       0,
+       2,
+       2,
+       3
+      ]
+     }
+    ],
+    [
+     "cm_i",
+     {
+      "dtype": "int32",
+      "shape": [
+       3
+      ],
+      "values": [
+       0,
+       1,
+       2
+      ]
+     }
+    ],
+    [
+     "cm_j",
+     {
+      "dtype": "int32",
+      "shape": [
+       3
+      ],
+      "values": [
+       1,
+       2,
+       0
+      ]
+     }
+    ],
+    [
+     "cm_v",
+     {
+      "dtype": "float32",
+      "shape": [
+       3
+      ],
+      "values": [
+       "0x1.0000000000000p-1",
+       "0x1.0000000000000p-2",
+       "0x1.5798ee0000000p-27"
+      ]
+     }
+    ]
+   ]
+  },
+  {
+   "frames": [
+    [
+     [
+      0,
+      2147483648
+     ],
+     [
+      -1,
+      3
+     ],
+     [
+      "0x1.999999999999ap-4",
+      "0x1.ff933c78cdfadp+127"
+     ]
+    ],
+    [
+     [
+      5,
+      6,
+      7
+     ],
+     [
+      1,
+      1,
+      1
+     ],
+     [
+      "0x1.0000000000000p+0",
+      "0x1.0000000000000p+1",
+      "0x1.8000000000000p+1"
+     ]
+    ]
+   ],
+   "arrays": [
+    [
+     "cm_offsets",
+     {
+      "dtype": "int64",
+      "shape": [
+       3
+      ],
+      "values": [
+       0,
+       2,
+       5
+      ]
+     }
+    ],
+    [
+     "cm_i",
+     {
+      "dtype": "int32",
+      "shape": [
+       5
+      ],
+      "values": [
+       0,
+       -2147483648,
+       5,
+       6,
+       7
+      ]
+     }
+    ],
+    [
+     "cm_j",
+     {
+      "dtype": "int32",
+      "shape": [
+       5
+      ],
+      "values": [
+       -1,
+       3,
+       1,
+       1,
+       1
+      ]
+     }
+    ],
+    [
+     "cm_v",
+     {
+      "dtype": "float32",
+      "shape": [
+       5
+      ],
+      "values": [
+       "0x1.99999a0000000p-4",
+       "0x1.ff933c0000000p+127",
+       "0x1.0000000000000p+0",
+       "0x1.0000000000000p+1",
+       "0x1.8000000000000p+1"
+      ]
+     }
+    ]
+   ]
+  },
+  {
+   "frames": [
+    [
+     [
+      1,
+      2,
+      3
+     ],
+     [
+      1
+     ],
+     [
+      "0x1.0000000000000p+0"
+     ]
+    ]
+   ],
+   "arrays": [
+    [
+     "cm_offsets",
+     {
+      "dtype": "int64",
+      "shape": [
+       2
+      ],
+      "values": [
+       0,
+       3
+      ]
+     }
+    ],
+    [
+     "cm_i",
+     {
+      "dtype": "int32",
+      "shape": [
+       3
+      ],
+      "values": [
+       1,
+       2,
+       3
+      ]
+     }
+    ],
+    [
+     "cm_j",
+     {
+      "dtype": "int32",
+      "shape": [
+       1
+      ],
+      "values": [
+       1
+      ]
+     }
+    ],
+    [
+     "cm_v",
+     {
+      "dtype": "float32",
+      "shape": [
+       1
+      ],
+      "values": [
+       "0x1.0000000000000p+0"
+      ]
+     }
+    ]
+   ]
+  }
+ ],
+ "add_errors": [
+  [
+   "add_series",
+   [
+    "x",
+    "a",
+    "L"
+   ],
+   {
+    "array": "b"
+   },
+   "AnalysisResult.add_series() got multiple values for argument 'array'"
+  ],
+  [
+   "add_series",
+   [
+    "x",
+    "a",
+    "L"
+   ],
+   {
+    "unit": "nm"
+   },
+   null
+  ],
+  [
+   "add_matrix",
+   [
+    "x",
+    "a",
+    "r",
+    "L"
+   ],
+   {
+    "rows": "q"
+   },
+   "AnalysisResult.add_matrix() got multiple values for argument 'rows'"
+  ],
+  [
+   "add_pairmap",
+   [
+    "x",
+    "p",
+    "r",
+    "c",
+    "L"
+   ],
+   {
+    "prefix": "q"
+   },
+   "AnalysisResult.add_pairmap() got multiple values for argument 'prefix'"
+  ]
+ ]
+}
