@@ -49,6 +49,8 @@ Special cases handled here (tests/data/README.md):
   (.NAME_offsets.npz / .lock); they are removed after every step and never compared.
 * Version stamps: a few files record Python's full version (3.13.N) in a header; the patch number
   is masked on both sides (PATCH_STAMPED below).
+* make_analysis_cases.py pins numpy's and OpenBLAS' kernels itself (generic x86-64 ones, one
+  thread), so its output does not depend on the CPU.
 * rigid/rigid_cases.json depends on the CPU's OpenBLAS / LAPACK kernels (MACHINE_DEPENDENT below):
   where its bytes differ, it is compared as JSON with numbers within a relative 1e-12.
   Everything else must match exactly.
@@ -223,6 +225,9 @@ STEPS = [
     Step("pdb", "tests/parity/make_pdb_cases.py", lambda ctx: [M(ctx), d(ctx, "io/pdb")],
          [f"{DATA}/io/pdb/pdb_cases.json"], pytest=True),
     case_step("loader", "make_loader_cases.py", "io/loader"),
+    # the analyses on the demo files (topology fixtures, trajectory cases) and MDATK's micro systems;
+    # numpy / OpenBLAS kernels pinned inside (tests/data/README.md)
+    case_step("analysis", "make_analysis_cases.py", "analysis"),
     case_step("export", "make_export_cases.py", "io/pdb/export"),          # uses the loader's files
     case_step("maps", "make_map_cases.py", "io/maps"),
     # the commands of the command line on files the steps above wrote (demo system, loader, export

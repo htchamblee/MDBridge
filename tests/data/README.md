@@ -27,7 +27,8 @@ lists, and its include / exclude pairs (empty: no independent counterpart). Only
 replaced, no MDAnalysis function. The generators that depend on these tables apply the patch:
 `dump_topologies.py` (every dump, also when imported), `make_atom_selection_cases.py`,
 `make_selections_cases.py`, `make_parm7_cases.py`, `make_loader_cases.py`, `make_export_cases.py`,
-`make_rmsd_cases.py`, `make_universe_cases.py` and `cli_parity.py` (its MDATK side); the others do not touch them. `tools/gen_selection_tables.py` and
+`make_rmsd_cases.py`, `make_universe_cases.py`, `make_analysis_cases.py` and `cli_parity.py` (its
+MDATK side); the others do not touch them. `tools/gen_selection_tables.py` and
 `tools/gen_pdb_tables.py` no longer write any of these tables, only the property names of the
 selection language and Python's Unicode data.
 
@@ -478,6 +479,56 @@ cases read `io/loader/files` and `io/trajectories`, so run those generators firs
 ```bash
 /opt/mdbridge-venv/bin/python -I -B tests/parity/make_rmsd_cases.py /tmp/mdatk tests/data/analysis
 /opt/mdbridge-venv/bin/python -I -B tests/parity/make_universe_cases.py /tmp/mdatk tests/data/analysis
+
+`analysis/` holds what MDATK's analyses (`mdatk/analysis/*.py`: contacts, energy, hbonds, mg, rmsd,
+stacking, trace, proximity, atoms, basepairs) compute, for the analysis module of milestone 3
+(`docs/specs/m3-plan.md`, 4.1 / 4.2; `tests/analysis/`). MDATK runs in-process with the independent
+tables applied and the residue-scoped ion rule on every topology file (first section).
+
+| File | Content |
+|---|---|
+| `micro_cases.json` | the micro systems of MDATK's `tests/test_analyses.py` and `test_basepairs.py` as data (`systems`: atoms with name, resid, resname, element, mass, charge; segid `SYS`; bonds; dt; float32 coordinates per frame, as `conftest.make_universe` builds them; the C++ test builds a `Topology` and an in-memory trajectory from them) and the analyses run on them: contacts and the native fraction, H-bonds linear / bent / far with and without bonds and with the angle off, Mg bridges / octahedral geometry / outer shell / occupancy / no ions, stacking stacked / offset / tilted / inter / no rings, analytic Coulomb + LJ (generic parameters, eps 4r), bonded exclusions 0-4 (and `_bonded_exclusions` itself, depths 0-5), RMSD superposition / fit selection / none / mass-weighted / `rmsd@G` instances, the base-pair duplex (strides 1 and 2, wobble off, cutoff 3.0, every analysis), structure residues only (`visual.structure_groups`), an unknown proximity set (error), L-RNA names, wobble and cutoff |
+| `demo_dry_cases.json` | the demo project (`mdatk.demo.demo_project`, as `mdatk demo` writes it for `build_demo(n_frames=24, solvent=False)`) on `topology/demo_dry.parm7` + `io/trajectories/demo_dry.nc`: every analysis, all 24 frames, in one pass |
+| `demo_dry_variants.json` | the demo project with settings changed: the DCD / XTC / TRR copies of `io/trajectories/files` (every analysis), `use_pbc` (the demo's orthorhombic cell), frame slices (start / stop / step, negative start, dt given), RMSD mass-weighted / fit selections / no superposition / reference frames 5, 999, -3 (clamped) / odd target labels and an empty selection / no targets, contacts A = A / all atoms / cutoffs 3 and 8, H-bonds without angle / strict / other element lists, Mg geometry / tolerance / outer shell / occupancy selection / cutoffs / no ions, stacking inter / strict / no rings / one group, energy generic LJ / exclusions 0, 1, 5 / plain Coulomb / cutoff 8, base pairs stride 1 and 7 / no wobble / cutoff 3.0, trace without alignment / ions / with `trace_atoms` P or none, structure groups (Target only, unknown), proximity sets `sel:resid 3` / a group with radius 4 / unknown, atoms with hydrogens, instances `X@Target+Aptamer`, `rmsd@G`, and errors (instance groups unknown / wrong count / not taken, unknown analysis, group B inside A for contacts / H-bonds / energy, unknown group, empty group) |
+| `systems/` | new small systems (generated, no research data): `periodic_ortho` / `periodic_tric` (`.parm7` written by `mdatk.demo.write_topology`, `.nc` by MDAnalysis' NCDFWriter: `build_system("GCAU", n_frames=6, seed=11)`'s 4-bp duplex and its 3 Mg ions moved to straddle a cell corner and wrapped into a 25 Å cube / a 25 x 27 x 29 Å cell with angles 60 / 70 / 80), `pdb_nobonds.pdb` (demo frame 0: no CONECT, no element column, chain IDs A / B / C, CRYST1), `.gro` (MDAnalysis' GROWriter) and `.dcd` (8 frames), `noh.pdb` (the heavy atoms, element column) and `.dcd` (frames 0, 6, 12, 18), `aromatic.pdb` (3 models: G / C / A / U and HSD with PHE / TYR / TRP / HIE / HIS stacked on them, offset, tilted, too far, one ring atom lifted out of plane) |
+| `systems_cases.json` | the analyses on `systems/`: periodic systems with `use_pbc` off and on, cutoffs up to 12 Å against the 25 Å cell, Mg geometry and H-bond angles across faces (minimum image only for orthorhombic cells, by MDATK's design); PDB / GRO topologies without bonds or charges, alone and with the DCD (elements and masses guessed, hydrogens assigned from distances, bonds guessed, generic LJ, no-charge warning, chain IDs), mass-weighted RMSD, `use_pbc`; heavy atoms only (the H-bond "no hydrogens" fallback); the aromatic rings (ring sizes 5, 6 and 9, all / inter / strict / proteins only) |
+| `spatial_cases.json` | `mdatk.spatial`: `_usable_box` of valid and unusable boxes; `pairs_within` (i, j, d in MDATK's order, and their dtypes) of random points without a box, in orthorhombic and triclinic cells and with unusable boxes, empty inputs, a == b, an exact cutoff distance, pairs across a face, points far outside the cell, duplicated points, cutoffs at and beyond half the cell; `minimum_image_vectors` with half-length ties (rounding half to even), angles within and beyond `np.allclose`, triclinic and unusable boxes; `kabsch` of 1, 2, 3, 5, 20 points with and without weights, identical, reflected, collinear and planar sets, zero weights |
+
+Each case is one run of `run_analyses` built as `Pipeline.analyze` builds it: the base project with
+`--set`-style overrides (`mdatk.cli.apply_override`; listed per case), the instances with
+`instance_project`'s projects and their own `AnalysisContext`s sharing one Reporter, the frames of
+`frame_indices(inputs.start, stop, step)` and a fresh Universe. Recorded per case: the project
+sections the analyses read (tagged JSON), the analysed frames and their times, the Reporter's log
+lines (`Preparing ...`, `Analysing ...`, `WARNING: ...`) and progress calls, Python warnings, the
+trajectory frame current at each setup, or the error (`{type, message}`); per result: params and
+meta (tagged JSON; the meta holds the outputs and labels), the order of the outputs, the cache key
+for a fixed input fingerprint (recorded: the fingerprint's shape with paths `{data}/...` /
+`{micro}/name`, the real sizes and `mtime_ns` 0), and every array as `{dtype, shape, sha256,
+values}` (numpy `dtype.str`; integers and booleans as JSON, floats as `float.hex()`, strings as
+strings). `margins` holds per result and analysed frame the smallest distance of a compared
+quantity from its threshold (cutoff distances, cosines of angle cutoffs, planarity, lateral offset,
+H-guess distances and ties, the base-pair C1' window, score grid and score ties, trace links, guessed
+bonds), and the energy's sums of |term| for relative tolerances: a count that differs where the
+margin is tiny can be a last-bit flip, anywhere else it is a bug (a margin of exactly 0 is an exact
+tie built into the geometry, e.g. MDATK's contacts test at 3.5 Å, and must match exactly). The cosines MDATK compares with are
+recorded as numpy computes them and as libm's `cos(x * pi / 180)`. The full list is in the
+generator's docstring.
+
+numpy's SIMD kernels (`power`, `cos`) and OpenBLAS / LAPACK's kernels (SVD of `kabsch` and of the
+ring planes, BLAS products) are chosen per CPU and differ in the last bits (relative 1e-16 to 1e-13
+on the reference machine: energies, aligned coordinates, RMSD with a fit selection, stacking
+geometry). The generator therefore pins them before numpy loads (`OPENBLAS_CORETYPE=Nehalem`, one
+thread, numpy's dispatch limited to its x86-64 baseline with `NPY_ENABLE_CPU_FEATURES=X86_V2`), so
+the data is the same on every x86-64 machine; `--native` skips the pinning to show what a machine's
+own kernels change (not the committed data). The C++ tests compare such values within the
+tolerances of the plan (4.3).
+
+To regenerate (after the topology fixtures and the trajectory cases, whose `demo_dry` files it
+reads; MDATK's test helpers are imported, with a stand-in for pytest when it is missing; the output
+is reproducible):
+
+```bash
+/opt/mdbridge-venv/bin/python -I -B tests/parity/make_analysis_cases.py /tmp/mdatk tests/data/analysis
 ```
 
 ## Checking that the data is reproducible
