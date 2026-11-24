@@ -15,6 +15,7 @@
 #include "mdbridge/core/paths.hpp"
 #include "mdbridge/core/project_file.hpp"
 #include "mdbridge/core/python.hpp"
+#include "mdbridge/core/rigid_transform.hpp"
 #include "mdbridge/core/step_types.hpp"
 #include "mdbridge/core/text.hpp"
 
@@ -304,41 +305,6 @@ std::string asciiLower(std::string text) {
     return text;
 }
 
-using Matrix3 = std::array<std::array<double, 3>, 3>;
-
-// Eigenvalues of a symmetric 3x3 matrix (cyclic Jacobi rotations).
-std::array<double, 3> symmetricEigenvalues(Matrix3 a) {
-    for (int sweep = 0; sweep < 50; ++sweep) {
-        const double off = a[0][1] * a[0][1] + a[0][2] * a[0][2] + a[1][2] * a[1][2];
-        if (off == 0.0) {
-            break;
-        }
-        for (int p = 0; p < 2; ++p) {
-            for (int q = p + 1; q < 3; ++q) {
-                if (a[p][q] == 0.0) {
-                    continue;
-                }
-                const double theta = (a[q][q] - a[p][p]) / (2.0 * a[p][q]);
-                const double t = (theta >= 0 ? 1.0 : -1.0) /
-                                 (std::abs(theta) + std::sqrt(theta * theta + 1.0));
-                const double c = 1.0 / std::sqrt(t * t + 1.0);
-                const double s = t * c;
-                for (int k = 0; k < 3; ++k) {  // columns p, q
-                    const double akp = a[k][p], akq = a[k][q];
-                    a[k][p] = c * akp - s * akq;
-                    a[k][q] = s * akp + c * akq;
-                }
-                for (int k = 0; k < 3; ++k) {  // rows p, q
-                    const double apk = a[p][k], aqk = a[q][k];
-                    a[p][k] = c * apk - s * aqk;
-                    a[q][k] = s * apk + c * aqk;
-                }
-            }
-        }
-    }
-    return {a[0][0], a[1][1], a[2][2]};
-}
-
 }  // namespace
 
 // ---- plain data ------------------------------------------------------------------------------
@@ -499,43 +465,10 @@ bool densityActive(const Project& project) {
 }
 
 std::optional<std::string> rigidTransformProblem(std::span<const double> numbers) {
-    if (numbers.size() != 12) {
-        return "a rigid transform needs 12 numbers (3x3 rotation + translation)";
-    }
-    if (!std::all_of(numbers.begin(), numbers.end(), [](double x) { return std::isfinite(x); })) {
-        return "the transform contains non-finite numbers";
-    }
-    Matrix3 r{};
-    for (int i = 0; i < 9; ++i) {
-        r[i / 3][i % 3] = numbers[static_cast<std::size_t>(i)];
-    }
-    const std::string notRotation = "the rotation part of the transform is not a rotation";
-    // every entry is bounded by the largest singular value; this also keeps R^T R finite
-    for (const auto& row : r) {
-        for (const double x : row) {
-            if (std::abs(x) > 1.01) {
-                return notRotation;
-            }
-        }
-    }
-    Matrix3 rtr{};
-    for (int i = 0; i < 3; ++i) {
-        for (int j = 0; j < 3; ++j) {
-            for (int k = 0; k < 3; ++k) {
-                rtr[i][j] += r[k][i] * r[k][j];
-            }
-        }
-    }
-    for (const double eigenvalue : symmetricEigenvalues(rtr)) {
-        if (std::abs(std::sqrt(std::max(eigenvalue, 0.0)) - 1.0) > 0.01) {
-            return notRotation;
-        }
-    }
-    const double det = r[0][0] * (r[1][1] * r[2][2] - r[1][2] * r[2][1]) -
-                       r[0][1] * (r[1][0] * r[2][2] - r[1][2] * r[2][0]) +
-                       r[0][2] * (r[1][0] * r[2][1] - r[1][1] * r[2][0]);
-    if (det < 0) {
-        return "the rotation part of the transform is a reflection";
+    try {
+        RigidTransform::fromList(numbers);
+    } catch (const ValueError& error) {
+        return std::string(error.what());
     }
     return std::nullopt;
 }

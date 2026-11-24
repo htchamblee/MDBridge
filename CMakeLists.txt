@@ -18,7 +18,7 @@ set(MDBRIDGE_MDATK_REFERENCE "0.0.4.1")
 
 option(MDBRIDGE_BUILD_APP "Build the Qt front ends (GUI and CLI); OFF builds the core libraries only" ON)
 option(MDBRIDGE_BUILD_TESTS "Build the unit tests" ON)
-option(MDBRIDGE_USE_SYSTEM_DEPS "Prefer installed toml++, CLI11, GoogleTest and Vulkan headers over fetching them" OFF)
+option(MDBRIDGE_USE_SYSTEM_DEPS "Prefer installed toml++, CLI11, GoogleTest, Vulkan headers and zlib over fetching them" OFF)
 option(MDBRIDGE_WARNINGS_AS_ERRORS "Treat compiler warnings in MDBridge's own code as errors" OFF)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -65,7 +65,7 @@ else()
     install(FILES LICENSE THIRD_PARTY_NOTICES.md DESTINATION ${MDBRIDGE_DOC_DIR})
 endif()
 install(DIRECTORY packaging/licenses/ DESTINATION ${MDBRIDGE_DOC_DIR}/licenses)
-foreach(dep tomlplusplus CLI11 VulkanHeaders)
+foreach(dep tomlplusplus CLI11 VulkanHeaders zlib)
     FetchContent_GetProperties(${dep} POPULATED populated SOURCE_DIR source)
     if(populated)  # not when installed headers or packages were used instead
         file(GLOB texts "${source}/LICENSE*" "${source}/LICENSES/*")

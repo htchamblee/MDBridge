@@ -35,8 +35,8 @@ struct RigidTransform {
     RigidTransform inverse() const;
     // this ∘ other: first other, then this
     RigidTransform compose(const RigidTransform& other) const;
-    // rotation `r` about the point `centre`
-    static RigidTransform about(const Mat3& r, const Vec3& centre);
+    // this rotation applied about the point `centre`, followed by this translation
+    RigidTransform about(const Vec3& centre) const;
 };
 
 // The rotation of a rotation vector (axis * angle in radians), of a unit quaternion (w, x, y, z),
@@ -44,5 +44,8 @@ struct RigidTransform {
 Mat3 rotvecMatrix(const Vec3& w);
 Mat3 quaternionMatrix(const std::array<double, 4>& q);
 double rotationAngle(const Mat3& r);
+
+// anchor_points: the points rounded to 3 decimals (Python round), as project files store them.
+std::vector<Vec3> anchorPoints(std::span<const Vec3> points);
 
 }  // namespace mdbridge::core

@@ -37,3 +37,9 @@ target_include_directories(mdbridge_core PUBLIC
 target_link_libraries(mdbridge_core PRIVATE tomlplusplus::tomlplusplus)
 target_compile_features(mdbridge_core PUBLIC cxx_std_20)
 mdbridge_target_warnings(mdbridge_core)
+# numerics reproduced as numpy rounds them: no contraction into fused multiply-adds
+if(MSVC)
+    set_source_files_properties(rigid_transform.cpp PROPERTIES COMPILE_OPTIONS /fp:precise)
+else()
+    set_source_files_properties(rigid_transform.cpp PROPERTIES COMPILE_OPTIONS -ffp-contract=off)
+endif()
