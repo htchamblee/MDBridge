@@ -49,7 +49,9 @@ Qt's CMake files need the OpenGL headers (RHEL / Rocky: `libglvnd-devel mesa-lib
 Ubuntu: `libgl-dev`), and the interface needs Qt's X11 libraries (most desktops have them; on RHEL /
 Rocky: `xcb-util-cursor xcb-util-wm xcb-util-image xcb-util-keysyms xcb-util-renderutil
 libxkbcommon-x11`). Useful options: `-DMDBRIDGE_WARNINGS_AS_ERRORS=ON` (as in CI),
-`-DMDBRIDGE_BUILD_APP=OFF` (only the Qt-free `core` library and its tests: no Qt needed).
+`-DMDBRIDGE_BUILD_APP=OFF` (only the Qt-free `core` and `io` libraries, the command line's MDATK
+commands and their tests: no Qt needed; `build/tests/mdbridge_commands_cli` then offers `init`, `info`,
+`export-pdb` and `density info` for `tests/parity/cli_parity.py --mdbridge`).
 
 ### AppImage
 

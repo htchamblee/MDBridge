@@ -1,5 +1,5 @@
-# app: the Qt interface and the command line, two thin front ends over the libraries.
-FetchContent_MakeAvailable(CLI11)
+# app: the Qt interface and the command line, two thin front ends over the libraries. The command
+# line's MDATK commands are in commands/ (mdbridge::commands, no Qt).
 
 add_library(mdbridge_app STATIC
     cli.cpp
@@ -16,7 +16,7 @@ set_target_properties(mdbridge_app PROPERTIES AUTOMOC ON)
 target_include_directories(mdbridge_app PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 target_link_libraries(mdbridge_app
     PUBLIC mdbridge::core mdbridge::render Qt6::Widgets
-    PRIVATE CLI11::CLI11)
+    PRIVATE mdbridge::commands CLI11::CLI11)
 mdbridge_target_warnings(mdbridge_app)
 
 set(MDBRIDGE_ICON_ICO "${PROJECT_SOURCE_DIR}/data/icons/mdbridge.ico")

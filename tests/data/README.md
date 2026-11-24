@@ -26,8 +26,8 @@ guessable one- and two-letter elements; PDBWriter's ion names and Hg / Cl residu
 lists, and its include / exclude pairs (empty: no independent counterpart). Only data is
 replaced, no MDAnalysis function. The generators that depend on these tables apply the patch:
 `dump_topologies.py` (every dump, also when imported), `make_atom_selection_cases.py`,
-`make_selections_cases.py`, `make_parm7_cases.py`, `make_loader_cases.py` and
-`make_export_cases.py`; the others do not touch them. `tools/gen_selection_tables.py` and
+`make_selections_cases.py`, `make_parm7_cases.py`, `make_loader_cases.py`, `make_export_cases.py` and
+`cli_parity.py` (its MDATK side); the others do not touch them. `tools/gen_selection_tables.py` and
 `tools/gen_pdb_tables.py` no longer write any of these tables, only the property names of the
 selection language and Python's Unicode data.
 
@@ -385,6 +385,30 @@ is written into it; the output is reproducible):
 ```bash
 python3 -I tools/gen_case_tables.py                       # src/core/case_tables.inc
 python3 -I -B tests/parity/make_cif_cases.py /tmp/mdatk tests/data/io/cif
+```
+
+`cli/cli_cases.json` holds what MDATK's command line (`mdatk/cli.py`) prints and writes for the
+milestone-2 commands, for `src/app/commands/` (`tests/cli/test_commands.cpp`, which runs the same
+command lines in-process): `init` / `init-params` (defaults, every common option, `--set` with list
+indices, JSON values, free-form tables, Project properties and every error, projects and a parameter
+log as `--project`, existing files, JSON presets), `info` (the demo system with NetCDF / XTC / DCD
+trajectories, PDB and GRO topologies, residue groups that fail in every way, missing files),
+`export-pdb` (frame lists, times, groups and selections, time stamps, `--quiet` / `--verbose`,
+layout warnings, a project's `[output.pdb]`, every error) and `density info` of every map of
+`io/maps/files`. Each case names the command line, the inputs (files of `tests/data` copied into an
+empty work folder, project files written there) and MDATK's exit status, stdout, stderr and the files
+it left (text, or SHA-256 and size beyond 16 KiB). MDATK runs in-process with the independent
+tables applied (first section). Normalised: the work folder is `{work}`, `saved` time stamps
+`{time}`, file-name time stamps `{stamp}`; `posix_only` marks cases with absolute paths, OS error
+texts or project paths (skipped on Windows); `exit_only` cases compare the exit status alone (usage
+errors, and the six gzip errors `src/io/include/mdbridge/io/mrc.hpp` words differently); where MDATK
+crashes with a traceback (`stderr` null, `mdatk_crash` the exception), MDBridge must print
+`error: ...` and exit with 1. The same script compares a build with MDATK directly (CI's `parity`
+job, against the AppImage):
+
+```bash
+/opt/mdbridge-venv/bin/python -I -B tests/parity/cli_parity.py --mdatk /tmp/mdatk --write tests/data/cli/cli_cases.json
+/opt/mdbridge-venv/bin/python -I -B tests/parity/cli_parity.py --mdatk /tmp/mdatk --mdbridge build/tests/mdbridge_commands_cli
 ```
 
 ## Checking that the data is reproducible

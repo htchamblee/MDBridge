@@ -8,6 +8,7 @@ Runs, in order:
 * ``EXE project show`` on the fixtures in tests/data/projects: summaries, rejected files, and the
   JSON of every file against MDATK's reference reading (tests/data/expected)
 * ``EXE graphics --json``
+* ``EXE info`` (demo system), ``EXE density info`` (a map) and ``EXE init`` (a new project file)
 * ``--gui``: ``EXE gui PROJECT --screenshot`` with the software view and the automatic choice
   (``--expect-renderer``: what the automatic choice must give; ``vulkan`` also forces a Vulkan
   run), checking that each frame really has content; then ``EXE gui PROJECT --quit-after 5``.
@@ -93,6 +94,23 @@ def main(argv=None) -> int:
         graphics = {}
     check(f"graphics: {graphics.get('renderer')} ({graphics.get('device') or graphics.get('problem')})",
           r.returncode == 0 and graphics.get("renderer") in ("vulkan", "software"), r.stdout + r.stderr)
+
+    # MDATK's commands (their output is compared with MDATK's by tests/parity/cli_parity.py)
+    data = os.path.join(ROOT, "tests", "data")
+    r = run(exe, "info", "--top", os.path.join(data, "topology", "demo_dry.parm7"),
+            "--traj", os.path.join(data, "io", "trajectories", "demo_dry.nc"))
+    try:
+        info = json.loads(r.stdout)
+    except json.JSONDecodeError:
+        info = {}
+    check(f"info: {info.get('n_atoms')} atoms, {info.get('n_frames')} frames of the demo system",
+          r.returncode == 0 and info.get("n_atoms") == 773 and info.get("n_frames") == 24, r.stdout + r.stderr)
+    r = run(exe, "density", "info", os.path.join(data, "io", "maps", "files", "gzip.mrc.gz"))
+    check("density info", r.returncode == 0 and '"grid_xyz"' in r.stdout, r.stdout + r.stderr)
+    with tempfile.TemporaryDirectory() as work:
+        project = os.path.join(work, "new.mdatk.toml")
+        r = run(exe, "init", project, "-s", "notes=smoke test")
+        check("init writes a project file", r.returncode == 0 and os.path.exists(project), r.stdout + r.stderr)
 
     if args.gui:
         with tempfile.TemporaryDirectory() as work:

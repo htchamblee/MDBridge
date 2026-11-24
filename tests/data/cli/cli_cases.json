@@ -1,0 +1,3479 @@
+{
+ "cases": [
+  {
+   "name": "init_default",
+   "argv": [
+    "init",
+    "new.mdatk.toml"
+   ],
+   "inputs": {},
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "Wrote a project file with default settings to new.mdatk.toml\n",
+   "stderr": "",
+   "written": {
+    ".new.mdatk.toml.lock": {
+     "text": ""
+    },
+    "new.mdatk.toml": {
+     "sha256": "c61be037669bae25f593246f4c1a93101114603a27963fefc119f31bec637a67",
+     "size": 16925
+    }
+   },
+   "posix_only": false
+  },
+  {
+   "name": "init_alias_options",
+   "argv": [
+    "init-params",
+    "p.mdatk.toml",
+    "--top",
+    "demo_dry.parm7",
+    "--traj",
+    "demo_dry.nc",
+    "--frames",
+    "2:20:3",
+    "-o",
+    "out",
+    "--cache-dir",
+    "cache",
+    "--cpptraj",
+    "/opt/amber/bin/cpptraj",
+    "--conda-env",
+    "AmberTools26",
+    "--clean",
+    "-s",
+    "analyses.contacts.cutoff=5",
+    "-s",
+    "groups.0.residues=1-6",
+    "-s",
+    "notes=5",
+    "-s",
+    "output.charts.formats=[\"png\",\"svg\"]",
+    "-s",
+    "inputs.dt_ps=2.5",
+    "-s",
+    "groups.-1.name=Last",
+    "-s",
+    "layout.panels.3.options={\"mode\": \"mean\"}",
+    "-s",
+    "visual.rotation.1=90",
+    "-s",
+    "cleaning.enabled=false",
+    "--no-clean",
+    "--clean"
+   ],
+   "inputs": {
+    "demo_dry.parm7": "topology/demo_dry.parm7",
+    "demo_dry.nc": "io/trajectories/demo_dry.nc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "Wrote a project file with default settings to p.mdatk.toml\n",
+   "stderr": "",
+   "written": {
+    ".p.mdatk.toml.lock": {
+     "text": ""
+    },
+    "p.mdatk.toml": {
+     "sha256": "a2973d782f06c7f147c823a4a76ec3ab7899cbd8daff493aefbded95b53de473",
+     "size": 16876
+    }
+   },
+   "posix_only": true
+  },
+  {
+   "name": "init_relative",
+   "argv": [
+    "init",
+    "rel.mdatk.toml",
+    "--top",
+    "sub/../demo_dry.parm7",
+    "--traj",
+    "a.nc",
+    "b.nc",
+    "--frames",
+    ":7",
+    "-s",
+    "inputs.trajectories=[\"x.nc\"]",
+    "-s",
+    "output.out_dir=o"
+   ],
+   "inputs": {},
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "Wrote a project file with default settings to rel.mdatk.toml\n",
+   "stderr": "",
+   "written": {
+    ".rel.mdatk.toml.lock": {
+     "text": ""
+    },
+    "rel.mdatk.toml": {
+     "sha256": "e046c19f7abfdcb36c0d9e7087e421742fbdf1e22bf006c2a58370a774c4afbb",
+     "size": 16929
+    }
+   },
+   "posix_only": true
+  },
+  {
+   "name": "init_from_project",
+   "argv": [
+    "init",
+    "copy.mdatk.toml",
+    "-p",
+    "base.mdatk.toml",
+    "--no-clean"
+   ],
+   "inputs": {
+    "demo_dry.parm7": "topology/demo_dry.parm7",
+    "demo_dry.nc": "io/trajectories/demo_dry.nc"
+   },
+   "setup": {
+    "base.mdatk.toml": "format = \"mdatk-project\"\nnotes = \"relative paths, resolved against this file's folder\"\n\n[inputs]\ntopology = \"demo_dry.parm7\"\ntrajectories = [\"demo_dry.nc\"]\ndt_ps = 5.0\ntime_unit = \"ps\"\n\n[[groups]]\nname = \"Aptamer\"\nresidues = \"1-4, 21-24\"\ncolor = \"#123456\"\n\n[[groups]]\nname = \"Target\"\nselection = \"resid 5:20 and not name H*\"\n\n[output]\nout_dir = \"results\"\ntimestamp_files = false\n\n[output.pdb]\nframes = \"1, 3\"\ntimes = \"100\"\nselection = \"Aptamer\"\nprefix = \"snap\"\n"
+   },
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "Wrote a project file with default settings to copy.mdatk.toml\n",
+   "stderr": "",
+   "written": {
+    ".copy.mdatk.toml.lock": {
+     "text": ""
+    },
+    "copy.mdatk.toml": {
+     "sha256": "3f0ddb1deff7823147e7c6c8c4c3846886749db7d7f9c249f6dc0dae4e45a004",
+     "size": 17044
+    }
+   },
+   "posix_only": true
+  },
+  {
+   "name": "init_from_params_log",
+   "argv": [
+    "init",
+    "replay.mdatk.toml",
+    "--params",
+    "MDATK_params_log.toml"
+   ],
+   "inputs": {
+    "MDATK_params_log.toml": "projects/MDATK_params_log.toml"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "Wrote a project file with default settings to replay.mdatk.toml\n",
+   "stderr": "",
+   "written": {
+    ".replay.mdatk.toml.lock": {
+     "text": ""
+    },
+    "replay.mdatk.toml": {
+     "sha256": "01cb433c7c08127dba02061fcc8120fce448d8128396a7b85763764e66a40e05",
+     "size": 16978
+    }
+   },
+   "posix_only": true
+  },
+  {
+   "name": "init_exists",
+   "argv": [
+    "init",
+    "exists.mdatk.toml"
+   ],
+   "inputs": {},
+   "setup": {
+    "exists.mdatk.toml": "keep me\n"
+   },
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": "exists.mdatk.toml exists (use --overwrite)\n",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "init_overwrite",
+   "argv": [
+    "init",
+    "base.mdatk.toml",
+    "--overwrite",
+    "-s",
+    "notes=rewritten"
+   ],
+   "inputs": {},
+   "setup": {
+    "base.mdatk.toml": "format = \"mdatk-project\"\nnotes = \"relative paths, resolved against this file's folder\"\n\n[inputs]\ntopology = \"demo_dry.parm7\"\ntrajectories = [\"demo_dry.nc\"]\ndt_ps = 5.0\ntime_unit = \"ps\"\n\n[[groups]]\nname = \"Aptamer\"\nresidues = \"1-4, 21-24\"\ncolor = \"#123456\"\n\n[[groups]]\nname = \"Target\"\nselection = \"resid 5:20 and not name H*\"\n\n[output]\nout_dir = \"results\"\ntimestamp_files = false\n\n[output.pdb]\nframes = \"1, 3\"\ntimes = \"100\"\nselection = \"Aptamer\"\nprefix = \"snap\"\n"
+   },
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "Wrote a project file with default settings to base.mdatk.toml\n",
+   "stderr": "",
+   "written": {
+    ".base.mdatk.toml.lock": {
+     "text": ""
+    },
+    "base.mdatk.toml": {
+     "sha256": "5d15798dd905b237cbbef3f235a10aaadfd27972542837d1c49baeafc72e5c3a",
+     "size": 16934
+    }
+   },
+   "posix_only": false
+  },
+  {
+   "name": "init_json",
+   "argv": [
+    "init",
+    "preset.json"
+   ],
+   "inputs": {},
+   "setup": {},
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": "error: preset.json: JSON presets are no longer supported; MDBridge uses TOML project files (.mdatk.toml)\n",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "init_no_folder",
+   "argv": [
+    "init",
+    "missing/new.mdatk.toml"
+   ],
+   "inputs": {},
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "Wrote a project file with default settings to missing/new.mdatk.toml\n",
+   "stderr": "",
+   "written": {
+    "missing/.new.mdatk.toml.lock": {
+     "text": ""
+    },
+    "missing/new.mdatk.toml": {
+     "sha256": "c61be037669bae25f593246f4c1a93101114603a27963fefc119f31bec637a67",
+     "size": 16925
+    }
+   },
+   "posix_only": false
+  },
+  {
+   "name": "init_set_no_equals",
+   "argv": [
+    "init",
+    "x.mdatk.toml",
+    "-s",
+    "nonsense"
+   ],
+   "inputs": {},
+   "setup": {},
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": "error: --set expects key=value, got 'nonsense'\n",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "init_set_empty_key",
+   "argv": [
+    "init",
+    "x.mdatk.toml",
+    "-s",
+    " . =3"
+   ],
+   "inputs": {},
+   "setup": {},
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": "error: empty key in ' . =3'\n",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "init_set_unknown",
+   "argv": [
+    "init",
+    "x.mdatk.toml",
+    "-s",
+    "analyses.bogus=1"
+   ],
+   "inputs": {},
+   "setup": {},
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": "error: unknown parameter 'analyses.bogus'\n",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "init_set_free_form",
+   "argv": [
+    "init",
+    "x.mdatk.toml",
+    "-s",
+    "layout.panels.3.options.mode=x"
+   ],
+   "inputs": {},
+   "setup": {},
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": "error: unknown parameter 'layout.panels.3.options.mode'\n",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "init_set_bool",
+   "argv": [
+    "init",
+    "x.mdatk.toml",
+    "-s",
+    "cleaning.enabled=1"
+   ],
+   "inputs": {},
+   "setup": {},
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": "error: cleaning.enabled expects true/false\n",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "init_set_index",
+   "argv": [
+    "init",
+    "x.mdatk.toml",
+    "-s",
+    "groups.7.name=x"
+   ],
+   "inputs": {},
+   "setup": {},
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": "error: groups.7.name: no list element '7'\n",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "init_set_index_text",
+   "argv": [
+    "init",
+    "x.mdatk.toml",
+    "-s",
+    "groups.first.name=x"
+   ],
+   "inputs": {},
+   "setup": {},
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": "error: groups.first.name: no list element 'first'\n",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "init_set_index_dashes",
+   "argv": [
+    "init",
+    "x.mdatk.toml",
+    "-s",
+    "groups.--1.name=x"
+   ],
+   "inputs": {},
+   "setup": {},
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": "error: invalid literal for int() with base 10: '--1'\n",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "init_set_type",
+   "argv": [
+    "init",
+    "x.mdatk.toml",
+    "-s",
+    "analyses.contacts.cutoff=far"
+   ],
+   "inputs": {},
+   "setup": {},
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": "error: project.analyses.contacts.cutoff: expected a number, got 'far'\n",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "init_set_table",
+   "argv": [
+    "init",
+    "x.mdatk.toml",
+    "-s",
+    "groups={\"name\": \"x\"}"
+   ],
+   "inputs": {},
+   "setup": {},
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": "error: project.groups: expected a list\n",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "init_set_property",
+   "argv": [
+    "init",
+    "x.mdatk.toml",
+    "-s",
+    "out_dir=5"
+   ],
+   "inputs": {},
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "Wrote a project file with default settings to x.mdatk.toml\n",
+   "stderr": "WARNING: project: ignoring unknown key 'out_dir'\n",
+   "written": {
+    ".x.mdatk.toml.lock": {
+     "text": ""
+    },
+    "x.mdatk.toml": {
+     "sha256": "c61be037669bae25f593246f4c1a93101114603a27963fefc119f31bec637a67",
+     "size": 16925
+    }
+   },
+   "posix_only": false
+  },
+  {
+   "name": "init_set_method",
+   "argv": [
+    "init",
+    "x.mdatk.toml",
+    "-s",
+    "validate.x=5"
+   ],
+   "inputs": {},
+   "setup": {},
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": "error: unknown parameter 'validate.x'\n",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "init_set_section",
+   "argv": [
+    "init",
+    "x.mdatk.toml",
+    "-s",
+    "inputs={\"topology\": \"t.parm7\", \"bogus\": 1}"
+   ],
+   "inputs": {},
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "Wrote a project file with default settings to x.mdatk.toml\n",
+   "stderr": "WARNING: project.inputs: ignoring unknown key 'bogus'\n",
+   "written": {
+    ".x.mdatk.toml.lock": {
+     "text": ""
+    },
+    "x.mdatk.toml": {
+     "sha256": "cd99ab1e47faa696f07379340d11000bdbac8d3b991b06b92c9e7fbb7ed8f69c",
+     "size": 16932
+    }
+   },
+   "posix_only": false
+  },
+  {
+   "name": "init_frames_bad",
+   "argv": [
+    "init",
+    "x.mdatk.toml",
+    "--frames",
+    "1:x"
+   ],
+   "inputs": {},
+   "setup": {},
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": "error: invalid literal for int() with base 10: 'x'\n",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "init_missing_output",
+   "argv": [
+    "init"
+   ],
+   "inputs": {},
+   "setup": {},
+   "exit_only": true,
+   "exit": 2,
+   "stdout": "",
+   "stderr": "usage: mdatk init [-h] [--overwrite] [--project PARAMS] [--top TOP]\n                  [--traj TRAJ [TRAJ ...]] [--frames FRAMES] [--clean]\n                  [--no-clean] [--cpptraj CPPTRAJ] [--conda-env CONDA_ENV]\n                  [--out-dir OUT_DIR] [--cache-dir CACHE_DIR]\n                  [--set KEY=VALUE] [--quiet] [--verbose]\n                  output\nmdatk init: error: the following arguments are required: output\n",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "init_unknown_option",
+   "argv": [
+    "init",
+    "x.mdatk.toml",
+    "--bogus"
+   ],
+   "inputs": {},
+   "setup": {},
+   "exit_only": true,
+   "exit": 2,
+   "stdout": "",
+   "stderr": "usage: mdatk [-h] [--version] command ...\nmdatk: error: unrecognized arguments: --bogus\n",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "info_demo",
+   "argv": [
+    "info",
+    "--top",
+    "demo_dry.parm7",
+    "--traj",
+    "demo_dry.nc"
+   ],
+   "inputs": {
+    "demo_dry.parm7": "topology/demo_dry.parm7",
+    "demo_dry.nc": "io/trajectories/demo_dry.nc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"n_atoms\": 773,\n  \"n_residues\": 27,\n  \"n_segments\": 1,\n  \"n_frames\": 24,\n  \"dt_ps\": 10.0,\n  \"has_box\": true,\n  \"top_resnames\": {\n    \"C\": 7,\n    \"G\": 7,\n    \"A\": 5,\n    \"U\": 5,\n    \"MG\": 3\n  },\n  \"groups\": {\n    \"Aptamer\": {\n      \"atoms\": 388,\n      \"residues\": 12,\n      \"first\": \"G1\",\n      \"last\": \"A12\"\n    },\n    \"Target\": {\n      \"atoms\": 382,\n      \"residues\": 12,\n      \"first\": \"U13\",\n      \"last\": \"C24\"\n    }\n  },\n  \"problems\": []\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "info_no_topology",
+   "argv": [
+    "info"
+   ],
+   "inputs": {},
+   "setup": {},
+   "exit_only": false,
+   "exit": 2,
+   "stdout": "",
+   "stderr": "info needs --project or --top\n",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "info_groups",
+   "argv": [
+    "info",
+    "--top",
+    "demo_dry.parm7",
+    "--traj",
+    "demo_dry.nc",
+    "-s",
+    "groups=[{\"name\": \"A\", \"residues\": \"1-3\"}, {\"name\": \"bad name\", \"selection\": \"resname ZZZ\"}, {\"name\": \"A\", \"residues\": \"20-22\"}, {\"name\": \"Ions\", \"selection\": \"resname MG\"}, {\"name\": \"Broken\", \"selection\": \"name (\"}, {\"name\": \"Chain\", \"residues\": \"X:5-6\"}, {\"name\": \"Empty\", \"residues\": \"\"}, {\"name\": \"\\u00dcn\\u00ef\", \"residues\": \"7\"}]"
+   ],
+   "inputs": {
+    "demo_dry.parm7": "topology/demo_dry.parm7",
+    "demo_dry.nc": "io/trajectories/demo_dry.nc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"n_atoms\": 773,\n  \"n_residues\": 27,\n  \"n_segments\": 1,\n  \"n_frames\": 24,\n  \"dt_ps\": 10.0,\n  \"has_box\": true,\n  \"top_resnames\": {\n    \"C\": 7,\n    \"G\": 7,\n    \"A\": 5,\n    \"U\": 5,\n    \"MG\": 3\n  },\n  \"groups\": {\n    \"A\": {\n      \"atoms\": 94,\n      \"residues\": 3,\n      \"first\": \"C20\",\n      \"last\": \"U22\"\n    },\n    \"bad name\": {\n      \"error\": \"unknown residue group 'bad' (defined: A, bad name, Ions, Broken, Chain, Empty, \\u00dcn\\u00ef)\"\n    },\n    \"Ions\": {\n      \"atoms\": 3,\n      \"residues\": 3,\n      \"first\": \"MG25\",\n      \"last\": \"MG27\"\n    },\n    \"Broken\": {\n      \"error\": \"invalid selection 'group:Broken' -> '(name ()': Selection failed: 'Unexpected token '(''\"\n    },\n    \"Chain\": {\n      \"error\": \"selection 'group:Chain' matched no atoms\"\n    },\n    \"Empty\": {\n      \"error\": \"group 'Empty' has neither residues nor a selection\"\n    },\n    \"\\u00dcn\\u00ef\": {\n      \"error\": \"invalid selection 'group:\\u00dcn\\u00ef' -> 'group:\\u00dcn\\u00ef': Unknown selection token: 'group:\\u00dcn\\u00ef'\"\n    }\n  },\n  \"problems\": [\n    \"Residue group names must be unique.\",\n    \"Group name 'bad name' may only contain letters, digits, '_', '.' and '-' (no spaces).\",\n    \"Group 'Empty' has neither residues nor a selection.\",\n    \"Group name '\\u00dcn\\u00ef' may only contain letters, digits, '_', '.' and '-' (no spaces).\",\n    \"contacts: unknown residue group 'Aptamer'.\",\n    \"contacts: unknown residue group 'Target'.\",\n    \"H-bonds: unknown residue group 'Aptamer'.\",\n    \"H-bonds: unknown residue group 'Target'.\",\n    \"Mg: unknown residue group 'Aptamer'.\",\n    \"Mg: unknown residue group 'Target'.\",\n    \"stacking: unknown residue group 'Aptamer'.\",\n    \"stacking: unknown residue group 'Target'.\",\n    \"energy: unknown residue group 'Aptamer'.\",\n    \"energy: unknown residue group 'Target'.\"\n  ]\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "info_project",
+   "argv": [
+    "info",
+    "-p",
+    "base.mdatk.toml"
+   ],
+   "inputs": {
+    "demo_dry.parm7": "topology/demo_dry.parm7",
+    "demo_dry.nc": "io/trajectories/demo_dry.nc"
+   },
+   "setup": {
+    "base.mdatk.toml": "format = \"mdatk-project\"\nnotes = \"relative paths, resolved against this file's folder\"\n\n[inputs]\ntopology = \"demo_dry.parm7\"\ntrajectories = [\"demo_dry.nc\"]\ndt_ps = 5.0\ntime_unit = \"ps\"\n\n[[groups]]\nname = \"Aptamer\"\nresidues = \"1-4, 21-24\"\ncolor = \"#123456\"\n\n[[groups]]\nname = \"Target\"\nselection = \"resid 5:20 and not name H*\"\n\n[output]\nout_dir = \"results\"\ntimestamp_files = false\n\n[output.pdb]\nframes = \"1, 3\"\ntimes = \"100\"\nselection = \"Aptamer\"\nprefix = \"snap\"\n"
+   },
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"n_atoms\": 773,\n  \"n_residues\": 27,\n  \"n_segments\": 1,\n  \"n_frames\": 24,\n  \"dt_ps\": 5.0,\n  \"has_box\": true,\n  \"top_resnames\": {\n    \"C\": 7,\n    \"G\": 7,\n    \"A\": 5,\n    \"U\": 5,\n    \"MG\": 3\n  },\n  \"groups\": {\n    \"Aptamer\": {\n      \"atoms\": 256,\n      \"residues\": 8,\n      \"first\": \"G1\",\n      \"last\": \"C24\"\n    },\n    \"Target\": {\n      \"atoms\": 341,\n      \"residues\": 16,\n      \"first\": \"G5\",\n      \"last\": \"C20\"\n    }\n  },\n  \"problems\": []\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "info_two_trajectories",
+   "argv": [
+    "info",
+    "--top",
+    "demo_dry.parm7",
+    "--traj",
+    "demo_dry.nc",
+    "demo_dry.xtc",
+    "-s",
+    "inputs.dt_ps=4"
+   ],
+   "inputs": {
+    "demo_dry.parm7": "topology/demo_dry.parm7",
+    "demo_dry.nc": "io/trajectories/demo_dry.nc",
+    "demo_dry.xtc": "io/trajectories/files/demo_dry.xtc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"n_atoms\": 773,\n  \"n_residues\": 27,\n  \"n_segments\": 1,\n  \"n_frames\": 30,\n  \"dt_ps\": 4.0,\n  \"has_box\": true,\n  \"top_resnames\": {\n    \"C\": 7,\n    \"G\": 7,\n    \"A\": 5,\n    \"U\": 5,\n    \"MG\": 3\n  },\n  \"groups\": {\n    \"Aptamer\": {\n      \"atoms\": 388,\n      \"residues\": 12,\n      \"first\": \"G1\",\n      \"last\": \"A12\"\n    },\n    \"Target\": {\n      \"atoms\": 382,\n      \"residues\": 12,\n      \"first\": \"U13\",\n      \"last\": \"C24\"\n    }\n  },\n  \"problems\": []\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "info_dcd",
+   "argv": [
+    "info",
+    "--top",
+    "demo_dry.parm7",
+    "--traj",
+    "demo_dry.dcd",
+    "--frames",
+    "::0"
+   ],
+   "inputs": {
+    "demo_dry.parm7": "topology/demo_dry.parm7",
+    "demo_dry.nc": "io/trajectories/demo_dry.nc",
+    "demo_dry.dcd": "io/trajectories/files/demo_dry.dcd"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"n_atoms\": 773,\n  \"n_residues\": 27,\n  \"n_segments\": 1,\n  \"n_frames\": 3,\n  \"dt_ps\": 1.0000000328495406,\n  \"has_box\": true,\n  \"top_resnames\": {\n    \"C\": 7,\n    \"G\": 7,\n    \"A\": 5,\n    \"U\": 5,\n    \"MG\": 3\n  },\n  \"groups\": {\n    \"Aptamer\": {\n      \"atoms\": 388,\n      \"residues\": 12,\n      \"first\": \"G1\",\n      \"last\": \"A12\"\n    },\n    \"Target\": {\n      \"atoms\": 382,\n      \"residues\": 12,\n      \"first\": \"U13\",\n      \"last\": \"C24\"\n    }\n  },\n  \"problems\": [\n    \"Frame step must be >= 1.\"\n  ]\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "info_pdb",
+   "argv": [
+    "info",
+    "--top",
+    "elements.pdb",
+    "-s",
+    "groups=[{\"name\": \"All\", \"selection\": \"all\"}]"
+   ],
+   "inputs": {
+    "elements.pdb": "io/loader/files/elements.pdb"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"n_atoms\": 12,\n  \"n_residues\": 11,\n  \"n_segments\": 1,\n  \"n_frames\": 1,\n  \"dt_ps\": null,\n  \"has_box\": false,\n  \"top_resnames\": {\n    \"ALA\": 1,\n    \"CAL\": 1,\n    \"CL\": 1,\n    \"DOD\": 1,\n    \"HEM\": 1,\n    \"K\": 1,\n    \"MG\": 1,\n    \"NA\": 1,\n    \"SOL\": 1,\n    \"UNK\": 1,\n    \"ZN\": 1\n  },\n  \"groups\": {\n    \"All\": {\n      \"atoms\": 12,\n      \"residues\": 11,\n      \"first\": \"MG1\",\n      \"last\": \"DOD11\"\n    }\n  },\n  \"problems\": [\n    \"No trajectory file selected.\",\n    \"contacts: unknown residue group 'Aptamer'.\",\n    \"contacts: unknown residue group 'Target'.\",\n    \"H-bonds: unknown residue group 'Aptamer'.\",\n    \"H-bonds: unknown residue group 'Target'.\",\n    \"Mg: unknown residue group 'Aptamer'.\",\n    \"Mg: unknown residue group 'Target'.\",\n    \"stacking: unknown residue group 'Aptamer'.\",\n    \"stacking: unknown residue group 'Target'.\",\n    \"energy: unknown residue group 'Aptamer'.\",\n    \"energy: unknown residue group 'Target'.\"\n  ]\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "info_gro",
+   "argv": [
+    "info",
+    "--top",
+    "precise.gro"
+   ],
+   "inputs": {
+    "precise.gro": "io/loader/files/precise.gro"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"n_atoms\": 7,\n  \"n_residues\": 1,\n  \"n_segments\": 1,\n  \"n_frames\": 1,\n  \"dt_ps\": null,\n  \"has_box\": true,\n  \"top_resnames\": {\n    \"LIG\": 1\n  },\n  \"groups\": {\n    \"Aptamer\": {\n      \"atoms\": 7,\n      \"residues\": 1,\n      \"first\": \"LIG1\",\n      \"last\": \"LIG1\"\n    },\n    \"Target\": {\n      \"error\": \"selection 'group:Target' matched no atoms\"\n    }\n  },\n  \"problems\": [\n    \"No trajectory file selected.\"\n  ]\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "info_missing_topology",
+   "argv": [
+    "info",
+    "--top",
+    "missing.parm7"
+   ],
+   "inputs": {},
+   "setup": {},
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": "error: topology not found: {work}/missing.parm7\n",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "info_missing_trajectory",
+   "argv": [
+    "info",
+    "--top",
+    "demo_dry.parm7",
+    "--traj",
+    "missing.nc"
+   ],
+   "inputs": {
+    "demo_dry.parm7": "topology/demo_dry.parm7",
+    "demo_dry.nc": "io/trajectories/demo_dry.nc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": "error: trajectory not found: {work}/missing.nc\n",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "info_parm7_alone",
+   "argv": [
+    "info",
+    "--top",
+    "demo_dry.parm7"
+   ],
+   "inputs": {
+    "demo_dry.parm7": "topology/demo_dry.parm7",
+    "demo_dry.nc": "io/trajectories/demo_dry.nc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": null,
+   "written": {},
+   "posix_only": false,
+   "mdatk_crash": "AttributeError: No trajectory loaded into Universe"
+  },
+  {
+   "name": "info_unknown_option",
+   "argv": [
+    "info",
+    "--bogus"
+   ],
+   "inputs": {},
+   "setup": {},
+   "exit_only": true,
+   "exit": 2,
+   "stdout": "",
+   "stderr": "usage: mdatk [-h] [--version] command ...\nmdatk: error: unrecognized arguments: --bogus\n",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "export_demo",
+   "argv": [
+    "export-pdb",
+    "--top",
+    "demo_dry.parm7",
+    "--traj",
+    "demo_dry.nc",
+    "--frame-list",
+    "0, 10, 20-23:2, last",
+    "--selection",
+    "Aptamer",
+    "-s",
+    "output.timestamp_files=false"
+   ],
+   "inputs": {
+    "demo_dry.parm7": "topology/demo_dry.parm7",
+    "demo_dry.nc": "io/trajectories/demo_dry.nc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"pdbs\": [\n    \"{work}/MDATK_output/MDATK_frame_00000.pdb\",\n    \"{work}/MDATK_output/MDATK_frame_00010.pdb\",\n    \"{work}/MDATK_output/MDATK_frame_00020.pdb\",\n    \"{work}/MDATK_output/MDATK_frame_00022.pdb\",\n    \"{work}/MDATK_output/MDATK_frame_00023.pdb\"\n  ]\n}\n",
+   "stderr": "[100.0%] inputs ready\nExporting 5 frame(s) (388 atoms) as PDB\n[100.0%] PDB frame 23\n",
+   "written": {
+    "MDATK_output/MDATK_frame_00000.pdb": {
+     "sha256": "296c1dd8b87234e4abcbd782dc1a52b67a2bd5b9c30a6c6794268b68cbd5396c",
+     "size": 40390
+    },
+    "MDATK_output/MDATK_frame_00010.pdb": {
+     "sha256": "54c26a0075d3fdb092bbdf3d2017e68b5615e8867375471a4ad7bb4387e835da",
+     "size": 40390
+    },
+    "MDATK_output/MDATK_frame_00020.pdb": {
+     "sha256": "48f29738a12c834586f769595c6ab6ef79c63353901959ae37adefd64bd5438b",
+     "size": 40390
+    },
+    "MDATK_output/MDATK_frame_00022.pdb": {
+     "sha256": "d8adc30492b71db6be7ab9c225762ae5c3f557b377c362356489a36d708f98ab",
+     "size": 40390
+    },
+    "MDATK_output/MDATK_frame_00023.pdb": {
+     "sha256": "a0290ec204d3d6bb347bd9ad862e64c0421d0cb2ea04a9aaf3091888bc5ce518",
+     "size": 40390
+    }
+   },
+   "posix_only": true
+  },
+  {
+   "name": "export_times",
+   "argv": [
+    "export-pdb",
+    "--top",
+    "demo_dry.parm7",
+    "--traj",
+    "demo_dry.nc",
+    "--times",
+    "55ps, 0.1ns, 10ns",
+    "--selection",
+    "resname MG",
+    "-o",
+    "pdbs",
+    "-s",
+    "output.timestamp_files=false",
+    "-s",
+    "output.pdb.prefix=ion"
+   ],
+   "inputs": {
+    "demo_dry.parm7": "topology/demo_dry.parm7",
+    "demo_dry.nc": "io/trajectories/demo_dry.nc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"pdbs\": [\n    \"{work}/pdbs/ion_00005.pdb\",\n    \"{work}/pdbs/ion_00010.pdb\",\n    \"{work}/pdbs/ion_00023.pdb\"\n  ]\n}\n",
+   "stderr": "[100.0%] inputs ready\nWARNING: time 10000.000 ps is outside the trajectory; using frame 23 (230.000 ps)\nExporting 3 frame(s) (3 atoms) as PDB\n[100.0%] PDB frame 23\n",
+   "written": {
+    "pdbs/ion_00005.pdb": {
+     "text": "TITLE     MDANALYSIS FRAME 0: Created by PDBWriter\nCRYST1   46.014   46.036   61.638  90.00  90.00  90.00 P 1           1\nATOM      1 MG   MG  X  25      12.127  15.606  19.675  1.00  0.00      SYSTMG  \nATOM      2 MG   MG  X  26      29.555  22.191  38.989  1.00  0.00      SYSTMG  \nATOM      3 MG   MG  X  27      23.688   9.324  37.645  1.00  0.00      SYSTMG  \nEND\n"
+    },
+    "pdbs/ion_00010.pdb": {
+     "text": "TITLE     MDANALYSIS FRAME 0: Created by PDBWriter\nCRYST1   46.014   46.036   61.638  90.00  90.00  90.00 P 1           1\nATOM      1 MG   MG  X  25      13.991  14.413  19.775  1.00  0.00      SYSTMG  \nATOM      2 MG   MG  X  26      28.608  23.245  40.159  1.00  0.00      SYSTMG  \nATOM      3 MG   MG  X  27      20.770   8.272  40.949  1.00  0.00      SYSTMG  \nEND\n"
+    },
+    "pdbs/ion_00023.pdb": {
+     "text": "TITLE     MDANALYSIS FRAME 0: Created by PDBWriter\nCRYST1   46.014   46.036   61.638  90.00  90.00  90.00 P 1           1\nATOM      1 MG   MG  X  25      17.442  12.536  19.159  1.00  0.00      SYSTMG  \nATOM      2 MG   MG  X  26      28.471  23.692  41.499  1.00  0.00      SYSTMG  \nATOM      3 MG   MG  X  27      22.147  11.415  42.321  1.00  0.00      SYSTMG  \nEND\n"
+    }
+   },
+   "posix_only": true
+  },
+  {
+   "name": "export_stamp",
+   "argv": [
+    "export-pdb",
+    "--top",
+    "demo_dry.parm7",
+    "--traj",
+    "demo_dry.nc",
+    "--frame-list",
+    "3",
+    "--selection",
+    "Target"
+   ],
+   "inputs": {
+    "demo_dry.parm7": "topology/demo_dry.parm7",
+    "demo_dry.nc": "io/trajectories/demo_dry.nc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"pdbs\": [\n    \"{work}/MDATK_output/MDATK_frame_00003_{stamp}.pdb\"\n  ]\n}\n",
+   "stderr": "[100.0%] inputs ready\nExporting 1 frame(s) (382 atoms) as PDB\n[100.0%] PDB frame 3\n",
+   "written": {
+    "MDATK_output/MDATK_frame_00003_{stamp}.pdb": {
+     "sha256": "33e8b6fbde37ffb6f0aefddcc71db231c86ee5e93020d02519a1ef19bb238dd1",
+     "size": 39752
+    }
+   },
+   "posix_only": true
+  },
+  {
+   "name": "export_all_atoms",
+   "argv": [
+    "export-pdb",
+    "--top",
+    "demo_dry.parm7",
+    "--traj",
+    "demo_dry.nc",
+    "--frame-list",
+    "last",
+    "-s",
+    "output.timestamp_files=false"
+   ],
+   "inputs": {
+    "demo_dry.parm7": "topology/demo_dry.parm7",
+    "demo_dry.nc": "io/trajectories/demo_dry.nc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"pdbs\": [\n    \"{work}/MDATK_output/MDATK_frame_00023.pdb\"\n  ]\n}\n",
+   "stderr": "[100.0%] inputs ready\nExporting 1 frame(s) (773 atoms) as PDB\n[100.0%] PDB frame 23\n",
+   "written": {
+    "MDATK_output/MDATK_frame_00023.pdb": {
+     "sha256": "72e6733f7ee9d39041131dd74f46b2740ee7915298df99201f81ade0ed4e4ef9",
+     "size": 80259
+    }
+   },
+   "posix_only": true
+  },
+  {
+   "name": "export_project",
+   "argv": [
+    "export-pdb",
+    "-p",
+    "base.mdatk.toml"
+   ],
+   "inputs": {
+    "demo_dry.parm7": "topology/demo_dry.parm7",
+    "demo_dry.nc": "io/trajectories/demo_dry.nc"
+   },
+   "setup": {
+    "base.mdatk.toml": "format = \"mdatk-project\"\nnotes = \"relative paths, resolved against this file's folder\"\n\n[inputs]\ntopology = \"demo_dry.parm7\"\ntrajectories = [\"demo_dry.nc\"]\ndt_ps = 5.0\ntime_unit = \"ps\"\n\n[[groups]]\nname = \"Aptamer\"\nresidues = \"1-4, 21-24\"\ncolor = \"#123456\"\n\n[[groups]]\nname = \"Target\"\nselection = \"resid 5:20 and not name H*\"\n\n[output]\nout_dir = \"results\"\ntimestamp_files = false\n\n[output.pdb]\nframes = \"1, 3\"\ntimes = \"100\"\nselection = \"Aptamer\"\nprefix = \"snap\"\n"
+   },
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"pdbs\": [\n    \"{work}/results/snap_00001.pdb\",\n    \"{work}/results/snap_00003.pdb\",\n    \"{work}/results/snap_00020.pdb\"\n  ]\n}\n",
+   "stderr": "[100.0%] inputs ready\nExporting 3 frame(s) (256 atoms) as PDB\n[100.0%] PDB frame 20\n",
+   "written": {
+    "results/snap_00001.pdb": {
+     "sha256": "21ead8a632fbc5e9f04f57e397f701f56f39462d1635536c8115ae79d9088816",
+     "size": 26674
+    },
+    "results/snap_00003.pdb": {
+     "sha256": "1d87753f5e6ba3e17a2870a49cb9e15ae1f78f087f4eba67037290f4cfa909c6",
+     "size": 26674
+    },
+    "results/snap_00020.pdb": {
+     "sha256": "daa7f8b849400bb0f6374bbe2cb6459c78d63b06e3d5e15e736fd7c990b040a5",
+     "size": 26674
+    }
+   },
+   "posix_only": true
+  },
+  {
+   "name": "export_project_override",
+   "argv": [
+    "export-pdb",
+    "-p",
+    "base.mdatk.toml",
+    "--frame-list",
+    "",
+    "--times",
+    "0.01ns",
+    "--selection",
+    "Aptamer, Target",
+    "-q"
+   ],
+   "inputs": {
+    "demo_dry.parm7": "topology/demo_dry.parm7",
+    "demo_dry.nc": "io/trajectories/demo_dry.nc"
+   },
+   "setup": {
+    "base.mdatk.toml": "format = \"mdatk-project\"\nnotes = \"relative paths, resolved against this file's folder\"\n\n[inputs]\ntopology = \"demo_dry.parm7\"\ntrajectories = [\"demo_dry.nc\"]\ndt_ps = 5.0\ntime_unit = \"ps\"\n\n[[groups]]\nname = \"Aptamer\"\nresidues = \"1-4, 21-24\"\ncolor = \"#123456\"\n\n[[groups]]\nname = \"Target\"\nselection = \"resid 5:20 and not name H*\"\n\n[output]\nout_dir = \"results\"\ntimestamp_files = false\n\n[output.pdb]\nframes = \"1, 3\"\ntimes = \"100\"\nselection = \"Aptamer\"\nprefix = \"snap\"\n"
+   },
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"pdbs\": [\n    \"{work}/results/snap_00002.pdb\"\n  ]\n}\n",
+   "stderr": "",
+   "written": {
+    "results/snap_00002.pdb": {
+     "sha256": "4dcbe952c8b20bf427bf32e205c145dd9ab5e3674d1d3dd80860de9eacfd93a9",
+     "size": 62197
+    }
+   },
+   "posix_only": true
+  },
+  {
+   "name": "export_verbose_layout",
+   "argv": [
+    "export-pdb",
+    "--top",
+    "demo_dry.parm7",
+    "--traj",
+    "demo_dry.nc",
+    "--frame-list",
+    "2",
+    "-v",
+    "-s",
+    "output.timestamp_files=false",
+    "-s",
+    "layout.panels.1.type=structure",
+    "--selection",
+    "resid 3"
+   ],
+   "inputs": {
+    "demo_dry.parm7": "topology/demo_dry.parm7",
+    "demo_dry.nc": "io/trajectories/demo_dry.nc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"pdbs\": [\n    \"{work}/MDATK_output/MDATK_frame_00002.pdb\"\n  ]\n}\n",
+   "stderr": "WARNING: 2 structure panels in the layout; usually one is intended (check each slot's panel type)\n[100.0%] inputs ready\nExporting 1 frame(s) (33 atoms) as PDB\n[100.0%] PDB frame 2\n",
+   "written": {
+    "MDATK_output/MDATK_frame_00002.pdb": {
+     "text": "TITLE     MDANALYSIS FRAME 0: Created by PDBWriter\nCRYST1   46.014   46.036   61.638  90.00  90.00  90.00 P 1           1\nATOM      1  N9  A   X   3      19.436  20.880  20.512  1.00  0.00      SYST N  \nATOM      2  C8  A   X   3      18.222  21.101  20.761  1.00  0.00      SYST C  \nATOM      3  N7  A   X   3      17.989  22.525  20.910  1.00  0.00      SYST N  \nATOM      4  C5  A   X   3      19.383  23.064  20.716  1.00  0.00      SYST C  \nATOM      5  C6  A   X   3      19.959  24.507  21.025  1.00  0.00      SYST C  \nATOM      6  N1  A   X   3      21.568  24.496  20.787  1.00  0.00      SYST N  \nATOM      7  C2  A   X   3      22.359  23.523  20.676  1.00  0.00      SYST C  \nATOM      8  N3  A   X   3      21.648  22.177  20.281  1.00  0.00      SYST N  \nATOM      9  C4  A   X   3      19.901  21.772  20.512  1.00  0.00      SYST C  \nATOM     10  H8  A   X   3      17.450  20.456  20.842  1.00  0.00      SYST H  \nATOM     11  N6  A   X   3      19.439  25.288  21.320  1.00  0.00      SYST N  \nATOM     12  H61 A   X   3      19.844  26.364  21.128  1.00  0.00      SYST H  \nATOM     13  H62 A   X   3      18.435  25.214  21.251  1.00  0.00      SYST H  \nATOM     14  H2  A   X   3      23.320  23.485  20.354  1.00  0.00      SYST H  \nATOM     15  C1' A   X   3      20.079  19.592  20.207  1.00  0.00      SYST C  \nATOM     16  O4' A   X   3      18.673  19.047  20.746  1.00  0.00      SYST O  \nATOM     17  C2' A   X   3      20.796  18.743  20.725  1.00  0.00      SYST C  \nATOM     18  O2' A   X   3      22.103  18.490  20.284  1.00  0.00      SYST O  \nATOM     19  C3' A   X   3      19.895  17.265  21.130  1.00  0.00      SYST C  \nATOM     20  C4' A   X   3      18.546  17.863  20.947  1.00  0.00      SYST C  \nATOM     21  O3' A   X   3      20.489  16.133  21.664  1.00  0.00      SYST O  \nATOM     22  C5' A   X   3      16.626  16.997  20.604  1.00  0.00      SYST C  \nATOM     23  O5' A   X   3      17.634  15.827  21.026  1.00  0.00      SYST O  \nATOM     24  P   A   X   3      16.396  16.147  19.836  1.00  0.00      SYST P  \nATOM     25  OP1 A   X   3      15.349  15.500  19.324  1.00  0.00      SYST O  \nATOM     26  OP2 A   X   3      17.014  15.340  18.531  1.00  0.00      SYST O  \nATOM     27  H1' A   X   3      20.139  19.458  19.019  1.00  0.00      SYST H  \nATOM     28  H2' A   X   3      21.571  18.342  21.552  1.00  0.00      SYST H  \nATOM     29 HO2' A   X   3      22.966  19.001  19.847  1.00  0.00      SYST H  \nATOM     30  H3' A   X   3      20.005  16.977  22.069  1.00  0.00      SYST H  \nATOM     31  H4' A   X   3      18.023  17.845  21.908  1.00  0.00      SYST H  \nATOM     32  H5' A   X   3      15.835  17.428  20.311  1.00  0.00      SYST H  \nATOM     33 H5'' A   X   3      16.488  16.688  21.529  1.00  0.00      SYST H  \nCONECT    1    2    9   15\nCONECT    2    1    3   10\nCONECT    3    2    4\nCONECT    4    3    5    9\nCONECT    5    4    6   11\nCONECT    6    5    7\nCONECT    7    6    8   14\nCONECT    8    7    9\nCONECT    9    1    4    8\nCONECT   10    2\nCONECT   11    5   12   13\nCONECT   12   11\nCONECT   13   11\nCONECT   14    7\nCONECT   15    1   16   17   27\nCONECT   16   15   20\nCONECT   17   15   18   19   28\nCONECT   18   17   29\nCONECT   19   17   20   21   30\nCONECT   20   16   19   22   31\nCONECT   21   19\nCONECT   22   20   23   32   33\nCONECT   23   22   24\nCONECT   24   23   25   26\nCONECT   25   24\nCONECT   26   24\nCONECT   27   15\nCONECT   28   17\nCONECT   29   18\nCONECT   30   19\nCONECT   31   20\nCONECT   32   22\nCONECT   33   22\nEND\n"
+    }
+   },
+   "posix_only": true
+  },
+  {
+   "name": "export_no_frames",
+   "argv": [
+    "export-pdb",
+    "--top",
+    "demo_dry.parm7",
+    "--traj",
+    "demo_dry.nc",
+    "-s",
+    "output.timestamp_files=false"
+   ],
+   "inputs": {
+    "demo_dry.parm7": "topology/demo_dry.parm7",
+    "demo_dry.nc": "io/trajectories/demo_dry.nc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": "[100.0%] inputs ready\nerror: PDB export enabled but no frames or times were given\n",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "export_invalid",
+   "argv": [
+    "export-pdb",
+    "--top",
+    "demo_dry.parm7",
+    "--frame-list",
+    "0"
+   ],
+   "inputs": {
+    "demo_dry.parm7": "topology/demo_dry.parm7",
+    "demo_dry.nc": "io/trajectories/demo_dry.nc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": "error: Invalid parameters:\n  - No trajectory file selected.\n",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "export_bad_selection",
+   "argv": [
+    "export-pdb",
+    "--top",
+    "demo_dry.parm7",
+    "--traj",
+    "demo_dry.nc",
+    "--frame-list",
+    "0",
+    "--selection",
+    "name ("
+   ],
+   "inputs": {
+    "demo_dry.parm7": "topology/demo_dry.parm7",
+    "demo_dry.nc": "io/trajectories/demo_dry.nc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": "[100.0%] inputs ready\nerror: invalid selection 'name (' -> 'name (': Selection failed: 'Unexpected token '(''\n",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "export_empty_selection",
+   "argv": [
+    "export-pdb",
+    "--top",
+    "demo_dry.parm7",
+    "--traj",
+    "demo_dry.nc",
+    "--frame-list",
+    "0",
+    "--selection",
+    "resname ZZZ"
+   ],
+   "inputs": {
+    "demo_dry.parm7": "topology/demo_dry.parm7",
+    "demo_dry.nc": "io/trajectories/demo_dry.nc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": "[100.0%] inputs ready\nerror: selection 'resname ZZZ' matched no atoms\n",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "export_bad_frames",
+   "argv": [
+    "export-pdb",
+    "--top",
+    "demo_dry.parm7",
+    "--traj",
+    "demo_dry.nc",
+    "--frame-list",
+    "0, 99"
+   ],
+   "inputs": {
+    "demo_dry.parm7": "topology/demo_dry.parm7",
+    "demo_dry.nc": "io/trajectories/demo_dry.nc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": "[100.0%] inputs ready\nerror: frame(s) [99] outside trajectory (0-23)\n",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "export_pdb_trajectory",
+   "argv": [
+    "export-pdb",
+    "--top",
+    "chains.pdb",
+    "--traj",
+    "chains.pdb",
+    "--frame-list",
+    "0",
+    "-s",
+    "output.timestamp_files=false",
+    "-s",
+    "groups=[{\"name\": \"All\", \"selection\": \"all\"}]",
+    "-s",
+    "analyses.contacts.enabled=false",
+    "-s",
+    "analyses.hbonds.enabled=false",
+    "-s",
+    "analyses.mg.enabled=false",
+    "-s",
+    "analyses.stacking.enabled=false",
+    "-s",
+    "analyses.energy.enabled=false"
+   ],
+   "inputs": {
+    "chains.pdb": "io/pdb/export/files/chains.pdb"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"pdbs\": [\n    \"{work}/MDATK_output/MDATK_frame_00000.pdb\"\n  ]\n}\n",
+   "stderr": "[100.0%] inputs ready\nExporting 1 frame(s) (8 atoms) as PDB\n[100.0%] PDB frame 0\n",
+   "written": {
+    "MDATK_output/MDATK_frame_00000.pdb": {
+     "text": "HEADER    CHAIN VARIANTS\nTITLE     MDANALYSIS FRAME 0: Created by PDBWriter\nCOMPND    MOL_ID: 1;\nREMARK     1 word word word word word word word word word word word word word\nREMARK     word word word word word word word word word word word word word\nREMARK     word word word word\nCRYST1    1.000    1.000    1.000  90.00  90.00  90.00 P 1           1\nREMARK     285 UNITARY VALUES FOR THE UNIT CELL AUTOMATICALLY SET\nREMARK     285 BY MDANALYSIS PDBWRITER BECAUSE UNIT CELL INFORMATION\nREMARK     285 WAS MISSING.\nREMARK     285 PROTEIN DATA BANK CONVENTIONS REQUIRE THAT\nREMARK     285 CRYST1 RECORD IS INCLUDED, BUT THE VALUES ON\nREMARK     285 THIS RECORD ARE MEANINGLESS.\nATOM      1  P   G   A   1       0.000   0.000   3.000  1.00  0.00      S1   P  \nHETATM    2 MG   MG  a   2       1.500  -0.250   3.000  1.00  0.00      S1  MG  \nATOM      3 CL   CPT 1   3       3.000  -0.500   3.000  0.50  0.00      1  C    \nATOM      4  HG  CMH é   4       4.500  -0.750   3.000  1.00 99.99      S1  HG  \nHETATM    5 FE  BHEM X   5       6.000  -1.000   3.000  1.00  0.00      S1  FE  \nATOM      6 CA   CA  X   6C      7.500  -1.250   3.000  1.00  0.00      S1  CA  \nATOM      7 NA   NA  X   7       9.000  -1.500   3.000  1.00  0.00      SEGM    \nHETATM    8  C1' OEC B   8      10.500  -1.750   3.000  1.00  0.00      S1   C  \nCONECT    1    2    3\nCONECT    2    1\nCONECT    3    1    8\nCONECT    8    3\nEND\n"
+    }
+   },
+   "posix_only": true
+  },
+  {
+   "name": "density_info_angles_120.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/angles_120.mrc"
+   ],
+   "inputs": {
+    "maps/angles_120.mrc": "io/maps/files/angles_120.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": "error: maps/angles_120.mrc: non-orthogonal cell angles [90.0, 90.0, 120.0] are not supported\n",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "density_info_angles_60.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/angles_60.mrc"
+   ],
+   "inputs": {
+    "maps/angles_60.mrc": "io/maps/files/angles_60.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": "error: maps/angles_60.mrc: non-orthogonal cell angles [60.0, 60.0, 60.0] are not supported\n",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "density_info_angles_nan.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/angles_nan.mrc"
+   ],
+   "inputs": {
+    "maps/angles_nan.mrc": "io/maps/files/angles_nan.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/angles_nan.mrc\",\n  \"grid_xyz\": [\n    5,\n    4,\n    3\n  ],\n  \"voxel_A\": [\n    1.0,\n    1.0,\n    1.0\n  ],\n  \"origin_A\": [\n    0.0,\n    0.0,\n    0.0\n  ],\n  \"extent_A\": [\n    4.0,\n    3.0,\n    2.0\n  ],\n  \"min\": -1.325007,\n  \"max\": 2.490991,\n  \"mean\": 0.648763,\n  \"rms\": 1.106469,\n  \"level_2sigma\": 2.8617\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_angles_negative.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/angles_negative.mrc"
+   ],
+   "inputs": {
+    "maps/angles_negative.mrc": "io/maps/files/angles_negative.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/angles_negative.mrc\",\n  \"grid_xyz\": [\n    5,\n    4,\n    3\n  ],\n  \"voxel_A\": [\n    1.0,\n    1.0,\n    1.0\n  ],\n  \"origin_A\": [\n    0.0,\n    0.0,\n    0.0\n  ],\n  \"extent_A\": [\n    4.0,\n    3.0,\n    2.0\n  ],\n  \"min\": -1.325007,\n  \"max\": 2.490991,\n  \"mean\": 0.648763,\n  \"rms\": 1.106469,\n  \"level_2sigma\": 2.8617\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_angles_slight.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/angles_slight.mrc"
+   ],
+   "inputs": {
+    "maps/angles_slight.mrc": "io/maps/files/angles_slight.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": "error: maps/angles_slight.mrc: non-orthogonal cell angles [90.0199966430664, 90.0, 90.0] are not supported\n",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "density_info_angles_within.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/angles_within.mrc"
+   ],
+   "inputs": {
+    "maps/angles_within.mrc": "io/maps/files/angles_within.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/angles_within.mrc\",\n  \"grid_xyz\": [\n    5,\n    4,\n    3\n  ],\n  \"voxel_A\": [\n    1.0,\n    1.0,\n    1.0\n  ],\n  \"origin_A\": [\n    0.0,\n    0.0,\n    0.0\n  ],\n  \"extent_A\": [\n    4.0,\n    3.0,\n    2.0\n  ],\n  \"min\": -1.325007,\n  \"max\": 2.490991,\n  \"mean\": 0.648763,\n  \"rms\": 1.106469,\n  \"level_2sigma\": 2.8617\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_angles_zero.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/angles_zero.mrc"
+   ],
+   "inputs": {
+    "maps/angles_zero.mrc": "io/maps/files/angles_zero.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/angles_zero.mrc\",\n  \"grid_xyz\": [\n    5,\n    4,\n    3\n  ],\n  \"voxel_A\": [\n    1.0,\n    1.0,\n    1.0\n  ],\n  \"origin_A\": [\n    0.0,\n    0.0,\n    0.0\n  ],\n  \"extent_A\": [\n    4.0,\n    3.0,\n    2.0\n  ],\n  \"min\": -1.325007,\n  \"max\": 2.490991,\n  \"mean\": 0.648763,\n  \"rms\": 1.106469,\n  \"level_2sigma\": 2.8617\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_axes_123be.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/axes_123be.mrc"
+   ],
+   "inputs": {
+    "maps/axes_123be.mrc": "io/maps/files/axes_123be.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/axes_123be.mrc\",\n  \"grid_xyz\": [\n    5,\n    4,\n    3\n  ],\n  \"voxel_A\": [\n    0.8,\n    1.1,\n    1.3\n  ],\n  \"origin_A\": [\n    10.0,\n    -5.0,\n    2.0\n  ],\n  \"extent_A\": [\n    13.2,\n    -1.7,\n    4.6\n  ],\n  \"min\": -1.411907,\n  \"max\": 2.487476,\n  \"mean\": 0.364566,\n  \"rms\": 1.211182,\n  \"level_2sigma\": 2.78693\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_axes_123le.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/axes_123le.mrc"
+   ],
+   "inputs": {
+    "maps/axes_123le.mrc": "io/maps/files/axes_123le.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/axes_123le.mrc\",\n  \"grid_xyz\": [\n    5,\n    4,\n    3\n  ],\n  \"voxel_A\": [\n    0.8,\n    1.1,\n    1.3\n  ],\n  \"origin_A\": [\n    10.0,\n    -5.0,\n    2.0\n  ],\n  \"extent_A\": [\n    13.2,\n    -1.7,\n    4.6\n  ],\n  \"min\": -1.395689,\n  \"max\": 2.377485,\n  \"mean\": 0.357933,\n  \"rms\": 1.147996,\n  \"level_2sigma\": 2.653924\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_axes_132be.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/axes_132be.mrc"
+   ],
+   "inputs": {
+    "maps/axes_132be.mrc": "io/maps/files/axes_132be.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/axes_132be.mrc\",\n  \"grid_xyz\": [\n    5,\n    3,\n    4\n  ],\n  \"voxel_A\": [\n    0.8,\n    1.1,\n    1.3\n  ],\n  \"origin_A\": [\n    10.0,\n    -5.0,\n    2.0\n  ],\n  \"extent_A\": [\n    13.2,\n    -2.8,\n    5.9\n  ],\n  \"min\": -1.436882,\n  \"max\": 2.479426,\n  \"mean\": 0.346888,\n  \"rms\": 1.072266,\n  \"level_2sigma\": 2.49142\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_axes_132le.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/axes_132le.mrc"
+   ],
+   "inputs": {
+    "maps/axes_132le.mrc": "io/maps/files/axes_132le.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/axes_132le.mrc\",\n  \"grid_xyz\": [\n    5,\n    3,\n    4\n  ],\n  \"voxel_A\": [\n    0.8,\n    1.1,\n    1.3\n  ],\n  \"origin_A\": [\n    10.0,\n    -5.0,\n    2.0\n  ],\n  \"extent_A\": [\n    13.2,\n    -2.8,\n    5.9\n  ],\n  \"min\": -1.464056,\n  \"max\": 2.247416,\n  \"mean\": 0.210823,\n  \"rms\": 1.087339,\n  \"level_2sigma\": 2.3855\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_axes_213be.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/axes_213be.mrc"
+   ],
+   "inputs": {
+    "maps/axes_213be.mrc": "io/maps/files/axes_213be.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/axes_213be.mrc\",\n  \"grid_xyz\": [\n    4,\n    5,\n    3\n  ],\n  \"voxel_A\": [\n    0.8,\n    1.1,\n    1.3\n  ],\n  \"origin_A\": [\n    10.0,\n    -5.0,\n    2.0\n  ],\n  \"extent_A\": [\n    12.4,\n    -0.6,\n    4.6\n  ],\n  \"min\": -1.449458,\n  \"max\": 2.487176,\n  \"mean\": 0.446844,\n  \"rms\": 1.269077,\n  \"level_2sigma\": 2.984998\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_axes_213le.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/axes_213le.mrc"
+   ],
+   "inputs": {
+    "maps/axes_213le.mrc": "io/maps/files/axes_213le.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/axes_213le.mrc\",\n  \"grid_xyz\": [\n    4,\n    5,\n    3\n  ],\n  \"voxel_A\": [\n    0.8,\n    1.1,\n    1.3\n  ],\n  \"origin_A\": [\n    10.0,\n    -5.0,\n    2.0\n  ],\n  \"extent_A\": [\n    12.4,\n    -0.6,\n    4.6\n  ],\n  \"min\": -1.489524,\n  \"max\": 2.474139,\n  \"mean\": 0.518979,\n  \"rms\": 1.242519,\n  \"level_2sigma\": 3.004016\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_axes_231be.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/axes_231be.mrc"
+   ],
+   "inputs": {
+    "maps/axes_231be.mrc": "io/maps/files/axes_231be.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/axes_231be.mrc\",\n  \"grid_xyz\": [\n    3,\n    5,\n    4\n  ],\n  \"voxel_A\": [\n    0.8,\n    1.1,\n    1.3\n  ],\n  \"origin_A\": [\n    10.0,\n    -5.0,\n    2.0\n  ],\n  \"extent_A\": [\n    11.6,\n    -0.6,\n    5.9\n  ],\n  \"min\": -1.430596,\n  \"max\": 2.456759,\n  \"mean\": 0.370116,\n  \"rms\": 1.162491,\n  \"level_2sigma\": 2.695097\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_axes_231le.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/axes_231le.mrc"
+   ],
+   "inputs": {
+    "maps/axes_231le.mrc": "io/maps/files/axes_231le.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/axes_231le.mrc\",\n  \"grid_xyz\": [\n    3,\n    5,\n    4\n  ],\n  \"voxel_A\": [\n    0.8,\n    1.1,\n    1.3\n  ],\n  \"origin_A\": [\n    10.0,\n    -5.0,\n    2.0\n  ],\n  \"extent_A\": [\n    11.6,\n    -0.6,\n    5.9\n  ],\n  \"min\": -1.490693,\n  \"max\": 2.494895,\n  \"mean\": 0.445612,\n  \"rms\": 1.149546,\n  \"level_2sigma\": 2.744704\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_axes_312be.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/axes_312be.mrc"
+   ],
+   "inputs": {
+    "maps/axes_312be.mrc": "io/maps/files/axes_312be.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/axes_312be.mrc\",\n  \"grid_xyz\": [\n    4,\n    3,\n    5\n  ],\n  \"voxel_A\": [\n    0.8,\n    1.1,\n    1.3\n  ],\n  \"origin_A\": [\n    10.0,\n    -5.0,\n    2.0\n  ],\n  \"extent_A\": [\n    12.4,\n    -2.8,\n    7.2\n  ],\n  \"min\": -1.481592,\n  \"max\": 2.494404,\n  \"mean\": 0.596787,\n  \"rms\": 1.233776,\n  \"level_2sigma\": 3.064339\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_axes_312le.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/axes_312le.mrc"
+   ],
+   "inputs": {
+    "maps/axes_312le.mrc": "io/maps/files/axes_312le.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/axes_312le.mrc\",\n  \"grid_xyz\": [\n    4,\n    3,\n    5\n  ],\n  \"voxel_A\": [\n    0.8,\n    1.1,\n    1.3\n  ],\n  \"origin_A\": [\n    10.0,\n    -5.0,\n    2.0\n  ],\n  \"extent_A\": [\n    12.4,\n    -2.8,\n    7.2\n  ],\n  \"min\": -1.454619,\n  \"max\": 2.426677,\n  \"mean\": 0.311718,\n  \"rms\": 1.161328,\n  \"level_2sigma\": 2.634374\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_axes_321be.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/axes_321be.mrc"
+   ],
+   "inputs": {
+    "maps/axes_321be.mrc": "io/maps/files/axes_321be.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/axes_321be.mrc\",\n  \"grid_xyz\": [\n    3,\n    4,\n    5\n  ],\n  \"voxel_A\": [\n    0.8,\n    1.1,\n    1.3\n  ],\n  \"origin_A\": [\n    10.0,\n    -5.0,\n    2.0\n  ],\n  \"extent_A\": [\n    11.6,\n    -1.7,\n    7.2\n  ],\n  \"min\": -1.408285,\n  \"max\": 2.479537,\n  \"mean\": 0.561349,\n  \"rms\": 1.179261,\n  \"level_2sigma\": 2.91987\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_axes_321le.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/axes_321le.mrc"
+   ],
+   "inputs": {
+    "maps/axes_321le.mrc": "io/maps/files/axes_321le.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/axes_321le.mrc\",\n  \"grid_xyz\": [\n    3,\n    4,\n    5\n  ],\n  \"voxel_A\": [\n    0.8,\n    1.1,\n    1.3\n  ],\n  \"origin_A\": [\n    10.0,\n    -5.0,\n    2.0\n  ],\n  \"extent_A\": [\n    11.6,\n    -1.7,\n    7.2\n  ],\n  \"min\": -1.491668,\n  \"max\": 2.497306,\n  \"mean\": 0.70071,\n  \"rms\": 1.220387,\n  \"level_2sigma\": 3.141483\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_axes_nstart_123be.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/axes_nstart_123be.mrc"
+   ],
+   "inputs": {
+    "maps/axes_nstart_123be.mrc": "io/maps/files/axes_nstart_123be.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/axes_nstart_123be.mrc\",\n  \"grid_xyz\": [\n    5,\n    4,\n    3\n  ],\n  \"voxel_A\": [\n    2.0,\n    1.5,\n    0.5\n  ],\n  \"origin_A\": [\n    -8.0,\n    3.0,\n    5.0\n  ],\n  \"extent_A\": [\n    0.0,\n    7.5,\n    6.0\n  ],\n  \"min\": -1.430637,\n  \"max\": 2.242801,\n  \"mean\": 0.533294,\n  \"rms\": 1.037247,\n  \"level_2sigma\": 2.607789\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_axes_nstart_123le.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/axes_nstart_123le.mrc"
+   ],
+   "inputs": {
+    "maps/axes_nstart_123le.mrc": "io/maps/files/axes_nstart_123le.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/axes_nstart_123le.mrc\",\n  \"grid_xyz\": [\n    5,\n    4,\n    3\n  ],\n  \"voxel_A\": [\n    2.0,\n    1.5,\n    0.5\n  ],\n  \"origin_A\": [\n    -8.0,\n    3.0,\n    5.0\n  ],\n  \"extent_A\": [\n    0.0,\n    7.5,\n    6.0\n  ],\n  \"min\": -1.325007,\n  \"max\": 2.490991,\n  \"mean\": 0.648763,\n  \"rms\": 1.106469,\n  \"level_2sigma\": 2.8617\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_axes_nstart_132be.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/axes_nstart_132be.mrc"
+   ],
+   "inputs": {
+    "maps/axes_nstart_132be.mrc": "io/maps/files/axes_nstart_132be.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/axes_nstart_132be.mrc\",\n  \"grid_xyz\": [\n    5,\n    3,\n    4\n  ],\n  \"voxel_A\": [\n    2.0,\n    1.5,\n    0.5\n  ],\n  \"origin_A\": [\n    -8.0,\n    15.0,\n    1.0\n  ],\n  \"extent_A\": [\n    0.0,\n    18.0,\n    2.5\n  ],\n  \"min\": -1.432847,\n  \"max\": 2.384543,\n  \"mean\": 0.475175,\n  \"rms\": 1.159766,\n  \"level_2sigma\": 2.794707\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_axes_nstart_132le.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/axes_nstart_132le.mrc"
+   ],
+   "inputs": {
+    "maps/axes_nstart_132le.mrc": "io/maps/files/axes_nstart_132le.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/axes_nstart_132le.mrc\",\n  \"grid_xyz\": [\n    5,\n    3,\n    4\n  ],\n  \"voxel_A\": [\n    2.0,\n    1.5,\n    0.5\n  ],\n  \"origin_A\": [\n    -8.0,\n    15.0,\n    1.0\n  ],\n  \"extent_A\": [\n    0.0,\n    18.0,\n    2.5\n  ],\n  \"min\": -1.493277,\n  \"max\": 2.44986,\n  \"mean\": 0.530327,\n  \"rms\": 1.174462,\n  \"level_2sigma\": 2.879252\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_axes_nstart_213be.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/axes_nstart_213be.mrc"
+   ],
+   "inputs": {
+    "maps/axes_nstart_213be.mrc": "io/maps/files/axes_nstart_213be.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/axes_nstart_213be.mrc\",\n  \"grid_xyz\": [\n    4,\n    5,\n    3\n  ],\n  \"voxel_A\": [\n    2.0,\n    1.5,\n    0.5\n  ],\n  \"origin_A\": [\n    4.0,\n    -6.0,\n    5.0\n  ],\n  \"extent_A\": [\n    10.0,\n    0.0,\n    6.0\n  ],\n  \"min\": -1.46339,\n  \"max\": 2.490099,\n  \"mean\": 0.818935,\n  \"rms\": 1.142686,\n  \"level_2sigma\": 3.104307\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_axes_nstart_213le.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/axes_nstart_213le.mrc"
+   ],
+   "inputs": {
+    "maps/axes_nstart_213le.mrc": "io/maps/files/axes_nstart_213le.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/axes_nstart_213le.mrc\",\n  \"grid_xyz\": [\n    4,\n    5,\n    3\n  ],\n  \"voxel_A\": [\n    2.0,\n    1.5,\n    0.5\n  ],\n  \"origin_A\": [\n    4.0,\n    -6.0,\n    5.0\n  ],\n  \"extent_A\": [\n    10.0,\n    0.0,\n    6.0\n  ],\n  \"min\": -1.496319,\n  \"max\": 2.460734,\n  \"mean\": 0.526667,\n  \"rms\": 1.14971,\n  \"level_2sigma\": 2.826087\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_axes_nstart_231be.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/axes_nstart_231be.mrc"
+   ],
+   "inputs": {
+    "maps/axes_nstart_231be.mrc": "io/maps/files/axes_nstart_231be.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/axes_nstart_231be.mrc\",\n  \"grid_xyz\": [\n    3,\n    5,\n    4\n  ],\n  \"voxel_A\": [\n    2.0,\n    1.5,\n    0.5\n  ],\n  \"origin_A\": [\n    20.0,\n    -6.0,\n    1.0\n  ],\n  \"extent_A\": [\n    24.0,\n    0.0,\n    2.5\n  ],\n  \"min\": -1.412072,\n  \"max\": 2.182495,\n  \"mean\": 0.335688,\n  \"rms\": 1.051706,\n  \"level_2sigma\": 2.439101\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_axes_nstart_231le.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/axes_nstart_231le.mrc"
+   ],
+   "inputs": {
+    "maps/axes_nstart_231le.mrc": "io/maps/files/axes_nstart_231le.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/axes_nstart_231le.mrc\",\n  \"grid_xyz\": [\n    3,\n    5,\n    4\n  ],\n  \"voxel_A\": [\n    2.0,\n    1.5,\n    0.5\n  ],\n  \"origin_A\": [\n    20.0,\n    -6.0,\n    1.0\n  ],\n  \"extent_A\": [\n    24.0,\n    0.0,\n    2.5\n  ],\n  \"min\": -1.402797,\n  \"max\": 2.484652,\n  \"mean\": 0.54348,\n  \"rms\": 1.134048,\n  \"level_2sigma\": 2.811576\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_axes_nstart_312be.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/axes_nstart_312be.mrc"
+   ],
+   "inputs": {
+    "maps/axes_nstart_312be.mrc": "io/maps/files/axes_nstart_312be.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/axes_nstart_312be.mrc\",\n  \"grid_xyz\": [\n    4,\n    3,\n    5\n  ],\n  \"voxel_A\": [\n    2.0,\n    1.5,\n    0.5\n  ],\n  \"origin_A\": [\n    4.0,\n    15.0,\n    -2.0\n  ],\n  \"extent_A\": [\n    10.0,\n    18.0,\n    0.0\n  ],\n  \"min\": -1.377677,\n  \"max\": 2.333488,\n  \"mean\": 0.528334,\n  \"rms\": 1.053108,\n  \"level_2sigma\": 2.63455\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_axes_nstart_312le.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/axes_nstart_312le.mrc"
+   ],
+   "inputs": {
+    "maps/axes_nstart_312le.mrc": "io/maps/files/axes_nstart_312le.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/axes_nstart_312le.mrc\",\n  \"grid_xyz\": [\n    4,\n    3,\n    5\n  ],\n  \"voxel_A\": [\n    2.0,\n    1.5,\n    0.5\n  ],\n  \"origin_A\": [\n    4.0,\n    15.0,\n    -2.0\n  ],\n  \"extent_A\": [\n    10.0,\n    18.0,\n    0.0\n  ],\n  \"min\": -1.442682,\n  \"max\": 2.494851,\n  \"mean\": 0.359639,\n  \"rms\": 1.22486,\n  \"level_2sigma\": 2.809359\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_axes_nstart_321be.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/axes_nstart_321be.mrc"
+   ],
+   "inputs": {
+    "maps/axes_nstart_321be.mrc": "io/maps/files/axes_nstart_321be.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/axes_nstart_321be.mrc\",\n  \"grid_xyz\": [\n    3,\n    4,\n    5\n  ],\n  \"voxel_A\": [\n    2.0,\n    1.5,\n    0.5\n  ],\n  \"origin_A\": [\n    20.0,\n    3.0,\n    -2.0\n  ],\n  \"extent_A\": [\n    24.0,\n    7.5,\n    0.0\n  ],\n  \"min\": -1.433209,\n  \"max\": 2.332499,\n  \"mean\": 0.437328,\n  \"rms\": 1.132313,\n  \"level_2sigma\": 2.701955\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_axes_nstart_321le.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/axes_nstart_321le.mrc"
+   ],
+   "inputs": {
+    "maps/axes_nstart_321le.mrc": "io/maps/files/axes_nstart_321le.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/axes_nstart_321le.mrc\",\n  \"grid_xyz\": [\n    3,\n    4,\n    5\n  ],\n  \"voxel_A\": [\n    2.0,\n    1.5,\n    0.5\n  ],\n  \"origin_A\": [\n    20.0,\n    3.0,\n    -2.0\n  ],\n  \"extent_A\": [\n    24.0,\n    7.5,\n    0.0\n  ],\n  \"min\": -1.487674,\n  \"max\": 2.390414,\n  \"mean\": 0.37129,\n  \"rms\": 1.031126,\n  \"level_2sigma\": 2.433541\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_cell_nan.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/cell_nan.mrc"
+   ],
+   "inputs": {
+    "maps/cell_nan.mrc": "io/maps/files/cell_nan.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/cell_nan.mrc\",\n  \"grid_xyz\": [\n    5,\n    4,\n    3\n  ],\n  \"voxel_A\": [\n    NaN,\n    2.5,\n    3.3333\n  ],\n  \"origin_A\": [\n    NaN,\n    0.0,\n    0.0\n  ],\n  \"extent_A\": [\n    NaN,\n    7.5,\n    6.667\n  ],\n  \"min\": -1.325007,\n  \"max\": 2.490991,\n  \"mean\": 0.648763,\n  \"rms\": 1.106469,\n  \"level_2sigma\": 2.8617\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_cell_negative.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/cell_negative.mrc"
+   ],
+   "inputs": {
+    "maps/cell_negative.mrc": "io/maps/files/cell_negative.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/cell_negative.mrc\",\n  \"grid_xyz\": [\n    5,\n    4,\n    3\n  ],\n  \"voxel_A\": [\n    1.0,\n    1.0,\n    1.0\n  ],\n  \"origin_A\": [\n    3.0,\n    -3.0,\n    1.0\n  ],\n  \"extent_A\": [\n    7.0,\n    0.0,\n    3.0\n  ],\n  \"min\": -1.325007,\n  \"max\": 2.490991,\n  \"mean\": 0.648763,\n  \"rms\": 1.106469,\n  \"level_2sigma\": 2.8617\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_cell_zero.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/cell_zero.mrc"
+   ],
+   "inputs": {
+    "maps/cell_zero.mrc": "io/maps/files/cell_zero.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/cell_zero.mrc\",\n  \"grid_xyz\": [\n    5,\n    4,\n    3\n  ],\n  \"voxel_A\": [\n    1.0,\n    1.0,\n    1.0\n  ],\n  \"origin_A\": [\n    3.0,\n    -3.0,\n    1.0\n  ],\n  \"extent_A\": [\n    7.0,\n    0.0,\n    3.0\n  ],\n  \"min\": -1.325007,\n  \"max\": 2.490991,\n  \"mean\": 0.648763,\n  \"rms\": 1.106469,\n  \"level_2sigma\": 2.8617\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_crs_000.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/crs_000.mrc"
+   ],
+   "inputs": {
+    "maps/crs_000.mrc": "io/maps/files/crs_000.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/crs_000.mrc\",\n  \"grid_xyz\": [\n    5,\n    4,\n    3\n  ],\n  \"voxel_A\": [\n    1.0,\n    1.0,\n    1.0\n  ],\n  \"origin_A\": [\n    1.0,\n    2.0,\n    3.0\n  ],\n  \"extent_A\": [\n    5.0,\n    5.0,\n    5.0\n  ],\n  \"min\": -1.325007,\n  \"max\": 2.490991,\n  \"mean\": 0.648763,\n  \"rms\": 1.106469,\n  \"level_2sigma\": 2.8617\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_crs_bad_0_0_1.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/crs_bad_0_0_1.mrc"
+   ],
+   "inputs": {
+    "maps/crs_bad_0_0_1.mrc": "io/maps/files/crs_bad_0_0_1.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": "error: maps/crs_bad_0_0_1.mrc: invalid axis order MAPC/MAPR/MAPS = [0, 0, 1]\n",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "density_info_crs_bad_1_1_3.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/crs_bad_1_1_3.mrc"
+   ],
+   "inputs": {
+    "maps/crs_bad_1_1_3.mrc": "io/maps/files/crs_bad_1_1_3.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": "error: maps/crs_bad_1_1_3.mrc: invalid axis order MAPC/MAPR/MAPS = [1, 1, 3]\n",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "density_info_crs_bad_1_2_4.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/crs_bad_1_2_4.mrc"
+   ],
+   "inputs": {
+    "maps/crs_bad_1_2_4.mrc": "io/maps/files/crs_bad_1_2_4.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": "error: maps/crs_bad_1_2_4.mrc: invalid axis order MAPC/MAPR/MAPS = [1, 2, 4]\n",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "density_info_crs_bad_3_2_0.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/crs_bad_3_2_0.mrc"
+   ],
+   "inputs": {
+    "maps/crs_bad_3_2_0.mrc": "io/maps/files/crs_bad_3_2_0.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": "error: maps/crs_bad_3_2_0.mrc: invalid axis order MAPC/MAPR/MAPS = [3, 2, 0]\n",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "density_info_crs_bad_m1_2_3.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/crs_bad_m1_2_3.mrc"
+   ],
+   "inputs": {
+    "maps/crs_bad_m1_2_3.mrc": "io/maps/files/crs_bad_m1_2_3.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": "error: maps/crs_bad_m1_2_3.mrc: invalid axis order MAPC/MAPR/MAPS = [-1, 2, 3]\n",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "density_info_dims_negative.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/dims_negative.mrc"
+   ],
+   "inputs": {
+    "maps/dims_negative.mrc": "io/maps/files/dims_negative.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": "error: maps/dims_negative.mrc: invalid dimensions 5 x -1 x 3\n",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "density_info_dims_zero.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/dims_zero.mrc"
+   ],
+   "inputs": {
+    "maps/dims_zero.mrc": "io/maps/files/dims_zero.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": "error: maps/dims_zero.mrc: invalid dimensions 0 x 4 x 3\n",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "density_info_empty.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/empty.mrc"
+   ],
+   "inputs": {
+    "maps/empty.mrc": "io/maps/files/empty.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": "error: maps/empty.mrc: file too short for an MRC header\n",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "density_info_gzip.mrc.gz",
+   "argv": [
+    "density",
+    "info",
+    "maps/gzip.mrc.gz"
+   ],
+   "inputs": {
+    "maps/gzip.mrc.gz": "io/maps/files/gzip.mrc.gz"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/gzip.mrc.gz\",\n  \"grid_xyz\": [\n    5,\n    4,\n    3\n  ],\n  \"voxel_A\": [\n    1.5,\n    1.5,\n    1.5\n  ],\n  \"origin_A\": [\n    -3.0,\n    1.5,\n    6.0\n  ],\n  \"extent_A\": [\n    3.0,\n    6.0,\n    9.0\n  ],\n  \"min\": -1.46339,\n  \"max\": 2.490099,\n  \"mean\": 0.818935,\n  \"rms\": 1.142686,\n  \"level_2sigma\": 3.104307\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_gzip_bad_block.map.gz",
+   "argv": [
+    "density",
+    "info",
+    "maps/gzip_bad_block.map.gz"
+   ],
+   "inputs": {
+    "maps/gzip_bad_block.map.gz": "io/maps/files/gzip_bad_block.map.gz"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": null,
+   "written": {},
+   "posix_only": false,
+   "mdatk_crash": "zlib.error: Error -3 while decompressing data: invalid block type"
+  },
+  {
+   "name": "density_info_gzip_bad_crc.map.gz",
+   "argv": [
+    "density",
+    "info",
+    "maps/gzip_bad_crc.map.gz"
+   ],
+   "inputs": {
+    "maps/gzip_bad_crc.map.gz": "io/maps/files/gzip_bad_crc.map.gz"
+   },
+   "setup": {},
+   "exit_only": true,
+   "exit": 1,
+   "stdout": "",
+   "stderr": "error: CRC check failed 0x12345678 != 0x468b8333\n",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "density_info_gzip_bad_isize.map.gz",
+   "argv": [
+    "density",
+    "info",
+    "maps/gzip_bad_isize.map.gz"
+   ],
+   "inputs": {
+    "maps/gzip_bad_isize.map.gz": "io/maps/files/gzip_bad_isize.map.gz"
+   },
+   "setup": {},
+   "exit_only": true,
+   "exit": 1,
+   "stdout": "",
+   "stderr": "error: Incorrect length of data produced\n",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "density_info_gzip_bad_magic.map.gz",
+   "argv": [
+    "density",
+    "info",
+    "maps/gzip_bad_magic.map.gz"
+   ],
+   "inputs": {
+    "maps/gzip_bad_magic.map.gz": "io/maps/files/gzip_bad_magic.map.gz"
+   },
+   "setup": {},
+   "exit_only": true,
+   "exit": 1,
+   "stdout": "",
+   "stderr": "error: Not a gzipped file (b'XY')\n",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "density_info_gzip_bad_magic_quote.map.gz",
+   "argv": [
+    "density",
+    "info",
+    "maps/gzip_bad_magic_quote.map.gz"
+   ],
+   "inputs": {
+    "maps/gzip_bad_magic_quote.map.gz": "io/maps/files/gzip_bad_magic_quote.map.gz"
+   },
+   "setup": {},
+   "exit_only": true,
+   "exit": 1,
+   "stdout": "",
+   "stderr": "error: Not a gzipped file (b\"'x\")\n",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "density_info_gzip_bad_method.map.gz",
+   "argv": [
+    "density",
+    "info",
+    "maps/gzip_bad_method.map.gz"
+   ],
+   "inputs": {
+    "maps/gzip_bad_method.map.gz": "io/maps/files/gzip_bad_method.map.gz"
+   },
+   "setup": {},
+   "exit_only": true,
+   "exit": 1,
+   "stdout": "",
+   "stderr": "error: Unknown compression method\n",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "density_info_gzip_bad_stored.map.gz",
+   "argv": [
+    "density",
+    "info",
+    "maps/gzip_bad_stored.map.gz"
+   ],
+   "inputs": {
+    "maps/gzip_bad_stored.map.gz": "io/maps/files/gzip_bad_stored.map.gz"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": null,
+   "written": {},
+   "posix_only": false,
+   "mdatk_crash": "zlib.error: Error -3 while decompressing data: invalid stored block lengths"
+  },
+  {
+   "name": "density_info_gzip_cut_data.map.gz",
+   "argv": [
+    "density",
+    "info",
+    "maps/gzip_cut_data.map.gz"
+   ],
+   "inputs": {
+    "maps/gzip_cut_data.map.gz": "io/maps/files/gzip_cut_data.map.gz"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": null,
+   "written": {},
+   "posix_only": false,
+   "mdatk_crash": "EOFError: Compressed file ended before the end-of-stream marker was reached"
+  },
+  {
+   "name": "density_info_gzip_cut_header.map.gz",
+   "argv": [
+    "density",
+    "info",
+    "maps/gzip_cut_header.map.gz"
+   ],
+   "inputs": {
+    "maps/gzip_cut_header.map.gz": "io/maps/files/gzip_cut_header.map.gz"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": null,
+   "written": {},
+   "posix_only": false,
+   "mdatk_crash": "EOFError: Compressed file ended before the end-of-stream marker was reached"
+  },
+  {
+   "name": "density_info_gzip_cut_member.map.gz",
+   "argv": [
+    "density",
+    "info",
+    "maps/gzip_cut_member.map.gz"
+   ],
+   "inputs": {
+    "maps/gzip_cut_member.map.gz": "io/maps/files/gzip_cut_member.map.gz"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": null,
+   "written": {},
+   "posix_only": false,
+   "mdatk_crash": "EOFError: Compressed file ended before the end-of-stream marker was reached"
+  },
+  {
+   "name": "density_info_gzip_empty_member.map.gz",
+   "argv": [
+    "density",
+    "info",
+    "maps/gzip_empty_member.map.gz"
+   ],
+   "inputs": {
+    "maps/gzip_empty_member.map.gz": "io/maps/files/gzip_empty_member.map.gz"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/gzip_empty_member.map.gz\",\n  \"grid_xyz\": [\n    5,\n    4,\n    3\n  ],\n  \"voxel_A\": [\n    1.5,\n    1.5,\n    1.5\n  ],\n  \"origin_A\": [\n    -3.0,\n    1.5,\n    6.0\n  ],\n  \"extent_A\": [\n    3.0,\n    6.0,\n    9.0\n  ],\n  \"min\": -1.46339,\n  \"max\": 2.490099,\n  \"mean\": 0.818935,\n  \"rms\": 1.142686,\n  \"level_2sigma\": 3.104307\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_gzip_flags.map.gz",
+   "argv": [
+    "density",
+    "info",
+    "maps/gzip_flags.map.gz"
+   ],
+   "inputs": {
+    "maps/gzip_flags.map.gz": "io/maps/files/gzip_flags.map.gz"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/gzip_flags.map.gz\",\n  \"grid_xyz\": [\n    5,\n    4,\n    3\n  ],\n  \"voxel_A\": [\n    1.5,\n    1.5,\n    1.5\n  ],\n  \"origin_A\": [\n    -3.0,\n    1.5,\n    6.0\n  ],\n  \"extent_A\": [\n    3.0,\n    6.0,\n    9.0\n  ],\n  \"min\": -1.46339,\n  \"max\": 2.490099,\n  \"mean\": 0.818935,\n  \"rms\": 1.142686,\n  \"level_2sigma\": 3.104307\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_gzip_huge_dims.map.gz",
+   "argv": [
+    "density",
+    "info",
+    "maps/gzip_huge_dims.map.gz"
+   ],
+   "inputs": {
+    "maps/gzip_huge_dims.map.gz": "io/maps/files/gzip_huge_dims.map.gz"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": null,
+   "written": {},
+   "posix_only": false,
+   "mdatk_crash": "OverflowError: cannot fit 'int' into an index-sized integer"
+  },
+  {
+   "name": "density_info_gzip_magic_only.map.gz",
+   "argv": [
+    "density",
+    "info",
+    "maps/gzip_magic_only.map.gz"
+   ],
+   "inputs": {
+    "maps/gzip_magic_only.map.gz": "io/maps/files/gzip_magic_only.map.gz"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": null,
+   "written": {},
+   "posix_only": false,
+   "mdatk_crash": "EOFError: Compressed file ended before the end-of-stream marker was reached"
+  },
+  {
+   "name": "density_info_gzip_members.map.gz",
+   "argv": [
+    "density",
+    "info",
+    "maps/gzip_members.map.gz"
+   ],
+   "inputs": {
+    "maps/gzip_members.map.gz": "io/maps/files/gzip_members.map.gz"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/gzip_members.map.gz\",\n  \"grid_xyz\": [\n    5,\n    4,\n    3\n  ],\n  \"voxel_A\": [\n    1.5,\n    1.5,\n    1.5\n  ],\n  \"origin_A\": [\n    -3.0,\n    1.5,\n    6.0\n  ],\n  \"extent_A\": [\n    3.0,\n    6.0,\n    9.0\n  ],\n  \"min\": -1.46339,\n  \"max\": 2.490099,\n  \"mean\": 0.818935,\n  \"rms\": 1.142686,\n  \"level_2sigma\": 3.104307\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_gzip_one_byte_tail.map.gz",
+   "argv": [
+    "density",
+    "info",
+    "maps/gzip_one_byte_tail.map.gz"
+   ],
+   "inputs": {
+    "maps/gzip_one_byte_tail.map.gz": "io/maps/files/gzip_one_byte_tail.map.gz"
+   },
+   "setup": {},
+   "exit_only": true,
+   "exit": 1,
+   "stdout": "",
+   "stderr": "error: Not a gzipped file (b'\\x8b')\n",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "density_info_gzip_padding.map.gz",
+   "argv": [
+    "density",
+    "info",
+    "maps/gzip_padding.map.gz"
+   ],
+   "inputs": {
+    "maps/gzip_padding.map.gz": "io/maps/files/gzip_padding.map.gz"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/gzip_padding.map.gz\",\n  \"grid_xyz\": [\n    5,\n    4,\n    3\n  ],\n  \"voxel_A\": [\n    1.5,\n    1.5,\n    1.5\n  ],\n  \"origin_A\": [\n    -3.0,\n    1.5,\n    6.0\n  ],\n  \"extent_A\": [\n    3.0,\n    6.0,\n    9.0\n  ],\n  \"min\": -1.46339,\n  \"max\": 2.490099,\n  \"mean\": 0.818935,\n  \"rms\": 1.142686,\n  \"level_2sigma\": 3.104307\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_gzip_short.mrc.gz",
+   "argv": [
+    "density",
+    "info",
+    "maps/gzip_short.mrc.gz"
+   ],
+   "inputs": {
+    "maps/gzip_short.mrc.gz": "io/maps/files/gzip_short.mrc.gz"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": "error: maps/gzip_short.mrc.gz: file too short for an MRC header\n",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "density_info_gzip_stored.map.gz",
+   "argv": [
+    "density",
+    "info",
+    "maps/gzip_stored.map.gz"
+   ],
+   "inputs": {
+    "maps/gzip_stored.map.gz": "io/maps/files/gzip_stored.map.gz"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/gzip_stored.map.gz\",\n  \"grid_xyz\": [\n    5,\n    4,\n    3\n  ],\n  \"voxel_A\": [\n    1.5,\n    1.5,\n    1.5\n  ],\n  \"origin_A\": [\n    -3.0,\n    1.5,\n    6.0\n  ],\n  \"extent_A\": [\n    3.0,\n    6.0,\n    9.0\n  ],\n  \"min\": -1.46339,\n  \"max\": 2.490099,\n  \"mean\": 0.818935,\n  \"rms\": 1.142686,\n  \"level_2sigma\": 3.104307\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_gzip_trailer_cut.map.gz",
+   "argv": [
+    "density",
+    "info",
+    "maps/gzip_trailer_cut.map.gz"
+   ],
+   "inputs": {
+    "maps/gzip_trailer_cut.map.gz": "io/maps/files/gzip_trailer_cut.map.gz"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/gzip_trailer_cut.map.gz\",\n  \"grid_xyz\": [\n    5,\n    4,\n    3\n  ],\n  \"voxel_A\": [\n    1.5,\n    1.5,\n    1.5\n  ],\n  \"origin_A\": [\n    -3.0,\n    1.5,\n    6.0\n  ],\n  \"extent_A\": [\n    3.0,\n    6.0,\n    9.0\n  ],\n  \"min\": -1.46339,\n  \"max\": 2.490099,\n  \"mean\": 0.818935,\n  \"rms\": 1.142686,\n  \"level_2sigma\": 3.104307\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_gzip_trailing_garbage.map.gz",
+   "argv": [
+    "density",
+    "info",
+    "maps/gzip_trailing_garbage.map.gz"
+   ],
+   "inputs": {
+    "maps/gzip_trailing_garbage.map.gz": "io/maps/files/gzip_trailing_garbage.map.gz"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/gzip_trailing_garbage.map.gz\",\n  \"grid_xyz\": [\n    5,\n    4,\n    3\n  ],\n  \"voxel_A\": [\n    1.5,\n    1.5,\n    1.5\n  ],\n  \"origin_A\": [\n    -3.0,\n    1.5,\n    6.0\n  ],\n  \"extent_A\": [\n    3.0,\n    6.0,\n    9.0\n  ],\n  \"min\": -1.46339,\n  \"max\": 2.490099,\n  \"mean\": 0.818935,\n  \"rms\": 1.142686,\n  \"level_2sigma\": 3.104307\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_header_only.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/header_only.mrc"
+   ],
+   "inputs": {
+    "maps/header_only.mrc": "io/maps/files/header_only.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": "error: maps/header_only.mrc: file is shorter than its header says\n",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "density_info_huge_dims.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/huge_dims.mrc"
+   ],
+   "inputs": {
+    "maps/huge_dims.mrc": "io/maps/files/huge_dims.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": null,
+   "written": {},
+   "posix_only": false,
+   "mdatk_crash": "OverflowError: cannot fit 'int' into an index-sized integer"
+  },
+  {
+   "name": "density_info_huge_dims_mode0.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/huge_dims_mode0.mrc"
+   ],
+   "inputs": {
+    "maps/huge_dims_mode0.mrc": "io/maps/files/huge_dims_mode0.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": null,
+   "written": {},
+   "posix_only": false,
+   "mdatk_crash": "MemoryError"
+  },
+  {
+   "name": "density_info_large.map.gz",
+   "argv": [
+    "density",
+    "info",
+    "maps/large.map.gz"
+   ],
+   "inputs": {
+    "maps/large.map.gz": "io/maps/files/large.map.gz"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/large.map.gz\",\n  \"grid_xyz\": [\n    24,\n    40,\n    32\n  ],\n  \"voxel_A\": [\n    1.2,\n    1.2,\n    1.2\n  ],\n  \"origin_A\": [\n    0.0,\n    0.0,\n    0.0\n  ],\n  \"extent_A\": [\n    27.6,\n    46.8,\n    37.2\n  ],\n  \"min\": -3.0,\n  \"max\": 22.0,\n  \"mean\": 9.499007,\n  \"rms\": 7.288861,\n  \"level_2sigma\": 24.076729\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_large_members.map.gz",
+   "argv": [
+    "density",
+    "info",
+    "maps/large_members.map.gz"
+   ],
+   "inputs": {
+    "maps/large_members.map.gz": "io/maps/files/large_members.map.gz"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/large_members.map.gz\",\n  \"grid_xyz\": [\n    24,\n    40,\n    32\n  ],\n  \"voxel_A\": [\n    1.2,\n    1.2,\n    1.2\n  ],\n  \"origin_A\": [\n    0.0,\n    0.0,\n    0.0\n  ],\n  \"extent_A\": [\n    27.6,\n    46.8,\n    37.2\n  ],\n  \"min\": -3.0,\n  \"max\": 22.0,\n  \"mean\": 9.499007,\n  \"rms\": 7.288861,\n  \"level_2sigma\": 24.076729\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_mode0_imod_flag1.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/mode0_imod_flag1.mrc"
+   ],
+   "inputs": {
+    "maps/mode0_imod_flag1.mrc": "io/maps/files/mode0_imod_flag1.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/mode0_imod_flag1.mrc\",\n  \"grid_xyz\": [\n    5,\n    4,\n    3\n  ],\n  \"voxel_A\": [\n    1.0,\n    1.0,\n    1.0\n  ],\n  \"origin_A\": [\n    0.0,\n    0.0,\n    0.0\n  ],\n  \"extent_A\": [\n    4.0,\n    3.0,\n    2.0\n  ],\n  \"min\": -128.0,\n  \"max\": 126.0,\n  \"mean\": -3.833333,\n  \"rms\": 71.027733,\n  \"level_2sigma\": 138.222132\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_mode0_imod_flag3.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/mode0_imod_flag3.mrc"
+   ],
+   "inputs": {
+    "maps/mode0_imod_flag3.mrc": "io/maps/files/mode0_imod_flag3.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/mode0_imod_flag3.mrc\",\n  \"grid_xyz\": [\n    5,\n    4,\n    3\n  ],\n  \"voxel_A\": [\n    1.0,\n    1.0,\n    1.0\n  ],\n  \"origin_A\": [\n    0.0,\n    0.0,\n    0.0\n  ],\n  \"extent_A\": [\n    4.0,\n    3.0,\n    2.0\n  ],\n  \"min\": -128.0,\n  \"max\": 126.0,\n  \"mean\": -3.833333,\n  \"rms\": 71.027733,\n  \"level_2sigma\": 138.222132\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_mode0_imod_flag_neg2.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/mode0_imod_flag_neg2.mrc"
+   ],
+   "inputs": {
+    "maps/mode0_imod_flag_neg2.mrc": "io/maps/files/mode0_imod_flag_neg2.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/mode0_imod_flag_neg2.mrc\",\n  \"grid_xyz\": [\n    5,\n    4,\n    3\n  ],\n  \"voxel_A\": [\n    1.0,\n    1.0,\n    1.0\n  ],\n  \"origin_A\": [\n    0.0,\n    0.0,\n    0.0\n  ],\n  \"extent_A\": [\n    4.0,\n    3.0,\n    2.0\n  ],\n  \"min\": 0.0,\n  \"max\": 254.0,\n  \"mean\": 124.166664,\n  \"rms\": 71.02774,\n  \"level_2sigma\": 266.222145\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_mode0_imod_notag.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/mode0_imod_notag.mrc"
+   ],
+   "inputs": {
+    "maps/mode0_imod_notag.mrc": "io/maps/files/mode0_imod_notag.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/mode0_imod_notag.mrc\",\n  \"grid_xyz\": [\n    5,\n    4,\n    3\n  ],\n  \"voxel_A\": [\n    1.0,\n    1.0,\n    1.0\n  ],\n  \"origin_A\": [\n    0.0,\n    0.0,\n    0.0\n  ],\n  \"extent_A\": [\n    4.0,\n    3.0,\n    2.0\n  ],\n  \"min\": 0.0,\n  \"max\": 254.0,\n  \"mean\": 124.166664,\n  \"rms\": 71.02774,\n  \"level_2sigma\": 266.222145\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_mode0_imod_other_stamp.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/mode0_imod_other_stamp.mrc"
+   ],
+   "inputs": {
+    "maps/mode0_imod_other_stamp.mrc": "io/maps/files/mode0_imod_other_stamp.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/mode0_imod_other_stamp.mrc\",\n  \"grid_xyz\": [\n    5,\n    4,\n    3\n  ],\n  \"voxel_A\": [\n    1.0,\n    1.0,\n    1.0\n  ],\n  \"origin_A\": [\n    0.0,\n    0.0,\n    0.0\n  ],\n  \"extent_A\": [\n    4.0,\n    3.0,\n    2.0\n  ],\n  \"min\": -128.0,\n  \"max\": 126.0,\n  \"mean\": -3.833333,\n  \"rms\": 71.027733,\n  \"level_2sigma\": 138.222132\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_mode0_imod_unsigned.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/mode0_imod_unsigned.mrc"
+   ],
+   "inputs": {
+    "maps/mode0_imod_unsigned.mrc": "io/maps/files/mode0_imod_unsigned.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/mode0_imod_unsigned.mrc\",\n  \"grid_xyz\": [\n    5,\n    4,\n    3\n  ],\n  \"voxel_A\": [\n    1.0,\n    1.0,\n    1.0\n  ],\n  \"origin_A\": [\n    0.0,\n    0.0,\n    0.0\n  ],\n  \"extent_A\": [\n    4.0,\n    3.0,\n    2.0\n  ],\n  \"min\": 0.0,\n  \"max\": 254.0,\n  \"mean\": 124.166664,\n  \"rms\": 71.02774,\n  \"level_2sigma\": 266.222145\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_mode0_notag_be.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/mode0_notag_be.mrc"
+   ],
+   "inputs": {
+    "maps/mode0_notag_be.mrc": "io/maps/files/mode0_notag_be.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/mode0_notag_be.mrc\",\n  \"grid_xyz\": [\n    5,\n    4,\n    3\n  ],\n  \"voxel_A\": [\n    1.0,\n    1.0,\n    1.0\n  ],\n  \"origin_A\": [\n    0.0,\n    0.0,\n    0.0\n  ],\n  \"extent_A\": [\n    4.0,\n    3.0,\n    2.0\n  ],\n  \"min\": 1.0,\n  \"max\": 245.0,\n  \"mean\": 137.449997,\n  \"rms\": 77.367821,\n  \"level_2sigma\": 292.185638\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_mode0_notag_le.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/mode0_notag_le.mrc"
+   ],
+   "inputs": {
+    "maps/mode0_notag_le.mrc": "io/maps/files/mode0_notag_le.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/mode0_notag_le.mrc\",\n  \"grid_xyz\": [\n    5,\n    4,\n    3\n  ],\n  \"voxel_A\": [\n    1.0,\n    1.0,\n    1.0\n  ],\n  \"origin_A\": [\n    0.0,\n    0.0,\n    0.0\n  ],\n  \"extent_A\": [\n    4.0,\n    3.0,\n    2.0\n  ],\n  \"min\": 1.0,\n  \"max\": 245.0,\n  \"mean\": 137.449997,\n  \"rms\": 77.367821,\n  \"level_2sigma\": 292.185638\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_mode0_signed_be.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/mode0_signed_be.mrc"
+   ],
+   "inputs": {
+    "maps/mode0_signed_be.mrc": "io/maps/files/mode0_signed_be.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/mode0_signed_be.mrc\",\n  \"grid_xyz\": [\n    5,\n    4,\n    3\n  ],\n  \"voxel_A\": [\n    1.0,\n    1.0,\n    1.0\n  ],\n  \"origin_A\": [\n    0.0,\n    0.0,\n    0.0\n  ],\n  \"extent_A\": [\n    4.0,\n    3.0,\n    2.0\n  ],\n  \"min\": -127.0,\n  \"max\": 117.0,\n  \"mean\": 9.45,\n  \"rms\": 77.367821,\n  \"level_2sigma\": 164.185641\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_mode0_signed_le.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/mode0_signed_le.mrc"
+   ],
+   "inputs": {
+    "maps/mode0_signed_le.mrc": "io/maps/files/mode0_signed_le.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/mode0_signed_le.mrc\",\n  \"grid_xyz\": [\n    5,\n    4,\n    3\n  ],\n  \"voxel_A\": [\n    1.0,\n    1.0,\n    1.0\n  ],\n  \"origin_A\": [\n    0.0,\n    0.0,\n    0.0\n  ],\n  \"extent_A\": [\n    4.0,\n    3.0,\n    2.0\n  ],\n  \"min\": -127.0,\n  \"max\": 117.0,\n  \"mean\": 9.45,\n  \"rms\": 77.367821,\n  \"level_2sigma\": 164.185641\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_mode12_be.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/mode12_be.mrc"
+   ],
+   "inputs": {
+    "maps/mode12_be.mrc": "io/maps/files/mode12_be.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/mode12_be.mrc\",\n  \"grid_xyz\": [\n    5,\n    4,\n    3\n  ],\n  \"voxel_A\": [\n    1.0,\n    1.0,\n    1.0\n  ],\n  \"origin_A\": [\n    0.0,\n    0.0,\n    0.0\n  ],\n  \"extent_A\": [\n    4.0,\n    3.0,\n    2.0\n  ],\n  \"min\": -Infinity,\n  \"max\": Infinity,\n  \"mean\": NaN,\n  \"rms\": NaN,\n  \"level_2sigma\": NaN\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_mode12_le.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/mode12_le.mrc"
+   ],
+   "inputs": {
+    "maps/mode12_le.mrc": "io/maps/files/mode12_le.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/mode12_le.mrc\",\n  \"grid_xyz\": [\n    5,\n    4,\n    3\n  ],\n  \"voxel_A\": [\n    1.0,\n    1.0,\n    1.0\n  ],\n  \"origin_A\": [\n    0.0,\n    0.0,\n    0.0\n  ],\n  \"extent_A\": [\n    4.0,\n    3.0,\n    2.0\n  ],\n  \"min\": -Infinity,\n  \"max\": Infinity,\n  \"mean\": NaN,\n  \"rms\": NaN,\n  \"level_2sigma\": NaN\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_mode1_be.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/mode1_be.mrc"
+   ],
+   "inputs": {
+    "maps/mode1_be.mrc": "io/maps/files/mode1_be.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/mode1_be.mrc\",\n  \"grid_xyz\": [\n    5,\n    4,\n    3\n  ],\n  \"voxel_A\": [\n    1.0,\n    1.0,\n    1.0\n  ],\n  \"origin_A\": [\n    0.0,\n    0.0,\n    0.0\n  ],\n  \"extent_A\": [\n    4.0,\n    3.0,\n    2.0\n  ],\n  \"min\": -32768.0,\n  \"max\": 32767.0,\n  \"mean\": 452.816681,\n  \"rms\": 5993.393555,\n  \"level_2sigma\": 12439.60379\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_mode1_le.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/mode1_le.mrc"
+   ],
+   "inputs": {
+    "maps/mode1_le.mrc": "io/maps/files/mode1_le.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/mode1_le.mrc\",\n  \"grid_xyz\": [\n    5,\n    4,\n    3\n  ],\n  \"voxel_A\": [\n    1.0,\n    1.0,\n    1.0\n  ],\n  \"origin_A\": [\n    0.0,\n    0.0,\n    0.0\n  ],\n  \"extent_A\": [\n    4.0,\n    3.0,\n    2.0\n  ],\n  \"min\": -32768.0,\n  \"max\": 32767.0,\n  \"mean\": 452.816681,\n  \"rms\": 5993.393555,\n  \"level_2sigma\": 12439.60379\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_mode2_constant.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/mode2_constant.mrc"
+   ],
+   "inputs": {
+    "maps/mode2_constant.mrc": "io/maps/files/mode2_constant.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/mode2_constant.mrc\",\n  \"grid_xyz\": [\n    5,\n    4,\n    3\n  ],\n  \"voxel_A\": [\n    1.0,\n    1.0,\n    1.0\n  ],\n  \"origin_A\": [\n    0.0,\n    0.0,\n    0.0\n  ],\n  \"extent_A\": [\n    4.0,\n    3.0,\n    2.0\n  ],\n  \"min\": 0.1,\n  \"max\": 0.1,\n  \"mean\": 0.1,\n  \"rms\": 0.0,\n  \"level_2sigma\": 0.1\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_mode2_inf.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/mode2_inf.mrc"
+   ],
+   "inputs": {
+    "maps/mode2_inf.mrc": "io/maps/files/mode2_inf.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/mode2_inf.mrc\",\n  \"grid_xyz\": [\n    5,\n    4,\n    3\n  ],\n  \"voxel_A\": [\n    1.0,\n    1.0,\n    1.0\n  ],\n  \"origin_A\": [\n    0.0,\n    0.0,\n    0.0\n  ],\n  \"extent_A\": [\n    4.0,\n    3.0,\n    2.0\n  ],\n  \"min\": 1.0,\n  \"max\": Infinity,\n  \"mean\": Infinity,\n  \"rms\": NaN,\n  \"level_2sigma\": NaN\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_mode2_nan.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/mode2_nan.mrc"
+   ],
+   "inputs": {
+    "maps/mode2_nan.mrc": "io/maps/files/mode2_nan.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/mode2_nan.mrc\",\n  \"grid_xyz\": [\n    5,\n    4,\n    3\n  ],\n  \"voxel_A\": [\n    1.0,\n    1.0,\n    1.0\n  ],\n  \"origin_A\": [\n    0.0,\n    0.0,\n    0.0\n  ],\n  \"extent_A\": [\n    4.0,\n    3.0,\n    2.0\n  ],\n  \"min\": NaN,\n  \"max\": NaN,\n  \"mean\": NaN,\n  \"rms\": NaN,\n  \"level_2sigma\": NaN\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_mode2_specials_be.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/mode2_specials_be.mrc"
+   ],
+   "inputs": {
+    "maps/mode2_specials_be.mrc": "io/maps/files/mode2_specials_be.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/mode2_specials_be.mrc\",\n  \"grid_xyz\": [\n    5,\n    4,\n    3\n  ],\n  \"voxel_A\": [\n    1.0,\n    1.0,\n    1.0\n  ],\n  \"origin_A\": [\n    0.0,\n    0.0,\n    0.0\n  ],\n  \"extent_A\": [\n    4.0,\n    3.0,\n    2.0\n  ],\n  \"min\": -3.4028234663852886e+38,\n  \"max\": 3.4028234663852886e+38,\n  \"mean\": 1.39375,\n  \"rms\": Infinity,\n  \"level_2sigma\": Infinity\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_mode2_specials_le.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/mode2_specials_le.mrc"
+   ],
+   "inputs": {
+    "maps/mode2_specials_le.mrc": "io/maps/files/mode2_specials_le.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/mode2_specials_le.mrc\",\n  \"grid_xyz\": [\n    5,\n    4,\n    3\n  ],\n  \"voxel_A\": [\n    1.0,\n    1.0,\n    1.0\n  ],\n  \"origin_A\": [\n    0.0,\n    0.0,\n    0.0\n  ],\n  \"extent_A\": [\n    4.0,\n    3.0,\n    2.0\n  ],\n  \"min\": -3.4028234663852886e+38,\n  \"max\": 3.4028234663852886e+38,\n  \"mean\": 1.39375,\n  \"rms\": Infinity,\n  \"level_2sigma\": Infinity\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_mode6_be.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/mode6_be.mrc"
+   ],
+   "inputs": {
+    "maps/mode6_be.mrc": "io/maps/files/mode6_be.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/mode6_be.mrc\",\n  \"grid_xyz\": [\n    5,\n    4,\n    3\n  ],\n  \"voxel_A\": [\n    1.0,\n    1.0,\n    1.0\n  ],\n  \"origin_A\": [\n    0.0,\n    0.0,\n    0.0\n  ],\n  \"extent_A\": [\n    4.0,\n    3.0,\n    2.0\n  ],\n  \"min\": 0.0,\n  \"max\": 65535.0,\n  \"mean\": 27305.066406,\n  \"rms\": 17134.068359,\n  \"level_2sigma\": 61573.203125\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_mode6_le.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/mode6_le.mrc"
+   ],
+   "inputs": {
+    "maps/mode6_le.mrc": "io/maps/files/mode6_le.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/mode6_le.mrc\",\n  \"grid_xyz\": [\n    5,\n    4,\n    3\n  ],\n  \"voxel_A\": [\n    1.0,\n    1.0,\n    1.0\n  ],\n  \"origin_A\": [\n    0.0,\n    0.0,\n    0.0\n  ],\n  \"extent_A\": [\n    4.0,\n    3.0,\n    2.0\n  ],\n  \"min\": 0.0,\n  \"max\": 65535.0,\n  \"mean\": 27305.066406,\n  \"rms\": 17134.068359,\n  \"level_2sigma\": 61573.203125\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_mode_unsupported_-1.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/mode_unsupported_-1.mrc"
+   ],
+   "inputs": {
+    "maps/mode_unsupported_-1.mrc": "io/maps/files/mode_unsupported_-1.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": "error: maps/mode_unsupported_-1.mrc: unsupported MRC mode -1 (supported: 0, 1, 2, 6, 12)\n",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "density_info_mode_unsupported_101.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/mode_unsupported_101.mrc"
+   ],
+   "inputs": {
+    "maps/mode_unsupported_101.mrc": "io/maps/files/mode_unsupported_101.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": "error: maps/mode_unsupported_101.mrc: unsupported MRC mode 101 (supported: 0, 1, 2, 6, 12)\n",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "density_info_mode_unsupported_3.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/mode_unsupported_3.mrc"
+   ],
+   "inputs": {
+    "maps/mode_unsupported_3.mrc": "io/maps/files/mode_unsupported_3.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": "error: maps/mode_unsupported_3.mrc: unsupported MRC mode 3 (supported: 0, 1, 2, 6, 12)\n",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "density_info_mode_unsupported_4.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/mode_unsupported_4.mrc"
+   ],
+   "inputs": {
+    "maps/mode_unsupported_4.mrc": "io/maps/files/mode_unsupported_4.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": "error: maps/mode_unsupported_4.mrc: unsupported MRC mode 4 (supported: 0, 1, 2, 6, 12)\n",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "density_info_mxyz_negative.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/mxyz_negative.mrc"
+   ],
+   "inputs": {
+    "maps/mxyz_negative.mrc": "io/maps/files/mxyz_negative.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/mxyz_negative.mrc\",\n  \"grid_xyz\": [\n    5,\n    4,\n    3\n  ],\n  \"voxel_A\": [\n    2.0,\n    2.0,\n    2.0\n  ],\n  \"origin_A\": [\n    0.0,\n    0.0,\n    0.0\n  ],\n  \"extent_A\": [\n    8.0,\n    6.0,\n    4.0\n  ],\n  \"min\": -1.325007,\n  \"max\": 2.490991,\n  \"mean\": 0.648763,\n  \"rms\": 1.106469,\n  \"level_2sigma\": 2.8617\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_mxyz_other.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/mxyz_other.mrc"
+   ],
+   "inputs": {
+    "maps/mxyz_other.mrc": "io/maps/files/mxyz_other.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/mxyz_other.mrc\",\n  \"grid_xyz\": [\n    5,\n    4,\n    3\n  ],\n  \"voxel_A\": [\n    1.0,\n    0.4,\n    0.2\n  ],\n  \"origin_A\": [\n    1.0,\n    0.4,\n    0.2\n  ],\n  \"extent_A\": [\n    5.0,\n    1.6,\n    0.6\n  ],\n  \"min\": -1.325007,\n  \"max\": 2.490991,\n  \"mean\": 0.648763,\n  \"rms\": 1.106469,\n  \"level_2sigma\": 2.8617\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_mxyz_permuted.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/mxyz_permuted.mrc"
+   ],
+   "inputs": {
+    "maps/mxyz_permuted.mrc": "io/maps/files/mxyz_permuted.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/mxyz_permuted.mrc\",\n  \"grid_xyz\": [\n    4,\n    3,\n    5\n  ],\n  \"voxel_A\": [\n    2.5,\n    0.8889,\n    1.2\n  ],\n  \"origin_A\": [\n    15.0,\n    6.222,\n    6.0\n  ],\n  \"extent_A\": [\n    22.5,\n    8.0,\n    10.8\n  ],\n  \"min\": -1.325007,\n  \"max\": 2.490991,\n  \"mean\": 0.648763,\n  \"rms\": 1.106469,\n  \"level_2sigma\": 2.8617\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_mxyz_zero.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/mxyz_zero.mrc"
+   ],
+   "inputs": {
+    "maps/mxyz_zero.mrc": "io/maps/files/mxyz_zero.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/mxyz_zero.mrc\",\n  \"grid_xyz\": [\n    5,\n    4,\n    3\n  ],\n  \"voxel_A\": [\n    2.0,\n    2.0,\n    2.0\n  ],\n  \"origin_A\": [\n    0.0,\n    0.0,\n    0.0\n  ],\n  \"extent_A\": [\n    8.0,\n    6.0,\n    4.0\n  ],\n  \"min\": -1.325007,\n  \"max\": 2.490991,\n  \"mean\": 0.648763,\n  \"rms\": 1.106469,\n  \"level_2sigma\": 2.8617\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_nsymbt_1000.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/nsymbt_1000.mrc"
+   ],
+   "inputs": {
+    "maps/nsymbt_1000.mrc": "io/maps/files/nsymbt_1000.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/nsymbt_1000.mrc\",\n  \"grid_xyz\": [\n    5,\n    4,\n    3\n  ],\n  \"voxel_A\": [\n    1.0,\n    1.0,\n    1.0\n  ],\n  \"origin_A\": [\n    0.0,\n    0.0,\n    0.0\n  ],\n  \"extent_A\": [\n    4.0,\n    3.0,\n    2.0\n  ],\n  \"min\": -1.496319,\n  \"max\": 2.460734,\n  \"mean\": 0.526667,\n  \"rms\": 1.14971,\n  \"level_2sigma\": 2.826087\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_nsymbt_beyond.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/nsymbt_beyond.mrc"
+   ],
+   "inputs": {
+    "maps/nsymbt_beyond.mrc": "io/maps/files/nsymbt_beyond.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": "error: maps/nsymbt_beyond.mrc: file is shorter than its header says\n",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "density_info_nsymbt_negative.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/nsymbt_negative.mrc"
+   ],
+   "inputs": {
+    "maps/nsymbt_negative.mrc": "io/maps/files/nsymbt_negative.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/nsymbt_negative.mrc\",\n  \"grid_xyz\": [\n    5,\n    4,\n    3\n  ],\n  \"voxel_A\": [\n    1.0,\n    1.0,\n    1.0\n  ],\n  \"origin_A\": [\n    0.0,\n    0.0,\n    0.0\n  ],\n  \"extent_A\": [\n    4.0,\n    3.0,\n    2.0\n  ],\n  \"min\": -1.496319,\n  \"max\": 2.460734,\n  \"mean\": 0.526667,\n  \"rms\": 1.14971,\n  \"level_2sigma\": 2.826087\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_one_byte.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/one_byte.mrc"
+   ],
+   "inputs": {
+    "maps/one_byte.mrc": "io/maps/files/one_byte.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": "error: maps/one_byte.mrc: file too short for an MRC header\n",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "density_info_origin_inf.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/origin_inf.mrc"
+   ],
+   "inputs": {
+    "maps/origin_inf.mrc": "io/maps/files/origin_inf.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/origin_inf.mrc\",\n  \"grid_xyz\": [\n    5,\n    4,\n    3\n  ],\n  \"voxel_A\": [\n    1.0,\n    1.0,\n    1.0\n  ],\n  \"origin_A\": [\n    1.0,\n    2.0,\n    3.0\n  ],\n  \"extent_A\": [\n    5.0,\n    5.0,\n    5.0\n  ],\n  \"min\": -1.325007,\n  \"max\": 2.490991,\n  \"mean\": 0.648763,\n  \"rms\": 1.106469,\n  \"level_2sigma\": 2.8617\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_origin_large.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/origin_large.mrc"
+   ],
+   "inputs": {
+    "maps/origin_large.mrc": "io/maps/files/origin_large.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/origin_large.mrc\",\n  \"grid_xyz\": [\n    5,\n    4,\n    3\n  ],\n  \"voxel_A\": [\n    1.0,\n    1.0,\n    1.0\n  ],\n  \"origin_A\": [\n    10000000.0,\n    -330000.0,\n    12.346\n  ],\n  \"extent_A\": [\n    10000004.0,\n    -329997.0,\n    14.346\n  ],\n  \"min\": -1.325007,\n  \"max\": 2.490991,\n  \"mean\": 0.648763,\n  \"rms\": 1.106469,\n  \"level_2sigma\": 2.8617\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_origin_nan.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/origin_nan.mrc"
+   ],
+   "inputs": {
+    "maps/origin_nan.mrc": "io/maps/files/origin_nan.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/origin_nan.mrc\",\n  \"grid_xyz\": [\n    5,\n    4,\n    3\n  ],\n  \"voxel_A\": [\n    1.0,\n    1.0,\n    1.0\n  ],\n  \"origin_A\": [\n    1.0,\n    2.0,\n    3.0\n  ],\n  \"extent_A\": [\n    5.0,\n    5.0,\n    5.0\n  ],\n  \"min\": -1.325007,\n  \"max\": 2.490991,\n  \"mean\": 0.648763,\n  \"rms\": 1.106469,\n  \"level_2sigma\": 2.8617\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_origin_negzero.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/origin_negzero.mrc"
+   ],
+   "inputs": {
+    "maps/origin_negzero.mrc": "io/maps/files/origin_negzero.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/origin_negzero.mrc\",\n  \"grid_xyz\": [\n    5,\n    4,\n    3\n  ],\n  \"voxel_A\": [\n    1.0,\n    1.0,\n    1.0\n  ],\n  \"origin_A\": [\n    1.0,\n    2.0,\n    3.0\n  ],\n  \"extent_A\": [\n    5.0,\n    5.0,\n    5.0\n  ],\n  \"min\": -1.325007,\n  \"max\": 2.490991,\n  \"mean\": 0.648763,\n  \"rms\": 1.106469,\n  \"level_2sigma\": 2.8617\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_origin_tiny.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/origin_tiny.mrc"
+   ],
+   "inputs": {
+    "maps/origin_tiny.mrc": "io/maps/files/origin_tiny.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/origin_tiny.mrc\",\n  \"grid_xyz\": [\n    5,\n    4,\n    3\n  ],\n  \"voxel_A\": [\n    1.0,\n    1.0,\n    1.0\n  ],\n  \"origin_A\": [\n    0.0,\n    0.0,\n    0.0\n  ],\n  \"extent_A\": [\n    4.0,\n    3.0,\n    2.0\n  ],\n  \"min\": -1.325007,\n  \"max\": 2.490991,\n  \"mean\": 0.648763,\n  \"rms\": 1.106469,\n  \"level_2sigma\": 2.8617\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_origin_zero_nstart.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/origin_zero_nstart.mrc"
+   ],
+   "inputs": {
+    "maps/origin_zero_nstart.mrc": "io/maps/files/origin_zero_nstart.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/origin_zero_nstart.mrc\",\n  \"grid_xyz\": [\n    5,\n    4,\n    3\n  ],\n  \"voxel_A\": [\n    2.0,\n    2.0,\n    2.0\n  ],\n  \"origin_A\": [\n    -8.0,\n    4.0,\n    20.0\n  ],\n  \"extent_A\": [\n    0.0,\n    10.0,\n    24.0\n  ],\n  \"min\": -1.325007,\n  \"max\": 2.490991,\n  \"mean\": 0.648763,\n  \"rms\": 1.106469,\n  \"level_2sigma\": 2.8617\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_short_by_one.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/short_by_one.mrc"
+   ],
+   "inputs": {
+    "maps/short_by_one.mrc": "io/maps/files/short_by_one.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": "error: maps/short_by_one.mrc: file is shorter than its header says\n",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "density_info_short_header.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/short_header.mrc"
+   ],
+   "inputs": {
+    "maps/short_header.mrc": "io/maps/files/short_header.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": "error: maps/short_header.mrc: file too short for an MRC header\n",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "density_info_stamp_1111_be.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/stamp_1111_be.mrc"
+   ],
+   "inputs": {
+    "maps/stamp_1111_be.mrc": "io/maps/files/stamp_1111_be.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/stamp_1111_be.mrc\",\n  \"grid_xyz\": [\n    5,\n    4,\n    3\n  ],\n  \"voxel_A\": [\n    1.0,\n    1.0,\n    1.0\n  ],\n  \"origin_A\": [\n    0.0,\n    0.0,\n    0.0\n  ],\n  \"extent_A\": [\n    4.0,\n    3.0,\n    2.0\n  ],\n  \"min\": -1.490185,\n  \"max\": 2.479802,\n  \"mean\": 0.250702,\n  \"rms\": 1.120517,\n  \"level_2sigma\": 2.491736\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_stamp_4441.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/stamp_4441.mrc"
+   ],
+   "inputs": {
+    "maps/stamp_4441.mrc": "io/maps/files/stamp_4441.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/stamp_4441.mrc\",\n  \"grid_xyz\": [\n    5,\n    4,\n    3\n  ],\n  \"voxel_A\": [\n    1.0,\n    1.0,\n    1.0\n  ],\n  \"origin_A\": [\n    0.0,\n    0.0,\n    0.0\n  ],\n  \"extent_A\": [\n    4.0,\n    3.0,\n    2.0\n  ],\n  \"min\": -1.490185,\n  \"max\": 2.479802,\n  \"mean\": 0.250702,\n  \"rms\": 1.120517,\n  \"level_2sigma\": 2.491736\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_stamp_none_bad_crs.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/stamp_none_bad_crs.mrc"
+   ],
+   "inputs": {
+    "maps/stamp_none_bad_crs.mrc": "io/maps/files/stamp_none_bad_crs.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": "error: cannot determine the byte order of the map header\n",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "density_info_stamp_none_be.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/stamp_none_be.mrc"
+   ],
+   "inputs": {
+    "maps/stamp_none_be.mrc": "io/maps/files/stamp_none_be.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/stamp_none_be.mrc\",\n  \"grid_xyz\": [\n    5,\n    4,\n    3\n  ],\n  \"voxel_A\": [\n    1.0,\n    1.0,\n    1.0\n  ],\n  \"origin_A\": [\n    0.0,\n    0.0,\n    0.0\n  ],\n  \"extent_A\": [\n    4.0,\n    3.0,\n    2.0\n  ],\n  \"min\": -1.490185,\n  \"max\": 2.479802,\n  \"mean\": 0.250702,\n  \"rms\": 1.120517,\n  \"level_2sigma\": 2.491736\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_stamp_none_be_mode1_crs0.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/stamp_none_be_mode1_crs0.mrc"
+   ],
+   "inputs": {
+    "maps/stamp_none_be_mode1_crs0.mrc": "io/maps/files/stamp_none_be_mode1_crs0.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/stamp_none_be_mode1_crs0.mrc\",\n  \"grid_xyz\": [\n    5,\n    4,\n    3\n  ],\n  \"voxel_A\": [\n    1.0,\n    1.0,\n    1.0\n  ],\n  \"origin_A\": [\n    0.0,\n    0.0,\n    0.0\n  ],\n  \"extent_A\": [\n    4.0,\n    3.0,\n    2.0\n  ],\n  \"min\": -27762.0,\n  \"max\": 30563.0,\n  \"mean\": 137.449997,\n  \"rms\": 17348.904297,\n  \"level_2sigma\": 34835.258591\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_stamp_none_invalid.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/stamp_none_invalid.mrc"
+   ],
+   "inputs": {
+    "maps/stamp_none_invalid.mrc": "io/maps/files/stamp_none_invalid.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": "error: cannot determine the byte order of the map header\n",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "density_info_stamp_none_le.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/stamp_none_le.mrc"
+   ],
+   "inputs": {
+    "maps/stamp_none_le.mrc": "io/maps/files/stamp_none_le.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/stamp_none_le.mrc\",\n  \"grid_xyz\": [\n    5,\n    4,\n    3\n  ],\n  \"voxel_A\": [\n    1.0,\n    1.0,\n    1.0\n  ],\n  \"origin_A\": [\n    0.0,\n    0.0,\n    0.0\n  ],\n  \"extent_A\": [\n    4.0,\n    3.0,\n    2.0\n  ],\n  \"min\": -1.490185,\n  \"max\": 2.479802,\n  \"mean\": 0.250702,\n  \"rms\": 1.120517,\n  \"level_2sigma\": 2.491736\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_stamp_none_mode0_crs0.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/stamp_none_mode0_crs0.mrc"
+   ],
+   "inputs": {
+    "maps/stamp_none_mode0_crs0.mrc": "io/maps/files/stamp_none_mode0_crs0.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": "error: maps/stamp_none_mode0_crs0.mrc: non-orthogonal cell angles [6.466431893473301e-41, 6.466431893473301e-41, 6.466431893473301e-41] are not supported\n",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "density_info_stamp_other_be_mode0.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/stamp_other_be_mode0.mrc"
+   ],
+   "inputs": {
+    "maps/stamp_other_be_mode0.mrc": "io/maps/files/stamp_other_be_mode0.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/stamp_other_be_mode0.mrc\",\n  \"grid_xyz\": [\n    5,\n    4,\n    3\n  ],\n  \"voxel_A\": [\n    1.0,\n    1.0,\n    1.0\n  ],\n  \"origin_A\": [\n    0.0,\n    0.0,\n    0.0\n  ],\n  \"extent_A\": [\n    4.0,\n    3.0,\n    2.0\n  ],\n  \"min\": -127.0,\n  \"max\": 116.0,\n  \"mean\": -16.15,\n  \"rms\": 77.616112,\n  \"level_2sigma\": 139.082224\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_stamp_wrong_le_for_be.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/stamp_wrong_le_for_be.mrc"
+   ],
+   "inputs": {
+    "maps/stamp_wrong_le_for_be.mrc": "io/maps/files/stamp_wrong_le_for_be.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": "error: maps/stamp_wrong_le_for_be.mrc: unsupported MRC mode 33554432 (supported: 0, 1, 2, 6, 12)\n",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "density_info_trailing_bytes.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/trailing_bytes.mrc"
+   ],
+   "inputs": {
+    "maps/trailing_bytes.mrc": "io/maps/files/trailing_bytes.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 0,
+   "stdout": "{\n  \"map\": \"{work}/maps/trailing_bytes.mrc\",\n  \"grid_xyz\": [\n    5,\n    4,\n    3\n  ],\n  \"voxel_A\": [\n    1.0,\n    1.0,\n    1.0\n  ],\n  \"origin_A\": [\n    0.0,\n    0.0,\n    0.0\n  ],\n  \"extent_A\": [\n    4.0,\n    3.0,\n    2.0\n  ],\n  \"min\": -1.496319,\n  \"max\": 2.460734,\n  \"mean\": 0.526667,\n  \"rms\": 1.14971,\n  \"level_2sigma\": 2.826087\n}\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_info_zeros_100.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/zeros_100.mrc"
+   ],
+   "inputs": {
+    "maps/zeros_100.mrc": "io/maps/files/zeros_100.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": "error: maps/zeros_100.mrc: file too short for an MRC header\n",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "density_info_zeros_2000.mrc",
+   "argv": [
+    "density",
+    "info",
+    "maps/zeros_2000.mrc"
+   ],
+   "inputs": {
+    "maps/zeros_2000.mrc": "io/maps/files/zeros_2000.mrc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": "error: maps/zeros_2000.mrc: invalid dimensions 0 x 0 x 0\n",
+   "written": {},
+   "posix_only": false
+  },
+  {
+   "name": "density_missing",
+   "argv": [
+    "density",
+    "info",
+    "missing.mrc"
+   ],
+   "inputs": {},
+   "setup": {},
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": "error: [Errno 2] No such file or directory: 'missing.mrc'\n",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_folder",
+   "argv": [
+    "density",
+    "info",
+    "."
+   ],
+   "inputs": {},
+   "setup": {},
+   "exit_only": false,
+   "exit": 1,
+   "stdout": "",
+   "stderr": "error: [Errno 21] Is a directory: '.'\n",
+   "written": {},
+   "posix_only": true
+  },
+  {
+   "name": "density_no_action",
+   "argv": [
+    "density"
+   ],
+   "inputs": {},
+   "setup": {},
+   "exit_only": true,
+   "exit": 2,
+   "stdout": "usage: mdatk density [-h] action ...\n\npositional arguments:\n  action\n    info      print a map's grid, voxel size, origin and statistics\n    fit       fit the structure into the project's (or --map) density map\n    simulate  write a map simulated from one frame (molmap-style Gaussians)\n\noptions:\n  -h, --help  show this help message and exit\n",
+   "stderr": "",
+   "written": {},
+   "posix_only": false
+  }
+ ]
+}

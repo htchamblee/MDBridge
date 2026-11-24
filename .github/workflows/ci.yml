@@ -6,7 +6,8 @@
 #                line without X11 / OpenGL, then the interface without a Vulkan driver)
 # - windows:     MSVC 2022 build and tests, zip and installer; smoke test of the installed program
 # - parity:      MDATK v0.0.4.1 writes project files and records what it reads from them;
-#                the AppImage must read them the same way
+#                the AppImage must read them the same way; the commands init, info, export-pdb and
+#                density info must print and write what MDATK's do (tests/parity/cli_parity.py)
 # - regenerate:  every generator of tests/data/README.md, run with MDATK v0.0.4.1, MDAnalysis 2.11.0
 #                and the pinned numpy / scipy, writes exactly the committed test data
 # - release:     tags v* only, after every job passed: attaches the builds to the GitHub release
@@ -197,7 +198,7 @@ jobs:
           compression-level: 0
 
   parity:
-    name: Parity with MDATK v0.0.4.1 (project files)
+    name: Parity with MDATK v0.0.4.1 (project files, command line)
     needs: linux
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -235,6 +236,25 @@ jobs:
         run: |
           (cd tests/data/projects && python ../../parity/reference.py --out ../../../work/committed *)
           diff -r tests/data/expected work/committed
+
+      # the commands of the command line: MDATK in-process with MDAnalysis 2.11.0 and MDBridge's
+      # independent data tables patched in (tests/data/README.md), so its dependencies are pinned as
+      # in the regenerate job
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: "3.13"
+
+      - name: MDATK's dependencies at the reference versions (MDAnalysis 2.11.0, numpy 2.5.5, scipy 1.18.1)
+        run: |
+          python -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/python" -m pip install --no-deps -r tests/parity/requirements-regenerate.txt
+
+      - name: init, info, export-pdb and density info print and write what MDATK prints and writes
+        run: |
+          (cd work && ../dist/MDBridge-*-x86_64.AppImage --appimage-extract > /dev/null)  # once, not per run
+          "$RUNNER_TEMP/venv/bin/python" -I -B tests/parity/cli_parity.py --mdatk mdatk \
+            --mdbridge work/squashfs-root/AppRun
+          test -z "$(git -C mdatk status --porcelain)"  # nothing was written into the checkout
 
   regenerate:
     name: Committed test data is what MDATK v0.0.4.1 and MDAnalysis 2.11.0 produce
