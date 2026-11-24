@@ -7,6 +7,7 @@ include(GoogleTest)
 # core: project files read exactly as MDATK reads them (fixtures in data/, see data/README.md)
 add_executable(mdbridge_core_tests
     core/test_atom_selection.cpp
+    core/test_citations.cpp
     core/test_dataset.cpp
     core/test_hash.cpp
     core/test_json.cpp
@@ -30,6 +31,7 @@ gtest_discover_tests(mdbridge_core_tests DISCOVERY_MODE PRE_TEST)
 
 # io: topologies, trajectories, PDB files and tables read and written as MDATK does
 add_executable(mdbridge_io_tests
+    io/test_cif.cpp
     io/test_external.cpp
     io/test_loader.cpp
     io/test_mrc.cpp

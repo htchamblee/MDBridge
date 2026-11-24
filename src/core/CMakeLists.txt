@@ -5,6 +5,9 @@ configure_file(version.hpp.in "${CMAKE_CURRENT_BINARY_DIR}/include/mdbridge/vers
 
 add_library(mdbridge_core STATIC
     atom_selection.cpp
+    case_tables.inc
+    citation_data.inc
+    citations.cpp
     clock.cpp
     dataset.cpp
     hash.cpp

@@ -8,6 +8,7 @@ namespace mdbridge::core {
 namespace {
 
 #include "unicode_tables.inc"
+#include "case_tables.inc"
 
 template <std::size_t N>
 bool inRanges(const CodeRange (&table)[N], char32_t code) {
@@ -136,6 +137,30 @@ std::vector<std::u32string> splitChunks(const std::u32string& s) {
         i = end;
     }
     return chunks;
+}
+
+char32_t simpleLower(char32_t code) {
+    const auto* end = std::end(kLowerMappings);
+    const auto* it = std::lower_bound(std::begin(kLowerMappings), end, code,
+                                      [](const CaseMapping& m, char32_t c) { return m.code < c; });
+    return it != end && it->code == code ? it->lower : code;
+}
+
+// CPython's handle_capital_sigma: final sigma after a cased character (case-ignorable ones
+// skipped) that no cased character follows.
+bool finalSigma(const std::u32string& s, std::size_t i) {
+    std::size_t j = i;
+    while (j > 0 && inRanges(kCaseIgnorableRanges, s[j - 1])) {
+        --j;
+    }
+    if (j == 0 || !inRanges(kCasedRanges, s[j - 1])) {
+        return false;
+    }
+    j = i + 1;
+    while (j < s.size() && inRanges(kCaseIgnorableRanges, s[j])) {
+        ++j;
+    }
+    return j == s.size() || !inRanges(kCasedRanges, s[j]);
 }
 
 }  // namespace
@@ -296,6 +321,25 @@ std::vector<std::string> pythonTextwrap(std::string_view text, int width) {
         }
     }
     return lines;
+}
+
+std::string pythonLower(std::string_view text) {
+    const std::u32string s = decodeUtf8(text);
+    std::u32string out;
+    out.reserve(s.size());
+    for (std::size_t i = 0; i < s.size(); ++i) {
+        const char32_t c = s[i];
+        if (c < 0x80) {
+            out += c >= U'A' && c <= U'Z' ? static_cast<char32_t>(c + 32) : c;
+        } else if (c == 0x130) {
+            out += U"i\u0307";
+        } else if (c == 0x3A3) {
+            out += finalSigma(s, i) ? char32_t{0x3C2} : char32_t{0x3C3};
+        } else {
+            out += simpleLower(c);
+        }
+    }
+    return encodeUtf8(out);
 }
 
 }  // namespace mdbridge::core

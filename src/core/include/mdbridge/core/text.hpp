@@ -36,6 +36,9 @@ std::vector<std::string> pythonSplitlines(std::string_view text);
 std::string pythonStrip(std::string_view text);
 std::string pythonRstrip(std::string_view text);
 
+// Python's str.lower(): full lowercase mappings (U+0130 becomes "i" + U+0307) and final sigma.
+std::string pythonLower(std::string_view text);
+
 // Python's textwrap.wrap(text, width) with the default options: tabs expanded, whitespace
 // characters turned into spaces, words broken after hyphens and when longer than a line.
 std::vector<std::string> pythonTextwrap(std::string_view text, int width);

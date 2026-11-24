@@ -2,6 +2,7 @@
 # restraint dictionaries, external tables), with MDAnalysis' conventions where MDATK relies on them.
 add_library(mdbridge_io STATIC
     amber_ascii.cpp
+    cif.cpp
     dcd.cpp
     external.cpp
     gromacs.cpp
