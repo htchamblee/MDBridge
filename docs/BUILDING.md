@@ -14,8 +14,8 @@ GCC and MSVC are the only supported compilers. Clang is not supported: builds an
 and code need not compile with it.
 
 Everything else is fetched by CMake at configure time into the build folder, pinned to a release
-and checked against its SHA-512 (`cmake/Dependencies.cmake`): toml++, CLI11, the Vulkan headers and
-GoogleTest. Nothing is installed on the system. The Vulkan *loader* is not needed to build: the
+and checked against its SHA-512 (`cmake/Dependencies.cmake`): toml++, CLI11, the Vulkan headers,
+zlib and GoogleTest. Nothing is installed on the system. The Vulkan *loader* is not needed to build: the
 program loads the user's at run time.
 
 ### Getting Qt
@@ -92,9 +92,16 @@ cmake ... -DFETCHCONTENT_SOURCE_DIR_TOMLPLUSPLUS=/src/tomlplusplus   # v3.4.0
           -DFETCHCONTENT_SOURCE_DIR_CLI11=/src/CLI11                 # v2.7.2
           -DFETCHCONTENT_SOURCE_DIR_VULKANHEADERS=/src/Vulkan-Headers  # vulkan-sdk-1.4.363.0
           -DFETCHCONTENT_SOURCE_DIR_GOOGLETEST=/src/googletest       # v1.18.0
+          -DFETCHCONTENT_SOURCE_DIR_ZLIB=/src/zlib                   # v1.3.1
 ```
 
-or use installed packages of them with `-DMDBRIDGE_USE_SYSTEM_DEPS=ON`.
+A checkout of zlib's tag works as well as its release archive:
+`git clone --branch v1.3.1 https://github.com/madler/zlib /src/zlib` (commit
+`51b7f2abdade71cd9bb0e7a373ef2610ec6f9daf`). MDBridge compiles zlib's C sources itself (target
+`mdbridge_zlib`) and never runs zlib's own CMake project, so the checkout stays unmodified.
+
+Installed packages can be used instead with `-DMDBRIDGE_USE_SYSTEM_DEPS=ON` (zlib through CMake's
+`find_package(ZLIB)`, at least 1.2.11).
 
 ## Tests
 

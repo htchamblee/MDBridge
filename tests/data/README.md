@@ -258,4 +258,42 @@ python3 -I -B tests/parity/make_pdb_cases.py /tmp/mdatk tests/data/io/pdb       
 characters `str.isalpha()` excludes from `\w` (Unicode 15.1), MDAnalysis' element, type and mass
 tables of its guessers and PDBParser, and the name lists of PDBWriter's atom-name alignment.
 
+`io/maps/` holds density maps and what MDATK's map code (`mdatk/io/mrc.py`, the map functions of
+`mdatk/density.py`, `mdatk density info`) gives for them, for `src/io/mrc.cpp`
+(`tests/io/test_mrc.cpp`). Floats are JSON numbers, float32 statistics their bit patterns, map data
+the SHA-256 of its little-endian float32 bytes ([z][y][x]); file paths in messages are `{path}`.
+
+| File | Content |
+|---|---|
+| `files/*` | small crafted MRC / CCP4 files (mostly 5 x 4 x 3 voxels): every axis order in both byte orders, modes 0 (signed, unsigned without the `MAP ` tag, IMOD stamps and flags), 1, 2, 6 and 12 with extreme values, machine stamps and byte-order guessing, NSTART / ORIGIN / MXYZ / cell / angle rules, extended headers, every MapError; gzip files (members, empty members, FEXTRA / FNAME / FCOMMENT / FHCRC, zero padding, stored blocks, trailing data, truncation, corrupt blocks, bad CRC / size / magic / method) and a 40 x 32 x 24 map in one and in many members |
+| `read_cases.json` | `read_map` of each file: grid, origin, voxel, data hash, `stats()`, first values; or the error. Where Python raises EOFError, zlib.error, BadGzipFile, MemoryError or OverflowError, `error` is MDBridge's documented MapError and `python` what Python raised |
+| `info_cases.json` | what `mdatk density info` prints for some of the files |
+| `stats_cases.json` | `stats()` and `map_level` of generated float32 arrays of 1 to 2^24 + 1 values (numpy's pairwise float32 summation, around its block sizes) |
+| `write_cases.json` | `write_map` of generated maps (origins on and off whole voxels, beyond the int32 range, infinite): SHA-256 of the file, its first 224 header bytes, what `read_map` reads back; the error for an empty map |
+| `simulate_cases.json` | `atom_weights` of element spellings; `simulate_map` of atom sets (MDATK's test geometry, random models, spacings, sigma factors, padding): grid, origin, voxel, data hash, statistics; its FitErrors |
+
+The arrays and maps the C++ test builds itself come from the formulas in the generator's docstring.
+numpy on AVX-512 CPUs computes `exp` with Intel's SVML, which MDBridge does not reproduce: the
+generator runs `simulate_map` with the C library's `exp` (numpy's scalar path, what C++ `std::exp`
+gives with glibc) and records the hashes numpy's own `exp` gives next to them (`numpy_sha256`,
+identical for every committed case). Off glibc the test compares only the grid of simulated maps.
+
+`rigid/rigid_cases.json` holds what MDATK's `RigidTransform` and rotation helpers compute
+(`mdatk/density.py`), for `src/core/rigid_transform.cpp` (`tests/core/test_rigid_transform.cpp`):
+`from_list` of rotations rounded to 1 to 12 digits, perturbed, scaled, reflected or singular, with
+huge, tiny, non-finite entries and wrong lengths (the re-orthonormalised rotation or the message),
+`to_list` at several digits, `apply` / `inverse` / `compose` / `about`, `rotvec_matrix`,
+`quaternion_matrix`, `rotation_angle` and `anchor_points`. numpy multiplies with BLAS and takes the
+SVD from LAPACK, whose polar factor is up to 3e-15 off the exact one for coarse inputs (MDBridge's is
+within an ulp), so the test compares those results within a few 1e-15; `to_list`, `anchor_points`
+and the messages exactly.
+
+To regenerate, with Python 3.13, numpy 2.5.5 and scipy in `/opt/mdbridge-venv` and an MDATK checkout
+at `v0.0.4.1` (nothing is written into it; the output is reproducible):
+
+```bash
+/opt/mdbridge-venv/bin/python -I -B tests/parity/make_map_cases.py /tmp/mdatk tests/data/io/maps
+/opt/mdbridge-venv/bin/python -I -B tests/parity/make_rigid_cases.py /tmp/mdatk tests/data/rigid
+```
+
 Never put research structures or trajectories of real projects here.

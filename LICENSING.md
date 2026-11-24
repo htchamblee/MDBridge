@@ -27,6 +27,7 @@ Not adopted yet; it takes effect only after legal review and a formal change of 
    | toml++ | MIT | OK | milestone 1 |
    | CLI11 | BSD-3-Clause | OK | milestone 1 |
    | Vulkan-Headers | Apache 2.0 / MIT | OK (headers only; the Vulkan loader is the user's) | milestone 1 |
+   | zlib | zlib licence (permissive) | OK | milestone 2 (density maps) |
    | chemfiles | BSD-3 | OK | planned |
    | Eigen | MPL 2.0 | OK | planned |
    | nanoflann | BSD-2 | OK | planned |
