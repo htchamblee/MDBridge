@@ -253,7 +253,8 @@ TEST(Loader, PdbAndGroFiles) {
     int checked = 0;
     for (const core::Value& c : list(cases)) {
         const std::string name = text(c, "file");
-        const fs::path path = kLoader / "files" / name;
+        // as the messages name it: "{out}/files/<name>", whatever this platform's separator
+        const fs::path path = withPaths("{out}/files/" + name);
         if (const core::Value* error = c.find("error")) {
             expectError([&] { io::readTopologyFile(path); }, *error, name);
             ++checked;

@@ -205,7 +205,9 @@ TEST(Clock, ReplaceableWhileOtherThreadsReadIt) {
         });
     }
     Clock previous;
-    for (int k = 0; k < 2000; ++k) {
+    // Keep replacing until the readers have run: threads start late on Windows, after 2000
+    // replacements may already be done.
+    for (int k = 0; k < 2000 || reads.load() < 1000; ++k) {
         const int year = 2000 + k % 2;
         Clock replaced =
             setClock({[year] { return DateTime{DateTime::Kind::LocalDateTime, year, 1, 1}; }, {}});

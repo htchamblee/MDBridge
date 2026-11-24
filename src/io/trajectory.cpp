@@ -8,6 +8,7 @@
 
 #include "mdbridge/core/errors.hpp"
 #include "mdbridge/core/json.hpp"
+#include "mdbridge/core/paths.hpp"
 #include "mdbridge/core/python.hpp"
 #include "mdbridge/io/netcdf.hpp"
 #include "readers.hpp"
@@ -108,7 +109,7 @@ std::string unknownFormatText(const std::string& format, const std::string& path
 
 // MDAnalysis' util.guess_format: the extension after a .gz / .bz2 suffix, upper-cased.
 std::string guessFormat(std::string_view path) {
-    const std::string base = core::posixpath::basename(path);
+    const std::string base = core::pathBasename(path);
     auto [root, ext] = core::posixpath::splitext(base);
     const std::string compressed = lower(ext);
     if (compressed == ".gz" || compressed == ".bz2") {
@@ -319,7 +320,7 @@ std::string coordinateFormatForExtension(std::string_view path) {
         {".inpcrd", "INPCRD"},
         {".ncrst", "NCRST"},
     }};
-    const std::string ext = lower(core::posixpath::splitext(path).second);
+    const std::string ext = lower(core::posixpath::splitext(core::pathBasename(path)).second);
     for (const auto& [suffix, format] : table) {
         if (suffix == ext) {
             return std::string(format);

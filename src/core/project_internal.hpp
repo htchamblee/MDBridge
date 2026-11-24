@@ -15,6 +15,11 @@ std::string displayPath(const std::filesystem::path& path);
 // os.path.abspath of a path, as UTF-8 text (POSIX string rules; std::filesystem on Windows).
 std::string absolutePath(const std::filesystem::path& path);
 
+// os.path.dirname(os.path.abspath(path)): the folder of a project, as UTF-8 text (POSIX string
+// rules). On Windows the folder std::filesystem gives, with '/' separators, so that the POSIX
+// rules of resolvePaths join and normalise below it ("C:/projects/p" + "../x" is "C:/projects/x").
+std::string absoluteDirectory(const std::filesystem::path& path);
+
 // projectfile._reject_json: throws ProjectError for a .json path (any case).
 void rejectJson(const std::filesystem::path& path);
 

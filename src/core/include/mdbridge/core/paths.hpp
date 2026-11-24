@@ -11,4 +11,8 @@ namespace mdbridge::core {
 std::filesystem::path pathFromUtf8(std::string_view text);
 std::string pathToUtf8(const std::filesystem::path& path);
 
+// os.path.basename of a UTF-8 path: posixpath's rules on POSIX; on Windows '\\' separates too and
+// a drive ("C:") is not part of the name, as ntpath.
+std::string pathBasename(std::string_view path);
+
 }  // namespace mdbridge::core

@@ -13,6 +13,7 @@
 
 #include "mdbridge/core/errors.hpp"
 #include "mdbridge/core/json.hpp"
+#include "mdbridge/core/paths.hpp"
 #include "mdbridge/core/python.hpp"
 #include "mdbridge/core/text.hpp"
 #include "text_file.hpp"
@@ -1037,7 +1038,7 @@ std::shared_ptr<core::Topology> readParm7Topology(const std::filesystem::path& p
 }
 
 bool isParm7(std::string_view path) {
-    std::string ext = core::posixpath::splitext(path).second;
+    std::string ext = core::posixpath::splitext(core::pathBasename(path)).second;
     for (char& c : ext) {
         if (c >= 'A' && c <= 'Z') {
             c = static_cast<char>(c - 'A' + 'a');

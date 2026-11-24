@@ -9,6 +9,7 @@
 #include <gtest/gtest.h>
 
 #include "mdbridge/core/errors.hpp"
+#include "mdbridge/core/paths.hpp"
 #include "mdbridge/core/python.hpp"
 #include "mdbridge/io/external.hpp"
 #include "test_support.hpp"
@@ -65,6 +66,11 @@ std::string replaceAll(std::string text, std::string_view from, const std::strin
     return text;
 }
 
+// "{dir}/name" in MDATK's messages: the file in `dir`, with this platform's separator.
+std::string withDir(const std::string& message, const TempDir& dir) {
+    return replaceAll(message, "{dir}/", core::pathToUtf8(dir.path() / ""));
+}
+
 }  // namespace
 
 TEST(External, ReadTable) {
@@ -79,7 +85,7 @@ TEST(External, ReadTable) {
                 io::readTable(path, text(c, "delimiter"));
                 ADD_FAILURE() << name << ": no error";
             } catch (const core::ValueError& e) {
-                EXPECT_EQ(e.what(), replaceAll(str(*error), "{dir}", dir.path().string())) << name;
+                EXPECT_EQ(e.what(), withDir(str(*error), dir)) << name;
             }
             continue;
         }
@@ -171,7 +177,7 @@ TEST(External, LoadExternal) {
         for (const core::Value& s : items(c, "specs")) {
             core::ExternalSeries spec;
             const std::string& path = text(s, "path");
-            spec.path = path.empty() ? "" : (dir.path() / path).string();
+            spec.path = path.empty() ? "" : core::pathToUtf8(dir.path() / path);
             spec.label = text(s, "label");
             spec.x_column = text(s, "x_column");
             if (const core::Value* unit = s.find("x_unit")) {
@@ -197,7 +203,7 @@ TEST(External, LoadExternal) {
                 io::loadExternal(specs, dataset);
                 ADD_FAILURE() << name << ": no error";
             } catch (const core::ValueError& e) {
-                EXPECT_EQ(e.what(), replaceAll(str(*error), "{dir}", dir.path().string())) << name;
+                EXPECT_EQ(e.what(), withDir(str(*error), dir)) << name;
             }
             continue;
         }

@@ -67,7 +67,7 @@ fs::path splitLogUnlocked(const fs::path& project) {
         stem = posixpath::splitext(base).first;
     }
     const std::string name = stem + ".log.toml";
-    const fs::path sidecar = pathFromUtf8(posixpath::join(posixpath::dirname(detail::absolutePath(project)), name));
+    const fs::path sidecar = pathFromUtf8(detail::absoluteDirectory(project)) / pathFromUtf8(name);
 
     const std::string text = detail::readTextFile(project);
     const std::size_t at = text.find("\n" + std::string(kLogMarker));

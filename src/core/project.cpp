@@ -336,12 +336,32 @@ std::optional<std::string_view> modelComment(std::string_view path) {
 
 // ---- paths -----------------------------------------------------------------------------------
 
+namespace {
+
+// On Windows, a path with a drive and a root (C:\data\a.pdb, C:/data/a.pdb) or a UNC path is
+// absolute too: left as it is rather than joined below the project's folder.
+bool isWindowsAbsolute(std::string_view path) {
+#ifdef _WIN32
+    return pathFromUtf8(path).is_absolute();
+#else
+    (void)path;
+    return false;
+#endif
+}
+
+// os.path.abspath against the current directory (POSIX rules), a Windows absolute path as it is.
+std::string absoluteFolder(const std::string& path) {
+    return isWindowsAbsolute(path) ? path : posixpath::abspath(path, currentDirectory());
+}
+
+}  // namespace
+
 std::string resolvePath(std::string_view path, std::string_view baseDir) {
     if (path.empty()) {
         return {};
     }
     std::string expanded = posixpath::expanduser(path);
-    if (posixpath::isabs(expanded)) {
+    if (posixpath::isabs(expanded) || isWindowsAbsolute(expanded)) {
         return expanded;
     }
     return posixpath::normpath(posixpath::join(baseDir, expanded));
@@ -417,19 +437,19 @@ void resolvePaths(Project& p, std::string_view baseDir) {
 
 std::string outDir(const Project& project) {
     const std::string& dir = project.output.out_dir;
-    return posixpath::abspath(dir.empty() ? std::string("MDATK_output") : dir, currentDirectory());
+    return absoluteFolder(dir.empty() ? std::string("MDATK_output") : dir);
 }
 
 std::string cacheDir(const Project& project) {
     if (!project.output.cache_dir.empty()) {
-        return posixpath::abspath(project.output.cache_dir, currentDirectory());
+        return absoluteFolder(project.output.cache_dir);
     }
     return posixpath::join(outDir(project), "MDATK_cache");
 }
 
 std::string workflowDir(const Project& project) {
     if (!project.workflow.out_dir.empty()) {
-        return posixpath::abspath(project.workflow.out_dir, currentDirectory());
+        return absoluteFolder(project.workflow.out_dir);
     }
     return posixpath::join(outDir(project),
                            sanitizeProject(project.workflow.project_name) + "_workflow");

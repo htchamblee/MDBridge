@@ -294,7 +294,11 @@ TEST(Posixpath, ExpanduserLikePython) {
         EXPECT_EQ(posixpath::expanduser(path), at(c, 2)) << "HOME=" << home << " " << path;
         ++checked;
     }
+#if defined(_WIN32)
+    EXPECT_GE(checked, 40u);  // the 40 vectors with a home and no user name
+#else
     EXPECT_GT(checked, 40u);
+#endif
 }
 
 #if !defined(_WIN32)

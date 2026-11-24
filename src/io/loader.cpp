@@ -6,6 +6,7 @@
 #include <system_error>
 
 #include "mdbridge/core/errors.hpp"
+#include "mdbridge/core/paths.hpp"
 #include "mdbridge/core/python.hpp"
 #include "mdbridge/io/parm7.hpp"
 #include "mdbridge/io/trajectory.hpp"
@@ -43,7 +44,7 @@ std::string upper(std::string_view text) {
 }
 
 std::string lowerExtension(std::string_view path) {
-    std::string ext = core::posixpath::splitext(path).second;
+    std::string ext = core::posixpath::splitext(core::pathBasename(path)).second;
     for (char& c : ext) {
         if (c >= 'A' && c <= 'Z') {
             c = static_cast<char>(c - 'A' + 'a');
@@ -54,7 +55,7 @@ std::string lowerExtension(std::string_view path) {
 
 // MDAnalysis' util.guess_format for a topology: the extension (after .gz / .bz2), upper-cased
 std::string guessTopologyFormat(std::string_view path) {
-    const std::string base = core::posixpath::basename(path);
+    const std::string base = core::pathBasename(path);
     auto [root, ext] = core::posixpath::splitext(base);
     const std::string compressed = upper(ext);
     if (compressed == ".GZ" || compressed == ".BZ2") {

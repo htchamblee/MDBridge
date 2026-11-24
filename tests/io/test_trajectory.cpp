@@ -68,20 +68,36 @@ std::string pathText(const fs::path& path) {
     return std::string(text.begin(), text.end());
 }
 
+// A path as Python's repr() shows it inside quotes: a '\\' separator (Windows) is doubled.
+std::string reprText(const fs::path& path) {
+    std::string out;
+    for (const char c : pathText(path)) {
+        if (c == '\\') {
+            out += c;
+        }
+        out += c;
+    }
+    return out;
+}
+
+// The paths in a message replaced by "{path<k>}": MDAnalysis names a file as given or, in a list
+// of files, by its repr(); the two differ when the path has a '\\' (Windows).
 std::string withPlaceholders(std::string message, const std::vector<fs::path>& paths) {
     std::vector<std::size_t> order(paths.size());
     for (std::size_t i = 0; i < order.size(); ++i) {
         order[i] = i;
     }
-    std::sort(order.begin(), order.end(), [&](std::size_t a, std::size_t b) {
-        return pathText(paths[a]).size() > pathText(paths[b]).size();
-    });
-    for (const std::size_t k : order) {
-        const std::string from = pathText(paths[k]);
-        const std::string to = "{path" + std::to_string(k) + "}";
-        for (std::size_t at = message.find(from); at != std::string::npos;
-             at = message.find(from, at + to.size())) {
-            message.replace(at, from.size(), to);
+    for (std::string (*const form)(const fs::path&) : {reprText, pathText}) {
+        std::sort(order.begin(), order.end(), [&](std::size_t a, std::size_t b) {
+            return form(paths[a]).size() > form(paths[b]).size();
+        });
+        for (const std::size_t k : order) {
+            const std::string from = form(paths[k]);
+            const std::string to = "{path" + std::to_string(k) + "}";
+            for (std::size_t at = message.find(from); at != std::string::npos;
+                 at = message.find(from, at + to.size())) {
+                message.replace(at, from.size(), to);
+            }
         }
     }
     return message;

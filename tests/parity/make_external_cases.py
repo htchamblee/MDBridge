@@ -106,7 +106,7 @@ TABLES = [
     ("one_column.dat", B("v\n1\n2\n"), ""),
     ("long_header.dat", B("a b c d\n1 2\n"), ""),
     ("bom.csv", b"\xef\xbb\xbfa,b\n1,2\n", ""),
-    ("nul.dat", B("a\x00b c\n1 2\n"), ""),
+    ("nul_byte.dat", B("a\x00b c\n1 2\n"), ""),
     ("vertical_tab_line.dat", B("a b\n1 2\x0b3 4\n"), ""),
 ]
 

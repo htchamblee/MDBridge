@@ -38,6 +38,7 @@
 
 #include "mdbridge/core/errors.hpp"
 #include "mdbridge/core/json.hpp"
+#include "mdbridge/core/paths.hpp"
 #include "mdbridge/core/python.hpp"
 #include "mdbridge/core/selections.hpp"
 #include "mdbridge/core/text.hpp"
@@ -409,7 +410,7 @@ core::AnalysisResult loadExternal(const std::vector<core::ExternalSeries>& specs
         const std::string label =
             !spec.label.empty()
                 ? spec.label
-                : core::posixpath::splitext(core::posixpath::basename(spec.path)).first;
+                : core::posixpath::splitext(core::pathBasename(spec.path)).first;
         const double nan = std::numeric_limits<double>::quiet_NaN();
         for (const std::string& col : columns) {
             const int ci = columnIndex(header, col, -1);

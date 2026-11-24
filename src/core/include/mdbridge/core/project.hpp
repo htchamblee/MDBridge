@@ -703,7 +703,7 @@ void resolvePaths(Project& project, std::string_view baseDir);
 void resolveNodePaths(PlanNode& node, std::string_view baseDir, std::string_view where);
 
 // fix(p) of resolve_paths: "" stays "", "~" is expanded, an absolute path is returned unchanged, a
-// relative one becomes normpath(join(baseDir, p)).
+// relative one becomes normpath(join(baseDir, p)). On Windows a drive or UNC path is absolute too.
 std::string resolvePath(std::string_view path, std::string_view baseDir);
 
 // Folders, absolute and normalised against the current directory when relative:

@@ -99,6 +99,15 @@ std::string absolutePath(const fs::path& path) {
 #endif
 }
 
+std::string absoluteDirectory(const fs::path& path) {
+#ifdef _WIN32
+    const std::u8string text = pathFromUtf8(absolutePath(path)).parent_path().generic_u8string();
+    return std::string(text.begin(), text.end());
+#else
+    return posixpath::dirname(absolutePath(path));
+#endif
+}
+
 void rejectJson(const fs::path& path) {
     if (endsWithIgnoringCase(displayPath(path), ".json")) {
         throw ProjectError(displayPath(path) + ": JSON presets are no longer supported; MDBridge uses TOML "
@@ -180,7 +189,7 @@ ProjectLock::ProjectLock(const fs::path& path) : m_state(std::make_unique<State>
     (void)path;
 #else
     // MDATK has no lock file on Windows (no fcntl there) and neither has MDBridge.
-    const fs::path lock = pathFromUtf8(posixpath::dirname(absolutePath(path))) /
+    const fs::path lock = pathFromUtf8(absoluteDirectory(path)) /
                           ("." + pathToUtf8(path.filename()) + ".lock");
     const int fd = ::open(lock.c_str(), O_WRONLY | O_CREAT | O_APPEND | O_CLOEXEC, 0666);
     if (fd < 0) {
@@ -373,7 +382,7 @@ std::string projectText(const Project& project, std::string_view logFile) {
 
 Project loadProject(const fs::path& path, std::vector<std::string>* warnings) {
     const ProjectFile file = readProject(path);
-    return projectFromPlain(file.settings, posixpath::dirname(detail::absolutePath(path)), warnings);
+    return projectFromPlain(file.settings, detail::absoluteDirectory(path), warnings);
 }
 
 void saveProject(const fs::path& path, const Project& project) {
@@ -382,7 +391,7 @@ void saveProject(const fs::path& path, const Project& project) {
         throw ProjectError(detail::displayPath(path) +
                            " is the parameter log of a run; save the project under another name");
     }
-    fs::create_directories(pathFromUtf8(posixpath::dirname(detail::absolutePath(path))));
+    fs::create_directories(pathFromUtf8(detail::absoluteDirectory(path)));
     detail::ProjectLock lock(path);
     const auto [logPart, logFile] = existingLog(path);
     std::string text = projectText(project, logFile);
