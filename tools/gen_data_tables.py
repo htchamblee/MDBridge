@@ -35,6 +35,21 @@ used), each with its CCD element:
 check_collisions() verifies the written tables against these rules and the run fails if one is
 left. The dropped entries are listed in comments of the output.
 
+Residue-scoped ion elements (MDBridge's own rule, beyond MDAnalysis). The name-only rules cannot
+tell a calcium ion named CA from a carbon alpha, so kIndResidueAtomElements lists (residue name,
+atom name, element) for atoms whose element the residue decides: every CCD one-atom component
+(CA/CA -> Ca, CD/CD -> Cd, HG/HG -> Hg, ZN/ZN -> Zn, NA/NA -> Na ...), the HG / CL atoms of the
+CCD components in which they are mercury / chlorine, and the one-atom ion residues of the
+OpenMM Amber and CHARMM36 ion libraries (SOD/SOD -> Na, CAL/CAL -> Ca, CLA/CLA -> Cl, POT/POT ->
+K, CD2/CD -> Cd ...). Names are upper case; residues named in the protein, nucleic or water lists
+are left out; entries whose CCD element is no element symbol (D, X) are left out; the run fails if
+a (residue, atom) pair would get two elements. Semantics: when an atom's type is guessed from its
+name and its (residue name, atom name), compared in upper case, is in this table, the type is the
+element symbol in upper case (as other guessed types) and the mass, where it follows the type, is
+that element's; otherwise the name-only procedure applies unchanged. The PDB writer starts the
+name of such an atom in column 13 when the element has two letters; otherwise its rules apply
+unchanged.
+
 The output is committed, so a build needs no Python. It is included (inside a namespace) by
 mdbridge/core/detail/data_tables.hpp, which the selection macros, the PDB / GRO topology guessing,
 the parm7 element column and the PDB writer use.
@@ -325,6 +340,46 @@ def check_collisions(names, two, ions) -> None:
         raise SystemExit("collisions with CCD reference names:\n  " + "\n  ".join(problems))
 
 
+# --- residue-scoped ion elements -----------------------------------------------------------------
+
+def residue_atom_elements() -> list[tuple[str, str, str, str]]:
+    """(RESIDUE, ATOM, element symbol, origins), sorted: see the docstring."""
+    candidates = []
+    for r in read_tsv("ccd", "monatomic_components.tsv"):
+        candidates.append((r["comp_id"], r["atom_id"], r["element"], "CCD one-atom component"))
+    for r in read_tsv("ccd", "hg_cl_atom_names.tsv"):
+        candidates.append((r["comp_id"], r["atom_id"], r["element"], "CCD " + r["atom_id"] + " atom"))
+    sizes: dict[tuple[str, str], int] = {}
+    for r in OMM:
+        sizes[(r["file"], r["residue"])] = sizes.get((r["file"], r["residue"]), 0) + 1
+    for r in OMM:
+        if r["group"] == "solvent" and sizes[(r["file"], r["residue"])] == 1 and r["element"]:
+            origin = ("CHARMM36" if r["file"].startswith("charmm36") else "Amber") + " ion"
+            candidates.append((r["residue"], r["atom"], r["element"], origin))
+    standard = {n.upper() for n in protein_residues() | nucleic_residues() | water_residues()}
+    merged: dict[tuple[str, str], tuple[str, set[str]]] = {}
+    for res, atom, element, origin in candidates:
+        key = (res.upper(), atom.upper())
+        symbol = SYMBOLS.get(element.upper())
+        if symbol is None or key[0] in standard:
+            continue
+        if key in merged and merged[key][0] != symbol:
+            raise SystemExit(f"residue {key[0]} atom {key[1]} is {merged[key][0]} and {symbol}")
+        merged.setdefault(key, (symbol, set()))[1].add(origin)
+    return [(res, atom, el, ", ".join(sorted(origins))) for (res, atom), (el, origins) in sorted(merged.items())]
+
+
+def check_residue_atom_elements(rows) -> None:
+    seen: dict[tuple[str, str], str] = {}
+    for res, atom, el, _ in rows:
+        if res != res.upper() or atom != atom.upper():
+            raise SystemExit(f"residue table entry {res}/{atom} is not upper case")
+        if seen.setdefault((res, atom), el) != el:
+            raise SystemExit(f"residue {res} atom {atom} is {seen[(res, atom)]} and {el}")
+    if [r[:2] for r in rows] != sorted(r[:2] for r in rows):
+        raise SystemExit("residue table not sorted")
+
+
 # --- PDB writer -----------------------------------------------------------------------------------
 
 def monatomic_ion_names() -> list[str]:
@@ -379,6 +434,8 @@ def main() -> int:
     names, names_dropped = name_elements()
     ions, ions_dropped = writer_ion_names()
     check_collisions(names, two, ions)
+    residue_rows = residue_atom_elements()
+    check_residue_atom_elements(residue_rows)
     hg, cl = hg_cl_residues()
     out = [
         "// Residue, atom-name, element and mass tables rebuilt from public sources only:",
@@ -435,6 +492,21 @@ def main() -> int:
             "inline constexpr IndNameElement kIndForceFieldNameElements[] = {"]
     for name, el, origin in names:
         out.append(f"    {{{cstr(name)}, {cstr(el)}}},  // {origin}")
+    out += ["};", ""]
+    out += ["struct IndResidueAtomElement {",
+            "    std::string_view residue;  // upper case",
+            "    std::string_view name;     // upper case",
+            "    std::string_view element;  // element symbol",
+            "};",
+            "",
+            "// (residue, atom name) -> element, sorted by residue then name: CCD one-atom components, the",
+            "// HG / CL atoms of CCD mercury / chlorine components, Amber and CHARMM36 ion residues. When a",
+            "// type is guessed from the name and the pair is here (compared in upper case), the type is",
+            "// the element in upper case; the PDB writer starts the name in column 13 for a two-letter",
+            "// element. Residues of the protein, nucleic and water lists are not included.",
+            "inline constexpr IndResidueAtomElement kIndResidueAtomElements[] = {"]
+    for res, atom, el, origin in residue_rows:
+        out.append(f"    {{{cstr(res)}, {cstr(atom)}, {cstr(el)}}},  // {origin}")
     out += ["};", ""]
     out += string_array("kIndGuessOneLetterElements", one,
                         "One-letter elements an atom-name prefix may be guessed as (standard residues, water, ions).")

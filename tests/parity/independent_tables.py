@@ -34,6 +34,9 @@ the class (MultiPDBWriter inherits them). What is patched:
   special_cl (CCD components whose HG / CL atom is mercury / chlorine), include_pairs and
   exclude_pairs empty (no independent counterpart).
 
+On top of that, residue_rule_universe() and residue_rule_pdb_text() apply MDBridge's own
+residue-scoped ion rule, which MDAnalysis does not have (see the section below).
+
 Not patched (no independent counterpart, not used by MDBridge): vdwradii (bond guessing),
 SYBYL2SYMB (MOL2), the raw TABLE_* strings (only read when MDAnalysis is imported).
 
@@ -140,6 +143,99 @@ def apply() -> None:
     PDBWriter.include_pairs = ()
     PDBWriter.exclude_pairs = ()
     _applied = True
+
+
+# --- MDBridge's residue-scoped ion rule (not MDAnalysis behaviour) ---------------------------------
+#
+# MDBridge improves on MDAnalysis' name-only guessing with gen_data_tables.residue_atom_elements()
+# (kIndResidueAtomElements; semantics in that generator's docstring and tests/data/README.md).
+# MDAnalysis cannot express it, so the generators post-process patched MDAnalysis' results:
+#
+# * residue_rule_universe(u, path): for every atom whose type MDAnalysis guessed from its name
+#   (the topology file gave none, or an empty one) and whose (resname, name) in upper case is in
+#   the table, the type becomes the element symbol in upper case; where MDAnalysis took the mass
+#   from the type (no elements attribute, no masses in the file), the mass becomes that element's
+#   (the patched mass table). Everything else is left as MDAnalysis made it.
+# * residue_rule_pdb_text(raw): in a file PDBWriter wrote, an ATOM / HETATM name field written from
+#   column 14 (" " + name, name of 2 or 3 characters) whose (resname, name) in upper case is in the
+#   table with a two-letter element is rewritten from column 13. The residue name is read from
+#   columns 18-21, where PDBWriter writes the first four characters of it.
+
+_residue_elements = None
+
+
+def residue_elements() -> dict[tuple[str, str], str]:
+    global _residue_elements
+    if _residue_elements is None:
+        _residue_elements = {(res, atom): el for res, atom, el, _ in load_generator().residue_atom_elements()}
+    return _residue_elements
+
+
+def residue_rule_universe(u, path, **kwargs) -> None:
+    """Apply the residue rule to the guessed types / masses of u, built from path (kwargs as given
+    to the Universe)."""
+    import MDAnalysis as mda
+    import numpy as np
+    from MDAnalysis.exceptions import NoDataError
+    from MDAnalysis.guesser import tables as T
+
+    apply()
+    table = residue_elements()
+    raw = mda.Universe(path, to_guess=(), **kwargs)  # what the file itself gives
+    n = len(u.atoms)
+    try:
+        given = raw._topology.types
+        guessed = np.asarray(given.are_values_missing(given.values), dtype=bool)
+    except (AttributeError, NoDataError):
+        guessed = np.ones(n, dtype=bool)
+    mass_from_type = not _has(raw.atoms, "masses") and not _has(u.atoms, "elements")
+    try:
+        types = np.array(u.atoms.types, dtype=object)
+    except NoDataError:
+        return
+    masses = np.array(u.atoms.masses, dtype=np.float64) if _has(u.atoms, "masses") else None
+    changed = False
+    for i, atom in enumerate(u.atoms):
+        if not guessed[i]:
+            continue
+        element = table.get((str(atom.resname).upper(), str(atom.name).upper()))
+        if element is None:
+            continue
+        types[i] = element.upper()
+        if mass_from_type and masses is not None:
+            masses[i] = T.masses[element]
+        changed = True
+    if changed:
+        u.atoms.types = types
+        if masses is not None:
+            u.atoms.masses = masses
+
+
+def _has(group, attribute: str) -> bool:
+    from MDAnalysis.exceptions import NoDataError
+    try:
+        getattr(group, attribute)
+        return True
+    except (AttributeError, NoDataError):
+        return False
+
+
+def residue_rule_pdb_text(raw: bytes) -> bytes:
+    """Apply the residue rule to the atom-name columns of a PDB file written by PDBWriter."""
+    table = residue_elements()
+    text = raw.decode("utf-8")
+    lines = text.split("\n")
+    for k, line in enumerate(lines):
+        if not line.startswith(("ATOM  ", "HETATM")) or len(line) < 21:
+            continue
+        field, resname = line[12:16], line[17:21].strip()
+        name = field.strip()
+        if field != " " + name.ljust(3) or not 2 <= len(name) <= 3:
+            continue
+        element = table.get((resname.upper(), name.upper()))
+        if element is not None and len(element) == 2:
+            lines[k] = line[:12] + name.ljust(4) + line[16:]
+    return "\n".join(lines).encode("utf-8")
 
 
 def reference_mismatches() -> tuple[list[tuple[str, str, str]], list[tuple[str, str, str]]]:

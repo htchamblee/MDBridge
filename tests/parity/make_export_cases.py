@@ -64,7 +64,7 @@ def error(exc):
 
 def file_entry(path):
     with open(path, "rb") as fh:
-        raw = fh.read()
+        raw = independent_tables.residue_rule_pdb_text(fh.read())  # MDBridge's residue-scoped ion rule
     entry = {"name": os.path.basename(path)}
     if len(raw) <= LIMIT:
         entry["text"] = raw.decode()
@@ -201,7 +201,7 @@ def cases(files):
     for name in ("models_npt.pdb", "models_one_cryst.pdb", "models_some_cryst.pdb", "elements.pdb", "unicode.pdb",
                  "icodes.pdb", "occupancy.pdb", "segids.pdb", "conect_variants.pdb", "conect_duplicate_serial.pdb",
                  "resid_wrap.pdb", "hy36_ok.pdb", "two_headers.pdb", "triclinic.gro", "resid_wrap.gro",
-                 "guess.pdb", "lowercase.pdb", "short_lines.pdb"):
+                 "guess.pdb", "lowercase.pdb", "short_lines.pdb", "ions.pdb", "ions.gro"):
         path = os.path.join(LOADER, name)
         u = mda.Universe(path)
         frames = list(range(u.trajectory.n_frames))
@@ -258,7 +258,7 @@ def big_cases():
         with tempfile.TemporaryDirectory(prefix="pdb-big-") as tmp:
             paths = pdb_export.export_frames(u, [0], atoms, tmp, "big")
             with open(paths[0], "rb") as fh:
-                raw = fh.read()
+                raw = independent_tables.residue_rule_pdb_text(fh.read())
         lines = raw.decode().splitlines()
         out.append({"selection": name, "sha256": hashlib.sha256(raw).hexdigest(), "size": len(raw),
                     "head": "\n".join(lines[:12]), "tail": "\n".join(lines[-12:])})

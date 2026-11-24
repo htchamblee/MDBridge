@@ -8,7 +8,8 @@ Needs MDAnalysis 2.11.0 (and MDATK's dependencies); nothing is written into the 
   files/*.pdb, *.gro    crafted PDB / GRO files: elements (valid, invalid, partial, none), segids
                         and chain IDs, formal charges, resid and serial wraps, hybrid-36 serials,
                         CONECT variants, models with and without CRYST1, placeholder / broken
-                        cells, HEADER / COMPND / REMARK, line ends, Unicode, GRO boxes and wraps
+                        cells, HEADER / COMPND / REMARK, line ends, Unicode, GRO boxes and wraps,
+                        ions.pdb / ions.gro (protein atoms and ions for the residue-scoped rule)
   files/*.topology.json the topology MDAnalysis builds from each readable file (the dump of
                         tests/parity/dump_topologies.py)
   topology_cases.json   per file: the dump name or the Universe's error, and the PDB / GRO reader:
@@ -70,6 +71,26 @@ def f32bits(values):
 
 
 # --- crafted files --------------------------------------------------------------------------------
+
+# ions.pdb / ions.gro (no element column: every type is guessed): a protein fragment whose CA, CD1,
+# HG1, CE atoms must stay C / H, lone ions named the CCD way (residue = atom name) and the force-field
+# way, CHARMM's cadmium (CD2/CD), a CCD mercury component (EMC/HG) and K+ (in no source: name rule)
+# for MDBridge's residue-scoped ion rule (independent_tables.py).
+IONS = [("ILE", 1, ["N", "CA", "C", "O", "CB", "CG1", "CG2", "CD1", "HD11"]),
+        ("THR", 2, ["N", "CA", "CB", "OG1", "HG1"]),
+        ("MET", 3, ["CA", "SD", "CE"]),
+        ("CA", 4, ["CA"]), ("CD", 5, ["CD"]), ("HG", 6, ["HG"]), ("ZN", 7, ["ZN"]), ("MG", 8, ["MG"]),
+        ("NA", 9, ["NA"]), ("CL", 10, ["CL"]), ("SOD", 11, ["SOD"]), ("CAL", 12, ["CAL"]),
+        ("CLA", 13, ["CLA"]), ("POT", 14, ["POT"]), ("K+", 15, ["K+"]), ("CD2", 16, ["CD"]),
+        ("EMC", 17, ["HG"]), ("ZN2", 18, ["ZN"])]
+
+
+def ion_atoms():
+    out = []
+    for resname, resid, names in IONS:
+        for name in names:
+            out.append((resname, resid, name, len(out)))
+    return out
 
 def atom(serial, name, resname, chain, resid, xyz, record="ATOM", alt=" ", icode=" ", occ="  1.00",
          temp="  0.00", segid="    ", element="  ", charge="  "):
@@ -217,6 +238,9 @@ def pdb_files():
     files["empty.pdb"] = ""
     files["remarks_only.pdb"] = "REMARK only\nEND\n"
     files["endmdl_first.pdb"] = "\n".join(seven[:3] + ["ENDMDL"] + seven[3:]) + "\n"
+    files["ions.pdb"] = "\n".join(
+        atom(k + 1, name, resname, "A", resid, (1.5 * k, 0.5, -0.25 * k), "ATOM" if resid <= 3 else "HETATM")
+        for resname, resid, name, k in ion_atoms()) + "\nEND\n"
     raw = {name: text.encode() for name, text in files.items()}
     raw["invalid_utf8.pdb"] = ("\n".join(seven[:2]) + "\n").encode() + b"REMARK \xff\n" + "\n".join(seven[2:]).encode()
     raw["latin1_name.pdb"] = "\n".join(seven).encode().replace(b"C4'", b"C\xe9'")
@@ -261,6 +285,10 @@ def gro_files():
     files["too_few.gro"] = "\n".join(["Few", "7"] + atoms[:4]) + "\n"
     files["no_box.gro"] = "\n".join(["No box", "7"] + atoms) + "\n"
     files["bad_count.gro"] = "Count\n seven\n" + "\n".join(atoms) + "\n"
+    files["ions.gro"] = "\n".join(["Ions", str(len(ion_atoms()))]
+                                   + [gro_line(resid, resname, name, k + 1, (0.15 * k, 0.05, 0.1))
+                                      for resname, resid, name, k in ion_atoms()]
+                                   + ["   4.00000   4.00000   4.00000"]) + "\n"
     return {name: text.encode() for name, text in files.items()}
 
 

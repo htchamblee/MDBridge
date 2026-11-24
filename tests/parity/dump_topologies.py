@@ -15,7 +15,8 @@ coordinates, the first frame (positions as float32 values, dimensions or null).
 
 MDAnalysis runs with MDBridge's independent residue, element and mass tables patched in
 (independent_tables.py; tests/data/README.md): every dump applies the patch first, also when this
-module is imported by another generator.
+module is imported by another generator. Guessed types and masses then get MDBridge's own
+residue-scoped ion rule (independent_tables.residue_rule_universe; not MDAnalysis behaviour).
 """
 
 import json
@@ -43,6 +44,7 @@ def attribute(group, name, convert):
 def dump(path):
     independent_tables.apply()
     u = mda.Universe(path)
+    independent_tables.residue_rule_universe(u, path)  # MDBridge's residue-scoped ion rule
     atoms, residues, segments = u.atoms, u.residues, u.segments
     out = {
         "file": os.path.basename(path),

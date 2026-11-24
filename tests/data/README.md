@@ -41,7 +41,28 @@ left, and `/opt/mdbridge-venv/bin/python -I -B tests/parity/independent_tables.p
 element of every such reference name, and the column the PDB writer gives it, with the patched
 MDAnalysis and lists any that differ from the CCD (none at present). Ions whose atom name is one of
 the dropped names (a calcium ion named `CA`, cadmium `CD`, mercury `HG`) are therefore guessed as
-carbon / hydrogen and written from column 14, as a name-only rule must.
+carbon / hydrogen and written from column 14 by the name-only rules; MDBridge's residue rule
+below handles them.
+
+**MDBridge's residue-scoped ion rule (a deliberate improvement over MDAnalysis).** The generated
+table `kIndResidueAtomElements` lists (residue name, atom name, element) for atoms whose element
+the residue decides: every CCD one-atom component (`CA`/`CA` -> Ca, `CD`/`CD` -> Cd, `HG`/`HG` ->
+Hg, `ZN`/`ZN` -> Zn, `NA`/`NA` -> Na ...), the `HG` / `CL` atoms of the CCD components in which
+they are mercury / chlorine (`EMC`/`HG` -> Hg ...), and the one-atom ion residues of the OpenMM
+Amber and CHARMM36 ion libraries (`SOD`/`SOD` -> Na, `CAL`/`CAL` -> Ca, `CLA`/`CLA` -> Cl,
+`POT`/`POT` -> K, `CD2`/`CD` -> Cd, `ZN2`/`ZN` -> Zn ...); upper case, without the residue names of
+the protein, nucleic and water lists. When an atom's type is guessed from its name and its
+(residue name, atom name), compared in upper case, is in the table, the type is that element
+symbol in upper case and, where the mass follows the type (no elements column, no masses in the
+file), the mass is the element's; otherwise the name-only procedure applies unchanged. The PDB
+writer starts the name of such an atom in column 13 when the element has two letters; otherwise
+its rules apply unchanged. MDAnalysis cannot do this, so `tests/parity/independent_tables.py`
+post-processes patched MDAnalysis' results with exactly these semantics:
+`residue_rule_universe` (guessed types and masses, applied in every dump of `dump_topologies.py`)
+and `residue_rule_pdb_text` (the name column of the files the export generator records).
+`io/loader/files/ions.pdb` and `ions.gro` exercise it: a protein fragment (CA, CD1, HG1, CE stay C
+/ H), lone ions named the CCD way and the force-field way, `CD2`/`CD`, `EMC`/`HG`, and `K+`/`K+`,
+which no source names (name rule: K).
 
 `projects/` holds project files; `expected/` holds what MDATK v0.0.4.1 (the reference
 implementation) reads from each of them. `tests/core/test_project_file.cpp` checks that MDBridge
@@ -280,7 +301,7 @@ topology files and file combinations, for `src/io/loader.cpp` and `src/io/pdb_to
 
 | File | Content |
 |---|---|
-| `files/*.pdb`, `*.gro` | crafted PDB / GRO files: elements (valid, lower case, invalid, blank, none), types and masses MDAnalysis guesses, segids and chain IDs, formal charges (valid, unknown entries), resid wraps, hybrid-36 and `*****` serials, CONECT variants, models with one, every or some CRYST1 records, placeholder / broken / zero cells, HEADER / COMPND / REMARK, CRLF, Unicode and invalid UTF-8, GRO boxes (3 / 9 values, zero, packed, broken), GRO resid wraps, precision and broken lines |
+| `files/*.pdb`, `*.gro` | crafted PDB / GRO files: elements (valid, lower case, invalid, blank, none), types and masses MDAnalysis guesses, segids and chain IDs, formal charges (valid, unknown entries), resid wraps, hybrid-36 and `*****` serials, CONECT variants, models with one, every or some CRYST1 records, placeholder / broken / zero cells, HEADER / COMPND / REMARK, CRLF, Unicode and invalid UTF-8, GRO boxes (3 / 9 values, zero, packed, broken), GRO resid wraps, precision and broken lines; `ions.pdb` / `ions.gro` for the residue-scoped ion rule (see the first section) |
 | `files/*.topology.json` | the topology MDAnalysis builds from each readable file (`tests/parity/dump_topologies.py`) |
 | `topology_cases.json` | per file: its dump or the Universe's error, and the PDB / GRO reader (frame count, dt, header / compound / remarks, every frame's float32 positions, cell and time, in order and shuffled, with and without dt) |
 | `loader_cases.json` | `load_universe` + `system_summary` over a matrix of the demo and crafted files (formats by extension, chains, dt 0 / NaN / given, missing files, reader errors) with the residue-name counts; `frame_indices` of 1620 slices; the JSON `mdatk info --top ... --traj ...` prints |

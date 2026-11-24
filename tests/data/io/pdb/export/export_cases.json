@@ -1123,6 +1123,58 @@
    ]
   },
   {
+   "topology": "{data}/io/loader/files/ions.pdb",
+   "trajectories": [],
+   "dt": null,
+   "selection": "",
+   "frames": [
+    0
+   ],
+   "prefix": "ions_pdb",
+   "stamp": "",
+   "paths": [
+    "ions_pdb_00000.pdb"
+   ],
+   "progress": [
+    [
+     "0x1.0000000000000p+0",
+     "PDB frame 0"
+    ]
+   ],
+   "files": [
+    {
+     "name": "ions_pdb_00000.pdb",
+     "text": "HEADER    \nTITLE     MDANALYSIS FRAME 0: Created by PDBWriter\nCRYST1    1.000    1.000    1.000  90.00  90.00  90.00 P 1           1\nREMARK     285 UNITARY VALUES FOR THE UNIT CELL AUTOMATICALLY SET\nREMARK     285 BY MDANALYSIS PDBWRITER BECAUSE UNIT CELL INFORMATION\nREMARK     285 WAS MISSING.\nREMARK     285 PROTEIN DATA BANK CONVENTIONS REQUIRE THAT\nREMARK     285 CRYST1 RECORD IS INCLUDED, BUT THE VALUES ON\nREMARK     285 THIS RECORD ARE MEANINGLESS.\nATOM      1  N   ILE A   1       0.000   0.500  -0.000  1.00  0.00      A       \nATOM      2  CA  ILE A   1       1.500   0.500  -0.250  1.00  0.00      A       \nATOM      3  C   ILE A   1       3.000   0.500  -0.500  1.00  0.00      A       \nATOM      4  O   ILE A   1       4.500   0.500  -0.750  1.00  0.00      A       \nATOM      5  CB  ILE A   1       6.000   0.500  -1.000  1.00  0.00      A       \nATOM      6  CG1 ILE A   1       7.500   0.500  -1.250  1.00  0.00      A       \nATOM      7  CG2 ILE A   1       9.000   0.500  -1.500  1.00  0.00      A       \nATOM      8  CD1 ILE A   1      10.500   0.500  -1.750  1.00  0.00      A       \nATOM      9 HD11 ILE A   1      12.000   0.500  -2.000  1.00  0.00      A       \nATOM     10  N   THR A   2      13.500   0.500  -2.250  1.00  0.00      A       \nATOM     11  CA  THR A   2      15.000   0.500  -2.500  1.00  0.00      A       \nATOM     12  CB  THR A   2      16.500   0.500  -2.750  1.00  0.00      A       \nATOM     13  OG1 THR A   2      18.000   0.500  -3.000  1.00  0.00      A       \nATOM     14  HG1 THR A   2      19.500   0.500  -3.250  1.00  0.00      A       \nATOM     15  CA  MET A   3      21.000   0.500  -3.500  1.00  0.00      A       \nATOM     16  SD  MET A   3      22.500   0.500  -3.750  1.00  0.00      A       \nATOM     17  CE  MET A   3      24.000   0.500  -4.000  1.00  0.00      A       \nHETATM   18 CA   CA  A   4      25.500   0.500  -4.250  1.00  0.00      A       \nHETATM   19 CD   CD  A   5      27.000   0.500  -4.500  1.00  0.00      A       \nHETATM   20 HG   HG  A   6      28.500   0.500  -4.750  1.00  0.00      A       \nHETATM   21 ZN   ZN  A   7      30.000   0.500  -5.000  1.00  0.00      A       \nHETATM   22 MG   MG  A   8      31.500   0.500  -5.250  1.00  0.00      A       \nHETATM   23 NA   NA  A   9      33.000   0.500  -5.500  1.00  0.00      A       \nHETATM   24 CL   CL  A  10      34.500   0.500  -5.750  1.00  0.00      A       \nHETATM   25 SOD  SOD A  11      36.000   0.500  -6.000  1.00  0.00      A       \nHETATM   26 CAL  CAL A  12      37.500   0.500  -6.250  1.00  0.00      A       \nHETATM   27 CLA  CLA A  13      39.000   0.500  -6.500  1.00  0.00      A       \nHETATM   28 POT  POT A  14      40.500   0.500  -6.750  1.00  0.00      A       \nHETATM   29 K+   K+  A  15      42.000   0.500  -7.000  1.00  0.00      A       \nHETATM   30 CD   CD2 A  16      43.500   0.500  -7.250  1.00  0.00      A       \nHETATM   31 HG   EMC A  17      45.000   0.500  -7.500  1.00  0.00      A       \nHETATM   32 ZN   ZN2 A  18      46.500   0.500  -7.750  1.00  0.00      A       \nEND\n"
+    }
+   ]
+  },
+  {
+   "topology": "{data}/io/loader/files/ions.gro",
+   "trajectories": [],
+   "dt": null,
+   "selection": "",
+   "frames": [
+    0
+   ],
+   "prefix": "ions_gro",
+   "stamp": "",
+   "paths": [
+    "ions_gro_00000.pdb"
+   ],
+   "progress": [
+    [
+     "0x1.0000000000000p+0",
+     "PDB frame 0"
+    ]
+   ],
+   "files": [
+    {
+     "name": "ions_gro_00000.pdb",
+     "text": "TITLE     MDANALYSIS FRAME 0: Created by PDBWriter\nCRYST1   40.000   40.000   40.000  90.00  90.00  90.00 P 1           1\nATOM      1  N   ILE X   1       0.000   0.500   1.000  1.00  0.00      SYST    \nATOM      2  CA  ILE X   1       1.500   0.500   1.000  1.00  0.00      SYST    \nATOM      3  C   ILE X   1       3.000   0.500   1.000  1.00  0.00      SYST    \nATOM      4  O   ILE X   1       4.500   0.500   1.000  1.00  0.00      SYST    \nATOM      5  CB  ILE X   1       6.000   0.500   1.000  1.00  0.00      SYST    \nATOM      6  CG1 ILE X   1       7.500   0.500   1.000  1.00  0.00      SYST    \nATOM      7  CG2 ILE X   1       9.000   0.500   1.000  1.00  0.00      SYST    \nATOM      8  CD1 ILE X   1      10.500   0.500   1.000  1.00  0.00      SYST    \nATOM      9 HD11 ILE X   1      12.000   0.500   1.000  1.00  0.00      SYST    \nATOM     10  N   THR X   2      13.500   0.500   1.000  1.00  0.00      SYST    \nATOM     11  CA  THR X   2      15.000   0.500   1.000  1.00  0.00      SYST    \nATOM     12  CB  THR X   2      16.500   0.500   1.000  1.00  0.00      SYST    \nATOM     13  OG1 THR X   2      18.000   0.500   1.000  1.00  0.00      SYST    \nATOM     14  HG1 THR X   2      19.500   0.500   1.000  1.00  0.00      SYST    \nATOM     15  CA  MET X   3      21.000   0.500   1.000  1.00  0.00      SYST    \nATOM     16  SD  MET X   3      22.500   0.500   1.000  1.00  0.00      SYST    \nATOM     17  CE  MET X   3      24.000   0.500   1.000  1.00  0.00      SYST    \nATOM     18 CA   CA  X   4      25.500   0.500   1.000  1.00  0.00      SYST    \nATOM     19 CD   CD  X   5      27.000   0.500   1.000  1.00  0.00      SYST    \nATOM     20 HG   HG  X   6      28.500   0.500   1.000  1.00  0.00      SYST    \nATOM     21 ZN   ZN  X   7      30.000   0.500   1.000  1.00  0.00      SYST    \nATOM     22 MG   MG  X   8      31.500   0.500   1.000  1.00  0.00      SYST    \nATOM     23 NA   NA  X   9      33.000   0.500   1.000  1.00  0.00      SYST    \nATOM     24 CL   CL  X  10      34.500   0.500   1.000  1.00  0.00      SYST    \nATOM     25 SOD  SOD X  11      36.000   0.500   1.000  1.00  0.00      SYST    \nATOM     26 CAL  CAL X  12      37.500   0.500   1.000  1.00  0.00      SYST    \nATOM     27 CLA  CLA X  13      39.000   0.500   1.000  1.00  0.00      SYST    \nATOM     28 POT  POT X  14      40.500   0.500   1.000  1.00  0.00      SYST    \nATOM     29 K+   K+  X  15      42.000   0.500   1.000  1.00  0.00      SYST    \nATOM     30 CD   CD2 X  16      43.500   0.500   1.000  1.00  0.00      SYST    \nATOM     31 HG   EMC X  17      45.000   0.500   1.000  1.00  0.00      SYST    \nATOM     32 ZN   ZN2 X  18      46.500   0.500   1.000  1.00  0.00      SYST    \nEND\n"
+    }
+   ]
+  },
+  {
    "topology": "{data}/topology/fixture_chains.pdb",
    "trajectories": [],
    "dt": null,
