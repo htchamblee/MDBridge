@@ -232,6 +232,7 @@ STEPS = [
     case_step("rigid", "make_rigid_cases.py", "rigid"),
     case_step("citations", "make_citation_cases.py", "citations"),
     case_step("cif", "make_cif_cases.py", "io/cif", pytest=True),
+    case_step("secstruct", "make_secstruct_cases.py", "chem"),
 ]
 
 

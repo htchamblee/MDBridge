@@ -47,6 +47,14 @@ target_compile_definitions(mdbridge_io_tests PRIVATE MDBRIDGE_TEST_DATA="${CMAKE
 mdbridge_target_warnings(mdbridge_io_tests)
 gtest_discover_tests(mdbridge_io_tests DISCOVERY_MODE PRE_TEST)
 
+# chem: secondary structure (dot-bracket, builtin base pairs) as MDATK computes it
+add_executable(mdbridge_chem_tests chem/test_secstruct.cpp)
+target_include_directories(mdbridge_chem_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/core")
+target_link_libraries(mdbridge_chem_tests PRIVATE mdbridge::chem GTest::gtest_main)
+target_compile_definitions(mdbridge_chem_tests PRIVATE MDBRIDGE_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data")
+mdbridge_target_warnings(mdbridge_chem_tests)
+gtest_discover_tests(mdbridge_chem_tests DISCOVERY_MODE PRE_TEST)
+
 # app/commands: MDATK's init, info, export-pdb and density info, run in-process against what MDATK
 # printed and wrote (data/cli, tests/parity/cli_parity.py); no Qt needed
 add_executable(mdbridge_cli_tests cli/test_commands.cpp)

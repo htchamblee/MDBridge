@@ -432,6 +432,35 @@ job, against the AppImage):
 /opt/mdbridge-venv/bin/python -I -B tests/parity/cli_parity.py --mdatk /tmp/mdatk --mdbridge build/tests/mdbridge_commands_cli
 ```
 
+`chem/secstruct_cases.json` holds what MDATK's secondary-structure code (`mdatk/secstruct.py`)
+computes, for `src/chem/secstruct.cpp` (`tests/chem/test_secstruct.cpp`), one case per line:
+
+| Key | Content |
+|---|---|
+| `constants` | `OPENERS`, `CLOSERS`, `UNPAIRED`, `CHAIN_SEPARATOR`, `PAIR_RULES`, `C1_WINDOW`, `C1_IDEAL`, `SCORE_TIE`, `BASE_PAIR_ATOMS`, `KIND_LABELS` |
+| `residue_names` | `base_letter` / `canonical_name` of every name of up to three characters over the letters of the naming schemes (and others), lower case, aliases, padded and non-nucleotide names |
+| `lw_kind` | `lw_kind` of Leontis-Westhof codes |
+| `parse` | `dotbracket_to_pairs` of MDATK's test texts, every bracket level, `&` and Unicode whitespace separators, invalid characters (repr() in the message), random balanced, mutated and random texts: pairs, n, chain breaks or the message |
+| `write` | `pairs_to_dotbracket` of MDATK's test pairs, random nested and crossing sets, 26 to 32 mutually crossing pairs (30 levels fit), reversed, duplicated and invalid pairs, chain breaks in and out of range, n <= 0: the text or the message |
+| `stems`, `crosses`, `unique_pairs` | `_stems`, `_crosses`, `unique_pairs` of pair lists |
+| `detector` | `PairDetector(resnames, atom_index, cutoff, wobble)` on the geometries of MDATK's `tests/test_basepairs.py` (its own helpers build them), C1'-C1' distances and H-bond distances exactly at the limits and one ulp beyond, missing atoms, `C1*` names, an infinite cutoff, non-finite coordinates, near-tie sweeps, L-RNA and every residue-name scheme, perturbed helices, dense random clouds: per frame the coordinates, `candidates` (i, j, kind, score, deviation) and `detect` |
+| `select` | `detect` with `candidates` replaced (as MDATK's tie test does): scores on, around and half-way between points of the 0.05 grid, equal deviations |
+| `lattice` | two large detector cases the C++ test rebuilds from a formula (multiples of 0.25 A): counts, the first rows and SHA-256 of the candidate array (float64) and of `detect` (int64) |
+
+Floats are `float.hex()` strings (`nan`, `inf`, `-inf`); the test compares everything exactly, the
+scores and deviations bit for bit (MDBridge computes the distances in numpy's order,
+`sqrt((dx² + dy²) + dz²)`, without fused multiply-adds). The geometries built by MDATK's test helpers
+go through numpy's LAPACK / BLAS, which differ in the last bits between CPUs, so the generator rounds
+them to float32 (as MDBridge's frames are) before use; perturbations are added in float64 afterwards.
+MDATK's tests import pytest, which the generator replaces with a minimal stand-in when it is not
+installed (only decorators run at import). To regenerate, with numpy and MDAnalysis in
+`/opt/mdbridge-venv` and an MDATK checkout at `v0.0.4.1` (nothing is written into it; the output is
+reproducible):
+
+```bash
+/opt/mdbridge-venv/bin/python -I -B tests/parity/make_secstruct_cases.py /tmp/mdatk tests/data/chem
+```
+
 ## Checking that the data is reproducible
 
 `tests/parity/regenerate_all.py` runs every generator above (and `tools/gen_*.py`) in this order

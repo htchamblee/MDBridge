@@ -42,6 +42,7 @@ endif()
 
 add_subdirectory(src/core)
 add_subdirectory(src/io)
+add_subdirectory(src/chem)
 if(MDBRIDGE_BUILD_APP OR MDBRIDGE_BUILD_TESTS)
     add_subdirectory(src/app/commands)  # the command line's MDATK commands; no Qt
 endif()
