@@ -60,7 +60,8 @@ gtest_discover_tests(mdbridge_chem_tests DISCOVERY_MODE PRE_TEST)
 # MDATK computes it (data/analysis, tests/parity/make_analysis_framework_cases.py)
 add_executable(mdbridge_analysis_tests
     analysis/test_energy.cpp
-    analysis/test_framework.cpp)
+    analysis/test_framework.cpp
+    analysis/test_rmsd_analysis.cpp)
 target_include_directories(mdbridge_analysis_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/core")
 target_link_libraries(mdbridge_analysis_tests PRIVATE mdbridge::analysis GTest::gtest_main)
 target_compile_definitions(mdbridge_analysis_tests PRIVATE MDBRIDGE_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data")
