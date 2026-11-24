@@ -474,44 +474,55 @@ Mask atomsOfResidues(const Context& ctx, const std::vector<std::uint8_t>& residu
     return out;
 }
 
-// ---- geometry: MDAnalysis' brute-force capped distances (lib/include/calc_distances.h) -------
+// ---- geometry: periodic minimum-image distances (orthorhombic and triclinic cells) ------------
 
 struct Geometry {
     enum class Mode { None, Ortho, Triclinic } mode = Mode::None;
     std::array<float, 3> box{};
     std::array<float, 3> inverse{};
-    std::array<float, 9> tri{};  // row vectors a, b, c (lower triangular)
+    std::array<float, 9> tri{};  // row vectors a, b, c (lower triangular); zero when invalid
+    std::array<double, 3> spacing{};  // distances between opposite faces of the triclinic cell
     std::optional<std::array<float, 6>> dims;  // the box, when periodic
 
-    // MDAnalysis' triclinic_vectors (double precision, then float32)
-    static std::array<float, 9> triclinicVectors(const std::array<float, 6>& dims) {
-        std::array<float, 9> out{};
-        const double lx = dims[0], ly = dims[1], lz = dims[2];
-        const double alpha = dims[3], beta = dims[4], gamma = dims[5];
-        const bool valid = lx > 0 && ly > 0 && lz > 0 && alpha > 0 && beta > 0 && gamma > 0 &&
-                           alpha < 180 && beta < 180 && gamma < 180;
-        if (!valid) {
-            return out;
+    // Cell vectors from lengths and angles (degrees): a along x, b in the xy plane, c completing a
+    // right-handed cell. All zero for non-positive lengths, angles outside (0, 180) or a flat cell.
+    static std::array<float, 9> cellVectors(const std::array<float, 6>& dims) {
+        std::array<float, 9> rows{};
+        const double la = dims[0], lb = dims[1], lc = dims[2];
+        if (!(la > 0 && lb > 0 && lc > 0) || !std::isfinite(la * lb * lc)) {
+            return rows;
         }
-        constexpr double kPi = 3.141592653589793;
-        const double cosAlpha = alpha == 90.0 ? 0.0 : std::cos(alpha * (kPi / 180.0));
-        const double cosBeta = beta == 90.0 ? 0.0 : std::cos(beta * (kPi / 180.0));
-        double cosGamma = 0.0, sinGamma = 1.0;
-        if (gamma != 90.0) {
-            cosGamma = std::cos(gamma * (kPi / 180.0));
-            sinGamma = std::sin(gamma * (kPi / 180.0));
+        std::array<double, 3> cosine{}, sine{};
+        for (std::size_t i = 0; i < 3; ++i) {
+            const double deg = dims[3 + i];
+            if (!(deg > 0 && deg < 180)) {
+                return rows;
+            }
+            if (deg == 90) {
+                cosine[i] = 0;
+                sine[i] = 1;
+            } else {
+                const double rad = deg * (std::acos(-1.0) / 180);
+                cosine[i] = std::cos(rad);
+                sine[i] = std::sin(rad);
+            }
         }
-        const double m10 = ly * cosGamma;
-        const double m11 = ly * sinGamma;
-        const double m20 = lz * cosBeta;
-        const double m21 = lz * (cosAlpha - cosBeta * cosGamma) / sinGamma;
-        const double m22 = std::sqrt(lz * lz - m20 * m20 - m21 * m21);
-        if (!(m22 > 0.0)) {
-            return out;
+        // cosine / sine indexed by alpha (b^c), beta (a^c), gamma (a^b)
+        const double cx = cosine[1];
+        const double cy = (cosine[0] - cosine[1] * cosine[2]) / sine[2];
+        const double czSquared = 1 - cx * cx - cy * cy;
+        if (!(czSquared > 0)) {
+            return rows;
         }
-        const auto f = [](double x) { return static_cast<float>(x); };
-        out = {f(lx), 0.0f, 0.0f, f(m10), f(m11), 0.0f, f(m20), f(m21), f(m22)};
-        return out;
+        const double full[9] = {la, 0, 0, lb * cosine[2], lb * sine[2], 0,
+                                lc * cx, lc * cy, lc * std::sqrt(czSquared)};
+        for (std::size_t i = 0; i < 9; ++i) {
+            rows[i] = static_cast<float>(full[i]);
+        }
+        if (!(rows[0] > 0 && rows[4] > 0 && rows[8] > 0)) {
+            rows.fill(0.0f);
+        }
+        return rows;
     }
 
     // group.dimensions when periodic: none without a box or with zero lengths
@@ -533,158 +544,85 @@ struct Geometry {
             }
         } else {
             g.mode = Mode::Triclinic;
-            g.tri = triclinicVectors(dims);
+            g.tri = cellVectors(dims);
+            const auto row = [&g](std::size_t r) {
+                return std::array<double, 3>{g.tri[3 * r], g.tri[3 * r + 1], g.tri[3 * r + 2]};
+            };
+            const double volume = static_cast<double>(g.tri[0]) * g.tri[4] * g.tri[8];
+            for (std::size_t k = 0; k < 3 && volume > 0; ++k) {
+                const auto u = row((k + 1) % 3), v = row((k + 2) % 3);
+                const double nx = u[1] * v[2] - u[2] * v[1];
+                const double ny = u[2] * v[0] - u[0] * v[2];
+                const double nz = u[0] * v[1] - u[1] * v[0];
+                g.spacing[k] = volume / std::sqrt(nx * nx + ny * ny + nz * nz);
+            }
         }
         return g;
     }
 
-    // _triclinic_pbc for one coordinate
-    void wrapTriclinic(float* coords) const {
-        const float* b = tri.data();
-        if (!b[0] && !b[4] && !b[8]) {
-            return;
-        }
-        const double bi0 = 1.0 / static_cast<double>(b[0]);
-        const double bi4 = 1.0 / static_cast<double>(b[4]);
-        const double bi8 = 1.0 / static_cast<double>(b[8]);
-        const double bi3 = -b[3] * bi0 * bi4;
-        const double bi6 = (-bi3 * b[7] - b[6] * bi0) * bi8;
-        const double bi7 = -b[7] * bi4 * bi8;
-        const double zFactor = static_cast<double>(b[7]) * bi8;
-        float crd[3] = {coords[0], coords[1], coords[2]};
-        bool multi = false;
-        if (crd[2] < 0.0f) {
-            crd[0] += b[6];
-            crd[1] += b[7];
-            crd[2] += b[8];
-            multi = multi || crd[2] < 0.0f;
-        }
-        if (crd[2] >= b[8]) {
-            crd[0] -= b[6];
-            crd[1] -= b[7];
-            crd[2] -= b[8];
-            multi = multi || crd[2] >= b[8];
-        }
-        if (!multi) {
-            double lbound = crd[2] * zFactor;
-            double ubound = lbound + b[4];
-            if (crd[1] < lbound) {
-                crd[0] += b[3];
-                crd[1] += b[4];
-                multi = multi || crd[1] < lbound;
-            }
-            if (crd[1] >= ubound) {
-                crd[0] -= b[3];
-                crd[1] -= b[4];
-                multi = multi || crd[1] >= ubound;
-            }
-            if (!multi) {
-                lbound = -(crd[1] * bi3 + crd[2] * bi6) * b[0];
-                ubound = lbound + b[0];
-                if (crd[0] < lbound) {
-                    crd[0] += b[0];
-                    multi = multi || crd[0] < lbound;
-                }
-                if (crd[0] >= ubound) {
-                    crd[0] -= b[0];
-                    multi = multi || crd[0] >= ubound;
-                }
-            }
-        }
-        if (multi) {
-            int s = static_cast<int>(std::floor(coords[2] * bi8));
-            coords[2] -= static_cast<float>(s) * b[8];
-            coords[1] -= static_cast<float>(s) * b[7];
-            coords[0] -= static_cast<float>(s) * b[6];
-            s = static_cast<int>(std::floor(coords[1] * bi4 + coords[2] * bi7));
-            coords[1] -= static_cast<float>(s) * b[4];
-            coords[0] -= static_cast<float>(s) * b[3];
-            s = static_cast<int>(std::floor(coords[0] * bi0 + coords[1] * bi3 + coords[2] * bi6));
-            coords[0] -= static_cast<float>(s) * b[0];
-            crd[0] = coords[0];
-            crd[1] = coords[1];
-            crd[2] = coords[2];
-            if (crd[2] < 0.0f) {
-                crd[0] += b[6];
-                crd[1] += b[7];
-                crd[2] += b[8];
-            }
-            if (crd[2] >= b[8]) {
-                crd[0] -= b[6];
-                crd[1] -= b[7];
-                crd[2] -= b[8];
-            }
-            double lbound = crd[2] * zFactor;
-            double ubound = lbound + b[4];
-            if (crd[1] < lbound) {
-                crd[0] += b[3];
-                crd[1] += b[4];
-            }
-            if (crd[1] >= ubound) {
-                crd[0] -= b[3];
-                crd[1] -= b[4];
-            }
-            lbound = -(crd[1] * bi3 + crd[2] * bi6) * b[0];
-            ubound = lbound + b[0];
-            if (crd[0] < lbound) {
-                crd[0] += b[0];
-            }
-            if (crd[0] >= ubound) {
-                crd[0] -= b[0];
-            }
-        }
-        coords[0] = crd[0];
-        coords[1] = crd[1];
-        coords[2] = crd[2];
-    }
-
-    // coordinates as the distance kernel sees them (moved into the cell for triclinic boxes)
-    std::vector<float> prepare(const float* xyz, std::size_t count) const {
-        std::vector<float> out(xyz, xyz + 3 * count);
-        if (mode == Mode::Triclinic) {
-            for (std::size_t i = 0; i < count; ++i) {
-                wrapTriclinic(&out[3 * i]);
-            }
-        }
-        return out;
-    }
-
     double distance(const float* ref, const float* conf) const {
-        double dx[3] = {conf[0] - ref[0], conf[1] - ref[1], conf[2] - ref[2]};
+        std::array<double, 3> d{};
+        for (std::size_t i = 0; i < 3; ++i) {
+            d[i] = static_cast<double>(conf[i]) - static_cast<double>(ref[i]);
+        }
         if (mode == Mode::Ortho) {
             for (std::size_t i = 0; i < 3; ++i) {
-                if (box[i] > FLT_EPSILON) {
-                    const double s = inverse[i] * dx[i];
-                    dx[i] = box[i] * (s - std::round(s));
+                if (box[i] > 0.0f && std::isfinite(inverse[i])) {
+                    d[i] -= static_cast<double>(box[i]) * std::nearbyint(d[i] * inverse[i]);
                 }
             }
-        } else if (mode == Mode::Triclinic) {
-            double best[3] = {0.0, 0.0, 0.0};
-            double bestSq = FLT_MAX;
-            for (int ix = -1; ix < 2; ++ix) {
-                const double rx = dx[0] + tri[0] * static_cast<float>(ix);
-                for (int iy = -1; iy < 2; ++iy) {
-                    const double ry0 = rx + tri[3] * static_cast<float>(iy);
-                    const double ry1 = dx[1] + tri[4] * static_cast<float>(iy);
-                    for (int iz = -1; iz < 2; ++iz) {
-                        const double rz0 = ry0 + tri[6] * static_cast<float>(iz);
-                        const double rz1 = ry1 + tri[7] * static_cast<float>(iz);
-                        const double rz2 = dx[2] + tri[8] * static_cast<float>(iz);
-                        const double sq = rz0 * rz0 + rz1 * rz1 + rz2 * rz2;
-                        if (sq < bestSq) {
-                            bestSq = sq;
-                            best[0] = rz0;
-                            best[1] = rz1;
-                            best[2] = rz2;
-                        }
-                    }
-                }
-            }
-            dx[0] = best[0];
-            dx[1] = best[1];
-            dx[2] = best[2];
+        } else if (mode == Mode::Triclinic && tri[0] > 0.0f) {
+            return triclinicMinimum(d);
         }
-        return std::sqrt(dx[0] * dx[0] + dx[1] * dx[1] + dx[2] * dx[2]);
+        return std::sqrt(d[0] * d[0] + d[1] * d[1] + d[2] * d[2]);
+    }
+
+private:
+    // Fractional coordinates of a separation (rows of the lower-triangular cell).
+    std::array<double, 3> fractional(const std::array<double, 3>& d) const {
+        const double z = d[2] / tri[8];
+        const double y = (d[1] - z * tri[7]) / tri[4];
+        const double x = (d[0] - y * tri[3] - z * tri[6]) / tri[0];
+        return {x, y, z};
+    }
+
+    // Shortest d + i a + j b + k c. Any image no longer than |d| has fractional coordinate k
+    // within |d| / spacing[k] of zero, which bounds the integer shifts to search.
+    double triclinicMinimum(std::array<double, 3> d) const {
+        auto s = fractional(d);
+        if (!std::isfinite(s[0]) || !std::isfinite(s[1]) || !std::isfinite(s[2])) {
+            return std::sqrt(d[0] * d[0] + d[1] * d[1] + d[2] * d[2]);
+        }
+        for (std::size_t r = 0; r < 3; ++r) {
+            const double n = std::nearbyint(s[r]);
+            for (std::size_t i = 0; i < 3; ++i) {
+                d[i] -= n * tri[3 * r + i];
+            }
+        }
+        s = fractional(d);
+        double best = d[0] * d[0] + d[1] * d[1] + d[2] * d[2];
+        const double radius = std::sqrt(best) * (1 + 1e-9);
+        std::array<std::int64_t, 3> lo{}, hi{};
+        for (std::size_t r = 0; r < 3; ++r) {
+            const double reach = radius / spacing[r];
+            lo[r] = static_cast<std::int64_t>(std::ceil(-reach - s[r]));
+            hi[r] = static_cast<std::int64_t>(std::floor(reach - s[r]));
+        }
+        for (std::int64_t i = lo[0]; i <= hi[0]; ++i) {
+            for (std::int64_t j = lo[1]; j <= hi[1]; ++j) {
+                for (std::int64_t k = lo[2]; k <= hi[2]; ++k) {
+                    double sum = 0;
+                    for (std::size_t c = 0; c < 3; ++c) {
+                        const double v = d[c] + static_cast<double>(i) * tri[c] +
+                                         static_cast<double>(j) * tri[3 + c] +
+                                         static_cast<double>(k) * tri[6 + c];
+                        sum += v * v;
+                    }
+                    best = std::min(best, sum);
+                }
+            }
+        }
+        return std::sqrt(best);
     }
 };
 
@@ -1687,8 +1625,7 @@ struct AroundNode : Node {
         if (inner) {
             checkGridSearch(g, ref, conf, *inner);
         }
-        const auto hits = withinCutoffs(g, g.prepare(ref.data(), ref.size() / 3),
-                                        g.prepare(conf.data(), conf.size() / 3), outer, inner);
+        const auto hits = withinCutoffs(g, ref, conf, outer, inner);
         std::size_t k = 0;
         for (std::size_t a = 0; a < ctx.n; ++a) {
             if (!s[a]) {
@@ -1718,10 +1655,8 @@ struct SphereNode : Node {
         }
         const auto& xyz = ctx.positions(kNoDimensions);
         const Geometry g = Geometry::of(*ctx.frame);
-        const std::vector<float> ref = g.prepare(center.data(), 1);
-        const std::vector<float> conf = g.prepare(xyz.data(), ctx.n);
-        for (std::size_t a = 0; a < ctx.n; ++a) {
-            const double d = g.distance(ref.data(), &conf[3 * a]);
+                for (std::size_t a = 0; a < ctx.n; ++a) {
+            const double d = g.distance(center.data(), &xyz[3 * a]);
             out[a] = d <= outer && (!inner || d > *inner);
         }
         return out;

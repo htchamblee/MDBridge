@@ -3,6 +3,8 @@
 // users write: the same tokens, precedence (and / or equal and left-associative, not tighter),
 // case-sensitive glob matching, resid ranges with insertion codes, and the same error texts.
 // Not chemfiles' language, which differs in keywords, precedence and matching.
+// Periodic distances are computed independently of MDAnalysis; pairs at exactly the cutoff may
+// differ.
 
 #include <cstdint>
 #include <string_view>
