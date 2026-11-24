@@ -267,26 +267,11 @@ std::string pythonListRepr(const std::vector<std::string>& items) {
 
 namespace detail {
 
+// CLEAN ROOM: reimplement from scratchpad/cleanroom/triclinic-box.md
 std::array<float, 6> triclinicBox(const std::array<double, 3>& x, const std::array<double, 3>& y,
                                   const std::array<double, 3>& z) {
-    const auto dot = [](const std::array<double, 3>& a, const std::array<double, 3>& b) {
-        return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
-    };
-    const double lx = std::sqrt(dot(x, x));
-    const double ly = std::sqrt(dot(y, y));
-    const double lz = std::sqrt(dot(z, z));
-    const double toDegrees = 180.0 / 3.141592653589793;
-    const double alpha = std::acos(dot(y, z) / (ly * lz)) * toDegrees;
-    const double beta = std::acos(dot(x, z) / (lx * lz)) * toDegrees;
-    const double gamma = std::acos(dot(x, y) / (lx * ly)) * toDegrees;
-    const std::array<float, 6> box = {static_cast<float>(lx),   static_cast<float>(ly),
-                                      static_cast<float>(lz),   static_cast<float>(alpha),
-                                      static_cast<float>(beta), static_cast<float>(gamma)};
-    const bool positive = std::all_of(box.begin(), box.end(), [](float v) { return v > 0.0f; });
-    if (positive && alpha < 180.0 && beta < 180.0 && gamma < 180.0) {
-        return box;
-    }
-    return {};
+    (void)x; (void)y; (void)z;
+    throw std::logic_error("clean room: triclinicBox not implemented");
 }
 
 const core::Frame& FileTrajectory::seek(std::int64_t index) {
