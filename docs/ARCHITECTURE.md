@@ -71,6 +71,23 @@ publishable. MDBridge writes and (on request) runs their scripts.
   and options.
 - The analysis cache is not compatible (recomputed).
 - Generated scripts must match the Python generators' output for the same settings.
+- Paths stored in project files: relative ones resolve against the project file's folder. On
+  Linux and macOS this is exactly MDATK's Python (posixpath; CI compares). MDATK never ran on
+  Windows, so MDBridge sets its own Windows rules there (`src/core/include/mdbridge/core/ntpath.hpp`,
+  pure string functions tested on every platform):
+  - `/` and `\` both separate.
+  - Absolute: drive paths (`C:\x`, `C:/x`), UNC paths (`\\server\share\x`, `//server/share/x`) and
+    root-relative paths (`\x`, `/x`), which take the drive of the project's folder.
+  - Drive-relative `C:x`: against the project's folder when that is on drive C (the letter's case
+    ignored), otherwise against `C:/`.
+  - `~` and `~\x` expand to `%USERPROFILE%` (else `%HOMEDRIVE%%HOMEPATH%`), as Python's ntpath;
+    `~user` is left as it is.
+  - Resolved paths, absolute ones included, are normalised and written in generic form: `/`
+    separators, no `.` or `..` (never above the drive or UNC root), drive letter as written
+    (`C:\data\..\a.pdb` becomes `C:/a.pdb`). The project's folder is in the same form
+    (`C:/projects/p`), and so are the default output folders against the current directory.
+  - Device paths (`\\?\C:\x`, `\\.\pipe\x`) are kept exactly as written.
+  - Stored text is compared case-sensitively; nothing is case-folded.
 
 ## Migration order (speed first)
 

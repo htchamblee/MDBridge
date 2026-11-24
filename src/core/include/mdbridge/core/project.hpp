@@ -692,7 +692,13 @@ std::optional<std::string_view> modelComment(std::string_view path);
 // "/"), output.out_dir, output.cache_dir, density.map_path, workflow.out_dir, then the files and
 // path settings of every planner node and scratch node (resolveNodePaths). "~" is expanded;
 // absolute paths are left as they are; relative ones become normpath(join(baseDir, path)).
-// POSIX path rules (posixpath), as MDATK on Linux.
+// POSIX path rules (posixpath), as MDATK on Linux and macOS. On Windows, where MDATK has no
+// reference behaviour, MDBridge's Windows rules (ntpath.hpp): '/' and '\' both separate; drive
+// ("C:\x", "C:/x"), UNC ("\\srv\share\x") and root-relative ("\x", on the base's drive) paths
+// are absolute; "C:x" is against baseDir when that is on drive C, else against "C:/"; "~" is
+// %USERPROFILE%; every result, absolute ones included, is normalised and written with '/'
+// ("C:\data\..\a.pdb" -> "C:/a.pdb"), and cleaning.cpptraj_path counts as a path when it
+// contains "/" or "\".
 void resolvePaths(Project& project, std::string_view baseDir);
 
 // resolve_node_paths: each files value is split at ";", the pieces stripped, empty ones dropped,
@@ -703,10 +709,13 @@ void resolvePaths(Project& project, std::string_view baseDir);
 void resolveNodePaths(PlanNode& node, std::string_view baseDir, std::string_view where);
 
 // fix(p) of resolve_paths: "" stays "", "~" is expanded, an absolute path is returned unchanged, a
-// relative one becomes normpath(join(baseDir, p)). On Windows a drive or UNC path is absolute too.
+// relative one becomes normpath(join(baseDir, p)). On Windows ntpath::resolve(p, baseDir): the
+// Windows rules above, results in generic form ("sub\a.pdb" against "C:/proj" is
+// "C:/proj/sub/a.pdb").
 std::string resolvePath(std::string_view path, std::string_view baseDir);
 
-// Folders, absolute and normalised against the current directory when relative:
+// Folders, absolute and normalised against the current directory when relative (posixpath; on
+// Windows ntpath::abspath, generic form):
 // output.out_dir or "MDATK_output"; output.cache_dir or <out_dir>/MDATK_cache;
 // workflow.out_dir or <out_dir>/<sanitizeProject(workflow.project_name)>_workflow.
 std::string outDir(const Project& project);

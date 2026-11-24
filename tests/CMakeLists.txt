@@ -12,6 +12,7 @@ add_executable(mdbridge_core_tests
     core/test_hash.cpp
     core/test_json.cpp
     core/test_naming.cpp
+    core/test_ntpath.cpp
     core/test_project_file.cpp
     core/test_project_io.cpp
     core/test_progress.cpp

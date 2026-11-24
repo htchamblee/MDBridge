@@ -12,6 +12,7 @@
 
 #include "mdbridge/core/log.hpp"
 #include "mdbridge/core/naming.hpp"
+#include "mdbridge/core/ntpath.hpp"
 #include "mdbridge/core/paths.hpp"
 #include "mdbridge/core/project_file.hpp"
 #include "mdbridge/core/python.hpp"
@@ -338,33 +339,31 @@ std::optional<std::string_view> modelComment(std::string_view path) {
 
 namespace {
 
-// On Windows, a path with a drive and a root (C:\data\a.pdb, C:/data/a.pdb) or a UNC path is
-// absolute too: left as it is rather than joined below the project's folder.
-bool isWindowsAbsolute(std::string_view path) {
-#ifdef _WIN32
-    return pathFromUtf8(path).is_absolute();
-#else
-    (void)path;
-    return false;
-#endif
-}
-
-// os.path.abspath against the current directory (POSIX rules), a Windows absolute path as it is.
+// os.path.abspath against the current directory: POSIX rules (as MDATK); on Windows MDBridge's
+// Windows rules (ntpath.hpp), in generic form.
 std::string absoluteFolder(const std::string& path) {
-    return isWindowsAbsolute(path) ? path : posixpath::abspath(path, currentDirectory());
+#ifdef _WIN32
+    return ntpath::abspath(path, currentDirectory());
+#else
+    return posixpath::abspath(path, currentDirectory());
+#endif
 }
 
 }  // namespace
 
 std::string resolvePath(std::string_view path, std::string_view baseDir) {
+#ifdef _WIN32
+    return ntpath::resolve(path, baseDir);
+#else
     if (path.empty()) {
         return {};
     }
     std::string expanded = posixpath::expanduser(path);
-    if (posixpath::isabs(expanded) || isWindowsAbsolute(expanded)) {
+    if (posixpath::isabs(expanded)) {
         return expanded;
     }
     return posixpath::normpath(posixpath::join(baseDir, expanded));
+#endif
 }
 
 void resolveNodePaths(PlanNode& node, std::string_view baseDir, std::string_view where) {
@@ -418,7 +417,12 @@ void resolvePaths(Project& p, std::string_view baseDir) {
     }
     fix(p.cleaning.reference_file);
     fix(p.cleaning.output_dir);
-    if (p.cleaning.cpptraj_path.find('/') != std::string::npos) {
+#ifdef _WIN32
+    const bool cpptrajIsAPath = p.cleaning.cpptraj_path.find_first_of("/\\") != std::string::npos;
+#else
+    const bool cpptrajIsAPath = p.cleaning.cpptraj_path.find('/') != std::string::npos;
+#endif
+    if (cpptrajIsAPath) {
         fix(p.cleaning.cpptraj_path);
     }
     fix(p.output.out_dir);

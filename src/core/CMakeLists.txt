@@ -14,6 +14,7 @@ add_library(mdbridge_core STATIC
     json.cpp
     log.cpp
     naming.cpp
+    ntpath.cpp
     paths.cpp
     progress.cpp
     project.cpp

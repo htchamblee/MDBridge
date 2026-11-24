@@ -61,6 +61,13 @@ private:
     std::string m_old;
 };
 
+// A path as UTF-8 text in generic form ('/' separators): how loaded projects write absolute paths
+// on Windows (MDBridge's Windows rules, ntpath.hpp); the plain text on POSIX.
+std::string genericUtf8(const fs::path& path) {
+    const std::u8string text = path.generic_u8string();
+    return std::string(text.begin(), text.end());
+}
+
 Project fromFile(const fs::path& path) { return projectFromPlain(readProject(path).settings); }
 
 std::string replaceAll(std::string text, const std::string& from, const std::string& to) {
@@ -327,9 +334,9 @@ TEST(ProjectIo, ParamsLogIsNeverOverwrittenBySave) {
 TEST(ProjectIo, ProjectRoundTrip) {
     TempDir dir;
     Project p;
-    p.inputs.topology = (dir / "sys.parm7").string();
-    p.inputs.trajectories = {(dir / "a.nc").string(), (dir / "b.nc").string()};
-    p.output.out_dir = (dir / "out").string();
+    p.inputs.topology = genericUtf8(dir / "sys.parm7");
+    p.inputs.trajectories = {genericUtf8(dir / "a.nc"), genericUtf8(dir / "b.nc")};
+    p.output.out_dir = genericUtf8(dir / "out");
     p.analyses.contacts.cutoff = 5.25;
     PanelSpec panel;
     panel.type = "contact_map";
@@ -345,15 +352,12 @@ TEST(ProjectIo, ProjectRoundTrip) {
 
 // tests/test_config_selections.py::test_relative_paths_and_aliases
 TEST(ProjectIo, RelativePathsAndAliases) {
-#ifdef _WIN32
-    GTEST_SKIP() << "project paths resolve with POSIX rules (MDATK on Linux); Windows rules are not specified yet";
-#endif
     TempDir dir;
     writeFile(dir / "p.mdatk.toml",
               "not_a_key = 1\n[input]\ntopology = \"top.parm7\"\ntrajectory = \"traj.nc\"\n[output]\nout_dir = \"out\"\n");
     std::vector<std::string> warnings;
     const Project p = loadProject(dir / "p.mdatk.toml", &warnings);
-    const std::string base = pathToUtf8(fs::absolute(dir.path()).lexically_normal());
+    const std::string base = genericUtf8(fs::absolute(dir.path()).lexically_normal());
     EXPECT_EQ(p.inputs.topology, base + "/top.parm7");
     EXPECT_EQ(p.inputs.trajectories, std::vector<std::string>{base + "/traj.nc"});
     EXPECT_EQ(p.output.out_dir, base + "/out");
@@ -392,9 +396,6 @@ TEST(ProjectIo, JsonPresetsAreRejected) {
 
 // tests/test_workflows.py::test_workflow_saved_in_project
 TEST(ProjectIo, WorkflowSavedInProject) {
-#ifdef _WIN32
-    GTEST_SKIP() << "project paths resolve with POSIX rules (MDATK on Linux); Windows rules are not specified yet";
-#endif
     TempDir dir;
     const fs::path path = dir / "w.mdatk.toml";
     saveProject(path, fromFile(kWorkflowGolden / "golden_test_saved_in_project.mdatk.toml"));
@@ -404,7 +405,7 @@ TEST(ProjectIo, WorkflowSavedInProject) {
     EXPECT_EQ(*(*nodes->get<Array>())[0].path({"settings", "mg_count"}), Value(4));
 
     const Project q = loadProject(path);
-    const std::string base = pathToUtf8(fs::absolute(dir.path()).lexically_normal());
+    const std::string base = genericUtf8(fs::absolute(dir.path()).lexically_normal());
     ASSERT_GE(q.workflow.nodes.size(), 3u);
     EXPECT_EQ(*q.workflow.nodes[0].files.front().second.get<std::string>(), base + "/inputs/model.pdb");
     EXPECT_EQ(q.workflow.nodes[1].settings.front().second, Value(base + "/maps/map.mrc"));

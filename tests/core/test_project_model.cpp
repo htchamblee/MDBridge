@@ -19,6 +19,7 @@
 
 #include <gtest/gtest.h>
 
+#include "mdbridge/core/ntpath.hpp"
 #include "mdbridge/core/paths.hpp"
 #include "mdbridge/core/project.hpp"
 #include "mdbridge/core/project_file.hpp"
@@ -81,8 +82,37 @@ std::string describe(const Value& c) {
     return pythonRepr(*c.find("path")) + " = " + pythonRepr(tagged(*c.find("value")));
 }
 
+// A path resolved on Linux (MDATK's expectation) as MDBridge's Windows rules write it there: each
+// ';'-separated piece normalised in generic form (posixpath keeps an absolute path as given, the
+// Windows rules normalise it: "/abs/../x" is "/x", "a\b" is "a/b"). Unchanged on POSIX.
+std::string platformResolved(const std::string& path) {
+#if defined(_WIN32)
+    std::string out;
+    std::size_t start = 0;
+    for (;;) {
+        const std::size_t end = path.find(';', start);
+        const std::string piece = path.substr(start, end == std::string::npos ? std::string::npos : end - start);
+        if (start) {
+            out += ';';
+        }
+        out += piece.empty() ? piece : ntpath::normpath(piece);
+        if (end == std::string::npos) {
+            return out;
+        }
+        start = end + 1;
+    }
+#else
+    return path;
+#endif
+}
+
 // Runs one from_dict case: the result's repr at result_path, or the error; and the warnings.
 void checkFromDict(const Value& c, const Value& input, const Array& resultPath) {
+#if defined(_WIN32)
+    if (c.find("name")->stringOr() == "base dir, absolute and dotted paths") {
+        return;  // posixpath keeps "/x/../t"; the Windows rules normalise it (test_ntpath.cpp)
+    }
+#endif
     const Value* base = c.find("base_dir");
     const std::string baseDir = base && base->isString() ? base->stringOr() : std::string();
     std::vector<std::string> warnings;
@@ -289,15 +319,22 @@ TEST(ProjectModel, ResolvePathsCases) {
             }
         }
         EXPECT_EQ(*node, change.find("before")->stringOr()) << path;
-        *node = change.find("after")->stringOr();
+        *node = platformResolved(change.find("after")->stringOr());
     }
+#if defined(_WIN32)
+    // "/abs//x/../c.nc", absolute, is not among the changes (posixpath keeps it as it is); the
+    // Windows rules normalise it too
+    for (Value& trajectory : *expected.find("inputs")->find("trajectories")->get<Array>()) {
+        trajectory = platformResolved(trajectory.stringOr());
+    }
+#endif
     EXPECT_EQ(pythonRepr(toPlain(p)), pythonRepr(expected));
 
     for (const Value& c : items(vectors, "cpptraj_path")) {
         Project q;
         q.cleaning.cpptraj_path = c.find("before")->stringOr();
         resolvePaths(q, base);
-        EXPECT_EQ(q.cleaning.cpptraj_path, c.find("after")->stringOr());
+        EXPECT_EQ(q.cleaning.cpptraj_path, platformResolved(c.find("after")->stringOr()));
     }
 #if !defined(_WIN32)
     const passwd* root = ::getpwnam("root");
@@ -315,11 +352,11 @@ TEST(ProjectModel, ResolvePathsCases) {
             continue;  // "~user": no reference behaviour on Windows
         }
 #endif
-        EXPECT_EQ(resolvePath(path, base), c.find("after")->stringOr()) << path;
+        EXPECT_EQ(resolvePath(path, base), platformResolved(c.find("after")->stringOr())) << path;
     }
     for (const Value& c : items(vectors, "fix_relative_base")) {
         EXPECT_EQ(resolvePath(c.find("before")->stringOr(), c.find("base_dir")->stringOr()),
-                  c.find("after")->stringOr());
+                  platformResolved(c.find("after")->stringOr()));
     }
 }
 
@@ -331,6 +368,9 @@ TEST(ProjectModel, DirsCases) {
         if (s.rfind("{cwd}", 0) == 0) {
             s.replace(0, 5, cwd);
         }
+#if defined(_WIN32)
+        s = ntpath::abspath(s, cwd);  // the Windows rules: on the current drive, generic form
+#endif
         return s;
     };
     for (const Value& c : items(vectors, "dirs")) {
