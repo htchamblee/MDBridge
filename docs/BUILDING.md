@@ -115,6 +115,16 @@ Installed packages can be used instead with `-DMDBRIDGE_USE_SYSTEM_DEPS=ON` (zli
   reads from them (`tests/parity/make_projects.py`, `reference.py`); `tests/parity/compare.py`
   checks that MDBridge reads the same. `tests/data/README.md` explains how to regenerate the
   committed fixtures.
+- Reproducible test data (CI job `regenerate`): `tests/parity/regenerate_all.py` runs every
+  generator of `tests/data/README.md` and `tools/gen_*.py` into a fresh folder and compares the
+  result with the committed files byte for byte (unified-diff excerpts, exit status 1 on any
+  difference). CI runs it on Ubuntu 24.04 with Python 3.13, MDATK v0.0.4.1 and the pinned
+  environment of `tests/parity/requirements-regenerate.txt` (MDAnalysis 2.11.0, numpy 2.5.5,
+  scipy 1.18.1, pytest). Locally, about 25 seconds:
+  ```bash
+  python3 -m venv /tmp/regen && /tmp/regen/bin/pip install --no-deps -r tests/parity/requirements-regenerate.txt
+  python3 tests/parity/regenerate_all.py --mdatk /tmp/mdatk --out /tmp/fresh --python /tmp/regen/bin/python
+  ```
 
 The interface has check options for automation: `mdbridge gui PROJECT --renderer vulkan
 --screenshot view.png` renders a few frames, saves the 3D view, prints a JSON report and quits;

@@ -20,7 +20,9 @@ cd tests/data/projects && python ../../parity/reference.py --out ../expected *.t
 
 `make_projects.py` time-stamps what it writes, so regenerated files differ from the committed ones
 in their `saved` / `time` entries; commit the project files and their references together. CI's
-parity job (`.github/workflows/ci.yml`) does the same with fresh files on every push.
+parity job (`.github/workflows/ci.yml`) does the same with fresh files on every push. With
+`--fixed-clock` it uses the clock of the run that wrote the committed files and writes them byte
+for byte.
 
 `text/` holds the expected results of Python's text functions that project files depend on:
 `textwrap_cases.toml` (textwrap.wrap and str.splitlines over string literals of MDATK's sources and
@@ -85,6 +87,7 @@ importable; nothing is written into the checkout):
 
 ```bash
 python3 -I -B tests/parity/make_model_cases.py /tmp/mdatk tests/data/project-model
+```
 
 `step-types/` holds the step types of MDATK's Project Planner and what MDATK computes with them
 (`tests/core/test_step_types.cpp`). Values are tagged JSON (`{"t": "float", "hex": float.hex()}`,
@@ -338,5 +341,27 @@ is written into it; the output is reproducible):
 python3 -I tools/gen_case_tables.py                       # src/core/case_tables.inc
 python3 -I -B tests/parity/make_cif_cases.py /tmp/mdatk tests/data/io/cif
 ```
+
+## Checking that the data is reproducible
+
+`tests/parity/regenerate_all.py` runs every generator above (and `tools/gen_*.py`) in this order
+into a fresh tree and compares it with the committed files byte for byte; CI's `regenerate` job
+runs it on every push with Python 3.13, MDATK `v0.0.4.1` and the environment pinned in
+`tests/parity/requirements-regenerate.txt`:
+
+```bash
+python3 tests/parity/regenerate_all.py --mdatk /tmp/mdatk --out /tmp/fresh --python /tmp/regen/bin/python
+```
+
+It handles the special cases noted above (`--fixed-clock`, `manifest.txt` and the two extra vector
+files deleted, the loader before the export, MDATK's lock files and MDAnalysis' hidden
+`.*_offsets.npz` / `.lock` files removed) and masks the patch number of Python's version
+(`3.13.N`) where a header records it. Not compared, because no generator writes them: the
+hand-made project files, `text/tomlio_golden.toml` and `topology/golden_model.json`. One file may
+differ by CPU: `rigid/rigid_cases.json` comes from OpenBLAS / LAPACK, whose kernels are chosen per
+CPU (the committed file was written with the SkylakeX ones; Haswell / Zen kernels differ in the
+last bits), so where its bytes differ it is compared as JSON with numbers within a relative 1e-12.
+The random rotations of `io/pdb/pdb_cases.json` are written out in `make_pdb_cases.py` for the same
+reason. `--list` shows the steps; `--only STEP ...` reruns some of them.
 
 Never put research structures or trajectories of real projects here.

@@ -337,6 +337,22 @@ def insert_cases():
             for t in texts for r in records]
 
 
+RANDOM_ROTATIONS = [
+    [["-0x1.830eb884349f2p-1", "-0x1.77af99835e17dp-3", "-0x1.41ba80a7f9385p-1"],
+     ["0x1.95dc8132d8befp-2", "-0x1.c8d3f3949c735p-1", "-0x1.bb1ae33e8ee0fp-3"],
+     ["-0x1.0abd276142039p-1", "-0x1.a6855e2fa18ffp-2", "0x1.7e931d708c2adp-1"]],
+    [["-0x1.460693f4a361ep-1", "-0x1.4795f1a0189fdp-2", "0x1.6732aadb9c9d8p-1"],
+     ["0x1.7e36f88c2d640p-2", "-0x1.d91c8bae8b216p-1", "-0x1.523a837796c43p-4"],
+     ["0x1.5970cc65b670cp-1", "0x1.ac9aef5076f5dp-3", "0x1.6a6643c4d6258p-1"]],
+    [["-0x1.596c4a8c8736ap-1", "-0x1.06256cb3dd60ap-4", "0x1.7880512bf1e36p-1"],
+     ["0x1.2fc1620ed1cb8p-1", "-0x1.478d0a38351c5p-1", "0x1.f45918d062f65p-2"],
+     ["0x1.c1b59017d4b9ap-2", "0x1.882612f27de52p-1", "0x1.e0d92bf1cd43dp-2"]],
+    [["-0x1.859d84c42fb30p-3", "0x1.4ffd242fdb6c3p-1", "-0x1.75db079c5da2bp-1"],
+     ["-0x1.e935230c6c0cbp-1", "-0x1.2db09f7e88de3p-2", "-0x1.037b9fae7b7d6p-6"],
+     ["-0x1.cddd6d30e97abp-3", "0x1.63ab9305a4819p-1", "0x1.5dba94061e992p-1"]],
+]
+
+
 def transform_cases():
     rng = np.random.default_rng(5)
     texts = [
@@ -356,9 +372,13 @@ def transform_cases():
         "REMARK only\n",
     ]
     rotations = [np.eye(3), np.array([[0.0, -1.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0]])]
+    # Four random rotations: the Q of np.linalg.qr(rng.normal(size=(3, 3))) with det(Q) made +1, as
+    # computed once with OpenBLAS's SkylakeX kernels. LAPACK's QR differs in the last bits between
+    # CPU kernels, so the matrices are written out (exactly) to keep the cases machine-independent;
+    # the normal draws are still taken so the translations below come from the same stream.
     for _ in range(4):
-        q, _r = np.linalg.qr(rng.normal(size=(3, 3)))
-        rotations.append(q * np.sign(np.linalg.det(q)))
+        rng.normal(size=(3, 3))
+    rotations += [np.array([[float.fromhex(v) for v in row] for row in r]) for r in RANDOM_ROTATIONS]
     translations = [np.zeros(3), np.array([10.0, -20.0, 0.0005]), rng.normal(size=3) * 50]
     out = []
     for t in texts:

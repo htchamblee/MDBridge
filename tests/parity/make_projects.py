@@ -13,13 +13,21 @@ Writes, into OUT_DIR:
 * ``MDATK_params_log.toml`` the parameter log of a run (opens like a project)
 
 ``reference.py`` then records what MDATK reads back from them.
+
+The files carry the time they were written (``saved``, ``created``, log entry times and durations).
+With ``--fixed-clock`` MDATK's clock is replaced by the one of the run that wrote the committed
+files in tests/data/projects (2026-10-24T06:39:22 for the first time stamp, 06:39:23 for the
+others, durations 0.0), so the output equals those files byte for byte
+(tests/parity/regenerate_all.py uses it).
 """
 
 from __future__ import annotations
 
 import argparse
+import datetime as _dt
 import os
 import sys
+import types
 
 import mdatk
 from mdatk import projectfile as PF
@@ -115,10 +123,29 @@ def params_log(out: str) -> None:
     PF.write_params_log(os.path.join(out, "MDATK_params_log.toml"), p, run)
 
 
+def fix_clock() -> None:
+    """MDATK's clock as it ran when the committed files were written (see the module docstring)."""
+    stamps = iter([_dt.datetime(2026, 10, 24, 6, 39, 22)])
+    later = _dt.datetime(2026, 10, 24, 6, 39, 23)
+
+    class FixedDateTime(_dt.datetime):
+        @classmethod
+        def now(cls, tz=None):
+            value = next(stamps, later)
+            return cls(value.year, value.month, value.day, value.hour, value.minute, value.second, 123456)
+
+    PF._dt = types.SimpleNamespace(datetime=FixedDateTime)  # _now() looks _dt up at call time
+    PF.time = types.SimpleNamespace(monotonic=lambda: 100.0)  # logged(): every duration 0.0
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("out_dir")
+    parser.add_argument("--fixed-clock", action="store_true",
+                        help="the clock of the committed files (reproducible output)")
     args = parser.parse_args(argv)
+    if args.fixed_clock:
+        fix_clock()
     os.makedirs(args.out_dir, exist_ok=True)
     for make in (default_project, full_project, split_project, params_log):
         make(args.out_dir)
