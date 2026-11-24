@@ -63,7 +63,7 @@ python3 -I -B tests/parity/python_cases.py /tmp/mdatk tests/data/python
 |---|---|---|
 | `golden/` | a default and a rich project, its step log (every failure kind), a truncated output, the log moving to a side file (`split*`), a parameter log, the recent-projects list (`settings.toml`, work folder shown as `/home/user/projects`) and MDATK's messages | `python3 -I -B tests/parity/make_project_file_golden.py <MDATK checkout> tests/data/project-file/golden` (then delete `manifest.txt`, which lists sizes that depend on the temporary folder) |
 | `vectors/` | `tomlio` / `textwrap` / `_entry_text` input-output pairs; tagged values explained at the top of the generator | `python3 -I -B tests/parity/make_writer_vectors.py <MDATK checkout> tests/data/project-file/vectors` (keep the six `*_vectors.json` files the tests use) |
-| `workflow/` | projects with planner steps of every step type, edge cases and the projects of two MDATK tests, saved with `saved = 2026-10-15T14:32:00` | `golden_projects()` of the step-type generator in `tests/parity/` |
+| `workflow/` | projects with planner steps of every step type, edge cases and the projects of two MDATK tests, saved with `saved = 2026-10-15T14:32:00` | `python3 -I -B tests/parity/make_workflow_goldens.py <MDATK checkout> tests/data/project-file/workflow` (MDATK's dependencies importable) |
 
 The generators fix the clocks (`saved`, entry times, durations), so their output is reproducible
 and equal to the committed files.
