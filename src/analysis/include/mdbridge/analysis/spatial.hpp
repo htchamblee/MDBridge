@@ -54,9 +54,9 @@ std::optional<Box> usableBox(const std::optional<std::array<float, 6>>& dims);  
 // pairs; otherwise a non-finite coordinate in a or b throws core::ValueError("data must be finite,
 // check for nan or inf values") (scipy's message).
 //
-// Order: MDATK's order is cKDTree's traversal order, which depends on the tree's construction
-// (std::nth_element of the C++ library scipy was built with), so MDBridge does not reproduce it.
-// MDBridge returns the pairs sorted by (i, j), i.e. by a index, then by b index. The pair set and
+// Order (open path only): MDATK's order is cKDTree's traversal order, which depends on the tree's
+// construction (std::nth_element of the C++ library scipy was built with), so MDBridge does not
+// reproduce it. MDBridge returns the pairs sorted by (i, j), i.e. by a index, then by b index. The pair set and
 // every distance equal MDATK's exactly; consumers must not depend on the order beyond what MDATK's
 // analyses need. In MDATK the order matters only to: float sums over pairs (energy elec / vdw
 // sums, net force: equal within rounding), the H-bond hydrogen guess (an exact tie between two
@@ -64,8 +64,9 @@ std::optional<Box> usableBox(const std::optional<std::array<float, 6>>& dims);  
 // within a frame in pair order) and atom_bonds' distance fallback (bond rows in pair order); see
 // docs/specs/m3-plan.md and the W0.7 notes.
 //
-// With a usable box (use_pbc): MDAnalysis' capped_distance on float32 coordinates, which
-// pairsWithinPeriodic implements.
+// With a usable box (use_pbc): MDAnalysis' capped_distance on float32 coordinates (float64 points
+// are rounded to float32 first), which pairsWithinPeriodic implements, in MDAnalysis' order (not
+// sorted; see there).
 PairList pairsWithin(std::span<const double> a, std::span<const double> b, double cutoff,
                      const std::optional<Box>& box = std::nullopt);
 PairList pairsWithin(std::span<const float> a, std::span<const float> b, double cutoff,
@@ -74,13 +75,49 @@ PairList pairsWithin(std::span<const float> a, std::span<const float> b, double 
 // The open-boundary search alone (the path above without a box).
 PairList pairsWithinOpen(std::span<const double> a, std::span<const double> b, double cutoff);
 
-// HOOK (W1.1, periodic neighbour search): pairs within the cutoff under periodic boundaries, as
-// MDAnalysis' capped_distance(a, b, max_cutoff=cutoff, box=box, return_distances=True) returns
-// them (float32 coordinates; behaviour specified clean-room in docs/specs/m3-capped-distance.md).
-// box is a usable box. Not implemented yet: throws std::logic_error("periodic neighbour search not
-// implemented yet").
+// The periodic search: pairs within the cutoff under periodic boundaries, as MDAnalysis'
+// capped_distance(a, b, max_cutoff=cutoff, box=box, return_distances=True) returns them, written
+// clean-room from docs/specs/m3-capped-distance.md (section numbers below refer to it). box is a
+// usable box; the cell is rounded to float32 and is orthogonal iff its three float32 angles are
+// exactly 90, otherwise it becomes float32 lower-triangular box vectors (all zero, "invalid", for
+// angles <= 0 or >= 180, NaN, lengths <= 0 or no third vector: plain distances).
+//
+// The method is chosen as MDAnalysis chooses it (periodicSearchUsesGrid): brute force or a cell
+// grid. The two differ in rounding (brute force on an orthogonal cell scales by the float32
+// reciprocal of each length, so even pairs that need no image are off by up to 2^-24 relative),
+// in the boundary test (brute force keeps sqrt(d2) <= cutoff, the grid d2 <= cutoff * cutoff) and
+// in their errors. Each (i, j) occurs at most once, with its nearest-image distance, even for
+// cutoffs beyond half the cell. A point with a NaN or infinite coordinate is in no pair (MDAnalysis
+// is only consistent about this for orthogonal cells). Errors, grid method only:
+// core::ValueError("Cutoff must be positive") for a negative cutoff, "Cutoff <c> too large for box
+// (max <M>)" beyond the grid's limit, "Any of the box dimensions cannot be 0" for a length that
+// is 0 in float32. A NaN cutoff gives no pairs.
+//
+// Order: MDAnalysis' order, NOT the (i, j) order of the open path, because the analyses' outputs
+// that depend on pair order (energy sums, the H-bond hydrogen tie, stacking CSR entries, atom-bond
+// rows) must follow MDATK's. Brute force: i ascending, then j ascending. Grid: i ascending; for
+// each i the 27 grid cells around its cell (x offset outermost, z innermost, -1 / 0 / +1, the grid
+// wrapping periodically), and within a cell j DESCENDING.
+//
+// Precision: orthogonal cells reproduce MDAnalysis bit for bit (pairs, order, distances).
+// Triclinic cells are wrapped in single precision as the spec describes; every probe case of
+// tests/data/analysis/distance_cases.json matches bit for bit too (test_periodic.cpp), but the
+// spec only guarantees that wrap to within 8 ulp32 of the largest of the pair's coordinates and
+// the cell lengths: where it differs, pairs within that band of the cutoff may be in or out and a
+// point moved to a neighbouring grid cell changes the order of its reference point's pairs.
+// Deliberate deviations where MDAnalysis' result is undefined or meaningless: a point more than
+// 2^31 cells away along a vector is not moved along it (MDAnalysis overflows a 32-bit integer);
+// a triclinic box vector with an infinite component is not periodic (MDAnalysis reports distinct
+// points at distance 0).
 PairList pairsWithinPeriodic(std::span<const float> a, std::span<const float> b, double cutoff,
                              const Box& box);
+
+// The method rule of pairsWithinPeriodic for n reference and m configuration points: brute force
+// (false) when n < 10 or m < 10; the grid (true) when n * m >= 1e8; otherwise brute force when
+// float32(cutoff) > float32(0.3) * S on any axis (float32 product, strictly greater), S the three
+// float32 lengths of an orthogonal cell or, per Cartesian axis, the extent of the three box
+// vectors' components (0 for an invalid cell), and the grid otherwise.
+bool periodicSearchUsesGrid(std::size_t n, std::size_t m, double cutoff, const Box& box);
 
 // minimum_image_vectors(vectors, box): with a usable box whose three angles are all close to 90
 // degrees (np.allclose: |angle - 90| <= 1e-8 + 1e-5 * 90), v - L * round(v / L) per component

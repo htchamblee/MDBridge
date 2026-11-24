@@ -393,7 +393,8 @@ periodic neighbour search exists).
 `analysis/distance_cases.json` holds what MDAnalysis 2.11.0's `capped_distance` returns for the calls
 MDATK's `pairs_within` makes with a periodic box (`mdatk/spatial.py`; every case is also run through
 `pairs_within` and must agree), for MDBridge's periodic pair search
-(`docs/specs/m3-capped-distance.md`): the automatic method rule (sizes 9 / 10, cutoff around
+(`docs/specs/m3-capped-distance.md`; `tests/analysis_spatial/test_periodic.cpp`, lattice points
+x fastest): the automatic method rule (sizes 9 / 10, cutoff around
 0.3 x the cell, n x m >= 1e8 on generated lattices), points at and one float32 step around the
 cutoff along axes and across faces, random sets inside, near and far outside orthogonal and
 triclinic cells, cutoffs beyond half a cell, the same array on both sides, duplicates, dense sets for
