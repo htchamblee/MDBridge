@@ -7,9 +7,11 @@
 #include <cstdio>
 #include <cstdlib>
 #include <filesystem>
+
 #include <fstream>
 #include <limits>
 #include <memory>
+#include <random>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -62,11 +64,15 @@ inline std::string nativeLines(std::string_view text) {
 class TempDir {
 public:
     TempDir() {
-        static int counter = 0;
+        // ctest runs every test in its own process, in parallel: names must differ between
+        // processes, so they come from std::random_device, not from the unseeded std::rand().
+        static std::mt19937_64 random{(static_cast<std::uint64_t>(std::random_device{}()) << 32) ^
+                                      std::random_device{}()};
         const fs::path base = fs::temp_directory_path();
         for (;;) {
-            m_path = base / ("mdbridge-test-" + std::to_string(std::rand()) + "-" + std::to_string(++counter));
-            if (fs::create_directory(m_path)) {
+            m_path = base / ("mdbridge-test-" + std::to_string(random()));
+            std::error_code ec;
+            if (fs::create_directory(m_path, ec)) {
                 break;
             }
         }
