@@ -49,8 +49,9 @@ Special cases handled here (tests/data/README.md):
   (.NAME_offsets.npz / .lock); they are removed after every step and never compared.
 * Version stamps: a few files record Python's full version (3.13.N) in a header; the patch number
   is masked on both sides (PATCH_STAMPED below).
-* rigid/rigid_cases.json depends on the CPU's OpenBLAS / LAPACK kernels (MACHINE_DEPENDENT below):
-  where its bytes differ, it is compared as JSON with numbers within a relative 1e-12.
+* rigid/rigid_cases.json and analysis/spatial_extra_cases.json depend on the CPU's OpenBLAS / LAPACK
+  kernels (MACHINE_DEPENDENT below): where their bytes differ, they are compared as JSON with
+  numbers within a relative 1e-12.
   Everything else must match exactly.
 
 Committed files without a generator (NOT_GENERATED: the hand-made project files, the golden
@@ -105,8 +106,12 @@ MACHINE_DEPENDENT = {
     # without AVX-512): results differ in the last bits (relative 2e-16 on such a runner); the C++
     # test compares them within a few 1e-15 (tests/data/README.md)
     "tests/data/rigid/rigid_cases.json",
+    # kabsch and the ring SVDs of mdatk/spatial.py / stacking.py: the same OpenBLAS / LAPACK kernels
+    # (the C++ test compares them within 1e-14)
+    "tests/data/analysis/spatial_extra_cases.json",
 }
 FLOAT_TOLERANCE = 1e-12
+HEX_FLOAT_RE = re.compile(r"^-?0x[0-9a-f]\.[0-9a-f]+p[+-][0-9]+$")  # float.hex() of a finite float
 
 # files a generator writes that are deliberately not kept (tests/data/README.md)
 DISCARDED = ["tests/data/project-file/golden/manifest.txt",
@@ -232,6 +237,7 @@ STEPS = [
     case_step("rigid", "make_rigid_cases.py", "rigid"),
     case_step("citations", "make_citation_cases.py", "citations"),
     case_step("cif", "make_cif_cases.py", "io/cif", pytest=True),
+    case_step("spatial_extra", "make_spatial_cases.py", "analysis"),
 ]
 
 
@@ -295,6 +301,8 @@ def numerically_equal(old: bytes, new: bytes) -> tuple[bool, str]:
     worst = [0.0, ""]
 
     def walk(x, y, path):
+        if isinstance(x, str) and isinstance(y, str) and HEX_FLOAT_RE.match(x) and HEX_FLOAT_RE.match(y):
+            x, y = float.fromhex(x), float.fromhex(y)  # float.hex() strings compare as numbers
         if isinstance(x, bool) or isinstance(y, bool) or not isinstance(x, (int, float)) \
                 or not isinstance(y, (int, float)):
             if type(x) is not type(y):

@@ -15,41 +15,15 @@
 #include <utility>
 
 #include "binary_file.hpp"
+#include "mdbridge/core/detail/numpy_sum.hpp"
 #include "mdbridge/core/json.hpp"
 #include "mdbridge/core/paths.hpp"
 #include "mdbridge/core/python.hpp"
 #include "python_text.hpp"
 
 // Compiled without floating-point contraction (see CMakeLists.txt): the statistics and simulated
-// maps round every operation as numpy does, in numpy's order. pairwiseSum is a port of numpy's
-// pairwise summation (numpy/_core/src/umath/loops_utils.h.src), used under numpy's licence:
-//
-// Copyright (c) 2005-2025, NumPy Developers.
-// All rights reserved.
-//
-// Redistribution and use in source and binary forms, with or without modification, are permitted
-// provided that the following conditions are met:
-//
-//     * Redistributions of source code must retain the above copyright notice, this list of
-//       conditions and the following disclaimer.
-//
-//     * Redistributions in binary form must reproduce the above copyright notice, this list of
-//       conditions and the following disclaimer in the documentation and/or other materials
-//       provided with the distribution.
-//
-//     * Neither the name of the NumPy Developers nor the names of any contributors may be used to
-//       endorse or promote products derived from this software without specific prior written
-//       permission.
-//
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR
-// IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
-// FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
-// CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-// SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
-// OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-// POSSIBILITY OF SUCH DAMAGE.
+// maps round every operation as numpy does, in numpy's order. The sums are numpy's pairwise
+// summation (mdbridge/core/detail/numpy_sum.hpp, a port of numpy's code under its licence).
 
 namespace mdbridge::io {
 
@@ -394,42 +368,10 @@ std::string absolutePath(const fs::path& path) {
 #endif
 }
 
-// numpy's pairwise summation of float32 values (FLOAT_pairwise_sum), value(i) giving element i
-template <class F>
-float pairwiseSum(const F& value, std::size_t first, std::size_t n) {
-    if (n < 8) {
-        float res = -0.0f;
-        for (std::size_t i = 0; i < n; ++i) {
-            res += value(first + i);
-        }
-        return res;
-    }
-    if (n <= 128) {
-        float r[8];
-        for (std::size_t j = 0; j < 8; ++j) {
-            r[j] = value(first + j);
-        }
-        std::size_t i = 8;
-        for (; i < n - n % 8; i += 8) {
-            for (std::size_t j = 0; j < 8; ++j) {
-                r[j] += value(first + i + j);
-            }
-        }
-        float res = ((r[0] + r[1]) + (r[2] + r[3])) + ((r[4] + r[5]) + (r[6] + r[7]));
-        for (; i < n; ++i) {
-            res += value(first + i);
-        }
-        return res;
-    }
-    std::size_t n2 = n / 2;
-    n2 -= n2 % 8;
-    return pairwiseSum(value, first, n2) + pairwiseSum(value, first + n2, n - n2);
-}
-
-// np.add.reduce of a contiguous float32 array: the identity 0 plus the pairwise sum
+// np.add.reduce of a contiguous float32 array: the identity 0 plus numpy's pairwise sum
 template <class F>
 float numpySum(const F& value, std::size_t n) {
-    return 0.0f + pairwiseSum(value, 0, n);
+    return core::detail::numpySum<float>(value, n);
 }
 
 void checkShape(const DensityMap& map) {

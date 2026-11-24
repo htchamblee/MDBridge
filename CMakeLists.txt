@@ -42,6 +42,7 @@ endif()
 
 add_subdirectory(src/core)
 add_subdirectory(src/io)
+add_subdirectory(src/analysis/spatial)  # W0.7; folded into src/analysis with the analysis library
 if(MDBRIDGE_BUILD_APP OR MDBRIDGE_BUILD_TESTS)
     add_subdirectory(src/app/commands)  # the command line's MDATK commands; no Qt
 endif()

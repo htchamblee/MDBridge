@@ -42,7 +42,7 @@ Not adopted yet; it takes effect only after legal review and a formal change of 
 
    | Source | Licence | Ported into | Since |
    |---|---|---|---|
-   | NumPy | BSD-3 | `numpy.interp` (`src/io/external.cpp`), pairwise summation (`src/io/mrc.cpp`) | milestone 2 |
+   | NumPy | BSD-3 | `numpy.interp` (`src/io/external.cpp`), pairwise summation (`src/core/include/mdbridge/core/detail/numpy_sum.hpp`, used by `src/io/mrc.cpp` and `src/analysis/spatial.cpp`) | milestone 2 (summation shared since milestone 3) |
    | CPython | PSF 2 | textwrap / splitlines (`src/core/text.cpp`), json.loads scanner (`src/core/json.cpp`), fnmatch / glob (`src/core/atom_selection.cpp`, `src/io/cif.cpp`) | milestone 2 |
    | chemfiles, based on xdrfile 1.1.4 | BSD-3, BSD-2 | XTC decompression (`src/io/gromacs.cpp`); xdrfile releases before 1.1.4 were LGPL and must not be used | milestone 2 |
    | OpenMM 8.1.2 force-field files | MIT | residue / atom names and elements in `src/core/include/mdbridge/core/detail/data_tables_independent.inc` (with the wwPDB CCD, CC0, and CIAAW atomic weights; `data/sources/ATTRIBUTION.md`) | milestone 2 |

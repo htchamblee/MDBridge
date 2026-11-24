@@ -365,6 +365,30 @@ at `v0.0.4.1` (nothing is written into it; the output is reproducible):
 /opt/mdbridge-venv/bin/python -I -B tests/parity/make_rigid_cases.py /tmp/mdatk tests/data/rigid
 ```
 
+`analysis/spatial_extra_cases.json` holds what MDATK's spatial helpers (`mdatk/spatial.py`) compute,
+for `src/analysis/spatial.cpp` and the numerics under it (`core/linalg.hpp`,
+`core/detail/numpy_sum.hpp`, `core/detail/neighbors.hpp`; `tests/analysis_spatial/test_spatial.cpp`),
+written by `tests/parity/make_spatial_cases.py`, which runs MDATK's functions in-process. Every float
+is `float.hex()`. `pairs`: `pairs_within` without a box (scipy's cKDTree) on random float64 and
+float32-widened points, clusters, duplicates, a lattice at distances equal to the cutoff, crafted
+pairs within an ulp of the cutoff (including pairs where `sqrt(d2) <= r` and `d2 <= r * r` disagree:
+scipy compares squares), a spread that defeats a cell grid, special cutoffs (0, negative, infinite,
+NaN) and non-finite points (scipy's error); the pairs in MDATK's (tree) order, which the test sorts:
+MDBridge returns them sorted by (i, j) and must match the set and every distance exactly.
+`min_image` / `usable_box`: `minimum_image_vectors` and `_usable_box` for boxes near and away from 90
+degrees (numpy's `allclose` margins), unusable boxes and half-box ties. `kabsch`: random, weighted,
+mirrored, coplanar and tiny sets, fewer than 3 points (compared within a relative 1e-14).
+`rings`: `ring_geometry` of the stacking analysis (batched `np.linalg.svd`; planarity within 1e-14,
+normals up to sign within 1e-13). `sums`: `np.sum` / `np.mean` of float64 arrays of 0 to 300 and
+some larger lengths, whose values the test computes itself (`value(k)` in the generator), bit for
+bit. `tests`: the inputs of MDATK's `test_pairs_within_matches_brute_force_and_pbc` and
+`test_kabsch_recovers_rotation`, which the test ports (the periodic half is disabled until the
+periodic neighbour search exists).
+
+```bash
+/opt/mdbridge-venv/bin/python -I -B tests/parity/make_spatial_cases.py /tmp/mdatk tests/data/analysis
+```
+
 `citations/citation_cases.json` holds what MDATK's citation module (`mdatk/citations.py`)
 computes, for `src/core/citations.cpp` (`tests/core/test_citations.cpp`): `REFERENCES` and
 `RESOURCES` with every field (the same data as `src/core/citation_data.inc`), `unique`,
@@ -452,10 +476,11 @@ It handles the special cases noted above (`--fixed-clock`, `manifest.txt` and th
 files deleted, the loader before the export, MDATK's lock files and MDAnalysis' hidden
 `.*_offsets.npz` / `.lock` files removed) and masks the patch number of Python's version
 (`3.13.N`) where a header records it. Not compared, because no generator writes them: the
-hand-made project files, `text/tomlio_golden.toml` and `topology/golden_model.json`. One file may
-differ by CPU: `rigid/rigid_cases.json` comes from OpenBLAS / LAPACK, whose kernels are chosen per
-CPU (the committed file was written with the SkylakeX ones; Haswell / Zen kernels differ in the
-last bits), so where its bytes differ it is compared as JSON with numbers within a relative 1e-12.
+hand-made project files, `text/tomlio_golden.toml` and `topology/golden_model.json`. Two files may
+differ by CPU: `rigid/rigid_cases.json` and `analysis/spatial_extra_cases.json` (its `kabsch` and `rings`
+entries) come from OpenBLAS / LAPACK, whose kernels are chosen per CPU (the committed files were
+written with the SkylakeX ones; Haswell / Zen kernels differ in the last bits), so where their bytes
+differ they are compared as JSON with numbers (and `float.hex()` strings) within a relative 1e-12.
 The random rotations of `io/pdb/pdb_cases.json` are written out in `make_pdb_cases.py` for the same
 reason. `--list` shows the steps; `--only STEP ...` reruns some of them.
 

@@ -12,6 +12,7 @@ add_library(mdbridge_core STATIC
     dataset.cpp
     hash.cpp
     json.cpp
+    linalg.cpp
     log.cpp
     naming.cpp
     ntpath.cpp
@@ -43,7 +44,7 @@ target_compile_features(mdbridge_core PUBLIC cxx_std_20)
 mdbridge_target_warnings(mdbridge_core)
 # numerics reproduced as numpy rounds them: no contraction into fused multiply-adds
 if(MSVC)
-    set_source_files_properties(rigid_transform.cpp PROPERTIES COMPILE_OPTIONS /fp:precise)
+    set_source_files_properties(linalg.cpp rigid_transform.cpp PROPERTIES COMPILE_OPTIONS /fp:precise)
 else()
-    set_source_files_properties(rigid_transform.cpp PROPERTIES COMPILE_OPTIONS -ffp-contract=off)
+    set_source_files_properties(linalg.cpp rigid_transform.cpp PROPERTIES COMPILE_OPTIONS -ffp-contract=off)
 endif()
