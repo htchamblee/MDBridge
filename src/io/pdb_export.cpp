@@ -1,5 +1,6 @@
 // The PDB files MDATK's frame export writes through MDAnalysis 2.11.0's PDBWriter (AtomGroup.write:
-// one frame, reindexed serials, CONECT records of the bonds read from the topology file).
+// one frame, reindexed serials, CONECT records of the bonds read from the topology file). Atom-name
+// placement uses MDBridge's own ion / residue lists (data_tables.hpp), not the writer's.
 
 #include "mdbridge/io/pdb_export.hpp"
 
@@ -9,6 +10,7 @@
 #include <map>
 #include <system_error>
 
+#include "mdbridge/core/detail/data_tables.hpp"
 #include "mdbridge/core/errors.hpp"
 #include "mdbridge/core/python.hpp"
 #include "mdbridge/core/selections.hpp"
@@ -23,24 +25,21 @@ namespace {
 
 using namespace detail;
 
-#include "pdb_tables.inc"
+namespace tables = core::detail::tables;
 
-template <std::size_t N>
-bool contains(const std::string_view (&list)[N], std::string_view value) {
-    return std::find(std::begin(list), std::end(list), value) != std::end(list);
-}
-
-template <std::size_t N>
-bool containsPair(const std::pair<std::string_view, std::string_view> (&list)[N],
-                  std::string_view first, std::string_view second) {
-    return std::any_of(std::begin(list), std::end(list), [&](const auto& pair) {
-        return pair.first == first && pair.second == second;
-    });
+// Whether a name starting with these two characters is a metal / ion atom written from column 13:
+// a monatomic ion's name, unless its first letter is an element of the standard residues (C, H,
+// N, O, ...), where CA, CD, HG, ND, ... are far more often a carbon, hydrogen or nitrogen with a
+// locant (HG and CL are decided by their residue below).
+bool ionPrefix(std::string_view prefix) {
+    return tables::contains(tables::kIndMonatomicIonNames, prefix) &&
+           !tables::contains(tables::kIndGuessOneLetterElements, prefix.substr(0, 1));
 }
 
 // Columns 13-16: the atom name starts in column 14 unless it has four or more characters, or it is
-// a two or three character name that the writer's lists put in column 13 (the residue's own name,
-// ion prefixes, UNK, mercury / chlorine residues, included pairs), barring the excluded pairs.
+// a two or three character name that goes in column 13: the residue's own name, an ion prefix,
+// UNK, HG of a residue whose HG is mercury, CL of a residue whose CL is chlorine (the lists of
+// mdbridge/core/detail/data_tables.hpp, from the wwPDB CCD).
 U32 atomNameField(const std::string& name, const std::string& resname) {
     const U32 text = toU32(name);
     if (text.empty()) {
@@ -52,11 +51,9 @@ U32 atomNameField(const std::string& name, const std::string& resname) {
     bool column13 = false;
     if (text.size() > 1) {
         const std::string prefix = toUtf8(slice(text, 0, 2));
-        column13 = resname == name || contains(kIons, prefix) || name == "UNK" ||
-                   (prefix == "HG" && contains(kSpecialHg, resname)) ||
-                   (prefix == "CL" && contains(kSpecialCl, resname)) ||
-                   containsPair(kIncludePairs, resname, name);
-        column13 = column13 && !containsPair(kExcludePairs, resname, name);
+        column13 = resname == name || ionPrefix(prefix) || name == "UNK" ||
+                   (prefix == "HG" && tables::contains(tables::kIndMercuryHgResidues, resname)) ||
+                   (prefix == "CL" && tables::contains(tables::kIndChlorineClResidues, resname));
     }
     return column13 ? ljust(text, 4) : U" " + ljust(text, 3);
 }
