@@ -226,9 +226,9 @@ with `secstruct.{hpp,cpp}` ported from `mdatk/secstruct.py`:
   annotation next):** `dotbracket_to_pairs` (with its exact error texts), `_stems`, `_crosses`,
   `pairs_to_dotbracket`, `unique_pairs`, `KIND_LABELS`.
 - **not ported:** `BarnabaRunner`/`import_barnaba` (GPL engine). `engine = "barnaba"` in MDBridge
-  M3: fail in setup with MDBridge's own message (e.g. "the barnaba base-pair engine is not
-  available in MDBridge; use engine = \"builtin\""), recorded as an intended difference; parity
-  cases skip barnaba. (MDBridge's own LW annotation is milestone 6.)
+  (owner decision): setup warns "basepairs: Barnaba is not available in MDBridge; using the builtin
+  detector" and runs the builtin engine (params, and so the cache key, keep the project's values),
+  recorded as an intended difference; parity cases skip barnaba. (MDBridge's own LW annotation is milestone 6.)
 - structure helpers (`structure_residues`, TracePoints, `guess_element`, `atom_bonds`) stay in
   `analysis` (they are analysis code in MDATK).
 
@@ -383,7 +383,7 @@ acceptance after W1.1 for the PBC variants)
 | **W2.3 [P] energy** | `energy.cpp` (GENERIC_LJ, bonded exclusions BFS, LjTable), tests | W0.1, W0.7, W0.6a | analytic test exact-ish (rel 1e-14), demo rel 1e-11; exclusions exact |
 | **W2.4 [P] rmsd** | `rmsd.cpp` (`_out_key`, mass weighting, fit selection, NaN rows, reference seek) | W0.1, W0.7, W1.2 | per 4.3 |
 | **W2.5 [P] ★ structure: trace, proximity, atoms** | `structure.cpp` (structure groups/residues, membership, TracePoints with float32 centroid, guess_element, atom_bonds, links) | W0.1, W0.7, W0.6a | exact topology arrays; float32 coords per 4.3 |
-| **W2.6 [P] basepairs** | `basepairs.cpp` (builtin engine, stride hold, barnaba -> MDBridge error) | W0.5, W2.5 (`structureResidues`) | exact on demo (stride 1 and 10) and micro cases |
+| **W2.6 [P] basepairs** | `basepairs.cpp` (builtin engine, stride hold, barnaba -> builtin engine with a warning (owner decision)) | W0.5, W2.5 (`structureResidues`) | exact on demo (stride 1 and 10) and micro cases |
 
 ### Wave 3 (pipeline and CLI)
 
@@ -446,7 +446,7 @@ parallelism: 7 agents in wave 0, 6 in wave 2.
 5. **float32 details**: TracePoints centroid in float32, trace/atoms coords cast to float32 after
    double math; 1-ulp differences expected on aligned frames.
 6. **Barnaba engine**: unavailable (GPL) — intended difference; projects with `engine="barnaba"`
-   fail in MDBridge M3 (or fall back to builtin; owner to decide).
+   fall back to the builtin engine with a warning (owner decision).
 7. **Cleaning in `analyze`**: MDATK runs cpptraj when `cleaning.enabled`; MDBridge has no cleaning
    yet. Decide: error, reuse an existing cleaned output, or run cpptraj (scripts are a later
    milestone).
