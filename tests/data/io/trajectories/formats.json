@@ -1,0 +1,275 @@
+{
+ "mdatk_table": {
+  ".nc": "NCDF",
+  ".ncdf": "NCDF",
+  ".netcdf": "NCDF",
+  ".mdcrd": "TRJ",
+  ".crd": "TRJ",
+  ".trj": "TRJ",
+  ".rst7": "INPCRD",
+  ".inpcrd": "INPCRD",
+  ".ncrst": "NCRST"
+ },
+ "guess": [
+  {
+   "path": "a.nc",
+   "guess": "NC",
+   "load_error": {
+    "type": "ValueError",
+    "message": "cannot mmap an empty file"
+   }
+  },
+  {
+   "path": "a.NC",
+   "guess": "NC",
+   "load_error": {
+    "type": "ValueError",
+    "message": "cannot mmap an empty file"
+   }
+  },
+  {
+   "path": "a.ncdf",
+   "guess": "NCDF",
+   "load_error": {
+    "type": "ValueError",
+    "message": "cannot mmap an empty file"
+   }
+  },
+  {
+   "path": "a.netcdf",
+   "guess": "NETCDF",
+   "load_error": {
+    "type": "TypeError",
+    "message": "Cannot find an appropriate coordinate reader for file '{path0}'.\n           Unknown coordinate trajectory format 'NETCDF' for '{path0}'. The FORMATs \n           dict_keys(['CHAIN', 'CHEMFILES', 'CRD', 'DCD', 'CONFIG', 'HISTORY', 'DMS', 'GMS', 'GRO', 'IMD', 'INPCRD', 'RESTRT', 'CIF', 'CIF.GZ', 'MMCIF', 'MMCIF.GZ', 'LAMMPS', 'DATA', 'LAMMPSDUMP', 'MOL2', 'PDB', 'ENT', 'XPDB', 'PDBQT', 'PQR', 'TPR', 'TRC', 'TRJ', 'MDCRD', 'CRDBOX', 'NCDF', 'NC', 'TRR', 'H5MD', 'TRZ', 'XTC', 'XYZ', 'TXYZ', 'ARC', 'MEMORY', 'MMTF', 'GSD', 'COOR', 'NAMDBIN', 'IN', 'FHIAIMS', 'TNG', 'PARMED', 'RDKIT', 'OPENMMSIMULATION', 'OPENMMAPP'])\n           are implemented in MDAnalysis.\n           See https://docs.mdanalysis.org/documentation_pages/coordinates/init.html#id1\n           Use the format keyword to explicitly set the format: 'Universe(...,format=FORMAT)'\n           For missing formats, raise an issue at https://github.com/MDAnalysis/mdanalysis/issues"
+   }
+  },
+  {
+   "path": "a.mdcrd",
+   "guess": "MDCRD",
+   "load_error": {
+    "type": "EOFError",
+    "message": "Compressed file ended before the end-of-stream marker was reached"
+   }
+  },
+  {
+   "path": "a.crd",
+   "guess": "CRD",
+   "load_error": {
+    "type": "EOFError",
+    "message": "Compressed file ended before the end-of-stream marker was reached"
+   }
+  },
+  {
+   "path": "a.trj",
+   "guess": "TRJ",
+   "load_error": {
+    "type": "EOFError",
+    "message": "Compressed file ended before the end-of-stream marker was reached"
+   }
+  },
+  {
+   "path": "a.rst7",
+   "guess": "RST7",
+   "load_error": {
+    "type": "TypeError",
+    "message": "Cannot find an appropriate coordinate reader for file '{path0}'.\n           Unknown coordinate trajectory format 'RST7' for '{path0}'. The FORMATs \n           dict_keys(['CHAIN', 'CHEMFILES', 'CRD', 'DCD', 'CONFIG', 'HISTORY', 'DMS', 'GMS', 'GRO', 'IMD', 'INPCRD', 'RESTRT', 'CIF', 'CIF.GZ', 'MMCIF', 'MMCIF.GZ', 'LAMMPS', 'DATA', 'LAMMPSDUMP', 'MOL2', 'PDB', 'ENT', 'XPDB', 'PDBQT', 'PQR', 'TPR', 'TRC', 'TRJ', 'MDCRD', 'CRDBOX', 'NCDF', 'NC', 'TRR', 'H5MD', 'TRZ', 'XTC', 'XYZ', 'TXYZ', 'ARC', 'MEMORY', 'MMTF', 'GSD', 'COOR', 'NAMDBIN', 'IN', 'FHIAIMS', 'TNG', 'PARMED', 'RDKIT', 'OPENMMSIMULATION', 'OPENMMAPP'])\n           are implemented in MDAnalysis.\n           See https://docs.mdanalysis.org/documentation_pages/coordinates/init.html#id1\n           Use the format keyword to explicitly set the format: 'Universe(...,format=FORMAT)'\n           For missing formats, raise an issue at https://github.com/MDAnalysis/mdanalysis/issues"
+   }
+  },
+  {
+   "path": "a.inpcrd",
+   "guess": "INPCRD",
+   "load_error": {
+    "type": "IndexError",
+    "message": "list index out of range"
+   }
+  },
+  {
+   "path": "a.restrt",
+   "guess": "RESTRT",
+   "load_error": {
+    "type": "IndexError",
+    "message": "list index out of range"
+   }
+  },
+  {
+   "path": "a.ncrst",
+   "guess": "NCRST",
+   "load_error": {
+    "type": "TypeError",
+    "message": "Cannot find an appropriate coordinate reader for file '{path0}'.\n           Unknown coordinate trajectory format 'NCRST' for '{path0}'. The FORMATs \n           dict_keys(['CHAIN', 'CHEMFILES', 'CRD', 'DCD', 'CONFIG', 'HISTORY', 'DMS', 'GMS', 'GRO', 'IMD', 'INPCRD', 'RESTRT', 'CIF', 'CIF.GZ', 'MMCIF', 'MMCIF.GZ', 'LAMMPS', 'DATA', 'LAMMPSDUMP', 'MOL2', 'PDB', 'ENT', 'XPDB', 'PDBQT', 'PQR', 'TPR', 'TRC', 'TRJ', 'MDCRD', 'CRDBOX', 'NCDF', 'NC', 'TRR', 'H5MD', 'TRZ', 'XTC', 'XYZ', 'TXYZ', 'ARC', 'MEMORY', 'MMTF', 'GSD', 'COOR', 'NAMDBIN', 'IN', 'FHIAIMS', 'TNG', 'PARMED', 'RDKIT', 'OPENMMSIMULATION', 'OPENMMAPP'])\n           are implemented in MDAnalysis.\n           See https://docs.mdanalysis.org/documentation_pages/coordinates/init.html#id1\n           Use the format keyword to explicitly set the format: 'Universe(...,format=FORMAT)'\n           For missing formats, raise an issue at https://github.com/MDAnalysis/mdanalysis/issues"
+   }
+  },
+  {
+   "path": "a.dcd",
+   "guess": "DCD",
+   "load_error": {
+    "type": "OSError",
+    "message": "Reading DCD header failed: premature EOF found in DCD file"
+   }
+  },
+  {
+   "path": "a.DCD",
+   "guess": "DCD",
+   "load_error": {
+    "type": "OSError",
+    "message": "Reading DCD header failed: premature EOF found in DCD file"
+   }
+  },
+  {
+   "path": "a.xtc",
+   "guess": "XTC",
+   "load_error": {
+    "type": "OSError",
+    "message": "XDR read error = endoffile"
+   }
+  },
+  {
+   "path": "a.trr",
+   "guess": "TRR",
+   "load_error": {
+    "type": "OSError",
+    "message": "XDR read error = integer"
+   }
+  },
+  {
+   "path": "a.pdb",
+   "guess": "PDB",
+   "load_error": {
+    "type": "EOFError",
+    "message": "Compressed file ended before the end-of-stream marker was reached"
+   }
+  },
+  {
+   "path": "a.ent",
+   "guess": "ENT",
+   "load_error": {
+    "type": "EOFError",
+    "message": "Compressed file ended before the end-of-stream marker was reached"
+   }
+  },
+  {
+   "path": "a.gro",
+   "guess": "GRO",
+   "load_error": {
+    "type": "EOFError",
+    "message": "Compressed file ended before the end-of-stream marker was reached"
+   }
+  },
+  {
+   "path": "a.xyz",
+   "guess": "XYZ",
+   "load_error": {
+    "type": "EOFError",
+    "message": "Compressed file ended before the end-of-stream marker was reached"
+   }
+  },
+  {
+   "path": "noext",
+   "guess": "",
+   "load_error": {
+    "type": "TypeError",
+    "message": "Cannot find an appropriate coordinate reader for file '{path0}'.\n           Unknown coordinate trajectory format '' for '{path0}'. The FORMATs \n           dict_keys(['CHAIN', 'CHEMFILES', 'CRD', 'DCD', 'CONFIG', 'HISTORY', 'DMS', 'GMS', 'GRO', 'IMD', 'INPCRD', 'RESTRT', 'CIF', 'CIF.GZ', 'MMCIF', 'MMCIF.GZ', 'LAMMPS', 'DATA', 'LAMMPSDUMP', 'MOL2', 'PDB', 'ENT', 'XPDB', 'PDBQT', 'PQR', 'TPR', 'TRC', 'TRJ', 'MDCRD', 'CRDBOX', 'NCDF', 'NC', 'TRR', 'H5MD', 'TRZ', 'XTC', 'XYZ', 'TXYZ', 'ARC', 'MEMORY', 'MMTF', 'GSD', 'COOR', 'NAMDBIN', 'IN', 'FHIAIMS', 'TNG', 'PARMED', 'RDKIT', 'OPENMMSIMULATION', 'OPENMMAPP'])\n           are implemented in MDAnalysis.\n           See https://docs.mdanalysis.org/documentation_pages/coordinates/init.html#id1\n           Use the format keyword to explicitly set the format: 'Universe(...,format=FORMAT)'\n           For missing formats, raise an issue at https://github.com/MDAnalysis/mdanalysis/issues"
+   }
+  },
+  {
+   "path": "dir.d/noext",
+   "guess": "",
+   "load_error": {
+    "type": "TypeError",
+    "message": "Cannot find an appropriate coordinate reader for file '{path0}'.\n           Unknown coordinate trajectory format '' for '{path0}'. The FORMATs \n           dict_keys(['CHAIN', 'CHEMFILES', 'CRD', 'DCD', 'CONFIG', 'HISTORY', 'DMS', 'GMS', 'GRO', 'IMD', 'INPCRD', 'RESTRT', 'CIF', 'CIF.GZ', 'MMCIF', 'MMCIF.GZ', 'LAMMPS', 'DATA', 'LAMMPSDUMP', 'MOL2', 'PDB', 'ENT', 'XPDB', 'PDBQT', 'PQR', 'TPR', 'TRC', 'TRJ', 'MDCRD', 'CRDBOX', 'NCDF', 'NC', 'TRR', 'H5MD', 'TRZ', 'XTC', 'XYZ', 'TXYZ', 'ARC', 'MEMORY', 'MMTF', 'GSD', 'COOR', 'NAMDBIN', 'IN', 'FHIAIMS', 'TNG', 'PARMED', 'RDKIT', 'OPENMMSIMULATION', 'OPENMMAPP'])\n           are implemented in MDAnalysis.\n           See https://docs.mdanalysis.org/documentation_pages/coordinates/init.html#id1\n           Use the format keyword to explicitly set the format: 'Universe(...,format=FORMAT)'\n           For missing formats, raise an issue at https://github.com/MDAnalysis/mdanalysis/issues"
+   }
+  },
+  {
+   "path": "a.b.Xtc",
+   "guess": "XTC",
+   "load_error": {
+    "type": "OSError",
+    "message": "XDR read error = endoffile"
+   }
+  },
+  {
+   "path": ".xtc",
+   "guess": "",
+   "load_error": {
+    "type": "TypeError",
+    "message": "Cannot find an appropriate coordinate reader for file '{path0}'.\n           Unknown coordinate trajectory format '' for '{path0}'. The FORMATs \n           dict_keys(['CHAIN', 'CHEMFILES', 'CRD', 'DCD', 'CONFIG', 'HISTORY', 'DMS', 'GMS', 'GRO', 'IMD', 'INPCRD', 'RESTRT', 'CIF', 'CIF.GZ', 'MMCIF', 'MMCIF.GZ', 'LAMMPS', 'DATA', 'LAMMPSDUMP', 'MOL2', 'PDB', 'ENT', 'XPDB', 'PDBQT', 'PQR', 'TPR', 'TRC', 'TRJ', 'MDCRD', 'CRDBOX', 'NCDF', 'NC', 'TRR', 'H5MD', 'TRZ', 'XTC', 'XYZ', 'TXYZ', 'ARC', 'MEMORY', 'MMTF', 'GSD', 'COOR', 'NAMDBIN', 'IN', 'FHIAIMS', 'TNG', 'PARMED', 'RDKIT', 'OPENMMSIMULATION', 'OPENMMAPP'])\n           are implemented in MDAnalysis.\n           See https://docs.mdanalysis.org/documentation_pages/coordinates/init.html#id1\n           Use the format keyword to explicitly set the format: 'Universe(...,format=FORMAT)'\n           For missing formats, raise an issue at https://github.com/MDAnalysis/mdanalysis/issues"
+   }
+  },
+  {
+   "path": "a.",
+   "guess": "",
+   "load_error": {
+    "type": "TypeError",
+    "message": "Cannot find an appropriate coordinate reader for file '{path0}'.\n           Unknown coordinate trajectory format '' for '{path0}'. The FORMATs \n           dict_keys(['CHAIN', 'CHEMFILES', 'CRD', 'DCD', 'CONFIG', 'HISTORY', 'DMS', 'GMS', 'GRO', 'IMD', 'INPCRD', 'RESTRT', 'CIF', 'CIF.GZ', 'MMCIF', 'MMCIF.GZ', 'LAMMPS', 'DATA', 'LAMMPSDUMP', 'MOL2', 'PDB', 'ENT', 'XPDB', 'PDBQT', 'PQR', 'TPR', 'TRC', 'TRJ', 'MDCRD', 'CRDBOX', 'NCDF', 'NC', 'TRR', 'H5MD', 'TRZ', 'XTC', 'XYZ', 'TXYZ', 'ARC', 'MEMORY', 'MMTF', 'GSD', 'COOR', 'NAMDBIN', 'IN', 'FHIAIMS', 'TNG', 'PARMED', 'RDKIT', 'OPENMMSIMULATION', 'OPENMMAPP'])\n           are implemented in MDAnalysis.\n           See https://docs.mdanalysis.org/documentation_pages/coordinates/init.html#id1\n           Use the format keyword to explicitly set the format: 'Universe(...,format=FORMAT)'\n           For missing formats, raise an issue at https://github.com/MDAnalysis/mdanalysis/issues"
+   }
+  },
+  {
+   "path": "a.tng",
+   "guess": "TNG",
+   "load_error": {
+    "type": "ImportError",
+    "message": "TNGReader: To read TNG files please install pytng"
+   }
+  },
+  {
+   "path": "a.mdcrd.gz",
+   "guess": "MDCRD",
+   "load_error": {
+    "type": "EOFError",
+    "message": "Compressed file ended before the end-of-stream marker was reached"
+   }
+  },
+  {
+   "path": "a.nc.bz2",
+   "guess": "NC",
+   "load_error": {
+    "type": "ValueError",
+    "message": "cannot mmap an empty file"
+   }
+  }
+ ],
+ "format_errors": [
+  {
+   "format": "NCRST",
+   "error": {
+    "type": "TypeError",
+    "message": "Cannot find an appropriate coordinate reader for file '{path0}'.\n           Unknown coordinate trajectory format 'NCRST' for '{path0}'. The FORMATs \n           dict_keys(['CHAIN', 'CHEMFILES', 'CRD', 'DCD', 'CONFIG', 'HISTORY', 'DMS', 'GMS', 'GRO', 'IMD', 'INPCRD', 'RESTRT', 'CIF', 'CIF.GZ', 'MMCIF', 'MMCIF.GZ', 'LAMMPS', 'DATA', 'LAMMPSDUMP', 'MOL2', 'PDB', 'ENT', 'XPDB', 'PDBQT', 'PQR', 'TPR', 'TRC', 'TRJ', 'MDCRD', 'CRDBOX', 'NCDF', 'NC', 'TRR', 'H5MD', 'TRZ', 'XTC', 'XYZ', 'TXYZ', 'ARC', 'MEMORY', 'MMTF', 'GSD', 'COOR', 'NAMDBIN', 'IN', 'FHIAIMS', 'TNG', 'PARMED', 'RDKIT', 'OPENMMSIMULATION', 'OPENMMAPP'])\n           are implemented in MDAnalysis.\n           See https://docs.mdanalysis.org/documentation_pages/coordinates/init.html#id1\n           Use the format keyword to explicitly set the format: 'Universe(...,format=FORMAT)'\n           For missing formats, raise an issue at https://github.com/MDAnalysis/mdanalysis/issues"
+   }
+  },
+  {
+   "format": "RST7",
+   "error": {
+    "type": "TypeError",
+    "message": "Cannot find an appropriate coordinate reader for file '{path0}'.\n           Unknown coordinate trajectory format 'RST7' for '{path0}'. The FORMATs \n           dict_keys(['CHAIN', 'CHEMFILES', 'CRD', 'DCD', 'CONFIG', 'HISTORY', 'DMS', 'GMS', 'GRO', 'IMD', 'INPCRD', 'RESTRT', 'CIF', 'CIF.GZ', 'MMCIF', 'MMCIF.GZ', 'LAMMPS', 'DATA', 'LAMMPSDUMP', 'MOL2', 'PDB', 'ENT', 'XPDB', 'PDBQT', 'PQR', 'TPR', 'TRC', 'TRJ', 'MDCRD', 'CRDBOX', 'NCDF', 'NC', 'TRR', 'H5MD', 'TRZ', 'XTC', 'XYZ', 'TXYZ', 'ARC', 'MEMORY', 'MMTF', 'GSD', 'COOR', 'NAMDBIN', 'IN', 'FHIAIMS', 'TNG', 'PARMED', 'RDKIT', 'OPENMMSIMULATION', 'OPENMMAPP'])\n           are implemented in MDAnalysis.\n           See https://docs.mdanalysis.org/documentation_pages/coordinates/init.html#id1\n           Use the format keyword to explicitly set the format: 'Universe(...,format=FORMAT)'\n           For missing formats, raise an issue at https://github.com/MDAnalysis/mdanalysis/issues"
+   }
+  },
+  {
+   "format": "NETCDF",
+   "error": {
+    "type": "TypeError",
+    "message": "Cannot find an appropriate coordinate reader for file '{path0}'.\n           Unknown coordinate trajectory format 'NETCDF' for '{path0}'. The FORMATs \n           dict_keys(['CHAIN', 'CHEMFILES', 'CRD', 'DCD', 'CONFIG', 'HISTORY', 'DMS', 'GMS', 'GRO', 'IMD', 'INPCRD', 'RESTRT', 'CIF', 'CIF.GZ', 'MMCIF', 'MMCIF.GZ', 'LAMMPS', 'DATA', 'LAMMPSDUMP', 'MOL2', 'PDB', 'ENT', 'XPDB', 'PDBQT', 'PQR', 'TPR', 'TRC', 'TRJ', 'MDCRD', 'CRDBOX', 'NCDF', 'NC', 'TRR', 'H5MD', 'TRZ', 'XTC', 'XYZ', 'TXYZ', 'ARC', 'MEMORY', 'MMTF', 'GSD', 'COOR', 'NAMDBIN', 'IN', 'FHIAIMS', 'TNG', 'PARMED', 'RDKIT', 'OPENMMSIMULATION', 'OPENMMAPP'])\n           are implemented in MDAnalysis.\n           See https://docs.mdanalysis.org/documentation_pages/coordinates/init.html#id1\n           Use the format keyword to explicitly set the format: 'Universe(...,format=FORMAT)'\n           For missing formats, raise an issue at https://github.com/MDAnalysis/mdanalysis/issues"
+   }
+  },
+  {
+   "format": "CRD",
+   "error": {
+    "type": "UnicodeDecodeError",
+    "message": "'utf-8' codec can't decode byte 0x84 in position 631: invalid start byte"
+   }
+  },
+  {
+   "format": "XYZ",
+   "error": {
+    "type": "UnicodeDecodeError",
+    "message": "'utf-8' codec can't decode byte 0x84 in position 631: invalid start byte"
+   }
+  },
+  {
+   "format": "bogus",
+   "error": {
+    "type": "TypeError",
+    "message": "Cannot find an appropriate coordinate reader for file '{path0}'.\n           Unknown coordinate trajectory format 'BOGUS' for '{path0}'. The FORMATs \n           dict_keys(['CHAIN', 'CHEMFILES', 'CRD', 'DCD', 'CONFIG', 'HISTORY', 'DMS', 'GMS', 'GRO', 'IMD', 'INPCRD', 'RESTRT', 'CIF', 'CIF.GZ', 'MMCIF', 'MMCIF.GZ', 'LAMMPS', 'DATA', 'LAMMPSDUMP', 'MOL2', 'PDB', 'ENT', 'XPDB', 'PDBQT', 'PQR', 'TPR', 'TRC', 'TRJ', 'MDCRD', 'CRDBOX', 'NCDF', 'NC', 'TRR', 'H5MD', 'TRZ', 'XTC', 'XYZ', 'TXYZ', 'ARC', 'MEMORY', 'MMTF', 'GSD', 'COOR', 'NAMDBIN', 'IN', 'FHIAIMS', 'TNG', 'PARMED', 'RDKIT', 'OPENMMSIMULATION', 'OPENMMAPP'])\n           are implemented in MDAnalysis.\n           See https://docs.mdanalysis.org/documentation_pages/coordinates/init.html#id1\n           Use the format keyword to explicitly set the format: 'Universe(...,format=FORMAT)'\n           For missing formats, raise an issue at https://github.com/MDAnalysis/mdanalysis/issues"
+   }
+  }
+ ]
+}

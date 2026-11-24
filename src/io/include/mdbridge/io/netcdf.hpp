@@ -27,12 +27,15 @@ std::unique_ptr<core::Trajectory> openNetcdfTrajectory(const std::filesystem::pa
                                                        std::size_t expectedAtoms = 0);
 
 // Writes frames as MDAnalysis' NCDFWriter does without the netCDF4 package (scipy's classic
-// writer): the Amber attributes, float32 coordinates, float32 time, float64 cell lengths/angles
-// when the frames have boxes. `programVersion` is MDAnalysis' version string in MDATK's files.
+// writer), byte for byte: the Amber attributes, float32 coordinates, float32 time, float64 cell
+// lengths/angles when the first frame has a box (then every frame needs one). Nothing is written
+// for no frames. `program`, `programVersion` and `application` are the global attributes of
+// MDATK's files; `title` is not stored (MDAnalysis 2.11's NCDFWriter drops its remarks).
 struct NetcdfWriteOptions {
     std::string title;
-    std::string program = "MDAnalysis";
+    std::string program = "MDAnalysis.coordinates.TRJ.NCDFWriter";
     std::string programVersion = "2.11.0";
+    std::string application = "MDAnalysis";
 };
 void writeNetcdfTrajectory(const std::filesystem::path& path, const std::vector<core::Frame>& frames,
                            std::size_t atoms, const NetcdfWriteOptions& options = {});

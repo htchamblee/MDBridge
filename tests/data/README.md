@@ -178,4 +178,24 @@ python3 -I -B tests/parity/make_external_cases.py /tmp/mdatk tests/data/io/exter
 python3 -I -B tests/parity/make_dataset_cases.py /tmp/mdatk tests/data/dataset
 ```
 
+`io/trajectories/` holds coordinate files and what MDAnalysis 2.11.0 reads from them, for
+`src/io/netcdf.cpp`, `amber_ascii.cpp`, `dcd.cpp`, `gromacs.cpp` and `trajectory.cpp`
+(`tests/io/test_trajectory.cpp`, `test_netcdf.cpp`). Times and dt are `float.hex()` strings, boxes
+and positions big-endian float32 bits; errors are `{"type", "message"}` with the files' paths
+written `{path0}`, `{path1}` ...
+
+| File | Content |
+|---|---|
+| `files/*` | small synthetic trajectories (7 to 90 atoms): NetCDF from MDAnalysis' NCDFWriter and crafted with scipy (CDF-1 / CDF-2, every netCDF type, scale factors in float32 / float64, no time, no box, fixed frame dimension, broken Amber conventions and units, corrupt files), Amber mdcrd (box lines, 1 / 4 / 10 atoms, CRLF, long titles, bad fields) and rst7 / inpcrd (with and without time), DCD (MDAnalysis' writer and crafted: both byte orders, X-PLOR, unit cells as cosines / degrees / box vectors, fixed atoms, 4D, truncation, broken headers), XTC (compressed and uncompressed, precisions 10^2 to 10^5, integer sizes beyond 2^24 and beyond 64 bits) and TRR (single and double precision), truncated and broken XDR files; `demo_dry.xtc` / `.trr` / `.dcd`: frames of the demo trajectory |
+| `demo_dry.nc` | `mdatk.demo.build_demo(n_frames=24, solvent=False)`'s trajectory (topology: `topology/demo_dry.parm7`) |
+| `cases.json` | `cases`: per case (one per line) the files (several: MDAnalysis' ChainReader), `format`, `dt` and atom count given to the Universe, and `n_frames`, `dt`, each frame's `time`, `box`, positions (`pos`, or `pos_sha256` of the little-endian float32 bytes for the demo), `dt` where it changes along a chain, the TRJ `header`, frame errors; or the error. `writer`: frames of a source file and the file MDAnalysis' NCDFWriter writes from them |
+| `writer/*.nc` | those NCDFWriter files (`demo_dry.nc` rewritten is `demo_dry.nc` itself) |
+| `formats.json` | MDATK's extension table (`mdatk/io/loader.py`), MDAnalysis' per-file format guess and its "Unknown coordinate trajectory format" errors |
+
+To regenerate (MDAnalysis 2.11.0 with scipy and without netCDF4; the output is reproducible):
+
+```bash
+/opt/mdbridge-venv/bin/python -I -B tests/parity/make_trajectory_cases.py /tmp/mdatk tests/data/io/trajectories
+```
+
 Never put research structures or trajectories of real projects here.

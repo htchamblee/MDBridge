@@ -12,6 +12,8 @@ programs on Windows).
 | CLI11 | 2.7.2 | BSD-3-Clause (`CLI11-LICENSE.txt`) | command line parsing (compiled in) | https://github.com/CLIUtils/CLI11 |
 | Vulkan-Headers | 1.4.363 | Apache 2.0 or MIT (`Vulkan-Headers-*.txt`) | Vulkan API declarations (compiled in) | https://github.com/KhronosGroup/Vulkan-Headers |
 | NumPy (interpolation routine only) | 2.5.5 | BSD-3-Clause (`numpy-LICENSE.txt`) | `numpy.interp` ported to C++ in `src/io/external.cpp` (compiled in) | https://github.com/numpy/numpy |
+| chemfiles (XTC decompression only) | commit 920a1347 | BSD-3-Clause (`chemfiles-LICENSE.txt`) | XTC coordinate decompression ported to C++ in `src/io/gromacs.cpp` (compiled in) | https://github.com/chemfiles/chemfiles |
+| xdrfile (via chemfiles' port) | as in chemfiles | BSD-2-Clause (`xdrfile-LICENSE.txt`) | the XTC decompression routines chemfiles took from xdrfile, in `src/io/gromacs.cpp` (compiled in) | https://github.com/chemfiles/chemfiles (src/files/XDRFile.cpp) |
 
 **Qt (LGPL v3).** MDBridge links Qt dynamically. The Qt libraries are separate files: in the
 AppImage under `usr/lib` (`./MDBridge-*.AppImage --appimage-extract` unpacks them), on Windows next
