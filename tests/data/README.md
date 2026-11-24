@@ -390,6 +390,22 @@ periodic neighbour search exists).
 /opt/mdbridge-venv/bin/python -I -B tests/parity/make_spatial_cases.py /tmp/mdatk tests/data/analysis
 ```
 
+`analysis/distance_cases.json` holds what MDAnalysis 2.11.0's `capped_distance` returns for the calls
+MDATK's `pairs_within` makes with a periodic box (`mdatk/spatial.py`; every case is also run through
+`pairs_within` and must agree), for MDBridge's periodic pair search
+(`docs/specs/m3-capped-distance.md`): the automatic method rule (sizes 9 / 10, cutoff around
+0.3 x the cell, n x m >= 1e8 on generated lattices), points at and one float32 step around the
+cutoff along axes and across faces, random sets inside, near and far outside orthogonal and
+triclinic cells, cutoffs beyond half a cell, the same array on both sides, duplicates, dense sets for
+the grid method's order, and degenerate cutoffs (0, negative, NaN, infinite), angles, lengths and
+coordinates. Each case gives the method chosen, the pairs in MDAnalysis' order and the distances as
+`float.hex` (or the error and warnings); lattice cases give SHA-256 hashes; `band` lists the pairs
+within the spec's tolerance of the cutoff. Format in the generator's docstring:
+
+```bash
+/opt/mdbridge-venv/bin/python -I -B tests/parity/make_distance_cases.py /tmp/mdatk tests/data/analysis
+```
+
 `citations/citation_cases.json` holds what MDATK's citation module (`mdatk/citations.py`)
 computes, for `src/core/citations.cpp` (`tests/core/test_citations.cpp`): `REFERENCES` and
 `RESOURCES` with every field (the same data as `src/core/citation_data.inc`), `unique`,

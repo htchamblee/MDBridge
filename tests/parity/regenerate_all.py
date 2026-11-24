@@ -240,6 +240,8 @@ STEPS = [
     Step("cli", "tests/parity/cli_parity.py", lambda ctx: ["--mdatk", M(ctx), "--write", d(ctx, "cli/cli_cases.json")],
          [f"{DATA}/cli/cli_cases.json"]),
     case_step("rigid", "make_rigid_cases.py", "rigid"),
+    Step("distances", "tests/parity/make_distance_cases.py", lambda ctx: [M(ctx), d(ctx, "analysis")],
+         [f"{DATA}/analysis/distance_cases.json"]),
     case_step("citations", "make_citation_cases.py", "citations"),
     case_step("cif", "make_cif_cases.py", "io/cif", pytest=True),
     case_step("secstruct", "make_secstruct_cases.py", "chem"),
