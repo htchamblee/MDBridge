@@ -1,0 +1,33 @@
+# Residue names stated in the Amber 2024 Reference Manual (https://ambermd.org/doc12/Amber24.pdf).
+# name	class	section
+HID	protein	12.2 Residue naming conventions (delta-histidine)
+HIE	protein	12.2 Residue naming conventions (epsilon-histidine)
+HIP	protein	12.2 Residue naming conventions (protonated histidine)
+CYX	protein	12.2 Residue naming conventions (cystine, S-S bridge)
+ASH	protein	12.2 Residue naming conventions (neutral aspartate)
+GLH	protein	12.2 Residue naming conventions (neutral glutamate)
+LYN	protein	12.2 Residue naming conventions (neutral lysine)
+ACE	protein	12.2 Terminals: N-terminal cap
+NHE	protein	12.2 Terminals: C-terminal cap (NH2)
+NME	protein	12.2 Terminals: C-terminal cap (NH-CH3)
+N*	protein	13.4.2 N-terminal amino acids are prefaced by the letter N (e.g. NALA)
+C*	protein	13.4.2 C-terminal amino acids are prefaced by the letter C (e.g. CALA)
+*5	nucleic	13.4.3 residue names like A or DA followed by 5 for 5' chain ends (DA5)
+*3	nucleic	13.4.3 residue names like A or DA followed by 3 for 3' chain ends (DA3)
+*N	nucleic	13.4.3 neutral nucleosides capped by hydrogens end with N (DAN)
+WAT	water	3.6 Solvents (default water residue name; TIP3P for HOH or WAT)
+HOH	water	3.6 Solvents
+TP3	water	3.6 solvents.lib (TIP3P)
+TPF	water	3.6 solvents.lib (TIP3P/F)
+TP4	water	3.6 solvents.lib (TIP4P)
+T4E	water	3.6 solvents.lib (TIP4P/Ew)
+TP5	water	3.6 solvents.lib (TIP5P)
+OPC	water	3.6 solvents.lib (OPC)
+OP3	water	3.6 solvents.lib (OPC3)
+O3P	water	3.6 solvents.lib (OPC3-pol)
+PL3	water	3.6 solvents.lib (POL3)
+SPC	water	3.6 solvents.lib (SPC/E, SPC/Eb)
+FB3	water	3.6 solvents.lib (TIP3P-FB)
+FB4	water	3.6 solvents.lib (TIP4P-FB)
+SPF	water	3.6 SPC/Fw flexible water
+SPG	water	3.6 qSPC/Fw flexible water
