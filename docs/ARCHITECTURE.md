@@ -28,7 +28,9 @@ a source build does not pollute the system.
 
 - GUI: Qt 6 (Widgets for the sidebar, wizard and planner; a Vulkan window for the 3D view;
   charts drawn in Qt, e.g. QCustomPlot, replacing Matplotlib early)
-- Trajectories and topologies: chemfiles (+ own parm7 / PDB readers where chemfiles falls short)
+- Trajectories and topologies: own readers and writers (parm7, PDB, GRO, DCD, XTC/TRR, AMBER NetCDF
+  and ASCII, MRC/CCP4, mmCIF), matched to what MDAnalysis reads; chemfiles was dropped in
+  milestone 2 because it reads these formats differently and parity needs MDAnalysis' behaviour
 - Linear algebra: Eigen; neighbour search: own cell list / nanoflann
 - Video: FFmpeg libraries, LGPL-only build (no x264; OpenH264 or AV1 encoders)
 - Scripting: embedded Lua for script/wizard generators
@@ -49,7 +51,7 @@ Each module is a library with a C++ API; only `app` depends on Qt widgets.
 | Module | Contents | Depends on |
 |---|---|---|
 | `core` | data model (topology, coordinates, selections, residue groups), `.mdatk.toml` project file, step log, citations, settings | - |
-| `io` | chemfiles wrapper, NetCDF/parm7, PDB read/write, MRC/CCP4 maps, mmCIF dictionaries | core |
+| `io` | trajectory/topology readers, NetCDF/parm7, PDB read/write, MRC/CCP4 maps, mmCIF dictionaries | core |
 | `chem` | PDB hygiene (L-RNA detection, naming schemes, chains, renumbering), base pairs, dot-bracket, annotation, helix builder, mutations, dictionary renaming | core, io |
 | `analysis` | RMSD, contacts, H-bonds, Mg/O-Mg-O, stacking, energy, trace/proximity; parallel over frames; result cache | core, io, chem |
 | `render` | Vulkan scene (trace, cartoon, licorice, surfaces, density shadow), panels and charts, video encoding; usable headless for batch videos | core, analysis |
@@ -74,7 +76,7 @@ publishable. MDBridge writes and (on request) runs their scripts.
 
 1. Skeleton: CMake, Qt 6 + Vulkan window, AppImage and Windows installer in CI; opens an existing
    `.mdatk.toml`. Proves the delivery promise before any science moves.
-2. `core` + `io`: project file, chemfiles reading, PDB/maps.
+2. `core` + `io`: project file, trajectory and topology reading, PDB/maps.
 3. `analysis`: all analyses, compared against Python on the test trajectories.
 4. `render`: Vulkan structure view and representations; Qt charts (retires Matplotlib);
    video encoding.

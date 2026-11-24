@@ -28,7 +28,7 @@ Not adopted yet; it takes effect only after legal review and a formal change of 
    | CLI11 | BSD-3-Clause | OK | milestone 1 |
    | Vulkan-Headers | Apache 2.0 / MIT | OK (headers only; the Vulkan loader is the user's) | milestone 1 |
    | zlib | zlib licence (permissive) | OK | milestone 2 (density maps) |
-   | chemfiles | BSD-3 | OK | planned |
+   | chemfiles | BSD-3 | not used: dropped in milestone 2 for MDBridge's own readers (its XTC decompression is ported, below) | - |
    | Eigen | MPL 2.0 | OK | planned |
    | nanoflann | BSD-2 | OK | planned |
    | FFmpeg | LGPL (only) | no GPL components (no x264); use OpenH264 / AV1 | planned |
