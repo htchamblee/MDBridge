@@ -4,6 +4,8 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -11,6 +13,7 @@
 #include "mdbridge/analysis/analysis.hpp"
 #include "mdbridge/analysis/context.hpp"
 #include "mdbridge/core/project.hpp"
+#include "mdbridge/core/rigid_transform.hpp"  // Vec3
 #include "mdbridge/core/topology.hpp"
 
 namespace mdbridge::analysis {
@@ -63,5 +66,22 @@ StructureResidues structureResidues(const AnalysisContext& context);
 // those two letters (any case), else its first character upper-cased ("X" for an empty name).
 // Upper-casing is ASCII only (Python's str.upper also maps other letters).
 std::string structureGuessElement(std::string_view name);
+
+// stacking.ring_atoms(residue): the atoms of the residue's aromatic ring in ring order (purine
+// N9 ... C4, else pyrimidine N1 ... C6, else the side-chain ring of PHE / TYR / TRP / HIS and its
+// protonation names, by the upper-cased residue name), or std::nullopt; a repeated atom name
+// refers to the residue's last atom of that name.
+std::optional<std::vector<std::int32_t>> stackingRingAtoms(const core::Topology& topology, std::int32_t residue);
+
+// stacking.ring_geometry(positions): per ring of `ringSize` consecutive points the centroid (mean
+// over the ring atoms), the unit normal of the least-squares plane (the last right singular
+// vector, up to sign) and the planarity s_min / sqrt(ringSize). Throws std::invalid_argument
+// unless positions.size() is a multiple of ringSize > 0.
+struct RingGeometry {
+    std::vector<core::Vec3> centroids;
+    std::vector<core::Vec3> normals;
+    std::vector<double> planarity;
+};
+RingGeometry ringGeometry(std::span<const core::Vec3> positions, std::size_t ringSize);
 
 }  // namespace mdbridge::analysis
