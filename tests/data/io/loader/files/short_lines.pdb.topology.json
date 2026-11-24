@@ -1,0 +1,108 @@
+{
+ "file": "short_lines.pdb",
+ "mdanalysis": "2.11.0",
+ "atoms": {
+  "names": [
+   "C",
+   "N",
+   "MG"
+  ],
+  "types": [
+   "C",
+   "N",
+   "MG"
+  ],
+  "resindex": [
+   0,
+   0,
+   1
+  ],
+  "elements": null,
+  "chainIDs": [
+   "A",
+   "A",
+   "A"
+  ],
+  "masses": [
+   12.011,
+   14.007,
+   24.305
+  ],
+  "charges": null,
+  "ids": [
+   1,
+   2,
+   3
+  ],
+  "altLocs": [
+   "",
+   "",
+   ""
+  ],
+  "record_types": [
+   "ATOM",
+   "ATOM",
+   "HETATM"
+  ],
+  "occupancies": [
+   0.0,
+   1.0,
+   0.0
+  ],
+  "tempfactors": [
+   1.0,
+   1.0,
+   1.0
+  ],
+  "formalcharges": null
+ },
+ "residues": {
+  "resids": [
+   1,
+   2
+  ],
+  "resnums": [
+   1,
+   2
+  ],
+  "resnames": [
+   "ALA",
+   "MG"
+  ],
+  "icodes": [
+   "",
+   ""
+  ],
+  "segindex": [
+   0,
+   0
+  ]
+ },
+ "segments": {
+  "segids": [
+   "A"
+  ]
+ },
+ "bonds": null,
+ "frame": {
+  "positions": [
+   [
+    1.0,
+    2.0,
+    3.0
+   ],
+   [
+    1.0,
+    2.0,
+    3.0
+   ],
+   [
+    0.5,
+    -0.25,
+    10.125
+   ]
+  ],
+  "dimensions": null,
+  "time": 0.0
+ }
+}

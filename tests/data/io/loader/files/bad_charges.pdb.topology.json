@@ -1,0 +1,138 @@
+{
+ "file": "bad_charges.pdb",
+ "mdanalysis": "2.11.0",
+ "atoms": {
+  "names": [
+   "MG",
+   "CL",
+   "NA",
+   "O"
+  ],
+  "types": [
+   "MG",
+   "Cl",
+   "na",
+   "O"
+  ],
+  "resindex": [
+   0,
+   1,
+   2,
+   3
+  ],
+  "elements": [
+   "Mg",
+   "Cl",
+   "Na",
+   "O"
+  ],
+  "chainIDs": [
+   "A",
+   "A",
+   "A",
+   "A"
+  ],
+  "masses": [
+   24.305,
+   35.45,
+   22.989768,
+   15.999
+  ],
+  "charges": null,
+  "ids": [
+   1,
+   2,
+   3,
+   13
+  ],
+  "altLocs": [
+   "",
+   "",
+   "",
+   ""
+  ],
+  "record_types": [
+   "HETATM",
+   "HETATM",
+   "HETATM",
+   "ATOM"
+  ],
+  "occupancies": [
+   1.0,
+   1.0,
+   1.0,
+   1.0
+  ],
+  "tempfactors": [
+   0.0,
+   0.0,
+   0.0,
+   0.0
+  ],
+  "formalcharges": null
+ },
+ "residues": {
+  "resids": [
+   1,
+   2,
+   3,
+   12
+  ],
+  "resnums": [
+   1,
+   2,
+   3,
+   12
+  ],
+  "resnames": [
+   "MG",
+   "CL",
+   "NA",
+   "HOH"
+  ],
+  "icodes": [
+   "",
+   "",
+   "",
+   ""
+  ],
+  "segindex": [
+   0,
+   0,
+   0,
+   0
+  ]
+ },
+ "segments": {
+  "segids": [
+   "A"
+  ]
+ },
+ "bonds": null,
+ "frame": {
+  "positions": [
+   [
+    1.0,
+    2.0,
+    3.0
+   ],
+   [
+    1.0,
+    2.0,
+    3.0
+   ],
+   [
+    1.0,
+    2.0,
+    3.0
+   ],
+   [
+    0.0,
+    0.0,
+    0.0
+   ]
+  ],
+  "dimensions": null,
+  "time": 0.0
+ }
+}

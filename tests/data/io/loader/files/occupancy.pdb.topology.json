@@ -1,0 +1,133 @@
+{
+ "file": "occupancy.pdb",
+ "mdanalysis": "2.11.0",
+ "atoms": {
+  "names": [
+   "C",
+   "C",
+   "C",
+   "C",
+   "C"
+  ],
+  "types": [
+   "C",
+   "C",
+   "C",
+   "C",
+   "C"
+  ],
+  "resindex": [
+   0,
+   0,
+   0,
+   0,
+   0
+  ],
+  "elements": null,
+  "chainIDs": [
+   "A",
+   "A",
+   "A",
+   "A",
+   "A"
+  ],
+  "masses": [
+   12.011,
+   12.011,
+   12.011,
+   12.011,
+   12.011
+  ],
+  "charges": null,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5
+  ],
+  "altLocs": [
+   "",
+   "",
+   "",
+   "",
+   ""
+  ],
+  "record_types": [
+   "ATOM",
+   "ATOM",
+   "ATOM",
+   "ATOM",
+   "ATOM"
+  ],
+  "occupancies": [
+   0.5,
+   0.0,
+   0.0,
+   10.0,
+   0.1234000027179718
+  ],
+  "tempfactors": [
+   12.25,
+   1.0,
+   NaN,
+   100.0,
+   0.33329999446868896
+  ],
+  "formalcharges": null
+ },
+ "residues": {
+  "resids": [
+   1
+  ],
+  "resnums": [
+   1
+  ],
+  "resnames": [
+   "A"
+  ],
+  "icodes": [
+   ""
+  ],
+  "segindex": [
+   0
+  ]
+ },
+ "segments": {
+  "segids": [
+   "A"
+  ]
+ },
+ "bonds": null,
+ "frame": {
+  "positions": [
+   [
+    0.0,
+    0.0,
+    0.0
+   ],
+   [
+    0.0,
+    0.0,
+    0.0
+   ],
+   [
+    0.0,
+    0.0,
+    0.0
+   ],
+   [
+    0.0,
+    0.0,
+    0.0
+   ],
+   [
+    0.0,
+    0.0,
+    0.0
+   ]
+  ],
+  "dimensions": null,
+  "time": 0.0
+ }
+}

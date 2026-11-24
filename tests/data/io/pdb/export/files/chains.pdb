@@ -1,0 +1,16 @@
+HEADER    CHAIN VARIANTS
+COMPND    MOL_ID: 1;
+REMARK   1 word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word 
+ATOM      1  P     G A   1       0.000   0.000   3.000  1.00  0.00      S1   P  
+HETATM    2  MG   MG a   2       1.500  -0.250   3.000  1.00  0.00      S1  MG2+
+ATOM      3  CL  CPT 1   3       3.000  -0.500   3.000 0.50  0.00      S1  Cl1-
+ATOM      4  HG  CMH é   4       4.500  -0.750   3.000  1.00 99.99      S1  HG  
+HETATM    5  FE BHEM *   5       6.000  -1.000   3.000  1.00  0.00      S1  Fe3+
+ATOM      6  CA   CA     6C      7.500  -1.250   3.000  1.00  0.00      S1  CA  
+ATOM      7  NA   NA _   7       9.000  -1.500   3.000  1.00  0.00      SEGMENTXNA1+
+HETATM    8  C1' OEC B   8      10.500  -1.750   3.000  1.00  0.00      S1   c  
+CONECT    1    2    3
+CONECT    2    1
+CONECT    3    1    8
+CONECT    8    3
+END

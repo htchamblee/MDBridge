@@ -23,6 +23,13 @@ public:
     const char* pythonName() const noexcept override { return "PDBError"; }
 };
 
+// builder.BuildError (a PDBError)
+class BuildError : public PdbError {
+public:
+    using PdbError::PdbError;
+    const char* pythonName() const noexcept override { return "BuildError"; }
+};
+
 // 62 chain IDs: A-Z, a-z, 0-9
 inline constexpr std::string_view kChainIds = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
@@ -103,11 +110,11 @@ std::string insertHeaderRecords(std::string_view text, const std::vector<std::st
 
 // builder.transform_pdb_text: x' = R x + t on ATOM / HETATM lines (ANISOU rotated, half-even
 // rounding), all else verbatim with its line ends; std::nullopt for unparsable coordinates.
-// Throws PdbError("the fitted coordinates do not fit the PDB columns").
+// Throws BuildError("the fitted coordinates do not fit the PDB columns").
 std::optional<std::string> transformPdbText(std::string_view text, const std::array<std::array<double, 3>, 3>& rotation,
                                             const std::array<double, 3>& translation);
 
-// builder._tail: columns 28-76 of a new atom. Throws PdbError("coordinates do not fit the PDB
+// builder._tail: columns 28-76 of a new atom. Throws BuildError("coordinates do not fit the PDB
 // columns").
 std::string newAtomTail(const std::array<double, 3>& xyz, double occupancy = 1.0, double bfactor = 0.0);
 

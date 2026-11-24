@@ -198,4 +198,64 @@ To regenerate (MDAnalysis 2.11.0 with scipy and without netCDF4; the output is r
 /opt/mdbridge-venv/bin/python -I -B tests/parity/make_trajectory_cases.py /tmp/mdatk tests/data/io/trajectories
 ```
 
+`io/pdb/pdb_cases.json` holds what MDATK's PDB tools compute, for `src/io/pdb.cpp`
+(`tests/io/test_pdb.cpp`): `read` — `pdbtools.read_pdb` of about 270 texts (MDATK's test fixtures,
+ChimeraX damage, models, ANISOU / SIGATM / SIGUIJ / orphan ANISOU, MASTER, records after END, CONECT
+variants, serial and residue-number wraps, lower-case records, Unicode, every line break of
+`str.splitlines`, broken fields and random mutations of a normal and a damaged file): the structure
+(residues as `[name, chain, resseq, icode, label, coords(), atoms]`, atoms as `[record, name, alt,
+tail, element, charge, serial, anisou]`) or the error, and `write_pdb` of it with CONECT stripped,
+kept (`write_conect`, when it differs) and with SEQRES records of `seqres_chains`; `files` —
+`read_pdb` of files (bytes as hex: line ends, BOM, invalid UTF-8); `residue_names` —
+`parse_residue_name` of every name of up to three characters over an alphabet; `insert` —
+`annotate._insert_records`; `transform` — `builder.transform_pdb_text` (rotations, translations,
+ANISOU, line ends, limits); `tail` — `builder._tail`. Floats are `float.hex()` strings.
+
+`io/pdb/export/` holds the PDB files MDATK's frame export writes (`mdatk.io.pdb_export.export_frames`
+through MDAnalysis 2.11.0's PDBWriter), for `src/io/pdb_export.cpp` (`tests/io/test_pdb_export.cpp`):
+`export_cases.json` lists per case the system (topology, trajectories, dt), the selection, frames,
+prefix and stamp, and the files written (text, or SHA-256 and first lines when longer than 16 KiB),
+the progress calls, or the error and the files left behind. The systems are the dry demo
+(`topology/demo_dry.parm7` with `io/trajectories/demo_dry.nc` and its DCD / XTC copies), the
+7-atom files of `io/loader/files` with the mdcrd / rst7 / XTC / TRR / DCD / NetCDF files of
+`io/trajectories/files` (HEADER from mdcrd titles, cells and no cells), PDB and GRO files exported
+from their own coordinates (HEADER / COMPND / REMARK, models, formal charges, occupancies, insertion
+codes, segids, CONECT), the parm7 chain-ID variants of `io/parm7/topology` with `files/forty.nc`, and
+the inputs of `files/`: chain IDs MDAnalysis keeps or replaces by `X`, atom names of every alignment
+rule, coordinates at and beyond the PDB limits (`limit*`, `edge*.gro`; a failing frame removes its
+file). `big` holds the SHA-256 of three exports of a 100001-atom system that the generator and the
+C++ test build from the same formulas (serials beyond 99999, resids beyond 9999 and below -999, no
+CONECT records once a bonded serial reaches 100000).
+
+`io/loader/` holds what MDATK's loader (`mdatk/io/loader.py`) and MDAnalysis 2.11.0 make of
+topology files and file combinations, for `src/io/loader.cpp` and `src/io/pdb_topology.cpp`
+(`tests/io/test_loader.cpp`, which also reads the PDB fixtures of `topology/` and `demo_dry.parm7`):
+
+| File | Content |
+|---|---|
+| `files/*.pdb`, `*.gro` | crafted PDB / GRO files: elements (valid, lower case, invalid, blank, none), types and masses MDAnalysis guesses, segids and chain IDs, formal charges (valid, unknown entries), resid wraps, hybrid-36 and `*****` serials, CONECT variants, models with one, every or some CRYST1 records, placeholder / broken / zero cells, HEADER / COMPND / REMARK, CRLF, Unicode and invalid UTF-8, GRO boxes (3 / 9 values, zero, packed, broken), GRO resid wraps, precision and broken lines |
+| `files/*.topology.json` | the topology MDAnalysis builds from each readable file (`tests/parity/dump_topologies.py`) |
+| `topology_cases.json` | per file: its dump or the Universe's error, and the PDB / GRO reader (frame count, dt, header / compound / remarks, every frame's float32 positions, cell and time, in order and shuffled, with and without dt) |
+| `loader_cases.json` | `load_universe` + `system_summary` over a matrix of the demo and crafted files (formats by extension, chains, dt 0 / NaN / given, missing files, reader errors) with the residue-name counts; `frame_indices` of 1620 slices; the JSON `mdatk info --top ... --traj ...` prints |
+
+`system_summary` lists the 12 most frequent residue names in the order of numpy's `argsort`, which
+for equal counts depends on the CPU's sort kernel; MDBridge orders equal counts by name, and the
+tests compare with that order (and with MDATK's count sequence). Self-bonds (`CONECT 1 1`), which
+MDAnalysis keeps, cannot be held by `core::Topology` and are dropped.
+
+To regenerate, with Python 3.13, MDAnalysis 2.11.0 (with scipy) in `/opt/mdbridge-venv` and an MDATK
+checkout at `v0.0.4.1` (nothing is written into it; the output is reproducible; the export cases
+use the loader's files, so run the loader generator first):
+
+```bash
+python3 -I -B tests/parity/make_pdb_cases.py /tmp/mdatk tests/data/io/pdb         # numpy and pytest
+/opt/mdbridge-venv/bin/python -I -B tests/parity/make_loader_cases.py /tmp/mdatk tests/data/io/loader
+/opt/mdbridge-venv/bin/python -I -B tests/parity/make_export_cases.py /tmp/mdatk tests/data/io/pdb/export
+/opt/mdbridge-venv/bin/python -I tools/gen_pdb_tables.py   # src/io/pdb_tables.inc
+```
+
+`src/io/pdb_tables.inc` holds data the PDB code needs: Python's `str.upper()` mapping and the
+characters `str.isalpha()` excludes from `\w` (Unicode 15.1), MDAnalysis' element, type and mass
+tables of its guessers and PDBParser, and the name lists of PDBWriter's atom-name alignment.
+
 Never put research structures or trajectories of real projects here.

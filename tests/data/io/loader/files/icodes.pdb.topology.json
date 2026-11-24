@@ -1,0 +1,149 @@
+{
+ "file": "icodes.pdb",
+ "mdanalysis": "2.11.0",
+ "atoms": {
+  "names": [
+   "N",
+   "N",
+   "N",
+   "N",
+   "N"
+  ],
+  "types": [
+   "N",
+   "N",
+   "N",
+   "N",
+   "N"
+  ],
+  "resindex": [
+   0,
+   1,
+   1,
+   2,
+   3
+  ],
+  "elements": null,
+  "chainIDs": [
+   "A",
+   "A",
+   "A",
+   "A",
+   "B"
+  ],
+  "masses": [
+   14.007,
+   14.007,
+   14.007,
+   14.007,
+   14.007
+  ],
+  "charges": null,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5
+  ],
+  "altLocs": [
+   "",
+   "B",
+   "C",
+   "",
+   ""
+  ],
+  "record_types": [
+   "ATOM",
+   "ATOM",
+   "ATOM",
+   "ATOM",
+   "ATOM"
+  ],
+  "occupancies": [
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   1.0
+  ],
+  "tempfactors": [
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0
+  ],
+  "formalcharges": null
+ },
+ "residues": {
+  "resids": [
+   5,
+   5,
+   5,
+   5
+  ],
+  "resnums": [
+   5,
+   5,
+   5,
+   5
+  ],
+  "resnames": [
+   "ALA",
+   "ALA",
+   "GLY",
+   "GLY"
+  ],
+  "icodes": [
+   "",
+   "A",
+   "A",
+   "A"
+  ],
+  "segindex": [
+   0,
+   0,
+   0,
+   1
+  ]
+ },
+ "segments": {
+  "segids": [
+   "A",
+   "B"
+  ]
+ },
+ "bonds": null,
+ "frame": {
+  "positions": [
+   [
+    0.0,
+    0.0,
+    0.0
+   ],
+   [
+    0.0,
+    0.0,
+    0.0
+   ],
+   [
+    0.0,
+    0.0,
+    0.0
+   ],
+   [
+    0.0,
+    0.0,
+    0.0
+   ],
+   [
+    0.0,
+    0.0,
+    0.0
+   ]
+  ],
+  "dimensions": null,
+  "time": 0.0
+ }
+}

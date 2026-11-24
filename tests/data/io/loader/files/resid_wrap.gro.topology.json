@@ -1,0 +1,148 @@
+{
+ "file": "resid_wrap.gro",
+ "mdanalysis": "2.11.0",
+ "atoms": {
+  "names": [
+   "CA",
+   "CA",
+   "CA",
+   "CA",
+   "CA",
+   "CA",
+   "CA"
+  ],
+  "types": [
+   "C",
+   "C",
+   "C",
+   "C",
+   "C",
+   "C",
+   "C"
+  ],
+  "resindex": [
+   0,
+   1,
+   2,
+   2,
+   3,
+   4,
+   5
+  ],
+  "elements": null,
+  "chainIDs": null,
+  "masses": [
+   12.011,
+   12.011,
+   12.011,
+   12.011,
+   12.011,
+   12.011,
+   12.011
+  ],
+  "charges": null,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "altLocs": null,
+  "record_types": null,
+  "occupancies": null,
+  "tempfactors": null,
+  "formalcharges": null
+ },
+ "residues": {
+  "resids": [
+   99998,
+   99999,
+   100000,
+   100001,
+   200000,
+   200001
+  ],
+  "resnums": [
+   99998,
+   99999,
+   100000,
+   100001,
+   200000,
+   200001
+  ],
+  "resnames": [
+   "RES",
+   "RES",
+   "RES",
+   "RES",
+   "RES",
+   "RES"
+  ],
+  "icodes": null,
+  "segindex": [
+   0,
+   0,
+   0,
+   0,
+   0,
+   0
+  ]
+ },
+ "segments": {
+  "segids": [
+   "SYSTEM"
+  ]
+ },
+ "bonds": null,
+ "frame": {
+  "positions": [
+   [
+    0.0,
+    0.0,
+    0.0
+   ],
+   [
+    10.0,
+    0.0,
+    0.0
+   ],
+   [
+    20.0,
+    0.0,
+    0.0
+   ],
+   [
+    30.0,
+    0.0,
+    0.0
+   ],
+   [
+    40.0,
+    0.0,
+    0.0
+   ],
+   [
+    50.0,
+    0.0,
+    0.0
+   ],
+   [
+    60.0,
+    0.0,
+    0.0
+   ]
+  ],
+  "dimensions": [
+   10.0,
+   10.0,
+   10.0,
+   90.0,
+   90.0,
+   90.0
+  ],
+  "time": 0.0
+ }
+}

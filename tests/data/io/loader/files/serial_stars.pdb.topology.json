@@ -1,0 +1,103 @@
+{
+ "file": "serial_stars.pdb",
+ "mdanalysis": "2.11.0",
+ "atoms": {
+  "names": [
+   "C",
+   "C",
+   "C"
+  ],
+  "types": [
+   "C",
+   "C",
+   "C"
+  ],
+  "resindex": [
+   0,
+   0,
+   0
+  ],
+  "elements": null,
+  "chainIDs": [
+   "A",
+   "A",
+   "A"
+  ],
+  "masses": [
+   12.011,
+   12.011,
+   12.011
+  ],
+  "charges": null,
+  "ids": [
+   100000,
+   100001,
+   5
+  ],
+  "altLocs": [
+   "",
+   "",
+   ""
+  ],
+  "record_types": [
+   "ATOM",
+   "ATOM",
+   "ATOM"
+  ],
+  "occupancies": [
+   1.0,
+   1.0,
+   1.0
+  ],
+  "tempfactors": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "formalcharges": null
+ },
+ "residues": {
+  "resids": [
+   1
+  ],
+  "resnums": [
+   1
+  ],
+  "resnames": [
+   "A"
+  ],
+  "icodes": [
+   ""
+  ],
+  "segindex": [
+   0
+  ]
+ },
+ "segments": {
+  "segids": [
+   "A"
+  ]
+ },
+ "bonds": null,
+ "frame": {
+  "positions": [
+   [
+    0.0,
+    0.0,
+    0.0
+   ],
+   [
+    1.0,
+    0.0,
+    0.0
+   ],
+   [
+    2.0,
+    0.0,
+    0.0
+   ]
+  ],
+  "dimensions": null,
+  "time": 0.0
+ }
+}

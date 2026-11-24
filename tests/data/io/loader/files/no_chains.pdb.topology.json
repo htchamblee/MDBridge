@@ -1,0 +1,133 @@
+{
+ "file": "no_chains.pdb",
+ "mdanalysis": "2.11.0",
+ "atoms": {
+  "names": [
+   "C",
+   "C",
+   "C",
+   "C"
+  ],
+  "types": [
+   "C",
+   "C",
+   "C",
+   "C"
+  ],
+  "resindex": [
+   0,
+   1,
+   2,
+   3
+  ],
+  "elements": null,
+  "chainIDs": [
+   "",
+   "",
+   "",
+   ""
+  ],
+  "masses": [
+   12.011,
+   12.011,
+   12.011,
+   12.011
+  ],
+  "charges": null,
+  "ids": [
+   1,
+   2,
+   3,
+   4
+  ],
+  "altLocs": [
+   "",
+   "",
+   "",
+   ""
+  ],
+  "record_types": [
+   "ATOM",
+   "ATOM",
+   "ATOM",
+   "ATOM"
+  ],
+  "occupancies": [
+   1.0,
+   1.0,
+   1.0,
+   1.0
+  ],
+  "tempfactors": [
+   0.0,
+   0.0,
+   0.0,
+   0.0
+  ],
+  "formalcharges": null
+ },
+ "residues": {
+  "resids": [
+   0,
+   1,
+   2,
+   3
+  ],
+  "resnums": [
+   0,
+   1,
+   2,
+   3
+  ],
+  "resnames": [
+   "LIG",
+   "LIG",
+   "LIG",
+   "LIG"
+  ],
+  "icodes": [
+   "",
+   "",
+   "",
+   ""
+  ],
+  "segindex": [
+   0,
+   0,
+   0,
+   0
+  ]
+ },
+ "segments": {
+  "segids": [
+   "SYSTEM"
+  ]
+ },
+ "bonds": null,
+ "frame": {
+  "positions": [
+   [
+    0.0,
+    0.0,
+    0.0
+   ],
+   [
+    1.0,
+    0.0,
+    0.0
+   ],
+   [
+    2.0,
+    0.0,
+    0.0
+   ],
+   [
+    3.0,
+    0.0,
+    0.0
+   ]
+  ],
+  "dimensions": null,
+  "time": 0.0
+ }
+}

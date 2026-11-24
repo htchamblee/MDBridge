@@ -1,0 +1,68 @@
+{
+ "file": "one_atom.gro",
+ "mdanalysis": "2.11.0",
+ "atoms": {
+  "names": [
+   "NA"
+  ],
+  "types": [
+   "NA"
+  ],
+  "resindex": [
+   0
+  ],
+  "elements": null,
+  "chainIDs": null,
+  "masses": [
+   22.98977
+  ],
+  "charges": null,
+  "ids": [
+   1
+  ],
+  "altLocs": null,
+  "record_types": null,
+  "occupancies": null,
+  "tempfactors": null,
+  "formalcharges": null
+ },
+ "residues": {
+  "resids": [
+   1
+  ],
+  "resnums": [
+   1
+  ],
+  "resnames": [
+   "NA"
+  ],
+  "icodes": null,
+  "segindex": [
+   0
+  ]
+ },
+ "segments": {
+  "segids": [
+   "SYSTEM"
+  ]
+ },
+ "bonds": null,
+ "frame": {
+  "positions": [
+   [
+    10.0,
+    20.0,
+    30.0
+   ]
+  ],
+  "dimensions": [
+   20.0,
+   20.0,
+   20.0,
+   90.0,
+   90.0,
+   90.0
+  ],
+  "time": 0.0
+ }
+}
