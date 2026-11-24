@@ -438,7 +438,9 @@ def main(argv=None):
                 fh.write("\n")
             print(f"{len(cases)} cases written to {args.write}")
             return 0
-        actual = run_mdbridge(cases, root, [args.mdbridge])
+        # the program runs in each case's folder: a path relative to here would be looked up there
+        exe = os.path.abspath(args.mdbridge) if os.path.dirname(args.mdbridge) else args.mdbridge
+        actual = run_mdbridge(cases, root, [exe])
         failed = 0
         for c in cases:
             problems = differences(c, expected[c["name"]], actual[c["name"]])

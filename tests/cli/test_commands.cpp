@@ -146,6 +146,13 @@ TEST(Commands, MatchMdatk) {
 
         // the files left in the folder: everything but the unchanged inputs
         core::Table expectedFiles = *field(c, "written").get<core::Table>();
+#ifdef _WIN32
+        // MDATK's project lock file (.NAME.lock) needs fcntl, which Windows lacks: there neither MDATK
+        // nor MDBridge creates one (projectfile._locked, detail::ProjectLock)
+        static const std::regex projectLock{R"((^|/)\.[^/]+\.lock$)"};
+        std::erase_if(expectedFiles,
+                      [](const auto& entry) { return std::regex_search(entry.first, projectLock); });
+#endif
         std::vector<std::string> seen;
         for (const auto& entry : fs::recursive_directory_iterator(work.path())) {
             if (!entry.is_regular_file()) {
