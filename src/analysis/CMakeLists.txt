@@ -20,7 +20,7 @@ add_library(mdbridge_analysis STATIC
     structure.cpp)
 add_library(mdbridge::analysis ALIAS mdbridge_analysis)
 target_include_directories(mdbridge_analysis PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
-target_link_libraries(mdbridge_analysis PUBLIC mdbridge::core mdbridge::io)
+target_link_libraries(mdbridge_analysis PUBLIC mdbridge::core mdbridge::io PRIVATE mdbridge::chem)
 target_compile_features(mdbridge_analysis PUBLIC cxx_std_20)
 mdbridge_target_warnings(mdbridge_analysis)
 # numerics reproduced as numpy rounds them: no contraction into fused multiply-adds
