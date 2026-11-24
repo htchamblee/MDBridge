@@ -68,6 +68,29 @@ python3 -I -B tests/parity/python_cases.py /tmp/mdatk tests/data/python
 The generators fix the clocks (`saved`, entry times, durations), so their output is reproducible
 and equal to the committed files.
 
+`step-types/` holds the step types of MDATK's Project Planner and what MDATK computes with them
+(`tests/core/test_step_types.cpp`). Values are tagged JSON (`{"t": "float", "hex": float.hex()}`,
+`{"t": "str", "v": text}`, ...; see the top of the generator):
+
+| File | Content |
+|---|---|
+| `step_types.json` | every registered step type (label, category, tag, description, ports, sections, options with their defaults' Python types, templates), `CATEGORIES` and `FILE_KINDS`; the same data as `src/core/step_types.inc` |
+| `coerce_cases.json` | `Option.coerce` of about 220 inputs (numbers, `float()` spellings with whitespace, underscores, inf / nan, subnormals and overflow, Unicode digits, other types) for an option of every shape the step types use, and synthetic ones |
+| `digit_cases.json` | `float()` of every Unicode decimal digit and of `5` between every whitespace character (an int option) |
+| `normalise_cases.json` | `Tool.normalise` of defaults, valid and invalid values, unknown keys and malformed records per step type: result, issues, and the log lines with and without an issue list |
+| `requirements_cases.json` | `schema.requirements_met` (truthiness, `==` across bool / int / float, tuple membership) |
+| `setting_comments.json` | `projectfile._settings_doc` for every key of every step type, unknown keys and step types, and two synthetic step types that pin down its search order |
+| `option_text_cases.json` | `projectfile._option_text` of synthetic labels, tooltips and choices (the `strip(": ")` edge cases) |
+| `registry_cases.json` | `get_tool`'s error text, `register()`'s errors, `tools_by_category`, `Section.template`'s error, `guess_kind`, `kind_label` |
+
+To regenerate, with Python 3.13 and an MDATK checkout at `v0.0.4.1` (nothing is written into it;
+the build itself needs no Python):
+
+```bash
+python3 -I -B tools/gen_step_types.py /tmp/mdatk          # src/core/step_types.inc, step_types.json
+python3 -I -B tests/parity/make_step_type_cases.py /tmp/mdatk tests/data/step-types
+```
+
 `topology/` holds the topology fixtures and what MDAnalysis 2.11.0 builds from them:
 `fixture_chains.pdb`, `fixture_noelements.pdb`, `fixture_segids.pdb`, `fixture_chains_ba.pdb` and
 `demo_dry.parm7` (MDATK's dry demo system) from
