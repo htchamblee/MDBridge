@@ -12,6 +12,7 @@
 #include <stdexcept>
 #include <system_error>
 
+#include "mdbridge/core/detail/data_tables.hpp"
 #include "mdbridge/core/errors.hpp"
 #include "mdbridge/core/json.hpp"
 #include "mdbridge/core/paths.hpp"
@@ -300,16 +301,8 @@ void checkAscii(const std::string& text) {
 
 using detail::ReaderError;
 
-// Element symbols by atomic number (index Z - 1).
-constexpr std::array<std::string_view, 118> kElementSymbols = {
-    "H",  "He", "Li", "Be", "B",  "C",  "N",  "O",  "F",  "Ne", "Na", "Mg", "Al", "Si", "P",
-    "S",  "Cl", "Ar", "K",  "Ca", "Sc", "Ti", "V",  "Cr", "Mn", "Fe", "Co", "Ni", "Cu", "Zn",
-    "Ga", "Ge", "As", "Se", "Br", "Kr", "Rb", "Sr", "Y",  "Zr", "Nb", "Mo", "Tc", "Ru", "Rh",
-    "Pd", "Ag", "Cd", "In", "Sn", "Sb", "Te", "I",  "Xe", "Cs", "Ba", "La", "Ce", "Pr", "Nd",
-    "Pm", "Sm", "Eu", "Gd", "Tb", "Dy", "Ho", "Er", "Tm", "Yb", "Lu", "Hf", "Ta", "W",  "Re",
-    "Os", "Ir", "Pt", "Au", "Hg", "Tl", "Pb", "Bi", "Po", "At", "Rn", "Fr", "Ra", "Ac", "Th",
-    "Pa", "U",  "Np", "Pu", "Am", "Cm", "Bk", "Cf", "Es", "Fm", "Md", "No", "Lr", "Rf", "Db",
-    "Sg", "Bh", "Hs", "Mt", "Ds", "Rg", "Cn", "Nh", "Fl", "Mc", "Lv", "Ts", "Og"};
+// Element symbols by atomic number: kIndElements[Z - 1] (mdbridge/core/detail/data_tables.hpp).
+namespace tables = core::detail::tables;
 
 // How the field texts of a section become values.
 enum class FieldKind {
@@ -498,11 +491,11 @@ void convertField(const SectionRule& rule, const std::u32string& field, Collecte
     case FieldKind::Real: into.reals.push_back(core::pythonFloat(text)); break;
     case FieldKind::Element: {
         const std::int64_t z = core::pythonInt(text);
-        if (z > static_cast<std::int64_t>(kElementSymbols.size())) {
+        if (z > static_cast<std::int64_t>(std::size(tables::kIndElements))) {
             throw ReaderError("KeyError", std::to_string(z));
         }
-        into.texts.emplace_back(z <= 0 ? std::string_view()
-                                       : kElementSymbols[static_cast<std::size_t>(z - 1)]);
+        into.texts.emplace_back(
+            z <= 0 ? std::string_view() : tables::kIndElements[static_cast<std::size_t>(z - 1)].symbol);
         break;
     }
     case FieldKind::Integer: into.integers.push_back(core::pythonInt(text)); break;

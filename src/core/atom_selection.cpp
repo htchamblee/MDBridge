@@ -23,6 +23,7 @@
 #include <utility>
 #include <vector>
 
+#include "mdbridge/core/detail/data_tables.hpp"
 #include "mdbridge/core/json.hpp"
 #include "mdbridge/core/python.hpp"
 #include "mdbridge/core/text.hpp"
@@ -31,7 +32,9 @@ namespace mdbridge::core {
 
 namespace {
 
-#include "selection_tables.inc"
+#include "selection_tables.inc"  // property names and their reprs (kSameNames, kPropAttributes, ...)
+
+namespace tables = detail::tables;
 
 using Mask = std::vector<std::uint8_t>;
 using Token = std::optional<std::string>;
@@ -1112,13 +1115,14 @@ struct StringNode : Node {
     }
 };
 
-// Name sets of the macros (protein, backbone, ...): residue names and, optionally, atom names.
+// Name sets of the macros (protein, backbone, ...): residue names and, optionally, atom names,
+// matched exactly (case-sensitive). The sets are the sorted tables of data_tables.hpp.
 struct MacroNode : Node {
     std::span<const std::string_view> resnames;
     std::span<const std::string_view> names;  // empty: every atom of the residues
     Mask apply(const Context& ctx) const override {
         auto in = [&](std::span<const std::string_view> set, std::uint32_t id) {
-            return std::find(set.begin(), set.end(), ctx.top.strings[id]) != set.end();
+            return tables::contains(set, ctx.top.strings[id]);
         };
         Mask out = maskByStringIds(ctx, {&ctx.top.resnames, Level::Residue},
                                    [&](std::uint32_t id) { return in(resnames, id); });
@@ -1813,13 +1817,15 @@ const std::vector<Keyword>& keywords() {
         {"not", Kind::Not},
         {"global", Kind::Global},
         {"all", Kind::All},
-        {"protein", Kind::Macro, {}, kProteinResnames},
-        {"nucleic", Kind::Macro, {}, kNucleicResnames},
-        {"water", Kind::Macro, {}, kWaterResnames},
-        {"backbone", Kind::Macro, {}, kProteinResnames, kBackboneNames},
-        {"nucleicbackbone", Kind::Macro, {}, kNucleicResnames, kNucleicBackboneNames},
-        {"nucleicbase", Kind::Macro, {}, kNucleicResnames, kNucleicBaseNames},
-        {"nucleicsugar", Kind::Macro, {}, kNucleicResnames, kNucleicSugarNames},
+        // residue and atom names of the macros: mdbridge/core/detail/data_tables.hpp
+        {"protein", Kind::Macro, {}, tables::kIndProteinResidues},
+        {"nucleic", Kind::Macro, {}, tables::kIndNucleicResidues},
+        {"water", Kind::Macro, {}, tables::kIndWaterResidues},
+        {"backbone", Kind::Macro, {}, tables::kIndProteinResidues, tables::kIndProteinBackboneAtoms},
+        {"nucleicbackbone", Kind::Macro, {}, tables::kIndNucleicResidues,
+         tables::kIndNucleicBackboneAtoms},
+        {"nucleicbase", Kind::Macro, {}, tables::kIndNucleicResidues, tables::kIndNucleicBaseAtoms},
+        {"nucleicsugar", Kind::Macro, {}, tables::kIndNucleicResidues, tables::kIndNucleicSugarAtoms},
         {"aromatic", Kind::Aromatic},
         {"byres", Kind::ByRes},
         {"bonded", Kind::Bonded},
