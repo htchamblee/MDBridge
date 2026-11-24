@@ -267,11 +267,44 @@ std::string pythonListRepr(const std::vector<std::string>& items) {
 
 namespace detail {
 
-// CLEAN ROOM: reimplement from scratchpad/cleanroom/triclinic-box.md
+namespace {
+
+// u . v as a fused chain: fma(u2, v2, fma(u1, v1, u0 * v0))
+double dot3(const std::array<double, 3>& u, const std::array<double, 3>& v) {
+    return std::fma(u[2], v[2], std::fma(u[1], v[1], u[0] * v[0]));
+}
+
+// The angle (degrees) between two vectors of the given lengths; NaN when undefined.
+double angleBetween(const std::array<double, 3>& u, const std::array<double, 3>& v, double lu,
+                    double lv) {
+    constexpr double kDegreesPerRadian = 57.29577951308232;  // 180 / pi as one double
+    return std::acos(dot3(u, v) / (lu * lv)) * kDegreesPerRadian;
+}
+
+}  // namespace
+
 std::array<float, 6> triclinicBox(const std::array<double, 3>& x, const std::array<double, 3>& y,
                                   const std::array<double, 3>& z) {
-    (void)x; (void)y; (void)z;
-    throw std::logic_error("clean room: triclinicBox not implemented");
+    const double a = std::sqrt(dot3(x, x));
+    const double b = std::sqrt(dot3(y, y));
+    const double c = std::sqrt(dot3(z, z));
+    const std::array<double, 3> angles = {angleBetween(y, z, b, c), angleBetween(x, z, a, c),
+                                          angleBetween(x, y, a, b)};
+    const std::array<double, 6> cell = {a, b, c, angles[0], angles[1], angles[2]};
+    std::array<float, 6> out{};
+    for (std::size_t i = 0; i < 6; ++i) {
+        out[i] = static_cast<float>(cell[i]);
+        // NaN fails the comparison too
+        if (!(out[i] > 0.0f)) {
+            return {};
+        }
+    }
+    for (const double angle : angles) {
+        if (!(angle < 180.0)) {
+            return {};
+        }
+    }
+    return out;
 }
 
 const core::Frame& FileTrajectory::seek(std::int64_t index) {

@@ -1,6 +1,7 @@
 #include "mdbridge/io/netcdf.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <fstream>
 #include <map>
@@ -10,6 +11,7 @@
 #include "binary_file.hpp"
 #include "mdbridge/core/errors.hpp"
 #include "mdbridge/core/json.hpp"
+#include "python_text.hpp"
 #include "readers.hpp"
 #include "text_file.hpp"
 
@@ -269,7 +271,456 @@ private:
 };
 
 // ---------------------------------------------------------------- Amber conventions (reader)
-// CLEAN ROOM: reimplement from scratchpad/cleanroom/netcdf-amber.md
+
+[[noreturn]] void typeError(const std::string& message) {
+    throw ReaderError("TypeError", message);
+}
+
+// An attribute's text as str: bytes.decode() (UTF-8, strict)
+std::string decodedText(const Attribute& attribute) {
+    const std::string bytes = attribute.text();
+    if (const auto error = detail::utf8Error(bytes)) {
+        throw detail::UnicodeDecodeError(*error);
+    }
+    return bytes;
+}
+
+// type(value) of a numeric attribute as NumPy names it
+std::string numpyTypeName(const Attribute& attribute) {
+    if (attribute.count != 1) {
+        return "numpy.ndarray";
+    }
+    switch (attribute.type) {
+    case NcByte:
+        return "numpy.int8";
+    case NcShort:
+        return "numpy.int16";
+    case NcInt:
+        return "numpy.int32";
+    case NcFloat:
+        return "numpy.float32";
+    default:
+        return "numpy.float64";
+    }
+}
+
+// repr() of a bytes value
+std::string bytesRepr(const std::string& bytes) {
+    const bool doubleQuote =
+        bytes.find('\'') != std::string::npos && bytes.find('"') == std::string::npos;
+    const char quote = doubleQuote ? '"' : '\'';
+    static const char hex[] = "0123456789abcdef";
+    std::string out = "b";
+    out += quote;
+    for (const char ch : bytes) {
+        const auto c = static_cast<unsigned char>(ch);
+        if (ch == '\\' || ch == quote) {
+            out += '\\';
+            out += ch;
+        } else if (ch == '\t') {
+            out += "\\t";
+        } else if (ch == '\n') {
+            out += "\\n";
+        } else if (ch == '\r') {
+            out += "\\r";
+        } else if (c < 0x20 || c >= 0x7F) {
+            out += "\\x";
+            out += hex[c >> 4];
+            out += hex[c & 15];
+        } else {
+            out += ch;
+        }
+    }
+    return out + quote;
+}
+
+// str() of a numeric attribute value: a scalar for one element, else NumPy's array text
+// (fixed notation, elements padded to a common width).
+std::string numericText(const Attribute& attribute) {
+    const bool integral = attribute.type != NcFloat && attribute.type != NcDouble;
+    std::vector<std::string> items;
+    for (std::size_t i = 0; i < attribute.count; ++i) {
+        const double x = attribute.number(i);
+        if (integral) {
+            items.push_back(std::to_string(static_cast<std::int64_t>(x)));
+        } else {
+            std::string text = core::pythonFloatRepr(x);
+            if (text.size() > 2 && text.compare(text.size() - 2, 2, ".0") == 0) {
+                text.pop_back();
+            }
+            items.push_back(std::move(text));
+        }
+    }
+    if (attribute.count == 1) {
+        std::string text = items.front();
+        if (!integral && text.back() == '.') {
+            text += '0';
+        }
+        return text;
+    }
+    std::size_t head = 0;
+    std::size_t tail = 0;
+    for (const std::string& item : items) {
+        const std::size_t dot = std::min(item.find('.'), item.size());
+        head = std::max(head, dot);
+        tail = std::max(tail, item.size() - dot);
+    }
+    std::string out = "[";
+    for (std::size_t i = 0; i < items.size(); ++i) {
+        const std::string& item = items[i];
+        const std::size_t dot = std::min(item.find('.'), item.size());
+        out += (i ? " " : "") + std::string(head - dot, ' ') + item +
+               std::string(tail - (item.size() - dot), ' ');
+    }
+    return out + "]";
+}
+
+std::string valueText(const Attribute& attribute) {
+    return attribute.isText() ? bytesRepr(attribute.text()) : numericText(attribute);
+}
+
+void checkUnits(const Variable& variable, const std::string& expected) {
+    const Attribute* units = findAttribute(variable.attributes, "units");
+    if (units == nullptr) {
+        throw ReaderError("AttributeError", "'netcdf_variable' object has no attribute 'units'");
+    }
+    if (!units->isText()) {
+        throw ReaderError("AttributeError",
+                          "'" + numpyTypeName(*units) + "' object has no attribute 'decode'");
+    }
+    const std::string found = decodedText(*units);
+    if (found != expected) {
+        throw ReaderError("NotImplementedError",
+                          "NETCDFReader currently assumes that the trajectory was written in "
+                          "units of " +
+                              found + " instead of " + expected);
+    }
+}
+
+// Whether AMBER is one of the comma-separated pieces or one of the whitespace-separated words.
+bool hasAmberToken(const std::string& conventions) {
+    std::size_t start = 0;
+    for (std::size_t comma = 0; comma != std::string::npos; start = comma + 1) {
+        comma = conventions.find(',', start);
+        const std::size_t length = comma == std::string::npos ? std::string::npos : comma - start;
+        if (conventions.compare(start, length, "AMBER") == 0) {
+            return true;
+        }
+    }
+    for (const detail::U32& word : detail::split(detail::toU32(conventions))) {
+        if (word == U"AMBER") {
+            return true;
+        }
+    }
+    return false;
+}
+
+// A variable's scale factor: applied unless it is within 1e-9 (relative) of 1.
+struct Scale {
+    double factor = 1.0;
+    bool single = false;  // a float32 factor
+    bool applies = false;
+};
+
+Scale scaleOf(const Attribute& attribute) {
+    Scale s;
+    s.factor = attribute.number(0);
+    s.single = attribute.type == NcFloat;
+    const bool close = std::isfinite(s.factor) &&
+                       std::fabs(s.factor - 1.0) <= 1e-9 * std::max(std::fabs(s.factor), 1.0);
+    s.applies = !close;
+    return s;
+}
+
+// A value of `type` times the scale factor in NumPy's promoted type, exactly as a double: float32
+// for float32 / int8 / int16 data with a float32 factor, else float64.
+double scaled(double raw, std::uint32_t type, const Scale& scale) {
+    if (!scale.applies) {
+        return raw;
+    }
+    if (scale.single && (type == NcFloat || type == NcShort || type == NcByte || type == NcChar)) {
+        const float product = static_cast<float>(raw) * static_cast<float>(scale.factor);
+        return static_cast<double>(product);
+    }
+    return raw * scale.factor;
+}
+
+constexpr std::array<std::string_view, 6> kScaledVariables = {
+    "time", "cell_lengths", "cell_angles", "coordinates", "velocities", "forces"};
+
+class NetcdfTrajectory : public detail::FileTrajectory {
+public:
+    NetcdfTrajectory(const std::filesystem::path& path, std::optional<double> dt,
+                     std::size_t expectedAtoms)
+        : m_file(path) {
+        const std::string name = detail::pathText(path);
+        readContainer(name);
+        checkConventions(name);
+        if (m_header.version != 2) {
+            typeError("NCDF trajectory " + name +
+                      " does not conform to AMBER specifications, as detailed in "
+                      "https://ambermd.org/netcdf/nctraj.xhtml (NetCDF file does not use 64 bit "
+                      "offsets [version_byte = 2])");
+        }
+        const Dimension* spatial = m_header.dimension("spatial");
+        if (spatial == nullptr) {
+            throw ValueError("NCDF trajectory does not contain spatial dimension");
+        }
+        if (spatial->length != 3) {
+            typeError("Incorrect spatial value for NCDF trajectory file");
+        }
+        // (a missing program / programVersion attribute is only a warning)
+        const Dimension* atom = m_header.dimension("atom");
+        if (atom == nullptr) {
+            throw ValueError("NCDF trajectory " + name + " does not contain atom information");
+        }
+        m_atoms = static_cast<std::size_t>(atom->length);
+        if (expectedAtoms != 0 && expectedAtoms != m_atoms) {
+            throw ValueError("Supplied n_atoms (" + std::to_string(expectedAtoms) +
+                             ") != natom from ncdf (" +
+                             (m_atoms == 0 ? std::string("None") : std::to_string(m_atoms)) +
+                             "). Note: n_atoms can be None and then the ncdf value is used!");
+        }
+        const Dimension* frame = m_header.dimension("frame");
+        const Variable* coordinates = m_header.variable("coordinates");
+        if (frame == nullptr || (frame->length == 0 && coordinates == nullptr)) {
+            throw ValueError("NCDF trajectory " + name + " does not contain frame information");
+        }
+        if (frame->length != 0) {
+            m_frameCount = static_cast<std::int64_t>(frame->length);
+        } else {
+            m_frameCount =
+                coordinates->shape.empty() ? 0 : static_cast<std::int64_t>(coordinates->shape[0]);
+        }
+        // (the title attribute is MDAnalysis' remarks, which MDATK does not use)
+        m_time = m_header.variable("time");
+        if (m_time != nullptr) {
+            checkUnits(*m_time, "picosecond");
+        }
+        if (coordinates == nullptr) {
+            throw ReaderError("KeyError", "'coordinates'");
+        }
+        m_coordinates = coordinates;
+        checkUnits(*m_coordinates, "angstrom");
+        readScaleFactors();
+        if (const Variable* velocities = m_header.variable("velocities")) {
+            checkUnits(*velocities, "angstrom/picosecond");
+        }
+        if (const Variable* forces = m_header.variable("forces")) {
+            checkUnits(*forces, "kilocalorie/mole/angstrom");
+        }
+        m_lengths = m_header.variable("cell_lengths");
+        if (m_lengths != nullptr) {
+            checkUnits(*m_lengths, "angstrom");
+            m_angles = m_header.variable("cell_angles");
+            if (m_angles == nullptr) {
+                throw ReaderError("KeyError", "'cell_angles'");
+            }
+            checkUnits(*m_angles, "degree");
+        }
+        m_dt = dt ? *dt : fileDt();
+        if (m_frameCount == 0) {
+            throw ReaderError("IndexError", "frame index must be 0 <= frame < 0");
+        }
+        seek(0);
+    }
+
+    bool storedTime(std::int64_t) const override { return m_time != nullptr; }
+
+protected:
+    void readFrame(std::int64_t index, core::Frame& frame) override {
+        const auto k = static_cast<std::uint64_t>(index);
+        const std::vector<double> xyz = row(*m_coordinates, k);
+        if (xyz.size() != 3 * m_atoms) {
+            throw ValueError("could not broadcast input array from shape (" +
+                             std::to_string(xyz.size()) + ",) into shape (" +
+                             std::to_string(m_atoms) + ",3)");
+        }
+        frame.positions.resize(xyz.size());
+        for (std::size_t i = 0; i < xyz.size(); ++i) {
+            frame.positions[i] = static_cast<float>(xyz[i]);
+        }
+        if (m_time != nullptr) {
+            const std::vector<double> t = row(*m_time, k);
+            if (t.size() != 1) {
+                typeError("only length-1 arrays can be converted to Python scalars");
+            }
+            frame.time = t.front();
+        } else {
+            frame.time = static_cast<double>(index) * m_dt;
+        }
+        if (m_lengths != nullptr) {
+            const std::array<double, 3> lengths = triple(*m_lengths, k);
+            const std::array<double, 3> angles = triple(*m_angles, k);
+            std::array<float, 6> box{};
+            for (std::size_t i = 0; i < 3; ++i) {
+                box[i] = static_cast<float>(lengths[i]);
+                box[i + 3] = static_cast<float>(angles[i]);
+            }
+            if (box[0] == 0.0f && box[1] == 0.0f && box[2] == 0.0f) {
+                // MDAnalysis sees no box and then fails converting its units
+                typeError("'NoneType' object is not subscriptable");
+            }
+            frame.box = box;
+        }
+    }
+
+private:
+    void readContainer(const std::string& name) {
+        if (m_file.size() == 0) {
+            throw ValueError("cannot mmap an empty file");
+        }
+        const std::string magic = m_file.read(0, 4);
+        if (magic.substr(0, 3) != "CDF") {
+            typeError("Error: " + name + " is not a valid NetCDF 3 file");
+        }
+        if (magic.size() == 4 && (magic[3] == 3 || magic[3] == 5)) {
+            throw ReaderError("IndexError", "list index out of range");
+        }
+        m_header = HeaderReader(m_file).read();
+        if (m_header.records == 0xFFFFFFFFu) {
+            // streaming: no usable records
+            m_header.records = 0;
+            for (Variable& v : m_header.variables) {
+                if (v.record) {
+                    v.shape[0] = 0;
+                }
+            }
+        }
+        bool truncated = m_header.records > 0 &&
+                         m_header.recordBegin + m_header.records * m_header.recordStride >
+                             m_file.size();
+        for (const Variable& v : m_header.variables) {
+            if (!v.record) {
+                const std::uint64_t entries = v.shape.empty() ? 1 : v.shape[0];
+                truncated = truncated || v.begin + entries * v.itemBytes > m_file.size();
+            }
+        }
+        if (truncated) {
+            throw ValueError(
+                "When changing to a larger dtype, its size must be a divisor of the total size "
+                "in bytes of the last axis of the array.");
+        }
+    }
+
+    void checkConventions(const std::string& name) {
+        const Attribute* conventions = findAttribute(m_header.attributes, "Conventions");
+        if (conventions == nullptr || !conventions->isText()) {
+            throw ValueError("NCDF trajectory " + name + " is missing Conventions");
+        }
+        if (!hasAmberToken(decodedText(*conventions))) {
+            typeError("NCDF trajectory " + name +
+                      " does not conform to AMBER specifications, "
+                      "http://ambermd.org/netcdf/nctraj.xhtml ('AMBER' must be one of the token "
+                      "in attribute Conventions)");
+        }
+        const Attribute* version = findAttribute(m_header.attributes, "ConventionVersion");
+        if (version == nullptr || !version->isText()) {
+            throw ValueError("NCDF trajectory " + name + " is missing ConventionVersion");
+        }
+        // a version other than 1.0 is only a warning, but the text must decode
+        decodedText(*version);
+    }
+
+    void readScaleFactors() {
+        for (const Variable& v : m_header.variables) {
+            const Attribute* factor = findAttribute(v.attributes, "scale_factor");
+            if (factor == nullptr) {
+                continue;
+            }
+            if (std::find(kScaledVariables.begin(), kScaledVariables.end(), v.name) ==
+                kScaledVariables.end()) {
+                throw ReaderError("NotImplementedError",
+                                  "scale_factors for variable " + v.name + " are not implemented");
+            }
+            if ((factor->type != NcFloat && factor->type != NcDouble) || factor->count != 1) {
+                typeError(valueText(*factor) + " is not a float");
+            }
+            m_scales[v.name] = scaleOf(*factor);
+        }
+    }
+
+    Scale scaleFor(const Variable& v) const {
+        const auto it = m_scales.find(v.name);
+        return it == m_scales.end() ? Scale{} : it->second;
+    }
+
+    std::uint64_t entryOffset(const Variable& v, std::uint64_t index) const {
+        return v.begin + index * (v.record ? m_header.recordStride : v.itemBytes);
+    }
+
+    // Entry `index` along the first axis of `v`, scaled, each value exactly as a double.
+    std::vector<double> row(const Variable& v, std::uint64_t index) {
+        if (v.shape.empty()) {
+            throw ReaderError("IndexError", "invalid index to scalar variable.");
+        }
+        if (index >= v.shape[0]) {
+            throw ReaderError("IndexError", "index " + std::to_string(index) +
+                                                " is out of bounds for axis 0 with size " +
+                                                std::to_string(v.shape[0]));
+        }
+        const std::string bytes =
+            m_file.read(entryOffset(v, index), static_cast<std::size_t>(v.itemBytes));
+        const std::size_t size = typeSize(v.type);
+        const Scale scale = scaleFor(v);
+        std::vector<double> out(bytes.size() / size);
+        for (std::size_t i = 0; i < out.size(); ++i) {
+            out[i] = scaled(loadValue(bytes.data() + i * size, v.type), v.type, scale);
+        }
+        return out;
+    }
+
+    // Three values of a cell variable at `index`; a one-dimensional variable gives one value,
+    // repeated.
+    std::array<double, 3> triple(const Variable& v, std::uint64_t index) {
+        const std::vector<double> values = row(v, index);
+        if (values.size() == 1) {
+            return {values[0], values[0], values[0]};
+        }
+        if (values.size() != 3) {
+            throw ValueError("could not broadcast input array from shape (" +
+                             std::to_string(values.size()) + ",) into shape (3,)");
+        }
+        return {values[0], values[1], values[2]};
+    }
+
+    // time[1] - time[0] of the unscaled values, in the variable's own type; 1.0 without a time
+    // variable or with one frame.
+    double fileDt() {
+        if (m_time == nullptr || m_frameCount < 2 || m_time->shape.empty() ||
+            m_time->shape[0] < 2 || m_time->itemBytes != typeSize(m_time->type)) {
+            return 1.0;
+        }
+        const std::size_t size = typeSize(m_time->type);
+        const double t0 = loadValue(m_file.read(entryOffset(*m_time, 0), size).data(), m_time->type);
+        const double t1 = loadValue(m_file.read(entryOffset(*m_time, 1), size).data(), m_time->type);
+        if (m_time->type == NcFloat) {
+            return static_cast<double>(static_cast<float>(t1) - static_cast<float>(t0));
+        }
+        if (m_time->type == NcDouble) {
+            return t1 - t0;
+        }
+        // integers: exact in a double, the difference wraps as NumPy's does
+        const auto difference = static_cast<std::int64_t>(t1) - static_cast<std::int64_t>(t0);
+        switch (m_time->type) {
+        case NcInt:
+            return static_cast<double>(static_cast<std::int32_t>(difference));
+        case NcShort:
+            return static_cast<double>(static_cast<std::int16_t>(difference));
+        default:
+            return static_cast<double>(static_cast<std::int8_t>(difference));
+        }
+    }
+
+    detail::BinaryFile m_file;
+    Header m_header;
+    std::size_t m_atoms = 0;
+    const Variable* m_coordinates = nullptr;
+    const Variable* m_time = nullptr;
+    const Variable* m_lengths = nullptr;
+    const Variable* m_angles = nullptr;
+    std::map<std::string, Scale> m_scales;
+};
 
 // ---------------------------------------------------------------- NCDFWriter (scipy backend)
 
@@ -290,8 +741,7 @@ void putTextAttribute(std::string& out, std::string_view name, std::string_view 
 std::unique_ptr<core::Trajectory> openNetcdfTrajectory(const std::filesystem::path& path,
                                                        std::optional<double> dt,
                                                        std::size_t expectedAtoms) {
-    (void)path; (void)dt; (void)expectedAtoms;
-    throw std::logic_error("clean room: NetCDF reader not implemented");
+    return std::make_unique<NetcdfTrajectory>(path, dt, expectedAtoms);
 }
 
 void writeNetcdfTrajectory(const std::filesystem::path& path,
