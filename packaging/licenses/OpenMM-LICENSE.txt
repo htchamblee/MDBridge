@@ -9,6 +9,8 @@ for Medical Research, grant U54 GM072970. See https://simtk.org.
 
 Portions copyright (c) 2008-2019 Stanford University and the Authors.
 
+
+The OpenMM API, the Reference Platform, and the CPU platform may be used under
 the terms of the MIT License:
 
 Permission is hereby granted, free of charge, to any person obtaining
