@@ -1,0 +1,382 @@
+comp_id	atom_id	alt_atom_id	element	name	type
+ACE	C	C	C	ACETYL GROUP	NON-POLYMER
+ACE	CH3	CH3	C	ACETYL GROUP	NON-POLYMER
+ACE	H	H	H	ACETYL GROUP	NON-POLYMER
+ACE	H1	1H	H	ACETYL GROUP	NON-POLYMER
+ACE	H2	2H	H	ACETYL GROUP	NON-POLYMER
+ACE	H3	3H	H	ACETYL GROUP	NON-POLYMER
+ACE	O	O	O	ACETYL GROUP	NON-POLYMER
+ASH	C02	C02	C	3-chloro-N-(4-morpholin-4-ylphenyl)-6-pyridin-3-ylimidazo[1,2-a]pyrazin-8-amine	NON-POLYMER
+ASH	C03	C03	C	3-chloro-N-(4-morpholin-4-ylphenyl)-6-pyridin-3-ylimidazo[1,2-a]pyrazin-8-amine	NON-POLYMER
+ASH	C05	C05	C	3-chloro-N-(4-morpholin-4-ylphenyl)-6-pyridin-3-ylimidazo[1,2-a]pyrazin-8-amine	NON-POLYMER
+ASH	C07	C07	C	3-chloro-N-(4-morpholin-4-ylphenyl)-6-pyridin-3-ylimidazo[1,2-a]pyrazin-8-amine	NON-POLYMER
+ASH	C08	C08	C	3-chloro-N-(4-morpholin-4-ylphenyl)-6-pyridin-3-ylimidazo[1,2-a]pyrazin-8-amine	NON-POLYMER
+ASH	C09	C09	C	3-chloro-N-(4-morpholin-4-ylphenyl)-6-pyridin-3-ylimidazo[1,2-a]pyrazin-8-amine	NON-POLYMER
+ASH	C10	C10	C	3-chloro-N-(4-morpholin-4-ylphenyl)-6-pyridin-3-ylimidazo[1,2-a]pyrazin-8-amine	NON-POLYMER
+ASH	C11	C11	C	3-chloro-N-(4-morpholin-4-ylphenyl)-6-pyridin-3-ylimidazo[1,2-a]pyrazin-8-amine	NON-POLYMER
+ASH	C12	C12	C	3-chloro-N-(4-morpholin-4-ylphenyl)-6-pyridin-3-ylimidazo[1,2-a]pyrazin-8-amine	NON-POLYMER
+ASH	C14	C14	C	3-chloro-N-(4-morpholin-4-ylphenyl)-6-pyridin-3-ylimidazo[1,2-a]pyrazin-8-amine	NON-POLYMER
+ASH	C16	C16	C	3-chloro-N-(4-morpholin-4-ylphenyl)-6-pyridin-3-ylimidazo[1,2-a]pyrazin-8-amine	NON-POLYMER
+ASH	C18	C18	C	3-chloro-N-(4-morpholin-4-ylphenyl)-6-pyridin-3-ylimidazo[1,2-a]pyrazin-8-amine	NON-POLYMER
+ASH	C19	C19	C	3-chloro-N-(4-morpholin-4-ylphenyl)-6-pyridin-3-ylimidazo[1,2-a]pyrazin-8-amine	NON-POLYMER
+ASH	C20	C20	C	3-chloro-N-(4-morpholin-4-ylphenyl)-6-pyridin-3-ylimidazo[1,2-a]pyrazin-8-amine	NON-POLYMER
+ASH	C21	C21	C	3-chloro-N-(4-morpholin-4-ylphenyl)-6-pyridin-3-ylimidazo[1,2-a]pyrazin-8-amine	NON-POLYMER
+ASH	C23	C23	C	3-chloro-N-(4-morpholin-4-ylphenyl)-6-pyridin-3-ylimidazo[1,2-a]pyrazin-8-amine	NON-POLYMER
+ASH	C24	C24	C	3-chloro-N-(4-morpholin-4-ylphenyl)-6-pyridin-3-ylimidazo[1,2-a]pyrazin-8-amine	NON-POLYMER
+ASH	C26	C26	C	3-chloro-N-(4-morpholin-4-ylphenyl)-6-pyridin-3-ylimidazo[1,2-a]pyrazin-8-amine	NON-POLYMER
+ASH	C27	C27	C	3-chloro-N-(4-morpholin-4-ylphenyl)-6-pyridin-3-ylimidazo[1,2-a]pyrazin-8-amine	NON-POLYMER
+ASH	C28	C28	C	3-chloro-N-(4-morpholin-4-ylphenyl)-6-pyridin-3-ylimidazo[1,2-a]pyrazin-8-amine	NON-POLYMER
+ASH	C29	C29	C	3-chloro-N-(4-morpholin-4-ylphenyl)-6-pyridin-3-ylimidazo[1,2-a]pyrazin-8-amine	NON-POLYMER
+ASH	CL	CL	CL	3-chloro-N-(4-morpholin-4-ylphenyl)-6-pyridin-3-ylimidazo[1,2-a]pyrazin-8-amine	NON-POLYMER
+ASH	H03	H03	H	3-chloro-N-(4-morpholin-4-ylphenyl)-6-pyridin-3-ylimidazo[1,2-a]pyrazin-8-amine	NON-POLYMER
+ASH	H07	H07	H	3-chloro-N-(4-morpholin-4-ylphenyl)-6-pyridin-3-ylimidazo[1,2-a]pyrazin-8-amine	NON-POLYMER
+ASH	H10	H10	H	3-chloro-N-(4-morpholin-4-ylphenyl)-6-pyridin-3-ylimidazo[1,2-a]pyrazin-8-amine	NON-POLYMER
+ASH	H11	H11	H	3-chloro-N-(4-morpholin-4-ylphenyl)-6-pyridin-3-ylimidazo[1,2-a]pyrazin-8-amine	NON-POLYMER
+ASH	H12	H12	H	3-chloro-N-(4-morpholin-4-ylphenyl)-6-pyridin-3-ylimidazo[1,2-a]pyrazin-8-amine	NON-POLYMER
+ASH	H14	H14	H	3-chloro-N-(4-morpholin-4-ylphenyl)-6-pyridin-3-ylimidazo[1,2-a]pyrazin-8-amine	NON-POLYMER
+ASH	H19	H19	H	3-chloro-N-(4-morpholin-4-ylphenyl)-6-pyridin-3-ylimidazo[1,2-a]pyrazin-8-amine	NON-POLYMER
+ASH	H20	H20	H	3-chloro-N-(4-morpholin-4-ylphenyl)-6-pyridin-3-ylimidazo[1,2-a]pyrazin-8-amine	NON-POLYMER
+ASH	H23	H23	H	3-chloro-N-(4-morpholin-4-ylphenyl)-6-pyridin-3-ylimidazo[1,2-a]pyrazin-8-amine	NON-POLYMER
+ASH	H23A	H23A	H	3-chloro-N-(4-morpholin-4-ylphenyl)-6-pyridin-3-ylimidazo[1,2-a]pyrazin-8-amine	NON-POLYMER
+ASH	H24	H24	H	3-chloro-N-(4-morpholin-4-ylphenyl)-6-pyridin-3-ylimidazo[1,2-a]pyrazin-8-amine	NON-POLYMER
+ASH	H24A	H24A	H	3-chloro-N-(4-morpholin-4-ylphenyl)-6-pyridin-3-ylimidazo[1,2-a]pyrazin-8-amine	NON-POLYMER
+ASH	H26	H26	H	3-chloro-N-(4-morpholin-4-ylphenyl)-6-pyridin-3-ylimidazo[1,2-a]pyrazin-8-amine	NON-POLYMER
+ASH	H26A	H26A	H	3-chloro-N-(4-morpholin-4-ylphenyl)-6-pyridin-3-ylimidazo[1,2-a]pyrazin-8-amine	NON-POLYMER
+ASH	H27	H27	H	3-chloro-N-(4-morpholin-4-ylphenyl)-6-pyridin-3-ylimidazo[1,2-a]pyrazin-8-amine	NON-POLYMER
+ASH	H27A	H27A	H	3-chloro-N-(4-morpholin-4-ylphenyl)-6-pyridin-3-ylimidazo[1,2-a]pyrazin-8-amine	NON-POLYMER
+ASH	H28	H28	H	3-chloro-N-(4-morpholin-4-ylphenyl)-6-pyridin-3-ylimidazo[1,2-a]pyrazin-8-amine	NON-POLYMER
+ASH	H29	H29	H	3-chloro-N-(4-morpholin-4-ylphenyl)-6-pyridin-3-ylimidazo[1,2-a]pyrazin-8-amine	NON-POLYMER
+ASH	HN17	HN17	H	3-chloro-N-(4-morpholin-4-ylphenyl)-6-pyridin-3-ylimidazo[1,2-a]pyrazin-8-amine	NON-POLYMER
+ASH	N04	N04	N	3-chloro-N-(4-morpholin-4-ylphenyl)-6-pyridin-3-ylimidazo[1,2-a]pyrazin-8-amine	NON-POLYMER
+ASH	N06	N06	N	3-chloro-N-(4-morpholin-4-ylphenyl)-6-pyridin-3-ylimidazo[1,2-a]pyrazin-8-amine	NON-POLYMER
+ASH	N13	N13	N	3-chloro-N-(4-morpholin-4-ylphenyl)-6-pyridin-3-ylimidazo[1,2-a]pyrazin-8-amine	NON-POLYMER
+ASH	N15	N15	N	3-chloro-N-(4-morpholin-4-ylphenyl)-6-pyridin-3-ylimidazo[1,2-a]pyrazin-8-amine	NON-POLYMER
+ASH	N17	N17	N	3-chloro-N-(4-morpholin-4-ylphenyl)-6-pyridin-3-ylimidazo[1,2-a]pyrazin-8-amine	NON-POLYMER
+ASH	N22	N22	N	3-chloro-N-(4-morpholin-4-ylphenyl)-6-pyridin-3-ylimidazo[1,2-a]pyrazin-8-amine	NON-POLYMER
+ASH	O25	O25	O	3-chloro-N-(4-morpholin-4-ylphenyl)-6-pyridin-3-ylimidazo[1,2-a]pyrazin-8-amine	NON-POLYMER
+CYX	C1	C1	C	(3-FORMYL-BUT-3-ENYL)-PHOSPHONIC ACID	NON-POLYMER
+CYX	C2	C2	C	(3-FORMYL-BUT-3-ENYL)-PHOSPHONIC ACID	NON-POLYMER
+CYX	C4	C4	C	(3-FORMYL-BUT-3-ENYL)-PHOSPHONIC ACID	NON-POLYMER
+CYX	C5	C5	C	(3-FORMYL-BUT-3-ENYL)-PHOSPHONIC ACID	NON-POLYMER
+CYX	C6	C6	C	(3-FORMYL-BUT-3-ENYL)-PHOSPHONIC ACID	NON-POLYMER
+CYX	H11	1H1	H	(3-FORMYL-BUT-3-ENYL)-PHOSPHONIC ACID	NON-POLYMER
+CYX	H41	1H4	H	(3-FORMYL-BUT-3-ENYL)-PHOSPHONIC ACID	NON-POLYMER
+CYX	H42	2H4	H	(3-FORMYL-BUT-3-ENYL)-PHOSPHONIC ACID	NON-POLYMER
+CYX	H51	1H5	H	(3-FORMYL-BUT-3-ENYL)-PHOSPHONIC ACID	NON-POLYMER
+CYX	H52	2H5	H	(3-FORMYL-BUT-3-ENYL)-PHOSPHONIC ACID	NON-POLYMER
+CYX	H61	1H6	H	(3-FORMYL-BUT-3-ENYL)-PHOSPHONIC ACID	NON-POLYMER
+CYX	H62	2H6	H	(3-FORMYL-BUT-3-ENYL)-PHOSPHONIC ACID	NON-POLYMER
+CYX	H81	1H8	H	(3-FORMYL-BUT-3-ENYL)-PHOSPHONIC ACID	NON-POLYMER
+CYX	H91	1H9	H	(3-FORMYL-BUT-3-ENYL)-PHOSPHONIC ACID	NON-POLYMER
+CYX	O10	O10	O	(3-FORMYL-BUT-3-ENYL)-PHOSPHONIC ACID	NON-POLYMER
+CYX	O3	O3	O	(3-FORMYL-BUT-3-ENYL)-PHOSPHONIC ACID	NON-POLYMER
+CYX	O8	O8	O	(3-FORMYL-BUT-3-ENYL)-PHOSPHONIC ACID	NON-POLYMER
+CYX	O9	O9	O	(3-FORMYL-BUT-3-ENYL)-PHOSPHONIC ACID	NON-POLYMER
+CYX	P7	P7	P	(3-FORMYL-BUT-3-ENYL)-PHOSPHONIC ACID	NON-POLYMER
+HID	CAD	CAD	C	(5-hydroxy-1H-indol-3-yl)acetic acid	NON-POLYMER
+HID	CAE	CAE	C	(5-hydroxy-1H-indol-3-yl)acetic acid	NON-POLYMER
+HID	CAF	CAF	C	(5-hydroxy-1H-indol-3-yl)acetic acid	NON-POLYMER
+HID	CAG	CAG	C	(5-hydroxy-1H-indol-3-yl)acetic acid	NON-POLYMER
+HID	CAH	CAH	C	(5-hydroxy-1H-indol-3-yl)acetic acid	NON-POLYMER
+HID	CAJ	CAJ	C	(5-hydroxy-1H-indol-3-yl)acetic acid	NON-POLYMER
+HID	CAK	CAK	C	(5-hydroxy-1H-indol-3-yl)acetic acid	NON-POLYMER
+HID	CAL	CAL	C	(5-hydroxy-1H-indol-3-yl)acetic acid	NON-POLYMER
+HID	CAM	CAM	C	(5-hydroxy-1H-indol-3-yl)acetic acid	NON-POLYMER
+HID	CAN	CAN	C	(5-hydroxy-1H-indol-3-yl)acetic acid	NON-POLYMER
+HID	HAD	HAD	H	(5-hydroxy-1H-indol-3-yl)acetic acid	NON-POLYMER
+HID	HAE	HAE	H	(5-hydroxy-1H-indol-3-yl)acetic acid	NON-POLYMER
+HID	HAF	HAF	H	(5-hydroxy-1H-indol-3-yl)acetic acid	NON-POLYMER
+HID	HAG	HAG	H	(5-hydroxy-1H-indol-3-yl)acetic acid	NON-POLYMER
+HID	HAH	HAH	H	(5-hydroxy-1H-indol-3-yl)acetic acid	NON-POLYMER
+HID	HAHA	HAHA	H	(5-hydroxy-1H-indol-3-yl)acetic acid	NON-POLYMER
+HID	HNAI	HNAI	H	(5-hydroxy-1H-indol-3-yl)acetic acid	NON-POLYMER
+HID	HOAB	HOAB	H	(5-hydroxy-1H-indol-3-yl)acetic acid	NON-POLYMER
+HID	HOAC	HOAC	H	(5-hydroxy-1H-indol-3-yl)acetic acid	NON-POLYMER
+HID	NAI	NAI	N	(5-hydroxy-1H-indol-3-yl)acetic acid	NON-POLYMER
+HID	OAA	OAA	O	(5-hydroxy-1H-indol-3-yl)acetic acid	NON-POLYMER
+HID	OAB	OAB	O	(5-hydroxy-1H-indol-3-yl)acetic acid	NON-POLYMER
+HID	OAC	OAC	O	(5-hydroxy-1H-indol-3-yl)acetic acid	NON-POLYMER
+HIH	C1	C1	C	ethyl 1-(2-piperidin-4-ylethyl)-5-pyridin-4-yl-indole-2-carboxylate	non-polymer
+HIH	C10	C2	C	ethyl 1-(2-piperidin-4-ylethyl)-5-pyridin-4-yl-indole-2-carboxylate	non-polymer
+HIH	C11	C3	C	ethyl 1-(2-piperidin-4-ylethyl)-5-pyridin-4-yl-indole-2-carboxylate	non-polymer
+HIH	C12	C4	C	ethyl 1-(2-piperidin-4-ylethyl)-5-pyridin-4-yl-indole-2-carboxylate	non-polymer
+HIH	C13	C5	C	ethyl 1-(2-piperidin-4-ylethyl)-5-pyridin-4-yl-indole-2-carboxylate	non-polymer
+HIH	C14	C6	C	ethyl 1-(2-piperidin-4-ylethyl)-5-pyridin-4-yl-indole-2-carboxylate	non-polymer
+HIH	C15	C7	C	ethyl 1-(2-piperidin-4-ylethyl)-5-pyridin-4-yl-indole-2-carboxylate	non-polymer
+HIH	C16	C8	C	ethyl 1-(2-piperidin-4-ylethyl)-5-pyridin-4-yl-indole-2-carboxylate	non-polymer
+HIH	C17	C9	C	ethyl 1-(2-piperidin-4-ylethyl)-5-pyridin-4-yl-indole-2-carboxylate	non-polymer
+HIH	C18	C10	C	ethyl 1-(2-piperidin-4-ylethyl)-5-pyridin-4-yl-indole-2-carboxylate	non-polymer
+HIH	C19	C11	C	ethyl 1-(2-piperidin-4-ylethyl)-5-pyridin-4-yl-indole-2-carboxylate	non-polymer
+HIH	C2	C12	C	ethyl 1-(2-piperidin-4-ylethyl)-5-pyridin-4-yl-indole-2-carboxylate	non-polymer
+HIH	C20	C13	C	ethyl 1-(2-piperidin-4-ylethyl)-5-pyridin-4-yl-indole-2-carboxylate	non-polymer
+HIH	C21	C14	C	ethyl 1-(2-piperidin-4-ylethyl)-5-pyridin-4-yl-indole-2-carboxylate	non-polymer
+HIH	C22	C15	C	ethyl 1-(2-piperidin-4-ylethyl)-5-pyridin-4-yl-indole-2-carboxylate	non-polymer
+HIH	C23	C16	C	ethyl 1-(2-piperidin-4-ylethyl)-5-pyridin-4-yl-indole-2-carboxylate	non-polymer
+HIH	C3	C17	C	ethyl 1-(2-piperidin-4-ylethyl)-5-pyridin-4-yl-indole-2-carboxylate	non-polymer
+HIH	C4	C18	C	ethyl 1-(2-piperidin-4-ylethyl)-5-pyridin-4-yl-indole-2-carboxylate	non-polymer
+HIH	C5	C19	C	ethyl 1-(2-piperidin-4-ylethyl)-5-pyridin-4-yl-indole-2-carboxylate	non-polymer
+HIH	C6	C20	C	ethyl 1-(2-piperidin-4-ylethyl)-5-pyridin-4-yl-indole-2-carboxylate	non-polymer
+HIH	C7	C21	C	ethyl 1-(2-piperidin-4-ylethyl)-5-pyridin-4-yl-indole-2-carboxylate	non-polymer
+HIH	C8	C22	C	ethyl 1-(2-piperidin-4-ylethyl)-5-pyridin-4-yl-indole-2-carboxylate	non-polymer
+HIH	C9	C23	C	ethyl 1-(2-piperidin-4-ylethyl)-5-pyridin-4-yl-indole-2-carboxylate	non-polymer
+HIH	H1	H1	H	ethyl 1-(2-piperidin-4-ylethyl)-5-pyridin-4-yl-indole-2-carboxylate	non-polymer
+HIH	H10	H6	H	ethyl 1-(2-piperidin-4-ylethyl)-5-pyridin-4-yl-indole-2-carboxylate	non-polymer
+HIH	H11	H7	H	ethyl 1-(2-piperidin-4-ylethyl)-5-pyridin-4-yl-indole-2-carboxylate	non-polymer
+HIH	H12	H8	H	ethyl 1-(2-piperidin-4-ylethyl)-5-pyridin-4-yl-indole-2-carboxylate	non-polymer
+HIH	H13	H9	H	ethyl 1-(2-piperidin-4-ylethyl)-5-pyridin-4-yl-indole-2-carboxylate	non-polymer
+HIH	H14	H10	H	ethyl 1-(2-piperidin-4-ylethyl)-5-pyridin-4-yl-indole-2-carboxylate	non-polymer
+HIH	H15	H11	H	ethyl 1-(2-piperidin-4-ylethyl)-5-pyridin-4-yl-indole-2-carboxylate	non-polymer
+HIH	H16	H13	H	ethyl 1-(2-piperidin-4-ylethyl)-5-pyridin-4-yl-indole-2-carboxylate	non-polymer
+HIH	H17	H12	H	ethyl 1-(2-piperidin-4-ylethyl)-5-pyridin-4-yl-indole-2-carboxylate	non-polymer
+HIH	H18	H14	H	ethyl 1-(2-piperidin-4-ylethyl)-5-pyridin-4-yl-indole-2-carboxylate	non-polymer
+HIH	H19	H17	H	ethyl 1-(2-piperidin-4-ylethyl)-5-pyridin-4-yl-indole-2-carboxylate	non-polymer
+HIH	H2	H2	H	ethyl 1-(2-piperidin-4-ylethyl)-5-pyridin-4-yl-indole-2-carboxylate	non-polymer
+HIH	H20	H18	H	ethyl 1-(2-piperidin-4-ylethyl)-5-pyridin-4-yl-indole-2-carboxylate	non-polymer
+HIH	H21	H20	H	ethyl 1-(2-piperidin-4-ylethyl)-5-pyridin-4-yl-indole-2-carboxylate	non-polymer
+HIH	H22	H19	H	ethyl 1-(2-piperidin-4-ylethyl)-5-pyridin-4-yl-indole-2-carboxylate	non-polymer
+HIH	H24	H21	H	ethyl 1-(2-piperidin-4-ylethyl)-5-pyridin-4-yl-indole-2-carboxylate	non-polymer
+HIH	H25	H22	H	ethyl 1-(2-piperidin-4-ylethyl)-5-pyridin-4-yl-indole-2-carboxylate	non-polymer
+HIH	H26	H23	H	ethyl 1-(2-piperidin-4-ylethyl)-5-pyridin-4-yl-indole-2-carboxylate	non-polymer
+HIH	H27	H24	H	ethyl 1-(2-piperidin-4-ylethyl)-5-pyridin-4-yl-indole-2-carboxylate	non-polymer
+HIH	H28	H27	H	ethyl 1-(2-piperidin-4-ylethyl)-5-pyridin-4-yl-indole-2-carboxylate	non-polymer
+HIH	H3	H3	H	ethyl 1-(2-piperidin-4-ylethyl)-5-pyridin-4-yl-indole-2-carboxylate	non-polymer
+HIH	H4	H16	H	ethyl 1-(2-piperidin-4-ylethyl)-5-pyridin-4-yl-indole-2-carboxylate	non-polymer
+HIH	H5	H15	H	ethyl 1-(2-piperidin-4-ylethyl)-5-pyridin-4-yl-indole-2-carboxylate	non-polymer
+HIH	H6	H25	H	ethyl 1-(2-piperidin-4-ylethyl)-5-pyridin-4-yl-indole-2-carboxylate	non-polymer
+HIH	H7	H26	H	ethyl 1-(2-piperidin-4-ylethyl)-5-pyridin-4-yl-indole-2-carboxylate	non-polymer
+HIH	H8	H4	H	ethyl 1-(2-piperidin-4-ylethyl)-5-pyridin-4-yl-indole-2-carboxylate	non-polymer
+HIH	H9	H5	H	ethyl 1-(2-piperidin-4-ylethyl)-5-pyridin-4-yl-indole-2-carboxylate	non-polymer
+HIH	N1	N1	N	ethyl 1-(2-piperidin-4-ylethyl)-5-pyridin-4-yl-indole-2-carboxylate	non-polymer
+HIH	N2	N2	N	ethyl 1-(2-piperidin-4-ylethyl)-5-pyridin-4-yl-indole-2-carboxylate	non-polymer
+HIH	N3	N3	N	ethyl 1-(2-piperidin-4-ylethyl)-5-pyridin-4-yl-indole-2-carboxylate	non-polymer
+HIH	O1	O1	O	ethyl 1-(2-piperidin-4-ylethyl)-5-pyridin-4-yl-indole-2-carboxylate	non-polymer
+HIH	O2	O2	O	ethyl 1-(2-piperidin-4-ylethyl)-5-pyridin-4-yl-indole-2-carboxylate	non-polymer
+HIP	C	C	C	ND1-PHOSPHONOHISTIDINE	L-PEPTIDE LINKING
+HIP	CA	CA	C	ND1-PHOSPHONOHISTIDINE	L-PEPTIDE LINKING
+HIP	CB	CB	C	ND1-PHOSPHONOHISTIDINE	L-PEPTIDE LINKING
+HIP	CD2	CD2	C	ND1-PHOSPHONOHISTIDINE	L-PEPTIDE LINKING
+HIP	CE1	CE1	C	ND1-PHOSPHONOHISTIDINE	L-PEPTIDE LINKING
+HIP	CG	CG	C	ND1-PHOSPHONOHISTIDINE	L-PEPTIDE LINKING
+HIP	H	1HN	H	ND1-PHOSPHONOHISTIDINE	L-PEPTIDE LINKING
+HIP	H2	2HN	H	ND1-PHOSPHONOHISTIDINE	L-PEPTIDE LINKING
+HIP	HA	HA	H	ND1-PHOSPHONOHISTIDINE	L-PEPTIDE LINKING
+HIP	HB2	1HB	H	ND1-PHOSPHONOHISTIDINE	L-PEPTIDE LINKING
+HIP	HB3	2HB	H	ND1-PHOSPHONOHISTIDINE	L-PEPTIDE LINKING
+HIP	HD2	HD2	H	ND1-PHOSPHONOHISTIDINE	L-PEPTIDE LINKING
+HIP	HE1	HE1	H	ND1-PHOSPHONOHISTIDINE	L-PEPTIDE LINKING
+HIP	HE2	HE2	H	ND1-PHOSPHONOHISTIDINE	L-PEPTIDE LINKING
+HIP	HOP2	2HOP	H	ND1-PHOSPHONOHISTIDINE	L-PEPTIDE LINKING
+HIP	HOP3	3HOP	H	ND1-PHOSPHONOHISTIDINE	L-PEPTIDE LINKING
+HIP	HXT	HXT	H	ND1-PHOSPHONOHISTIDINE	L-PEPTIDE LINKING
+HIP	N	N	N	ND1-PHOSPHONOHISTIDINE	L-PEPTIDE LINKING
+HIP	ND1	ND1	N	ND1-PHOSPHONOHISTIDINE	L-PEPTIDE LINKING
+HIP	NE2	NE2	N	ND1-PHOSPHONOHISTIDINE	L-PEPTIDE LINKING
+HIP	O	O	O	ND1-PHOSPHONOHISTIDINE	L-PEPTIDE LINKING
+HIP	O1P	O1P	O	ND1-PHOSPHONOHISTIDINE	L-PEPTIDE LINKING
+HIP	O2P	O2P	O	ND1-PHOSPHONOHISTIDINE	L-PEPTIDE LINKING
+HIP	O3P	O3P	O	ND1-PHOSPHONOHISTIDINE	L-PEPTIDE LINKING
+HIP	OXT	OXT	O	ND1-PHOSPHONOHISTIDINE	L-PEPTIDE LINKING
+HIP	P	P	P	ND1-PHOSPHONOHISTIDINE	L-PEPTIDE LINKING
+HSD	C1	C1	C	(1S,2S,3R,6R)-6-amino-4-(hydroxymethyl)cyclohex-4-ene-1,2,3-triol	NON-POLYMER
+HSD	C2	C2	C	(1S,2S,3R,6R)-6-amino-4-(hydroxymethyl)cyclohex-4-ene-1,2,3-triol	NON-POLYMER
+HSD	C3	C3	C	(1S,2S,3R,6R)-6-amino-4-(hydroxymethyl)cyclohex-4-ene-1,2,3-triol	NON-POLYMER
+HSD	C4	C4	C	(1S,2S,3R,6R)-6-amino-4-(hydroxymethyl)cyclohex-4-ene-1,2,3-triol	NON-POLYMER
+HSD	C5	C5	C	(1S,2S,3R,6R)-6-amino-4-(hydroxymethyl)cyclohex-4-ene-1,2,3-triol	NON-POLYMER
+HSD	C6	C6	C	(1S,2S,3R,6R)-6-amino-4-(hydroxymethyl)cyclohex-4-ene-1,2,3-triol	NON-POLYMER
+HSD	C7	C7	C	(1S,2S,3R,6R)-6-amino-4-(hydroxymethyl)cyclohex-4-ene-1,2,3-triol	NON-POLYMER
+HSD	H1	H1	H	(1S,2S,3R,6R)-6-amino-4-(hydroxymethyl)cyclohex-4-ene-1,2,3-triol	NON-POLYMER
+HSD	H10	H10	H	(1S,2S,3R,6R)-6-amino-4-(hydroxymethyl)cyclohex-4-ene-1,2,3-triol	NON-POLYMER
+HSD	H11	H11	H	(1S,2S,3R,6R)-6-amino-4-(hydroxymethyl)cyclohex-4-ene-1,2,3-triol	NON-POLYMER
+HSD	H12	H12	H	(1S,2S,3R,6R)-6-amino-4-(hydroxymethyl)cyclohex-4-ene-1,2,3-triol	NON-POLYMER
+HSD	H13	H13	H	(1S,2S,3R,6R)-6-amino-4-(hydroxymethyl)cyclohex-4-ene-1,2,3-triol	NON-POLYMER
+HSD	H2	H2	H	(1S,2S,3R,6R)-6-amino-4-(hydroxymethyl)cyclohex-4-ene-1,2,3-triol	NON-POLYMER
+HSD	H3	H3	H	(1S,2S,3R,6R)-6-amino-4-(hydroxymethyl)cyclohex-4-ene-1,2,3-triol	NON-POLYMER
+HSD	H4	H4	H	(1S,2S,3R,6R)-6-amino-4-(hydroxymethyl)cyclohex-4-ene-1,2,3-triol	NON-POLYMER
+HSD	H5	H5	H	(1S,2S,3R,6R)-6-amino-4-(hydroxymethyl)cyclohex-4-ene-1,2,3-triol	NON-POLYMER
+HSD	H6	H6	H	(1S,2S,3R,6R)-6-amino-4-(hydroxymethyl)cyclohex-4-ene-1,2,3-triol	NON-POLYMER
+HSD	H7	H7	H	(1S,2S,3R,6R)-6-amino-4-(hydroxymethyl)cyclohex-4-ene-1,2,3-triol	NON-POLYMER
+HSD	H8	H8	H	(1S,2S,3R,6R)-6-amino-4-(hydroxymethyl)cyclohex-4-ene-1,2,3-triol	NON-POLYMER
+HSD	H9	H9	H	(1S,2S,3R,6R)-6-amino-4-(hydroxymethyl)cyclohex-4-ene-1,2,3-triol	NON-POLYMER
+HSD	N1	N1	N	(1S,2S,3R,6R)-6-amino-4-(hydroxymethyl)cyclohex-4-ene-1,2,3-triol	NON-POLYMER
+HSD	O1	O1	O	(1S,2S,3R,6R)-6-amino-4-(hydroxymethyl)cyclohex-4-ene-1,2,3-triol	NON-POLYMER
+HSD	O2	O2	O	(1S,2S,3R,6R)-6-amino-4-(hydroxymethyl)cyclohex-4-ene-1,2,3-triol	NON-POLYMER
+HSD	O3	O3	O	(1S,2S,3R,6R)-6-amino-4-(hydroxymethyl)cyclohex-4-ene-1,2,3-triol	NON-POLYMER
+HSD	O4	O4	O	(1S,2S,3R,6R)-6-amino-4-(hydroxymethyl)cyclohex-4-ene-1,2,3-triol	NON-POLYMER
+HSE	C	C2	C	L-HOMOSERINE	L-PEPTIDE LINKING
+HSE	C3	C3	C	L-HOMOSERINE	L-PEPTIDE LINKING
+HSE	C4	C4	C	L-HOMOSERINE	L-PEPTIDE LINKING
+HSE	CA	C1	C	L-HOMOSERINE	L-PEPTIDE LINKING
+HSE	H	HN1	H	L-HOMOSERINE	L-PEPTIDE LINKING
+HSE	H2	HN2	H	L-HOMOSERINE	L-PEPTIDE LINKING
+HSE	H31	H31	H	L-HOMOSERINE	L-PEPTIDE LINKING
+HSE	H32	H32	H	L-HOMOSERINE	L-PEPTIDE LINKING
+HSE	H41	H41	H	L-HOMOSERINE	L-PEPTIDE LINKING
+HSE	H42	H42	H	L-HOMOSERINE	L-PEPTIDE LINKING
+HSE	HA	H1	H	L-HOMOSERINE	L-PEPTIDE LINKING
+HSE	HO3	HO3	H	L-HOMOSERINE	L-PEPTIDE LINKING
+HSE	HXT	HO2	H	L-HOMOSERINE	L-PEPTIDE LINKING
+HSE	N	NA	N	L-HOMOSERINE	L-PEPTIDE LINKING
+HSE	O	O1	O	L-HOMOSERINE	L-PEPTIDE LINKING
+HSE	O3	O3	O	L-HOMOSERINE	L-PEPTIDE LINKING
+HSE	OXT	O2	O	L-HOMOSERINE	L-PEPTIDE LINKING
+HSH	C1	C9	C	octyl beta-D-galactopyranoside	D-saccharide
+HSH	C1A	C1	C	octyl beta-D-galactopyranoside	D-saccharide
+HSH	C2	C14	C	octyl beta-D-galactopyranoside	D-saccharide
+HSH	C2A	C2	C	octyl beta-D-galactopyranoside	D-saccharide
+HSH	C3	C13	C	octyl beta-D-galactopyranoside	D-saccharide
+HSH	C3A	C3	C	octyl beta-D-galactopyranoside	D-saccharide
+HSH	C4	C12	C	octyl beta-D-galactopyranoside	D-saccharide
+HSH	C4A	C4	C	octyl beta-D-galactopyranoside	D-saccharide
+HSH	C5	C10	C	octyl beta-D-galactopyranoside	D-saccharide
+HSH	C5A	C5	C	octyl beta-D-galactopyranoside	D-saccharide
+HSH	C6	C11	C	octyl beta-D-galactopyranoside	D-saccharide
+HSH	C6A	C6	C	octyl beta-D-galactopyranoside	D-saccharide
+HSH	C7	C7	C	octyl beta-D-galactopyranoside	D-saccharide
+HSH	C8	C8	C	octyl beta-D-galactopyranoside	D-saccharide
+HSH	H1	H18	H	octyl beta-D-galactopyranoside	D-saccharide
+HSH	H10	H10	H	octyl beta-D-galactopyranoside	D-saccharide
+HSH	H11	H11	H	octyl beta-D-galactopyranoside	D-saccharide
+HSH	H12	H12	H	octyl beta-D-galactopyranoside	D-saccharide
+HSH	H13	H13	H	octyl beta-D-galactopyranoside	D-saccharide
+HSH	H14	H14	H	octyl beta-D-galactopyranoside	D-saccharide
+HSH	H15	H15	H	octyl beta-D-galactopyranoside	D-saccharide
+HSH	H16	H16	H	octyl beta-D-galactopyranoside	D-saccharide
+HSH	H17	H17	H	octyl beta-D-galactopyranoside	D-saccharide
+HSH	H1A	H1	H	octyl beta-D-galactopyranoside	D-saccharide
+HSH	H2	H27	H	octyl beta-D-galactopyranoside	D-saccharide
+HSH	H2A	H2	H	octyl beta-D-galactopyranoside	D-saccharide
+HSH	H3	H25	H	octyl beta-D-galactopyranoside	D-saccharide
+HSH	H3A	H3	H	octyl beta-D-galactopyranoside	D-saccharide
+HSH	H4	H23	H	octyl beta-D-galactopyranoside	D-saccharide
+HSH	H4A	H4	H	octyl beta-D-galactopyranoside	D-saccharide
+HSH	H5	H19	H	octyl beta-D-galactopyranoside	D-saccharide
+HSH	H5A	H5	H	octyl beta-D-galactopyranoside	D-saccharide
+HSH	H6	H6	H	octyl beta-D-galactopyranoside	D-saccharide
+HSH	H61	H20	H	octyl beta-D-galactopyranoside	D-saccharide
+HSH	H62	H21	H	octyl beta-D-galactopyranoside	D-saccharide
+HSH	H7	H7	H	octyl beta-D-galactopyranoside	D-saccharide
+HSH	H8	H8	H	octyl beta-D-galactopyranoside	D-saccharide
+HSH	H9	H9	H	octyl beta-D-galactopyranoside	D-saccharide
+HSH	HO2	H28	H	octyl beta-D-galactopyranoside	D-saccharide
+HSH	HO3	H26	H	octyl beta-D-galactopyranoside	D-saccharide
+HSH	HO4	H24	H	octyl beta-D-galactopyranoside	D-saccharide
+HSH	HO6	H22	H	octyl beta-D-galactopyranoside	D-saccharide
+HSH	O1	O1	O	octyl beta-D-galactopyranoside	D-saccharide
+HSH	O2	O6	O	octyl beta-D-galactopyranoside	D-saccharide
+HSH	O3	O5	O	octyl beta-D-galactopyranoside	D-saccharide
+HSH	O4	O4	O	octyl beta-D-galactopyranoside	D-saccharide
+HSH	O5	O2	O	octyl beta-D-galactopyranoside	D-saccharide
+HSH	O6	O3	O	octyl beta-D-galactopyranoside	D-saccharide
+HSP	C1	C1	C	4-(2-HYDROXYPHENYLSULFINYL)-BUTYLPHOSPHONIC ACID	NON-POLYMER
+HSP	C10	C10	C	4-(2-HYDROXYPHENYLSULFINYL)-BUTYLPHOSPHONIC ACID	NON-POLYMER
+HSP	C2	C2	C	4-(2-HYDROXYPHENYLSULFINYL)-BUTYLPHOSPHONIC ACID	NON-POLYMER
+HSP	C3	C3	C	4-(2-HYDROXYPHENYLSULFINYL)-BUTYLPHOSPHONIC ACID	NON-POLYMER
+HSP	C4	C4	C	4-(2-HYDROXYPHENYLSULFINYL)-BUTYLPHOSPHONIC ACID	NON-POLYMER
+HSP	C5	C5	C	4-(2-HYDROXYPHENYLSULFINYL)-BUTYLPHOSPHONIC ACID	NON-POLYMER
+HSP	C6	C6	C	4-(2-HYDROXYPHENYLSULFINYL)-BUTYLPHOSPHONIC ACID	NON-POLYMER
+HSP	C7	C7	C	4-(2-HYDROXYPHENYLSULFINYL)-BUTYLPHOSPHONIC ACID	NON-POLYMER
+HSP	C8	C8	C	4-(2-HYDROXYPHENYLSULFINYL)-BUTYLPHOSPHONIC ACID	NON-POLYMER
+HSP	C9	C9	C	4-(2-HYDROXYPHENYLSULFINYL)-BUTYLPHOSPHONIC ACID	NON-POLYMER
+HSP	H1	H1	H	4-(2-HYDROXYPHENYLSULFINYL)-BUTYLPHOSPHONIC ACID	NON-POLYMER
+HSP	H101	1H10	H	4-(2-HYDROXYPHENYLSULFINYL)-BUTYLPHOSPHONIC ACID	NON-POLYMER
+HSP	H102	2H10	H	4-(2-HYDROXYPHENYLSULFINYL)-BUTYLPHOSPHONIC ACID	NON-POLYMER
+HSP	H4	H4	H	4-(2-HYDROXYPHENYLSULFINYL)-BUTYLPHOSPHONIC ACID	NON-POLYMER
+HSP	H5	H5	H	4-(2-HYDROXYPHENYLSULFINYL)-BUTYLPHOSPHONIC ACID	NON-POLYMER
+HSP	H6	H6	H	4-(2-HYDROXYPHENYLSULFINYL)-BUTYLPHOSPHONIC ACID	NON-POLYMER
+HSP	H71	1H7	H	4-(2-HYDROXYPHENYLSULFINYL)-BUTYLPHOSPHONIC ACID	NON-POLYMER
+HSP	H72	2H7	H	4-(2-HYDROXYPHENYLSULFINYL)-BUTYLPHOSPHONIC ACID	NON-POLYMER
+HSP	H81	1H8	H	4-(2-HYDROXYPHENYLSULFINYL)-BUTYLPHOSPHONIC ACID	NON-POLYMER
+HSP	H82	2H8	H	4-(2-HYDROXYPHENYLSULFINYL)-BUTYLPHOSPHONIC ACID	NON-POLYMER
+HSP	H91	1H9	H	4-(2-HYDROXYPHENYLSULFINYL)-BUTYLPHOSPHONIC ACID	NON-POLYMER
+HSP	H92	2H9	H	4-(2-HYDROXYPHENYLSULFINYL)-BUTYLPHOSPHONIC ACID	NON-POLYMER
+HSP	HO1	HO1	H	4-(2-HYDROXYPHENYLSULFINYL)-BUTYLPHOSPHONIC ACID	NON-POLYMER
+HSP	HO2	HO2	H	4-(2-HYDROXYPHENYLSULFINYL)-BUTYLPHOSPHONIC ACID	NON-POLYMER
+HSP	HO4	HO4	H	4-(2-HYDROXYPHENYLSULFINYL)-BUTYLPHOSPHONIC ACID	NON-POLYMER
+HSP	O1	O1	O	4-(2-HYDROXYPHENYLSULFINYL)-BUTYLPHOSPHONIC ACID	NON-POLYMER
+HSP	O2	O2	O	4-(2-HYDROXYPHENYLSULFINYL)-BUTYLPHOSPHONIC ACID	NON-POLYMER
+HSP	O3	O3	O	4-(2-HYDROXYPHENYLSULFINYL)-BUTYLPHOSPHONIC ACID	NON-POLYMER
+HSP	O4	O4	O	4-(2-HYDROXYPHENYLSULFINYL)-BUTYLPHOSPHONIC ACID	NON-POLYMER
+HSP	O5	O5	O	4-(2-HYDROXYPHENYLSULFINYL)-BUTYLPHOSPHONIC ACID	NON-POLYMER
+HSP	P1	P1	P	4-(2-HYDROXYPHENYLSULFINYL)-BUTYLPHOSPHONIC ACID	NON-POLYMER
+HSP	S1	S1	S	4-(2-HYDROXYPHENYLSULFINYL)-BUTYLPHOSPHONIC ACID	NON-POLYMER
+HYP	C	C	C	4-HYDROXYPROLINE	L-PEPTIDE LINKING
+HYP	CA	CA	C	4-HYDROXYPROLINE	L-PEPTIDE LINKING
+HYP	CB	CB	C	4-HYDROXYPROLINE	L-PEPTIDE LINKING
+HYP	CD	CD	C	4-HYDROXYPROLINE	L-PEPTIDE LINKING
+HYP	CG	CG	C	4-HYDROXYPROLINE	L-PEPTIDE LINKING
+HYP	H	H	H	4-HYDROXYPROLINE	L-PEPTIDE LINKING
+HYP	HA	HA	H	4-HYDROXYPROLINE	L-PEPTIDE LINKING
+HYP	HB2	1HB	H	4-HYDROXYPROLINE	L-PEPTIDE LINKING
+HYP	HB3	2HB	H	4-HYDROXYPROLINE	L-PEPTIDE LINKING
+HYP	HD1	HOD	H	4-HYDROXYPROLINE	L-PEPTIDE LINKING
+HYP	HD22	1HD	H	4-HYDROXYPROLINE	L-PEPTIDE LINKING
+HYP	HD23	2HD	H	4-HYDROXYPROLINE	L-PEPTIDE LINKING
+HYP	HG	HG	H	4-HYDROXYPROLINE	L-PEPTIDE LINKING
+HYP	HXT	HXT	H	4-HYDROXYPROLINE	L-PEPTIDE LINKING
+HYP	N	N	N	4-HYDROXYPROLINE	L-PEPTIDE LINKING
+HYP	O	O	O	4-HYDROXYPROLINE	L-PEPTIDE LINKING
+HYP	OD1	OD	O	4-HYDROXYPROLINE	L-PEPTIDE LINKING
+HYP	OXT	OXT	O	4-HYDROXYPROLINE	L-PEPTIDE LINKING
+LYN	C	C	C	2,6-DIAMINO-HEXANOIC ACID AMIDE	L-PEPTIDE LINKING
+LYN	CA	CA	C	2,6-DIAMINO-HEXANOIC ACID AMIDE	L-PEPTIDE LINKING
+LYN	CB	CB	C	2,6-DIAMINO-HEXANOIC ACID AMIDE	L-PEPTIDE LINKING
+LYN	CD	CD	C	2,6-DIAMINO-HEXANOIC ACID AMIDE	L-PEPTIDE LINKING
+LYN	CE	CE	C	2,6-DIAMINO-HEXANOIC ACID AMIDE	L-PEPTIDE LINKING
+LYN	CG	CG	C	2,6-DIAMINO-HEXANOIC ACID AMIDE	L-PEPTIDE LINKING
+LYN	H	HN	H	2,6-DIAMINO-HEXANOIC ACID AMIDE	L-PEPTIDE LINKING
+LYN	H2	HN2	H	2,6-DIAMINO-HEXANOIC ACID AMIDE	L-PEPTIDE LINKING
+LYN	HA	HA	H	2,6-DIAMINO-HEXANOIC ACID AMIDE	L-PEPTIDE LINKING
+LYN	HB2	HB1	H	2,6-DIAMINO-HEXANOIC ACID AMIDE	L-PEPTIDE LINKING
+LYN	HB3	HB2	H	2,6-DIAMINO-HEXANOIC ACID AMIDE	L-PEPTIDE LINKING
+LYN	HD2	HD1	H	2,6-DIAMINO-HEXANOIC ACID AMIDE	L-PEPTIDE LINKING
+LYN	HD3	HD2	H	2,6-DIAMINO-HEXANOIC ACID AMIDE	L-PEPTIDE LINKING
+LYN	HE2	HE1	H	2,6-DIAMINO-HEXANOIC ACID AMIDE	L-PEPTIDE LINKING
+LYN	HE3	HE2	H	2,6-DIAMINO-HEXANOIC ACID AMIDE	L-PEPTIDE LINKING
+LYN	HG2	HG1	H	2,6-DIAMINO-HEXANOIC ACID AMIDE	L-PEPTIDE LINKING
+LYN	HG3	HG2	H	2,6-DIAMINO-HEXANOIC ACID AMIDE	L-PEPTIDE LINKING
+LYN	HNT1	H1	H	2,6-DIAMINO-HEXANOIC ACID AMIDE	L-PEPTIDE LINKING
+LYN	HNT2	H2	H	2,6-DIAMINO-HEXANOIC ACID AMIDE	L-PEPTIDE LINKING
+LYN	HZ1	HZ1	H	2,6-DIAMINO-HEXANOIC ACID AMIDE	L-PEPTIDE LINKING
+LYN	HZ2	HZ2	H	2,6-DIAMINO-HEXANOIC ACID AMIDE	L-PEPTIDE LINKING
+LYN	HZ3	HZ3	H	2,6-DIAMINO-HEXANOIC ACID AMIDE	L-PEPTIDE LINKING
+LYN	N	N	N	2,6-DIAMINO-HEXANOIC ACID AMIDE	L-PEPTIDE LINKING
+LYN	NT	NT	N	2,6-DIAMINO-HEXANOIC ACID AMIDE	L-PEPTIDE LINKING
+LYN	NZ	NZ	N	2,6-DIAMINO-HEXANOIC ACID AMIDE	L-PEPTIDE LINKING
+LYN	O	O	O	2,6-DIAMINO-HEXANOIC ACID AMIDE	L-PEPTIDE LINKING
+NHE	C1	C1	C	2-[N-CYCLOHEXYLAMINO]ETHANE SULFONIC ACID	NON-POLYMER
+NHE	C1'	C1'	C	2-[N-CYCLOHEXYLAMINO]ETHANE SULFONIC ACID	NON-POLYMER
+NHE	C2	C2	C	2-[N-CYCLOHEXYLAMINO]ETHANE SULFONIC ACID	NON-POLYMER
+NHE	C2'	C2'	C	2-[N-CYCLOHEXYLAMINO]ETHANE SULFONIC ACID	NON-POLYMER
+NHE	C3'	C3'	C	2-[N-CYCLOHEXYLAMINO]ETHANE SULFONIC ACID	NON-POLYMER
+NHE	C4'	C4'	C	2-[N-CYCLOHEXYLAMINO]ETHANE SULFONIC ACID	NON-POLYMER
+NHE	C5'	C5'	C	2-[N-CYCLOHEXYLAMINO]ETHANE SULFONIC ACID	NON-POLYMER
+NHE	C6'	C6'	C	2-[N-CYCLOHEXYLAMINO]ETHANE SULFONIC ACID	NON-POLYMER
+NHE	H2'1	1H2'	H	2-[N-CYCLOHEXYLAMINO]ETHANE SULFONIC ACID	NON-POLYMER
+NHE	H2'2	2H2'	H	2-[N-CYCLOHEXYLAMINO]ETHANE SULFONIC ACID	NON-POLYMER
+NHE	H3'1	1H3'	H	2-[N-CYCLOHEXYLAMINO]ETHANE SULFONIC ACID	NON-POLYMER
+NHE	H3'2	2H3'	H	2-[N-CYCLOHEXYLAMINO]ETHANE SULFONIC ACID	NON-POLYMER
+NHE	H4'1	1H4'	H	2-[N-CYCLOHEXYLAMINO]ETHANE SULFONIC ACID	NON-POLYMER
+NHE	H4'2	2H4'	H	2-[N-CYCLOHEXYLAMINO]ETHANE SULFONIC ACID	NON-POLYMER
+NHE	H5'1	1H5'	H	2-[N-CYCLOHEXYLAMINO]ETHANE SULFONIC ACID	NON-POLYMER
+NHE	H5'2	2H5'	H	2-[N-CYCLOHEXYLAMINO]ETHANE SULFONIC ACID	NON-POLYMER
+NHE	H6'1	1H6'	H	2-[N-CYCLOHEXYLAMINO]ETHANE SULFONIC ACID	NON-POLYMER
+NHE	H6'2	2H6'	H	2-[N-CYCLOHEXYLAMINO]ETHANE SULFONIC ACID	NON-POLYMER
+NHE	HC'1	1HC'	H	2-[N-CYCLOHEXYLAMINO]ETHANE SULFONIC ACID	NON-POLYMER
+NHE	HC11	1HC1	H	2-[N-CYCLOHEXYLAMINO]ETHANE SULFONIC ACID	NON-POLYMER
+NHE	HC12	2HC1	H	2-[N-CYCLOHEXYLAMINO]ETHANE SULFONIC ACID	NON-POLYMER
+NHE	HC21	1HC2	H	2-[N-CYCLOHEXYLAMINO]ETHANE SULFONIC ACID	NON-POLYMER
+NHE	HC22	2HC2	H	2-[N-CYCLOHEXYLAMINO]ETHANE SULFONIC ACID	NON-POLYMER
+NHE	HN	HN	H	2-[N-CYCLOHEXYLAMINO]ETHANE SULFONIC ACID	NON-POLYMER
+NHE	HO3	3HO	H	2-[N-CYCLOHEXYLAMINO]ETHANE SULFONIC ACID	NON-POLYMER
+NHE	N	N	N	2-[N-CYCLOHEXYLAMINO]ETHANE SULFONIC ACID	NON-POLYMER
+NHE	O1	O1	O	2-[N-CYCLOHEXYLAMINO]ETHANE SULFONIC ACID	NON-POLYMER
+NHE	O2	O2	O	2-[N-CYCLOHEXYLAMINO]ETHANE SULFONIC ACID	NON-POLYMER
+NHE	O3	O3	O	2-[N-CYCLOHEXYLAMINO]ETHANE SULFONIC ACID	NON-POLYMER
+NHE	S	S	S	2-[N-CYCLOHEXYLAMINO]ETHANE SULFONIC ACID	NON-POLYMER
+NME	C	C	C	METHYLAMINE	NON-POLYMER
+NME	H1	H1	H	METHYLAMINE	NON-POLYMER
+NME	H2	H2	H	METHYLAMINE	NON-POLYMER
+NME	H3	H3	H	METHYLAMINE	NON-POLYMER
+NME	HN1	HN1	H	METHYLAMINE	NON-POLYMER
+NME	HN2	HN2	H	METHYLAMINE	NON-POLYMER
+NME	N	N	N	METHYLAMINE	NON-POLYMER

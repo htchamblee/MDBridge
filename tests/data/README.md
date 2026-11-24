@@ -9,8 +9,9 @@ MDAnalysis: its tables are rebuilt from independent, attributable public sources
 Chemical Component Dictionary, the PDB format v3.3 and IUPAC-IUB residue names, the CIAAW 2024
 abridged standard atomic weights and NUBASE2020 most stable isotopes, the Amber 2024 and GROMACS
 manuals, OpenMM 8.1.2's force-field files; see `data/sources/ATTRIBUTION.md`).
-`tools/gen_data_tables.py` writes them to `src/core/data_tables_independent.inc` from the extracts
-committed under `data/sources/`. MDBridge's results therefore differ from stock MDAnalysis
+`tools/gen_data_tables.py` writes them to
+`src/core/include/mdbridge/core/detail/data_tables_independent.inc` from the extracts committed
+under `data/sources/`. MDBridge's results therefore differ from stock MDAnalysis
 wherever these tables matter, and the expected data describes that behaviour: MDAnalysis'
 algorithms, unchanged, reading MDBridge's tables.
 
@@ -20,8 +21,8 @@ before a generator uses it: the residue sets of the `protein`, `nucleic` and `wa
 the atom-name sets of `backbone`, `nucleicbackbone`, `nucleicbase` and `nucleicsugar`; the
 guessers' element symbols (`Z2SYMB` / `SYMB2Z`), masses (every element, under its symbol and its
 upper-case spelling), special atom-name -> element table (the force-field name -> element table,
-by name, as MDAnalysis looks names up: it has no residue scope; virtual sites map to no element,
-mass 0) and guessable one- and two-letter elements; PDBWriter's ion names and Hg / Cl residue
+which is by name alone like MDAnalysis' lookup; virtual sites map to no element, mass 0) and
+guessable one- and two-letter elements; PDBWriter's ion names and Hg / Cl residue
 lists, and its include / exclude pairs (empty: no independent counterpart). Only data is
 replaced, no MDAnalysis function. The generators that depend on these tables apply the patch:
 `dump_topologies.py` (every dump, also when imported), `make_atom_selection_cases.py`,
@@ -29,6 +30,18 @@ replaced, no MDAnalysis function. The generators that depend on these tables app
 `make_export_cases.py`; the others do not touch them. `tools/gen_selection_tables.py` and
 `tools/gen_pdb_tables.py` no longer write any of these tables, only the property names of the
 selection language and Python's Unicode data.
+
+MDAnalysis' algorithms read atom names alone, so the tables are filtered by a collision rule in
+`tools/gen_data_tables.py` (documented there): a force-field name -> element entry, a guessable
+two-letter element or a PDB-writer ion name is dropped when a CCD standard-residue atom name (or
+its PDB v2.3 spelling, or an atom name of the CCD peptide-linking components HIP, HSE, HYP, LYN of
+the protein list) of another element would reach it (CA, CD, CE, HG, ND names; Ca and Cd as
+guessable elements; CA, CD, CE, HG, HO, ND ion names). The generator fails if a collision is
+left, and `/opt/mdbridge-venv/bin/python -I -B tests/parity/independent_tables.py` guesses the
+element of every such reference name, and the column the PDB writer gives it, with the patched
+MDAnalysis and lists any that differ from the CCD (none at present). Ions whose atom name is one of
+the dropped names (a calcium ion named `CA`, cadmium `CD`, mercury `HG`) are therefore guessed as
+carbon / hydrogen and written from column 14, as a name-only rule must.
 
 `projects/` holds project files; `expected/` holds what MDATK v0.0.4.1 (the reference
 implementation) reads from each of them. `tests/core/test_project_file.cpp` checks that MDBridge
@@ -169,7 +182,7 @@ MDATK checkout at `v0.0.4.1` (nothing is written into it):
 python3 -I -B tests/parity/make_atom_selection_cases.py /tmp/mdatk tests/data/selections
 python3 -I -B tests/parity/make_selections_cases.py /tmp/mdatk tests/data/selections
 python3 -I tools/gen_selection_tables.py     # src/core/selection_tables.inc (prop / same property names)
-python3 -I tools/gen_data_tables.py          # src/core/data_tables_independent.inc (macro names, elements, masses)
+python3 -I tools/gen_data_tables.py          # src/core/include/mdbridge/core/detail/data_tables_independent.inc (macro names, elements, masses)
 ```
 
 `io/parm7/` holds what MDATK's parm7 module (`mdatk/io/parm7.py`) and MDAnalysis 2.11.0's
@@ -291,7 +304,7 @@ python3 -I tools/gen_pdb_tables.py                       # src/io/pdb_tables.inc
 `src/io/pdb_tables.inc` holds data the PDB code needs: Python's `str.upper()` mapping and the
 characters `str.isalpha()` excludes from `\w` (Unicode 15.1). The element, mass and atom-name
 tables of the guessers, PDBParser and the PDB writer are MDBridge's independent tables
-(`src/core/data_tables_independent.inc`, see the first section).
+(`src/core/include/mdbridge/core/detail/data_tables_independent.inc`, see the first section).
 
 `io/maps/` holds density maps and what MDATK's map code (`mdatk/io/mrc.py`, the map functions of
 `mdatk/density.py`, `mdatk density info`) gives for them, for `src/io/mrc.cpp`
@@ -387,7 +400,7 @@ python3 tests/parity/regenerate_all.py --mdatk /tmp/mdatk --out /tmp/fresh --pyt
 
 `tools/gen_data_tables.py` runs first, on the committed `data/sources/` extracts copied into the
 fresh tree (they are inputs, cut from downloads by `tools/extract_ccd.py` and
-`tools/extract_openmm.py`, and not regenerated), so `src/core/data_tables_independent.inc` is
+`tools/extract_openmm.py`, and not regenerated), so `src/core/include/mdbridge/core/detail/data_tables_independent.inc` is
 checked like the other tables, and the patched generators read the same tables.
 
 It handles the special cases noted above (`--fixed-clock`, `manifest.txt` and the two extra vector

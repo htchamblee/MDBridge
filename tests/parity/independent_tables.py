@@ -3,9 +3,11 @@
     import independent_tables
     independent_tables.apply()        # before the first Universe / selection / PDBWriter
 
+    python3 -I -B tests/parity/independent_tables.py   # check the CCD reference names (below)
+
 MDBridge's residue-name, atom-name, element and mass tables are rebuilt from public sources
-(src/core/data_tables_independent.inc, written by tools/gen_data_tables.py from data/sources/;
-see data/sources/ATTRIBUTION.md) instead of being copied from MDAnalysis. The generators whose
+(src/core/include/mdbridge/core/detail/data_tables_independent.inc, written by
+tools/gen_data_tables.py from data/sources/; see data/sources/ATTRIBUTION.md) instead of being copied from MDAnalysis. The generators whose
 output depends on those tables call apply(), so the committed expected data describes MDAnalysis
 2.11.0's behaviour (its algorithms, unchanged) with MDBridge's tables in place of its own.
 
@@ -23,16 +25,23 @@ the class (MultiPDBWriter inherits them). What is patched:
 * guessers (MDAnalysis.guesser.tables): Z2SYMB / SYMB2Z (CIAAW symbols, Z 1-118); masses (the
   CIAAW 2024 abridged standard atomic weight, or the mass number of the most stable isotope, of
   every element, under its symbol and its upper-case spelling, as MDAnalysis looks masses up);
-  atomelements (the force-field atom name -> element table, keyed by the upper-case name as
-  MDAnalysis' guesser looks names up; MDAnalysis has no residue scope, so the residue column of
-  the table is dropped; virtual sites map to "", whose mass is unknown, i.e. 0.0); elements (the
-  guessable one- and two-letter elements, upper case as the guesser compares them);
-* PDB writer (MDAnalysis.coordinates.PDB.PDBWriter): ions (monatomic CCD ion names), special_hg,
+  atomelements (the name-only force-field atom name -> element table, keyed by the upper-case
+  name; virtual sites map to "", whose mass is unknown, i.e. 0.0); elements (the guessable one-
+  and two-letter elements, upper case as the guesser compares them). The generator's collision
+  rule has already removed the entries that would make CCD standard-residue names metals;
+* PDB writer (MDAnalysis.coordinates.PDB.PDBWriter): ions (monatomic CCD ion names, after the
+  collision rule), special_hg,
   special_cl (CCD components whose HG / CL atom is mercury / chlorine), include_pairs and
   exclude_pairs empty (no independent counterpart).
 
 Not patched (no independent counterpart, not used by MDBridge): vdwradii (bond guessing),
 SYBYL2SYMB (MOL2), the raw TABLE_* strings (only read when MDAnalysis is imported).
+
+Run as a script, it checks the result with the patched MDAnalysis: it guesses the element of every
+reference name of the collision rule (gen_data_tables.reference_names(): the CCD standard-residue
+atom names and their v2.3 spellings, ...) and lists those whose guess is not their CCD element,
+and those that the PDB writer would start in the wrong column (column 13 for two-letter elements
+and names of four characters, column 14 otherwise). Exit status 1 if any is found.
 """
 
 from __future__ import annotations
@@ -58,14 +67,13 @@ def tables() -> dict:
     """The independent tables, in the shapes MDAnalysis keeps its own."""
     g = load_generator()
     backbone, sugar, base = g.nucleic_sets()
-    one, two = g.guessable_elements()
+    one, _ = g.guessable_elements()
+    two, _ = g.guessable_two_letter()
+    names, _ = g.name_elements()
+    ions, _ = g.writer_ion_names()
     hg, cl = g.hg_cl_residues()
     elements = g.elements()
-    atomelements = {}
-    for _residue, name, element, _origin in g.forcefield_name_elements():
-        key, value = name.upper(), element.upper()
-        if atomelements.setdefault(key, value) != value:
-            raise ValueError(f"atom name {name!r} maps to {atomelements[key]!r} and {value!r}")
+    atomelements = {name: element.upper() for name, element, _origins in names}
     masses = {}
     for _z, symbol, _name, mass, _std in elements:
         masses[symbol] = float(mass)
@@ -82,7 +90,7 @@ def tables() -> dict:
         "masses": masses,
         "atomelements": atomelements,
         "elements": [e.upper() for e in one + two],
-        "ions": tuple(g.monatomic_ion_names()),
+        "ions": tuple(ions),
         "special_hg": tuple(hg),
         "special_cl": tuple(cl),
     }
@@ -132,3 +140,48 @@ def apply() -> None:
     PDBWriter.include_pairs = ()
     PDBWriter.exclude_pairs = ()
     _applied = True
+
+
+def reference_mismatches() -> tuple[list[tuple[str, str, str]], list[tuple[str, str, str]]]:
+    """With the patched MDAnalysis: (name, CCD element, guessed type) of the reference names whose
+    guess is not their element, and (name, CCD element, written field) of those the PDB writer
+    places in the wrong column."""
+    import warnings
+
+    from MDAnalysis.coordinates.PDB import PDBWriter
+    from MDAnalysis.guesser.default_guesser import DefaultGuesser
+
+    apply()
+    guesser = DefaultGuesser(None)
+    writer = PDBWriter.__new__(PDBWriter)  # _deduce_PDB_atom_name reads only class data
+    guesses, columns = [], []
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        for name, els in sorted(load_generator().reference_names().items()):
+            for element in sorted(els):
+                guess = guesser.guess_atom_element(name)
+                if guess.upper() != element:
+                    guesses.append((name, element, guess))
+                field = writer._deduce_PDB_atom_name(name, "")
+                column13 = len(name) >= 4 or len(element) == 2
+                if (field[:1] != " ") != column13:
+                    columns.append((name, element, field))
+    return guesses, columns
+
+
+def main() -> int:
+    guesses, columns = reference_mismatches()
+    for name, element, guess in guesses:
+        print(f"guess   {name!r}: CCD element {element}, guessed {guess!r}")
+    for name, element, field in columns:
+        print(f"column  {name!r}: CCD element {element}, written {field!r}")
+    print(f"{len(guesses)} guesses and {len(columns)} writer placements differ from the CCD")
+    return 1 if guesses or columns else 0
+
+
+if __name__ == "__main__":
+    import sys
+    import warnings
+
+    warnings.filterwarnings("ignore")
+    sys.exit(main())

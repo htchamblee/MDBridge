@@ -13,11 +13,17 @@ needs are kept:
   (comp_id, atom_id, element, formal charge, name).
 * hg_cl_atom_names.tsv: every released component with an atom named HG whose element is Hg, or
   an atom named CL whose element is Cl (comp_id, atom_id, element).
+* protein_list_residue_atoms.tsv: comp_id, atom_id, alt_atom_id, element and the component's name
+  and type of every atom of the released components whose id is a non-standard residue name of
+  tools/gen_data_tables.py's protein list (force-field names such as ACE, NME, HYP that the CCD
+  also defines). The list is computed from the committed force-field and PDB-format extracts
+  (gen_data_tables.py is imported, so the other extracts must already exist).
 """
 
 from __future__ import annotations
 
 import gzip
+import importlib.util
 import os
 import re
 import sys
@@ -95,11 +101,20 @@ def components(path: str):
         yield comp, atoms
 
 
+def protein_list() -> set[str]:
+    spec = importlib.util.spec_from_file_location(
+        "gen_data_tables", os.path.join(ROOT, "tools", "gen_data_tables.py"))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.protein_residues()
+
+
 def main() -> int:
     src = sys.argv[1]
     with open(os.path.join(ROOT, "data", "sources", "pdb_format", "standard_residues.tsv")) as fh:
         standard = {ln.split("\t")[0] for ln in fh if ln.strip() and not ln.startswith("#")}
-    std_rows, mono_rows, hgcl_rows = [], [], []
+    extra = protein_list() - standard
+    std_rows, mono_rows, hgcl_rows, extra_rows = [], [], [], []
     for comp, atoms in components(src):
         cid = comp.get("id", "")
         if cid in standard:
@@ -109,6 +124,10 @@ def main() -> int:
                                  a.get("pdbx_leaving_atom_flag", "?")))
         if comp.get("pdbx_release_status") != "REL":
             continue
+        if cid in extra:
+            for a in atoms:
+                extra_rows.append((cid, a["atom_id"], a["alt_atom_id"], a["type_symbol"],
+                                   comp.get("name", ""), comp.get("type", "")))
         if len(atoms) == 1:
             a = atoms[0]
             mono_rows.append((cid, a["atom_id"], a["type_symbol"], a["charge"], comp.get("name", "")))
@@ -120,6 +139,7 @@ def main() -> int:
         ("standard_residue_atoms.tsv", "comp_id\tatom_id\talt_atom_id\telement\tbackbone_flag\tleaving_flag", std_rows),
         ("monatomic_components.tsv", "comp_id\tatom_id\telement\tcharge\tname", mono_rows),
         ("hg_cl_atom_names.tsv", "comp_id\tatom_id\telement", hgcl_rows),
+        ("protein_list_residue_atoms.tsv", "comp_id\tatom_id\talt_atom_id\telement\tname\ttype", extra_rows),
     ):
         with open(os.path.join(OUT, name), "w", encoding="utf-8") as fh:
             fh.write(header + "\n")

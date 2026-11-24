@@ -8,7 +8,7 @@ installed MDAnalysis (2.11.0, which MDATK v0.0.4.1 runs) and written as data to
 src/core/selection_tables.inc, which is committed, so a build needs no Python. The residue and atom
 names of the macros (protein, nucleic, water, backbone, nucleicbackbone, nucleicbase,
 nucleicsugar) are not taken from MDAnalysis: they are MDBridge's independent tables
-(src/core/data_tables_independent.inc, tools/gen_data_tables.py).
+(src/core/include/mdbridge/core/detail/data_tables_independent.inc, tools/gen_data_tables.py).
 """
 
 from __future__ import annotations

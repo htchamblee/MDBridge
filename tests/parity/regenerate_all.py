@@ -11,8 +11,9 @@ copied to FRESH_DIR/tests/parity and FRESH_DIR/tools first and run from there, s
 earlier outputs (the topology fixtures, the loader's files, demo_dry.parm7 ...) read the fresh ones,
 never the committed ones. The committed public-source extracts of data/sources/ (inputs, made by
 tools/extract_*.py from downloads) are copied to FRESH_DIR/data/sources: tools/gen_data_tables.py
-writes src/core/data_tables_independent.inc from them, and tests/parity/independent_tables.py loads
-the same tables through it to patch MDAnalysis in the generators that depend on them. Then every
+writes src/core/include/mdbridge/core/detail/data_tables_independent.inc from them, and
+tests/parity/independent_tables.py loads the same tables through it to patch MDAnalysis in the
+generators that depend on them. Then every
 committed file is compared with its fresh copy; each difference is printed with a unified-diff
 excerpt (a hex excerpt for binary files). Exit status 1 on any difference, missing or unexpected
 file, or generator failure.
@@ -90,9 +91,9 @@ PATCH_STAMPED = {
 PATCH_RE = re.compile(rb"(?<![0-9.])3\.13\.[0-9]+(?![0-9.])")
 
 # the tables of tools/gen_*.py
+DATA_TABLES = "src/core/include/mdbridge/core/detail/data_tables_independent.inc"
 TABLES = ["src/core/unicode_tables.inc", "src/core/case_tables.inc", "src/core/citation_data.inc",
-          "src/core/step_types.inc", "src/core/data_tables_independent.inc", "src/core/selection_tables.inc",
-          "src/io/pdb_tables.inc"]
+          "src/core/step_types.inc", DATA_TABLES, "src/core/selection_tables.inc", "src/io/pdb_tables.inc"]
 SOURCES = "data/sources"  # committed inputs of tools/gen_data_tables.py, copied into the fresh tree
 
 # Outputs that legitimately depend on the CPU: compared byte for byte, and where the bytes differ, as
@@ -178,8 +179,7 @@ STEPS = [
     Step("citation_data", "tools/gen_citation_data.py", lambda ctx: [M(ctx)], ["src/core/citation_data.inc"]),
     Step("step_types", "tools/gen_step_types.py", lambda ctx: [M(ctx)],
          ["src/core/step_types.inc", f"{DATA}/step-types/step_types.json"]),
-    Step("data_tables", "tools/gen_data_tables.py", lambda ctx: [], ["src/core/data_tables_independent.inc"],
-         flags=["-I", "-B"]),
+    Step("data_tables", "tools/gen_data_tables.py", lambda ctx: [], [DATA_TABLES], flags=["-I", "-B"]),
     Step("selection_tables", "tools/gen_selection_tables.py", lambda ctx: [], ["src/core/selection_tables.inc"],
          flags=["-I"]),
     Step("pdb_tables", "tools/gen_pdb_tables.py", lambda ctx: [], ["src/io/pdb_tables.inc"], flags=["-I"]),

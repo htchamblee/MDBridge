@@ -1,4 +1,5 @@
-"""Write src/core/include/mdbridge/core/detail/data_tables_independent.inc from the public-source extracts in data/sources/.
+"""Write src/core/include/mdbridge/core/detail/data_tables_independent.inc from the public-source
+extracts in data/sources/.
 
     python3 -I tools/gen_data_tables.py
 
@@ -11,6 +12,28 @@ data/sources/ATTRIBUTION.md for their origin and licences):
                    isotopes of radioactive elements (NUBASE2020, as listed by CIAAW) (facts)
 * forcefields/     residue and atom names of the Amber, CHARMM and GROMACS force fields: the Amber 2024
                    and GROMACS manuals (names, facts) and OpenMM 8.1.2's force-field XML files (MIT)
+
+Collision rule. MDBridge guesses elements from atom names alone (MDAnalysis' procedure: the whole
+name, then the name without '*', '+', '-' and digits, is looked up in the name -> element table;
+then one- and two-letter prefixes are tried against the guessable elements), and its PDB writer
+starts a name in column 13 when its first two letters are an ion name. So that ordinary
+biomolecules come out right, every candidate entry is checked against the reference names S: every
+atom name (and PDB v2.3 alternative spelling) of the CCD standard residues (amino acids,
+nucleotides, water) and every atom name of the CCD peptide-linking components whose id is a
+non-standard name of the protein list (ccd/protein_list_residue_atoms.tsv: HIP, HSE, HYP, LYN;
+components that only share the id with a force-field residue, such as the drug "ASH", are not
+used), each with its CCD element:
+
+* a force-field name N is dropped from the name -> element table if N is the upper-cased name or
+  the stripped name (no '*', '+', '-', digits; upper case) of a name in S with another element
+  (for example CA, CD, CE, HG, ND: carbon alpha / delta / epsilon, hydrogen gamma, nitrogen delta);
+* a two-letter element X is dropped from the guessable set if the stripped name of a name in S
+  with another element starts with X (for example Ca, Cd: CA, CD1);
+* an ion name I is dropped from the PDB writer's list if it is the first two letters of a name in
+  S with another element (for example CA, HG, HO: CA, HG1, HO2').
+
+check_collisions() verifies the written tables against these rules and the run fails if one is
+left. The dropped entries are listed in comments of the output.
 
 The output is committed, so a build needs no Python. It is included (inside a namespace) by
 mdbridge/core/detail/data_tables.hpp, which the selection macros, the PDB / GRO topology guessing,
@@ -220,6 +243,88 @@ def guessable_elements() -> tuple[list[str], list[str]]:
     return [e for e in els if len(e) == 1], [e for e in els if len(e) == 2]
 
 
+# --- reference names and the collision rule -------------------------------------------------------
+
+def reference_names() -> dict[str, set[str]]:
+    """S: atom name -> CCD elements (upper case) of the standard residues and of the peptide-linking
+    CCD components named in the protein list. For the standard residues the alternative spelling
+    (alt_atom_id, the PDB v2.3 name of the remediation: 1HB, C4*) is a reference name too; for
+    other components alt_atom_id is a legacy name with no common convention (homoserine's N is
+    "NA") and is not used."""
+    out: dict[str, set[str]] = {}
+    for r in CCD_STD:
+        for name in {r["atom_id"], r["alt_atom_id"]} - {"", "?", "."}:
+            out.setdefault(name, set()).add(r["element"].upper())
+    for r in read_tsv("ccd", "protein_list_residue_atoms.tsv"):
+        if "PEPTIDE" in r["type"].upper() and r["comp_id"] in protein_residues():
+            out.setdefault(r["atom_id"], set()).add(r["element"].upper())
+    return out
+
+
+def stripped(name: str) -> str:
+    """The name without '*', '+', '-' and digits, upper case (the guesser's second lookup key)."""
+    return re.sub(r"[0-9]", "", re.sub(r"[*+-]", "", name)).upper()
+
+
+def lookup_keys(name: str) -> set[str]:
+    return {name.upper(), stripped(name)}
+
+
+def collides(element: str, elements_of_name: set[str]) -> bool:
+    return any(e != element.upper() for e in elements_of_name)
+
+
+def name_table_collisions(name: str, element: str, ref: dict[str, set[str]]) -> list[str]:
+    return sorted(s for s, els in ref.items() if name.upper() in lookup_keys(s) and collides(element, els))
+
+
+def two_letter_collisions(symbol: str, ref: dict[str, set[str]]) -> list[str]:
+    return sorted(s for s, els in ref.items() if stripped(s).startswith(symbol.upper()) and collides(symbol, els))
+
+
+def ion_collisions(ion: str, ref: dict[str, set[str]]) -> list[str]:
+    return sorted(s for s, els in ref.items() if s[:2].upper() == ion.upper() and collides(ion, els))
+
+
+def name_elements() -> tuple[list[tuple[str, str, str]], dict[str, list[str]]]:
+    """The name -> element table, keyed by upper-case name: [(name, element, origins)], and the
+    dropped names with the reference names they collide with."""
+    merged: dict[str, tuple[str, set[str]]] = {}
+    for _res, name, element, origin in forcefield_name_elements():
+        key = name.upper()
+        if key in merged and merged[key][0] != element:
+            raise SystemExit(f"atom name {key} maps to {merged[key][0]!r} and {element!r}")
+        merged.setdefault(key, (element, set()))[1].add(origin)
+    ref = reference_names()
+    kept, dropped = [], {}
+    for key, (element, origins) in sorted(merged.items()):
+        hits = name_table_collisions(key, element, ref)
+        if hits:
+            dropped[key] = hits
+        else:
+            kept.append((key, element, ", ".join(sorted(origins))))
+    return kept, dropped
+
+
+def guessable_two_letter() -> tuple[list[str], dict[str, list[str]]]:
+    ref = reference_names()
+    _one, two = guessable_elements()
+    dropped = {x: two_letter_collisions(x, ref) for x in two if two_letter_collisions(x, ref)}
+    return [x for x in two if x not in dropped], dropped
+
+
+def check_collisions(names, two, ions) -> None:
+    """Fails if a written table still collides with a reference name (the rules above)."""
+    ref = reference_names()
+    problems = [f"name table {n} -> {e!r}: {name_table_collisions(n, e, ref)}"
+                for n, e, _ in names if name_table_collisions(n, e, ref)]
+    problems += [f"two-letter element {x}: {two_letter_collisions(x, ref)}" for x in two
+                 if two_letter_collisions(x, ref)]
+    problems += [f"ion name {i}: {ion_collisions(i, ref)}" for i in ions if ion_collisions(i, ref)]
+    if problems:
+        raise SystemExit("collisions with CCD reference names:\n  " + "\n  ".join(problems))
+
+
 # --- PDB writer -----------------------------------------------------------------------------------
 
 def monatomic_ion_names() -> list[str]:
@@ -227,6 +332,21 @@ def monatomic_ion_names() -> list[str]:
     rows = read_tsv("ccd", "monatomic_components.tsv")
     return sorted({r["atom_id"] for r in rows
                    if len(r["element"]) == 2 and r["atom_id"].upper() == r["element"].upper()})
+
+
+def writer_ion_names() -> tuple[list[str], dict[str, list[str]]]:
+    ref = reference_names()
+    ions = monatomic_ion_names()
+    dropped = {i: ion_collisions(i, ref) for i in ions if ion_collisions(i, ref)}
+    return [i for i in ions if i not in dropped], dropped
+
+
+def dropped_comment(what: str, dropped: dict[str, list[str]]) -> list[str]:
+    lines = [f"// Dropped by the collision rule ({what}):"]
+    for key, hits in sorted(dropped.items()):
+        shown = " ".join(hits[:8]) + (" ..." if len(hits) > 8 else "")
+        lines.append(f"//   {key}: {shown}")
+    return lines
 
 
 def hg_cl_residues() -> tuple[list[str], list[str]]:
@@ -254,7 +374,11 @@ def string_array(name: str, values, comment: str, per_line: int = 8) -> list[str
 
 def main() -> int:
     backbone, sugar, base = nucleic_sets()
-    one, two = guessable_elements()
+    one, _ = guessable_elements()
+    two, two_dropped = guessable_two_letter()
+    names, names_dropped = name_elements()
+    ions, ions_dropped = writer_ion_names()
+    check_collisions(names, two, ions)
     hg, cl = hg_cl_residues()
     out = [
         "// Residue, atom-name, element and mass tables rebuilt from public sources only:",
@@ -301,23 +425,25 @@ def main() -> int:
         out.append(f"    {{{z}, {cstr(sym)}, {mass}, {'true' if std else 'false'}}},  // {name}")
     out += ["};", "",
             "struct IndNameElement {",
-            "    std::string_view residue;  // \"*water*\" = any water residue",
-            "    std::string_view name;",
+            "    std::string_view name;     // upper case",
             "    std::string_view element;  // \"\" = virtual site / lone pair (no element, mass 0)",
             "};",
             "",
-            "// Force-field ion atom names (residue-scoped), water virtual sites, and water atom spellings",
-            "// (OW, HW1, HW2, OH2).",
+            "// Atom name -> element, by name alone (upper case, sorted): force-field ion atom names, water",
+            "// virtual sites, and water atom spellings (OW, HW1, HW2, OH2).",
+            *dropped_comment("CCD reference names of another element", names_dropped),
             "inline constexpr IndNameElement kIndForceFieldNameElements[] = {"]
-    for res, name, el, origin in forcefield_name_elements():
-        out.append(f"    {{{cstr(res)}, {cstr(name)}, {cstr(el)}}},  // {origin}")
+    for name, el, origin in names:
+        out.append(f"    {{{cstr(name)}, {cstr(el)}}},  // {origin}")
     out += ["};", ""]
     out += string_array("kIndGuessOneLetterElements", one,
                         "One-letter elements an atom-name prefix may be guessed as (standard residues, water, ions).")
+    out += dropped_comment("CCD reference names of another element start with them", two_dropped)
     out += string_array("kIndGuessTwoLetterElements", two,
                         "Two-letter elements an atom-name prefix may be guessed as (standard residues, CHARMM36 ions).")
     out += ["// ---- PDB writer atom-name placement ----", ""]
-    out += string_array("kIndMonatomicIonNames", monatomic_ion_names(),
+    out += dropped_comment("first two letters of CCD reference names of another element", ions_dropped)
+    out += string_array("kIndMonatomicIonNames", ions,
                         "Atom names of one-atom CCD components with a two-letter element (written from column 13).")
     out += string_array("kIndMercuryHgResidues", hg,
                         "CCD components in which the atom named HG is mercury.")

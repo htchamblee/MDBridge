@@ -196,95 +196,89 @@ inline constexpr IndElement kIndElements[] = {
 };
 
 struct IndNameElement {
-    std::string_view residue;  // "*water*" = any water residue
-    std::string_view name;
+    std::string_view name;     // upper case
     std::string_view element;  // "" = virtual site / lone pair (no element, mass 0)
 };
 
-// Force-field ion atom names (residue-scoped), water virtual sites, and water atom spellings
-// (OW, HW1, HW2, OH2).
+// Atom name -> element, by name alone (upper case, sorted): force-field ion atom names, water
+// virtual sites, and water atom spellings (OW, HW1, HW2, OH2).
+// Dropped by the collision rule (CCD reference names of another element):
+//   CA: CA CA2
+//   CD: CD CD1 CD2
+//   CE: CE CE1 CE2 CE3
+//   HG: 1HG 1HG1 1HG2 2HG 2HG1 2HG2 3HG1 3HG2 ...
+//   ND: ND1 ND2
 inline constexpr IndNameElement kIndForceFieldNameElements[] = {
-    {"*water*", "HW1", "H"},  // OpenMM pdbNames.xml
-    {"*water*", "HW2", "H"},  // OpenMM pdbNames.xml
-    {"*water*", "OH2", "O"},  // OpenMM pdbNames.xml
-    {"*water*", "OW", "O"},  // OpenMM pdbNames.xml
-    {"AG1", "AG1", "Ag"},  // Amber ion
-    {"AL", "AL", "Al"},  // Amber ion
-    {"Ag", "Ag", "Ag"},  // Amber ion
-    {"BA", "BA", "Ba"},  // Amber ion
-    {"BAR", "BAR", "Ba"},  // CHARMM36 ion
-    {"BR", "BR", "Br"},  // Amber ion
-    {"Be", "Be", "Be"},  // Amber ion
-    {"CA", "CA", "Ca"},  // Amber ion
-    {"CAL", "CAL", "Ca"},  // CHARMM36 ion
-    {"CD", "CD", "Cd"},  // Amber ion
-    {"CD2", "CD", "Cd"},  // CHARMM36 ion
-    {"CE", "CE", "Ce"},  // Amber ion
-    {"CES", "CES", "Cs"},  // CHARMM36 ion
-    {"CL", "CL", "Cl"},  // Amber ion
-    {"CLA", "CLA", "Cl"},  // CHARMM36 ion
-    {"CO", "CO", "Co"},  // Amber ion
-    {"CR", "CR", "Cr"},  // Amber ion
-    {"CS", "CS", "Cs"},  // Amber ion
-    {"CU", "CU", "Cu"},  // Amber ion
-    {"CU1", "CU1", "Cu"},  // Amber ion
-    {"Ce", "Ce", "Ce"},  // Amber ion
-    {"Cr", "Cr", "Cr"},  // Amber ion
-    {"Dy", "Dy", "Dy"},  // Amber ion
-    {"EU", "EU", "Eu"},  // Amber ion
-    {"EU3", "EU3", "Eu"},  // Amber ion
-    {"Er", "Er", "Er"},  // Amber ion
-    {"F", "F", "F"},  // Amber ion
-    {"FE", "FE", "Fe"},  // Amber ion
-    {"FE2", "FE2", "Fe"},  // Amber ion
-    {"GD3", "GD", "Gd"},  // Amber ion
-    {"HG", "HG", "Hg"},  // Amber ion
-    {"HOH", "M", ""},  // Amber water virtual site
-    {"HOH", "M1", ""},  // Amber water virtual site
-    {"HOH", "M2", ""},  // Amber water virtual site
-    {"Hf", "Hf", "Hf"},  // Amber ion
-    {"IN", "IN", "In"},  // Amber ion
-    {"IOD", "I", "I"},  // Amber ion
-    {"K", "K", "K"},  // Amber ion
-    {"LA", "LA", "La"},  // Amber ion
-    {"LI", "LI", "Li"},  // Amber ion
-    {"LIT", "LIT", "Li"},  // CHARMM36 ion
-    {"LU", "LU", "Lu"},  // Amber ion
-    {"MG", "MG", "Mg"},  // Amber ion
-    {"MG", "MG", "Mg"},  // CHARMM36 ion
-    {"MN", "MN", "Mn"},  // Amber ion
-    {"NA", "NA", "Na"},  // Amber ion
-    {"NI", "NI", "Ni"},  // Amber ion
-    {"Nd", "Nd", "Nd"},  // Amber ion
-    {"PB", "PB", "Pb"},  // Amber ion
-    {"PD", "PD", "Pd"},  // Amber ion
-    {"POT", "POT", "K"},  // CHARMM36 ion
-    {"PR", "PR", "Pr"},  // Amber ion
-    {"PT", "PT", "Pt"},  // Amber ion
-    {"Pu", "Pu", "Pu"},  // Amber ion
-    {"RB", "RB", "Rb"},  // Amber ion
-    {"RUB", "RUB", "Rb"},  // CHARMM36 ion
-    {"Ra", "Ra", "Ra"},  // Amber ion
-    {"SM", "SM", "Sm"},  // Amber ion
-    {"SOD", "SOD", "Na"},  // CHARMM36 ion
-    {"SR", "SR", "Sr"},  // Amber ion
-    {"Sm", "Sm", "Sm"},  // Amber ion
-    {"Sn", "Sn", "Sn"},  // Amber ion
-    {"TB", "TB", "Tb"},  // Amber ion
-    {"TIP5", "LP1", ""},  // CHARMM36 water virtual site
-    {"TIP5", "LP2", ""},  // CHARMM36 water virtual site
-    {"TL1", "TL1", "Tl"},  // Amber ion
-    {"TP4E", "OM", ""},  // CHARMM36 water virtual site
-    {"Th", "Th", "Th"},  // Amber ion
-    {"Tl", "Tl", "Tl"},  // Amber ion
-    {"Tm", "Tm", "Tm"},  // Amber ion
-    {"U4+", "U", "U"},  // Amber ion
-    {"V2+", "V2+", "V"},  // Amber ion
-    {"Y", "Y", "Y"},  // Amber ion
-    {"YB2", "YB2", "Yb"},  // Amber ion
-    {"ZN", "ZN", "Zn"},  // Amber ion
-    {"ZN2", "ZN", "Zn"},  // CHARMM36 ion
-    {"Zr", "Zr", "Zr"},  // Amber ion
+    {"AG", "Ag"},  // Amber ion
+    {"AG1", "Ag"},  // Amber ion
+    {"AL", "Al"},  // Amber ion
+    {"BA", "Ba"},  // Amber ion
+    {"BAR", "Ba"},  // CHARMM36 ion
+    {"BE", "Be"},  // Amber ion
+    {"BR", "Br"},  // Amber ion
+    {"CAL", "Ca"},  // CHARMM36 ion
+    {"CES", "Cs"},  // CHARMM36 ion
+    {"CL", "Cl"},  // Amber ion
+    {"CLA", "Cl"},  // CHARMM36 ion
+    {"CO", "Co"},  // Amber ion
+    {"CR", "Cr"},  // Amber ion
+    {"CS", "Cs"},  // Amber ion
+    {"CU", "Cu"},  // Amber ion
+    {"CU1", "Cu"},  // Amber ion
+    {"DY", "Dy"},  // Amber ion
+    {"ER", "Er"},  // Amber ion
+    {"EU", "Eu"},  // Amber ion
+    {"EU3", "Eu"},  // Amber ion
+    {"F", "F"},  // Amber ion
+    {"FE", "Fe"},  // Amber ion
+    {"FE2", "Fe"},  // Amber ion
+    {"GD", "Gd"},  // Amber ion
+    {"HF", "Hf"},  // Amber ion
+    {"HW1", "H"},  // OpenMM pdbNames.xml
+    {"HW2", "H"},  // OpenMM pdbNames.xml
+    {"I", "I"},  // Amber ion
+    {"IN", "In"},  // Amber ion
+    {"K", "K"},  // Amber ion
+    {"LA", "La"},  // Amber ion
+    {"LI", "Li"},  // Amber ion
+    {"LIT", "Li"},  // CHARMM36 ion
+    {"LP1", ""},  // CHARMM36 water virtual site
+    {"LP2", ""},  // CHARMM36 water virtual site
+    {"LU", "Lu"},  // Amber ion
+    {"M", ""},  // Amber water virtual site
+    {"M1", ""},  // Amber water virtual site
+    {"M2", ""},  // Amber water virtual site
+    {"MG", "Mg"},  // Amber ion, CHARMM36 ion
+    {"MN", "Mn"},  // Amber ion
+    {"NA", "Na"},  // Amber ion
+    {"NI", "Ni"},  // Amber ion
+    {"OH2", "O"},  // OpenMM pdbNames.xml
+    {"OM", ""},  // CHARMM36 water virtual site
+    {"OW", "O"},  // OpenMM pdbNames.xml
+    {"PB", "Pb"},  // Amber ion
+    {"PD", "Pd"},  // Amber ion
+    {"POT", "K"},  // CHARMM36 ion
+    {"PR", "Pr"},  // Amber ion
+    {"PT", "Pt"},  // Amber ion
+    {"PU", "Pu"},  // Amber ion
+    {"RA", "Ra"},  // Amber ion
+    {"RB", "Rb"},  // Amber ion
+    {"RUB", "Rb"},  // CHARMM36 ion
+    {"SM", "Sm"},  // Amber ion
+    {"SN", "Sn"},  // Amber ion
+    {"SOD", "Na"},  // CHARMM36 ion
+    {"SR", "Sr"},  // Amber ion
+    {"TB", "Tb"},  // Amber ion
+    {"TH", "Th"},  // Amber ion
+    {"TL", "Tl"},  // Amber ion
+    {"TL1", "Tl"},  // Amber ion
+    {"TM", "Tm"},  // Amber ion
+    {"U", "U"},  // Amber ion
+    {"V2+", "V"},  // Amber ion
+    {"Y", "Y"},  // Amber ion
+    {"YB2", "Yb"},  // Amber ion
+    {"ZN", "Zn"},  // Amber ion, CHARMM36 ion
+    {"ZR", "Zr"},  // Amber ion
 };
 
 // One-letter elements an atom-name prefix may be guessed as (standard residues, water, ions).
@@ -292,25 +286,34 @@ inline constexpr std::string_view kIndGuessOneLetterElements[] = {
     "C", "H", "K", "N", "O", "P", "S",
 };
 
+// Dropped by the collision rule (CCD reference names of another element start with them):
+//   Ca: CA CA2
+//   Cd: CD CD1 CD2
 // Two-letter elements an atom-name prefix may be guessed as (standard residues, CHARMM36 ions).
 inline constexpr std::string_view kIndGuessTwoLetterElements[] = {
-    "Ba", "Ca", "Cd", "Cl", "Cs", "Li", "Mg", "Na",
-    "Rb", "Se", "Zn",
+    "Ba", "Cl", "Cs", "Li", "Mg", "Na", "Rb", "Se",
+    "Zn",
 };
 
 // ---- PDB writer atom-name placement ----
 
+// Dropped by the collision rule (first two letters of CCD reference names of another element):
+//   CA: CA CA2
+//   CD: CD CD1 CD2
+//   CE: CE CE1 CE2 CE3
+//   HG: HG HG1 HG11 HG12 HG13 HG2 HG21 HG22 ...
+//   HO: HO'2 HO2' HO3 HO3' HOP2 HOP3
+//   ND: ND1 ND2
 // Atom names of one-atom CCD components with a two-letter element (written from column 13).
 inline constexpr std::string_view kIndMonatomicIonNames[] = {
     "AC", "AG", "AL", "AM", "AR", "AS", "AU", "BA",
-    "BE", "BI", "BR", "CA", "CD", "CE", "CF", "CL",
-    "CM", "CO", "CR", "CS", "CU", "DY", "ER", "EU",
-    "FE", "GA", "GD", "HG", "HO", "IN", "IR", "KR",
-    "LA", "LI", "LU", "MG", "MN", "MO", "NA", "ND",
-    "NI", "OS", "PB", "PD", "PR", "PT", "PU", "RB",
-    "RE", "RH", "RU", "SB", "SE", "SM", "SR", "TA",
-    "TB", "TE", "TH", "TI", "TL", "XE", "YB", "ZN",
-    "ZR",
+    "BE", "BI", "BR", "CF", "CL", "CM", "CO", "CR",
+    "CS", "CU", "DY", "ER", "EU", "FE", "GA", "GD",
+    "IN", "IR", "KR", "LA", "LI", "LU", "MG", "MN",
+    "MO", "NA", "NI", "OS", "PB", "PD", "PR", "PT",
+    "PU", "RB", "RE", "RH", "RU", "SB", "SE", "SM",
+    "SR", "TA", "TB", "TE", "TH", "TI", "TL", "XE",
+    "YB", "ZN", "ZR",
 };
 
 // CCD components in which the atom named HG is mercury.

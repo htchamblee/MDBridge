@@ -5,7 +5,7 @@
 Python 3.13 (Unicode 15.1). The tables are data read from the running Python; the output is
 committed, so a build needs no Python. The element, mass and atom-name tables of the PDB parser,
 guessers and PDB writer are not taken from MDAnalysis: they are MDBridge's independent tables
-(src/core/data_tables_independent.inc, tools/gen_data_tables.py).
+(src/core/include/mdbridge/core/detail/data_tables_independent.inc, tools/gen_data_tables.py).
 """
 
 from __future__ import annotations
