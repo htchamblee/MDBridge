@@ -7,6 +7,8 @@
 # - windows:     MSVC 2022 build and tests, zip and installer; smoke test of the installed program
 # - parity:      MDATK v0.0.4.1 writes project files and records what it reads from them;
 #                the AppImage must read them the same way
+# - regenerate:  every generator of tests/data/README.md, run with MDATK v0.0.4.1, MDAnalysis 2.11.0
+#                and the pinned numpy / scipy, writes exactly the committed test data
 # - release:     tags v* only, after every job passed: attaches the builds to the GitHub release
 #
 # Local builds: docs/BUILDING.md. The actions are pinned to commit SHAs (versions in comments).
@@ -234,10 +236,57 @@ jobs:
           (cd tests/data/projects && python ../../parity/reference.py --out ../../../work/committed *)
           diff -r tests/data/expected work/committed
 
+  regenerate:
+    name: Committed test data is what MDATK v0.0.4.1 and MDAnalysis 2.11.0 produce
+    # every generator of tests/data/README.md (tests/parity/*.py, tools/gen_*.py) runs into a fresh
+    # tree, which must equal the committed files byte for byte (one CPU-dependent file within a
+    # tolerance: see the script); no build needed
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      LC_ALL: C.UTF-8
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      - name: MDATK at the frozen tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          repository: htchamblee/MDATK
+          ref: v0.0.4.1
+          path: mdatk
+
+      # Python 3.13: textwrap, json's messages and the Unicode tables depend on the version
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: "3.13"
+
+      - name: MDATK's dependencies at the reference versions (MDAnalysis 2.11.0, numpy 2.5.5, scipy 1.18.1) and pytest
+        run: |
+          python -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/python" -m pip install --no-deps -r tests/parity/requirements-regenerate.txt
+          "$RUNNER_TEMP/venv/bin/python" -m pip check
+          "$RUNNER_TEMP/venv/bin/python" -m pip freeze
+
+      - name: Regenerate every data set and compare with the committed files
+        run: |
+          python tests/parity/regenerate_all.py --mdatk mdatk --out "$RUNNER_TEMP/fresh" \
+            --python "$RUNNER_TEMP/venv/bin/python"
+          test -z "$(git -C mdatk status --porcelain)"  # nothing was written into the checkout
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        if: failure()
+        with:
+          name: regenerated-test-data
+          path: |
+            ${{ runner.temp }}/fresh/tests/data
+            ${{ runner.temp }}/fresh/src
+            ${{ runner.temp }}/fresh/logs
+          if-no-files-found: ignore
+
   release:
     name: GitHub release
     # tags only, and only when every build and test passed: no half-empty releases
-    needs: [linux, appimage-ubuntu, appimage-rocky, windows, parity]
+    needs: [linux, appimage-ubuntu, appimage-rocky, windows, parity, regenerate]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:
