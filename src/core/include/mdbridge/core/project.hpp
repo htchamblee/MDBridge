@@ -697,8 +697,9 @@ void resolvePaths(Project& project, std::string_view baseDir);
 
 // resolve_node_paths: each files value is split at ";", the pieces stripped, empty ones dropped,
 // the rest resolved and joined with ";"; settings named by the step type's pathSettings are
-// resolved when they are non-empty strings. A files value that is not a string throws
-// ProjectError("<where>: expected a file path, got <repr>") (MDATK crashes there).
+// resolved when they are non-empty strings. `where` names the node ("project.workflow.nodes[2]");
+// a files value that is not a string throws ProjectError("<where>.files.<port>: expected a file
+// path, got <repr>") and leaves the node unchanged (MDATK crashes there).
 void resolveNodePaths(PlanNode& node, std::string_view baseDir, std::string_view where);
 
 // fix(p) of resolve_paths: "" stays "", "~" is expanded, an absolute path is returned unchanged, a

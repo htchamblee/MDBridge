@@ -1,0 +1,714 @@
+#include "mdbridge/core/project.hpp"
+
+#include <algorithm>
+#include <array>
+#include <cmath>
+#include <filesystem>
+#include <stdexcept>
+#include <system_error>
+#include <tuple>
+#include <type_traits>
+#include <utility>
+
+#include "mdbridge/core/log.hpp"
+#include "mdbridge/core/naming.hpp"
+#include "mdbridge/core/paths.hpp"
+#include "mdbridge/core/project_file.hpp"
+#include "mdbridge/core/python.hpp"
+#include "mdbridge/core/step_types.hpp"
+#include "mdbridge/core/text.hpp"
+
+namespace mdbridge::core {
+
+namespace {
+
+#include "project_model.inc"
+
+template <class T>
+concept Model = requires(const T* p) { fieldsOf(p); };
+
+template <class S, class F>
+void forEachField(S& s, F&& f) {
+    using T = std::remove_const_t<S>;
+    std::apply([&](const auto&... fd) { (f(fd.name, s.*(fd.member)), ...); },
+               fieldsOf(static_cast<const T*>(nullptr)));
+}
+
+// Calls f(member) for the field named `key`; false when there is none.
+template <class S, class F>
+bool withField(S& s, std::string_view key, F&& f) {
+    return std::apply(
+        [&](const auto&... fd) {
+            return ((fd.name == key ? (f(s.*(fd.member)), true) : false) || ...);
+        },
+        fieldsOf(static_cast<const S*>(nullptr)));
+}
+
+std::string repr(std::string_view text) { return pythonRepr(Value(std::string(text))); }
+
+// _to_plain of a free-form table: entries holding None are left out, at every depth.
+Value withoutNulls(const Value& value) {
+    if (const Table* table = value.get<Table>()) {
+        Table out;
+        for (const auto& [key, item] : *table) {
+            if (!item.isNull()) {
+                out.emplace_back(key, withoutNulls(item));
+            }
+        }
+        return out;
+    }
+    if (const Array* array = value.get<Array>()) {
+        Array out;
+        out.reserve(array->size());
+        for (const Value& item : *array) {
+            out.push_back(withoutNulls(item));
+        }
+        return out;
+    }
+    return value;
+}
+
+struct Writer {
+    static Value plain(const std::string& v) { return v; }
+    static Value plain(std::int64_t v) { return v; }
+    static Value plain(double v) { return v; }
+    static Value plain(bool v) { return v; }
+    static Value plain(const Table& v) { return withoutNulls(Value(v)); }
+
+    template <class T>
+    static Value plain(const std::optional<T>& v) {
+        return v ? plain(*v) : Value();
+    }
+
+    template <class T>
+    static Value plain(const std::vector<T>& v) {
+        Array out;
+        out.reserve(v.size());
+        for (const T& item : v) {
+            out.push_back(plain(item));
+        }
+        return out;
+    }
+
+    template <Model T>
+    static Value plain(const T& s) {
+        Table out;
+        forEachField(s, [&](std::string_view name, const auto& member) {
+            out.emplace_back(std::string(name), plain(member));
+        });
+        return out;
+    }
+};
+
+// _from_plain: the type checks and messages of config.py.
+class Reader {
+public:
+    explicit Reader(std::vector<std::string>* warnings) : m_warnings(warnings) {}
+
+    void read(const Value& v, const std::string& /*where*/, std::string& out) {
+        out = v.isNull() ? std::string() : pythonStr(v);
+    }
+
+    void read(const Value& v, const std::string& where, double& out) {
+        if (const auto* i = v.get<std::int64_t>()) {
+            out = static_cast<double>(*i);
+        } else if (const auto* d = v.get<double>()) {
+            out = *d;
+        } else {
+            fail(where + ": expected a number, got " + pythonRepr(v));
+        }
+    }
+
+    void read(const Value& v, const std::string& where, std::int64_t& out) {
+        if (const auto* i = v.get<std::int64_t>()) {
+            out = *i;
+            return;
+        }
+        const double* d = v.get<double>();
+        if (!d) {
+            fail(where + ": expected an integer, got " + pythonRepr(v));
+        }
+        if (std::isnan(*d)) {
+            fail("cannot convert float NaN to integer");
+        }
+        if (std::isinf(*d)) {
+            fail("cannot convert float infinity to integer");
+        }
+        // [-2^63, 2^63): the integral doubles an int64 holds
+        if (std::trunc(*d) != *d || *d < -9223372036854775808.0 || *d >= 9223372036854775808.0) {
+            fail(where + ": expected an integer, got " + pythonRepr(v));
+        }
+        out = static_cast<std::int64_t>(*d);
+    }
+
+    void read(const Value& v, const std::string& where, bool& out) {
+        const bool* b = v.get<bool>();
+        if (!b) {
+            fail(where + ": expected true/false, got " + pythonRepr(v));
+        }
+        out = *b;
+    }
+
+    void read(const Value& v, const std::string& where, Table& out) {
+        const Table* table = v.get<Table>();
+        if (!table) {
+            fail(where + ": expected an object");
+        }
+        out = *table;
+    }
+
+    template <class T>
+    void read(const Value& v, const std::string& where, std::optional<T>& out) {
+        if (v.isNull()) {
+            out.reset();
+            return;
+        }
+        T value{};
+        read(v, where, value);
+        out = std::move(value);
+    }
+
+    template <class T>
+    void read(const Value& v, const std::string& where, std::vector<T>& out) {
+        if (v.isNull()) {
+            out.clear();
+            return;
+        }
+        const Array* array = v.get<Array>();
+        if (!array) {
+            fail(where + ": expected a list");
+        }
+        std::vector<T> items(array->size());
+        for (std::size_t i = 0; i < array->size(); ++i) {
+            read((*array)[i], where + "[" + std::to_string(i) + "]", items[i]);
+        }
+        out = std::move(items);
+    }
+
+    template <Model T>
+    void read(const Value& v, const std::string& where, T& out) {
+        const Table* table = v.get<Table>();
+        if (!table) {
+            fail(where + ": expected an object, got " + std::string(pythonTypeName(v)));
+        }
+        T result{};
+        for (const auto& [given, value] : *table) {
+            const std::string_view key = alias<T>(given);
+            const std::string at = where + "." + std::string(key);
+            bool oneTrajectory = false;  // a string for inputs.trajectories: a one-item list
+            if constexpr (std::is_same_v<T, InputParams>) {
+                oneTrajectory = key == "trajectories" && value.isString();
+            }
+            const bool known = withField(result, key, [&](auto& member) {
+                read(oneTrajectory ? Value(Array{value}) : value, at, member);
+            });
+            if (!known) {
+                warn(where + ": ignoring unknown key " + repr(key));
+            }
+        }
+        out = std::move(result);
+    }
+
+private:
+    template <class T>
+    static std::string_view alias(std::string_view key) {
+        if constexpr (std::is_same_v<T, InputParams>) {
+            return key == "trajectory" ? "trajectories" : key;
+        } else if constexpr (std::is_same_v<T, Project>) {
+            return key == "input" ? "inputs" : key;
+        } else {
+            return key;
+        }
+    }
+
+    [[noreturn]] static void fail(const std::string& message) { throw ProjectError(message); }
+
+    void warn(const std::string& message) const {
+        if (m_warnings) {
+            m_warnings->push_back(message);
+        } else {
+            logWarning(message);
+        }
+    }
+
+    std::vector<std::string>* m_warnings;
+};
+
+constexpr std::array<std::string_view, 6> kMetaKeys{"format", "format_version", "mdatk_version",
+                                                    "saved",  "log",            "log_file"};
+
+// os.path.exists, relative to the current directory
+bool exists(const std::string& path) {
+    if (path.empty() || path.find('\0') != std::string::npos) {
+        return false;
+    }
+    std::error_code ec;
+    return std::filesystem::exists(pathFromUtf8(path), ec);
+}
+
+template <std::size_t N>
+bool oneOf(std::string_view value, const std::array<std::string_view, N>& options) {
+    return std::find(options.begin(), options.end(), value) != options.end();
+}
+
+bool oneOf(std::string_view value, std::initializer_list<std::string_view> options) {
+    return std::find(options.begin(), options.end(), value) != options.end();
+}
+
+bool contains(const std::vector<std::string>& names, const std::string& name) {
+    return std::find(names.begin(), names.end(), name) != names.end();
+}
+
+std::string joined(const std::vector<std::string>& items, std::string_view separator) {
+    std::string out;
+    for (std::size_t i = 0; i < items.size(); ++i) {
+        if (i) {
+            out += separator;
+        }
+        out += items[i];
+    }
+    return out;
+}
+
+template <std::size_t N>
+std::string joined(const std::array<std::string_view, N>& items, std::string_view separator) {
+    return joined(std::vector<std::string>(items.begin(), items.end()), separator);
+}
+
+// re.fullmatch(r"[A-Za-z0-9_.\-]+", name)
+bool isPlainName(std::string_view name) {
+    return !name.empty() && std::all_of(name.begin(), name.end(), [](char c) {
+        return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') ||
+               c == '_' || c == '.' || c == '-';
+    });
+}
+
+// str.isdigit(): Unicode digits, decimal or not ("²", "①" ...)
+bool isDigitString(std::string_view text) {
+    const std::u32string codes = decodeUtf8(text);
+    return !codes.empty() && std::all_of(codes.begin(), codes.end(), [](char32_t c) {
+        const auto inRange = [c](const auto& range) {
+            return range.first <= c && c <= range.second;
+        };
+        return isPythonDigit(c) ||
+               std::any_of(std::begin(kDigitNotDecimal), std::end(kDigitNotDecimal), inRange);
+    });
+}
+
+std::string asciiLower(std::string text) {
+    for (char& c : text) {
+        if (c >= 'A' && c <= 'Z') {
+            c = static_cast<char>(c - 'A' + 'a');
+        }
+    }
+    return text;
+}
+
+using Matrix3 = std::array<std::array<double, 3>, 3>;
+
+// Eigenvalues of a symmetric 3x3 matrix (cyclic Jacobi rotations).
+std::array<double, 3> symmetricEigenvalues(Matrix3 a) {
+    for (int sweep = 0; sweep < 50; ++sweep) {
+        const double off = a[0][1] * a[0][1] + a[0][2] * a[0][2] + a[1][2] * a[1][2];
+        if (off == 0.0) {
+            break;
+        }
+        for (int p = 0; p < 2; ++p) {
+            for (int q = p + 1; q < 3; ++q) {
+                if (a[p][q] == 0.0) {
+                    continue;
+                }
+                const double theta = (a[q][q] - a[p][p]) / (2.0 * a[p][q]);
+                const double t = (theta >= 0 ? 1.0 : -1.0) /
+                                 (std::abs(theta) + std::sqrt(theta * theta + 1.0));
+                const double c = 1.0 / std::sqrt(t * t + 1.0);
+                const double s = t * c;
+                for (int k = 0; k < 3; ++k) {  // columns p, q
+                    const double akp = a[k][p], akq = a[k][q];
+                    a[k][p] = c * akp - s * akq;
+                    a[k][q] = s * akp + c * akq;
+                }
+                for (int k = 0; k < 3; ++k) {  // rows p, q
+                    const double apk = a[p][k], aqk = a[q][k];
+                    a[p][k] = c * apk - s * aqk;
+                    a[q][k] = s * apk + c * aqk;
+                }
+            }
+        }
+    }
+    return {a[0][0], a[1][1], a[2][2]};
+}
+
+}  // namespace
+
+// ---- plain data ------------------------------------------------------------------------------
+
+Value toPlain(const Project& project) { return Writer::plain(project); }
+
+Project projectFromPlain(const Value& data, std::string_view baseDir,
+                         std::vector<std::string>* warnings) {
+    Value input = data;
+    if (Table* table = input.get<Table>()) {
+        std::erase_if(*table, [](const auto& entry) { return oneOf(entry.first, kMetaKeys); });
+    }
+    Project project;
+    Reader(warnings).read(input, "project", project);
+    if (!baseDir.empty()) {
+        resolvePaths(project, baseDir);
+    }
+    return project;
+}
+
+std::optional<std::string_view> modelComment(std::string_view path) {
+    for (const auto& [key, text] : kModelComments) {
+        if (key == path) {
+            return text;
+        }
+    }
+    return std::nullopt;
+}
+
+// ---- paths -----------------------------------------------------------------------------------
+
+std::string resolvePath(std::string_view path, std::string_view baseDir) {
+    if (path.empty()) {
+        return {};
+    }
+    std::string expanded = posixpath::expanduser(path);
+    if (posixpath::isabs(expanded)) {
+        return expanded;
+    }
+    return posixpath::normpath(posixpath::join(baseDir, expanded));
+}
+
+void resolveNodePaths(PlanNode& node, std::string_view baseDir, std::string_view where) {
+    Table files;
+    for (const auto& [port, value] : node.files) {
+        const std::string* text = value.get<std::string>();
+        if (!text) {
+            throw ProjectError(std::string(where) + ".files." + port +
+                               ": expected a file path, got " + pythonRepr(value));
+        }
+        std::vector<std::string> pieces;
+        std::size_t start = 0;
+        for (;;) {
+            const std::size_t end = text->find(';', start);
+            const std::string piece = pythonStrip(std::string_view(*text).substr(
+                start, end == std::string::npos ? std::string::npos : end - start));
+            if (!piece.empty()) {
+                pieces.push_back(resolvePath(piece, baseDir));
+            }
+            if (end == std::string::npos) {
+                break;
+            }
+            start = end + 1;
+        }
+        files.emplace_back(port, joined(pieces, ";"));
+    }
+    node.files = std::move(files);
+    if (const StepType* type = findStepType(node.tool)) {
+        for (const std::string& key : type->pathSettings) {
+            for (auto& [name, value] : node.settings) {
+                if (name == key) {
+                    const std::string* text = value.get<std::string>();
+                    if (text && !text->empty()) {
+                        value = resolvePath(*text, baseDir);
+                    }
+                    break;
+                }
+            }
+        }
+    }
+}
+
+void resolvePaths(Project& p, std::string_view baseDir) {
+    const auto fix = [baseDir](std::string& path) { path = resolvePath(path, baseDir); };
+    fix(p.inputs.topology);
+    for (std::string& path : p.inputs.trajectories) {
+        fix(path);
+    }
+    for (ExternalSeries& series : p.inputs.external) {
+        fix(series.path);
+    }
+    fix(p.cleaning.reference_file);
+    fix(p.cleaning.output_dir);
+    if (p.cleaning.cpptraj_path.find('/') != std::string::npos) {
+        fix(p.cleaning.cpptraj_path);
+    }
+    fix(p.output.out_dir);
+    fix(p.output.cache_dir);
+    fix(p.density.map_path);
+    fix(p.workflow.out_dir);
+    for (std::size_t i = 0; i < p.workflow.nodes.size(); ++i) {
+        resolveNodePaths(p.workflow.nodes[i], baseDir,
+                         "project.workflow.nodes[" + std::to_string(i) + "]");
+    }
+    for (std::size_t i = 0; i < p.workflow.scratch.size(); ++i) {
+        resolveNodePaths(p.workflow.scratch[i], baseDir,
+                         "project.workflow.scratch[" + std::to_string(i) + "]");
+    }
+}
+
+std::string outDir(const Project& project) {
+    const std::string& dir = project.output.out_dir;
+    return posixpath::abspath(dir.empty() ? std::string("MDATK_output") : dir, currentDirectory());
+}
+
+std::string cacheDir(const Project& project) {
+    if (!project.output.cache_dir.empty()) {
+        return posixpath::abspath(project.output.cache_dir, currentDirectory());
+    }
+    return posixpath::join(outDir(project), "MDATK_cache");
+}
+
+std::string workflowDir(const Project& project) {
+    if (!project.workflow.out_dir.empty()) {
+        return posixpath::abspath(project.workflow.out_dir, currentDirectory());
+    }
+    return posixpath::join(outDir(project),
+                           sanitizeProject(project.workflow.project_name) + "_workflow");
+}
+
+// ---- groups and checks -----------------------------------------------------------------------
+
+std::vector<std::string> groupNames(const Project& project) {
+    std::vector<std::string> names;
+    names.reserve(project.groups.size());
+    for (const ResidueGroup& g : project.groups) {
+        names.push_back(g.name);
+    }
+    return names;
+}
+
+const ResidueGroup& group(const Project& project, std::string_view name) {
+    for (const ResidueGroup& g : project.groups) {
+        if (g.name == name) {
+            return g;
+        }
+    }
+    const std::string defined = joined(groupNames(project), ", ");
+    throw std::out_of_range("no residue group named " + repr(name) + " (defined: " +
+                            (defined.empty() ? std::string("none") : defined) + ")");
+}
+
+bool densityActive(const Project& project) {
+    const DensityParams& d = project.density;
+    return !d.map_path.empty() && d.show &&
+           std::any_of(project.layout.panels.begin(), project.layout.panels.end(),
+                       [](const PanelSpec& panel) { return panel.type == "structure"; });
+}
+
+std::optional<std::string> rigidTransformProblem(std::span<const double> numbers) {
+    if (numbers.size() != 12) {
+        return "a rigid transform needs 12 numbers (3x3 rotation + translation)";
+    }
+    if (!std::all_of(numbers.begin(), numbers.end(), [](double x) { return std::isfinite(x); })) {
+        return "the transform contains non-finite numbers";
+    }
+    Matrix3 r{};
+    for (int i = 0; i < 9; ++i) {
+        r[i / 3][i % 3] = numbers[static_cast<std::size_t>(i)];
+    }
+    const std::string notRotation = "the rotation part of the transform is not a rotation";
+    // every entry is bounded by the largest singular value; this also keeps R^T R finite
+    for (const auto& row : r) {
+        for (const double x : row) {
+            if (std::abs(x) > 1.01) {
+                return notRotation;
+            }
+        }
+    }
+    Matrix3 rtr{};
+    for (int i = 0; i < 3; ++i) {
+        for (int j = 0; j < 3; ++j) {
+            for (int k = 0; k < 3; ++k) {
+                rtr[i][j] += r[k][i] * r[k][j];
+            }
+        }
+    }
+    for (const double eigenvalue : symmetricEigenvalues(rtr)) {
+        if (std::abs(std::sqrt(std::max(eigenvalue, 0.0)) - 1.0) > 0.01) {
+            return notRotation;
+        }
+    }
+    const double det = r[0][0] * (r[1][1] * r[2][2] - r[1][2] * r[2][1]) -
+                       r[0][1] * (r[1][0] * r[2][2] - r[1][2] * r[2][0]) +
+                       r[0][2] * (r[1][0] * r[2][1] - r[1][1] * r[2][0]);
+    if (det < 0) {
+        return "the rotation part of the transform is a reflection";
+    }
+    return std::nullopt;
+}
+
+std::vector<std::string> densityProblems(const Project& project) {
+    const DensityParams& d = project.density;
+    std::vector<std::string> out;
+    if (d.map_path.empty()) {
+        return out;
+    }
+    if (densityActive(project) && !exists(d.map_path)) {
+        out.push_back("Density map not found: " + d.map_path +
+                      " (untick 'show' to render without it)");
+    }
+    if (d.resolution <= 0) {
+        out.push_back("Density map resolution must be positive.");
+    }
+    if (!(0.0 <= d.opacity && d.opacity <= 1.0)) {
+        out.push_back("Density map opacity must be between 0 and 1.");
+    }
+    if (!(5.0 <= d.angular_step && d.angular_step <= 45.0)) {
+        out.push_back("Density search angular step must be between 5 and 45 degrees.");
+    }
+    if (!oneOf(d.search, {"global", "manual"})) {
+        out.push_back("Unknown density fit start " + repr(d.search) + " (global or manual).");
+    }
+    if (!d.transform.empty()) {
+        if (const auto problem = rigidTransformProblem(d.transform)) {
+            out.push_back("The stored density map placement is invalid (" + *problem +
+                          "); clear it or fit again.");
+        }
+    }
+    const std::string frame = asciiLower(pythonStrip(d.fit_frame));
+    if (!frame.empty() && frame != "ref" && !isDigitString(frame)) {
+        out.push_back("Density fit frame must be 'ref' or a frame number, not " +
+                      repr(d.fit_frame) + ".");
+    }
+    return out;
+}
+
+std::vector<std::string> validate(const Project& project) {
+    std::vector<std::string> problems;
+    const InputParams& in = project.inputs;
+    if (in.topology.empty()) {
+        problems.push_back("No topology file selected.");
+    } else if (!exists(in.topology)) {
+        problems.push_back("Topology file not found: " + in.topology);
+    }
+    if (in.trajectories.empty()) {
+        problems.push_back("No trajectory file selected.");
+    }
+    for (const std::string& t : in.trajectories) {
+        if (!exists(t)) {
+            problems.push_back("Trajectory file not found: " + t);
+        }
+    }
+    if (in.step < 1) {
+        problems.push_back("Frame step must be >= 1.");
+    }
+    const std::vector<std::string> names = groupNames(project);
+    std::vector<std::string> sorted = names;
+    std::sort(sorted.begin(), sorted.end());
+    if (std::adjacent_find(sorted.begin(), sorted.end()) != sorted.end()) {
+        problems.push_back("Residue group names must be unique.");
+    }
+    for (const ResidueGroup& g : project.groups) {
+        if (pythonStrip(g.name).empty()) {
+            problems.push_back("Residue groups need a name.");
+        } else if (!isPlainName(g.name)) {
+            problems.push_back("Group name " + repr(g.name) +
+                               " may only contain letters, digits, '_', '.' and '-' (no spaces).");
+        }
+        if (pythonStrip(g.residues).empty() && pythonStrip(g.selection).empty()) {
+            problems.push_back("Group " + repr(g.name) + " has neither residues nor a selection.");
+        }
+    }
+    const AnalysisParams& a = project.analyses;
+    const std::array<std::tuple<std::string_view, bool, const std::string*, const std::string*>, 5>
+        pairs{{{"contacts", a.contacts.enabled, &a.contacts.group_a, &a.contacts.group_b},
+               {"H-bonds", a.hbonds.enabled, &a.hbonds.group_a, &a.hbonds.group_b},
+               {"Mg", a.mg.enabled, &a.mg.group_a, &a.mg.group_b},
+               {"stacking", a.stacking.enabled, &a.stacking.group_a, &a.stacking.group_b},
+               {"energy", a.energy.enabled, &a.energy.group_a, &a.energy.group_b}}};
+    for (const auto& [label, enabled, groupA, groupB] : pairs) {
+        if (!enabled) {
+            continue;
+        }
+        for (const std::string* name : {groupA, groupB}) {
+            if (!name->empty() && !contains(names, *name)) {
+                problems.push_back(std::string(label) + ": unknown residue group " + repr(*name) +
+                                   ".");
+            }
+        }
+    }
+    if (a.contacts.cutoff <= 0) {
+        problems.push_back("Contact cutoff must be positive.");
+    }
+    if (a.mg.inner_cutoff > a.mg.outer_cutoff) {
+        problems.push_back("Mg inner-sphere cutoff must not exceed the outer-sphere cutoff.");
+    }
+    const VisualParams& v = project.visual;
+    if (!oneOf(v.color_mode, {"chain", "groups", "proximity"})) {
+        problems.push_back("Unknown colour mode " + repr(v.color_mode) + ".");
+    }
+    if (!oneOf(v.glow_mode, {"none", "ever", "fade", "current"})) {
+        problems.push_back("Unknown glow mode " + repr(v.glow_mode) + ".");
+    }
+    for (std::size_t k = 0; k < v.representations.size(); ++k) {
+        const RepSpec& rs = v.representations[k];
+        const std::string head = "Representation " + std::to_string(k + 1) + ": ";
+        if (!oneOf(rs.style, kRepStyles)) {
+            problems.push_back(head + "unknown style " + repr(rs.style) + " (" +
+                               joined(kRepStyles, ", ") + ").");
+        }
+        if (!oneOf(rs.color, kRepColors)) {
+            problems.push_back(head + "unknown colouring " + repr(rs.color) + ".");
+        }
+        for (const std::string& name : rs.groups) {
+            if (!contains(names, name)) {
+                problems.push_back(head + "unknown residue group " + repr(name) + ".");
+            }
+        }
+        if (rs.size <= 0 || !(0 < rs.opacity && rs.opacity <= 1)) {
+            problems.push_back(head + "size must be positive and opacity in (0, 1].");
+        }
+    }
+    if (!oneOf(v.renderer, {"auto", "software", "vtk"})) {
+        problems.push_back("Unknown renderer " + repr(v.renderer) + " (auto, software or vtk).");
+    }
+    if (!(0.05 <= v.zoom && v.zoom <= 50)) {
+        problems.push_back("Structure zoom must be between 0.05 and 50.");
+    }
+    const BasePairParams& bp = a.basepairs;
+    if (!oneOf(bp.engine, {"builtin", "barnaba"})) {
+        problems.push_back("Unknown base-pair engine " + repr(bp.engine) +
+                           " (builtin or barnaba).");
+    }
+    if (bp.stride < 1) {
+        problems.push_back("Base-pair stride must be at least 1.");
+    }
+    if (!(2.0 <= bp.cutoff && bp.cutoff <= 5.0)) {
+        problems.push_back("Base-pair H-bond cutoff must be between 2.0 and 5.0 Å.");
+    }
+    if (!oneOf(v.rep_rest, kRepRest)) {
+        problems.push_back("Unknown setting for residues without a representation " +
+                           repr(v.rep_rest) + " (trace or hide).");
+    }
+    if (!oneOf(v.backbone_atom, {"P", "C4'"})) {
+        problems.push_back("The backbone atom of ribbons and cartoons must be P or C4'.");
+    }
+    if (v.proximity_cutoff > a.proximity_search_radius) {
+        problems.push_back("Proximity cutoff exceeds the proximity search radius "
+                           "(raise analyses.proximity_search_radius).");
+    }
+    for (std::string& problem : densityProblems(project)) {
+        problems.push_back(std::move(problem));
+    }
+    if (project.output.video.fps <= 0) {
+        problems.push_back("Video FPS must be positive.");
+    }
+    return problems;
+}
+
+std::vector<std::string> layoutWarnings(const Project& project) {
+    const auto& panels = project.layout.panels;
+    const auto count = std::count_if(panels.begin(), panels.end(), [](const PanelSpec& panel) {
+        return panel.type == "structure";
+    });
+    if (count > 1) {
+        return {std::to_string(count) + " structure panels in the layout; usually one is intended "
+                                        "(check each slot's panel type)"};
+    }
+    return {};
+}
+
+}  // namespace mdbridge::core

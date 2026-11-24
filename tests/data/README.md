@@ -68,6 +68,25 @@ python3 -I -B tests/parity/python_cases.py /tmp/mdatk tests/data/python
 The generators fix the clocks (`saved`, entry times, durations), so their output is reproducible
 and equal to the committed files.
 
+`project-model/` holds what MDATK's parameter model (`mdatk/config.py`) computes, for
+`mdbridge/core/project.hpp` (`tests/core/test_project_model.cpp`, which also reuses
+`python/resolve_paths_cases.json` and `python/dirs_cases.json`). Values are tagged as in
+`project-file/vectors/`; results are compared as Python `repr()` texts.
+
+| File | Content |
+|---|---|
+| `from_dict_cases.json` | `Project.from_dict(input, base_dir)`: hand-made inputs (aliases, unknown keys, error order, lists of objects replacing the defaults, free-form tables, path resolution), every field given a value of every TOML type (with None, NaN, infinity, 64-bit limits), integral floats in integer fields; `repr()` of the result or the error message, and the warnings logged |
+| `validate_cases.json` | `validate()`, `density_problems()`, `density_active()`, `layout_warnings()`, `group_names()` of 103 projects (every check, NaN values, stored placements, fit frames), run in a folder holding the empty files listed in it |
+| `config_doc.json` | `projectfile.config_doc` of every path of the model |
+| `default_project.json` | `repr(Project().to_dict())` |
+
+To regenerate, with Python 3.13 on Linux and an MDATK checkout at `v0.0.4.1` (numpy and scipy
+importable; nothing is written into the checkout):
+
+```bash
+python3 -I -B tests/parity/make_model_cases.py /tmp/mdatk tests/data/project-model
+```
+
 `topology/` holds the topology fixtures and what MDAnalysis 2.11.0 builds from them:
 `fixture_chains.pdb`, `fixture_noelements.pdb`, `fixture_segids.pdb`, `fixture_chains_ba.pdb` and
 `demo_dry.parm7` (MDATK's dry demo system) from
