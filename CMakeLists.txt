@@ -48,6 +48,7 @@ add_subdirectory(src/render/core)  # the render module's Qt-free part
 add_subdirectory(src/render/molecule)  # 3D representation geometry; no Qt
 if(MDBRIDGE_BUILD_APP OR MDBRIDGE_BUILD_TESTS)
     add_subdirectory(src/app/commands)  # the command line's MDATK commands; no Qt
+    add_subdirectory(src/render/video)  # MP4 encoding with the LGPL FFmpeg libraries; no Qt
 endif()
 if(MDBRIDGE_BUILD_APP)
     # Qt's package links OpenGL into every Qt program. With GLVND that would be libOpenGL.so.0 and

@@ -85,6 +85,36 @@ from the build folder need Qt's `bin` on `PATH` (the script sets it).
 To work in Visual Studio instead: *Open a local folder* on the repository and set
 `CMAKE_PREFIX_PATH` to the Qt folder in the CMake settings.
 
+## Video encoding (FFmpeg)
+
+Videos are encoded in process with FFmpeg's libraries (`libavcodec`, `libavformat`, `libavutil`,
+`libswscale`) and the AV1 encoder SVT-AV1, built by MDBridge's own scripts as an LGPL-only build
+(no GPL or non-free parts; `LICENSING.md`). Versions are pinned in `packaging/ffmpeg/versions.env`
+(FFmpeg 9.0.2, SVT-AV1 4.1.0; sources checked against their commit hashes). Build them once, then
+point CMake at the result:
+
+```bash
+packaging/ffmpeg/build_ffmpeg.sh --prefix build/ffmpeg/prefix        # Linux: ~5 min; gcc, make, cmake, nasm, pkg-config
+cmake ... -DMDBRIDGE_FFMPEG=ON -DMDBRIDGE_FFMPEG_ROOT=$PWD/build/ffmpeg/prefix
+```
+
+```powershell
+packaging\ffmpeg\windows\build_ffmpeg.ps1 -Prefix build\ffmpeg\prefix -Work C:\mdbff   # Windows: vcpkg, ~30 min
+packaging\windows\build_windows.ps1 -QtDir C:\Qt\6.11.3\msvc2022_64 -FFmpegRoot build\ffmpeg\prefix
+```
+
+`MDBRIDGE_FFMPEG` is `AUTO` by default (used when `cmake/FindFFmpegLGPL.cmake` finds the libraries),
+`ON` (required) or `OFF`. Without the libraries everything else builds and video encoding reports
+`video encoding is not available in this build`. The find module refuses libraries configured with
+`--enable-gpl` or `--enable-nonfree` (it reads the configuration string in libavcodec), and the
+program checks the same at run time. Installs bundle the shared libraries (Linux: `lib/`, so the
+AppImage's `usr/lib`; Windows: next to `mdbridge.exe`) with their licences in `licenses/`; each
+script also writes the corresponding FFmpeg source archive next to the prefix
+(`ffmpeg-<version>-source.tar.xz`, `ffmpeg-<version>-vcpkg-source.zip`), which CI attaches to
+releases. CI caches the prefix by the hash of `packaging/ffmpeg/`. The Linux script runs on Rocky
+Linux 9 in CI so that the libraries need glibc 2.34 at most; built elsewhere they need that
+system's glibc.
+
 ## Offline and mirrored builds
 
 Point FetchContent at checkouts of the same tags instead of downloading:

@@ -674,6 +674,48 @@ indices exact; `tests/render/test_molecule_geometry.cpp` against
   *Tested:* `MoleculeGeometryParity.SurfacesMatchMdatk` (distances where the indices differ),
   `MoleculeGeometry.NearestPointsAgreeWithBruteForce`.
 
+## Video encoding (src/render/video)
+
+MDATK pipes RGBA frames into an `ffmpeg` executable; MDBridge links its own LGPL-only build of
+FFmpeg's libraries with SVT-AV1 (`packaging/ffmpeg`; owner decisions D1, D2) and writes the same
+kind of file: MP4, `yuv420p`, `moov` in front (faststart), no audio, frame k at k / fps with the
+frame rate read as `ffmpeg -r` reads it, the same temporary name `.MDATK_tmp_<pid>_<name>` in the
+target folder renamed at the end and removed on failure. Stream metadata (frame count, size,
+`r_frame_rate`, time base 1/15360 at 30 fps, duration) equals what `ffmpeg -r 30 ... -movflags
++faststart` writes; verified against the ffmpeg command line while writing the encoder.
+
+- **Codec mapping and quality (RN-07).** MDATK passes `codec` to ffmpeg; with `libx264` (the project
+  files' default, kept by `init`: D12) a build without x264 fell back silently to the first of
+  libx264 / libopenh264 / mpeg4, and `crf` was used only for libx264 / libx265 (`mpeg4` always got
+  `-q:v 3`). x264 and x265 are GPL and cannot be bundled, so `libx264`, `libx265`, `h264` and `hevc`
+  map to the AV1 encoder `libsvtav1` with one warning, `video: codec libx264 is not bundled (GPL);
+  using libsvtav1 (AV1)` (`h264` / `hevc`: without "(GPL)"); `av1`, `libsvtav1` and `mpeg4` are
+  used as named; any other name is used if FFmpeg has that encoder (as MDATK passed it through), else
+  `video: encoder X is not available; using libsvtav1` (or `mpeg4`). `crf` is always on the x264 /
+  x265 scale (0-51, clamped) and is mapped: SVT-AV1 `crf = round(crf * 63 / 51)` (20 -> 25,
+  23 -> 28, 51 -> 63; preset 8), mpeg4 `qscale = round(1 + crf / 10)` up to 20 and
+  `round(3 + (crf - 20) * 28 / 31)` above (20 -> 3, MDATK's fixed value; 23 -> 6; 51 -> 31). When
+  SVT-AV1 cannot encode the size (below 4x4) the encoder falls back to mpeg4 with
+  `video: libsvtav1 cannot encode WxH (<reason>); using mpeg4`. *Tested:*
+  tests/render/test_video_encoder.cpp (`VideoCodecChoice.*`, `SizesSvtAv1CannotEncodeFallBackToMpeg4`).
+- **Colours tagged BT.709.** ffmpeg converts RGBA to `yuv420p` with the BT.601 matrix and leaves
+  the stream untagged; players read untagged HD video as BT.709, so MDATK's videos show slightly
+  shifted hues (greens and reds). MDBridge converts with the BT.709 matrix (limited range) and tags
+  the stream `bt709` / `bt709` / `bt709` / `tv`, so players show the colours as drawn. *Tested:*
+  `Av1Default24Frames320x180` (colour tags); decoded frames were checked at 44 dB PSNR (AV1) and
+  42 dB (mpeg4) against the RGBA input while writing the encoder.
+- **LGPL check at run time.** The encoder refuses FFmpeg libraries whose `avcodec_configuration()`
+  contains `--enable-gpl` or `--enable-nonfree` or whose licence is not LGPL (MDBridge may only be
+  combined with LGPL builds), with a message naming the configuration. *Tested:*
+  `VideoFfmpeg.LgplOnlyBuild`; the configure-time check is in cmake/FindFFmpegLGPL.cmake.
+- **Messages.** MDATK reports `FFmpeg exited with code N: <stderr>` or `FFmpeg stopped
+  unexpectedly`; MDBridge's `VideoError`s say which step failed (`video: cannot write PATH: ...`,
+  `video: cannot open the encoder libsvtav1 for WxH at 30/1 fps: ...`, `video size WxH is not even
+  (yuv420p needs even sizes of at least 2x2)`) with FFmpeg's own error text, without pointer
+  addresses. Without FFmpeg in the build: `video encoding is not available in this build`. FFmpeg
+  and SVT-AV1 print nothing on the console. *Tested:* `VideoFiles.ClearErrors`,
+  `VideoFfmpeg.NotAvailableMessage`.
+
 ## Planned (from the improvement register; add each entry here when it lands)
 
 None: every FIX and ASK item of the improvement register (docs/IMPROVEMENTS.md) has landed

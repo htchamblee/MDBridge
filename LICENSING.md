@@ -31,7 +31,8 @@ Not adopted yet; it takes effect only after legal review and a formal change of 
    | chemfiles | BSD-3 | not used: dropped in milestone 2 for MDBridge's own readers (its XTC decompression is ported, below) | - |
    | Eigen | MPL 2.0 | OK | planned |
    | nanoflann | BSD-2 | OK | planned |
-   | FFmpeg | LGPL (only) | no GPL components (no x264); use OpenH264 / AV1 | planned |
+   | FFmpeg (libavcodec, libavformat, libavutil, libswscale) | LGPL v2.1+ | own LGPL-only build (`packaging/ffmpeg`: `--disable-gpl --disable-nonfree --disable-version3`, no x264 / x265 or other GPL parts), linked dynamically, shipped with its licence and the corresponding source on each release; the GPL / non-free check runs at configure time (`cmake/FindFFmpegLGPL.cmake`) and at run time | milestone 4 (video) |
+   | SVT-AV1 | BSD 3-Clause Clear + AOM Patent License 1.0 | OK (the AV1 encoder; shared library) | milestone 4 (video) |
    | Lua | MIT | OK | planned |
    | Python, NumPy, SciPy (interim, embedded) | PSF / BSD-style | OK | planned |
    | MDAnalysis (interim) | check the bundled version's licence | verify before bundling | planned |
