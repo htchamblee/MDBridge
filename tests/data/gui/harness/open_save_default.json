@@ -1,0 +1,29 @@
+{
+  "format": "mdbridge-gui-case",
+  "version": 1,
+  "description": "Open the default project (what mdatk init writes) and save it unchanged",
+  "source": "MDATK v0.0.4.1: Project.load + Project.save, what the window's Open and Save do without edits (tests/parity/make_gui_harness_cases.py)",
+  "clock": "2026-10-15T14:32:05",
+  "files": {
+    "default.mdatk.toml": "projects/default.mdatk.toml"
+  },
+  "actions": [
+    {
+      "action": "open",
+      "path": "default.mdatk.toml"
+    },
+    {
+      "action": "wait"
+    },
+    {
+      "action": "screenshot",
+      "name": "opened"
+    },
+    {
+      "action": "save"
+    }
+  ],
+  "expected": {
+    "default.mdatk.toml": "gui/harness/open_save_default.mdatk.toml"
+  }
+}

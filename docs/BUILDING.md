@@ -149,6 +149,12 @@ Installed packages can be used instead with `-DMDBRIDGE_USE_SYSTEM_DEPS=ON` (zli
 - `ctest`: unit tests of `core` (every fixture in `tests/data/projects` must read exactly as MDATK
   reads it: `tests/data/expected`), of the Vulkan probe, and a check that the committed SPIR-V
   matches the shader sources.
+- GUI tests (`ctest -L gui`, program `tests/mdbridge_gui_tests`, Qt Test, part of Qt's `qtbase`):
+  the main window driven by the action scripts of `tests/data/gui` (format: `tests/data/README.md`,
+  "gui"), the saved files compared with MDATK's, on the `offscreen` platform (no display needed;
+  `MDBRIDGE_GUI_TEST_PLATFORM=xcb` shows the window). Screenshots go to `$MDBRIDGE_GUI_SCREENSHOTS`
+  (default `<build>/gui-screenshots`); CI uploads them as `gui-test-screenshots-linux` / `-windows`.
+  Run one case: `mdbridge_gui_tests cases:harness/open_save_default`.
 - `packaging/smoke_test.py EXE [--gui]`: a finished build as users get it (AppImage, install tree
   or `mdbridge.exe`): command line, project files against MDATK's reading, the figure fonts, a
   `render` of the demo project (an AV1 video read back with `mdbridge probe-video` and, when it is

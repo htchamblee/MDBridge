@@ -906,6 +906,44 @@ the C library's. The output is reproducible:
 /opt/mdbridge-venv/bin/python -I -B tests/parity/make_shading_cases.py /tmp/mdatk tests/data/render/shading
 ```
 
+## gui: action scripts for the window (milestone 5, W0-F)
+
+`gui/` holds GUI cases: an action script run against MDBridge's main window and the files the
+window must have written when it ends (`tests/gui`, program `mdbridge_gui_tests`, Qt Test on the
+`offscreen` platform; docs/specs/m5-plan.md section 3). The test runs every `gui/**/*.json` file.
+A case is one JSON object (format proposed with the harness; the generators of the per-page cases,
+`tests/parity/make_gui_cases.py`, are being written in parallel and either use it or the runner is
+adapted, `tests/gui/gui_harness.cpp`):
+
+| Key | Content |
+|---|---|
+| `format`, `version` | `"mdbridge-gui-case"`, `1` (other values: the case fails) |
+| `description`, `source` | what the case does and what wrote its expected files (text only) |
+| `clock` | optional local time `YYYY-MM-DDTHH:MM:SS`: the project file clock (`core::setClock`) starts there and goes one second further on every reading, as MDATK's generators fix `_now()` |
+| `files` | `{name in the case folder: path under tests/data}`: copied into a new, empty case folder before the first action |
+| `actions` | the steps, in order (below) |
+| `expected` | `{name in the case folder: path under tests/data}`: after the last action each file must equal it byte for byte, after two normalisations: line ends (CR LF on Windows) become LF, and the case folder's absolute path (generic form, `/` separators) in the written file becomes `{case_dir}` |
+| `log` | optional, not checked yet: the log lines MDATK showed |
+
+Actions (`"action"` names the step; an unknown one fails the case, naming it):
+
+| Action | Keys | What the harness does |
+|---|---|---|
+| `open` | `path` (case folder) | `MainWindow::openProject`; it must succeed |
+| `wait` | `timeout_s` (default 60) | until the window has loaded the project's structure and preview data (`MainWindow::loading()` false) and the preview has settled |
+| `set` | `key`, `value` | finds the one widget whose `objectName` is `key` (field widgets use their project key, `analyses.contacts.cutoff`) and enters `value` as a user would: keys typed into line edits, spin boxes and editable combo boxes (select all, type, Enter), check boxes toggled with Space when their state differs, the item of that text chosen in other combo boxes, plain-text edits replaced by typing |
+| `click` | `key` | clicks the button whose `objectName` is `key` |
+| `save` | `path` (optional, case folder) | `MainWindow::saveProject` (the window's own file without `path`); it must succeed. Until the window has Save / Save as (W1-A) this calls `core::saveProject` with the opened project |
+| `screenshot` | `name`, `widget` (optional objectName) | saves the window (or that widget) as `<case>-<name>.png` in the screenshot folder (below); never compared (D10 of M4) |
+
+Screenshots go to `$MDBRIDGE_GUI_SCREENSHOTS` (default: `gui-screenshots/` in the build tree);
+CI uploads them as the `gui-test-screenshots-linux` / `-windows` artifacts. A failing case keeps
+its case folder and names it.
+
+| Folder | Content | Made by |
+|---|---|---|
+| `harness/` | `open_save_default`: the default project (`projects/default.mdatk.toml`) opened and saved unchanged, and the file MDATK v0.0.4.1 writes for that (its window's Open and Save without edits are `Project.load` + `Project.save`; checked once against the GTK window itself under Xvfb: same bytes) | `python3 -I -B tests/parity/make_gui_harness_cases.py <MDATK checkout> tests/data` |
+
 ## Checking that the data is reproducible
 
 `tests/parity/regenerate_all.py` runs every generator above (and `tools/gen_*.py`) in this order

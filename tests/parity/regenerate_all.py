@@ -333,6 +333,9 @@ STEPS = [
     case_step("density_shadow", "make_density_shadow_cases.py", "render/density_shadow"),
     # milestone 4: residue shading, orientation, the example dataset and numpy's PCG64 (W0-H)
     case_step("shading", "make_shading_cases.py", "render/shading"),
+    # milestone 5: the GUI test harness' own open -> save case (W0-F; the projects written above)
+    Step("gui_harness", "tests/parity/make_gui_harness_cases.py", lambda ctx: [M(ctx), d(ctx)],
+         [f"{DATA}/gui/harness"]),
 ]
 
 
