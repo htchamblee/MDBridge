@@ -96,7 +96,8 @@ public:
     core::System& system();
 
     // input_fingerprint: {"topology": fileFingerprint, "trajectories": [...], "frames": {"start",
-    // "stop", "step"}, "dt_ps"} (what every cache key covers).
+    // "stop", "step"}, "dt_ps"}, plus "time_axis": "frame x dt_ps" when inputs.dt_ps overrides the
+    // time step (MDATK 0.1.0; what every cache key covers).
     core::Value inputFingerprint(const ResolvedInputs& inputs) const;
 
     // required_analyses(video, charts): the enabled user analyses, the panels' analyses when the

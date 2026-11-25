@@ -461,8 +461,8 @@ def chain_with_formats(trajectories):
 
 
 def time_step_warnings(trajectories, dt):
-    """LD-05: the warning MDBridge gives for a file that keeps its own times although inputs.dt_ps is
-    given (NetCDF with a time variable; every other reader then takes frame * dt)."""
+    """LD-05: the warning MDBridge gives for a file that stores its own times although inputs.dt_ps is
+    given (NetCDF with a time variable): the override replaces them (frame * dt, MDATK 0.1.0)."""
     out = []
     if not dt or dt != dt:
         return out
@@ -479,15 +479,13 @@ def time_step_warnings(trajectories, dt):
         finally:
             reader.close()
         if abs(step - dt) > 1e-4 * max(abs(dt), abs(step)):
-            out.append(f"inputs.dt_ps ({float(dt)!r} ps) differs from the time step in {path} ({step!r} ps); "
-                       "the file's times are used")
+            out.append(f"inputs.dt_ps ({float(dt)!r} ps) replaces the time step in {path} ({step!r} ps)")
     return out
 
 
 # --- the command line (cli_cases.json) ---------------------------------------------------------------
 
-DT_WARNING = ("WARNING: inputs.dt_ps ({dt} ps) differs from the time step in {{work}}/demo_dry.nc (10.0 ps); "
-              "the file's times are used\n")
+DT_WARNING = "WARNING: inputs.dt_ps ({dt} ps) replaces the time step in {{work}}/demo_dry.nc (10.0 ps)\n"
 
 ELEMENTS_WARNINGS = (
     "WARNING: {work}/elements.pdb: 2 atoms have no element symbol in columns 77-78; guessed from the atom name "
