@@ -1,11 +1,22 @@
 #pragma once
-// Citations of the programs, force fields and parameter sets a project uses (mdatk/citations.py).
+// Citations of the programs, force fields, parameter sets and methods a project uses
+// (mdatk/citations.py).
 //
 // Only what a project actually uses is cited: each planner step reports the resources its
 // settings turn on, the analysis and video pipeline reports its own (pipelineResources), and the
 // resource table maps every resource to the references that describe it. A generated script cites
 // its own step; a project (About dialog, BibTeX export, parameter log) cites every step plus the
-// pipeline. The tables are MDATK's (src/core/citation_data.inc, tools/gen_citation_data.py).
+// pipeline. The tables are MDATK's (src/core/citation_data.inc, tools/gen_citation_data.py) with
+// MDBridge's changes (tests/parity/improvements_citations.py; docs/DIFFERENCES.md "Citations"):
+//
+// * Methods are cited by their originators, not by one implementation of them (owner decision).
+//   MDATK cites MDAnalysis, NumPy, SciPy and Matplotlib for every project because it ran on them;
+//   MDBridge does not use those packages and does not cite them (CIT-01). Where a method with a
+//   published originator decides a reported result, that work is cited when the project uses it:
+//   the QCP superposition (Theobald 2005; Liu et al. 2010) and Kabsch's (1976, 1978) for RMSD.
+// * Standard algorithms and common knowledge (distance searches, minimum images, geometric
+//   H-bond / contact / stacking criteria, Gaussian filters, linear interpolation, tick choice) are
+//   not cited, nor are colour maps (styling) or the random numbers of the example data.
 
 #include <optional>
 #include <span>
@@ -34,7 +45,8 @@ struct Resource {
     std::string_view note;  // e.g. "cite together with ..." or how to cite software without a paper
 };
 
-// REFERENCE_DATA / RESOURCE_DATA in MDATK's order.
+// REFERENCE_DATA / RESOURCE_DATA in MDATK's order, with MDBridge's changes (removals; additions at
+// the end).
 std::span<const Reference> referenceTable();
 std::span<const Resource> resourceTable();
 // REFERENCES[key] / RESOURCES[id], or nullptr.
@@ -70,11 +82,11 @@ std::vector<std::string> commentLines(std::span<const std::string> resourceIds,
                                       std::string_view prefix = "# ", int width = 100,
                                       std::optional<std::string_view> heading = "Please cite");
 
-// Resources of MDATK's own analysis, rendering and video stages: mdanalysis, numpy, scipy,
-// matplotlib; cpptraj (cleaning.enabled), ffmpeg (output.video.enabled), barnaba
-// (analyses.basepairs.engine "barnaba" and a secondary panel whose "source" option is not
-// "dotbracket"). Not vtk: MDATK cites it for visual.renderer "vtk", which in MDBridge means its
-// own GPU renderer (Vulkan; RN-16, docs/DIFFERENCES.md).
+// Resources of the analysis, rendering and video stages: cpptraj (cleaning.enabled); qcp and
+// kabsch (analyses.rmsd enabled with targets and superposition: qcp when a target has a blank
+// fit_selection, kabsch when one has a fit selection); ffmpeg (output.video.enabled). Unlike
+// MDATK: never mdanalysis, numpy, scipy or matplotlib (CIT-01), barnaba (MDBridge never runs it,
+// CIT-02) or vtk (MDBridge's "vtk" is its Vulkan renderer, RN-16).
 std::vector<std::string> pipelineResources(const Project& project);
 
 // project_resources(project): everything the project uses, its planner steps and the pipeline.

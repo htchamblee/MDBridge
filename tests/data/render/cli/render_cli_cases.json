@@ -30,7 +30,7 @@
     "results/MDATK_params_log.toml": {"magic":"23204d6f6c656375","nonempty":true,"outputs":{"video":"{work}/results/MDATK_video_{stamp}.mp4","charts":["{work}/results/MDATK_chart_rmsd_Complex_{stamp}.png","{work}/results/MDATK_chart_hbonds_count_{stamp}.png","{work}/results/MDATK_chart_energy_total_{stamp}.png"],"pdbs":[],"cache_manifest":"{work}/results/MDATK_cache/{manifest}"},"timestamp":"{stamp}"},
     "results/MDATK_video_{stamp}.mp4": {"magic":"0000002066747970","nonempty":true,"video":{"streams":[{"codec_name":"h264","codec_type":"video","width":320,"height":180,"pix_fmt":"yuv420p","r_frame_rate":"12/1","avg_frame_rate":"12/1","time_base":"1/12288","nb_read_frames":"24"}],"format":{"nb_streams":1,"format_name":"mov,mp4,m4a,3gp,3g2,mj2"},"boxes":["ftyp","moov","free","mdat"],"faststart":true,"audio_streams":0}}
    },
-   "step_log": [{"step":"render","title":"Analyses and outputs","status":"ok","time":"{time}","duration_s":0.0,"files":["{work}/results/MDATK_video_{stamp}.mp4","{work}/results/MDATK_chart_rmsd_Complex_{stamp}.png","{work}/results/MDATK_chart_hbonds_count_{stamp}.png","{work}/results/MDATK_chart_energy_total_{stamp}.png","{work}/results/MDATK_params_log.toml"],"summary":"24 frames analysed; 5 file(s) written to {work}/results","citations":["michaudagrawal2011","gowers2016","harris2020","virtanen2020","hunter2007","ffmpeg"]}]
+   "step_log": [{"step":"render","title":"Analyses and outputs","status":"ok","time":"{time}","duration_s":0.0,"files":["{work}/results/MDATK_video_{stamp}.mp4","{work}/results/MDATK_chart_rmsd_Complex_{stamp}.png","{work}/results/MDATK_chart_hbonds_count_{stamp}.png","{work}/results/MDATK_chart_energy_total_{stamp}.png","{work}/results/MDATK_params_log.toml"],"summary":"24 frames analysed; 5 file(s) written to {work}/results","citations":["theobald2005","liu2010","ffmpeg"]}]
   },
   {
    "name": "render_no_stamp",
@@ -55,7 +55,7 @@
     "results/MDATK_chart_rmsd_Complex.png": {"magic":"89504e470d0a1a0a","nonempty":true,"size_px":[320,180]},
     "results/MDATK_params_log.toml": {"magic":"23204d6f6c656375","nonempty":true,"outputs":{"charts":["{work}/results/MDATK_chart_rmsd_Complex.png","{work}/results/MDATK_chart_hbonds_count.png","{work}/results/MDATK_chart_energy_total.png"],"pdbs":[],"cache_manifest":"{work}/results/MDATK_cache/{manifest}"},"timestamp":null}
    },
-   "step_log": [{"step":"render","title":"Analyses and outputs","status":"ok","time":"{time}","duration_s":0.0,"files":["{work}/results/MDATK_chart_rmsd_Complex.png","{work}/results/MDATK_chart_hbonds_count.png","{work}/results/MDATK_chart_energy_total.png","{work}/results/MDATK_params_log.toml"],"summary":"24 frames analysed; 4 file(s) written to {work}/results","citations":["michaudagrawal2011","gowers2016","harris2020","virtanen2020","hunter2007","ffmpeg"]}]
+   "step_log": [{"step":"render","title":"Analyses and outputs","status":"ok","time":"{time}","duration_s":0.0,"files":["{work}/results/MDATK_chart_rmsd_Complex.png","{work}/results/MDATK_chart_hbonds_count.png","{work}/results/MDATK_chart_energy_total.png","{work}/results/MDATK_params_log.toml"],"summary":"24 frames analysed; 4 file(s) written to {work}/results","citations":["theobald2005","liu2010","ffmpeg"]}]
   },
   {
    "name": "render_from_cache",
@@ -140,7 +140,7 @@
     "results/MDATK_params_log.toml": {"magic":"23204d6f6c656375","nonempty":true,"outputs":{"video":"{work}/results/MDATK_video_{stamp}.mp4","charts":[],"pdbs":[],"cache_manifest":"{work}/results/MDATK_cache/{manifest}"},"timestamp":"{stamp}"},
     "results/MDATK_video_{stamp}.mp4": {"magic":"0000002066747970","nonempty":true,"video":{"streams":[{"codec_name":"h264","codec_type":"video","width":320,"height":180,"pix_fmt":"yuv420p","r_frame_rate":"12/1","avg_frame_rate":"12/1","time_base":"1/12288","nb_read_frames":"5"}],"format":{"nb_streams":1,"format_name":"mov,mp4,m4a,3gp,3g2,mj2"},"boxes":["ftyp","moov","free","mdat"],"faststart":true,"audio_streams":0}}
    },
-   "step_log": [{"step":"render","title":"Analyses and outputs","status":"ok","time":"{time}","duration_s":0.0,"files":["{work}/results/MDATK_video_{stamp}.mp4","{work}/results/MDATK_params_log.toml"],"summary":"24 frames analysed; 2 file(s) written to {work}/results","citations":["michaudagrawal2011","gowers2016","harris2020","virtanen2020","hunter2007","ffmpeg"]}]
+   "step_log": [{"step":"render","title":"Analyses and outputs","status":"ok","time":"{time}","duration_s":0.0,"files":["{work}/results/MDATK_video_{stamp}.mp4","{work}/results/MDATK_params_log.toml"],"summary":"24 frames analysed; 2 file(s) written to {work}/results","citations":["theobald2005","liu2010","ffmpeg"]}]
   },
   {
    "name": "render_mpeg4",
@@ -167,7 +167,7 @@
     "results/MDATK_params_log.toml": {"magic":"23204d6f6c656375","nonempty":true,"outputs":{"video":"{work}/results/clip_{stamp}.mp4","charts":[],"pdbs":[],"cache_manifest":"{work}/results/MDATK_cache/{manifest}"},"timestamp":"{stamp}"},
     "results/clip_{stamp}.mp4": {"magic":"0000001c66747970","nonempty":true,"video":{"streams":[{"codec_name":"mpeg4","codec_type":"video","width":320,"height":180,"pix_fmt":"yuv420p","r_frame_rate":"30/1","avg_frame_rate":"30/1","time_base":"1/15360","nb_read_frames":"24"}],"format":{"nb_streams":1,"format_name":"mov,mp4,m4a,3gp,3g2,mj2"},"boxes":["ftyp","moov","free","mdat"],"faststart":true,"audio_streams":0}}
    },
-   "step_log": [{"step":"render","title":"Analyses and outputs","status":"ok","time":"{time}","duration_s":0.0,"files":["{work}/results/clip_{stamp}.mp4","{work}/results/MDATK_params_log.toml"],"summary":"24 frames analysed; 2 file(s) written to {work}/results","citations":["michaudagrawal2011","gowers2016","harris2020","virtanen2020","hunter2007","ffmpeg"]}]
+   "step_log": [{"step":"render","title":"Analyses and outputs","status":"ok","time":"{time}","duration_s":0.0,"files":["{work}/results/clip_{stamp}.mp4","{work}/results/MDATK_params_log.toml"],"summary":"24 frames analysed; 2 file(s) written to {work}/results","citations":["theobald2005","liu2010","ffmpeg"]}]
   },
   {
    "name": "render_codec_fallback",
@@ -194,7 +194,7 @@
     "results/MDATK_params_log.toml": {"magic":"23204d6f6c656375","nonempty":true,"outputs":{"video":"{work}/results/MDATK_video_{stamp}.mp4","charts":[],"pdbs":[],"cache_manifest":"{work}/results/MDATK_cache/{manifest}"},"timestamp":"{stamp}"},
     "results/MDATK_video_{stamp}.mp4": {"magic":"0000002066747970","nonempty":true,"video":{"streams":[{"codec_name":"h264","codec_type":"video","width":320,"height":180,"pix_fmt":"yuv420p","r_frame_rate":"12/1","avg_frame_rate":"12/1","time_base":"1/12288","nb_read_frames":"24"}],"format":{"nb_streams":1,"format_name":"mov,mp4,m4a,3gp,3g2,mj2"},"boxes":["ftyp","moov","free","mdat"],"faststart":true,"audio_streams":0}}
    },
-   "step_log": [{"step":"render","title":"Analyses and outputs","status":"ok","time":"{time}","duration_s":0.0,"files":["{work}/results/MDATK_video_{stamp}.mp4","{work}/results/MDATK_params_log.toml"],"summary":"24 frames analysed; 2 file(s) written to {work}/results","citations":["michaudagrawal2011","gowers2016","harris2020","virtanen2020","hunter2007","ffmpeg"]}]
+   "step_log": [{"step":"render","title":"Analyses and outputs","status":"ok","time":"{time}","duration_s":0.0,"files":["{work}/results/MDATK_video_{stamp}.mp4","{work}/results/MDATK_params_log.toml"],"summary":"24 frames analysed; 2 file(s) written to {work}/results","citations":["theobald2005","liu2010","ffmpeg"]}]
   },
   {
    "name": "render_odd_size",
@@ -221,7 +221,7 @@
     "results/MDATK_params_log.toml": {"magic":"23204d6f6c656375","nonempty":true,"outputs":{"video":"{work}/results/MDATK_video_{stamp}.mp4","charts":[],"pdbs":[],"cache_manifest":"{work}/results/MDATK_cache/{manifest}"},"timestamp":"{stamp}"},
     "results/MDATK_video_{stamp}.mp4": {"magic":"0000002066747970","nonempty":true,"video":{"streams":[{"codec_name":"h264","codec_type":"video","width":332,"height":186,"pix_fmt":"yuv420p","r_frame_rate":"12/1","avg_frame_rate":"12/1","time_base":"1/12288","nb_read_frames":"24"}],"format":{"nb_streams":1,"format_name":"mov,mp4,m4a,3gp,3g2,mj2"},"boxes":["ftyp","moov","free","mdat"],"faststart":true,"audio_streams":0}}
    },
-   "step_log": [{"step":"render","title":"Analyses and outputs","status":"ok","time":"{time}","duration_s":0.0,"files":["{work}/results/MDATK_video_{stamp}.mp4","{work}/results/MDATK_params_log.toml"],"summary":"24 frames analysed; 2 file(s) written to {work}/results","citations":["michaudagrawal2011","gowers2016","harris2020","virtanen2020","hunter2007","ffmpeg"]}]
+   "step_log": [{"step":"render","title":"Analyses and outputs","status":"ok","time":"{time}","duration_s":0.0,"files":["{work}/results/MDATK_video_{stamp}.mp4","{work}/results/MDATK_params_log.toml"],"summary":"24 frames analysed; 2 file(s) written to {work}/results","citations":["theobald2005","liu2010","ffmpeg"]}]
   },
   {
    "name": "render_no_ffmpeg",
@@ -248,7 +248,7 @@
     "results/MDATK_params_log.toml": {"magic":"23204d6f6c656375","nonempty":true,"outputs":{"video":"{work}/results/MDATK_video_{stamp}.mp4","charts":[],"pdbs":[],"cache_manifest":"{work}/results/MDATK_cache/{manifest}"},"timestamp":"{stamp}"},
     "results/MDATK_video_{stamp}.mp4": {"magic":"0000002066747970","nonempty":true,"video":{"streams":[{"codec_name":"h264","codec_type":"video","width":320,"height":180,"pix_fmt":"yuv420p","r_frame_rate":"12/1","avg_frame_rate":"12/1","time_base":"1/12288","nb_read_frames":"24"}],"format":{"nb_streams":1,"format_name":"mov,mp4,m4a,3gp,3g2,mj2"},"boxes":["ftyp","moov","free","mdat"],"faststart":true,"audio_streams":0}}
    },
-   "step_log": [{"step":"render","title":"Analyses and outputs","status":"ok","time":"{time}","duration_s":0.0,"files":["{work}/results/MDATK_video_{stamp}.mp4","{work}/results/MDATK_params_log.toml"],"summary":"24 frames analysed; 2 file(s) written to {work}/results","citations":["michaudagrawal2011","gowers2016","harris2020","virtanen2020","hunter2007","ffmpeg"]}]
+   "step_log": [{"step":"render","title":"Analyses and outputs","status":"ok","time":"{time}","duration_s":0.0,"files":["{work}/results/MDATK_video_{stamp}.mp4","{work}/results/MDATK_params_log.toml"],"summary":"24 frames analysed; 2 file(s) written to {work}/results","citations":["theobald2005","liu2010","ffmpeg"]}]
   },
   {
    "name": "render_pdb",
@@ -273,7 +273,7 @@
     "results/MDATK_frame_00023_{stamp}.pdb": {"magic":"5449544c45202020","nonempty":true,"lines":1543},
     "results/MDATK_params_log.toml": {"magic":"23204d6f6c656375","nonempty":true,"outputs":{"charts":[],"pdbs":["{work}/results/MDATK_frame_00000_{stamp}.pdb","{work}/results/MDATK_frame_00012_{stamp}.pdb","{work}/results/MDATK_frame_00023_{stamp}.pdb"],"cache_manifest":"{work}/results/MDATK_cache/{manifest}"},"timestamp":"{stamp}"}
    },
-   "step_log": [{"step":"render","title":"Analyses and outputs","status":"ok","time":"{time}","duration_s":0.0,"files":["{work}/results/MDATK_frame_00000_{stamp}.pdb","{work}/results/MDATK_frame_00012_{stamp}.pdb","{work}/results/MDATK_frame_00023_{stamp}.pdb","{work}/results/MDATK_params_log.toml"],"summary":"24 frames analysed; 4 file(s) written to {work}/results","citations":["michaudagrawal2011","gowers2016","harris2020","virtanen2020","hunter2007","ffmpeg"]}]
+   "step_log": [{"step":"render","title":"Analyses and outputs","status":"ok","time":"{time}","duration_s":0.0,"files":["{work}/results/MDATK_frame_00000_{stamp}.pdb","{work}/results/MDATK_frame_00012_{stamp}.pdb","{work}/results/MDATK_frame_00023_{stamp}.pdb","{work}/results/MDATK_params_log.toml"],"summary":"24 frames analysed; 4 file(s) written to {work}/results","citations":["theobald2005","liu2010","ffmpeg"]}]
   },
   {
    "name": "charts",

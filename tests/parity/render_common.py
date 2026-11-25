@@ -143,6 +143,9 @@ def setup(checkout: str, collect: bool = True) -> None:
     import improvements_shading
 
     improvements_shading.apply_mdatk()  # residue shading, orientation, example data (RN-21 ... RN-25)
+    import improvements_citations
+
+    improvements_citations.apply_mdatk()  # MDBridge's citations (CIT-01, CIT-02; params and step logs)
 
 
 def bundled_fonts_only() -> None:

@@ -402,6 +402,32 @@ TEST(VulkanStage, ChoosesTheGpuRendererWhenUsable) {
     EXPECT_THROW(renderer->render(c.items, reversed, c.shading, c.quality), std::invalid_argument);
 }
 
+// Owner decision D15 (docs/specs/m4-plan.md): on a Vulkan driver that runs on the CPU (lavapipe /
+// llvmpipe, SwiftShader) "auto" draws with the software renderer, silently; "vtk" and "vulkan"
+// still use Vulkan there. Picks Mesa's llvmpipe by name unless MDBRIDGE_VULKAN_DEVICE names a
+// device; skipped when the device it gets is not a CPU driver.
+TEST(VulkanStage, AutoLeavesACpuDriverToTheSoftwareRenderer) {
+    MDBRIDGE_VULKAN_CONTEXT_OR_SKIP(context);
+    panels::GpuStageOptions options;
+    options.context = vulkan::vulkan_test::testOptions();
+    if (options.context.deviceName.empty()) {
+        options.context.deviceName = "llvmpipe";
+    }
+    panels::GpuStageRenderers gpu(options);
+    if (!gpu.usable() || !gpu.cpuDevice()) {
+        GTEST_SKIP() << "no CPU Vulkan driver (" << (gpu.usable() ? gpu.deviceName() : gpu.problem()) << ")";
+    }
+    const auto factory = gpu.factory();
+    const panels::StageRendererChoice autoChoice = factory->choose("auto");
+    EXPECT_EQ(autoChoice.renderer->name(), "SoftwareRenderer") << gpu.deviceName();
+    EXPECT_TRUE(autoChoice.note.empty());
+    for (const char* name : {"vtk", "vulkan"}) {
+        const panels::StageRendererChoice c = factory->choose(name);
+        EXPECT_EQ(c.renderer->name(), "VulkanRenderer") << name;
+        EXPECT_TRUE(c.note.empty()) << name;
+    }
+}
+
 TEST(VulkanStage, FallsBackToTheSoftwareRendererWithTheNote) {
     panels::GpuStageOptions options;
     options.context.deviceName = "no device is called like this";

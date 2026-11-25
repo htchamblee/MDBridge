@@ -1,6 +1,8 @@
 // Citations (mdatk/citations.py of MDATK v0.0.4.1): the tables and every function, against what
-// MDATK computes (tests/parity/make_citation_cases.py -> data/citations; see data/README.md).
+// MDATK computes with MDBridge's changes CIT-01 / CIT-02 (tests/parity/improvements_citations.py;
+// tests/parity/make_citation_cases.py -> data/citations; see data/README.md).
 
+#include <algorithm>
 #include <optional>
 #include <string>
 #include <vector>
@@ -176,4 +178,51 @@ TEST(Citations, ProjectResources) {
         EXPECT_EQ(cit::projectResources(project, steps), strings(*c.find("resources")))
             << toJson(c, -1);
     }
+}
+
+// CIT-01 / CIT-02 (docs/DIFFERENCES.md "Citations"): the software MDATK ran on is not cited and is
+// not in the table; the RMSD's superposition methods are cited by their originators, only when used.
+TEST(Citations, MethodsByTheirOriginators) {
+    for (const char* id : {"mdanalysis", "numpy", "scipy", "matplotlib"}) {
+        EXPECT_EQ(cit::findResource(id), nullptr) << id;
+    }
+    for (const char* key : {"michaudagrawal2011", "gowers2016", "harris2020", "virtanen2020", "hunter2007"}) {
+        EXPECT_EQ(cit::findReference(key), nullptr) << key;
+    }
+    using Ids = std::vector<std::string>;
+    EXPECT_EQ(cit::keysFor(Ids{"qcp"}), (Ids{"theobald2005", "liu2010"}));
+    EXPECT_EQ(cit::keysFor(Ids{"kabsch"}), (Ids{"kabsch1976", "kabsch1978"}));
+    for (const char* key : {"theobald2005", "liu2010", "kabsch1976", "kabsch1978"}) {
+        const cit::Reference* r = cit::findReference(key);
+        ASSERT_NE(r, nullptr) << key;
+        EXPECT_FALSE(r->doi.empty()) << key;
+        EXPECT_FALSE(r->verified.empty()) << key;
+    }
+
+    Project p;  // defaults: RMSD on, two targets without a fit selection, superposition, video
+    EXPECT_EQ(cit::pipelineResources(p), (Ids{"qcp", "ffmpeg"}));
+    p.output.video.enabled = false;
+    p.analyses.rmsd.targets[1].fit_selection = "name P";
+    EXPECT_EQ(cit::pipelineResources(p), (Ids{"qcp", "kabsch"}));
+    p.analyses.rmsd.targets[0].fit_selection = " \t";
+    EXPECT_EQ(cit::pipelineResources(p), (Ids{"qcp", "kabsch"}));
+    p.analyses.rmsd.targets[0].fit_selection = "name C4'";
+    EXPECT_EQ(cit::pipelineResources(p), (Ids{"kabsch"}));
+    p.analyses.rmsd.superposition = false;  // plain RMSD: no superposition method
+    EXPECT_EQ(cit::pipelineResources(p), Ids{});
+    p.analyses.rmsd.superposition = true;
+    p.analyses.rmsd.enabled = false;
+    EXPECT_EQ(cit::pipelineResources(p), Ids{});
+    p.analyses.rmsd.enabled = true;
+    p.analyses.rmsd.targets.clear();
+    EXPECT_EQ(cit::pipelineResources(p), Ids{});
+
+    // CIT-02: Barnaba is never run, so never cited
+    Project b;
+    b.analyses.basepairs.engine = "barnaba";
+    PanelSpec secondary;
+    secondary.type = "secondary";
+    b.layout.panels = {secondary};
+    const Ids ids = cit::pipelineResources(b);
+    EXPECT_EQ(std::find(ids.begin(), ids.end(), "barnaba"), ids.end());
 }

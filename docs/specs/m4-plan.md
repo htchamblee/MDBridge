@@ -393,7 +393,7 @@ The target (10 x) is not reached on this machine. Wave 4 made the safe improveme
 output bytes, tested): frames are encoded on a thread of their own while the next ones are drawn,
 and the RGBA -> yuv420p conversion runs on several threads. What limits it now, as follow-ups:
 (1) the AV1 encoder at preset 8 (about 36 frames/s here; preset 10 gives 58 frames/s, a quality /
-size trade-off for the owner); (2) the panels' per-frame update on one thread (the 3D layer about
+size trade-off; the owner keeps preset 8 for now, D16 below); (2) the panels' per-frame update on one thread (the 3D layer about
 10 ms per frame at 1080p on 4 cores: about 70 frames/s at most), which needs frame-parallel panel
 updates (independent figure instances per thread); (3) the software renderer's per-frame
 allocations and zero-filling (about 8 % of the instructions), which persistent buffers would save;
@@ -452,6 +452,23 @@ pinned LGPL build; D10 **contents only**: figure contents (data, colours, ticks,
 compared with MDATK and layout within tolerance, no golden reference images; D13 3D view + read-only
 preview, the editor in M5. The other decisions follow the recommendations above (D3-D9, D11, D12,
 D14).
+
+**Decided after wave 4 (2026-11-25).** Owner:
+
+- **D15 `auto` on a CPU Vulkan driver**: `visual.renderer = "auto"` keeps choosing the software
+  renderer when the only Vulkan device is a CPU driver (Mesa's lavapipe / llvmpipe, SwiftShader:
+  `VK_PHYSICAL_DEVICE_TYPE_CPU`); the software renderer draws the same picture and is about twice
+  as fast there. `vtk` and `vulkan` still use Vulkan on any device. Code:
+  `src/render/panels/vulkan_stage.cpp` (`GpuFactory::choose`); documented in `vulkan_stage.hpp` and
+  docs/DIFFERENCES.md ("Rendering: the Vulkan 3D renderer"); tested by
+  `VulkanStage.ChoosesTheGpuRendererWhenUsable` and `VulkanStage.AutoLeavesACpuDriverToTheSoftwareRenderer`.
+- **D16 AV1 preset**: SVT-AV1 stays at preset 8 (`kSvtAv1Preset`, src/render/video/encoder.cpp).
+  Follow-up: the owner revisits it after a side-by-side quality comparison of preset 8 and preset 10
+  (preset 10 encodes about 1.6 x faster here, follow-up (1) under wave 4), to be prepared later.
+- **Citations** (also milestone-independent): methods are cited by their originators, not by the
+  implementation MDATK ran on; MDAnalysis, NumPy, SciPy and Matplotlib are no longer cited, the
+  RMSD's QCP and Kabsch superpositions are when used, colour maps are styling and not cited
+  (docs/DIFFERENCES.md "Citations", CIT-01 / CIT-02).
 
 ---------------------------------------------------------------------------------------------------
 

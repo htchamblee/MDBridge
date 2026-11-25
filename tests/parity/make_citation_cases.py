@@ -11,15 +11,16 @@ OUT_DIR/citation_cases.json:
   text_lines, grouped     unknown and empty entries, random subsets)
   comment_lines           comment_lines(ids, prefix, width, heading): the lines or textwrap's
                           ValueError, for many prefixes, widths and headings
-  pipeline                pipeline_resources of projects made with Project.from_dict(plain), with
-                          MDBridge's improvement RN-16 (docs/DIFFERENCES.md): no "vtk" resource for
-                          visual.renderer "vtk" (MDBridge's GPU renderer is Vulkan, not VTK)
+  pipeline                pipeline_resources of projects made with Project.from_dict(plain)
   project                 project_resources(project, plan) with stand-in plans: "steps" lists
                           {generates, resources} in plan order; "generating" the resource lists
                           of the steps whose tool generates a script (what MDBridge's caller
                           passes)
 
-The output is deterministic (fixed random seed).
+MDATK runs with MDBridge's citation changes (improvements_citations.py, docs/DIFFERENCES.md
+"Citations"): its tables without the software MDBridge does not use and with the superposition
+methods of the RMSD (CIT-01), and MDBridge's pipeline_resources (CIT-01, CIT-02: no barnaba,
+RN-16: no vtk). The output is deterministic (fixed random seed).
 """
 
 from __future__ import annotations
@@ -32,19 +33,14 @@ import sys
 if len(sys.argv) != 3:
     sys.exit("usage: make_citation_cases.py MDATK_CHECKOUT OUT_DIR")
 sys.path.insert(0, os.path.abspath(sys.argv[1]))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+import improvements_citations  # noqa: E402
+
+improvements_citations.apply_mdatk()  # MDBridge's tables and pipeline_resources
 
 from mdatk import citations as C  # noqa: E402
 from mdatk import config  # noqa: E402
-
-_pipeline_resources = C.pipeline_resources
-
-
-def _pipeline_resources_without_vtk(project):
-    """RN-16: MDBridge never uses VTK, so it is never cited."""
-    return [r for r in _pipeline_resources(project) if r != "vtk"]
-
-
-C.pipeline_resources = _pipeline_resources_without_vtk  # project_resources calls it too
 
 RNG = random.Random(20261124)
 IDS = list(C.RESOURCES)
@@ -52,6 +48,8 @@ KEYS = list(C.REFERENCES)
 
 
 def id_lists():
+    # "numpy", "scipy", "mdanalysis" (and "harris2020" below) are MDATK ids / keys that MDBridge's
+    # table no longer has (CIT-01): unknown entries now
     out = [[], [""], ["nope"], IDS, list(reversed(IDS)), IDS + IDS, ["numpy", "numpy", "", "scipy"],
            ["coot", "phenix_elbow", "phenix", "acedrg"], ["case2023", "ambertools"]]
     out += [[i] for i in IDS]
@@ -138,6 +136,27 @@ def project_variants():
     out.append({"cleaning": {"enabled": True}, "output": {"video": {"enabled": False}},
                 "visual": {"renderer": "vtk"}, "analyses": {"basepairs": {"engine": "barnaba"}},
                 "layout": {"panels": panels(("structure", None), ("secondary", {"source": "x"}))}})
+    # CIT-01: the RMSD's superposition methods (qcp without a fit selection, kabsch with one)
+    target = lambda label, fit=None: {"label": label, "selection": "name P", **({} if fit is None else {"fit_selection": fit})}  # noqa: E731
+    rmsd_variants = [
+        {"enabled": False},
+        {"superposition": False},
+        {"targets": []},
+        {"targets": [target("a")]},
+        {"targets": [target("a", "")]},
+        {"targets": [target("a", " \t\n")]},
+        {"targets": [target("a", "name C4'")]},
+        {"targets": [target("a", "name C4'"), target("b", "name P")]},
+        {"targets": [target("a", "name C4'"), target("b")]},
+        {"targets": [target("a"), target("b", "name C4'")]},
+        {"targets": [target("a", "name C4'")], "superposition": False},
+        {"targets": [target("a", "name C4'")], "enabled": False},
+        {"targets": [target("a", "name C4'"), target("b")], "mass_weighted": True},
+    ]
+    for rmsd in rmsd_variants:
+        for video in (False, True):
+            out.append({"analyses": {"rmsd": rmsd}, "output": {"video": {"enabled": video}}})
+    out.append({"cleaning": {"enabled": True}, "analyses": {"rmsd": {"targets": [target("a", "name C4'"), target("b")]}}})
     return out
 
 

@@ -146,32 +146,26 @@ std::vector<std::string> commentLines(std::span<const std::string> resourceIds,
 }
 
 std::vector<std::string> pipelineResources(const Project& project) {
-    std::vector<std::string> out = {"mdanalysis", "numpy", "scipy", "matplotlib"};
+    // CIT-01: MDATK starts with mdanalysis, numpy, scipy and matplotlib, the software it ran on;
+    // MDBridge does not use them and cites the originators of the methods it uses instead.
+    // CIT-02: never barnaba (MDBridge runs its builtin detector); RN-16: never vtk (MDBridge's
+    // "vtk" is its Vulkan renderer).
+    std::vector<std::string> out;
     if (project.cleaning.enabled) {
         addUnique(out, "cpptraj");
     }
+    const RMSDParams& rmsd = project.analyses.rmsd;
+    if (rmsd.enabled && !rmsd.targets.empty() && rmsd.superposition) {
+        const auto fitted = [](const RMSDTarget& t) { return !pythonStrip(t.fit_selection).empty(); };
+        if (!std::all_of(rmsd.targets.begin(), rmsd.targets.end(), fitted)) {
+            addUnique(out, "qcp");  // superposedRmsd (rmsd_qcp.cpp)
+        }
+        if (std::any_of(rmsd.targets.begin(), rmsd.targets.end(), fitted)) {
+            addUnique(out, "kabsch");  // the fit selection's superposition (spatial.cpp kabsch)
+        }
+    }
     if (project.output.video.enabled) {
         addUnique(out, "ffmpeg");
-    }
-    // RN-16: MDATK cites VTK for visual.renderer "vtk"; MDBridge has no VTK ("vtk" means its GPU
-    // renderer, Vulkan), so it is never cited
-    if (project.analyses.basepairs.engine == "barnaba") {
-        const bool dynamicSecondary = std::any_of(
-            project.layout.panels.begin(), project.layout.panels.end(), [](const PanelSpec& s) {
-                if (s.type != "secondary") {
-                    return false;
-                }
-                for (const auto& [key, value] : s.options) {
-                    if (key == "source") {
-                        const std::string* source = value.get<std::string>();
-                        return !source || *source != "dotbracket";
-                    }
-                }
-                return true;
-            });
-        if (dynamicSecondary) {
-            addUnique(out, "barnaba");
-        }
     }
     return out;
 }

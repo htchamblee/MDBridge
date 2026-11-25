@@ -825,6 +825,9 @@ def child(mdatk, jobs_file, results_file):
     # RN-33 (the structure view's finite-voxel contour level) is the structure panel's; `density
     # info` reports MDATK's level_2sigma (no render case shows a map)
     density.map_level = map_level
+    import improvements_citations
+
+    improvements_citations.apply_mdatk()  # MDBridge's citations (CIT-01, CIT-02; params and step logs)
     from mdatk import cli
 
     def run(argv):

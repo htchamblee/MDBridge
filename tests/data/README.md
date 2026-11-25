@@ -399,10 +399,14 @@ computes, for `src/core/citations.cpp` (`tests/core/test_citations.cpp`): `REFER
 `keys_for`, `references`, `bibtex`, `text_lines` and `grouped` of about 160 id and key lists
 (single entries, all, duplicates, unknown and empty entries, random subsets), `comment_lines` of
 about 1200 resource lists, prefixes (non-ASCII included), widths (down to textwrap's "invalid
-width" errors) and headings (`None`, empty, long), `pipeline_resources` of about 80 projects made
+width" errors) and headings (`None`, empty, long), `pipeline_resources` of about 110 projects made
 with `Project.from_dict` (cleaning, video, renderers, base-pair engines, secondary panels with
-every kind of `source` option) and `project_resources` with stand-in plans (`generating` is what
-MDBridge's caller passes: the resources of the steps whose tool generates a script, in plan order).
+every kind of `source` option, RMSD targets with and without fit selections) and
+`project_resources` with stand-in plans (`generating` is what MDBridge's caller passes: the
+resources of the steps whose tool generates a script, in plan order). MDATK runs with MDBridge's
+citation changes (`tests/parity/improvements_citations.py`, CIT-01 / CIT-02 in
+docs/DIFFERENCES.md), which `tools/gen_citation_data.py` applies to the table too; `cli_parity.py`
+and the render generators apply them before MDATK writes its params and step logs.
 
 To regenerate, with Python 3.13 and an MDATK checkout at `v0.0.4.1` (nothing is written into it;
 the output is reproducible and the build needs no Python):

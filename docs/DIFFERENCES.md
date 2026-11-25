@@ -536,6 +536,48 @@ test_selections.cpp; cli_cases.json (`info_groups`); framework_cases.json (cache
   (init_options_twice, analyze_options_twice, export_options_twice).
 - JSON presets: `init` with a `.json` preset reports that MDBridge uses TOML project files.
 
+## Citations (src/core/citations.cpp, src/core/citation_data.inc)
+
+Owner decision (2026-11-25): a method is cited by the people who originated it, not by one
+implementation of it; an implementation of common knowledge, or of a method published by others,
+is not a reason to cite the implementation. Every method MDBridge took over from MDAnalysis, NumPy,
+SciPy and Matplotlib through MDATK was checked against that rule (the inventory is in
+`src/core/include/mdbridge/core/citations.hpp` and below).
+
+- **CIT-01: the software MDATK ran on is not cited; the RMSD's superposition methods are.**
+  MDATK's `pipeline_resources` cites MDAnalysis (Michaud-Agrawal 2011, Gowers 2016), NumPy (Harris
+  2020), SciPy (Virtanen 2020) and Matplotlib (Hunter 2007) for every project, because MDATK ran on
+  them. MDBridge does not use these packages, so they are not cited and their resources and
+  references are no longer in the table. Of the methods MDBridge reproduces, two decide a reported
+  result and have a published originator outside those projects; they are cited when the project
+  uses them (`analyses.rmsd` enabled with targets and `superposition`): resource `qcp`
+  (Theobald 2005, doi:10.1107/S0108767305015266; Liu, Agrafiotis and Theobald 2010,
+  doi:10.1002/jcc.21439) for a target superposed without a fit selection (MDAnalysis' `rms.rmsd`,
+  which implements QCP; `rmsd_qcp.cpp`), and resource `kabsch` (Kabsch 1976,
+  doi:10.1107/S0567739476001873; Kabsch 1978, doi:10.1107/S0567739478001680) for a target
+  superposed on a fit selection (`kabsch` of `spatial.cpp`). Not cited, as common knowledge or
+  standard algorithms whose implementation does not change a result: distance and neighbour searches
+  (cell grids, k-d trees), minimum-image distances in triclinic cells, the geometric criteria of
+  the H-bond, contact, stacking and Mg analyses, plane fits, bond guessing by distance, pairwise
+  summation, linear interpolation, Gaussian and uniform filters and trilinear resampling of the
+  surface and density shadow, axis ticks and figure layout; the selection language (MDAnalysis'
+  syntax, in the tradition of CHARMM's and VMD's) is an interface convention, not a method. Colour
+  maps (viridis family, cividis, ColorBrewer, Tableau) are styling and not cited (owner decision);
+  their licences stay in `packaging/licenses`. The random numbers (PCG64, SeedSequence, ziggurat)
+  only make the example data of the layout preview and are not cited. *Why:* citations should
+  credit the originators of what a result depends on; citing packages MDBridge does not run
+  misstates how a result was produced. *Tested:* citation_cases.json (`references`, `resources`,
+  `pipeline` with RMSD variants, `project`; tables and functions from MDATK with
+  tests/parity/improvements_citations.py applied, which tools/gen_citation_data.py applies to
+  src/core/citation_data.inc too), cli_cases.json and render/cli/render_cli_cases.json (params and
+  step logs of `render` / `charts`), `Citations.MethodsByTheirOriginators`.
+- **CIT-02: Barnaba is not cited.** MDATK cites Barnaba (Bottaro 2019) when
+  `analyses.basepairs.engine = "barnaba"` and a secondary-structure panel reads dynamic pairs.
+  MDBridge never runs Barnaba (see "No Barnaba" above: its builtin detector runs instead), so it is
+  not cited; the table keeps its entry. *Tested:* citation_cases.json (`pipeline`, base-pair
+  engines), `Citations.MethodsByTheirOriginators`.
+- VTK is not cited either (RN-16, under "Rendering: the render, charts and preview commands").
+
 ## Analyses (non-periodic improvements)
 
 Expected data: `tests/parity/improvements_analyses.py` patches MDATK (and the RMSD probes) to the
@@ -639,6 +681,8 @@ here:
 | RN-30 ... RN-32 | Rendering: density shadow |
 | RN-40 ... RN-42 | Rendering: sequence and secondary-structure panels |
 | D5, D6, D8, D9, D11, D13 (owner decisions) | charts (D5), colours (D6), the render commands (D8, D9), structure view (D11), interface (D13) |
+| D15, D16 (owner decisions) | the Vulkan 3D renderer (D15), video encoding (D16) |
+| CIT-01, CIT-02 | Citations |
 
 ## Rendering: colours and themes (src/render/core)
 
@@ -1094,10 +1138,10 @@ front-most translucent layer, fast quality). Differences:
   renderer. In MDBridge `auto` uses the Vulkan renderer when it runs on a GPU, silently (same
   picture), and the software renderer otherwise; a Vulkan driver that runs on the CPU (Mesa's
   lavapipe) is left to the software renderer, which is about twice as fast there (`VulkanScene.
-  Benchmark`). `vtk` and `vulkan` use Vulkan on any device, the CPU's included, and fall back to
+  Benchmark`; kept so by owner decision D15, docs/specs/m4-plan.md). `vtk` and `vulkan` use Vulkan on any device, the CPU's included, and fall back to
   the software renderer with the RN-16 note. The program installs this choice at start
   (`installGpuStageRenderers` in `main`), so figures, previews and video frames all use it; the
-  device opens on first use only. *Tested:* `VulkanStage.*`.
+  device opens on first use only. *Tested:* `VulkanStage.*` (`AutoLeavesACpuDriverToTheSoftwareRenderer` on a CPU driver).
 - **A GPU failure never stops a video.** When the GPU cannot draw a frame (device lost, out of
   memory, a scene or image beyond the device's limits) that frame and every later one are drawn by
   the software renderer, with one warning `3D representations: the GPU renderer failed (...);
@@ -1124,7 +1168,8 @@ target folder renamed at the end and removed on failure. Stream metadata (frame 
   used as named; any other name is used if FFmpeg has that encoder (as MDATK passed it through), else
   `video: encoder X is not available; using libsvtav1` (or `mpeg4`). `crf` is always on the x264 /
   x265 scale (0-51, clamped) and is mapped: SVT-AV1 `crf = round(crf * 63 / 51)` (20 -> 25,
-  23 -> 28, 51 -> 63; preset 8), mpeg4 `qscale = round(1 + crf / 10)` up to 20 and
+  23 -> 28, 51 -> 63; preset 8, kept by owner decision D16 until a side-by-side quality
+  comparison with preset 10), mpeg4 `qscale = round(1 + crf / 10)` up to 20 and
   `round(3 + (crf - 20) * 28 / 31)` above (20 -> 3, MDATK's fixed value; 23 -> 6; 51 -> 31). When
   SVT-AV1 cannot encode the size (below 4x4) the encoder falls back to mpeg4 with
   `video: libsvtav1 cannot encode WxH (<reason>); using mpeg4`. *Tested:*
