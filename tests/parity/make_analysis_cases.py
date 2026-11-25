@@ -96,7 +96,9 @@ kernels every x86-64 CPU runs), one BLAS / OpenMP thread, and on x86-64 numpy's 
 its baseline (NPY_ENABLE_CPU_FEATURES=X86_V2). Values that depend on these kernels (rmsd with a
 fit selection, aligned trace / atoms coordinates, ring normals and planarity) are therefore those
 of the generic kernels; the C++ tests compare them within the tolerances of the plan (4.3) and use
-the margins for counts. --native skips the pinning (to see what the machine's own kernels change;
+the margins for counts. The pinning is not complete on every machine (one CI runner moved RMSDs
+with a fit selection by a few ulps), so regenerate_all.py compares these files, except
+spatial_cases.json, within a relative 1e-12 where their bytes differ. --native skips the pinning (to see what the machine's own kernels change;
 its output is not the committed data).
 """
 

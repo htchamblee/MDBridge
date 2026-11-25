@@ -547,8 +547,10 @@ ring planes, BLAS products) are chosen per CPU and differ in the last bits (rela
 on the reference machine: energies, aligned coordinates, RMSD with a fit selection, stacking
 geometry). The generator therefore pins them before numpy loads (`OPENBLAS_CORETYPE=Nehalem`, one
 thread, numpy's dispatch limited to its x86-64 baseline with `NPY_ENABLE_CPU_FEATURES=X86_V2`), so
-the data is the same on every x86-64 machine; `--native` skips the pinning to show what a machine's
-own kernels change (not the committed data). The C++ tests compare such values within the
+the data is the same on almost every x86-64 machine (one CI runner still moved RMSDs with a fit
+selection by a few ulps, so `regenerate_all.py` compares these files within a relative 1e-12 where
+their bytes differ; below); `--native` skips the pinning to show what a machine's own kernels
+change (not the committed data). The C++ tests compare such values within the
 tolerances of the plan (4.3).
 
 To regenerate (after the topology fixtures and the trajectory cases, whose `demo_dry` files it
@@ -686,11 +688,16 @@ It handles the special cases noted above (`--fixed-clock`, `manifest.txt` and th
 files deleted, the loader before the export, MDATK's lock files and MDAnalysis' hidden
 `.*_offsets.npz` / `.lock` files removed) and masks the patch number of Python's version
 (`3.13.N`) where a header records it. Not compared, because no generator writes them: the
-hand-made project files, `text/tomlio_golden.toml` and `topology/golden_model.json`. Two files may
+hand-made project files, `text/tomlio_golden.toml` and `topology/golden_model.json`. Some files may
 differ by CPU: `rigid/rigid_cases.json` and `analysis/spatial_extra_cases.json` (its `kabsch` and `rings`
 entries) come from OpenBLAS / LAPACK, whose kernels are chosen per CPU (the committed files were
 written with the SkylakeX ones; Haswell / Zen kernels differ in the last bits), so where their bytes
 differ they are compared as JSON with numbers (and `float.hex()` strings) within a relative 1e-12.
+The same holds for `analysis/demo_dry_cases.json`, `demo_dry_variants.json`, `micro_cases.json` and
+`systems_cases.json` despite the generator's pinning (CI run 56 moved RMSDs with a fit selection
+by 12 to 33 ulps), where an array's `sha256` is ignored when its values agree within the tolerance;
+not `analysis/spatial_cases.json`, whose degenerate `kabsch` inputs get a different rotation from
+other kernels.
 The random rotations of `io/pdb/pdb_cases.json` are written out in `make_pdb_cases.py` for the same
 reason. `--list` shows the steps; `--only STEP ...` reruns some of them.
 

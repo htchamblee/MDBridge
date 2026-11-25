@@ -50,10 +50,12 @@ Special cases handled here (tests/data/README.md):
 * Version stamps: a few files record Python's full version (3.13.N) in a header; the patch number
   is masked on both sides (PATCH_STAMPED below).
 * make_analysis_cases.py pins numpy's and OpenBLAS' kernels itself (generic x86-64 ones, one
-  thread), so its output does not depend on the CPU.
-* rigid/rigid_cases.json and analysis/spatial_extra_cases.json depend on the CPU's OpenBLAS / LAPACK
-  kernels (MACHINE_DEPENDENT below): where their bytes differ, they are compared as JSON with
-  numbers within a relative 1e-12.
+  thread), which makes its output the same on most machines, though not on every CI runner (its
+  RMSDs with a fit selection moved by a few ulps on one).
+* rigid/rigid_cases.json, analysis/spatial_extra_cases.json and the analysis case files of
+  make_analysis_cases.py but spatial_cases.json depend on the CPU's OpenBLAS / LAPACK kernels
+  (MACHINE_DEPENDENT below): where their bytes differ, they are compared as JSON with numbers
+  within a relative 1e-12 (an array's sha256 is ignored where its values agree).
   Everything else must match exactly.
 
 Committed files without a generator (NOT_GENERATED: the hand-made project files, the golden
@@ -112,6 +114,20 @@ MACHINE_DEPENDENT = {
     # kabsch and the ring SVDs of mdatk/spatial.py / stacking.py: the same OpenBLAS / LAPACK kernels
     # (the C++ test compares them within 1e-14)
     "tests/data/analysis/spatial_extra_cases.json",
+    # make_analysis_cases.py pins OpenBLAS to its Nehalem kernels, one thread, and numpy's dispatch
+    # to X86_V2, which makes these files the same on every machine tried locally, but not on every
+    # CI runner: run 56 (45523543930) regenerated the RMSD with a fit selection of 382 / 388 atoms
+    # (kabsch: BLAS products and LAPACK's SVD) 12 to 33 ulps away from the committed values
+    # (relative < 1e-14), with the committed files, MDATK and the wheels unchanged since runs 50 and
+    # 54 reproduced them byte for byte. Array records keep a sha256 of their values; it is ignored
+    # where the values themselves agree within the tolerance (numerically_equal). With other kernels
+    # (--native, OPENBLAS_CORETYPE=Haswell / Core2) these four stay within 1e-13. Not
+    # spatial_cases.json: its degenerate kabsch inputs (kabsch[12]) get a different rotation from
+    # other kernels, which no tolerance covers; it has always matched byte for byte when pinned.
+    "tests/data/analysis/demo_dry_cases.json",
+    "tests/data/analysis/demo_dry_variants.json",
+    "tests/data/analysis/micro_cases.json",
+    "tests/data/analysis/systems_cases.json",
 }
 FLOAT_TOLERANCE = 1e-12
 HEX_FLOAT_RE = re.compile(r"^-?0x[0-9a-f]\.[0-9a-f]+p[+-][0-9]+$")  # float.hex() of a finite float
@@ -337,7 +353,11 @@ def numerically_equal(old: bytes, new: bytes) -> tuple[bool, str]:
             if isinstance(x, dict):
                 if list(x) != list(y):
                     return f"{path}: keys {list(x)} / {list(y)}"
-                return next((r for r in (walk(x[k], y[k], f"{path}.{k}") for k in x) if r), None)
+                # an array record of make_analysis_cases.py: its sha256 hashes "values", which are
+                # compared themselves (within the tolerance)
+                skip = {"sha256"} if "values" in x and isinstance(x.get("sha256"), str) else set()
+                return next((r for r in (walk(x[k], y[k], f"{path}.{k}") for k in x if k not in skip) if r),
+                            None)
             return None if x == y else f"{path}: {x!r} / {y!r}"
         if math.isnan(x) or math.isnan(y) or math.isinf(x) or math.isinf(y):
             return None if repr(x) == repr(y) else f"{path}: {x!r} / {y!r}"
