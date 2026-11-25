@@ -396,6 +396,12 @@ W3-B (D8, D9, D12), W3-C (D13), the golden-image review (D10).
   WYSIWYG editor (swap, double-click, map drag) in M5.
 - **D14 Windows Vulkan CI**: recommend Mesa lavapipe for Windows as a test-only driver.
 
+**Decided (2026-11-25).** Owner: D1 AV1 (SVT-AV1) in MP4 as the default, `mpeg4` fallback; D2 own
+pinned LGPL build; D10 **contents only**: figure contents (data, colours, ticks, labels, legends)
+compared with MDATK and layout within tolerance, no golden reference images; D13 3D view + read-only
+preview, the editor in M5. The other decisions follow the recommendations above (D3-D9, D11, D12,
+D14).
+
 ---------------------------------------------------------------------------------------------------
 
 ## 7. Risks
