@@ -79,6 +79,8 @@ import traceback
 import zipfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+import improvements_readers_pdb  # noqa: E402  MDBridge's reader warnings and errors (docs/DIFFERENCES.md)
 DATA = os.path.normpath(os.path.join(HERE, "..", "data"))
 LIMIT = 16384
 
@@ -583,6 +585,8 @@ def run_mdatk(cases, root, mdatk, python):
             # "error: <message>"; the exit status, stdout and files are compared
             res["stderr"] = None
             res["mdatk_crash"] = stderr.strip().splitlines()[-1]
+        # MDBridge prints the readers' warnings (LD-03, LD-05) and words some errors itself (LD-06)
+        res = improvements_readers_pdb.adjust_cli(c["name"], c["argv"], res)
         results[c["name"]] = res
     return results
 

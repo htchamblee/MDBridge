@@ -14,7 +14,8 @@ add_library(mdbridge_io STATIC
     pdb_export.cpp
     pdb_topology.cpp
     readers.hpp
-    trajectory.cpp)
+    trajectory.cpp
+    warnings.cpp)
 add_library(mdbridge::io ALIAS mdbridge_io)
 target_include_directories(mdbridge_io PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_link_libraries(mdbridge_io PUBLIC mdbridge::core PRIVATE ${MDBRIDGE_ZLIB_TARGET})

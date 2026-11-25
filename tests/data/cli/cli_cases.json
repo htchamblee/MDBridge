@@ -733,7 +733,7 @@
    "executable": [],
    "exit": 0,
    "stdout": "{\n  \"n_atoms\": 773,\n  \"n_residues\": 27,\n  \"n_segments\": 1,\n  \"n_frames\": 24,\n  \"dt_ps\": 5.0,\n  \"has_box\": true,\n  \"top_resnames\": {\n    \"C\": 7,\n    \"G\": 7,\n    \"A\": 5,\n    \"U\": 5,\n    \"MG\": 3\n  },\n  \"groups\": {\n    \"Aptamer\": {\n      \"atoms\": 256,\n      \"residues\": 8,\n      \"first\": \"G1\",\n      \"last\": \"C24\"\n    },\n    \"Target\": {\n      \"atoms\": 341,\n      \"residues\": 16,\n      \"first\": \"G5\",\n      \"last\": \"C20\"\n    }\n  },\n  \"problems\": []\n}\n",
-   "stderr": "",
+   "stderr": "WARNING: inputs.dt_ps (5.0 ps) differs from the time step in {work}/demo_dry.nc (10.0 ps); the file's times are used\n",
    "written": {},
    "before_exits": [],
    "posix_only": true
@@ -762,7 +762,7 @@
    "executable": [],
    "exit": 0,
    "stdout": "{\n  \"n_atoms\": 773,\n  \"n_residues\": 27,\n  \"n_segments\": 1,\n  \"n_frames\": 30,\n  \"dt_ps\": 4.0,\n  \"has_box\": true,\n  \"top_resnames\": {\n    \"C\": 7,\n    \"G\": 7,\n    \"A\": 5,\n    \"U\": 5,\n    \"MG\": 3\n  },\n  \"groups\": {\n    \"Aptamer\": {\n      \"atoms\": 388,\n      \"residues\": 12,\n      \"first\": \"G1\",\n      \"last\": \"A12\"\n    },\n    \"Target\": {\n      \"atoms\": 382,\n      \"residues\": 12,\n      \"first\": \"U13\",\n      \"last\": \"C24\"\n    }\n  },\n  \"problems\": []\n}\n",
-   "stderr": "",
+   "stderr": "WARNING: inputs.dt_ps (4.0 ps) differs from the time step in {work}/demo_dry.nc (10.0 ps); the file's times are used\n",
    "written": {},
    "before_exits": [],
    "posix_only": false
@@ -814,7 +814,7 @@
    "executable": [],
    "exit": 0,
    "stdout": "{\n  \"n_atoms\": 12,\n  \"n_residues\": 11,\n  \"n_segments\": 1,\n  \"n_frames\": 1,\n  \"dt_ps\": null,\n  \"has_box\": false,\n  \"top_resnames\": {\n    \"ALA\": 1,\n    \"CAL\": 1,\n    \"CL\": 1,\n    \"DOD\": 1,\n    \"HEM\": 1,\n    \"K\": 1,\n    \"MG\": 1,\n    \"NA\": 1,\n    \"SOL\": 1,\n    \"UNK\": 1,\n    \"ZN\": 1\n  },\n  \"groups\": {\n    \"All\": {\n      \"atoms\": 12,\n      \"residues\": 11,\n      \"first\": \"MG1\",\n      \"last\": \"DOD11\"\n    }\n  },\n  \"problems\": [\n    \"No trajectory file selected.\",\n    \"contacts: unknown residue group 'Aptamer'.\",\n    \"contacts: unknown residue group 'Target'.\",\n    \"H-bonds: unknown residue group 'Aptamer'.\",\n    \"H-bonds: unknown residue group 'Target'.\",\n    \"Mg: unknown residue group 'Aptamer'.\",\n    \"Mg: unknown residue group 'Target'.\",\n    \"stacking: unknown residue group 'Aptamer'.\",\n    \"stacking: unknown residue group 'Target'.\",\n    \"energy: unknown residue group 'Aptamer'.\",\n    \"energy: unknown residue group 'Target'.\"\n  ]\n}\n",
-   "stderr": "",
+   "stderr": "WARNING: {work}/elements.pdb: 2 atoms have no element symbol in columns 77-78; guessed from the atom name (first: line 6)\nWARNING: {work}/elements.pdb: 3 atoms have an unknown element symbol in columns 77-78; the element is left blank (first: 'XX' on line 4)\nWARNING: {work}/elements.pdb: 3 atoms have no known element mass and get mass 0 (first: 'X1' on line 4)\n",
    "written": {},
    "before_exits": [],
    "posix_only": false
@@ -904,11 +904,10 @@
    "executable": [],
    "exit": 1,
    "stdout": "",
-   "stderr": null,
+   "stderr": "error: {work}/demo_dry.parm7 has no coordinates; give a trajectory with --traj\n",
    "written": {},
    "before_exits": [],
-   "posix_only": false,
-   "mdatk_crash": "AttributeError: No trajectory loaded into Universe"
+   "posix_only": false
   },
   {
    "name": "info_unknown_option",
@@ -1114,7 +1113,7 @@
    "executable": [],
    "exit": 0,
    "stdout": "{\n  \"pdbs\": [\n    \"{work}/results/snap_00001.pdb\",\n    \"{work}/results/snap_00003.pdb\",\n    \"{work}/results/snap_00020.pdb\"\n  ]\n}\n",
-   "stderr": "[100.0%] inputs ready\nExporting 3 frame(s) (256 atoms) as PDB\n[100.0%] PDB frame 20\n",
+   "stderr": "[100.0%] inputs ready\nWARNING: inputs.dt_ps (5.0 ps) differs from the time step in {work}/demo_dry.nc (10.0 ps); the file's times are used\nExporting 3 frame(s) (256 atoms) as PDB\n[100.0%] PDB frame 20\n",
    "written": {
     "results/snap_00001.pdb": {
      "sha256": "21ead8a632fbc5e9f04f57e397f701f56f39462d1635536c8115ae79d9088816",
@@ -1379,7 +1378,7 @@
    "executable": [],
    "exit": 0,
    "stdout": "{\n  \"pdbs\": [\n    \"{work}/MDATK_output/MDATK_frame_00000.pdb\"\n  ]\n}\n",
-   "stderr": "[100.0%] inputs ready\nExporting 1 frame(s) (8 atoms) as PDB\n[100.0%] PDB frame 0\n",
+   "stderr": "[100.0%] inputs ready\nWARNING: {work}/chains.pdb line 6: formal charge '-' in columns 79-80 is not a charge (such as '2-'); no formal charges are read\nWARNING: {work}/chains.pdb: 2 atoms have an unknown element symbol in columns 77-78; the element is left blank (first: 'l1' on line 6)\nWARNING: {work}/chains.pdb: 2 atoms have no known element mass and get mass 0 (first: 'CL' on line 6)\nExporting 1 frame(s) (8 atoms) as PDB\n[100.0%] PDB frame 0\n",
    "written": {
     "MDATK_output/MDATK_frame_00000.pdb": {
      "text": "HEADER    CHAIN VARIANTS\nTITLE     MDANALYSIS FRAME 0: Created by PDBWriter\nCOMPND    MOL_ID: 1;\nREMARK     1 word word word word word word word word word word word word word\nREMARK     word word word word word word word word word word word word word\nREMARK     word word word word\nCRYST1    1.000    1.000    1.000  90.00  90.00  90.00 P 1           1\nREMARK     285 UNITARY VALUES FOR THE UNIT CELL AUTOMATICALLY SET\nREMARK     285 BY MDANALYSIS PDBWRITER BECAUSE UNIT CELL INFORMATION\nREMARK     285 WAS MISSING.\nREMARK     285 PROTEIN DATA BANK CONVENTIONS REQUIRE THAT\nREMARK     285 CRYST1 RECORD IS INCLUDED, BUT THE VALUES ON\nREMARK     285 THIS RECORD ARE MEANINGLESS.\nATOM      1  P   G   A   1       0.000   0.000   3.000  1.00  0.00      S1   P  \nHETATM    2 MG   MG  a   2       1.500  -0.250   3.000  1.00  0.00      S1  MG  \nATOM      3 CL   CPT 1   3       3.000  -0.500   3.000  0.50  0.00      1  C    \nATOM      4  HG  CMH é   4       4.500  -0.750   3.000  1.00 99.99      S1  HG  \nHETATM    5 FE  BHEM X   5       6.000  -1.000   3.000  1.00  0.00      S1  FE  \nATOM      6 CA   CA  X   6C      7.500  -1.250   3.000  1.00  0.00      S1  CA  \nATOM      7 NA   NA  X   7       9.000  -1.500   3.000  1.00  0.00      SEGM    \nHETATM    8  C1' OEC B   8      10.500  -1.750   3.000  1.00  0.00      S1   C  \nCONECT    1    2    3\nCONECT    2    1\nCONECT    3    1    8\nCONECT    8    3\nEND\n"
@@ -12019,7 +12018,7 @@
    "executable": [],
    "exit": 0,
    "stdout": "{\n  \"cache_manifest\": \"{work}/MDATK_output/MDATK_cache/{manifest}\",\n  \"n_frames\": 3,\n  \"data_keys\": {\n    \"series\": [\n      \"hbonds/count\"\n    ],\n    \"matrices\": [\n      \"hbonds/per_residue_a\",\n      \"hbonds/per_residue_b\"\n    ],\n    \"pairmaps\": [\n      \"hbonds/map\"\n    ]\n  }\n}\n",
-   "stderr": "Preparing Hydrogen bonds ...\nAnalysing 3 frame(s): Hydrogen bonds\n[100.0%] Analysing frame 3/3\n[100.0%] analysis done\n",
+   "stderr": "WARNING: inputs.dt_ps (2.5 ps) differs from the time step in {work}/demo_dry.nc (10.0 ps); the file's times are used\nPreparing Hydrogen bonds ...\nAnalysing 3 frame(s): Hydrogen bonds\n[100.0%] Analysing frame 3/3\n[100.0%] analysis done\n",
    "written": {
     "MDATK_output/MDATK_cache/hbonds-{key}.json": {
      "json": {
@@ -17402,7 +17401,7 @@
    "executable": [],
    "exit": 0,
    "stdout": "{\n  \"cache_manifest\": \"{work}/results/MDATK_cache/{manifest}\",\n  \"n_frames\": 24,\n  \"data_keys\": {\n    \"series\": [\n      \"rmsd@Aptamer/Heavy\",\n      \"rmsd@Aptamer/Backbone\",\n      \"hbonds/count\"\n    ],\n    \"matrices\": [\n      \"hbonds/per_residue_a\",\n      \"hbonds/per_residue_b\"\n    ],\n    \"pairmaps\": [\n      \"hbonds/map\"\n    ]\n  }\n}\n",
-   "stderr": "Preparing RMSD ...\nPreparing Hydrogen bonds ...\nAnalysing 24 frame(s): RMSD, Hydrogen bonds\n[100.0%] Analysing frame 24/24\n[100.0%] analysis done\n",
+   "stderr": "WARNING: inputs.dt_ps (5.0 ps) differs from the time step in {work}/demo_dry.nc (10.0 ps); the file's times are used\nPreparing RMSD ...\nPreparing Hydrogen bonds ...\nAnalysing 24 frame(s): RMSD, Hydrogen bonds\n[100.0%] Analysing frame 24/24\n[100.0%] analysis done\n",
    "written": {
     "results/MDATK_cache/hbonds-{key}.json": {
      "json": {

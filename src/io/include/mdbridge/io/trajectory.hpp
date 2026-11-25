@@ -33,9 +33,16 @@ std::unique_ptr<core::Trajectory> openTrajectory(const std::filesystem::path& pa
 // several are opened as MDAnalysis' ChainReader opens them (a file's ValueError becomes TypeError
 // "Unable to read <path> with <class '...'>.", the files must agree on the atom count) and chained,
 // then checked against `atoms` with the Universe's message.
+// With `dt` given, a file whose own time step differs (a NetCDF time variable keeps its times)
+// gets the reader warning "inputs.dt_ps (x ps) differs from the time step in <file> (y ps); the
+// file's times are used" (mdbridge/io/warnings.hpp).
 std::unique_ptr<core::Trajectory> openTrajectories(const std::vector<std::filesystem::path>& paths,
                                                    std::string_view format, std::optional<double> dt,
                                                    std::size_t atoms);
+// The same with one format per path (`formats.size() == paths.size()`; "" guesses that file's).
+std::unique_ptr<core::Trajectory> openTrajectories(const std::vector<std::filesystem::path>& paths,
+                                                   const std::vector<std::string>& formats,
+                                                   std::optional<double> dt, std::size_t atoms);
 
 // Several trajectories one after the other (MDAnalysis ChainReader, continuous=False): global
 // frame numbers, each file keeping its own times where it stores them (NCDF with a time variable,

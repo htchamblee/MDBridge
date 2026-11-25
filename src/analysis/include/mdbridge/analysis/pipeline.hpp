@@ -90,7 +90,9 @@ public:
     // <path>") with cleaning.
     const ResolvedInputs& resolveInputs(const core::Reporter* reporter = nullptr);
     // universe(): the loaded system of the resolved inputs (kept). Throws what io::loadSystem
-    // throws, and core::ValueError("No trajectory loaded into Universe") without coordinates.
+    // throws, and core::ValueError("No trajectory loaded into Universe") without coordinates. The
+    // readers' warnings (core::System::warnings) go to the reporter as "WARNING: <message>" once,
+    // when the system is loaded.
     core::System& system();
 
     // input_fingerprint: {"topology": fileFingerprint, "trajectories": [...], "frames": {"start",

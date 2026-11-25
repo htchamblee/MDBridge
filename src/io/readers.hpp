@@ -28,6 +28,15 @@ private:
     std::string m_name;
 };
 
+// An error worded by MDBridge under the reader-message rule (docs/IMPROVEMENTS.md "RM": the
+// message names the file, the line or record and the field, and says what was expected). A
+// ValueError that is never rewrapped in MDAnalysis' texts (the Universe's "Failed to construct
+// topology ...", ChainReader's "Unable to read <path> with <class ...>"): it already says where.
+class FormatError : public core::ValueError {
+public:
+    using core::ValueError::ValueError;
+};
+
 // A trajectory whose frames are decoded from its file on demand. Times are either stored in the
 // file (kept per file when chained) or frame * dt (renumbered by chainTrajectories).
 class FileTrajectory : public core::Trajectory {

@@ -11,6 +11,7 @@
 #include "mdbridge/core/paths.hpp"
 #include "mdbridge/core/python.hpp"
 #include "mdbridge/io/netcdf.hpp"
+#include "mdbridge/io/warnings.hpp"
 #include "readers.hpp"
 #include "text_file.hpp"
 
@@ -347,6 +348,26 @@ std::string coordinateFormatForExtension(std::string_view path) {
     return guessFormat(path);
 }
 
+namespace {
+
+// inputs.dt_ps given for a file that stores its own times (NetCDF with a time variable): the
+// file's times are kept (MDAnalysis' convention), so say so when its step is another one.
+void warnTimeStep(core::Trajectory& trajectory, const std::string& fileText, double dt) {
+    if (trajectory.frameCount() < 2) {
+        return;
+    }
+    const double t0 = trajectory.seek(0).time;
+    const double t1 = trajectory.seek(1).time;
+    trajectory.seek(0);
+    const double step = t1 - t0;
+    if (std::abs(step - dt) > 1e-4 * std::max(std::abs(dt), std::abs(step))) {
+        readerWarning("inputs.dt_ps (" + core::pythonFloatRepr(dt) + " ps) differs from the time step in " +
+                      fileText + " (" + core::pythonFloatRepr(step) + " ps); the file's times are used");
+    }
+}
+
+}  // namespace
+
 std::unique_ptr<core::Trajectory> openTrajectory(const std::filesystem::path& path,
                                                  std::string_view format, std::optional<double> dt,
                                                  std::size_t atoms) {
@@ -355,28 +376,46 @@ std::unique_ptr<core::Trajectory> openTrajectory(const std::filesystem::path& pa
     if (reader.kind != Kind::Ncdf && reader.kind != Kind::Trj) {
         checkAtoms(*trajectory, atoms, reader.form, detail::pathText(path));
     }
+    if (dt) {
+        warnTimeStep(*trajectory, detail::pathText(path), *dt);
+    }
     return trajectory;
 }
 
 std::unique_ptr<core::Trajectory> openTrajectories(const std::vector<std::filesystem::path>& paths,
                                                    std::string_view format,
                                                    std::optional<double> dt, std::size_t atoms) {
+    return openTrajectories(paths, std::vector<std::string>(paths.size(), std::string(format)), dt, atoms);
+}
+
+std::unique_ptr<core::Trajectory> openTrajectories(const std::vector<std::filesystem::path>& paths,
+                                                   const std::vector<std::string>& formats,
+                                                   std::optional<double> dt, std::size_t atoms) {
+    if (formats.size() != paths.size()) {
+        throw std::invalid_argument("openTrajectories: one format per path");
+    }
     if (paths.size() == 1) {
-        return openTrajectory(paths.front(), format, dt, atoms);
+        return openTrajectory(paths.front(), formats.front(), dt, atoms);
     }
     std::vector<std::unique_ptr<core::Trajectory>> parts;
     std::vector<std::string> texts;
-    for (const auto& path : paths) {
-        const ReaderClass reader = resolve(path, format, true);
+    for (std::size_t p = 0; p < paths.size(); ++p) {
+        const std::filesystem::path& path = paths[p];
+        const ReaderClass reader = resolve(path, formats[p], true);
         texts.push_back(detail::pathText(path));
         try {
             parts.push_back(openWith(reader, path, dt, atoms));
+        } catch (const detail::FormatError&) {
+            throw;  // names the file and place already
         } catch (const ValueError& error) {
             if (std::string_view(error.pythonName()) != "ValueError") {
                 throw;
             }
             throw ReaderError("TypeError", "Unable to read " + texts.back() + " with <class '" +
                                                reader.className + "'>.");
+        }
+        if (dt) {
+            warnTimeStep(*parts.back(), texts.back(), *dt);
         }
     }
     const std::size_t first = atomCountOf(*parts.front());

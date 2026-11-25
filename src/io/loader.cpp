@@ -2,14 +2,17 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <map>
 #include <system_error>
 
 #include "mdbridge/core/errors.hpp"
+#include "mdbridge/core/json.hpp"
 #include "mdbridge/core/paths.hpp"
 #include "mdbridge/core/python.hpp"
 #include "mdbridge/io/parm7.hpp"
 #include "mdbridge/io/trajectory.hpp"
+#include "mdbridge/io/warnings.hpp"
 #include "readers.hpp"
 #include "text_file.hpp"
 
@@ -95,22 +98,65 @@ std::string unknownTopologyText(const std::string& format) {
            "   https://github.com/MDAnalysis/mdanalysis/issues";
 }
 
+// MDATK's extension table (mdatk/io/loader.py), applied per file; "" lets the reader guess
+std::string mdatkFormat(std::string_view path) {
+    static const std::array<std::pair<std::string_view, std::string_view>, 9> kFormats = {{
+        {".nc", "NCDF"},
+        {".ncdf", "NCDF"},
+        {".netcdf", "NCDF"},
+        {".mdcrd", "TRJ"},
+        {".crd", "TRJ"},
+        {".trj", "TRJ"},
+        {".rst7", "INPCRD"},
+        {".inpcrd", "INPCRD"},
+        {".ncrst", "NCRST"},
+    }};
+    const std::string ext = lowerExtension(path);
+    for (const auto& [suffix, name] : kFormats) {
+        if (suffix == ext) {
+            return std::string(name);
+        }
+    }
+    return {};
+}
+
+// A .top file read as parm7 (MDATK's mapping) that is not one: GROMACS topologies share the
+// extension.
+void checkTopExtension(const std::filesystem::path& path, const std::string& text) {
+    if (lowerExtension(text) != ".top") {
+        return;
+    }
+    std::ifstream in(path, std::ios::binary);
+    std::string first;
+    std::getline(in, first);
+    if (!first.starts_with("%VE")) {
+        throw detail::FormatError(text + ": not an Amber parm7 topology (GROMACS .top files are not supported)");
+    }
+}
+
+std::string noCoordinates(const std::string& topology) {
+    return topology + " has no coordinates; give a trajectory with --traj";
+}
+
 }  // namespace
 
 TopologyFile readTopologyFile(const std::filesystem::path& path, std::string_view format,
                               std::optional<double> dt) {
     const std::string text = detail::pathText(path);
     const std::string name = format.empty() ? guessTopologyFormat(text) : upper(format);
+    ReaderWarningScope scope;
+    TopologyFile out;
     if (name == "PARM7" || name == "PRMTOP" || name == "TOP") {
-        TopologyFile out;
+        checkTopExtension(path, text);
         out.topology = readParm7Topology(path);
+    } else if (name == "PDB" || name == "ENT") {
+        out = detail::readPdbTopology(path, dt);
+    } else if (name == "GRO") {
+        out = detail::readGroTopology(path, dt);
+    }
+    if (out.topology) {
+        out.warnings = scope.take();
         return out;
-    }
-    if (name == "PDB" || name == "ENT") {
-        return detail::readPdbTopology(path, dt);
-    }
-    if (name == "GRO") {
-        return detail::readGroTopology(path, dt);
     }
     if (std::find(kTopologyFormats.begin(), kTopologyFormats.end(), name) !=
         kTopologyFormats.end()) {
@@ -136,45 +182,34 @@ core::System loadSystem(const std::filesystem::path& topology,
     }
     const std::string topologyText = detail::pathText(topology);
     const bool parm7 = isParm7(topologyText);
-    std::string format;
-    std::vector<std::string> extensions;
+    std::vector<std::string> formats;  // MDATK's table per file (a chain may mix formats)
     for (const auto& path : trajectories) {
-        const std::string ext = lowerExtension(detail::pathText(path));
-        if (std::find(extensions.begin(), extensions.end(), ext) == extensions.end()) {
-            extensions.push_back(ext);
-        }
-    }
-    if (extensions.size() == 1) {
-        static const std::array<std::pair<std::string_view, std::string_view>, 9> kFormats = {{
-            {".nc", "NCDF"},
-            {".ncdf", "NCDF"},
-            {".netcdf", "NCDF"},
-            {".mdcrd", "TRJ"},
-            {".crd", "TRJ"},
-            {".trj", "TRJ"},
-            {".rst7", "INPCRD"},
-            {".inpcrd", "INPCRD"},
-            {".ncrst", "NCRST"},
-        }};
-        for (const auto& [ext, name] : kFormats) {
-            if (ext == extensions.front()) {
-                format = name;
-            }
-        }
+        formats.push_back(mdatkFormat(detail::pathText(path)));
     }
     std::optional<double> dt;
+    if (dtPs && !(*dtPs >= 0.0 && std::isfinite(*dtPs))) {
+        throw ValueError("inputs.dt_ps must be a positive number of picoseconds (0: the files' time step), got " +
+                         core::pythonFloatRepr(*dtPs));
+    }
     if (dtPs && *dtPs != 0.0) {
         dt = *dtPs;
     }
     TopologyFile file = readTopologyFile(topology, parm7 ? "PARM7" : "", dt);
     core::System system;
     system.topology = file.topology;
+    system.warnings = std::move(file.warnings);
+    ReaderWarningScope scope;
     if (!trajectories.empty()) {
-        system.trajectory = openTrajectories(trajectories, format, dt, file.topology->atomCount());
+        system.trajectory = openTrajectories(trajectories, formats, dt, file.topology->atomCount());
     } else if (file.coordinates) {
         system.trajectory = std::move(file.coordinates);
     } else {
-        throw ReaderError("AttributeError", "No trajectory loaded into Universe");
+        throw ValueError(noCoordinates(topologyText));
+    }
+    for (std::string& warning : scope.take()) {
+        if (std::find(system.warnings.begin(), system.warnings.end(), warning) == system.warnings.end()) {
+            system.warnings.push_back(std::move(warning));
+        }
     }
     return system;
 }
@@ -209,7 +244,7 @@ std::vector<std::int64_t> frameIndices(std::int64_t frameCount, std::int64_t sta
 
 core::Value systemSummary(const core::System& system) {
     if (!system.trajectory) {
-        throw ReaderError("AttributeError", "No trajectory loaded into Universe");
+        throw ValueError("the system has no coordinates; give a trajectory with --traj");
     }
     const core::Topology& top = *system.topology;
     std::map<std::string, std::int64_t> counts;

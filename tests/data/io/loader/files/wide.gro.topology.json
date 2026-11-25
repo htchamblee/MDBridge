@@ -1,0 +1,128 @@
+{
+ "file": "wide.gro",
+ "mdanalysis": "2.11.0",
+ "atoms": {
+  "names": [
+   "C0",
+   "C1",
+   "C2",
+   "C3",
+   "C4",
+   "C5",
+   "C6"
+  ],
+  "types": [
+   "C",
+   "C",
+   "C",
+   "C",
+   "C",
+   "C",
+   "C"
+  ],
+  "resindex": [
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0
+  ],
+  "elements": null,
+  "chainIDs": null,
+  "masses": [
+   12.011,
+   12.011,
+   12.011,
+   12.011,
+   12.011,
+   12.011,
+   12.011
+  ],
+  "charges": null,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "altLocs": null,
+  "record_types": null,
+  "occupancies": null,
+  "tempfactors": null,
+  "formalcharges": null
+ },
+ "residues": {
+  "resids": [
+   1
+  ],
+  "resnums": [
+   1
+  ],
+  "resnames": [
+   "LIG"
+  ],
+  "icodes": null,
+  "segindex": [
+   0
+  ]
+ },
+ "segments": {
+  "segids": [
+   "SYSTEM"
+  ]
+ },
+ "bonds": null,
+ "frame": {
+  "positions": [
+   [
+    125.0,
+    -12.5,
+    0.0
+   ],
+   [
+    135.0,
+    -12.5,
+    25.0
+   ],
+   [
+    145.0,
+    -12.5,
+    50.0
+   ],
+   [
+    155.0,
+    -12.5,
+    75.0
+   ],
+   [
+    165.0,
+    -12.5,
+    100.0
+   ],
+   [
+    175.0,
+    -12.5,
+    125.0
+   ],
+   [
+    185.0,
+    -12.5,
+    150.0
+   ]
+  ],
+  "dimensions": [
+   30.0,
+   40.0,
+   50.0,
+   90.0,
+   90.0,
+   90.0
+  ],
+  "time": 0.0
+ }
+}

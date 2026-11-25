@@ -87,15 +87,24 @@ DEMO_NC = os.path.join(DATA, "io", "trajectories", "demo_dry.nc")
 _load_universe = loader.load_universe
 
 
+LOAD_LOG = [None]  # the log callback of the run in progress (MDBridge's reader warnings)
+
+
 def load_universe(topology, trajectories=(), dt_ps=None):
-    """load_universe with MDBridge's residue-scoped ion rule (as make_analysis_cases.py loads)."""
+    """load_universe with MDBridge's residue-scoped ion rule (as make_analysis_cases.py loads) and
+    MDBridge's reader warnings in the log (improvements_readers_pdb.py, LD-05)."""
     u = _load_universe(topology, trajectories, dt_ps)
+    if LOAD_LOG[0] is not None:
+        for warning in improvements_readers_pdb.time_step_warnings(trajectories, dt_ps):
+            LOAD_LOG[0]("WARNING: " + warning)
     fmt = loader._TOPOLOGY_FORMATS.get(os.path.splitext(topology)[1].lower())
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         independent_tables.residue_rule_universe(u, topology, **({"topology_format": fmt} if fmt else {}))
     return u
 
+
+import improvements_readers_pdb  # noqa: E402
 
 pipeline_module.load_universe = load_universe
 
@@ -245,6 +254,7 @@ def run_record(mask, work, make, overrides, names=None, force=False, check=False
     p = Project.from_dict(mask.unmask(p.to_dict()), None)
     logs, progress = [], []
     reporter = Reporter(log_cb=logs.append, progress_cb=lambda f, m: progress.append([float(f).hex(), m]))
+    LOAD_LOG[0] = logs.append
     rec = {"overrides": overrides, "names": names, "force": force, "check": check}
     pipe = pipeline_module.Pipeline(p, reporter)
     try:
