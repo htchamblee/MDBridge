@@ -1081,6 +1081,40 @@ target folder renamed at the end and removed on failure. Stream metadata (frame 
   and SVT-AV1 print nothing on the console. *Tested:* `VideoFiles.ClearErrors`,
   `VideoFfmpeg.NotAvailableMessage`.
 
+## Rendering: the Vulkan 3D renderer (src/render/vulkan/scene_renderer.cpp, src/render/panels/vulkan_stage.cpp)
+
+MDATK's GPU path was VTK (`renderer: vtk`): OpenGL impostor spheres and sticks with VTK's own
+lighting, no outlines, the glow tint and halo computed in numpy, and a crash risk without EGL
+(RN-16). MDBridge's GPU renderer is Vulkan 1.3 and draws the software renderer's picture: the
+primitives are set up on the CPU exactly as the software renderer sets them up (pixel boxes, the
+spheres' quarter-pixel phase, the widened triangle edges, the capsule bound of the sticks), the
+shaders repeat its per-pixel arithmetic in float32 (impostor spheres and cylinders, mesh
+triangles, the depth key with ties to the later primitive, the same lighting), and compute passes
+composite as the software renderer does (depth cue, glow tint, the halo from a quarter-resolution
+grid with scipy's Gaussian and the disc normalisation, ink outlines, edge anti-aliasing, the
+front-most translucent layer, fast quality). Differences:
+
+- **Same look, not same pixels.** On lavapipe the images equal the software renderer's on every
+  molecule case; on other drivers float32 rounding (division, square roots) may move single
+  pixels. The tests require coverage IoU >= 0.99 and SSIM >= 0.97 against the software renderer on
+  every render case and every scene of `tests/data/render/molecule` (also larger, rotated,
+  glowing and fast), and the resolved G-buffer against `SoftwareRenderer::resolve` (>= 99.5 %
+  of pixels, owners and depths). *Tested:* `VulkanScene.*`.
+- **`renderer = "auto"` uses the GPU (RN-16).** MDATK's `auto` always meant its built-in
+  renderer. In MDBridge `auto` uses the Vulkan renderer when it runs on a GPU, silently (same
+  picture), and the software renderer otherwise; a Vulkan driver that runs on the CPU (Mesa's
+  lavapipe) is left to the software renderer, which is about twice as fast there (`VulkanScene.
+  Benchmark`). `vtk` and `vulkan` use Vulkan on any device, the CPU's included, and fall back to
+  the software renderer with the RN-16 note. The program installs this choice at start
+  (`installGpuStageRenderers` in `main`), so figures, previews and video frames all use it; the
+  device opens on first use only. *Tested:* `VulkanStage.*`.
+- **A GPU failure never stops a video.** When the GPU cannot draw a frame (device lost, out of
+  memory, a scene or image beyond the device's limits) that frame and every later one are drawn by
+  the software renderer, with one warning `3D representations: the GPU renderer failed (...);
+  using the built-in renderer` (MDATK: VTK errors or crashes inside `Render()`). Unusable views and
+  items raise the software renderer's errors (RN-28). *Tested:*
+  `VulkanScene.UnusableViewsAndItemsThrowAsTheSoftwareRenderer`, `VulkanStage.InstallsAndUninstallsTheFactory`.
+
 ## Rendering: the video frame loop (src/render/video/frame_loop.cpp, src/render/video_qt.cpp)
 
 MDATK's `render_video` builds the figure once, marks the panels' animated artists, draws the

@@ -1,11 +1,13 @@
 #pragma once
 // The 3D structure view. Vulkan 1.3 when the machine has it; otherwise the software view, which
-// draws fewer representations and effects but takes the same place in the panels. Milestone 1
-// draws a placeholder scene in both.
+// draws fewer representations and effects but takes the same place in the panels. Without a
+// molecule (setMoleculeFrame) both draw milestone 1's placeholder scene.
 
+#include <array>
 #include <memory>
 #include <optional>
 #include <string_view>
+#include <vector>
 
 #include <QImage>
 #include <QObject>
@@ -13,7 +15,29 @@
 #include <QString>
 #include <QWindow>
 
+#include "mdbridge/render/molecule/scene.hpp"
+#include "mdbridge/render/molecule/software.hpp"
+
 namespace mdbridge::render {
+
+// What the 3D view shows: the molecule scene's primitives of one frame (MoleculeScene::frame), the
+// view rotation, the data window (Angstrom; the view widens one axis to the window's aspect, so
+// atoms stay round), the depth range of the depth cue and the shading, over `background` (RGB
+// 0..1). The view draws it at the window's size, as the structure panel's 3D layer would.
+struct MoleculeFrame {
+    std::vector<molecule::Colored> items;
+    std::array<molecule::Vec3, 3> rotation{{{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}}};
+    std::array<double, 2> xlim{-1.0, 1.0};
+    std::array<double, 2> ylim{-1.0, 1.0};
+    std::array<double, 2> zrange{-1.0, 1.0};
+    molecule::Shading shading;
+    molecule::RenderQuality quality = molecule::RenderQuality::High;  // Fast while dragging
+    std::array<float, 3> background{0.102f, 0.118f, 0.153f};
+};
+
+// The viewport that shows `frame` in a target of width x height pixels: the data window centred
+// and widened along one axis to the target's aspect.
+molecule::Viewport fittedViewport(const MoleculeFrame& frame, int width, int height);
 
 enum class Renderer { Auto, Vulkan, Software };
 
@@ -37,6 +61,13 @@ public:
 
     // The last frame as an image; null if it cannot be read back.
     virtual QImage grabFrame() = 0;
+
+    // Shows `frame` from the next frame on (nullptr: the placeholder again). False when this view
+    // cannot draw molecules (the software view of milestone 1).
+    virtual bool setMoleculeFrame(std::shared_ptr<const MoleculeFrame> frame) {
+        (void)frame;
+        return false;
+    }
 
 signals:
     void frameRendered(int frames);

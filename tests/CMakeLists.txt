@@ -263,6 +263,16 @@ target_link_libraries(mdbridge_vulkan_tests PRIVATE mdbridge::render_vulkan GTes
 mdbridge_target_warnings(mdbridge_vulkan_tests)
 gtest_discover_tests(mdbridge_vulkan_tests DISCOVERY_MODE PRE_TEST PROPERTIES LABELS vulkan)
 
+# render/vulkan: the molecule scene on the GPU against the software renderer (data/render/molecule:
+# coverage IoU >= 0.99, SSIM >= 0.97), the GPU stage renderer and its renderer choice; no Qt. On
+# lavapipe in CI (label vulkan); MDBRIDGE_VULKAN_BENCHMARK=1 prints frames/s
+add_executable(mdbridge_vulkan_scene_tests render/test_vulkan_scene.cpp)
+target_link_libraries(mdbridge_vulkan_scene_tests PRIVATE mdbridge::render_panels_vulkan mdbridge::render_core
+                      mdbridge::core GTest::gtest_main)
+target_compile_definitions(mdbridge_vulkan_scene_tests PRIVATE MDBRIDGE_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data")
+mdbridge_target_warnings(mdbridge_vulkan_scene_tests)
+gtest_discover_tests(mdbridge_vulkan_scene_tests DISCOVERY_MODE PRE_TEST PROPERTIES LABELS vulkan)
+
 # the committed SPIR-V matches the shader sources (tools/compile_shaders.py)
 add_test(NAME render.shaders_up_to_date
          COMMAND ${CMAKE_COMMAND} -DSHADER_DIR=${PROJECT_SOURCE_DIR}/src/render/shaders
@@ -273,6 +283,13 @@ if(MDBRIDGE_BUILD_APP)
     target_link_libraries(mdbridge_render_tests PRIVATE mdbridge::render Vulkan::Headers GTest::gtest_main)
     mdbridge_target_warnings(mdbridge_render_tests)
     gtest_discover_tests(mdbridge_render_tests DISCOVERY_MODE PRE_TEST)
+
+    # the GUI's Vulkan 3D view drawing a molecule (GPU scene renderer on Qt's device); needs a
+    # display with Vulkan (xvfb-run + lavapipe), skips without one
+    add_executable(mdbridge_vulkan_window_tests render/test_vulkan_window.cpp)
+    target_link_libraries(mdbridge_vulkan_window_tests PRIVATE mdbridge::render GTest::gtest)
+    mdbridge_target_warnings(mdbridge_vulkan_window_tests)
+    gtest_discover_tests(mdbridge_vulkan_window_tests DISCOVERY_MODE PRE_TEST)
 
     # the figure fonts in Qt: resources, registration, text drawn from outlines, the batch
     # application on the offscreen platform (no display needed)

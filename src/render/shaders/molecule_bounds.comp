@@ -1,0 +1,59 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+// Compositing, pass 1: the box of the opaque pixels, the box of the pixels the halo grows from
+// (opaque + front translucent), the largest glow among them, and whether a front translucent
+// pixel glows at all (state[], cleared to "empty" before the pass). Each invocation scans a run of
+// 16 pixels of one row and adds what it found with a few atomics (none for an empty run).
+
+#include "molecule_compute.glsl"
+
+layout(local_size_x = 64) in;
+
+void main() {
+    int y = int(gl_GlobalInvocationID.y);
+    int x0 = int(gl_GlobalInvocationID.x) * 16;
+    if (y >= int(pc.H) || x0 >= int(pc.W)) {
+        return;
+    }
+    int x1 = min(x0 + 16, int(pc.W));
+    int opMin = 0x7fffffff, opMax = -1, hMin = 0x7fffffff, hMax = -1;
+    float gOp = 0.0, gHalo = 0.0;
+    bool glassGlow = false;
+    for (int x = x0; x < x1; ++x) {
+        ivec2 p = ivec2(x, y);
+        Fragment op = fragmentOf(imageLoad(gOpaque, p));
+        Fragment gl = fragmentOf(imageLoad(gGlass, p));
+        bool front = frontGlass(op, gl);
+        if (op.covered) {
+            opMin = min(opMin, x);
+            opMax = max(opMax, x);
+            gOp = max(gOp, glowOf(op.owner));
+        }
+        if (op.covered || front) {
+            hMin = min(hMin, x);
+            hMax = max(hMax, x);
+        }
+        if (front) {
+            float g = glowOf(gl.owner);
+            gHalo = max(gHalo, g);
+            glassGlow = glassGlow || g != 0.0;
+        }
+    }
+    if (opMax >= 0) {
+        atomicMin(state[STATE_OP_BOX + 0], opMin);
+        atomicMin(state[STATE_OP_BOX + 1], y);
+        atomicMax(state[STATE_OP_BOX + 2], opMax);
+        atomicMax(state[STATE_OP_BOX + 3], y);
+        atomicMax(state[STATE_GMAX_OP], int(floatBitsToUint(gOp)));
+    }
+    if (hMax >= 0) {
+        atomicMin(state[STATE_HALO_BOX + 0], hMin);
+        atomicMin(state[STATE_HALO_BOX + 1], y);
+        atomicMax(state[STATE_HALO_BOX + 2], hMax);
+        atomicMax(state[STATE_HALO_BOX + 3], y);
+        atomicMax(state[STATE_GMAX_HALO], int(floatBitsToUint(max(gOp, gHalo))));
+    }
+    if (glassGlow) {
+        atomicMax(state[STATE_GLASS_GLOW], 1);
+    }
+}

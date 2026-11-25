@@ -301,6 +301,27 @@ std::string Context::init(const ContextOptions& options) {
         m_device = VK_NULL_HANDLE;
         return "could not create a Vulkan device on " + m_info.name + " (" + resultText(r) + ")";
     }
+    if (std::string p = initDevice(); !p.empty()) {
+        return p;
+    }
+
+    // pipeline cache: the file's data when it is intact and for this device, else empty
+    m_pipelineCachePath = options.pipelineCachePath;
+    std::string initial;
+    if (!m_pipelineCachePath.empty()) {
+        std::ifstream in(m_pipelineCachePath, std::ios::binary);
+        if (in) {
+            const std::string file((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+            std::string why;
+            if (std::optional<std::string> data = unwrapPipelineCache(file, m_properties, &why)) {
+                initial = std::move(*data);
+            }
+        }
+    }
+    return initPipelineCache(initial);
+}
+
+std::string Context::initDevice() {
 #define MDBRIDGE_LOAD(fn) m_vk.fn = reinterpret_cast<PFN_##fn>(m_vki.vkGetDeviceProcAddr(m_device, #fn));
     MDBRIDGE_VULKAN_DEVICE_FUNCTIONS(MDBRIDGE_LOAD)
 #undef MDBRIDGE_LOAD
@@ -326,20 +347,11 @@ std::string Context::init(const ContextOptions& options) {
         m_fence = VK_NULL_HANDLE;
         return "could not create a Vulkan fence (" + resultText(r) + ")";
     }
+    return {};
+}
 
-    // pipeline cache: the file's data when it is intact and for this device, else empty
-    m_pipelineCachePath = options.pipelineCachePath;
-    std::string initial;
-    if (!m_pipelineCachePath.empty()) {
-        std::ifstream in(m_pipelineCachePath, std::ios::binary);
-        if (in) {
-            const std::string file((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
-            std::string why;
-            if (std::optional<std::string> data = unwrapPipelineCache(file, m_properties, &why)) {
-                initial = std::move(*data);
-            }
-        }
-    }
+std::string Context::initPipelineCache(const std::string& data) {
+    std::string initial = data;
     VkPipelineCacheCreateInfo cacheInfo{};
     cacheInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
     cacheInfo.initialDataSize = initial.size();
@@ -359,6 +371,48 @@ std::string Context::init(const ContextOptions& options) {
     return {};
 }
 
+std::unique_ptr<Context> Context::adopt(const AdoptedDevice& device, std::string* problem) {
+    std::unique_ptr<Context> context(new Context());
+    context->m_ownsDevice = false;
+    *problem = context->initAdopted(device);
+    if (!problem->empty()) {
+        return nullptr;
+    }
+    return context;
+}
+
+std::string Context::initAdopted(const AdoptedDevice& device) {
+    const PFN_vkGetInstanceProcAddr gipa = device.getInstanceProcAddr;
+    if (!gipa || !device.instance || !device.physicalDevice || !device.device || !device.queue) {
+        return "no Vulkan device to draw on";
+    }
+    m_instance = device.instance;
+#define MDBRIDGE_LOAD(fn) m_vki.fn = reinterpret_cast<PFN_##fn>(gipa(m_instance, #fn));
+    MDBRIDGE_VULKAN_INSTANCE_FUNCTIONS(MDBRIDGE_LOAD)
+#undef MDBRIDGE_LOAD
+#define MDBRIDGE_CHECK(fn) \
+    if (!m_vki.fn) {       \
+        return "the Vulkan instance has no " #fn; \
+    }
+    MDBRIDGE_VULKAN_INSTANCE_FUNCTIONS(MDBRIDGE_CHECK)
+#undef MDBRIDGE_CHECK
+    m_physicalDevice = device.physicalDevice;
+    m_vki.vkGetPhysicalDeviceProperties(m_physicalDevice, &m_properties);
+    m_vki.vkGetPhysicalDeviceMemoryProperties(m_physicalDevice, &m_memory);
+    m_info = vulkanDevice(m_properties.deviceName, m_properties.deviceType, m_properties.apiVersion,
+                          m_properties.vendorID, m_properties.deviceID);
+    if (m_properties.apiVersion < kMinimum) {
+        return m_info.name + " supports only Vulkan " + vulkanVersionText(m_properties.apiVersion);
+    }
+    m_device = device.device;
+    m_queueFamily = device.queueFamily;
+    if (std::string p = initDevice(); !p.empty()) {
+        return p;
+    }
+    m_queue = device.queue;
+    return initPipelineCache({});
+}
+
 Context::~Context() {
     if (m_device) {
         m_vk.vkDeviceWaitIdle(m_device);
@@ -371,11 +425,11 @@ Context::~Context() {
         if (m_commandPool) {
             m_vk.vkDestroyCommandPool(m_device, m_commandPool, nullptr);
         }
-        if (m_vk.vkDestroyDevice) {
+        if (m_vk.vkDestroyDevice && m_ownsDevice) {
             m_vk.vkDestroyDevice(m_device, nullptr);
         }
     }
-    if (m_instance) {
+    if (m_instance && m_ownsDevice) {
         if (m_debugMessenger && m_destroyDebugMessenger) {
             m_destroyDebugMessenger(m_instance, m_debugMessenger, nullptr);
         }

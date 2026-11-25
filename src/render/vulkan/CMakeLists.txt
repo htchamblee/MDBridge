@@ -24,3 +24,20 @@ target_link_libraries(mdbridge_render_vulkan PUBLIC Vulkan::Headers PRIVATE mdbr
 target_compile_definitions(mdbridge_render_vulkan PUBLIC VK_NO_PROTOTYPES)
 target_compile_features(mdbridge_render_vulkan PUBLIC cxx_std_20)
 mdbridge_target_warnings(mdbridge_render_vulkan)
+
+# The GPU renderer of the molecule scene (impostor spheres and sticks, meshes, fog, glow, outlines,
+# translucency, anti-aliasing) on the base above: offscreen for batch work, into a window's command
+# buffer for the GUI. No Qt. Shaders: src/render/shaders/molecule_* (tools/compile_shaders.py).
+add_library(mdbridge_render_vulkan_scene STATIC
+    include/mdbridge/render/vulkan/scene_renderer.hpp
+    scene_renderer.cpp)
+add_library(mdbridge::render_vulkan_scene ALIAS mdbridge_render_vulkan_scene)
+target_include_directories(mdbridge_render_vulkan_scene PRIVATE "${PROJECT_SOURCE_DIR}/src/render")  # shaders/spirv.hpp
+target_link_libraries(mdbridge_render_vulkan_scene PUBLIC mdbridge::render_vulkan mdbridge::render_molecule)
+mdbridge_target_warnings(mdbridge_render_vulkan_scene)
+# primitives are set up in the software renderer's float32 / double arithmetic: no contraction
+if(MSVC)
+    target_compile_options(mdbridge_render_vulkan_scene PRIVATE /fp:precise)
+else()
+    target_compile_options(mdbridge_render_vulkan_scene PRIVATE -ffp-contract=off)
+endif()

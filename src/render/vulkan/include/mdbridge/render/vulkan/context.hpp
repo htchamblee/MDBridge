@@ -40,11 +40,27 @@ struct ContextOptions {
     std::filesystem::path pipelineCachePath;
 };
 
+// A device created by someone else (the GUI's QVulkanWindow): the Context draws on it but never
+// destroys it. The device must have Vulkan 1.3's dynamic rendering and synchronization2 enabled.
+struct AdoptedDevice {
+    PFN_vkGetInstanceProcAddr getInstanceProcAddr = nullptr;
+    VkInstance instance = VK_NULL_HANDLE;
+    VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+    VkDevice device = VK_NULL_HANDLE;
+    std::uint32_t queueFamily = 0;
+    VkQueue queue = VK_NULL_HANDLE;
+};
+
 class Context {
 public:
     // nullptr with `problem` set when there is no loader, no driver, no Vulkan 1.3 device with a
     // graphics queue, or device creation fails; the problem reads like probeVulkan()'s.
     static std::unique_ptr<Context> create(const ContextOptions& options, std::string* problem);
+    // A context on an existing device (instance and device are not destroyed with the context; its
+    // own command pool, fence and in-memory pipeline cache are). nullptr with `problem` set when a
+    // function is missing or the device is older than Vulkan 1.3. submitAndWait() uses the
+    // device's queue, which its owner must not use at the same time.
+    static std::unique_ptr<Context> adopt(const AdoptedDevice& device, std::string* problem);
     ~Context();
     Context(const Context&) = delete;
     Context& operator=(const Context&) = delete;
@@ -84,6 +100,9 @@ public:
 private:
     Context() = default;
     std::string init(const ContextOptions& options);  // "" or the problem
+    std::string initAdopted(const AdoptedDevice& device);
+    std::string initDevice();  // functions, queue, command pool, fence (m_device set)
+    std::string initPipelineCache(const std::string& initial);
 
     DeviceFunctions m_vk;
     InstanceFunctions m_vki;
@@ -104,6 +123,7 @@ private:
     VkPipelineCache m_pipelineCache = VK_NULL_HANDLE;
     bool m_pipelineCacheLoaded = false;
     std::filesystem::path m_pipelineCachePath;
+    bool m_ownsDevice = true;
 };
 
 // The pipeline cache file: MDBridge's header (magic "MDBVKPC1", payload size, SHA-256 of the

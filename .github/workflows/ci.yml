@@ -111,6 +111,12 @@ jobs:
           MDBRIDGE_REQUIRE_VULKAN: "1"  # the Vulkan tests run on lavapipe (mesa-vulkan-drivers), never skip
         run: ctest --test-dir build/release --output-on-failure
 
+      - name: Vulkan 3D view drawing a molecule (Xvfb, lavapipe)
+        env:
+          MDBRIDGE_REQUIRE_VULKAN: "1"
+          MDBRIDGE_REQUIRE_VULKAN_WINDOW: "1"  # fail instead of skipping when the window gets no Vulkan
+        run: xvfb-run -a -s "-screen 0 1024x768x24" build/release/tests/mdbridge_vulkan_window_tests
+
       - name: Version
         id: version
         run: |

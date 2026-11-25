@@ -1,0 +1,26 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+// Compositing, pass 3: the coarse grid's Gaussian along y (scipy's gaussian_filter, mode
+// "constant": zero beyond the region), coarseA -> coarseB.
+
+#include "molecule_compute.glsl"
+
+layout(local_size_x = 8, local_size_y = 8) in;
+
+void main() {
+    ivec2 cell = ivec2(gl_GlobalInvocationID.xy);
+    if (cell.x >= int(pc.cw) || cell.y >= int(pc.ch)) {
+        return;
+    }
+    Region r = haloRegion();
+    float v = 0.0;
+    if (haloOn() && r.any && cell.x < r.ww && cell.y < r.hh) {
+        for (int k = -pc.radius; k <= pc.radius; ++k) {
+            int j = cell.y + k;
+            if (j >= 0 && j < r.hh) {
+                v += weight[k + pc.radius] * coarseA[j * int(pc.cw) + cell.x];
+            }
+        }
+    }
+    coarseB[cell.y * int(pc.cw) + cell.x] = v;
+}

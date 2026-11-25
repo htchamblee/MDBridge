@@ -89,6 +89,8 @@
     X(vkCmdDrawIndexed)                     \
     X(vkCmdDispatch)                        \
     X(vkCmdCopyBuffer)                      \
+    X(vkCmdUpdateBuffer)                    \
+    X(vkCmdFillBuffer)                      \
     X(vkCmdCopyBufferToImage)               \
     X(vkCmdCopyImageToBuffer)               \
     X(vkCmdBlitImage)
