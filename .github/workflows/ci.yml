@@ -11,8 +11,8 @@
 #                Mesa's lavapipe (test-only, tools/get_lavapipe.py), cached
 # - parity:      MDATK v0.0.4.1 writes project files and records what it reads from them;
 #                the AppImage must read them the same way; the commands init, info, list, analyze,
-#                export-pdb and density info must print and write what MDATK's do
-#                (tests/parity/cli_parity.py)
+#                export-pdb, render, charts, preview and density info must print and write what
+#                MDATK's do (tests/parity/cli_parity.py; figures and videos by their metadata)
 # - regenerate:  every generator of tests/data/README.md, run with MDATK v0.0.4.1, MDAnalysis 2.11.0
 #                and the pinned numpy / scipy, writes exactly the committed test data
 # - release:     tags v* only, after every job passed: attaches the builds to the GitHub release
@@ -329,7 +329,7 @@ jobs:
     name: Parity with MDATK v0.0.4.1 (project files, command line)
     needs: linux
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
 
@@ -377,7 +377,15 @@ jobs:
           python -m venv "$RUNNER_TEMP/venv"
           "$RUNNER_TEMP/venv/bin/python" -m pip install --no-deps -r tests/parity/requirements-regenerate.txt
 
-      - name: init, info, list, analyze, export-pdb and density info print and write what MDATK prints and writes
+      # the render, charts and preview cases: MDATK's video runs the ffmpeg executable, and both
+      # sides' videos are compared by ffprobe's metadata (Ubuntu's package)
+      - name: FFmpeg for MDATK's video and ffprobe
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ffmpeg
+          ffmpeg -version | head -n 1
+
+      - name: init, info, list, analyze, export-pdb, render, charts, preview and density info print and write what MDATK prints and writes
         run: |
           (cd work && ../dist/MDBridge-*-x86_64.AppImage --appimage-extract > /dev/null)  # once, not per run
           "$RUNNER_TEMP/venv/bin/python" -I -B tests/parity/cli_parity.py --mdatk mdatk \

@@ -1120,6 +1120,75 @@ existing file at the target kept; `VideoRender.CancelLeavesNoFile`,
   `RenderCliCases/VideoRun.AsMdatksVideo` and `QtVideo.FullRun24Frames320x180` (MDATK's
   `test_full_run` video).
 
+## Rendering: the render, charts and preview commands (src/app/commands/render_pipeline.cpp, src/render/panels/checks.cpp)
+
+`render`, `charts` and `preview` take MDATK's options (`--video` / `--no-video`, `--charts` /
+`--no-charts`, `--pdb` / `--no-pdb`, `--force`, `--from-cache`; `--series`, `--formats`, `--dpi`;
+`--frame`, `--output`) and print MDATK's JSON / path. A full run keeps MDATK's order and progress
+ranges, one time stamp for all its files, the log lines (`<program> <version> - output directory D`,
+`Finished in N s`), the params log (`MDATK_params_log.toml`: inputs, cache keys, time stamp,
+`outputs`, citations) and the step log entry `render` / `Analyses and outputs` in the project file
+(files, `N frames analysed; M file(s) written to D`, status and summary of a failure). Every command
+line of `tests/data/cli/cli_cases.json`'s render cases prints and writes what MDATK does, figures and
+videos compared by their metadata (sizes, ffprobe's stream data and faststart; the contents of the
+figures are compared by tests/render). Differences:
+
+- **Program line and environment.** The first log line names MDBridge and its version (MDATK:
+  `Molecular Dynamic Analysis Tool Kit (MDATK) 0.0.4.1`); the params log's `environment` table is
+  MDBridge's (`mdbridge`, `platform`, `qt`, `ffmpeg`: the bundled libraries' versions) instead of
+  Python's packages and the `ffmpeg -version` line; `run.project` is `MDBridge`. *Tested:*
+  `RenderCommands.FullRunStampsEveryFileLogsTheStepAndWritesTheParamsLog`.
+- **Settings checked before the analyses (RN-11, RN-12, RN-13, RN-15; RN-04's option check).**
+  MDATK found unknown chart formats, invalid colours, unknown chain palettes and panel options of the
+  wrong type in the middle of a video or chart run, after the analyses, as Matplotlib tracebacks
+  (`ValueError: Invalid RGBA argument`, `TypeError`), sometimes after files were written. MDBridge's
+  `check()` (every command that checks a project: `info`'s `problems`, `analyze`, `export-pdb`,
+  `render`, `charts`, `preview`) reports them with the other problems, each naming its field:
+  `output.charts.formats: chart format 'gif' is not supported (choose from png, svg, pdf, jpg, jpeg,
+  tif, tiff, eps, ps)`; colours with Matplotlib's grammar and message (`groups[k].color`,
+  `visual.base_color` / `proximity_color` / `glow_color` / `ion_color`, `density.color` with a map,
+  `output.charts.color` when set): `visual.glow_color: Invalid RGBA argument: 'gold-ish'`;
+  `visual.chain_palette: 'Tab10' is not a bundled colormap; choose from ... ; did you mean 'tab10'?`
+  (owner decision D6); panel options the panels cannot read: `layout.panels[1].options.ylim:
+  expected two numbers, got 5`, `smooth` / `frame` / `max_ticks` (`expected a whole number`;
+  `max_ticks` at least 1, MDATK divided by it), `target` / `vmin` / `vmax` (`expected a number`),
+  the contact map's `mode` (`expected instant, frame or frequency, got 'mean'`; MDATK silently drew
+  `instant`). Values the panels accept as MDATK did (`"5"`, `true`, `2.7` truncated) pass. The runs
+  from the cache, which skip `check()` as in MDATK, check these settings alone before reading the
+  cache. *Tested:* cli_cases.json (`render_invalid`, `render_from_cache_invalid`,
+  `charts_bad_format_check`, `charts_bad_format`), `RenderCommands.InvalidSettingsNameTheirFields`,
+  `RenderProblems.*`.
+- **Preview formats (RN-11).** The preview's file format (from `--output`'s extension) is checked
+  before the analyses run: `preview format 'gif' is not supported (choose from ...)` (MDATK: a
+  Matplotlib `ValueError` after the analyses). A name without an extension is written as
+  `name.png`, as Matplotlib's `savefig` writes it, and MDBridge prints that name (MDATK printed the
+  name without `.png`). JPEG needs Qt's `qjpeg` image plugin, shipped in the AppImage and the Windows
+  installer (both packaging scripts check it). *Tested:* cli_cases.json (`preview_bad_format`,
+  `preview_no_extension`, `preview_jpg`), `RenderCommands.FormatsAreCheckedBeforeTheAnalyses`.
+- **No analysed frames (RN-02).** The video, the charts and the preview stop with `no analysed
+  frames to render` before a figure is built (MDATK: an `IndexError` in the panels, the preview at
+  position -1). *Tested:* `RenderPipeline.NoAnalysedFramesToRender`.
+- **`output.video.ffmpeg_path` (owner decision D8).** Not used: the bundled FFmpeg libraries encode.
+  A project naming another executable gets the log line `Note: output.video.ffmpeg_path (P) is not
+  used; MDBridge encodes with its bundled FFmpeg libraries` and its video (MDATK: `error: ffmpeg not
+  executable at P`). *Tested:* cli_cases.json (`render_ffmpeg_path`),
+  `RenderCommands.FfmpegPathIsNotUsedAndTheDensityMapIsNotFitted`.
+- **Density maps without a placement (owner decision D9).** MDBridge has no density fit yet: a
+  shown map without a stored placement is not fitted before the video or the preview but reported,
+  `WARNING: density map not drawn: no placement (run density fit)` (with `auto_fit` off MDATK's own
+  warning). *Tested:* `RenderCommands.FfmpegPathIsNotUsedAndTheDensityMapIsNotFitted`.
+- **Codec warnings (RN-07).** The video's codec choice warns in MDBridge's words (see "Video
+  encoding"): `WARNING: video: codec libx264 is not bundled (GPL); using libsvtav1 (AV1)` for the
+  default codec, `WARNING: video: encoder nosuchcodec is not available; using libsvtav1` (MDATK:
+  `FFmpeg encoder nosuchcodec unavailable; using libx264`). *Tested:* cli_cases.json (every video
+  case).
+- **No VTK citation (RN-16).** MDATK cites VTK for `visual.renderer = "vtk"`; MDBridge has no VTK
+  (`vtk` means its Vulkan renderer), so the params log, the step log and the BibTeX export never cite
+  it. *Tested:* citation_cases.json (`pipeline`, `project`), `Citations.VtkIsNeverCited`.
+- **Locale.** The batch commands start Qt on the offscreen platform; on a host without a UTF-8
+  locale Qt's notice about switching to `C.UTF-8` is not printed (the switch is made silently), and
+  numbers in logs and files keep the decimal point whatever the user's locale.
+
 ## Planned (from the improvement register; add each entry here when it lands)
 
 None: every FIX and ASK item of the improvement register (docs/IMPROVEMENTS.md) has landed

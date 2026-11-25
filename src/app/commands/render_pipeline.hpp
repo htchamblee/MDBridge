@@ -136,6 +136,7 @@ private:
     std::filesystem::path m_projectFile;
     std::optional<std::string> m_stamp;
     std::shared_ptr<void> m_started;
+    bool m_startCalled = false;
     bool m_inputsResolved = false;
 };
 

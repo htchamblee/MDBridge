@@ -128,7 +128,10 @@ fs::path RenderPipeline::outputPath(const std::string& name) const {
 }
 
 void RenderPipeline::startBackend() {
-    if (!m_started && m_backend.start) m_started = m_backend.start();
+    if (!m_startCalled && m_backend.start) {
+        m_started = m_backend.start();
+        m_startCalled = true;
+    }
 }
 
 const render::FontSet& RenderPipeline::fonts() {

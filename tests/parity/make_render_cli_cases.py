@@ -101,12 +101,12 @@ CASES = [
                           *s("output.video.filename", "clip.mp4"), *s("output.video.fps", 30)],
      "codec mpeg4, own file name, 30 fps"),
     ("render_codec_fallback", [], ["render", *P, "--no-charts", *s("output.video.codec", "nosuchcodec")],
-     "an encoder FFmpeg lacks: warning and fallback (RN-07)"),
+     "an encoder MDBridge lacks: its warning, libsvtav1 (RN-07)"),
     ("render_odd_size", [], ["render", *P, "--no-charts", *s("output.video.width", 333),
                              *s("output.video.height", 187), *s("output.video.dpi", 37)],
      "odd size and a DPI that does not divide it (RN-06)"),
     ("render_no_ffmpeg", [], ["render", *P, "--no-charts", *s("output.video.ffmpeg_path", "/nonexistent/ffmpeg")],
-     "ffmpeg missing: VideoError"),
+     "ffmpeg_path is not used: a note, the video is written (D8)"),
     ("render_pdb", [], ["render", *P, "--no-video", "--no-charts", "--pdb", *s("output.pdb.frames", "0, last")],
      "PDB export only"),
     ("charts", [], ["charts", *P], "charts after the analyses"),
@@ -115,7 +115,7 @@ CASES = [
     ("charts_series", [["analyze", *P]], ["charts", *P, "--from-cache", "--series", "energy/total,nokey/x"],
      "own series list with a missing key"),
     ("charts_bad_format", [["analyze", *P]], ["charts", *P, "--from-cache", "--formats", "png,bogus"],
-     "an unknown format: Matplotlib's ValueError after the first file (RN-11)"),
+     "an unknown format: an error before anything is written (RN-11)"),
     ("preview", [], ["preview", *P], "frame 0 at the video size: results/MDATK_preview_00000.png"),
     ("preview_svg", [["analyze", *P]], ["preview", *P, "--from-cache", "--frame", "5", "--output", "shot.svg"],
      "SVG of frame 5"),
@@ -124,7 +124,7 @@ CASES = [
     ("preview_negative", [["analyze", *P]], ["preview", *P, "--from-cache", "--frame", "-3"],
      "a negative frame: the first one"),
     ("preview_jpg", [["analyze", *P]], ["preview", *P, "--from-cache", "--output", "a.jpg"],
-     "a format MDBridge does not offer (RN-11)"),
+     "JPEG (Qt's qjpeg plugin)"),
 ]
 
 

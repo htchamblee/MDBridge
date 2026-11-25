@@ -92,6 +92,12 @@ LD_LIBRARY_PATH="$QT_DIR/lib:$APPDIR/usr/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH
     --icon-file "$APPDIR/usr/share/icons/hicolor/256x256/apps/mdbridge.png" \
     --custom-apprun "$HERE/AppRun" \
     --plugin qt > "$WORK/linuxdeploy.log" 2>&1 || { tail -n 40 "$WORK/linuxdeploy.log"; exit 1; }
+# JPEG figures (charts / preview as .jpg) need Qt's JPEG image plugin: linuxdeploy-plugin-qt deploys the
+# image formats with Qt Gui; checked (and added if a plugin version leaves it out)
+if [ ! -e "$APPDIR/usr/plugins/imageformats/libqjpeg.so" ]; then
+    install -D -m 755 "$QT_DIR/plugins/imageformats/libqjpeg.so" "$APPDIR/usr/plugins/imageformats/libqjpeg.so"
+    echo "   added imageformats/libqjpeg.so"
+fi
 # the Vulkan loader is the graphics driver's: never bundle one
 if ls "$APPDIR"/usr/lib/libvulkan.so* > /dev/null 2>&1; then
     echo "the AppDir contains a Vulkan loader; it must come from the host" >&2

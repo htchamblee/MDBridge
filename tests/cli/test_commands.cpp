@@ -449,6 +449,26 @@ std::vector<std::string> fileDifferences(const Value& expected, const fs::path& 
     return {};
 }
 
+// The render, charts and preview cases ("render": true) that draw a figure or a video (their
+// files compared by metadata, tests/parity/cli_parity.py render_file_entry) need the program's Qt
+// backend: cli_parity.py runs them against the `mdbridge` program (the CI parity job; locally
+// against a Qt build). This test runs the others in-process: those stopped by check() or by the
+// format checks (RN-11 ... RN-15) and those that draw nothing.
+bool drawsFigures(const Value& c) {
+    const Value* render = c.find("render");
+    if (render == nullptr || render->get<bool>() == nullptr || !*render->get<bool>()) {
+        return false;
+    }
+    for (const auto& [rel, entry] : *field(c, "written").get<core::Table>()) {
+        for (const char* kind : {"png", "jpeg", "tiff", "pdf", "ps", "svg", "mp4", "params_log"}) {
+            if (entry.find(kind) != nullptr) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 TEST(Commands, MatchMdatk) {
     const Value data = test::readJson(kData / "cli" / "cli_cases.json");
     std::size_t run = 0;
@@ -462,6 +482,9 @@ TEST(Commands, MatchMdatk) {
             continue;
         }
 #endif
+        if (drawsFigures(c)) {
+            continue;  // render / charts / preview cases that draw: see drawsFigures
+        }
         test::TempDir work;
         const std::string workText = core::pathToUtf8(fs::canonical(work.path()));
         for (const auto& [dest, source] : *field(c, "inputs").get<core::Table>()) {
@@ -636,17 +659,19 @@ TEST(Commands, OnlyTheseCommandsAreOffered) {
     for (const CLI::App* sub : root.get_subcommands({})) {
         names.push_back(sub->get_name());
     }
-    EXPECT_EQ(names, (std::vector<std::string>{"init", "info", "list", "analyze", "export-pdb", "density"}));
+    EXPECT_EQ(names, (std::vector<std::string>{"init", "info", "list", "analyze", "export-pdb", "render", "charts",
+                                               "preview", "density"}));
     const std::string help = root.help();
-    EXPECT_EQ(help.find("render"), std::string::npos);
-    EXPECT_EQ(help.find("charts"), std::string::npos);
+    EXPECT_EQ(help.find("\n  clean"), std::string::npos);
+    EXPECT_EQ(help.find("workflow"), std::string::npos);
 }
 
 TEST(Commands, UsageErrorsExitWith2) {
     test::TempDir work;
     EXPECT_EQ(runIn(work.path(), {"init"}).exit, 2);
     EXPECT_EQ(runIn(work.path(), {"density"}).exit, 2);
-    EXPECT_EQ(runIn(work.path(), {"render"}).exit, 2);
+    EXPECT_EQ(runIn(work.path(), {"clean"}).exit, 2);
+    EXPECT_EQ(runIn(work.path(), {"preview", "--frame", "x"}).exit, 2);
     EXPECT_EQ(runIn(work.path(), {"list", "x"}).exit, 2);
     EXPECT_EQ(runIn(work.path(), {"analyze", "--force=x"}).exit, 2);
     EXPECT_EQ(runIn(work.path(), {}).exit, 2);

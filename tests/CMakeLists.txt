@@ -111,6 +111,15 @@ target_compile_definitions(mdbridge_cli_tests PRIVATE MDBRIDGE_TEST_DATA="${CMAK
 mdbridge_target_warnings(mdbridge_cli_tests)
 gtest_discover_tests(mdbridge_cli_tests DISCOVERY_MODE PRE_TEST)
 
+# render, charts and preview with a recording backend (the drawing is the Qt program's: cli_parity.py)
+add_executable(mdbridge_render_cli_tests cli/test_render_commands.cpp)
+target_include_directories(mdbridge_render_cli_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/core")
+target_link_libraries(mdbridge_render_cli_tests PRIVATE mdbridge::commands GTest::gtest_main)
+target_compile_definitions(mdbridge_render_cli_tests PRIVATE MDBRIDGE_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data"
+                           MDBRIDGE_FONT_DIR="${PROJECT_SOURCE_DIR}/data/fonts")
+mdbridge_target_warnings(mdbridge_render_cli_tests)
+gtest_discover_tests(mdbridge_render_cli_tests DISCOVERY_MODE PRE_TEST)
+
 # the same commands as a program, for tests/parity/cli_parity.py --mdbridge on builds without Qt
 add_executable(mdbridge_commands_cli cli/commands_cli.cpp)
 target_link_libraries(mdbridge_commands_cli PRIVATE mdbridge::commands)
