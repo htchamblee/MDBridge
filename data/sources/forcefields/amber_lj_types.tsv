@@ -16,6 +16,7 @@ parm10.dat	H	0.6000	0.0157	962
 parm10.dat	HO	0.0000	0.0000	963
 parm10.dat	HS	0.6000	0.0157	964
 parm10.dat	H1	1.3870	0.0157	966
+parm10.dat	EP	0.00	0.0000	1000
 frcmod.ionsjc_tip3p	Li+	1.025	0.0279896	14
 frcmod.ionsjc_tip3p	Na+	1.369	0.0874393	15
 frcmod.ionsjc_tip3p	K+	1.705	0.1936829	16

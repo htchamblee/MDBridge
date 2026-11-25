@@ -124,6 +124,19 @@ def energy_parameters(u, indices, atom_elements, guess_bonds):
         res_bonded[resindex[x]] = True
         res_bonded[resindex[y]] = True
     guessed = {"done": False, "partners": None}
+    symbols = set(data["element_symbols"])
+    vsites = set(data["virtual_sites"])
+    vnames = {n for _, n in vsites}
+
+    def is_extra_point(a):
+        name = names[a].strip().upper()
+        if (resnames[resindex[a]].strip().upper(), name) in vsites:
+            return True
+        if elements[a] in symbols:
+            return False
+        return name == "MW" or name.startswith("EP") or name.startswith("LP") or name in vnames
+
+    extra = [is_extra_point(a) for a in range(n_atoms)]
 
     def guessed_partners(atom):
         if not guessed["done"]:
@@ -154,7 +167,8 @@ def energy_parameters(u, indices, atom_elements, guess_bonds):
         return False
 
     def neighbours(atom):
-        return partners[atom] if res_bonded[resindex[atom]] else guessed_partners(atom)
+        out = partners[atom] if res_bonded[resindex[atom]] else guessed_partners(atom)
+        return [b for b in out if not extra[b]]
 
     atom_template = [-1] * n_atoms
     atom_template_atom = [-1] * n_atoms
@@ -164,7 +178,7 @@ def energy_parameters(u, indices, atom_elements, guess_bonds):
         for i, a in enumerate(atoms):
             atom_template[a] = k
             atom_template_atom[a] = mapping[i]
-            atom_charged[a] = charged
+            atom_charged[a] = charged and len(atoms) == len(res_atoms[resindex[a]])
 
     def match_ion(r, element):
         atom = res_atoms[r][0]
@@ -180,11 +194,14 @@ def energy_parameters(u, indices, atom_elements, guess_bonds):
         return None
 
     def match_residue(r):
-        atoms = res_atoms[r]
+        atoms = [a for a in res_atoms[r] if not extra[a]]
+        extra_points = len(atoms) < len(res_atoms[r])
+        if not atoms:
+            return
         rnames = [names[a] for a in atoms]
         relements = [elements[a] for a in atoms]
         resname = resnames[r].strip().upper()
-        if len(atoms) == 1:
+        if len(atoms) == 1 and not extra_points:
             ion = match_ion(r, relements[0])
             if ion is not None:
                 assign(atoms, ion, [0], True)
@@ -244,12 +261,13 @@ def energy_parameters(u, indices, atom_elements, guess_bonds):
             match_residue(r)
 
     def hydrogen_parent(h):
-        if partners[h]:
-            return min(partners[h])
+        bonded = [b for b in partners[h] if not extra[b]]
+        if bonded:
+            return min(bonded)
         r = resindex[h]
         best, best_d = -1, 0.0
         for a in res_atoms[r]:
-            if a == h or elements[a] == "H":
+            if a == h or elements[a] == "H" or extra[a]:
                 continue
             dx = float(positions[a][0]) - float(positions[h][0])
             dy = float(positions[a][1]) - float(positions[h][1])
@@ -263,11 +281,13 @@ def energy_parameters(u, indices, atom_elements, guess_bonds):
            "references": [], "default_elements": [], "default_atoms": 0, "chargeless_residues": 0}
 
     def add(lst, item):
-        if item not in lst:
+        if item and item not in lst:
             lst.append(item)
 
     def typed(atom):
         element = elements[atom]
+        if extra[atom]:
+            return "EP"
         if element == "H":
             parent = hydrogen_parent(atom)
             pe = elements[parent] if parent >= 0 else "N"

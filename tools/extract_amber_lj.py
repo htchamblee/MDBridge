@@ -26,9 +26,10 @@ SHA256 = {
 
 # (file, Amber atom types read from it)
 TYPES = [
-    # parm10.dat, section MOD4 RE: heavy-atom types, hydrogen types and the TIP3P water oxygen
+    # parm10.dat, section MOD4 RE: heavy-atom types, hydrogen types, the TIP3P water oxygen and the
+    # extra point (lone pair, virtual site)
     ("parm10.dat", ["C", "CT", "N", "O", "OH", "OS", "OW", "P", "S", "F", "Cl", "Br", "I",
-                    "H", "HO", "HS", "H1"]),
+                    "H", "HO", "HS", "H1", "EP"]),
     # Joung & Cheatham 2008, TIP3P set
     ("frcmod.ionsjc_tip3p", ["Li+", "Na+", "K+", "Rb+", "Cs+", "F-", "Cl-", "Br-", "I-"]),
     # Li et al. 2013, 12-6 CM set for TIP3P

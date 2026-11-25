@@ -53,10 +53,17 @@ made):
 These are the copies, and SHA-256 prefixes (`1ca292d5679e3545`, `eb7a1a59bf356581`,
 `f8bdb3df35ebdd90`), that the documentation of MDATK's later generic Lennard-Jones tables (same
 owner) records; every value it lists was checked against these lines. Types kept: `C`, `CT`, `N`,
-`O`, `OH`, `OS`, `OW`, `P`, `S`, `F`, `Cl`, `Br`, `I`, `H`, `HO`, `HS`, `H1` (parm10.dat), `Li+`,
+`O`, `OH`, `OS`, `OW`, `P`, `S`, `F`, `Cl`, `Br`, `I`, `H`, `HO`, `HS`, `H1`, `EP` (parm10.dat), `Li+`,
 `Na+`, `K+`, `Rb+`, `Cs+`, `F-`, `Cl-`, `Br-`, `I-` (Joung & Cheatham 2008, TIP3P set), `Mg2+`,
 `Ca2+`, `Sr2+`, `Ba2+`, `Mn2+`, `Fe2+`, `Co2+`, `Ni2+`, `Cu2+`, `Zn2+`, `Cd2+` (Li et al. 2013,
 12-6 CM set for TIP3P). Cross-check: tip3p.xml's ions, converted back (R* = sigma 2^(1/6) / 2,
 epsilon / 4.184), equal these rows to all printed digits.
 
-`tools/gen_energy_lj.py` writes `src/analysis/energy_lj_tables.inc` from the three tables.
+Checked, not copied: every Lennard-Jones class the ff14SB, OL15 and OL3 templates use has the R* /
+epsilon of a type of `parm94.dat` (ParmEd's `test/files/parm/parm94.dat`, SHA-256
+`34021e968833329f89ea101f08f76e82cc423bbcd5637ba5d7f208d6bb592e14`), which decides their citation
+(docs/DIFFERENCES.md CIT-04).
+
+`tools/gen_energy_lj.py` writes `src/analysis/energy_lj_tables.inc` from the three tables, with the
+chemical element symbols of `data/sources/ciaaw` and the water virtual-site names of
+`openmm_residue_atoms.tsv` (the extra points of the typed layer).

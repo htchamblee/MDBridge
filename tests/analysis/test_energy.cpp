@@ -466,7 +466,7 @@ TEST(Energy, Parm7AtomCountMismatch) {
     const std::vector<std::int64_t> frames{0};
     const core::AnalysisResult res = runAnalyses(context, analyses, frames).results.at(0);
     EXPECT_EQ(logs.at(1), "WARNING: energy: could not read LJ parameters from parm7 (atom count mismatch); "
-                          "using generic element parameters");
+                          "Lennard-Jones parameters come from force-field residue templates and Amber atom types");
     EXPECT_EQ(*res.meta[0].second.get<std::string>(), "templates");
     EXPECT_EQ(*res.meta[1].second.get<std::string>(), "topology");
 }
@@ -594,8 +594,8 @@ TEST(EnergyParameters, DemoMatchesTheTemplates) {
         }
     }
     EXPECT_EQ(p.forceFields, (std::vector<std::string>{"OL3", "TIP3P"}));
-    EXPECT_EQ(p.references,
-              (std::vector<std::string>{"cornell1995", "wang2000", "perez2007", "zgarbova2011", "banas2010", "li2013"}));
+    // CIT-04: the originators of the charges and Lennard-Jones parameters used (OL3's are ff94's)
+    EXPECT_EQ(p.references, (std::vector<std::string>{"cornell1995", "li2013"}));
     EXPECT_EQ(energyShortCitation("li2013"), "Li et al. 2013, doi:10.1021/ct400146w");
 }
 
@@ -727,4 +727,36 @@ TEST(EnergyParameters, AnalysisChargesMetadataAndLog) {
     EXPECT_EQ(log[1], "energy: Lennard-Jones parameters without parm7: 7 atoms from Amber force-field residue "
                       "templates (TIP3P); partial charges from the topology. Cite: Jorgensen et al. 1983, "
                       "doi:10.1063/1.445869");
+}
+
+// AN-26: extra points (virtual sites, lone pairs) have no Lennard-Jones term (Amber's EP) and are
+// nobody's neighbour; a residue with one matches a template by its other atoms but takes no charges
+TEST(EnergyParameters, ExtraPoints) {
+    const std::vector<MicroAtom> atoms{
+        {"OW", 1, "SOL", "O"}, {"HW1", 1, "SOL", "H"}, {"HW2", 1, "SOL", "H"}, {"MW", 1, "SOL", ""},    // GROMACS TIP4P
+        {"O", 2, "WAT", "O"},  {"H1", 2, "WAT", "H"},  {"H2", 2, "WAT", "H"},  {"EPW", 2, "WAT", ""},   // Amber TIP4P-Ew
+        {"OH2", 3, "TP4E", ""}, {"H1", 3, "TP4E", ""}, {"H2", 3, "TP4E", ""}, {"OM", 3, "TP4E", ""},  // CHARMM
+        {"C1", 4, "LIG", "C"}, {"OM", 4, "LIG", "O"}};
+    std::vector<double> xyz;
+    for (int w = 0; w < 3; ++w) {
+        const double x = 10.0 * w;
+        xyz.insert(xyz.end(), {x, 0, 0, x + 0.9572, 0, 0, x - 0.24, 0.927, 0, x + 0.09, 0.12, 0});
+    }
+    xyz.insert(xyz.end(), {40, 0, 0, 41.2, 0, 0});
+    core::System system = withoutCharges(makeMicroSystem(atoms, {xyz}));
+    const EnergyParameters p = energyParameters(system.atoms(), *system.currentFrame());
+    for (const std::size_t k : {3u, 7u, 11u}) {
+        EXPECT_EQ(p.layer[k], EnergyParameters::Layer::Typed) << k;
+        expectLj(p, k, 0.0, 0.0);
+    }
+    for (const std::size_t k : {0u, 1u, 2u, 4u, 5u, 6u}) {
+        EXPECT_EQ(p.layer[k], EnergyParameters::Layer::Template) << k;  // TIP3P's HOH by the other atoms
+        EXPECT_FALSE(p.templateCharge[k]) << k;
+    }
+    expectLj(p, 0, 1.7683, 0.152);
+    expectLj(p, 8, 1.7683, 0.152);   // TP4E (no template): OW by its two hydrogens, OM no neighbour
+    expectLj(p, 9, 0.0, 0.0);        // H on O
+    expectLj(p, 13, 1.6612, 0.21);   // OM of a ligand: an oxygen
+    EXPECT_TRUE(p.defaultElements.empty());
+    EXPECT_EQ(p.references, (std::vector<std::string>{"jorgensen1983", "cornell1995"}));
 }

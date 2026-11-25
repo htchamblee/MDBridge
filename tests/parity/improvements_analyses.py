@@ -501,7 +501,7 @@ def apply_mdatk():
         path = self.ctx.topology_path
         if p.use_parm7 and path and not energy.is_parm7(path):
             warn(f"energy: use_parm7 is set but the topology {path} is not a parm7 file; "
-                 "using generic element parameters")
+                 "Lennard-Jones parameters come from force-field residue templates and Amber atom types")
         self.lj = None
         if p.use_parm7 and path and energy.is_parm7(path):
             try:
@@ -510,7 +510,8 @@ def apply_mdatk():
                     raise ValueError("atom count mismatch")
                 self.lj_source = "parm7"
             except Exception as exc:  # noqa: BLE001 - as MDATK
-                warn(f"energy: could not read LJ parameters from parm7 ({exc}); using generic element parameters")
+                warn(f"energy: could not read LJ parameters from parm7 ({exc}); Lennard-Jones parameters come from "
+                     "force-field residue templates and Amber atom types")
                 self.lj = None
         na, nb = a.n_atoms, b.n_atoms
         self.lj_atoms = {"parm7": 0, "template": 0, "typed": 0}

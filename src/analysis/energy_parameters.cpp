@@ -240,8 +240,11 @@ public:
                 m_residueHasTopologyBonds[static_cast<std::size_t>(m_t.atomResidue[static_cast<std::size_t>(b[1])])] = true;
             }
         }
-        const std::vector<std::string> elements = core::atomElements(core::AtomGroup(atoms.sharedTopology()));
-        m_elements = elements;
+        m_elements = core::atomElements(core::AtomGroup(atoms.sharedTopology()));
+        m_extraPoint.assign(m_t.atomCount(), false);
+        for (std::size_t a = 0; a < m_t.atomCount(); ++a) {
+            m_extraPoint[a] = isExtraPoint(static_cast<std::int32_t>(a));
+        }
     }
 
     EnergyParameters run() {
@@ -302,7 +305,7 @@ public:
 
 private:
     static void addUnique(std::vector<std::string>& list, const std::string& item) {
-        if (std::find(list.begin(), list.end(), item) == list.end()) {
+        if (!item.empty() && std::find(list.begin(), list.end(), item) == list.end()) {
             list.push_back(item);
         }
     }
@@ -310,7 +313,20 @@ private:
     // AN-25: the template of residue r, if one matches (see the file comment).
     void matchResidue(std::int32_t r, std::vector<int>& atomTemplate, std::vector<int>& atomTemplateAtom,
                       std::vector<bool>& atomCharged) {
-        const std::span<const std::int32_t> atoms = m_t.residueAtoms(r);
+        // extra points take no part (AN-26: Amber's EP, no Lennard-Jones term); a residue with one
+        // never takes a template's charges (a 4-site water is no TIP3P water)
+        std::vector<std::int32_t> atoms;
+        bool extraPoints = false;
+        for (const std::int32_t a : m_t.residueAtoms(r)) {
+            if (m_extraPoint[static_cast<std::size_t>(a)]) {
+                extraPoints = true;
+            } else {
+                atoms.push_back(a);
+            }
+        }
+        if (atoms.empty()) {
+            return;
+        }
         std::vector<std::string> names;
         std::vector<std::string> elements;
         for (const std::int32_t a : atoms) {
@@ -322,11 +338,11 @@ private:
                 const auto ua = static_cast<std::size_t>(atoms[i]);
                 atomTemplate[ua] = static_cast<int>(k);
                 atomTemplateAtom[ua] = map[i];
-                atomCharged[ua] = charged;
+                atomCharged[ua] = charged && !extraPoints;
             }
         };
         const std::string resname = upperAscii(core::pythonStrip(m_t.resname(r)));
-        if (atoms.size() == 1) {
+        if (atoms.size() == 1 && !extraPoints) {
             if (const std::optional<std::size_t> ion = matchIon(r, elements[0])) {
                 assign(*ion, {0}, true);
                 return;
@@ -477,21 +493,52 @@ private:
     }
 
     // The bonded neighbours of a heavy atom: the topology's when its residue has topology bonds,
-    // else the guessed ones.
-    const std::vector<std::int32_t>& neighbours(std::int32_t atom) {
+    // else the guessed ones; extra points are no neighbours.
+    std::vector<std::int32_t> neighbours(std::int32_t atom) {
         const std::int32_t r = m_t.atomResidue[static_cast<std::size_t>(atom)];
-        if (m_residueHasTopologyBonds[static_cast<std::size_t>(r)]) {
-            return m_topologyPartners[static_cast<std::size_t>(atom)];
+        std::vector<std::int32_t> out = m_residueHasTopologyBonds[static_cast<std::size_t>(r)]
+                                            ? m_topologyPartners[static_cast<std::size_t>(atom)]
+                                            : guessedPartners(atom);
+        std::erase_if(out, [&](std::int32_t b) { return m_extraPoint[static_cast<std::size_t>(b)]; });
+        return out;
+    }
+
+    // An extra point (virtual site, lone pair): an atom whose element is no chemical element and
+    // whose name is a water virtual site of OpenMM's force fields (M, M1, M2, LP1, LP2, OM), MW
+    // (GROMACS' TIP4P) or starts with EP or LP (Amber's EPW, EP1, ...; lone pairs); or an atom named
+    // like the virtual site of its residue in those force fields (OM of TP4E, whose name reads as
+    // oxygen).
+    bool isExtraPoint(std::int32_t atom) const {
+        const std::string name = upperAscii(core::pythonStrip(m_t.name(atom)));
+        const std::string resname = upperAscii(core::pythonStrip(m_t.resname(m_t.atomResidue[static_cast<std::size_t>(atom)])));
+        const auto pair = [](const NamePair& p, const NamePair& q) {
+            return p.name != q.name ? p.name < q.name : p.target < q.target;
+        };
+        if (std::binary_search(std::begin(kVirtualSites), std::end(kVirtualSites), NamePair{resname, name}, pair)) {
+            return true;
         }
-        return guessedPartners(atom);
+        if (std::binary_search(std::begin(kElementSymbols), std::end(kElementSymbols),
+                               std::string_view(m_elements[static_cast<std::size_t>(atom)]))) {
+            return false;
+        }
+        if (name == "MW" || name.rfind("EP", 0) == 0 || name.rfind("LP", 0) == 0) {
+            return true;
+        }
+        return std::any_of(std::begin(kVirtualSites), std::end(kVirtualSites),
+                           [&](const NamePair& v) { return v.target == name; });
     }
 
     // The atom a hydrogen is bonded to: by the topology's bonds (its first partner), else the
     // nearest non-hydrogen atom of its residue within 1.45 Å on the frame; -1 for none.
     std::int32_t hydrogenParent(std::int32_t h) const {
-        const std::vector<std::int32_t>& partners = m_topologyPartners[static_cast<std::size_t>(h)];
-        if (!partners.empty()) {
-            return *std::min_element(partners.begin(), partners.end());
+        std::int32_t bonded = -1;
+        for (const std::int32_t b : m_topologyPartners[static_cast<std::size_t>(h)]) {
+            if (!m_extraPoint[static_cast<std::size_t>(b)] && (bonded < 0 || b < bonded)) {
+                bonded = b;
+            }
+        }
+        if (bonded >= 0) {
+            return bonded;
         }
         const std::int32_t r = m_t.atomResidue[static_cast<std::size_t>(h)];
         const auto at = [&](std::int32_t a, std::size_t c) {
@@ -500,7 +547,7 @@ private:
         std::int32_t best = -1;
         double bestDistance = 0.0;
         for (const std::int32_t a : m_t.residueAtoms(r)) {
-            if (a == h || m_elements[static_cast<std::size_t>(a)] == "H") {
+            if (a == h || m_elements[static_cast<std::size_t>(a)] == "H" || m_extraPoint[static_cast<std::size_t>(a)]) {
                 continue;
             }
             const double dx = at(a, 0) - at(h, 0);
@@ -518,6 +565,9 @@ private:
     // AN-26: the Amber type of an atom no template covers.
     const AmberType& typed(std::int32_t atom, EnergyParameters& out) {
         const std::string& element = m_elements[static_cast<std::size_t>(atom)];
+        if (m_extraPoint[static_cast<std::size_t>(atom)]) {
+            return amberType("EP");  // no Lennard-Jones term
+        }
         if (element == "H") {
             const std::int32_t parent = hydrogenParent(atom);
             const std::string parentElement = parent >= 0 ? m_elements[static_cast<std::size_t>(parent)] : "N";
@@ -530,12 +580,14 @@ private:
             }
         }
         if (const std::optional<std::string_view> type = lookup(kMoleculeTypes, element)) {
-            if (element == "C" && neighbours(atom).size() == 4) {
+            const std::vector<std::int32_t> bonded =
+                element == "C" || element == "O" ? neighbours(atom) : std::vector<std::int32_t>{};
+            if (element == "C" && bonded.size() == 4) {
                 return amberType("CT");  // sp3 carbon
             }
-            if (element == "O" && neighbours(atom).size() == 2) {
+            if (element == "O" && bonded.size() == 2) {
                 std::size_t hydrogens = 0;
-                for (const std::int32_t b : neighbours(atom)) {
+                for (const std::int32_t b : bonded) {
                     if (m_elements[static_cast<std::size_t>(b)] == "H") {
                         ++hydrogens;
                     }
@@ -558,6 +610,7 @@ private:
     const core::Topology& m_t;
     const core::Frame& m_frame;
     std::vector<std::string> m_elements;  // every atom of the topology
+    std::vector<bool> m_extraPoint;       // every atom of the topology
     std::vector<bool> m_residueHasTopologyBonds;
     std::vector<std::vector<std::int32_t>> m_topologyPartners;
     bool m_guessed = false;

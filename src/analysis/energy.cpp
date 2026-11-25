@@ -92,7 +92,8 @@ public:
         if (m_p.use_parm7 && !path.empty() && !io::isParm7(path)) {
             // AN-06: say so (MDATK falls back to generic parameters silently)
             ctx.warn("energy: use_parm7 is set but the topology " + path +
-                     " is not a parm7 file; using generic element parameters");
+                     " is not a parm7 file; Lennard-Jones parameters come from force-field residue templates and "
+                     "Amber atom types");
         }
         if (m_p.use_parm7 && !path.empty() && io::isParm7(path)) {
             try {
@@ -104,7 +105,7 @@ public:
                 m_ljSource = "parm7";
             } catch (const std::exception& e) {
                 ctx.warn("energy: could not read LJ parameters from parm7 (" + std::string(e.what()) +
-                         "); using generic element parameters");
+                         "); Lennard-Jones parameters come from force-field residue templates and Amber atom types");
                 m_lj.reset();
             }
         }

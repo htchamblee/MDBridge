@@ -593,19 +593,21 @@ SciPy and Matplotlib through MDATK was checked against that rule (the inventory 
   analysis' log line (`energy: Lennard-Jones parameters without parm7: N atoms from Amber
   force-field residue templates (OL3, TIP3P), M atoms from Amber atom types by element; partial
   charges ... Cite: Cornell et al. 1995, doi:...; ...`) and its metadata `lj_references` (citation
-  keys in first-use order). Per template force field: ff14SB: Cornell et al. 1995 and Maier et al.
-  2015; OL3: Cornell et al. 1995, Wang et al. 2000, Pérez et al. 2007 (bsc0), Zgarbová et al.
-  2011 and Banáš et al. 2010 (χOL3, as the Amber 2024 Reference Manual lists them for
-  leaprc.RNA.OL3); OL15: the same base with Krepl et al. 2012 (χOL4), Zgarbová et al. 2013 (ε/ζOL1),
-  Zgarbová et al. 2015 (βOL1) and Galindo-Murillo et al. 2016 (OL15); TIP3P water: Jorgensen et al.
-  1983; ions: Joung and Cheatham 2008 (monovalent), Li et al. 2013 (divalent, 12-6 CM set), Li et
-  al. 2015 (3+ / 4+, IOD set). Per Amber type of the typed layer: parm94's types Cornell et al. 1995,
-  Cl and Br (parm99) Wang et al. 2000, the TIP3P water oxygen Jorgensen et al. 1983, the ions Joung
-  and Cheatham 2008 / Li et al. 2013. Cornell et al. 1995 is cited for ff14SB, whose charges and
-  Lennard-Jones parameters are ff94's. The new references (maier2015, banas2010, krepl2012,
-  zgarbova2013, zgarbova2015, galindomurillo2016, li2015) join the citation table
-  (tests/parity/improvements_citations.py, `verified` from Crossref); the others were MDATK's and
-  were checked against Crossref too. No project resource is added: which force fields a run uses
+  keys in first-use order). Owner policy: cite who originated the numbers actually used. The
+  analysis uses only charges and Lennard-Jones parameters, so: the protein and nucleic templates
+  (ff14SB, OL15, OL3) cite Cornell et al. 1995 alone, since their charges are ff94's and every
+  Lennard-Jones class in the three files has the R* / ε of a parm94.dat type (checked class by
+  class against parm94.dat, SHA-256 `34021e968833329f...` of ParmEd's copy; parm99 and parm10 kept
+  those values); the torsion refinements that name these force fields (ff14SB, bsc0, χOL3, OL15
+  and their parts) do not enter the energies and are not cited for them. TIP3P water: Jorgensen et
+  al. 1983; ions: Joung and Cheatham 2008 (monovalent), Li et al. 2013 (divalent, 12-6 CM set), Li
+  et al. 2015 (3+ / 4+, IOD set). The typed layer: parm94's types Cornell et al. 1995, Cl and Br
+  (parm99) Wang et al. 2000, the TIP3P water oxygen Jorgensen et al. 1983, the ions Joung and
+  Cheatham 2008 / Li et al. 2013; the extra point (no Lennard-Jones term) nobody. Li et al. 2015
+  joins the citation table (tests/parity/improvements_citations.py, `verified` from Crossref); the
+  others were in MDATK's and were checked against Crossref too. Not traced further: the charges of
+  the residues Amber added after ff94 (ASH, GLH, LYN, CYM, HYP), which were fitted later in ff94's
+  scheme; they are cited as ff94's. No project resource is added: which force fields a run uses
   depends on the residues it meets, which the settings do not tell, so `pipelineResources` stays as
   it was and the run names them. *Why:* owner policy, cite the originators of what a result
   depends on, only when it is used. *Tested:* `EnergyParameters.*` (test_energy.cpp), the energy
@@ -639,7 +641,10 @@ hbonds 2, rmsd 2, proximity 2, atoms 3 ("Analysis cache" above has every analysi
   cell only with `analyses.use_pbc` (MDATK: whenever the frame has one). *Tested:*
   `SelectionsHonourUsePbc`.
 - **use_parm7 with another topology (AN-06).** `WARNING: energy: use_parm7 is set but the topology
-  <file> is not a parm7 file; using generic element parameters` (MDATK: silent). *Tested:* systems_cases
+  <file> is not a parm7 file; Lennard-Jones parameters come from force-field residue templates and
+  Amber atom types` (MDATK: silent). The warning when a parm7 file's parameters cannot be read ends
+  the same way (MDATK: `...; using generic element parameters`), naming the assignment of AN-25 /
+  AN-26 instead of MDATK's per-element table. *Tested:* systems_cases
   logs (pdb / gro / noh / aromatic), test_energy.cpp.
 - **Energy exclusions without topology bonds (AN-07).** With `exclude_bonded > 0` and no bonds:
   `WARNING: energy: the topology has no bonds; bonded pairs are excluded along bonds guessed from
@@ -678,7 +683,11 @@ hbonds 2, rmsd 2, proximity 2, atoms 3 ("Analysis cache" above has every analysi
   else (none left, or they disagree, e.g. a 5'-terminal nucleotide with its phosphate) it falls to
   AN-26. R* = σ 2^(1/6) / 2 and ε / 4.184 from OpenMM's σ (nm) and ε (kJ/mol): Amber's values to
   about 1e-15 relative (P: 2.1000000000000005). Lorentz-Berthelot combination, as before. The water
-  model is unknown without a topology that says it: TIP3P's water and ion parameters are used.
+  model is unknown without a topology that says it: TIP3P's are assumed throughout, for the water
+  template (O 1.7683 / 0.152, charges -0.834 / 0.417), the ion templates and the ion and `OW`
+  types of AN-26 (the TIP3P sets of Joung and Cheatham and of Li et al.; their SPC/E or TIP4P-Ew
+  sets differ, e.g. Na+ 1.212 / 0.3526 for SPC/E). A 4-site water (TIP4P, OPC) matches the TIP3P
+  template by its O and H (its extra point takes AN-26's `EP`) and takes no charges.
   *Why:* the force field's own parameters per atom type reproduce Amber's energies (demo duplex:
   -34.62 kcal/mol from the templates with the parm7 file's charges, -34.63 from a PDB of the
   same frame, against -34.67 with the parm7 file's own parameters, whose base hydrogens and
@@ -699,7 +708,13 @@ hbonds 2, rmsd 2, proximity 2, atoms 3 ("Analysis cache" above has every analysi
   S, F, Cl, Br, I: `C`, `N`, `O`, `P`, `S`, `F`, `Cl`, `Br`, `I` of parm10.dat; a metal of that ion
   list inside a larger residue: its ion's; any other element: carbon's, with `WARNING: energy: no
   Lennard-Jones parameters for element(s) 'X' (N atoms); carbon's (Amber type C) are used`
-  (metadata `lj_default_elements`). Refinements of that design, where the bonded neighbours are
+  (metadata `lj_default_elements`). Extra points (virtual sites, lone pairs) take parm10.dat's `EP`
+  (0, 0: no Lennard-Jones term), are no atom's bonded neighbour, are left out of template matching
+  (their residue then takes no template charges) and are not reported as unknown elements: an atom
+  whose element is no chemical element (CIAAW symbols) and whose name is a water virtual site of
+  OpenMM's force fields (M, M1, M2, LP1, LP2, OM), GROMACS' TIP4P `MW`, or starts with `EP` or `LP`
+  (Amber's `EPW`, `EP1`, lone pairs), and the virtual-site names of OpenMM's water residues in them
+  whatever their guessed element (`OM` of CHARMM's `TP4E`). Refinements of that design, where the bonded neighbours are
   known (the topology's bonds where the residue has any, else AN-14's guess on the first analysed
   frame), all parm10 types: a carbon with four neighbours `CT` (1.908, 0.1094; sp3, as Amber types
   them) instead of `C` (1.908, 0.086); an oxygen with two neighbours `OS` (1.6837, 0.17; ether,
@@ -708,7 +723,7 @@ hbonds 2, rmsd 2, proximity 2, atoms 3 ("Analysis cache" above has every analysi
   No UFF or other generic force field (owner decision). *Why:* MDATK's table gave every hydrogen
   one radius and two elements values of unknown origin. Measured on the demo duplex (strand against
   strand, first frame, vdW, kcal/mol): -34.74 from the types alone (every residue renamed),
-  -34.67 parm7, +145.4 MDATK's table. *Tested:* `EnergyParameters.TypedLayer`, the systems cases.
+  -34.67 parm7, +145.4 MDATK's table. *Tested:* `EnergyParameters.TypedLayer`, `ExtraPoints`, the systems cases.
 - **Energy charges without topology charges (AN-27).** MDATK computed no electrostatics without
   topology charges (PDB, GRO). MDBridge gives the atoms of a residue that matches a template
   *completely* (AN-25, hydrogens included) the template's partial charges; a residue with a missing

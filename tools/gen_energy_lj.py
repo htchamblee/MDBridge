@@ -26,17 +26,16 @@ INC = os.path.join(ROOT, "src", "analysis", "energy_lj_tables.inc")
 
 KJ_PER_KCAL = 4.184
 
-# force-field file -> (label, family, references of its templates). The references are those the
-# Amber 2024 Reference Manual gives for the force field (section 3.1-3.2: ff14SB [24]; OL3: ff99
-# with bsc0 [52] and chiOL3 [54, 61]; OL15 = epsilon/zeta OL1 [65] + chi OL4 [64] + beta OL1 [66],
-# termed OL15 [67], on ff99 with bsc0), with Cornell et al. 1995 (and Wang et al. 2000 for ff99),
-# where the charges and Lennard-Jones parameters of these residues come from.
+# force-field file -> (label, family, references of its templates). Owner policy: cite who
+# originated the numbers used. The energy analysis uses only the templates' charges and
+# Lennard-Jones parameters; for these protein and nucleic residues both are ff94's (Cornell et al.
+# 1995): every Lennard-Jones class of the three files has the R* / epsilon of a parm94.dat type
+# (checked against parm94.dat, docs/DIFFERENCES.md CIT-04), and ff14SB, OL15 and OL3 changed
+# torsions only, so their own papers are not cited for this use.
 FILES = {
-    "amber14_protein.ff14SB.xml": ("ff14SB", "protein", ["cornell1995", "maier2015"]),
-    "amber14_DNA.OL15.xml": ("OL15", "nucleic", ["cornell1995", "wang2000", "perez2007", "krepl2012",
-                                                 "zgarbova2013", "zgarbova2015", "galindomurillo2016"]),
-    "amber14_RNA.OL3.xml": ("OL3", "nucleic", ["cornell1995", "wang2000", "perez2007", "zgarbova2011",
-                                               "banas2010"]),
+    "amber14_protein.ff14SB.xml": ("ff14SB", "protein", ["cornell1995"]),
+    "amber14_DNA.OL15.xml": ("OL15", "nucleic", ["cornell1995"]),
+    "amber14_RNA.OL3.xml": ("OL3", "nucleic", ["cornell1995"]),
     "amber14_tip3p.xml": ("TIP3P", "solvent", []),  # per residue below
 }
 TIP3P_WATER_REFERENCES = ["jorgensen1983"]
@@ -47,7 +46,8 @@ ION_REFERENCES = {1: ["joung2008"], 2: ["li2013"], 3: ["li2015"], 4: ["li2015"]}
 # typed layer: Amber type -> reference. parm94 (Cornell et al. 1995) defines C, CT, N, O, OH, OS,
 # P, S, F, I, H, HO, HS, H1; parm99 (Wang et al. 2000) adds Cl and Br; OW is TIP3P's water oxygen
 # (Jorgensen et al. 1983); the ions are Joung & Cheatham's (2008) and Li et al.'s (2013).
-TYPE_REFERENCES = {"Cl": "wang2000", "Br": "wang2000", "OW": "jorgensen1983"}
+# EP (extra point: no Lennard-Jones term) cites nobody.
+TYPE_REFERENCES = {"Cl": "wang2000", "Br": "wang2000", "OW": "jorgensen1983", "EP": ""}
 FILE_REFERENCES = {"parm10.dat": "cornell1995", "frcmod.ionsjc_tip3p": "joung2008",
                    "frcmod.ions234lm_126_tip3p": "li2013"}
 
@@ -56,14 +56,6 @@ FILE_REFERENCES = {"parm10.dat": "cornell1995", "frcmod.ionsjc_tip3p": "joung200
 SHORT_CITATIONS = {
     "cornell1995": "Cornell et al. 1995, doi:10.1021/ja00124a002",
     "wang2000": "Wang et al. 2000, doi:10.1002/1096-987X(200009)21:12<1049::AID-JCC3>3.0.CO;2-F",
-    "maier2015": "Maier et al. 2015, doi:10.1021/acs.jctc.5b00255",
-    "perez2007": "Pérez et al. 2007, doi:10.1529/biophysj.106.097782",
-    "zgarbova2011": "Zgarbová et al. 2011, doi:10.1021/ct200162x",
-    "banas2010": "Banáš et al. 2010, doi:10.1021/ct100481h",
-    "krepl2012": "Krepl et al. 2012, doi:10.1021/ct300275s",
-    "zgarbova2013": "Zgarbová et al. 2013, doi:10.1021/ct400154j",
-    "zgarbova2015": "Zgarbová et al. 2015, doi:10.1021/acs.jctc.5b00716",
-    "galindomurillo2016": "Galindo-Murillo et al. 2016, doi:10.1021/acs.jctc.6b00186",
     "jorgensen1983": "Jorgensen et al. 1983, doi:10.1063/1.445869",
     "joung2008": "Joung and Cheatham 2008, doi:10.1021/jp8001614",
     "li2013": "Li et al. 2013, doi:10.1021/ct400146w",
@@ -96,6 +88,8 @@ def load():
     atom_aliases {alias group: {alias: atom name}} ('Protein', 'Nucleic', 'HOH' and pdbNames
                residue names)
     reference_keys  every reference key, first use (the bit order of the C++ table's masks)
+    element_symbols chemical element symbols, upper case, sorted (CIAAW)
+    virtual_sites   [(residue, atom)] of OpenMM's water virtual sites (no element), upper case
     short      SHORT_CITATIONS
     """
     types = {}
@@ -178,10 +172,19 @@ def load():
             if k not in keys:
                 keys.append(k)
     for t in types.values():
-        if t[2] not in keys:
+        if t[2] and t[2] not in keys:
             keys.append(t[2])
+    # chemical element symbols (upper case; CIAAW) and the virtual sites of OpenMM's water models
+    # (atoms whose type has no element), by residue: the extra points of the typed layer
+    symbols = set()
+    for name in ("abridged_standard_atomic_weights_2024.tsv", "radioactive_most_stable_isotopes.tsv"):
+        with open(os.path.join(ROOT, "data", "sources", "ciaaw", name), encoding="utf-8", newline="") as fh:
+            symbols |= {row["symbol"].upper() for row in csv.DictReader(fh, delimiter="\t")}
+    virtual_sites = sorted({(row["residue"].upper(), row["atom"].upper()) for row in _tsv("openmm_residue_atoms.tsv")
+                            if row["group"] == "solvent" and row["element"] == ""})
     return {"types": types, "templates": templates, "variants": variants, "residue_aliases": residue_aliases,
-            "atom_aliases": atom_aliases, "reference_keys": keys, "short": dict(SHORT_CITATIONS)}
+            "atom_aliases": atom_aliases, "reference_keys": keys, "short": dict(SHORT_CITATIONS),
+            "element_symbols": sorted(symbols), "virtual_sites": virtual_sites}
 
 
 def _s(text):
@@ -241,6 +244,15 @@ def main() -> int:
     for group in sorted(data["atom_aliases"]):
         for alias in sorted(data["atom_aliases"][group]):
             out.append(f"    {{{_s(group)}, {_s(alias)}, {_s(data['atom_aliases'][group][alias])}}},")
+    out.append("};")
+    out += ["", "// chemical element symbols, upper case, sorted (data/sources/ciaaw)",
+            "constexpr std::string_view kElementSymbols[] = {"]
+    for sym in data["element_symbols"]:
+        out.append(f"    {_s(sym)},")
+    out += ["};", "", "// water virtual sites of OpenMM's force fields: {residue, atom}, upper case, sorted",
+            "constexpr NamePair kVirtualSites[] = {"]
+    for res, atom in data["virtual_sites"]:
+        out.append(f"    {{{_s(res)}, {_s(atom)}}},")
     out.append("};")
     os.makedirs(os.path.dirname(INC), exist_ok=True)
     with open(INC, "w", encoding="utf-8", newline="\n") as fh:
