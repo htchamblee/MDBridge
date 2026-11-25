@@ -34,6 +34,10 @@ first). Writes OUT_DIR/molecule/:
               (int32); sticks a, b, radius, owner, atom; rgb (float32) per vertex / primitive
   renders.npz the same item fields for the renders' inputs, and their images
 
+MDBridge's improvements of the software renderer (RN-26 anti-aliasing with the real neighbours,
+RN-27 fast quality at odd sizes; improvements_render.SOFTWARE_RENDERER) are applied to MDATK
+before rendering, and listed in molecule_cases.json's "improvements".
+
 Geometry is stored as float32 (the plan's tolerance is 1e-5 Å); every render is made from the
 items exactly as stored (float32 values widened back to float64), so the C++ renderer can be
 given the same input. Image parity of the software renderer: >= 99.5 % of pixels equal, all
@@ -68,6 +72,8 @@ from mdatk.render.molecule.surface import gaussian_surface  # noqa: E402
 from mdatk.render.molecule.topology import Topology  # noqa: E402
 from mdatk.render.orientation import euler_to_matrix  # noqa: E402
 from mdatk.render.theme import LIGHT  # noqa: E402
+
+improvements_render.apply_software_renderer()  # RN-26, RN-27 (docs/DIFFERENCES.md)
 
 INPUTS = os.path.join(OUT, "inputs")
 MOLECULE = os.path.join(OUT, "molecule")
@@ -370,7 +376,9 @@ def main():
     renders.update(synthetic_cases(render_arrays))
     rc.write_json(os.path.join(MOLECULE, "molecule_cases.json"),
                   improvements_render.adjust("molecule", "molecule_cases",
-                                             {"improvements": improvements_render.applied(), "topology": topo,
+                                             {"improvements": improvements_render.applied()
+                                              + improvements_render.software_renderer_applied(),
+                                              "topology": topo,
                                               "scenes": scenes, "renders": renders}))
     rc.write_npz(os.path.join(MOLECULE, "scenes.npz"), scene_arrays)
     rc.write_npz(os.path.join(MOLECULE, "renders.npz"), render_arrays)

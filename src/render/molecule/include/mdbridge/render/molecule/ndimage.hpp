@@ -2,7 +2,8 @@
 // The pieces of scipy.ndimage that MDATK's molecular surface uses, on 3-D float32 arrays in C order
 // ([z, y, x], shape {nz, ny, nx}), rounded as scipy rounds them: gaussian_filter1d /
 // gaussian_filter with mode "constant" (separable correlation in double precision, each pass
-// stored as float32), map_coordinates with order 1 and mode "nearest", and affine_transform with
+// stored as float32), uniform_filter1d with mode "constant" (the software renderer's edge
+// anti-aliasing), map_coordinates with order 1 and mode "nearest", and affine_transform with
 // order 1 and mode "constant" (the density shadow). Ported from SciPy 1.18.1
 // (scipy/ndimage/_filters.py, src/ni_filters.c, src/ni_interpolation.c, src/ni_splines.c; BSD
 // licence, see ndimage.cpp and THIRD_PARTY_NOTICES.md).
@@ -29,6 +30,12 @@ void gaussianFilter1d(std::vector<float>& data, const Shape3& shape, std::size_t
 // axes 0, 1, 2 (none when sigma <= 1e-15).
 void gaussianFilter(std::vector<float>& data, const Shape3& shape, double sigma, double truncate = 4.0,
                     double cval = 0.0);
+
+// uniform_filter1d(line, size, mode="constant", cval) of one line of `length` values `stride` apart:
+// NI_UniformFilter1D's running sum in double, each value stored as float32 into `out` (same
+// stride). size >= 1.
+void uniformFilter1dLine(const float* in, std::size_t stride, std::size_t length, std::size_t size, float* out,
+                         double cval = 0.0);
 
 // map_coordinates(data, [[z], [y], [x]], order=1, mode="nearest") at one point (finite coordinates).
 // `value(i)` gives the array value at flat index i, so the array need not exist (e.g. gradients).

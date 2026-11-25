@@ -717,6 +717,58 @@ indices exact; `tests/render/test_molecule_geometry.cpp` against
   *Tested:* `MoleculeGeometryParity.SurfacesMatchMdatk` (distances where the indices differ),
   `MoleculeGeometry.NearestPointsAgreeWithBruteForce`.
 
+## Rendering: software 3D renderer (src/render/molecule/software.cpp)
+
+The built-in renderer (MDATK's `mdatk/render/molecule/software.py`: z-buffer with sphere and stick
+impostors and mesh rasterisation, tile culling of hidden spheres, the front-most translucent layer,
+fog, glow tint and halo, ink outlines, alpha anti-aliasing, `fast` quality) gives MDATK's RGBA bit
+for bit on every recorded render (37 images of scenes and of the synthetic items of MDATK's
+`tests/test_molecule_render.py`; `tests/render/test_molecule_render.cpp` against
+`tests/parity/make_molecule_cases.py`, plan tolerance >= 99.5 % of pixels equal, all within 2/255).
+It renders on several threads (bands of rows; the image does not depend on their number) where
+MDATK used one. Differences (the generator applies RN-26 and RN-27 to MDATK test-side,
+`improvements_render.SOFTWARE_RENDERER`):
+
+- **Halo seam at the molecule's box (RN-26).** The edge anti-aliasing compares each alpha with its
+  3 x 3 mean over the molecule's bounding box (plus 2 px). MDATK filtered that box alone, with zeros
+  outside it, so inside a glow halo (which reaches beyond the box) every pixel along the box's edge
+  was averaged with zeros: a rectangle about 17 % darker drawn into the halo around every glowing
+  molecule (e.g. alpha 61, 48, 60 across the edge where the halo rises smoothly through 61, 66, 72).
+  MDBridge's mean sees the real neighbours around the box (zeros only beyond the image); where the
+  image around the box is clear the result is MDATK's to the bit. *Tested:*
+  `MoleculeRender.HaloHasNoSeamAtTheMoleculeBox`, `MoleculeRender.MatchesMdatkRenders` (the glow
+  renders).
+- **Fast quality at odd sizes (RN-27).** `fast` renders at half size: MDATK used
+  `int(round(size * 0.5))` (round half to even), so a 101 x 77 view became 50 x 38, doubled to
+  100 x 76: the last column and row stayed transparent and the image was scaled by 100 / 101 (a
+  103-px view became 52 px, doubled to 104 and cropped: scaled by 104 / 103). MDBridge renders
+  `ceil(size / 2)` pixels with the view's limits widened to exactly two pixels per half pixel, then
+  crops: the whole image is covered at the view's scale. Even sizes are unchanged. *Tested:*
+  `MoleculeRender.FastQualityAtOddSizesCoversTheWholeImage`, `MatchesMdatkRenders` (case `fast`).
+- **Unusable views and primitives (RN-28).** Equal x or y limits made MDATK fail with
+  `ZeroDivisionError: float division by zero` (the panel then logged `3D representation not drawn
+  (2D trace shown instead): float division by zero`); reversed limits failed for spheres with
+  numpy's `negative dimensions are not allowed` (and drew meshes mirrored); NaN limits, rotation or
+  depth range gave garbage. MDBridge throws
+  `std::invalid_argument("3D view limits are empty, reversed or not finite")` (or `... rotation or
+  depth range is not finite`, `3D view size must be at least 1 x 1 pixels`). Primitives whose
+  screen position is not finite in float32 or lies beyond 2^40 px are skipped like MDATK's
+  non-finite atoms (MDATK cast such values to integers: undefined results); non-finite glow
+  values count as no glow (MDATK: NaN colours); a sphere far larger than the image is rasterised
+  only where it is on the image (MDATK built its whole sprite of (2r + 3)^2 entries: gigabytes, or a
+  `MemoryError`, for a sphere 10^4 pixels across). Inconsistent items (colour or owner counts, triangle indices out of range) throw
+  `std::invalid_argument` instead of numpy's `IndexError`. *Tested:*
+  `MoleculeRender.UnusableViewsAndPrimitives`.
+- **Halo strength independent of earlier renders (RN-29).** MDATK cached the halo's normalisation
+  (`_disc_norm`) under the halo size rounded to 0.01 px, computed from the first size that rounded
+  there, so a render's halo depended on which renders the process had made before (by up to the
+  normalisation's change over 0.005 px). MDBridge computes it for the exact size; no recorded render
+  collides. *Tested:* `MoleculeRender.HaloDoesNotDependOnEarlierRenders`.
+- **Fragment order.** MDATK numbered every fragment (`2^32` fragments per buffer at most: `scene too
+  large for the built-in renderer`); MDBridge keys fragments by their primitive's rank in MDATK's
+  fragment order, which picks the same front-most fragment and breaks depth ties the same way, with
+  `2^32` primitives per buffer at most.
+
 ## Rendering: density shadow (src/render/molecule/density_shadow.cpp)
 
 The projected density map of the structure view (MDATK's `project_density`, `_above_level`,
