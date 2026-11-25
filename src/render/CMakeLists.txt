@@ -24,5 +24,5 @@ target_include_directories(mdbridge_render
     PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include"
     PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
 # Vulkan headers only: Qt and the probe load the system's Vulkan loader at run time
-target_link_libraries(mdbridge_render PUBLIC Qt6::Gui PRIVATE Vulkan::Headers)
+target_link_libraries(mdbridge_render PUBLIC Qt6::Gui mdbridge::render_core PRIVATE Vulkan::Headers)
 mdbridge_target_warnings(mdbridge_render)

@@ -99,7 +99,7 @@ PATCH_RE = re.compile(rb"(?<![0-9.])3\.13\.[0-9]+(?![0-9.])")
 DATA_TABLES = "src/core/include/mdbridge/core/detail/data_tables_independent.inc"
 TABLES = ["src/core/unicode_tables.inc", "src/core/case_tables.inc", "src/core/citation_data.inc",
           "src/core/step_types.inc", "src/core/panel_tables.inc", DATA_TABLES, "src/core/selection_tables.inc",
-          "src/io/pdb_tables.inc", "src/analysis/covalent_radii.inc"]
+          "src/io/pdb_tables.inc", "src/analysis/covalent_radii.inc", "src/render/core/mpl_colors.inc"]
 SOURCES = "data/sources"  # committed inputs of tools/gen_data_tables.py, copied into the fresh tree
 
 # Outputs that legitimately depend on the CPU: compared byte for byte, and where the bytes differ, as
@@ -210,6 +210,9 @@ STEPS = [
     Step("selection_tables", "tools/gen_selection_tables.py", lambda ctx: [], ["src/core/selection_tables.inc"],
          flags=["-I"]),
     Step("pdb_tables", "tools/gen_pdb_tables.py", lambda ctx: [], ["src/io/pdb_tables.inc"], flags=["-I"]),
+    # Matplotlib's named colours, colour cycle and the bundled colormaps (milestone 4)
+    Step("mpl_tables", "tools/gen_mpl_tables.py", lambda ctx: [], ["src/render/core/mpl_colors.inc"],
+         flags=["-I", "-B"]),
     # project files: MDATK's own files (fixed clock), the hand-made ones, and what MDATK reads from them
     Step("projects", "tests/parity/make_projects.py", lambda ctx: ["--fixed-clock", d(ctx, "projects")],
          [f"{DATA}/projects/{n}" for n in ("default.mdatk.toml", "full.mdatk.toml", "split.mdatk.toml",
@@ -278,6 +281,8 @@ STEPS = [
     # milestone 3: the analysis cache and the analyze pipeline on the demo files
     Step("pipeline", "tests/parity/make_pipeline_cases.py", lambda ctx: [M(ctx), d(ctx, "analysis")],
          [f"{DATA}/analysis/pipeline_cases.json"]),
+    # milestone 4: Matplotlib's colours and colormaps, MDATK's chain palettes and themes
+    case_step("colors", "make_color_cases.py", "render/colors"),
 ]
 
 

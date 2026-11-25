@@ -601,6 +601,38 @@ hbonds 2, rmsd 2, proximity 2, atoms 3 ("Analysis cache" above has every analysi
   from the trace analysis' setup (once per run of the structural view; MDATK: silent). *Tested:*
   demo_dry_variants structure_unknown_group.
 
+## Colours and themes (src/render/core; milestone 4)
+
+Colour strings follow Matplotlib 3.11.2's `to_rgba` grammar exactly (names in its priority order and
+case rules, `C0`-`C9`, hex of 3 / 4 / 6 / 8 digits, grey levels in Python's `float()` syntax, its
+error messages); colormaps, `with_extremes`, the chain palettes and MDATK's themes give Matplotlib's
+and MDATK's numbers bit for bit. The expected data is Matplotlib's and MDATK's
+(`tests/parity/make_color_cases.py`), with `tests/parity/improvements_colors.py` for the entries
+below. *Tested:* `tests/render/test_colors.cpp` (`render/colors/color_cases.json`).
+
+- **Ordinal colours for more than five classes (RN-18).** MDATK's `theme.ordinal(n)` kept its four
+  ramp colours when a class matrix had more than five classes, so with the panel's `vmin -0.5` /
+  `vmax n - 0.5` several classes shared one colour while the colour bar labelled them apart.
+  MDBridge gives classes 1 .. n-1 the n - 1 evenly spaced steps of the ramp
+  (`LinearSegmentedColormap.from_list(ramp, N = n - 1)`); up to five classes (every class matrix
+  MDATK 0.0.4.1 makes has three) the colours are MDATK's. *Tested:* `Theme.Ramps` (n up to 13, every
+  class a distinct colour).
+- **NaN colour components (RN-12, part).** An RGB(A) tuple with a NaN component is rejected
+  (`RGBA values should be within 0-1 range`); Matplotlib's range test lets NaN through, which drew
+  nothing or black later. `colorProblem()` / `isColorLike()` give the message for `check()` (which
+  names the project field, W3-B). *Tested:* `Color.ToRgbaTuples`.
+- **Bundled colormaps only (RN-13, owner decision D6).** `visual.chain_palette` and the other map
+  names accept the qualitative maps tab10, tab20, tab20b, tab20c, Set1-3, Pastel1-2, Dark2, Accent,
+  Paired and the perceptual viridis, plasma, inferno, magma, cividis, each also reversed (`_r`), as
+  in Matplotlib's registry. Any other name gives `'jet' is not a bundled colormap; choose from tab10,
+  ... (or one of them reversed, with "_r")`, with `; did you mean 'Set2'?` for a name that differs in
+  case only (MDATK: Matplotlib's registry error in the middle of the render, or its other maps).
+  *Tested:* `Colormap.Names`.
+- **Invalid colormap data is reported when the map is made.** Matplotlib builds the lookup table
+  lazily and raised `data mapping points must start with x=0 and end with x=1` (a single colour in
+  `from_list`) at the first use; MDBridge raises the same message when the map is created, and also
+  rejects a map without colours or with fewer than one entry. *Tested:* `Colormap.Errors`.
+
 ## Planned (from the improvement register; add each entry here when it lands)
 
 None: every FIX and ASK item of the improvement register (docs/IMPROVEMENTS.md) has landed

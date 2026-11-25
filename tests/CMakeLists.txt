@@ -116,6 +116,14 @@ add_executable(mdbridge_commands_cli cli/commands_cli.cpp)
 target_link_libraries(mdbridge_commands_cli PRIVATE mdbridge::commands)
 mdbridge_target_warnings(mdbridge_commands_cli)
 
+# render core (no Qt): colours, colormaps, chain palettes and themes against Matplotlib / MDATK
+# (data/render/colors, tests/parity/make_color_cases.py)
+add_executable(mdbridge_render_core_tests render/test_colors.cpp)
+target_link_libraries(mdbridge_render_core_tests PRIVATE mdbridge::render_core GTest::gtest_main)
+target_compile_definitions(mdbridge_render_core_tests PRIVATE MDBRIDGE_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data")
+mdbridge_target_warnings(mdbridge_render_core_tests)
+gtest_discover_tests(mdbridge_render_core_tests DISCOVERY_MODE PRE_TEST)
+
 # the committed SPIR-V matches the shader sources (tools/compile_shaders.py)
 add_test(NAME render.shaders_up_to_date
          COMMAND ${CMAKE_COMMAND} -DSHADER_DIR=${PROJECT_SOURCE_DIR}/src/render/shaders

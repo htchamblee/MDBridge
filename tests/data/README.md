@@ -711,6 +711,29 @@ cases read `io/loader/files` and `io/trajectories`, so run those generators firs
 /opt/mdbridge-venv/bin/python -I -B tests/parity/make_universe_cases.py /tmp/mdatk tests/data/analysis
 ```
 
+`render/colors/color_cases.json` holds what Matplotlib 3.11.2's colour functions and MDATK's
+themes (`mdatk/render/theme.py`, `coloring.py`) give, for `src/render/core`
+(`tests/render/test_colors.cpp`): about 2300 `to_rgba` strings (every named colour, case variants,
+`none`, `C<n>`, hex of every length and case, grey levels in Python's `float()` syntax, Unicode
+spellings, alpha overrides and invalid alphas, with Matplotlib's messages), RGB(A) tuples, `to_hex`,
+79 colormaps (the 17 bundled maps of owner decision D6 and their reverses, `with_extremes`,
+`from_list` of colours and of (value, colour) pairs, segment data with jumps; lookup tables for
+N <= 16 and float, integer and `bytes=True` samples around every boundary), the errors of invalid
+maps, MDATK's chain palettes `palette(name, n)`, the themes' tokens, series colours, sequential and
+ordinal ramps, and the properties `style_axes` / `style_legend` leave on a Matplotlib axes and
+legend. MDBridge's improvements (ordinal ramp for more than five classes, NaN tuples, the message
+for unbundled map names) come from `tests/parity/improvements_colors.py` (docs/DIFFERENCES.md,
+"Colours and themes"). Matplotlib's colour cache is cleared before every `to_rgba` (it cannot tell
+`-0.0` from `0.0`). `tools/gen_mpl_tables.py` writes the named colours, default colour cycle and
+bundled colormaps that the C++ code uses to `src/render/core/mpl_colors.inc` (Matplotlib's data
+with its notices). To regenerate, with Python 3.13 and Matplotlib 3.11.2 in `/opt/mdbridge-venv`
+(the output is reproducible and does not depend on the CPU):
+
+```bash
+/opt/mdbridge-venv/bin/python -I -B tools/gen_mpl_tables.py                    # src/render/core/mpl_colors.inc
+/opt/mdbridge-venv/bin/python -I -B tests/parity/make_color_cases.py /tmp/mdatk tests/data/render/colors
+```
+
 ## Checking that the data is reproducible
 
 `tests/parity/regenerate_all.py` runs every generator above (and `tools/gen_*.py`) in this order
