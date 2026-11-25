@@ -757,6 +757,11 @@ struct Project {
 
     // Keys of this table the model does not know, as read (kept and saved back; see projectFromPlain)
     Table unknownKeys{};
+    // Not a setting: the mdatk_version of the file the project was read from ("" for a new one, or
+    // when it is no string). A save writes it back when it is newer than the MDATK version MDBridge
+    // reproduces (0.0.4.1), so a later MDATK's file keeps saying it was written by that version
+    // (DIFFERENCES PRJ-09); otherwise it writes 0.0.4.1.
+    std::string mdatkVersion;
 
     bool operator==(const Project&) const = default;
 };

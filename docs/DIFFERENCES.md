@@ -467,35 +467,39 @@ test_selections.cpp; cli_cases.json (`info_groups`); framework_cases.json (cache
 - **Windows paths** (src/core/include/mdbridge/core/ntpath.hpp). MDATK 0.0.4.1 has a Windows build
   (a beta: `packaging/windows`, MSYS2's Python bundled with PyInstaller); there `resolve_paths` uses
   Python's `ntpath` as it is: `expanduser`, the path itself when `isabs`, else
-  `normpath(join(folder, path))`. MDBridge's rules, modelled on it: `/` and `\` both separate; drive,
-  UNC and root-relative paths are absolute (root-relative takes the project folder's drive); `C:x`
-  resolves against the project folder when that is on drive C, otherwise against `C:/`; `~` expands
-  to %USERPROFILE% (else %HOMEDRIVE%%HOMEPATH%); results are normalised and written with `/`
-  (`C:\data\..\a.pdb` → `C:/a.pdb`); device paths (`\\?\`, `\\.\`) are kept as written;
-  comparison is case-sensitive (MDATK never calls `normcase`; the same-drive test of `C:x` ignores
-  the letter's case, as `ntpath.join` does). On Linux and macOS paths follow posixpath exactly, as
-  MDATK does. Where this differs from MDATK on Windows (Python 3.13's `ntpath`, checked with the
-  standard library's `ntpath` module):
-  - Text: MDATK writes `\` in resolved relative paths (`C:\projects\p\sub\a.pdb`) and keeps absolute
-    ones exactly as given (`C:\data\..\a.pdb`, `C:\Users\me/a.pdb` from `~/a.pdb`,
-    `\\server\share\x\..\a.pdb`); MDBridge normalises every result to `/` (same file).
-  - `D:a.pdb` with the project on another drive: MDATK keeps `D:a.pdb`, which Windows resolves
-    against the process's current folder on drive D when the file is opened; MDBridge uses `D:/a.pdb`.
-    `D:` alone likewise (`D:/`).
-  - `~user\a.pdb`: MDATK's `expanduser` makes it a sibling of the profile folder
-    (`C:\Users\user\a.pdb`); MDBridge leaves it relative (`<project>/~user/a.pdb`).
-  - `\data\a.pdb` (root-relative): Python 3.13 (and MDBridge) put it on the project folder's drive;
-    Python 3.12 and older count it as absolute and keep `\data\a.pdb` (the current drive when
-    opened). Which Python MDATK's Windows bundle has depends on MSYS2 at build time.
-  - `cleaning.cpptraj_path` counts as a path when it holds `/` or `\` (MDATK: `os.sep`, `\` only), so
-    `bin/cpptraj` is resolved against the project folder.
-  - Output folders against the current directory (`output.out_dir` relative or empty): MDATK's
-    `abspath` asks Windows (`GetFullPathNameW`: per-drive current folders, trailing dots and spaces of
-    names removed); MDBridge's is the string rule above against the current directory.
-  - The recent-projects list is in `%APPDATA%\MDBridge\settings.toml` (owner decision D16; MDATK's
-    Windows build: `%USERPROFILE%\.config\mdatk\settings.toml`, not shared).
-  *Why:* one generic form whatever the user typed, and no dependence on per-drive current folders,
-  which a GUI program does not control. *Tested:* tests/core/test_ntpath.cpp on every platform.
+  `normpath(join(folder, path))`. MDBridge's rules: `/` and `\` both separate; drive, UNC and
+  root-relative paths are absolute (root-relative takes the project folder's drive); `C:x` resolves
+  against the project folder when that is on drive C, otherwise against `C:/`; `~` expands to
+  %USERPROFILE% (else %HOMEDRIVE%%HOMEPATH%) and `~user` as `ntpath.expanduser` guesses it (the
+  profile folder's sibling `C:\Users\user` when the profile folder is named %USERNAME%, else
+  unchanged); results are normalised and written with `/` (`C:\data\..\a.pdb` → `C:/a.pdb`); device
+  paths (`\\?\`, `\\.\`) are kept as written; comparison is case-sensitive (MDATK never calls
+  `normcase`; the same-drive test of `C:x` ignores the letter's case, as `ntpath.join` does). On
+  Linux and macOS paths follow posixpath exactly, as MDATK does. Deliberate differences from MDATK's
+  Windows build (checked with Python 3.12's and 3.13's `ntpath`), each for one reason: a stored path
+  means one file, whatever the process's per-drive current folders, the Python version bundled or
+  how the path was typed.
+  1. *Separators and normalisation.* MDATK writes `\` in resolved relative paths
+     (`C:\projects\p\sub\a.pdb`) and keeps absolute ones exactly as given (`C:\data\..\a.pdb`,
+     `C:\Users\me/a.pdb` from `~/a.pdb`, `\\server\share\x\..\a.pdb`); MDBridge normalises every
+     result to one generic form with `/` (the same file; one text to compare, log and show).
+  2. *A drive-relative path on another drive.* `D:a.pdb` with the project on C: MDATK keeps `D:a.pdb`,
+     which Windows resolves against the process's current folder on drive D when the file is opened
+     (a GUI program does not control it); MDBridge uses `D:/a.pdb` (`D:` alone: `D:/`).
+  3. *Root-relative paths and the Python version.* `\data\a.pdb`: Python 3.13 (and MDBridge) put it on
+     the project folder's drive; Python 3.12 and older count it as absolute and keep `\data\a.pdb`
+     (the current drive when opened). Which Python MDATK's bundle has depends on MSYS2 at build time;
+     MDBridge's rule does not.
+  4. *`cleaning.cpptraj_path`* counts as a path when it holds `/` or `\` (MDATK: `os.sep`, `\` only),
+     so `bin/cpptraj` is resolved against the project folder as `bin\cpptraj` is, instead of against
+     the current folder when cpptraj is started.
+  5. *Output folders against the current directory* (`output.out_dir` relative or empty): MDATK's
+     `abspath` asks Windows (`GetFullPathNameW`: per-drive current folders; trailing dots and spaces
+     of names removed); MDBridge applies the string rules above to the current directory.
+  6. The recent-projects list is in `%APPDATA%\MDBridge\settings.toml` (owner decision D16, PRJ-12;
+     MDATK's Windows build: `%USERPROFILE%\.config\mdatk\settings.toml`, not shared).
+  *Tested:* tests/core/test_ntpath.cpp on every platform (`~user` against Python 3.13's
+  `ntpath.expanduser`).
 - **PRJ-01: every numeric analysis parameter is validated.** MDATK checks only `contacts.cutoff <= 0`
   and Mg inner > outer, so NaN passes everything, and negative or NaN H-bond, Mg, stacking and
   energy cutoffs, `energy.dielectric = 0` (infinite energies), angle cutoffs outside 0-180 and
@@ -542,12 +546,15 @@ test_selections.cpp; cli_cases.json (`info_groups`); framework_cases.json (cache
   `folder_tag`; they are written only when the file had them, so files of MDATK 0.0.4.1 come out as
   before (unset means what 0.1.x reads for a file without them: `parallel` 1). Step logs of 0.1.x
   (statuses `waiting` and `stopped`, the step `workflow supersede`) are read and kept as they are.
-  MDBridge still writes its own comments (0.0.4.1's, so options of step types 0.0.4.1 lacks have none)
-  and `mdatk_version = "0.0.4.1"`. *Tested:* project-file/mdatk-0.1.1 (files MDATK 0.1.1 writes,
+  MDBridge still writes its own comments (0.0.4.1's, so options of step types 0.0.4.1 lacks have
+  none). `mdatk_version` stays what a later MDATK wrote (`0.1.1` is saved as `0.1.1`); files without
+  it, or of 0.0.4.1 and older, get `0.0.4.1` (core::writtenMdatkVersion). MDATK 0.1.1 only writes
+  the key and drops it when reading (config.py `from_dict`, projectfile.py `read`); nothing branches
+  on it. *Tested:* project-file/mdatk-0.1.1 (files MDATK 0.1.1 writes,
   tests/parity/make_mdatk_latest_projects.py run by regenerate_all.py with `--mdatk-latest`): what
-  MDBridge reads equals what 0.1.1 reads, and a save keeps every key, value and order and the step
-  log byte for byte (test_project_io.cpp `ProjectCompat`); from_dict_cases.json and cli_cases.json
-  with tests/parity/improvements_core_io.py applying the same rule to MDATK.
+  MDBridge reads equals what 0.1.1 reads, and a save keeps every key, value and order, the step log
+  byte for byte and `mdatk_version` (test_project_io.cpp `ProjectCompat`); from_dict_cases.json and
+  cli_cases.json with tests/parity/improvements_core_io.py applying the same rule to MDATK.
 - **PRJ-10: the step-log marker inside the settings is no log** (MDATK 0.1.0, projectfile.py
   `_log_start`, lines 399-418, and `append_log`, 488-492). MDATK 0.0.4.1 took the first marker line
   anywhere in a project file for the start of its log, so the marker pasted into the notes or a

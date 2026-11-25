@@ -94,14 +94,14 @@ publishable. MDBridge writes and (on request) runs their scripts.
   cannot run and which leaves absolute paths unnormalised and writes `\`. MDBridge sets its own
   Windows rules there (`src/core/include/mdbridge/core/ntpath.hpp`, pure string functions tested on
   every platform); they point at the same file as Python 3.13's `ntpath` except for drive-relative
-  paths on another drive and `~user` (`docs/DIFFERENCES.md`, "Windows paths"):
+  paths on another drive (`docs/DIFFERENCES.md`, "Windows paths", lists every difference):
   - `/` and `\` both separate.
   - Absolute: drive paths (`C:\x`, `C:/x`), UNC paths (`\\server\share\x`, `//server/share/x`) and
     root-relative paths (`\x`, `/x`), which take the drive of the project's folder.
   - Drive-relative `C:x`: against the project's folder when that is on drive C (the letter's case
     ignored), otherwise against `C:/`.
-  - `~` and `~\x` expand to `%USERPROFILE%` (else `%HOMEDRIVE%%HOMEPATH%`), as Python's ntpath;
-    `~user` is left as it is.
+  - `~` and `~\x` expand to `%USERPROFILE%` (else `%HOMEDRIVE%%HOMEPATH%`), and `~user` as Python's
+    ntpath guesses it (a sibling of the profile folder when that is named `%USERNAME%`).
   - Resolved paths, absolute ones included, are normalised and written in generic form: `/`
     separators, no `.` or `..` (never above the drive or UNC root), drive letter as written
     (`C:\data\..\a.pdb` becomes `C:/a.pdb`). The project's folder is in the same form

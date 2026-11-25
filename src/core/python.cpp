@@ -280,9 +280,8 @@ std::string roundToTens(double x, int digits) {
 }
 
 #if defined(_WIN32)
-// MDBridge's Windows rule (ntpath.hpp; MDATK's Windows build uses Python's ntpath, which CI cannot
-// run): "~" is the profile folder, as in Python's ntpath; "~user" stays as it is (ntpath guesses a
-// sibling folder of the profile).
+// posixpath on Windows (project paths use ntpath.hpp there): "~" is the profile folder; "~user"
+// stays as it is.
 std::optional<std::string> currentUserHome() {
     if (const wchar_t* profile = _wgetenv(L"USERPROFILE")) {
         return pathToUtf8(std::filesystem::path(profile));

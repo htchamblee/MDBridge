@@ -187,8 +187,10 @@ void applyOverride(core::Project& project, std::string_view assignment) {
     }
     // the unknown keys of the project were reported when it was read: warn about new ones only
     const std::vector<std::string> before = core::unknownKeyPaths(project);
+    const std::string version = project.mdatkVersion;  // not a setting: not in the plain data
     std::vector<std::string> ignored;
     project = core::projectFromPlain(data, {}, &ignored);
+    project.mdatkVersion = version;
     std::vector<std::string> added;
     for (const std::string& key : core::unknownKeyPaths(project)) {
         if (std::find(before.begin(), before.end(), key) == before.end()) {

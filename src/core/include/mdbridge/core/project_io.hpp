@@ -24,7 +24,8 @@
 namespace mdbridge::core {
 
 // Project.load: readProject(path) (projects and parameter logs), then projectFromPlain with the
-// paths resolved against the file's folder. Throws ProjectError.
+// paths resolved against the file's folder; Project::mdatkVersion is the file's mdatk_version.
+// Throws ProjectError.
 Project loadProject(const std::filesystem::path& path, std::vector<std::string>* warnings = nullptr);
 
 // Project.save. Throws ProjectError for a .json path ("<path>: JSON presets are no longer
@@ -34,9 +35,16 @@ Project loadProject(const std::filesystem::path& path, std::vector<std::string>*
 // an existing file are kept.
 void saveProject(const std::filesystem::path& path, const Project& project);
 
-// The settings part of a project file: the 3-line header, format, format_version, mdatk_version,
-// saved (clockNow()), log_file, then toPlain(project), every entry with its comment.
+// The settings part of a project file: the 3-line header, format, format_version, mdatk_version
+// (writtenMdatkVersion), saved (clockNow()), log_file, then toPlain(project), every entry with its
+// comment.
 std::string projectText(const Project& project, std::string_view logFile = {});
+
+// The mdatk_version a save writes: project.mdatkVersion when it is a later version than
+// kMdatkReference ("0.1.1" is kept), else kMdatkReference ("0.0.4.1"; also for "" and texts that
+// are no version). Versions compare component by component (split at '.'), each by its leading number and
+// then the rest as text ("0.0.3d" > "0.0.3"), a missing component lowest ("0.0.4" < "0.0.4.1").
+std::string writtenMdatkVersion(const Project& project);
 
 // config_doc(path, stack): the comment above an entry (or table header) of a project file.
 // `path` holds the keys from the root without list indices, `stack` the enclosing tables, root

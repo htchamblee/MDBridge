@@ -121,7 +121,14 @@ TEST(NtPath, Expanduser) {
     EXPECT_EQ(ntpath::expanduser("~", kHome), "C:\\Users\\Ann");
     EXPECT_EQ(ntpath::expanduser("~\\x", kHome), "C:\\Users\\Ann\\x");
     EXPECT_EQ(ntpath::expanduser("~/x", kHome), "C:\\Users\\Ann/x");
-    EXPECT_EQ(ntpath::expanduser("~ann\\x", kHome), "~ann\\x");  // "~user" stays
+    // "~user" as Python 3.13's ntpath.expanduser (USERPROFILE C:\Users\Ann; expected values from it)
+    const std::optional<std::string> ann = std::string("Ann");
+    EXPECT_EQ(ntpath::expanduser("~ann\\x", kHome, ann), "C:\\Users\\ann\\x");
+    EXPECT_EQ(ntpath::expanduser("~Ann\\x", kHome, ann), "C:\\Users\\Ann\\x");
+    EXPECT_EQ(ntpath::expanduser("~bob", kHome, ann), "C:\\Users\\bob");
+    EXPECT_EQ(ntpath::expanduser("~bob/x", kHome, ann), "C:\\Users\\bob/x");
+    EXPECT_EQ(ntpath::expanduser("~bob\\x", std::string("C:\\Profiles\\x1"), ann), "~bob\\x");  // no guess
+    EXPECT_EQ(ntpath::expanduser("~ann\\x", kHome), "~ann\\x");  // no %USERNAME%: no guess
     EXPECT_EQ(ntpath::expanduser("x\\~", kHome), "x\\~");
     EXPECT_EQ(ntpath::expanduser("~\\x", std::nullopt), "~\\x");
 }
@@ -158,11 +165,13 @@ TEST(NtPath, ResolveAgainstTheProjectFolder) {
     EXPECT_EQ(resolve("D:..\\a.pdb", base), "D:/a.pdb");
     EXPECT_EQ(resolve("D:", base), "D:/");
     EXPECT_EQ(resolve("C:a.pdb", "//srv/share/proj"), "C:/a.pdb");
-    // "~": the profile folder; "~user" is a relative name
+    // "~": the profile folder; "~user" a sibling of it (as ntpath.expanduser), unchanged without
+    // %USERNAME%
     EXPECT_EQ(resolve("~", base), "C:/Users/Ann");
     EXPECT_EQ(resolve("~\\md\\..\\a.nc", base), "C:/Users/Ann/a.nc");
     EXPECT_EQ(resolve("~/a.nc", base), "C:/Users/Ann/a.nc");
     EXPECT_EQ(resolve("~ann\\a.nc", base), "C:/proj/p/~ann/a.nc");
+    EXPECT_EQ(ntpath::resolve("~bob\\a.nc", base, kHome, std::string("Ann")), "C:/Users/bob/a.nc");
     EXPECT_EQ(ntpath::resolve("~\\a.nc", base, std::nullopt), "C:/proj/p/~/a.nc");
     // case and other text kept as stored
     EXPECT_EQ(resolve("Data\\A.PDB", base), "C:/proj/p/Data/A.PDB");

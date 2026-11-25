@@ -50,8 +50,8 @@ std::optional<double> tryPythonFloat(std::string_view text);
 // POSIX os.path (posixpath) on UTF-8 strings.
 namespace posixpath {
 // "~" and "~user" expansion; $HOME first for "~" (set, even empty), else the passwd entry
-// (unchanged path when no home is known). Windows (MDBridge's rules, ntpath.hpp): "~" is
-// %USERPROFILE% and "~user" stays as it is.
+// (unchanged path when no home is known). On Windows (project paths use ntpath.hpp there): "~"
+// is %USERPROFILE% and "~user" stays as it is.
 std::string expanduser(std::string_view path);
 bool isabs(std::string_view path);
 std::string join(std::string_view base, std::string_view path);

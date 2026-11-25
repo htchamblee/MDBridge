@@ -349,7 +349,7 @@ TEST(ProjectModel, ResolvePathsCases) {
         }
 #if defined(_WIN32)
         if (path.rfind("~", 0) == 0 && path.rfind("~/", 0) != 0 && path != "~") {
-            continue;  // "~user": stays as it is on Windows (MDBridge's rule; ntpath guesses a folder)
+            continue;  // "~user": ntpath's guess from %USERPROFILE% / %USERNAME% (test_ntpath.cpp)
         }
 #endif
         EXPECT_EQ(resolvePath(path, base), platformResolved(c.find("after")->stringOr())) << path;

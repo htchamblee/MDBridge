@@ -1,5 +1,6 @@
 #include "mdbridge/core/ntpath.hpp"
 
+#include <algorithm>
 #include <cstdlib>
 #include <vector>
 
@@ -239,27 +240,49 @@ std::optional<std::string> environmentHome() {
 #endif
 }
 
-std::string expanduser(std::string_view path, const std::optional<std::string>& home) {
-    if (path.empty() || path.front() != '~' || (path.size() > 1 && !isSep(path[1])) || !home) {
+std::string expanduser(std::string_view path, const std::optional<std::string>& home,
+                       const std::optional<std::string>& userName) {
+    if (path.empty() || path.front() != '~' || !home) {
         return std::string(path);
     }
-    std::string out = *home;
-    out += path.substr(1);
-    return out;
+    const std::size_t i = std::min(findSep(path, 1), path.size());
+    std::string userHome = *home;
+    if (i != 1) {  // "~user"
+        const std::string_view target = path.substr(1, i - 1);
+        if (!userName || target != *userName) {
+            // Python's guess: profile folders are siblings named by their users; bail out when the
+            // current profile folder is not named so
+            const Parts parts = splitroot(userHome);
+            std::size_t start = parts.tail.size();
+            while (start > 0 && !isSep(parts.tail[start - 1])) {
+                --start;
+            }
+            if (!userName || parts.tail.substr(start) != *userName) {
+                return std::string(path);
+            }
+            userHome = join(dirname(userHome), target);
+        }
+    }
+    return userHome + std::string(path.substr(i));
 }
 
 std::string expanduser(std::string_view path) {
     if (path.empty() || path.front() != '~') {
         return std::string(path);
     }
-    return expanduser(path, environmentHome());
+#ifdef _WIN32
+    return expanduser(path, environmentHome(), environment(L"USERNAME"));
+#else
+    return expanduser(path, environmentHome(), environment("USERNAME"));
+#endif
 }
 
-std::string resolve(std::string_view path, std::string_view baseDir, const std::optional<std::string>& home) {
+std::string resolve(std::string_view path, std::string_view baseDir, const std::optional<std::string>& home,
+                    const std::optional<std::string>& userName) {
     if (path.empty()) {
         return {};
     }
-    return abspath(expanduser(path, home), baseDir);
+    return abspath(expanduser(path, home, userName), baseDir);
 }
 
 std::string resolve(std::string_view path, std::string_view baseDir) {

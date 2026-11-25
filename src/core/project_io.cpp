@@ -7,6 +7,7 @@
 #include <mutex>
 #include <system_error>
 #include <utility>
+#include <vector>
 
 #include "mdbridge/core/clock.hpp"
 #include "mdbridge/core/ntpath.hpp"
@@ -359,10 +360,35 @@ std::string joined(const std::vector<std::string>& path, std::size_t first = 0) 
     return out;
 }
 
-Table metaEntries(std::string_view logFile) {
+// A version as comparable parts: per '.'-separated component its leading number (-1: none) and the
+// rest; empty when the text has no leading number at all
+std::vector<std::pair<long long, std::string>> versionParts(std::string_view text) {
+    std::vector<std::pair<long long, std::string>> out;
+    std::size_t start = 0;
+    while (start <= text.size()) {
+        std::size_t end = text.find('.', start);
+        if (end == std::string_view::npos) {
+            end = text.size();
+        }
+        const std::string_view part = text.substr(start, end - start);
+        std::size_t digits = 0;
+        while (digits < part.size() && digits < 15 && part[digits] >= '0' && part[digits] <= '9') {
+            ++digits;
+        }
+        const long long number = digits ? std::stoll(std::string(part.substr(0, digits))) : -1;
+        if (out.empty() && number < 0) {
+            return {};
+        }
+        out.emplace_back(number, std::string(part.substr(digits)));
+        start = end + 1;
+    }
+    return out;
+}
+
+Table metaEntries(std::string_view logFile, const std::string& version) {
     return Table{{"format", std::string(kProjectFormat)},
                  {"format_version", kProjectFormatVersion},
-                 {"mdatk_version", std::string(kMdatkReference)},
+                 {"mdatk_version", version},
                  {"saved", clockNow()},
                  {"log_file", std::string(logFile)}};
 }
@@ -412,8 +438,16 @@ std::optional<std::string> projectDoc(const std::vector<std::string>& path, cons
     return std::nullopt;
 }
 
+std::string writtenMdatkVersion(const Project& project) {
+    const auto given = versionParts(project.mdatkVersion);
+    if (!given.empty() && given > versionParts(kMdatkReference)) {
+        return project.mdatkVersion;
+    }
+    return std::string(kMdatkReference);
+}
+
 std::string projectText(const Project& project, std::string_view logFile) {
-    Table data = metaEntries(logFile);
+    Table data = metaEntries(logFile, writtenMdatkVersion(project));
     Value settings = toPlain(project);
     for (auto& entry : *settings.get<Table>()) {
         data.push_back(std::move(entry));
@@ -424,7 +458,10 @@ std::string projectText(const Project& project, std::string_view logFile) {
 
 Project loadProject(const fs::path& path, std::vector<std::string>* warnings) {
     const ProjectFile file = readProject(path);
-    return projectFromPlain(file.settings, detail::absoluteDirectory(path), warnings);
+    Project project = projectFromPlain(file.settings, detail::absoluteDirectory(path), warnings);
+    const Value* version = file.header.find("mdatk_version");
+    project.mdatkVersion = version && version->isString() ? version->stringOr() : std::string();
+    return project;
 }
 
 void saveProject(const fs::path& path, const Project& project) {

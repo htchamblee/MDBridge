@@ -563,8 +563,11 @@ TEST(ProjectCompat, MdatkLatestProjectsSurviveASave) {
         const Value settings = readProject(path).settings;
         const Array log = readLog(path);
         std::vector<std::string> warnings;
-        saveProject(path, projectFromPlain(settings, {}, &warnings));  // as `init -p` and a GUI save
+        Project project = projectFromPlain(settings, {}, &warnings);  // as `init -p` and a GUI save
+        project.mdatkVersion = "0.1.1";  // what loadProject sets from the file
+        saveProject(path, project);
         EXPECT_EQ(warnings, std::vector<std::string>{}) << name;
+        EXPECT_EQ(*readProject(path).header.find("mdatk_version"), Value("0.1.1")) << name;
         EXPECT_EQ(readProject(path).settings, settings) << name;
         EXPECT_EQ(readLog(path), log) << name;
         EXPECT_EQ(logFileName(path), logFileName(kLatest / name)) << name;
@@ -647,4 +650,30 @@ TEST(ProjectCompat, MissingSeparateLogStartsAgain) {
     EXPECT_EQ(*log[0].find("title"), Value("after the copy"));
     EXPECT_EQ(unixLines(readFile(dir / "sidecar.log.toml")).rfind("\n" + std::string(kLogMarker) + "\n\n# One entry", 0),
               0u);
+}
+
+// PRJ-09: the mdatk_version of a later MDATK's file is kept on save; files without one, or of
+// 0.0.4.1 and older, are written as 0.0.4.1.
+TEST(ProjectCompat, MdatkVersionOfALaterMdatkIsKept) {
+    TempDir dir;
+    const fs::path path = dir / "plan.mdatk.toml";
+    fs::copy_file(kLatest / "plan.mdatk.toml", path);
+    Project p = loadProject(path);
+    EXPECT_EQ(p.mdatkVersion, "0.1.1");
+    saveProject(dir / "copy.mdatk.toml", p);
+    EXPECT_EQ(*readProject(dir / "copy.mdatk.toml").header.find("mdatk_version"), Value("0.1.1"));
+    const auto written = [](const std::string& version) {
+        Project q;
+        q.mdatkVersion = version;
+        return writtenMdatkVersion(q);
+    };
+    for (const char* older : {"", "0.0.4.1", "0.0.4", "0.0.3d", "0.0.1", "x", ".1", "abc.0.2"}) {
+        EXPECT_EQ(written(older), "0.0.4.1") << older;
+    }
+    for (const char* newer : {"0.1.1", "0.0.10", "0.0.4.2", "0.0.4.1a", "1", "0.1.1.dev3"}) {
+        EXPECT_EQ(written(newer), newer) << newer;
+    }
+    p.mdatkVersion.clear();
+    saveProject(path, p);
+    EXPECT_EQ(*readProject(path).header.find("mdatk_version"), Value("0.0.4.1"));
 }
