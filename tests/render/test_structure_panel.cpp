@@ -25,6 +25,7 @@
 #include <cstring>
 #include <filesystem>
 #include <fstream>
+#include <functional>
 #include <iterator>
 #include <map>
 #include <memory>
@@ -41,6 +42,7 @@
 #include "mdbridge/core/panels.hpp"
 #include "mdbridge/io/mrc.hpp"
 #include "mdbridge/render/display_list.hpp"
+#include "mdbridge/render/example.hpp"
 #include "mdbridge/render/figure_dump.hpp"
 #include "mdbridge/render/panels/build.hpp"
 #include "mdbridge/render/panels/structure.hpp"
@@ -470,6 +472,8 @@ TEST_P(StructureCase, ContentsAsMdatk) {
             if (const auto* item = std::get_if<ImageItem>(&d.item); item && item->width == im.cols && item->height == im.rows) {
                 const Box bb = b.fig->axesBox(st.mainAxes());
                 EXPECT_DOUBLE_EQ(item->corner0.x, std::round(bb.x0));
+                // row 0 at the top: the top edge at the box' rounded bottom plus the image height
+                EXPECT_DOUBLE_EQ(item->corner0.y, b.fig->heightPx() - (std::round(bb.y0) + im.rows));
                 EXPECT_DOUBLE_EQ(item->corner1.x - item->corner0.x, im.cols);
                 EXPECT_DOUBLE_EQ(item->corner1.y - item->corner0.y, im.rows);
                 found = true;
@@ -483,3 +487,369 @@ INSTANTIATE_TEST_SUITE_P(Figures, StructureCase, ::testing::ValuesIn(structureCa
                          [](const ::testing::TestParamInfo<std::string>& i) { return i.param; });
 
 }  // namespace
+
+// ---- counterparts of MDATK's tests and the improvements -------------------------------------------
+
+namespace {
+
+core::Project structureProject() {
+    core::Project p;
+    p.layout.preset = "single";
+    p.layout.panels = {core::PanelSpec{"structure", {}, "", {}}};
+    return p;
+}
+
+core::Value record(const std::string& name) { return test::untag(test::readJson(test::kFigureCases / (name + ".json"))); }
+
+// a case's project and input, built at the case's size (the framework's own layout)
+Built buildRecord(const std::string& name, const std::function<void(core::Project&)>& edit = {}) {
+    const Value rec = record(name);
+    core::Project p = test::caseProject(rec);
+    if (edit) edit(p);
+    const std::vector<double> size = test::numbersOf(at(rec, "size"));
+    return buildFigure(test::loadRenderInput(str(at(rec, "input"))), p, static_cast<int>(size[0]),
+                       static_cast<int>(size[1]), num(at(rec, "dpi")));
+}
+
+bool contains(const std::vector<ArtistRef>& refs, const ArtistRef& r) {
+    return std::find(refs.begin(), refs.end(), r) != refs.end();
+}
+
+std::size_t indexOf(const std::vector<ArtistRef>& refs, const ArtistRef& r) {
+    return static_cast<std::size_t>(std::find(refs.begin(), refs.end(), r) - refs.begin());
+}
+
+}  // namespace
+
+TEST(StructurePanel, ZoomAndCentre) {
+    // test_seqpanels.py test_structure_zoom_and_centre
+    core::Project p = structureProject();
+    const auto make = [&] { return buildFigure(exampleDataset(p), p, 800, 800, 100.0); };
+    Built a = make();
+    const double w1 = a.fig->axes[a.structure->mainAxes()].xaxis.limits.hi - a.fig->axes[a.structure->mainAxes()].xaxis.limits.lo;
+    p.visual.zoom = 2.0;
+    Built b = make();
+    const Range xl = b.fig->axes[b.structure->mainAxes()].xaxis.limits;
+    EXPECT_LT(xl.hi - xl.lo, 0.6 * w1);
+    p.visual.center_on = "origin";
+    Built c = make();
+    for (double v : c.structure->center()) EXPECT_EQ(v, 0.0);
+    p.visual.center_on = "A:6";
+    Built d = make();
+    const std::vector<double> coords = d.dataset->result("trace")->array("coords")->toDouble();
+    for (std::size_t k = 0; k < 3; ++k) EXPECT_DOUBLE_EQ(d.structure->center()[k], coords[5 * 3 + k]);
+    p.visual.center_on = "Z:99";  // not found: the model centre, with a note
+    resetWarnOnce();
+    LogCapture log;
+    Built e = make();
+    EXPECT_TRUE(e.structure->ok());
+    EXPECT_NE(e.structure->viewNote().find("centre"), std::string::npos);
+    ASSERT_EQ(log.lines.size(), 1u);
+    EXPECT_EQ(log.lines[0], "WARNING structure view centre: no residue of the structure view matches 'Z:99'; using the model centre");
+}
+
+TEST(StructurePanel, FollowedCentreMovesTheModelWithTheResidue) {
+    // test_seqpanels.py test_followed_centre_moves_the_model_with_the_residue
+    core::Project p = structureProject();
+    core::Dataset ds = exampleDataset(p);
+    core::AnalysisResult tr = *ds.result("trace");
+    const core::NumArray& c = *tr.array("coords");
+    std::vector<double> coords = c.toDouble();
+    const std::size_t frames = c.shape()[0], nRes = c.shape()[1];
+    for (std::size_t f = 0; f < frames; ++f) {
+        for (std::size_t r = 0; r < nRes; ++r) coords[(f * nRes + r) * 3] += 0.5 * static_cast<double>(f);  // drift along x
+    }
+    tr.setArray("coords", core::NumArray(coords, c.shape()));
+    ds.add(tr);
+    p.visual.center_on = "A:3";
+    p.visual.center_follow = true;
+    Built b = buildFigure(std::move(ds), p, 600, 600, 100.0);
+    StructurePanel& st = *b.structure;
+    for (std::size_t f = 0; f < frames; ++f) {
+        for (std::size_t k = 0; k < 3; ++k) EXPECT_NEAR(st.view(f)[2][k], st.view(0)[2][k], 1e-9);  // stays in the middle
+    }
+    EXPECT_NEAR(st.frameShift().back()[0], 0.5 * static_cast<double>(frames - 1), 1e-9);
+}
+
+TEST(StructurePanel, ShadowFollowsTheLayoutAndAFollowedCentre) {
+    // test_density.py: the shadow window follows the axes limits after layout (a wide panel), and
+    // the shadow moves with a followed centre residue (animated, not a rotation artist)
+    Built b = buildRecord("density_follow");
+    StructurePanel& st = *b.structure;
+    ASSERT_TRUE(st.hasDensity());
+    const Axes& ax = b.fig->axes[st.mainAxes()];
+    const Range xl = ax.xaxis.limits, yl = ax.yaxis.limits;
+    EXPECT_GT(xl.hi - xl.lo, 1.5 * (yl.hi - yl.lo));
+    const std::size_t di = *st.artists().density;
+    const ArtistRef density{st.mainAxes(), di, false};
+    EXPECT_TRUE(contains(st.animatedArtists(), density));
+    EXPECT_TRUE(st.rotationArtists().empty());
+    const std::array<double, 4> base = std::get<Image>(ax.artists[di]).extent;
+    const double pad = 0.15 * (xl.hi - xl.lo) + 3.0;
+    EXPECT_LE(xl.lo - pad, base[0]);
+    EXPECT_LE(base[1], xl.hi + pad);
+    // the frame where the residue moved most
+    std::size_t pos = 0;
+    double best = 0.0;
+    for (std::size_t f = 0; f < st.frameShift().size(); ++f) {
+        const auto& s = st.frameShift()[f];
+        const double n = std::sqrt(s[0] * s[0] + s[1] * s[1] + s[2] * s[2]);
+        if (n > best) best = n, pos = f;
+    }
+    ASSERT_GT(best, 0.05);
+    b.update(pos);
+    const Mat3& v = st.viewMatrix();
+    const auto& s = st.frameShift()[pos];
+    const double dx = s[0] * v[0][0] + s[1] * v[0][1] + s[2] * v[0][2], dy = s[0] * v[1][0] + s[1] * v[1][1] + s[2] * v[1][2];
+    const std::array<double, 4> moved = std::get<Image>(b.fig->axes[st.mainAxes()].artists[di]).extent;
+    EXPECT_NEAR(moved[0], base[0] - dx, 1e-6);
+    EXPECT_NEAR(moved[1], base[1] - dx, 1e-6);
+    EXPECT_NEAR(moved[2], base[2] - dy, 1e-6);
+    EXPECT_NEAR(moved[3], base[3] - dy, 1e-6);
+}
+
+TEST(StructurePanel, DensityPlacementsDegrade) {
+    // test_density.py: a map that cannot be read, an unusable placement or none: a note, the panel
+    // stays (no shadow)
+    resetWarnOnce();
+    {
+        LogCapture log;
+        Built b = buildRecord("density_behind", [](core::Project& p) { p.density.map_path = test::kData.string() + "/nowhere.mrc"; });
+        EXPECT_TRUE(b.structure->ok());
+        EXPECT_FALSE(b.structure->hasDensity());
+        EXPECT_EQ(b.structure->densityNote().rfind("density map: ", 0), 0u) << b.structure->densityNote();
+        ASSERT_FALSE(log.lines.empty());
+        EXPECT_EQ(log.lines[0].rfind("WARNING density map not drawn: ", 0), 0u);
+    }
+    {
+        Built b = buildRecord("density_behind", [](core::Project& p) {
+            p.density.transform = {1, 0, 0, 0, 1, 0, 0, 0, 1, std::numeric_limits<double>::infinity(), 0, 0};
+        });
+        EXPECT_TRUE(b.structure->ok());
+        EXPECT_EQ(b.structure->densityNote(), "density map: the transform contains non-finite numbers");
+    }
+    {
+        Built b = buildRecord("density_behind", [](core::Project& p) { p.density.transform.clear(); });
+        EXPECT_EQ(b.structure->densityNote(), "density map: not fitted yet");
+        EXPECT_FALSE(b.structure->artists().density.has_value());
+    }
+}
+
+TEST(StructurePanel, DensityLevelFromFiniteVoxels) {
+    // RN-33: a map with NaN voxels still shows its shadow (MDATK: the level became NaN)
+    const Built clean = buildRecord("density_behind");
+    io::DensityMap map = io::readMap(test::kData / "render/inputs/demo_dry_map.mrc");
+    const double level = io::mapLevel(map, 1.0);
+    EXPECT_EQ(finiteMapLevel(map, 1.0), level);  // all finite: MDATK's value
+    map.data[0] = std::nanf("");
+    map.data[1] = std::numeric_limits<float>::infinity();
+    EXPECT_TRUE(std::isnan(io::mapLevel(map, 1.0)));
+    const double finite = finiteMapLevel(map, 1.0);
+    EXPECT_TRUE(std::isfinite(finite));
+    EXPECT_NEAR(finite, level, 1e-3 * std::fabs(level) + 1e-6);  // two corner voxels of a large map
+    const std::filesystem::path path = std::filesystem::temp_directory_path() / "mdbridge_w2b_nan_map.mrc";
+    io::writeMap(path, map);
+    Built b = buildRecord("density_behind", [&](core::Project& p) { p.density.map_path = path.string(); });
+    ASSERT_TRUE(b.structure->hasDensity());
+    const Image& mine = std::get<Image>(b.fig->axes[b.structure->mainAxes()].artists[*b.structure->artists().density]);
+    const Image& ref = std::get<Image>(clean.fig->axes[clean.structure->mainAxes()].artists[*clean.structure->artists().density]);
+    EXPECT_TRUE(mine.visible);
+    EXPECT_EQ(mine.rows, ref.rows);
+    EXPECT_EQ(mine.cols, ref.cols);
+    int alpha = 0;
+    for (std::size_t i = 3; i < mine.rgba.size(); i += 4) alpha += mine.rgba[i] > 0 ? 1 : 0;
+    EXPECT_GT(alpha, 0);
+    std::filesystem::remove(path);
+    EXPECT_TRUE(std::isnan(finiteMapLevel(io::DensityMap{{1, 1, 1}, {std::nanf("")}, {}, {1, 1, 1}, {}}, 1.0)));
+}
+
+TEST(StructurePanel, RotationNudgeAndFastQuality) {
+    // set_rotation re-projects the model and the shadow; nudge_density moves the map on screen;
+    // fast quality draws a coarser shadow and a half-resolution 3D layer at the full size
+    Built b = buildRecord("density_front_rep");
+    StructurePanel& st = *b.structure;
+    Figure& fig = *b.fig;
+    const std::size_t di = *st.artists().density;
+    const auto extent = [&] { return std::get<Image>(fig.axes[st.mainAxes()].artists[di]).extent; };
+    const std::array<double, 4> e0 = extent();
+    const Vec3d v0 = st.view(0)[0];
+    const std::vector<double> angles{0.0, 90.0, 0.0};
+    st.setRotation(fig, angles);
+    EXPECT_NE(st.view(0)[0], v0);
+    EXPECT_NE(extent(), e0);
+    st.setRotation(fig, b.project->visual.rotation);
+    const std::array<double, 4> e1 = extent();
+    for (std::size_t k = 0; k < 4; ++k) EXPECT_NEAR(e1[k], e0[k], 1e-9);
+    const core::RigidTransform before = *st.densityPlacement();
+    const std::optional<std::vector<double>> placed = st.nudgeDensity(fig, {3.0, -2.0});
+    ASSERT_TRUE(placed.has_value());
+    EXPECT_EQ(placed->size(), 12u);
+    const std::array<double, 4> e2 = extent();
+    // the shadow moves with the map: by the shift on screen (to the voxel step of its grid)
+    EXPECT_NEAR(0.5 * (e2[0] + e2[1]) - 0.5 * (e1[0] + e1[1]), 3.0, 2.0);
+    EXPECT_NEAR(0.5 * (e2[2] + e2[3]) - 0.5 * (e1[2] + e1[3]), -2.0, 2.0);
+    // a rotation about the map's density centre keeps the centre where it is
+    const Mat3 r = rotationZ(30.0);
+    ASSERT_TRUE(st.nudgeDensity(fig, {0.0, 0.0}, r).has_value());
+    EXPECT_NE(st.densityPlacement()->rotation, before.rotation);
+    // fast quality
+    const int cols = std::get<Image>(fig.axes[st.mainAxes()].artists[di]).cols;
+    st.setFast(true);
+    st.setRotation(fig, b.project->visual.rotation);
+    b.update(0);
+    EXPECT_EQ(st.stageQuality(), "fast");
+    EXPECT_LT(std::get<Image>(fig.axes[st.mainAxes()].artists[di]).cols, cols + 1);
+    const Image& stage = std::get<Image>(fig.axes[st.mainAxes()].artists[*st.artists().stage]);
+    const Box bb = fig.axesBox(st.mainAxes());
+    EXPECT_EQ(stage.cols, static_cast<int>(std::lround(bb.width())));
+    EXPECT_EQ(stage.rows, static_cast<int>(std::lround(bb.height())));
+}
+
+TEST(StructurePanel, FrontShadowIsAnimatedAboveThe3dLayer) {
+    // test_molecule_render.py test_front_density_shadow_is_animated_above_the_3d_layer
+    Built b = buildRecord("density_front_rep");
+    StructurePanel& st = *b.structure;
+    const ArtistRef density{st.mainAxes(), *st.artists().density, false};
+    const ArtistRef stage{st.mainAxes(), *st.artists().stage, false};
+    std::vector<ArtistRef> arts = st.animatedArtists();
+    EXPECT_GT(indexOf(arts, density), indexOf(arts, stage));
+    EXPECT_TRUE(st.rotationArtists().empty());
+    Built behind = buildRecord("density_front_rep", [](core::Project& p) { p.density.front = false; });
+    StructurePanel& sb = *behind.structure;
+    const ArtistRef d2{sb.mainAxes(), *sb.artists().density, false};
+    EXPECT_FALSE(contains(sb.animatedArtists(), d2));
+    EXPECT_EQ(sb.rotationArtists(), std::vector<ArtistRef>{d2});
+    // the frame loop's layers: the 3D layer and the front shadow are drawn per frame
+    markAnimated(*b.fig, st.animatedArtists());
+    const DisplayList dyn = buildDisplayList(*b.fig, fonts(), DisplayLayer::Animated);
+    int images = 0;
+    for (const DisplayItem& d : dyn.items) images += std::holds_alternative<ImageItem>(d.item) ? 1 : 0;
+    EXPECT_EQ(images, 2);
+}
+
+namespace {
+
+class FailingRenderer final : public StageRenderer {
+public:
+    molecule::RgbaImage render(const std::vector<molecule::Colored>&, const molecule::Viewport&, const molecule::Shading&,
+                               molecule::RenderQuality) const override {
+        throw std::runtime_error("no luck");
+    }
+    std::string name() const override { return "FailingRenderer"; }
+};
+
+class FailingFactory final : public StageRendererFactory {
+public:
+    StageRendererChoice choose(std::string_view) const override { return {std::make_shared<FailingRenderer>(), {}}; }
+};
+
+}  // namespace
+
+TEST(StructurePanel, FailedRenderFallsBackToThe2dTrace) {
+    // test_molecule_render.py test_failed_3d_render_falls_back_to_the_2d_trace
+    LogCapture log;
+    setStageRendererFactory(std::make_shared<FailingFactory>());
+    Built b = buildRecord("rep_cartoon");
+    setStageRendererFactory(nullptr);
+    StructurePanel& st = *b.structure;
+    b.update(2);
+    b.update(3);
+    EXPECT_TRUE(st.stageFailed());
+    const Axes& ax = b.fig->axes[st.mainAxes()];
+    EXPECT_EQ(std::get<Scatter>(ax.artists[st.artists().points]).offsets.size(), st.view(0).size());
+    EXPECT_FALSE(std::get<Scatter>(ax.artists[st.artists().ions]).offsets.empty());  // ions in 2D too
+    EXPECT_FALSE(std::get<Segments>(ax.artists[st.artists().lines]).segments.empty());
+    int warnings = 0;
+    for (const std::string& l : log.lines) {
+        warnings += l == "WARNING 3D representation not drawn (2D trace shown instead): no luck" ? 1 : 0;
+    }
+    EXPECT_EQ(warnings, 1);  // once, not per frame
+    // and back to 3D when a render succeeds again
+    Built ok = buildRecord("rep_cartoon");
+    EXPECT_FALSE(ok.structure->stageFailed());
+    EXPECT_TRUE(std::get<Scatter>(ok.fig->axes[ok.structure->mainAxes()].artists[ok.structure->artists().points]).offsets.empty());
+}
+
+TEST(StructurePanel, NonFiniteFrameIsLeftOut) {
+    // RN-03: a non-finite trace point (frame 3 of demo_dry_nan): finite extent, one warning, the
+    // point and its links not drawn in that frame
+    resetWarnOnce();
+    LogCapture log;
+    Built b = buildRecord("structure_nan");
+    StructurePanel& st = *b.structure;
+    EXPECT_TRUE(std::isfinite(st.radius()));
+    b.update(3);
+    const Axes& ax = b.fig->axes[st.mainAxes()];
+    const Scatter& pts = std::get<Scatter>(ax.artists[st.artists().points]);
+    EXPECT_EQ(pts.offsets.size(), st.view(3).size() - 1);
+    for (const Point& p : pts.offsets) EXPECT_TRUE(std::isfinite(p.x) && std::isfinite(p.y));
+    for (const auto& seg : std::get<Segments>(ax.artists[st.artists().lines]).segments) {
+        for (const Point& p : seg) EXPECT_TRUE(std::isfinite(p.x) && std::isfinite(p.y));
+    }
+    for (double s : pts.sizes) EXPECT_TRUE(std::isfinite(s));
+    ASSERT_EQ(log.lines.size(), 1u);
+    EXPECT_EQ(log.lines[0], "WARNING structure view: non-finite coordinates in frame(s) 3; left out of the view "
+                            "(those residues are not drawn there)");
+    b.update(4);
+    EXPECT_EQ(std::get<Scatter>(b.fig->axes[st.mainAxes()].artists[st.artists().points]).offsets.size(), st.view(4).size());
+}
+
+TEST(StructurePanel, IonAndChainLegend) {
+    // RN-08: the ions' element; RN-09: chains by name (D11)
+    EXPECT_EQ(ionLegendLabel({"MG25", "MG26"}), "Mg\xc2\xb2\xe2\x81\xba");
+    EXPECT_EQ(ionLegendLabel({"MG225"}), "Mg\xc2\xb2\xe2\x81\xba");  // resname MG2
+    EXPECT_EQ(ionLegendLabel({"NA101", "Na+102", "SOD7"}), "Na\xe2\x81\xba");
+    EXPECT_EQ(ionLegendLabel({"K1"}), "K\xe2\x81\xba");
+    EXPECT_EQ(ionLegendLabel({"CA5"}), "Ca\xc2\xb2\xe2\x81\xba");
+    EXPECT_EQ(ionLegendLabel({"MG1", "K2"}), "Ions");
+    EXPECT_EQ(ionLegendLabel({"XYZ1"}), "Ions");
+    EXPECT_EQ(ionLegendLabel({}), "Ions");
+    Built b = buildRecord("structure_chain");
+    const Legend& L = *b.fig->axes[b.structure->mainAxes()].legend;
+    ASSERT_GE(L.entries.size(), 2u);
+    EXPECT_EQ(L.entries[0].text, "Chain A");
+    EXPECT_EQ(L.entries[1].text, "Chain B");
+    EXPECT_EQ(L.entries.back().text, "Mg\xc2\xb2\xe2\x81\xba");
+}
+
+TEST(StructurePanel, GpuRendererNote) {
+    // RN-16: "vtk" / "vulkan" mean the GPU renderer; without one the built-in renderer with a note
+    EXPECT_EQ(defaultStageRenderer("vtk").note, kNoGpuRendererNote);
+    EXPECT_EQ(defaultStageRenderer("vulkan").note, kNoGpuRendererNote);
+    EXPECT_TRUE(defaultStageRenderer("auto").note.empty());
+    EXPECT_EQ(defaultStageRenderer("software").renderer->name(), "SoftwareRenderer");
+}
+
+TEST(StructurePanel, MissingResultsShowNoData) {
+    // MDATK's KeyError: "No data: trace" (and "No data: atoms" for representations without atoms)
+    core::Project p = structureProject();
+    core::Dataset empty({0, 1}, {0.0, 10.0});
+    Built b = buildFigure(std::move(empty), p, 640, 360, 60.0);
+    EXPECT_FALSE(b.structure->ok());
+    const Text& t = std::get<Text>(b.fig->axes[b.structure->mainAxes()].artists.at(0));
+    EXPECT_EQ(t.text, "No data: trace");
+    EXPECT_TRUE(b.structure->animatedArtists().empty());
+    Built c = buildRecord("rep_cartoon");
+    core::Dataset noAtoms(c.dataset->frames(), c.dataset->timePs(), {}, c.dataset->timeUnit());
+    for (const core::AnalysisResult& r : c.dataset->results()) {
+        if (r.name != "atoms") noAtoms.add(r);
+    }
+    Built d = buildFigure(std::move(noAtoms), *c.project, 640, 360, 60.0);
+    EXPECT_FALSE(d.structure->ok());
+    EXPECT_EQ(std::get<Text>(d.fig->axes[d.structure->mainAxes()].artists.at(0)).text, "No data: atoms");
+}
+
+TEST(StructurePanel, RegisteredAndBuiltByBuildFigure) {
+    // the registry knows the structure panel; build_figure of a structure case gives the same view
+    const std::vector<std::string_view> types = registeredPanelTypes();
+    EXPECT_NE(std::find(types.begin(), types.end(), "structure"), types.end());
+    const Value rec = record("structure_tags");
+    const core::Dataset ds = test::loadRenderInput(str(at(rec, "input")));
+    const core::Project p = test::caseProject(rec);
+    BuiltFigure built = test::buildCase(rec, ds, p);
+    ASSERT_EQ(built.panels.size(), 1u);
+    EXPECT_EQ(built.panels[0]->type(), "structure");
+    EXPECT_TRUE(built.panels[0]->ok());
+    built.update(12, fonts());
+    EXPECT_FALSE(built.animatedArtists().empty());
+}

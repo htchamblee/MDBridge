@@ -117,7 +117,7 @@ public:
     void setRotation(Figure& fig, std::span<const double> angles);
     // fast quality while the GUI drags (coarser shadow, half-resolution 3D layer); takes effect at
     // the next update.
-    void setFast(bool fast);
+    void setFast(bool on);
     bool fast() const { return m_fast; }
     // set_density_transform: a new map placement (12 numbers, model -> map). Throws
     // core::ValueError for unusable numbers (RigidTransform::fromList).

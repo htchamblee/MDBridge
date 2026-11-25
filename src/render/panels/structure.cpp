@@ -319,10 +319,10 @@ void StructurePanel::setup(Figure& fig) {
     radius = std::max(radius, 1.0);
     m_radius = radius;
     const double zoom = v.zoom;
-    const double view = radius / std::max(zoom, 0.05);  // zoom > 1 shows a smaller window
-    const double pad = 0.06 * view + 2.0 / std::max(zoom, 1.0);
-    m_dataLo = {-view - pad, -view - pad};
-    m_dataHi = {view + pad, view + pad};
+    const double half = radius / std::max(zoom, 0.05);  // MDATK's "view"; zoom > 1 shows a smaller window
+    const double pad = 0.06 * half + 2.0 / std::max(zoom, 1.0);
+    m_dataLo = {-half - pad, -half - pad};
+    m_dataHi = {half + pad, half + pad};
     Axes& a = ax(fig);
     a.setXLim(m_dataLo[0], m_dataHi[0]);
     a.setYLim(m_dataLo[1], m_dataHi[1]);
@@ -455,9 +455,12 @@ std::vector<molecule::Vec3> StructurePanel::residueRgb(std::size_t pos) const {
     for (std::size_t k = 0; k < rgba.size(); ++k) {
         out[k] = {rgba[k].r, rgba[k].g, rgba[k].b};
         if (tint) {
-            const float gf = m_shading.glow.at(k, pos) * static_cast<float>(v.glow_strength);
-            const double g = std::clamp(static_cast<double>(gf), 0.0, 1.0);
-            for (std::size_t c = 0; c < 3; ++c) out[k][c] = out[k][c] * (1 - 0.35 * g) + m_shading.glowRgb[c] * 0.35 * g;
+            // numpy: the float32 glow column times Python floats stays float32
+            const float g = std::clamp(m_shading.glow.at(k, pos) * static_cast<float>(v.glow_strength), 0.0f, 1.0f);
+            const auto keep = static_cast<double>(1.0f - 0.35f * g);
+            for (std::size_t c = 0; c < 3; ++c) {
+                out[k][c] = out[k][c] * keep + m_shading.glowRgb[c] * 0.35 * static_cast<double>(g);
+            }
         }
     }
     return out;
@@ -489,7 +492,7 @@ void StructurePanel::setRotation(Figure& fig, std::span<const double> angles) {
     updateDensity(fig);
 }
 
-void StructurePanel::setFast(bool fast) { m_fast = fast; }
+void StructurePanel::setFast(bool on) { m_fast = on; }
 
 // ---- density map shadow --------------------------------------------------------------------------
 

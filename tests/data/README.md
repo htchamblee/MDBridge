@@ -748,6 +748,13 @@ Python's repr, non-finite ones as `{"$float": "nan"}`, short objects on one line
 model (grid, roles, chrome, texts, legends and the recorded artists) and compares its layout,
 ticks, texts and legends with the record (the figure framework, W1-A); the panels' own tests
 (wave 2) compare the data artists and the later positions.
+`tests/render/test_structure_panel.cpp` builds the structure view (W2-B) of every case whose first
+panel is one from the case's input and project and compares its axes with the record at every
+recorded position (the other panels are placeholders there; the structure axes is put at
+Matplotlib's box first). The structure view's improvements RN-03 (non-finite trace points: a
+warning instead of MDATK's error, case `structure_nan`), RN-08 (ion legend), RN-09 (`Chain A`),
+RN-16 (`vtk` means the GPU renderer) and RN-33 (density level from the finite voxels) are patched
+in `improvements_render.py`.
 
 `make_figure_cases.py` runs first (it writes `inputs/`); the cases are listed, with what each
 shows, in each generator. The command cases need `ffmpeg` and `ffprobe` (CI's regenerate job
