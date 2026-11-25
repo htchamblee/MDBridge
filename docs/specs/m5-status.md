@@ -9,22 +9,24 @@ Reports kept for reference (`docs/reports/`):
   adopted items are in the fix wave).
 - `2026-11-25-mdatk-bug-report.md`: 85 bugs still present in MDATK 0.1.1, handed to the MDATK side.
 
-## Wave 0 (in progress, not pushed)
+## Wave 0 (started, then stopped for a usage limit before any code was written)
 
-Started from `9abefbf`, each package on its own local branch and worktree under the session
-scratchpad (`m5-w0a`, `m5-w0b`, `m5-w0d`, `m5-w0e`, `m5-w0f`). Work was stopped early for a usage
-limit; each branch ends in a `WIP:` commit that says what is done and untested. The worktrees live
-in the session container only: if it is reclaimed they are lost and the packages restart from the
-plan (section 6).
+All six packages restart from the plan (section 6); nothing was lost. Notes the packages gathered:
 
-| Package | Content | State |
-|---|---|---|
-| W0-A | GUI parity generators (`make_gui_cases.py`, `improvements_gui.py`, demo / clean / citations CLI cases, regenerate job with GTK) | WIP |
-| W0-B | Core edit model (`ProjectDocument`, paths, undo, located problems, rename cascade, recovery) | WIP |
-| W0-C | Field widgets | not started (waits for W0-B's API) |
-| W0-D | Job runner and log view | WIP |
-| W0-E | `demo`, `clean`, `citations` commands | WIP |
-| W0-F | GUI test harness (`mdbridge_gui_tests`, CI) | WIP |
+- **W0-B edit model:** commit the documented header first. Lossless numbers need the original text
+  of each loaded field kept until the user edits it (the typed structs hold doubles). The rename
+  cascade ports MDATK 0.1.1's `Project.rename_group`.
+- **W0-C field widgets:** start after W0-B's header.
+- **W0-D jobs and log:** follow MDATK 0.1.1 (`gui/jobs.py`, `logpanel.py`, close handling in
+  `app.py` / `rnado.py`): progress throttled to 0.5 % steps; the log keeps at most 6000 lines and
+  trims to 5000, appends in batches every 40 ms of at most 2000 lines with a note counting skipped
+  lines; on close ask, stop the job, wait up to 15 s.
+- **W0-E commands:** byte-identical `demo` output depends on numpy's random numbers, scipy's
+  nearest-neighbour search, numpy rounding and the NetCDF writer layout; check the existing
+  `numpy_random` and parm7 / NetCDF writers first.
+- **W0-A / W0-F:** W0-A defines the action-script JSON first (actions open, set, save, canvas
+  paths) so W0-F can consume it. `MainWindow` has no save yet: the harness needs a save hook calling
+  `core::saveProject`, with `core::setClock` for fixed time stamps.
 
-Next: finish and verify each package (the acceptance column of the plan), merge, regenerate,
-full ctest with app + FFmpeg + Vulkan, cli_parity, push; then W0-C, then waves 1-3.
+Next: run the packages, verify each against its acceptance column, merge, regenerate, full ctest
+with app + FFmpeg + Vulkan, cli_parity, push; then waves 1-3.
