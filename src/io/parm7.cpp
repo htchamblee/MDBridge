@@ -75,7 +75,10 @@ struct Format {
     std::size_t width = 80;
 };
 
-// _FMT.search(line): \(\s*(\d+)\s*([aAiIeEfF])\s*(\d+)(?:\.(\d+))?\s*\)
+// _FMT.search(line): \(\s*(\d*)\s*\(?\s*([aAiIeEfF])\s*(\d+)(?:\.(\d+))?\s*\)?\s*\)
+// MDATK 0.1.0's format (io/parm7.py): '(20a4)', '(5E16.8)', also without a repeat count ('(a80)':
+// CHAMBER's CTITLE) and with the item in parentheses of its own ('(8(F9.5))': ff19SB's CMAP
+// parameters). MDATK 0.0.4.1 required the repeat count and no inner parentheses.
 std::optional<Format> searchFormat(std::u32string_view line) {
     const auto spaces = [&](std::size_t& i) {
         while (i < line.size() && core::isPythonSpace(line[i])) {
@@ -95,10 +98,12 @@ std::optional<Format> searchFormat(std::u32string_view line) {
         }
         std::size_t i = start + 1;
         spaces(i);
-        if (digits(i).empty()) {
-            continue;
-        }
+        digits(i);  // the repeat count, optional
         spaces(i);
+        if (i < line.size() && line[i] == U'(') {
+            ++i;
+            spaces(i);
+        }
         if (i >= line.size() ||
             std::u32string_view(U"aAiIeEfF").find(line[i]) == std::u32string_view::npos) {
             continue;
@@ -115,6 +120,7 @@ std::optional<Format> searchFormat(std::u32string_view line) {
             digits(i);
         }
         spaces(i);
+        // \)?\s*\): one closing parenthesis, or two with spaces between them
         if (i >= line.size() || line[i] != U')') {
             continue;
         }
@@ -965,6 +971,11 @@ Parm7Sections readParm7Sections(const std::filesystem::path& path,
             }
             const std::optional<Format> format = searchFormat(line);
             if (!format) {
+                if (!isWanted(current->name)) {
+                    // a section nobody asked for (CHAMBER's '(i2,a78)'): not read (MDATK 0.1.0)
+                    current.reset();
+                    continue;
+                }
                 throw ValueError(pathText + ": cannot parse format line " +
                                  repr(utf8(strip(line))));
             }
