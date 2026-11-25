@@ -744,6 +744,11 @@ Python's repr, non-finite ones as `{"$float": "nan"}`, short objects on one line
 | `molecule/` | `make_molecule_cases.py` | `molecule_cases.json`: topologies (backbone control atoms, rings, letters, segments, element radii and colours) of the demo, protein / RNA and schematic systems; scenes (`build_scene` + `frame()` per style and colour scheme: specs, residue masks, per item kind / count) with their geometry in `scenes.npz` (float32 coordinates, int32 indices); software-renderer images (`renders.npz`, uint8 RGBA) of scenes and of the synthetic items of MDATK's `tests/test_molecule_render.py`, with viewport, shading and the items rendered; MDATK's renderer patched with MDBridge's RN-26 (anti-aliasing with the real neighbours) and RN-27 (fast quality at odd sizes), `improvements_render.SOFTWARE_RENDERER`, listed in the file's `improvements` |
 | `cli/` | `make_render_cli_cases.py` | `render_cli_cases.json`: `render` (full run, `--from-cache`, `--no-video`, stride, codecs, odd sizes, missing ffmpeg, PDBs), `charts` and `preview` (formats, frames out of range) on the demo files: exit status, stdout, stderr, the files written (PNG / SVG / PDF sizes, ffprobe's metadata and faststart of the videos, the params log's outputs), the step log; normalised like `cli_parity.py` |
 
+`tests/render/test_figure.cpp` rebuilds the first frame of every `figures/` case in MDBridge's figure
+model (grid, roles, chrome, texts, legends and the recorded artists) and compares its layout,
+ticks, texts and legends with the record (the figure framework, W1-A); the panels' own tests
+(wave 2) compare the data artists and the later positions.
+
 `make_figure_cases.py` runs first (it writes `inputs/`); the cases are listed, with what each
 shows, in each generator. The command cases need `ffmpeg` and `ffprobe` (CI's regenerate job
 installs Ubuntu 24.04's package); MDATK's video bytes are not kept, only their metadata (the codec

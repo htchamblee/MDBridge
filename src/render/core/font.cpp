@@ -177,6 +177,8 @@ struct Font::Impl {
     std::string data;
     std::string family, subfamily, version;
     int unitsPerEm = 0, ascender = 0, descender = 0, lineGap = 0, numGlyphs = 0;
+    bool hasTypo = false;
+    int typoAscender = 0, typoDescender = 0, typoLineGap = 0;
     int numHMetrics = 0;
     bool longLoca = false;
     std::size_t hmtx = 0, loca = 0, glyf = 0, glyfSize = 0;
@@ -632,7 +634,7 @@ Font Font::fromData(std::string data) {
     if (version != 0x00010000 && version != tag("true")) {
         throw FontError("not a TrueType font (sfnt version " + std::to_string(version) + ")");
     }
-    std::size_t head = 0, hhea = 0, maxp = 0, name = 0, cmapTable = 0, gdef = 0;
+    std::size_t head = 0, hhea = 0, maxp = 0, name = 0, cmapTable = 0, gdef = 0, os2 = 0, os2Size = 0;
     for (std::uint16_t i = 0, n = rd.u16(4); i < n; ++i) {
         const std::size_t rec = 12 + 16u * i;
         const std::uint32_t t = rd.u32(rec);
@@ -647,6 +649,7 @@ Font Font::fromData(std::string data) {
         else if (t == tag("cmap")) cmapTable = offset;
         else if (t == tag("name")) name = offset;
         else if (t == tag("GDEF")) gdef = offset;
+        else if (t == tag("OS/2")) os2 = offset, os2Size = length;
         else if (t == tag("GSUB")) impl->gsub = offset;
         else if (t == tag("GPOS")) impl->gpos = offset;
     }
@@ -659,6 +662,12 @@ Font Font::fromData(std::string data) {
     impl->descender = rd.s16(hhea + 6);
     impl->lineGap = rd.s16(hhea + 8);
     impl->numHMetrics = rd.u16(hhea + 34);
+    if (os2 && os2Size >= 74) {  // OS/2 sTypoAscender / sTypoDescender / sTypoLineGap (offsets 68, 70, 72)
+        impl->hasTypo = true;
+        impl->typoAscender = rd.s16(os2 + 68);
+        impl->typoDescender = rd.s16(os2 + 70);
+        impl->typoLineGap = rd.s16(os2 + 72);
+    }
     impl->numGlyphs = rd.u16(maxp + 4);
     if (impl->unitsPerEm < 16 || impl->numHMetrics < 1 || impl->numGlyphs < 1) {
         throw FontError("malformed font: bad head / hhea / maxp values");
@@ -712,6 +721,9 @@ int Font::unitsPerEm() const { return impl_->unitsPerEm; }
 int Font::ascender() const { return impl_->ascender; }
 int Font::descender() const { return impl_->descender; }
 int Font::lineGap() const { return impl_->lineGap; }
+int Font::typoAscender() const { return impl_->hasTypo ? impl_->typoAscender : impl_->ascender; }
+int Font::typoDescender() const { return impl_->hasTypo ? impl_->typoDescender : impl_->descender; }
+int Font::typoLineGap() const { return impl_->hasTypo ? impl_->typoLineGap : impl_->lineGap; }
 int Font::glyphCount() const { return impl_->numGlyphs; }
 std::uint16_t Font::glyphIndex(char32_t c) const { return impl_->glyphIndex(c); }
 int Font::advanceUnits(std::uint16_t g) const { return impl_->advance(g); }

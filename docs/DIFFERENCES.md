@@ -694,6 +694,42 @@ Matplotlib's font-manager scoring, and lays text out with its own TrueType reade
   platform on Linux whatever `DISPLAY` or `QT_QPA_PLATFORM` say, like MDATK's Agg backend, which
   never needed a display. *Tested:* `TextQt.BatchPlatform`, the smoke test's `fonts` check.
 
+## Rendering: the figure framework (src/render/core figure*.cpp, display_list.cpp; src/render/figure_qt.cpp)
+
+MDATK composes its figures with Matplotlib (GridSpec, the "constrained" layout engine, Agg, SVG and
+PDF backends). MDBridge has its own figure model with Matplotlib's layout rules ported (constrained
+layout of one GridSpec with height ratios and MDATK's pads, tick / label / title / colour-bar space
+from the text metrics, legends with "best" placement, colour bars right of their axes, twin axes),
+a display list, and QPainter backends (QImage, QSvgGenerator, QPdfWriter). Differences:
+
+- **Exact canvas size (RN-06, the figure part).** Matplotlib sizes a figure in inches
+  (`w / dpi`) and truncates the canvas back to pixels, so some sizes and dpis give a canvas a pixel
+  smaller than requested (MDATK then stops with `canvas size ... not even` / `choose a DPI that
+  divides the resolution`). MDBridge's figure is exactly `w x h` pixels at any dpi; inches and
+  points are derived from it. *Tested:* `FigureFramework.FrozenLayoutAndExactPixels`,
+  `FigureRaster.ExactSizeAndColours` (1000 x 562 at dpi 77, 320 x 180 at dpi 120).
+- **Layout solved in closed form.** Matplotlib's constrained layout feeds its margins to the
+  kiwisolver constraint solver; MDBridge computes the same solution directly (columns and rows fill
+  the figure, inner sizes in the grid's ratios), with Matplotlib's two passes, margins, colour-bar
+  pads, submerged-margin matching and collapse warning. Positions differ from Matplotlib's by the
+  text metrics only (the unhinted text above): every axes, twin and colour-bar box, tight box, axis
+  label, title, text and legend of the 96 drawn figure cases lies within 1.25 % of the figure size of
+  Matplotlib's (tolerance 1.5 %, docs/specs/m4-plan.md section 3), and every tick and tick label is
+  equal (the automatic bin counts agree on every axis). *Tested:* `tests/render/test_figure.cpp`
+  (`FigureCase.LayoutTicksAndTextsAsMatplotlib` on `tests/data/render/figures`).
+- **"Best" legend locations follow MDBridge's text widths.** Matplotlib places a `loc="best"`
+  legend where it covers the fewest line vertices, line segments, points and texts; its box width
+  comes from the hinted text, up to 7 % narrower than the unhinted text at small pixel sizes (8.8 pt
+  at 60 dpi). With Matplotlib's box size MDBridge's search picks Matplotlib's location in every case;
+  with its own (wider) box, 3 of the 23 "best" legends of the figure cases go to another corner
+  where the wider box fits better. *Tested:* `FigureCase.LayoutTicksAndTextsAsMatplotlib` (the
+  location for Matplotlib's box in Matplotlib's axes box, and the box size).
+- **Vector output keeps text as text in the bundled fonts.** SVG files have `<text>` elements in the
+  DejaVu families (Matplotlib's default SVG output converts text to paths); PDF pages embed the
+  bundled faces. Raster images fill the glyph outlines (above). The SVG size is given in mm (the
+  same physical size as Matplotlib's pt). *Tested:* `FigureSvg.TextAsTextAndPhysicalSize`,
+  `FigurePdf.PageOfTheFigureSize`.
+
 ## Rendering: molecule geometry (src/render/molecule)
 
 The 3D representations (MDATK's `mdatk/render/molecule/topology.py`, `geometry.py`, `surface.py`,

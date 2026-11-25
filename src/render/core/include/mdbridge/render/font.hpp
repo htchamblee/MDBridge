@@ -94,6 +94,11 @@ public:
     int ascender() const;   // hhea, font units
     int descender() const;  // hhea, font units (negative)
     int lineGap() const;
+    // OS/2 sTypoAscender / sTypoDescender / sTypoLineGap (hhea's values when the font has no OS/2
+    // table), font units: the minimum line height Matplotlib's Text layout uses (text.py _get_layout).
+    int typoAscender() const;
+    int typoDescender() const;  // negative
+    int typoLineGap() const;
     int glyphCount() const;
 
     std::uint16_t glyphIndex(char32_t codepoint) const;  // 0 (.notdef) when the font lacks it

@@ -128,6 +128,16 @@ target_compile_definitions(mdbridge_render_core_tests PRIVATE MDBRIDGE_TEST_DATA
 mdbridge_target_warnings(mdbridge_render_core_tests)
 gtest_discover_tests(mdbridge_render_core_tests DISCOVERY_MODE PRE_TEST)
 
+# render core: the figure framework (model, constrained layout, record writer, display list) on the
+# chrome of MDATK's figures (data/render/figures, tests/parity/make_figure_cases.py); no Qt
+add_executable(mdbridge_figure_tests render/test_figure.cpp)
+target_include_directories(mdbridge_figure_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/core")
+target_link_libraries(mdbridge_figure_tests PRIVATE mdbridge::render_core mdbridge::core GTest::gtest_main)
+target_compile_definitions(mdbridge_figure_tests PRIVATE MDBRIDGE_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data"
+                           MDBRIDGE_FONT_DIR="${PROJECT_SOURCE_DIR}/data/fonts")
+mdbridge_target_warnings(mdbridge_figure_tests)
+gtest_discover_tests(mdbridge_figure_tests DISCOVERY_MODE PRE_TEST)
+
 # render core: residue shading, orientation, the example dataset and numpy's PCG64 against MDATK and
 # numpy (data/render/shading, tests/parity/make_shading_cases.py); no Qt
 add_executable(mdbridge_shading_tests render/test_shading.cpp)
@@ -202,4 +212,12 @@ if(MDBRIDGE_BUILD_APP)
     target_link_libraries(mdbridge_text_qt_tests PRIVATE mdbridge::render GTest::gtest)
     mdbridge_target_warnings(mdbridge_text_qt_tests)
     gtest_discover_tests(mdbridge_text_qt_tests DISCOVERY_MODE PRE_TEST)
+
+    # the figure framework's QPainter backends: raster images of exact size, SVG with text as text,
+    # PDF pages of the figure's size, the frame loop's layers (offscreen platform)
+    add_executable(mdbridge_figure_qt_tests render/test_figure_qt.cpp)
+    target_link_libraries(mdbridge_figure_qt_tests PRIVATE mdbridge::render GTest::gtest)
+    target_compile_definitions(mdbridge_figure_qt_tests PRIVATE MDBRIDGE_FONT_DIR="${PROJECT_SOURCE_DIR}/data/fonts")
+    mdbridge_target_warnings(mdbridge_figure_qt_tests)
+    gtest_discover_tests(mdbridge_figure_qt_tests DISCOVERY_MODE PRE_TEST)
 endif()
