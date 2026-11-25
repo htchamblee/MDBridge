@@ -416,6 +416,15 @@ def excerpt(rel: str, old: bytes, new: bytes, max_lines: int) -> list[str]:
             f"    fresh    [{start}:{start + 48}] {new[start:start + 48].hex(' ')}\n"]
 
 
+def _parity_module(name: str):
+    """A module of tests/parity of this checkout, loaded from its file."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(name, os.path.join(ROOT, "tests", "parity", name + ".py"))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 def prepare(root: str, steps: list[Step], only: bool) -> None:
     """The fresh tree: the generators, the source extracts, empty output folders and (with --only)
     the committed inputs."""
@@ -512,6 +521,12 @@ def main(argv=None) -> int:
         if unknown:
             parser.error(f"unknown steps {unknown}; --list shows them")
         steps = [s for s in STEPS if s.name in args.only]
+
+    analysis_versions = _parity_module("analysis_versions")
+    try:  # the test side's analysis versions are the C++ ones (cache keys in the expected data)
+        analysis_versions.check_cpp(ROOT)
+    except RuntimeError as exc:
+        parser.error(str(exc))
 
     os.makedirs(root, exist_ok=True)
     logs = os.path.join(root, "logs")

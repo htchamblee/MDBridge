@@ -1,90 +1,90 @@
 [
  {
-  "file": "mass_blank_field.parm7",
-  "stage": "universe",
+  "file": "resptr_zero.parm7",
+  "stage": "parser",
   "error": {
    "type": "ValueError",
-   "message": "Length of masses does not match number of atoms.\nExpect: 40 Have: 39"
+   "message": "{path}: %FLAG RESIDUE_POINTER residue 1 starts at atom 0; the first residue must start at atom 1"
+  }
+ },
+ {
+  "file": "resptr_unsorted.parm7",
+  "stage": "parser",
+  "error": {
+   "type": "ValueError",
+   "message": "{path}: %FLAG RESIDUE_POINTER is not increasing at residue 3 (11, then 6)"
+  }
+ },
+ {
+  "file": "mass_blank_field.parm7",
+  "stage": "parser",
+  "error": {
+   "type": "ValueError",
+   "message": "{path} line 33: blank field 1 in %FLAG MASS"
   }
  },
  {
   "file": "title_one_token.parm7",
   "stage": "parser",
   "error": {
-   "type": "IndexError",
-   "message": "list index out of range"
+   "type": "ValueError",
+   "message": "{path} is not a valid TOP file. 'TITLE' missing in header"
   }
  },
  {
   "file": "no_pointers.parm7",
   "stage": "parser",
   "error": {
-   "type": "StopIteration",
-   "message": ""
-  }
- },
- {
-  "file": "pointer_lines_short.parm7",
-  "stage": "parser",
-  "error": {
    "type": "ValueError",
-   "message": "invalid literal for int() with base 10: '%FLAG'"
+   "message": "{path}: required section %FLAG POINTERS is missing"
   }
  },
  {
   "file": "not_flag_after_section.parm7",
   "stage": "parser",
   "error": {
-   "type": "IndexError",
-   "message": "%FLAG section not found, formatting error for PARM7 file {path} "
+   "type": "ValueError",
+   "message": "{path} line 41: expected a %FLAG line after the 8 data lines of %FLAG MASS, found 'trailing junk'"
   }
  },
  {
   "file": "empty_line_after_section.parm7",
   "stage": "parser",
   "error": {
-   "type": "IndexError",
-   "message": "%FLAG section not found, formatting error for PARM7 file {path} "
+   "type": "ValueError",
+   "message": "{path} line 41: expected a %FLAG line after the 8 data lines of %FLAG MASS, found ''"
   }
  },
  {
-  "file": "unknown_first.parm7",
+  "file": "residue_pointer_offset.parm7",
   "stage": "parser",
   "error": {
-   "type": "UnboundLocalError",
-   "message": "cannot access local variable 'numlines' where it is not associated with a value"
-  }
- },
- {
-  "file": "charge_three_per_line.parm7",
-  "stage": "parser",
-  "error": {
-   "type": "IndexError",
-   "message": "%FLAG section not found, formatting error for PARM7 file {path} "
+   "type": "ValueError",
+   "message": "{path}: %FLAG RESIDUE_POINTER residue 1 starts at atom 3; the first residue must start at atom 1"
   }
  },
  {
   "file": "atomic_number_119.parm7",
   "stage": "parser",
   "error": {
-   "type": "KeyError",
-   "message": "119"
+   "type": "ValueError",
+   "message": "{path}: ATOMIC_NUMBER 119 of atom 1 is not an element"
   }
  },
  {
   "file": "no_atom_name.parm7",
   "stage": "parser",
   "error": {
-   "type": "KeyError",
-   "message": "'name'"
+   "type": "ValueError",
+   "message": "{path}: required section %FLAG ATOM_NAME is missing"
   }
  },
  {
   "file": "no_angles.parm7",
   "stage": "parser",
   "error": {
-   "type": "KeyError",
-   "message": "'anga'"
+   "type": "ValueError",
+   "message": "{path}: required section %FLAG ANGLES_WITHOUT_HYDROGEN is missing"
   }
  },
  {
@@ -116,7 +116,7 @@
   "stage": "parser",
   "error": {
    "type": "ValueError",
-   "message": "Invalid header line. Does not begin with either %FLAG, %FORMAT nor %COMMENT:\n%FROMAT(5E16.8)\n"
+   "message": "{path} line 32: expected %FORMAT or %COMMENT after %FLAG MASS, found '%FROMAT(5E16.8)'"
   }
  },
  {
@@ -124,7 +124,7 @@
   "stage": "parser",
   "error": {
    "type": "ValueError",
-   "message": "invalid literal for int() with base 10: '1x'"
+   "message": "{path} line 55, %FLAG RESIDUE_POINTER field 2: '1x' is not an integer"
   }
  }
 ]

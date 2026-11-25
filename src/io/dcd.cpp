@@ -12,12 +12,11 @@
 #include "binary_file.hpp"
 #include "mdbridge/core/errors.hpp"
 #include "readers.hpp"
+#include "text_file.hpp"
 
 namespace mdbridge::io::detail {
 
 namespace {
-
-using core::ValueError;
 
 constexpr double kPi = 3.141592653589793;
 
@@ -32,6 +31,17 @@ class DcdTrajectory : public FileTrajectory {
 public:
     DcdTrajectory(const std::filesystem::path& path, std::optional<double> dt) : m_file(path) {
         readHeader();
+        if (m_fourDims) {  // RD-D02
+            throw ReaderError("OSError",
+                              pathText(path) + ": 4-dimensional DCD files are not supported");
+        }
+        if (m_nsavc == 0) {
+            // RD-D01: a frame interval of 0 steps is read as 1 (dt = DELTA, times (frame + istart)
+            // * DELTA).
+            // TODO(LD-03): warn "<file>: the DCD header's frame interval (NSAVC) is 0; it is
+            // taken as 1 step"
+            m_nsavc = 1;
+        }
         const std::uint64_t dims = m_fourDims ? 4 : 3;
         const std::uint64_t extra = m_unitCell ? 56 : 0;
         m_firstFrameBytes = (m_atoms + 2) * dims * 4 + extra;
@@ -58,14 +68,6 @@ public:
         const double akma = 1.0 / 4.888821e-2;
         const double delta = m_delta * (1.0 / akma);
         m_dt = dt ? *dt : delta * static_cast<double>(m_nsavc);
-        if (m_nsavc == 0) {
-            throw ReaderError("ZeroDivisionError", "division by zero");
-        }
-        if (m_fourDims) {
-            throw ValueError("could not broadcast input array from shape (" +
-                             std::to_string(m_atoms) + ",4) into shape (" +
-                             std::to_string(m_atoms) + ",3)");
-        }
         m_timeOffset = static_cast<double>(m_istart) / static_cast<double>(m_nsavc);
         seek(0);
     }

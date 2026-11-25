@@ -370,7 +370,8 @@ std::unique_ptr<core::Trajectory> openTrajectories(const std::vector<std::filesy
         const ReaderClass reader = resolve(path, format, true);
         texts.push_back(detail::pathText(path));
         try {
-            parts.push_back(openWith(reader, path, dt, atoms));
+            // NCDF checks the atom count itself; in a chain the chain's checks name the files
+            parts.push_back(openWith(reader, path, dt, reader.kind == Kind::Ncdf ? 0 : atoms));
         } catch (const ValueError& error) {
             if (std::string_view(error.pythonName()) != "ValueError") {
                 throw;

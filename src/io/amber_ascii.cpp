@@ -1,6 +1,8 @@
-// Amber ASCII coordinates as MDAnalysis 2.11.0 reads them: TRJReader (mdcrd: 10F8.3 lines, a
-// box line after each frame when the line after the first frame has exactly three F8.3 fields)
-// and INPReader (rst7 / inpcrd: one frame, time from the second line, never a box).
+// Amber ASCII coordinates: mdcrd trajectories (TRJReader of MDAnalysis 2.11.0: a title line, 10F8.3
+// lines, a box line after each frame when the line after the first frame holds three F8.3 fields)
+// and rst7 / inpcrd restarts (INPReader: one frame, time from the second line, never a box).
+// MDBridge checks the layout against the atom count at open and names the file, the line and the
+// columns in its errors (docs/DIFFERENCES.md, "Amber ASCII coordinates").
 
 #include <array>
 #include <optional>
@@ -9,6 +11,7 @@
 #include <vector>
 
 #include "mdbridge/core/errors.hpp"
+#include "mdbridge/core/json.hpp"
 #include "mdbridge/core/python.hpp"
 #include "python_text.hpp"
 #include "readers.hpp"
@@ -20,59 +23,54 @@ namespace {
 
 using core::ValueError;
 
+// A line without its line end.
+U32 body(const U32& line) {
+    U32 out = line;
+    while (!out.empty() && (out.back() == U'\n' || out.back() == U'\r')) {
+        out.pop_back();
+    }
+    return out;
+}
+
+bool isBlank(const U32& line) { return rstrip(line).empty(); }
+
+// The value of the field at columns [first, first + width) of `line`, or the RM error naming it.
+double fieldValue(const std::string& file, const U32& line, std::size_t lineNumber,
+                  std::size_t first, std::size_t width) {
+    const U32 text = slice(body(line), first, first + width);
+    if (const auto value = toFloat(text)) {
+        return *value;
+    }
+    std::string message = file + " line " + std::to_string(lineNumber) + ", columns " +
+                          std::to_string(first + 1) + "-" + std::to_string(first + width) + ": " +
+                          core::pythonStringRepr(toUtf8(text)) + " is not a number";
+    const U32 stripped = strip(text);
+    if (!stripped.empty() && stripped.find_first_not_of(U'*') == U32::npos) {
+        message += " (Fortran overflow: the value does not fit the field)";
+    }
+    throw ReaderError("OSError", message);
+}
+
 // ---------------------------------------------------------------- mdcrd (TRJReader)
 
 constexpr std::size_t kFieldWidth = 8;
 constexpr std::size_t kFieldsPerLine = 10;
 
-std::string reshapeMessage(std::size_t count, std::size_t atoms) {
-    return "cannot reshape array of size " + std::to_string(count) + " into shape (" +
-           std::to_string(atoms) + ",3)";
-}
-
-// Field `k` (8 characters) of a line: its text and value (nullopt: not a number).
-struct Field {
-    U32 text;
-    std::optional<double> value;
-};
-
-Field field(const U32& line, std::size_t k) {
-    Field f;
-    f.text = slice(line, k * kFieldWidth, (k + 1) * kFieldWidth);
-    f.value = toFloat(f.text);
-    return f;
-}
-
-[[noreturn]] void fieldError(std::size_t k, const U32& text) {
-    throw ValueError("FixedcolumnEntry(" + std::to_string(k * kFieldWidth) + "," +
-                     std::to_string((k + 1) * kFieldWidth) + ",'F'): Failed to read&convert " +
-                     toUtf8(text));
-}
-
-// The values of the first `count` fields; the first that does not convert is an error.
-std::vector<double> requireFields(const U32& line, std::size_t count) {
-    std::vector<double> out;
-    for (std::size_t k = 0; k < count; ++k) {
-        Field f = field(line, k);
-        if (!f.value) {
-            fieldError(k, f.text);
-        }
-        out.push_back(*f.value);
-    }
-    return out;
+// The 8-column fields a line holds: its length without trailing blanks, in fields, rounded up.
+std::size_t fieldCount(const U32& line) {
+    return (rstrip(line).size() + kFieldWidth - 1) / kFieldWidth;
 }
 
 class TrjTrajectory : public FileTrajectory {
 public:
     TrjTrajectory(const std::filesystem::path& path, std::optional<double> dt, std::size_t atoms)
-        : m_atoms(atoms) {
+        : m_file(pathText(path)), m_atoms(atoms) {
         if (atoms == 0) {
             throw ValueError("AMBER TRJ reader REQUIRES the n_atoms keyword");
         }
         const std::string bytes = readBytes(path);
         if (bytes.empty()) {
-            throw ReaderError("EOFError",
-                              "Compressed file ended before the end-of-stream marker was reached");
+            fail("file is empty");
         }
         m_lines = splitPythonLines(decodeUtf8Replace(bytes));
         if (rstrip(m_lines.front()).size() > 80) {
@@ -80,16 +78,32 @@ public:
                               "Header of AMBER formatted trajectory has more than 80 chars. This "
                               "is probably not a AMBER trajectory.");
         }
-        m_lineCount = (3 * atoms + kFieldsPerLine - 1) / kFieldsPerLine;
-        m_remainder = 3 * atoms % kFieldsPerLine;
+        while (m_lines.size() > 1 && isBlank(m_lines.back())) {  // RD-A04
+            m_lines.pop_back();
+        }
         if (m_lines.size() < 2) {
-            throw ReaderError("EOFError", "");
+            fail("no frames after the title");
         }
-        if (atoms > 1) {
-            detectBox();
-        }
+        m_lineCount = (3 * atoms + kFieldsPerLine - 1) / kFieldsPerLine;
+        m_lastFields = (3 * atoms - 1) % kFieldsPerLine + 1;
+        checkFrame(1);
+        detectBox();
         const std::size_t perFrame = m_lineCount + (m_periodic ? 1 : 0);
+        std::size_t first = 1;
+        while (first + perFrame <= m_lines.size()) {
+            checkFrame(first);
+            if (m_periodic) {
+                checkBoxLine(first + m_lineCount);
+            }
+            first += perFrame;
+        }
+        // TODO(LD-03): when first < m_lines.size(), warn "<file>: the last frame is incomplete
+        // (lines <first + 1>-<m_lines.size()>) and is ignored"
         m_frameCount = static_cast<std::int64_t>((m_lines.size() - 1) / perFrame);
+        if (m_frameCount == 0) {
+            fail("the file ends inside the first frame (" + std::to_string(atoms) + " atoms need " +
+                 std::to_string(m_lineCount) + " coordinate lines)");
+        }
         m_dt = dt.value_or(1.0);
         seek(0);
     }
@@ -106,19 +120,22 @@ protected:
     void readFrame(std::int64_t index, core::Frame& frame) override {
         const std::size_t perFrame = m_lineCount + (m_periodic ? 1 : 0);
         const std::size_t first = 1 + static_cast<std::size_t>(index) * perFrame;
-        const std::vector<double> values = coordinates(first);
-        frame.positions.assign(values.size(), 0.0f);
-        for (std::size_t i = 0; i < values.size(); ++i) {
-            frame.positions[i] = static_cast<float>(values[i]);
+        frame.positions.clear();
+        for (std::size_t i = 0; i < m_lineCount; ++i) {
+            const std::size_t fields = i + 1 == m_lineCount ? m_lastFields : kFieldsPerLine;
+            for (std::size_t k = 0; k < fields; ++k) {
+                frame.positions.push_back(static_cast<float>(
+                    fieldValue(m_file, m_lines[first + i], first + i + 1, k * kFieldWidth,
+                               kFieldWidth)));
+            }
         }
         if (m_periodic) {
-            const std::vector<double> abc = requireFields(m_lines[first + m_lineCount], 3);
-            const std::array<float, 6> box = {static_cast<float>(abc[0]),
-                                              static_cast<float>(abc[1]),
-                                              static_cast<float>(abc[2]),
-                                              90.0f,
-                                              90.0f,
-                                              90.0f};
+            const std::size_t at = first + m_lineCount;
+            std::array<float, 6> box = {0.0f, 0.0f, 0.0f, 90.0f, 90.0f, 90.0f};
+            for (std::size_t k = 0; k < 3; ++k) {
+                box[k] = static_cast<float>(
+                    fieldValue(m_file, m_lines[at], at + 1, k * kFieldWidth, kFieldWidth));
+            }
             if (box[0] != 0.0f || box[1] != 0.0f || box[2] != 0.0f) {
                 frame.box = box;
             }
@@ -127,55 +144,78 @@ protected:
     }
 
 private:
-    // The coordinates of the frame whose lines start at `first` (lines past the end of the file
-    // are not read): a line contributes all ten fields when they all convert, else its first
-    // 3N mod 10 fields.
-    std::vector<double> coordinates(std::size_t first) const {
-        std::vector<double> values;
-        for (std::size_t i = first; i < first + m_lineCount && i < m_lines.size(); ++i) {
-            const U32& line = m_lines[i];
-            std::vector<double> full;
-            for (std::size_t k = 0; k < kFieldsPerLine; ++k) {
-                const auto value = field(line, k).value;
-                if (!value) {
-                    break;
-                }
-                full.push_back(*value);
-            }
-            if (full.size() != kFieldsPerLine) {
-                full = requireFields(line, m_remainder);
-            }
-            values.insert(values.end(), full.begin(), full.end());
-        }
-        if (values.size() != 3 * m_atoms) {
-            throw ValueError(reshapeMessage(values.size(), m_atoms));
-        }
-        return values;
+    [[noreturn]] void fail(const std::string& message) const {
+        throw ReaderError("OSError", m_file + ": " + message);
     }
 
-    // Periodic when the line after the first frame has exactly three numeric fields.
+    [[noreturn]] void failAt(std::size_t index, const std::string& message) const {
+        throw ReaderError("OSError", m_file + " line " + std::to_string(index + 1) + ": " + message);
+    }
+
+    // The coordinate lines of the frame starting at line index `first` (RD-A02): ten fields each,
+    // 3N mod 10 (or ten) on the last. Lines past the end of the file are left for the caller.
+    void checkFrame(std::size_t first) const {
+        for (std::size_t i = 0; i < m_lineCount && first + i < m_lines.size(); ++i) {
+            const std::size_t expected = i + 1 == m_lineCount ? m_lastFields : kFieldsPerLine;
+            const std::size_t found = fieldCount(m_lines[first + i]);
+            if (found != expected) {
+                failAt(first + i, "expected " + std::to_string(expected) +
+                                      (expected == 1 ? " coordinate for " : " coordinates for ") +
+                                      std::to_string(m_atoms) + " atoms, found " +
+                                      std::to_string(found) + " (does the topology match?)");
+            }
+        }
+    }
+
+    void checkBoxLine(std::size_t index) const {
+        const std::size_t found = fieldCount(m_lines[index]);
+        if (found != 3) {
+            failAt(index, "expected a box line (3 values), found " + std::to_string(found) +
+                              " values (does the topology match?)");
+        }
+    }
+
+    // Periodic when the line after the first frame is a box line (RD-A01, RD-A03): three fields
+    // where the next frame would start with another count. With one atom (a frame is one line of
+    // three) every second line is the box when there is an even number of lines and all of those
+    // hold three positive values.
     void detectBox() {
-        coordinates(1);
         const std::size_t next = 1 + m_lineCount;
         if (next >= m_lines.size()) {
-            throw ReaderError("StopIteration", "");
+            m_periodic = false;  // one frame, no box line
+            return;
         }
-        std::size_t numbers = 0;
-        for (std::size_t k = 0; k < kFieldsPerLine; ++k) {
-            if (field(m_lines[next], k).value) {
-                ++numbers;
+        const std::size_t startFields = m_lineCount == 1 ? m_lastFields : kFieldsPerLine;
+        const std::size_t found = fieldCount(m_lines[next]);
+        if (startFields == 3) {
+            const std::size_t data = m_lines.size() - 1;
+            m_periodic = data % 2 == 0;
+            for (std::size_t i = 2; m_periodic && i < m_lines.size(); i += 2) {
+                for (std::size_t k = 0; k < 3; ++k) {
+                    const auto value = toFloat(slice(body(m_lines[i]), k * kFieldWidth,
+                                                     (k + 1) * kFieldWidth));
+                    m_periodic = m_periodic && fieldCount(m_lines[i]) == 3 && value && *value > 0.0;
+                }
             }
+            return;
         }
-        m_periodic = numbers == 3;
-        if (m_periodic) {
-            requireFields(m_lines[next], 3);
+        if (found == 3) {
+            m_periodic = true;
+            return;
         }
+        if (found != startFields) {
+            failAt(next, "expected a box line (3 values) or the first " +
+                             std::to_string(startFields) + " coordinates of the next frame, found " +
+                             std::to_string(found) + " values (does the topology match?)");
+        }
+        m_periodic = false;
     }
 
+    std::string m_file;
     std::size_t m_atoms;
     Lines m_lines;
-    std::size_t m_lineCount = 0;  // coordinate lines per frame
-    std::size_t m_remainder = 0;  // 3N mod 10
+    std::size_t m_lineCount = 0;   // coordinate lines per frame
+    std::size_t m_lastFields = 0;  // fields on a frame's last coordinate line
     bool m_periodic = false;
 };
 
@@ -186,34 +226,62 @@ constexpr std::size_t kRestartFieldWidth = 12;
 class RestartTrajectory : public FileTrajectory {
 public:
     RestartTrajectory(const std::filesystem::path& path, std::optional<double> dt) {
+        const std::string file = pathText(path);
+        const auto fail = [&](const std::string& message) {
+            throw ReaderError("OSError", file + ": " + message);
+        };
         const Lines lines = readTextLines(path);
+        if (lines.empty()) {
+            fail("file is empty");
+        }
         if (lines.size() < 2) {
-            throw ReaderError("IndexError", "list index out of range");
+            fail("no atom count line after the title");
         }
         const std::vector<U32> tokens = split(lines[1]);
         if (tokens.empty()) {
-            throw ReaderError("IndexError", "list index out of range");
+            fail("line 2 has no atom count");
         }
-        std::int64_t count = 0;
+        std::optional<std::int64_t> count;
         try {
-            count = core::pythonInt(toUtf8(tokens[0]));
-        } catch (const std::overflow_error& error) {
-            throw ReaderError("OverflowError", error.what());
+            count = core::tryPythonInt(toUtf8(tokens[0]));
+        } catch (const std::overflow_error&) {
+            fail("line 2: atom count " + core::pythonStringRepr(toUtf8(tokens[0])) +
+                 " is too large");
         }
-        if (count < 0) {
-            throw ReaderError("OverflowError", "can't convert negative value to uint64_t");
+        if (!count || *count < 0) {
+            throw ReaderError("OSError", file + " line 2: atom count " +
+                                             core::pythonStringRepr(toUtf8(tokens[0])) +
+                                             " is not a non-negative integer");
         }
         if (tokens.size() > 1) {
-            m_time = core::pythonFloat(toUtf8(tokens[1]));
+            m_time = core::tryPythonFloat(toUtf8(tokens[1]));
+            if (!m_time) {
+                throw ReaderError("OSError", file + " line 2: time " +
+                                                 core::pythonStringRepr(toUtf8(tokens[1])) +
+                                                 " is not a number");
+            }
         }
-        const auto atoms = static_cast<std::size_t>(count);
+        const auto atoms = static_cast<std::size_t>(*count);
         for (std::size_t atom = 0; atom < atoms; atom += 2) {
             const std::size_t lineIndex = 2 + atom / 2;
-            const U32 line = lineIndex < lines.size() ? lines[lineIndex] : U32();
             const std::size_t fields = atom + 1 < atoms ? 6 : 3;
+            if (lineIndex >= lines.size()) {
+                fail("the file ends at line " + std::to_string(lines.size()) + "; " +
+                     std::to_string(atoms) + " atoms need " +
+                     std::to_string(2 + (atoms + 1) / 2) + " lines");
+            }
+            const U32& line = lines[lineIndex];
+            const std::size_t found = (rstrip(line).size() + kRestartFieldWidth - 1) / kRestartFieldWidth;
+            if (found < fields) {
+                throw ReaderError("OSError", file + " line " + std::to_string(lineIndex + 1) +
+                                                 ": expected " + std::to_string(fields) +
+                                                 " coordinates, found " + std::to_string(found) +
+                                                 " (the file has " + std::to_string(atoms) +
+                                                 " atoms)");
+            }
             for (std::size_t k = 0; k < fields; ++k) {
-                const U32 text = slice(line, k * kRestartFieldWidth, (k + 1) * kRestartFieldWidth);
-                m_positions.push_back(static_cast<float>(core::pythonFloat(toUtf8(text))));
+                m_positions.push_back(static_cast<float>(fieldValue(
+                    file, line, lineIndex + 1, k * kRestartFieldWidth, kRestartFieldWidth)));
             }
         }
         m_frameCount = 1;

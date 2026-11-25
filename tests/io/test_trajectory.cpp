@@ -112,7 +112,6 @@ void expectError(const core::ValueError& error, const core::Value& expected,
 // Cases whose MDAnalysis error comes from deep inside scipy / numpy or from a reader MDBridge does
 // not have: MDBridge rejects the file with its own message.
 const std::set<std::string> kOwnErrors = {
-    "version_5",
     "crd_guessed",
     "chain_crd_guessed",
 };

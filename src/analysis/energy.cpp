@@ -313,7 +313,8 @@ public:
     EnergyDescriptor()
         : AnalysisDescriptor({"energy",
                               "Intermolecular energy",
-                              2,  // v2: exclusions along any bond path, guessed bonds (AN-07, AN-08)
+                              2,  // v2: exclusions along any bond path, guessed bonds (AN-07, AN-08);
+                                  // float64 parm7 charges (RD-P12)
                               false,
                               2,
                               {{"total", "{a}–{b} interaction energy"},

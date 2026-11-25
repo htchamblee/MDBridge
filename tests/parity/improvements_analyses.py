@@ -329,7 +329,6 @@ def apply_mdatk():
         return guess_bonds(atoms)
 
     structure.atom_bonds = atom_bonds
-    structure.AtomsAnalysis.version = structure.AtomsAnalysis.version + 1
 
     # AN-15
     def proximity_process(self, k, ts):
@@ -345,7 +344,6 @@ def apply_mdatk():
         self.dist[self.member, k] = 0.0
 
     structure.ProximityAnalysis.process = proximity_process
-    structure.ProximityAnalysis.version = structure.ProximityAnalysis.version + 1
 
     # AN-21
     trace_setup = structure.TraceAnalysis.setup
@@ -398,7 +396,6 @@ def apply_mdatk():
 
     energy.EnergyAnalysis.setup = energy_setup_improved
     energy.EnergyAnalysis.process = energy_process_improved
-    energy.EnergyAnalysis.version = energy.EnergyAnalysis.version + 1
 
     # AN-09 / AN-10
     def guess_hydrogens(self, pos, box):
@@ -419,7 +416,6 @@ def apply_mdatk():
         self._build_donor_lists()
 
     hbonds.HBondAnalysis._guess_hydrogens = guess_hydrogens
-    hbonds.HBondAnalysis.version = hbonds.HBondAnalysis.version + 1
 
     # AN-16 / AN-17 / AN-18
     class _Rms:
@@ -456,4 +452,8 @@ def apply_mdatk():
                               "superposition is translation only")
 
     rmsd.RMSDAnalysis.setup = rmsd_setup_improved
-    rmsd.RMSDAnalysis.version = rmsd.RMSDAnalysis.version + 1
+
+    # the versions of the analyses whose results these items change (energy, hbonds, rmsd,
+    # proximity, atoms): MDBridge's, from the one table of them
+    import analysis_versions
+    analysis_versions.apply_mdatk()

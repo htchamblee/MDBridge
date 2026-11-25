@@ -24,6 +24,11 @@ const core::Array& list(const core::Value& value) {
     return *value.get<core::Array>();
 }
 
+std::string utf8Path(const fs::path& path) {
+    const std::u8string text = path.u8string();
+    return std::string(text.begin(), text.end());
+}
+
 }  // namespace
 
 TEST(Netcdf, WriterMatchesMDAnalysis) {
@@ -64,9 +69,11 @@ TEST(Netcdf, DemoTrajectory) {
         io::openNetcdfTrajectory(kTrajectories / "demo_dry.nc", std::nullopt, 10);
         ADD_FAILURE();
     } catch (const core::ValueError& e) {
+        // RD-N02: the message of the other readers
         EXPECT_EQ(std::string(e.what()),
-                  "Supplied n_atoms (10) != natom from ncdf (773). Note: n_atoms can be None and "
-                  "then the ncdf value is used!");
+                  "The topology and NCDF trajectory files don't have the same number of atoms!\n"
+                  "Topology number of atoms 10\nTrajectory: " +
+                      utf8Path(kTrajectories / "demo_dry.nc") + " Number of atoms 773");
     }
 }
 

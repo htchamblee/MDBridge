@@ -64,11 +64,14 @@ std::vector<std::string> formatParm7Values(char kind, const Parm7Values& values)
 void writeParm7(const std::filesystem::path& path, const std::vector<Parm7Section>& sections,
                 std::string_view title = "MDATK");
 
-// The topology MDAnalysis' TOPParser builds from a parm7 file: names, types, charges (float32
-// arithmetic / 18.2223), masses, elements from ATOMIC_NUMBER, resnames, resids 1..n, residues
+// The topology MDAnalysis' TOPParser builds from a parm7 file: names, types, charges (the field
+// / 18.2223 in float64), masses, elements from ATOMIC_NUMBER, resnames, resids 1..n, residues
 // from RESIDUE_POINTER, one segment SYSTEM or RESIDUE_CHAINID segments with per-atom chain IDs,
-// ids 1..n, bonds of both bond sections. No coordinates. Throws core::ValueError with MDAnalysis'
-// messages ("<path> is not a valid TOP file. %VE Missing in header", ...).
+// ids 1..n, bonds of both bond sections. No coordinates. Data lines are counted from each
+// section's %FORMAT; unknown sections are skipped. Throws core::ValueError naming the file (and the
+// line, section and field where known) for malformed files: "<path> is not a valid TOP file. %VE
+// Missing in header", "<path>: required section %FLAG BONDS_WITHOUT_HYDROGEN is missing",
+// "<path> line L: blank field 2 in %FLAG MASS", ... (docs/DIFFERENCES.md).
 std::shared_ptr<core::Topology> readParm7Topology(const std::filesystem::path& path);
 
 // .parm7 / .prmtop / .top, case-insensitive (os.path.splitext rules).

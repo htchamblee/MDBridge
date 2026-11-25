@@ -46,6 +46,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 DEMO = os.path.join(HERE, "..", "data", "topology", "demo_dry.parm7")
 sys.path.insert(0, HERE)
 import dump_topologies  # noqa: E402
+import improvements_readers_amber  # noqa: E402
 import independent_tables  # noqa: E402
 
 independent_tables.apply()  # MDAnalysis with MDBridge's independent tables (tests/data/README.md)
@@ -601,7 +602,9 @@ def topology_cases():
         with open(path + ".topology.json", "w", encoding="utf-8") as fh:
             json.dump(data, fh, indent=1, ensure_ascii=False)
             fh.write("\n")
-    return errors
+    # MDBridge's improved parm7 reader (RD-P01 ... RD-P14; improvements_readers_amber.py)
+    return improvements_readers_amber.adjust_parm7_topologies(folder, TOPOLOGY_VARIANTS, errors, DEMO_TEXT,
+                                                             dump_topologies.dump)
 
 
 def is_parm7_cases():

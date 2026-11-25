@@ -64,6 +64,7 @@
 #include "binary_file.hpp"
 #include "mdbridge/core/errors.hpp"
 #include "readers.hpp"
+#include "text_file.hpp"
 
 namespace mdbridge::io::detail {
 
@@ -380,12 +381,29 @@ public:
 
 protected:
     XdrTrajectory(const std::filesystem::path& path, std::optional<double> dt)
-        : m_file(path), m_givenDt(dt) {}
+        : m_file(path), m_name(pathText(path)), m_givenDt(dt) {}
+
+    // An error found while opening the file, naming it (RD-D03).
+    [[noreturn]] void fail(const std::string& message) const {
+        throw ReaderError("OSError", m_name + ": " + message);
+    }
+
+    // Decodes frame `index`; readFrame adds the file and the frame to its errors (RD-D03).
+    virtual void decodeFrame(std::int64_t index, core::Frame& frame) = 0;
+
+    void readFrame(std::int64_t index, core::Frame& frame) override {
+        try {
+            decodeFrame(index, frame);
+        } catch (const ReaderError& error) {
+            throw ReaderError(error.pythonName(), m_name + " frame " + std::to_string(index) +
+                                                      ": " + error.what());
+        }
+    }
 
     // dt: the given one, else time[1] - time[0]; 0 for one frame (even when given)
     void finish() {
         if (m_offsets.empty()) {
-            throw ReaderError("OSError", "XDR read error = endoffile");
+            fail("XDR read error = endoffile");
         }
         m_frameCount = static_cast<std::int64_t>(m_offsets.size());
         core::Frame first;
@@ -407,6 +425,7 @@ protected:
     }
 
     BinaryFile m_file;
+    std::string m_name;
     std::optional<double> m_givenDt;
     std::vector<std::uint64_t> m_offsets;
     std::size_t m_atoms = 0;
@@ -419,18 +438,18 @@ public:
         : XdrTrajectory(path, dt) {
         const std::string head = m_file.read(0, 8);
         if (head.size() < 4) {
-            throw ReaderError("OSError", "XDR read error = endoffile");
+            fail("XDR read error = endoffile");
         }
         const std::int32_t magic = loadI32(head.data(), true);
         if (magic != kXtcMagic && magic != kXtcNewMagic) {
-            throw ReaderError("OSError", "XDR read error = magic");
+            fail("XDR read error = magic");
         }
         if (head.size() < 8) {
-            throw ReaderError("OSError", "XDR read error = endoffile");
+            fail("XDR read error = endoffile");
         }
         const std::int32_t atoms = loadI32(head.data() + 4, true);
         if (atoms < 0) {
-            throw ReaderError("OSError", "XDR read error = header");
+            fail("XDR read error = header");
         }
         m_atoms = static_cast<std::size_t>(atoms);
         const std::uint64_t size = m_file.size();
@@ -454,7 +473,7 @@ public:
     }
 
 protected:
-    void readFrame(std::int64_t index, core::Frame& frame) override {
+    void decodeFrame(std::int64_t index, core::Frame& frame) override {
         const std::uint64_t pos = m_offsets[static_cast<std::size_t>(index)];
         const std::string head = m_file.read(pos, kXtcSmallHeader);
         if (head.size() != kXtcSmallHeader) {
@@ -517,7 +536,7 @@ public:
             const auto header = readHeader(pos);
             if (!header) {
                 if (pos == 0) {
-                    throw ReaderError("OSError", "XDR read error = integer");
+                    fail("XDR read error = integer");
                 }
                 break;
             }
@@ -531,7 +550,7 @@ public:
     }
 
 protected:
-    void readFrame(std::int64_t index, core::Frame& frame) override {
+    void decodeFrame(std::int64_t index, core::Frame& frame) override {
         const std::uint64_t pos = m_offsets[static_cast<std::size_t>(index)];
         const auto header = readHeader(pos);
         if (!header || header->atoms != m_atoms) {

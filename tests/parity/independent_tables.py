@@ -142,7 +142,20 @@ def apply() -> None:
         setattr(PDBWriter, name, t[name])
     PDBWriter.include_pairs = ()
     PDBWriter.exclude_pairs = ()
+    _load_sibling("improvements_readers_amber").apply()  # RD-P12: float64 parm7 charges
     _applied = True
+
+
+def _load_sibling(name):
+    """A module of tests/parity (this folder), whether or not it is on sys.path."""
+    import sys
+    if name in sys.modules:
+        return sys.modules[name]
+    spec = importlib.util.spec_from_file_location(name, os.path.join(HERE, name + ".py"))
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    spec.loader.exec_module(module)
+    return module
 
 
 # --- MDBridge's residue-scoped ion rule (not MDAnalysis behaviour) ---------------------------------

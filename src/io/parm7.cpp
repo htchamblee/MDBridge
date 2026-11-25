@@ -295,11 +295,10 @@ void checkAscii(const std::string& text) {
 // ---------------------------------------------------------------- topology (MDAnalysis TOPParser)
 //
 // One pass over the lines: the two header lines, the POINTERS counts, then the %FLAG sections.
-// The sections the topology uses are read with a line count that follows from the POINTERS
-// counts (not from their %FORMAT); the others are skipped. Python exceptions other than
-// ValueError become detail::ReaderError carrying the Python class name.
-
-using detail::ReaderError;
+// The sections the topology uses hold the number of values their POINTERS count says; their data
+// lines are counted from the fields per line of their %FORMAT (RD-P06). Unknown sections are
+// skipped wherever they are (RD-P01). Every error names the file and, where one is known, the
+// line, the section and the field (docs/DIFFERENCES.md, "parm7 topologies").
 
 // Element symbols by atomic number: kIndElements[Z - 1] (mdbridge/core/detail/data_tables.hpp).
 namespace tables = core::detail::tables;
@@ -307,12 +306,12 @@ namespace tables = core::detail::tables;
 // How the field texts of a section become values.
 enum class FieldKind {
     Text,     // the stripped text
-    Charge,   // float32(x) / float32(18.2223), in float32
+    Charge,   // x / 18.2223, in float64 (RD-P12)
     Real,     // double
     Element,  // atomic number -> element symbol
     Integer,  // int
     Pointer,  // int - 1
-    Index,    // int // 3
+    Index,    // int, checked and divided by 3 when the topology is built
 };
 
 struct SectionRule {
@@ -320,26 +319,25 @@ struct SectionRule {
     std::string_view key;
     std::size_t pointer;  // the POINTERS entry with the record count
     std::int64_t perRecord;
-    std::int64_t perLine;  // values per line, for the line count
     FieldKind kind;
 };
 
 constexpr std::array<SectionRule, 15> kSectionRules = {{
-    {U"ATOM_NAME", "name", 0, 1, 20, FieldKind::Text},
-    {U"CHARGE", "charge", 0, 1, 5, FieldKind::Charge},
-    {U"ATOMIC_NUMBER", "elements", 0, 1, 10, FieldKind::Element},
-    {U"MASS", "mass", 0, 1, 5, FieldKind::Real},
-    {U"ATOM_TYPE_INDEX", "type_indices", 0, 1, 10, FieldKind::Integer},
-    {U"AMBER_ATOM_TYPE", "types", 0, 1, 20, FieldKind::Text},
-    {U"RESIDUE_LABEL", "resname", 11, 1, 20, FieldKind::Text},
-    {U"RESIDUE_POINTER", "respoint", 11, 1, 10, FieldKind::Pointer},
-    {U"BONDS_INC_HYDROGEN", "bondh", 2, 3, 10, FieldKind::Index},
-    {U"BONDS_WITHOUT_HYDROGEN", "bonda", 3, 3, 10, FieldKind::Index},
-    {U"ANGLES_INC_HYDROGEN", "angh", 4, 4, 10, FieldKind::Index},
-    {U"ANGLES_WITHOUT_HYDROGEN", "anga", 5, 4, 10, FieldKind::Index},
-    {U"DIHEDRALS_INC_HYDROGEN", "dihh", 6, 5, 10, FieldKind::Index},
-    {U"DIHEDRALS_WITHOUT_HYDROGEN", "diha", 7, 5, 10, FieldKind::Index},
-    {U"RESIDUE_CHAINID", "chainid", 11, 1, 20, FieldKind::Text},
+    {U"ATOM_NAME", "name", 0, 1, FieldKind::Text},
+    {U"CHARGE", "charge", 0, 1, FieldKind::Charge},
+    {U"ATOMIC_NUMBER", "elements", 0, 1, FieldKind::Element},
+    {U"MASS", "mass", 0, 1, FieldKind::Real},
+    {U"ATOM_TYPE_INDEX", "type_indices", 0, 1, FieldKind::Integer},
+    {U"AMBER_ATOM_TYPE", "types", 0, 1, FieldKind::Text},
+    {U"RESIDUE_LABEL", "resname", 11, 1, FieldKind::Text},
+    {U"RESIDUE_POINTER", "respoint", 11, 1, FieldKind::Pointer},
+    {U"BONDS_INC_HYDROGEN", "bondh", 2, 3, FieldKind::Index},
+    {U"BONDS_WITHOUT_HYDROGEN", "bonda", 3, 3, FieldKind::Index},
+    {U"ANGLES_INC_HYDROGEN", "angh", 4, 4, FieldKind::Index},
+    {U"ANGLES_WITHOUT_HYDROGEN", "anga", 5, 4, FieldKind::Index},
+    {U"DIHEDRALS_INC_HYDROGEN", "dihh", 6, 5, FieldKind::Index},
+    {U"DIHEDRALS_WITHOUT_HYDROGEN", "diha", 7, 5, FieldKind::Index},
+    {U"RESIDUE_CHAINID", "chainid", 11, 1, FieldKind::Text},
 }};
 
 const SectionRule* findRule(std::u32string_view flag) {
@@ -350,6 +348,17 @@ const SectionRule* findRule(std::u32string_view flag) {
     }
     return nullptr;
 }
+
+const SectionRule& ruleOfKey(std::string_view key) {
+    for (const SectionRule& rule : kSectionRules) {
+        if (rule.key == key) {
+            return rule;
+        }
+    }
+    throw std::logic_error("parm7: unknown section key");
+}
+
+std::string flagName(const SectionRule& rule) { return "%FLAG " + utf8(rule.flag); }
 
 // The values one section gave: texts (Text, Element), integers or reals.
 struct Collected {
@@ -378,8 +387,8 @@ std::size_t parseCount(std::u32string_view digits) {
 }
 
 // The items of a %FORMAT text: comma-separated [repeat]letter[width][.decimals] with a letter of
-// I F E A X in either case; only the start of an item has to have this shape.
-std::vector<FormatItem> parseFortranFormat(std::u32string_view text) {
+// I F E A X in either case; only the start of an item has to have this shape. Empty: not a format.
+std::optional<std::vector<FormatItem>> parseFortranFormat(std::u32string_view text) {
     std::vector<FormatItem> items;
     std::size_t begin = 0;
     while (true) {
@@ -397,7 +406,7 @@ std::vector<FormatItem> parseFortranFormat(std::u32string_view text) {
             letter = static_cast<char32_t>(letter - U'A' + U'a');
         }
         if (std::u32string_view(U"ifeax").find(letter) == std::u32string_view::npos) {
-            throw ValueError("unrecognized FORTRAN format " + repr(utf8(item)));
+            return std::nullopt;
         }
         ++i;
         const std::size_t widthStart = i;
@@ -421,18 +430,33 @@ std::vector<FormatItem> parseFortranFormat(std::u32string_view text) {
     return items;
 }
 
+// The data fields of one line of a format (saturating at SIZE_MAX).
+std::size_t fieldsPerLine(const std::vector<FormatItem>& items) {
+    std::size_t total = 0;
+    for (const FormatItem& item : items) {
+        if (!item.skip && item.width > 0) {
+            total = item.repeat > std::numeric_limits<std::size_t>::max() - total
+                        ? std::numeric_limits<std::size_t>::max()
+                        : total + item.repeat;
+        }
+    }
+    return total;
+}
+
 // Moves `column` on by `step`, at most to `end`.
 std::size_t advance(std::size_t column, std::size_t step, std::size_t end) {
     return step > end - column ? end : column + step;
 }
 
-// The stripped non-empty field texts of one line laid out by `items`, appended to `out`.
-void splitFields(std::u32string_view line, const std::vector<FormatItem>& items,
-                 std::vector<std::u32string>& out) {
+// The stripped texts of the fields of one line laid out by `items` (blank fields as "") up to the
+// end of the line.
+std::vector<std::u32string> splitFields(std::u32string_view line,
+                                        const std::vector<FormatItem>& items) {
+    std::vector<std::u32string> out;
     std::size_t column = 0;
     for (const FormatItem& item : items) {
         if (column >= line.size()) {
-            return;
+            break;
         }
         if (item.skip) {
             column = advance(column, item.repeat, line.size());
@@ -442,91 +466,23 @@ void splitFields(std::u32string_view line, const std::vector<FormatItem>& items,
             continue;
         }
         for (std::size_t r = 0; r < item.repeat && column < line.size(); ++r) {
-            std::u32string field = strip(line.substr(column, item.width));
-            if (!field.empty()) {
-                out.push_back(std::move(field));
-            }
+            out.push_back(strip(line.substr(column, item.width)));
             column = advance(column, item.width, line.size());
         }
     }
+    return out;
 }
 
-// x // 3, rounding toward -inf
-std::int64_t floorDiv3(std::int64_t x) {
-    std::int64_t q = x / 3;
-    if (x % 3 != 0 && x < 0) {
-        --q;
-    }
-    return q;
-}
-
-// ceil(a / b) for b > 0
+// ceil(a / b) for a >= 0, b > 0
 std::int64_t ceilDiv(std::int64_t a, std::int64_t b) {
     std::int64_t q = a / b;
-    if (a % b != 0 && a > 0) {
+    if (a % b != 0) {
         ++q;
     }
     return q;
 }
 
-// float32(x) / float32(18.2223), divided in float32
-double amberCharge(double x) {
-    float single = 0.0F;
-    if (std::isfinite(x) && std::fabs(x) >= 0x1.ffffffp+127) {  // rounds to infinity
-        single = x < 0 ? -std::numeric_limits<float>::infinity()
-                       : std::numeric_limits<float>::infinity();
-    } else {
-        single = static_cast<float>(x);
-    }
-    const float scale = 18.2223F;  // 18.222299575805664
-    const float quotient = single / scale;
-    return static_cast<double>(quotient);
-}
-
-void convertField(const SectionRule& rule, const std::u32string& field, Collected& into) {
-    const std::string text = utf8(field);
-    switch (rule.kind) {
-    case FieldKind::Text: into.texts.push_back(text); break;
-    case FieldKind::Charge: into.reals.push_back(amberCharge(core::pythonFloat(text))); break;
-    case FieldKind::Real: into.reals.push_back(core::pythonFloat(text)); break;
-    case FieldKind::Element: {
-        const std::int64_t z = core::pythonInt(text);
-        if (z > static_cast<std::int64_t>(std::size(tables::kIndElements))) {
-            throw ReaderError("KeyError", std::to_string(z));
-        }
-        into.texts.emplace_back(
-            z <= 0 ? std::string_view() : tables::kIndElements[static_cast<std::size_t>(z - 1)].symbol);
-        break;
-    }
-    case FieldKind::Integer: into.integers.push_back(core::pythonInt(text)); break;
-    case FieldKind::Pointer: into.integers.push_back(core::pythonInt(text) - 1); break;
-    case FieldKind::Index: into.integers.push_back(floorDiv3(core::pythonInt(text))); break;
-    }
-}
-
-[[noreturn]] void raiseIndexError(const std::string& message) {
-    throw ReaderError("IndexError", message);
-}
-
-// The tuples of a bond / angle / dihedral section: the first n - 1 values of each chunk of n.
-std::vector<std::vector<std::int64_t>> recordTuples(const Collected& section, std::size_t n,
-                                                    const char* what) {
-    std::vector<std::vector<std::int64_t>> out;
-    const std::vector<std::int64_t>& v = section.integers;
-    for (std::size_t k = 0; k < v.size(); k += n) {
-        const std::size_t end = std::min(v.size(), k + n - 1);
-        if (end - k < n - 1) {
-            if (n == 5) {
-                raiseIndexError("tuple index out of range");
-            }
-            throw ValueError(std::string(what) + " must be an iterable of tuples with " +
-                             std::to_string(n - 1) + " atom indices");
-        }
-        out.emplace_back(v.begin() + static_cast<std::ptrdiff_t>(k),
-                         v.begin() + static_cast<std::ptrdiff_t>(end));
-    }
-    return out;
-}
+constexpr double kAmberChargeFactor = 18.2223;
 
 class Parm7TopologyReader {
 public:
@@ -535,8 +491,8 @@ public:
 
     std::shared_ptr<core::Topology> read() {
         readHeader();
-        readPointers();
-        walkSections();
+        const std::u32string* line = readPointers();
+        walkSections(line);
         return build();
     }
 
@@ -546,55 +502,77 @@ private:
     std::size_t m_next = 0;
     std::vector<std::int64_t> m_pointers;
     std::map<std::string, Collected, std::less<>> m_sections;
-    std::vector<std::string> m_order;  // section keys in the order first met
+
+    [[noreturn]] void fail(const std::string& message) const {
+        throw ValueError(m_file + ": " + message);
+    }
+    [[noreturn]] void failAt(std::size_t line, const std::string& message) const {
+        throw ValueError(m_file + " line " + std::to_string(line) + ": " + message);
+    }
+
+    // The 1-based number of the line nextLine() returned last.
+    std::size_t lineNumber() const { return m_next; }
 
     const std::u32string* nextLine() {
         return m_next < m_lines.size() ? &m_lines[m_next++] : nullptr;
     }
 
-    // Python's next() on the file: StopIteration at the end (MDBridge names the file).
-    const std::u32string& requireLine() {
-        const std::u32string* line = nextLine();
-        if (!line) {
-            throw ReaderError("StopIteration", m_file + ": the parm7 file ends unexpectedly");
-        }
-        return *line;
-    }
-
     void readHeader() {
-        if (!startsWith(requireLine(), U"%VE")) {
+        if (m_lines.empty()) {
+            fail("file is empty");
+        }
+        if (!startsWith(*nextLine(), U"%VE")) {
             throw ValueError(m_file + " is not a valid TOP file. %VE Missing in header");
         }
-        const std::vector<std::u32string> tokens = splitWhitespace(requireLine());
-        if (tokens.size() < 2) {
-            raiseIndexError("list index out of range");
-        }
-        if (tokens[1] == U"CTITLE") {
+        const std::u32string* second = nextLine();
+        const std::vector<std::u32string> tokens =
+            second ? splitWhitespace(*second) : std::vector<std::u32string>();
+        if (tokens.size() >= 2 && tokens[1] == U"CTITLE") {
             throw ValueError(m_file +
                              " is detected as a Chamber-style TOP file. At this time MDAnalysis "
                              "does not support such topologies");
         }
-        if (tokens[1] != U"TITLE") {
+        if (tokens.size() < 2 || tokens[1] != U"TITLE") {
             throw ValueError(m_file + " is not a valid TOP file. 'TITLE' missing in header");
         }
     }
 
-    void readPointers() {
-        while (!startsWith(requireLine(), U"%FLAG POINTERS")) {
-        }
-        requireLine();  // the %FORMAT line, not examined
-        for (int k = 0; k < 4; ++k) {
-            for (const std::u32string& token : splitWhitespace(requireLine())) {
-                m_pointers.push_back(core::pythonInt(utf8(token)));
+    // Reads %FLAG POINTERS (anywhere after the header) up to the next %FLAG line, which it
+    // returns (nullptr at the end of the file).
+    const std::u32string* readPointers() {
+        while (true) {
+            const std::u32string* line = nextLine();
+            if (!line) {
+                fail("required section %FLAG POINTERS is missing");
+            }
+            if (startsWith(*line, U"%FLAG POINTERS")) {
+                break;
             }
         }
+        readSectionFormat(U"POINTERS");
+        while (const std::u32string* line = nextLine()) {
+            if (startsWith(*line, U"%FLAG")) {
+                checkPointerCount();
+                return line;
+            }
+            for (const std::u32string& token : splitWhitespace(*line)) {
+                const std::optional<std::int64_t> value = core::tryPythonInt(utf8(token));
+                if (!value) {
+                    failAt(lineNumber(), "%FLAG POINTERS value " + repr(utf8(token)) +
+                                             " is not an integer");
+                }
+                m_pointers.push_back(*value);
+            }
+        }
+        checkPointerCount();
+        return nullptr;
     }
 
-    std::int64_t pointer(std::size_t index) const {
-        if (index >= m_pointers.size()) {
-            raiseIndexError("list index out of range");
+    void checkPointerCount() const {
+        if (m_pointers.size() < 12) {
+            fail("%FLAG POINTERS needs at least 12 integers (found " +
+                 std::to_string(m_pointers.size()) + ")");
         }
-        return m_pointers[index];
     }
 
     // The text after the first %FLAG (at `at`) up to any later %FLAG, stripped.
@@ -607,91 +585,168 @@ private:
         return strip(rest);
     }
 
-    void walkSections() {
-        const std::u32string* line = nextLine();
-        bool afterPointers = true;
-        std::optional<std::int64_t> previousLines;  // line count of the known section just read
+    void walkSections(const std::u32string* line) {
+        // the known section just read: its flag and data line count (a blank line may follow an
+        // empty section)
+        std::optional<std::pair<const SectionRule*, std::int64_t>> previous;
         while (line) {
-            if (previousLines == 0 && strip(*line).empty()) {
-                line = nextLine();  // one blank line after an empty section
+            if (previous && previous->second == 0 && strip(*line).empty()) {
+                line = nextLine();
                 if (!line) {
                     return;
                 }
             }
             const std::size_t at = line->find(U"%FLAG");
             if (at == std::u32string::npos) {
-                if (afterPointers) {
-                    raiseIndexError("list index out of range");
+                std::string after = "the data lines";
+                if (previous) {
+                    after = "the " + std::to_string(previous->second) + " data lines of " +
+                            flagName(*previous->first);
                 }
-                raiseIndexError("%FLAG section not found, formatting error for PARM7 file " +
-                                m_file + " ");
+                failAt(lineNumber(), "expected a %FLAG line after " + after + ", found " +
+                                         repr(utf8(strip(*line))));
             }
             const SectionRule* rule = findRule(sectionName(*line, at));
             if (!rule) {
-                line = skipUnknownSection(afterPointers);
-                afterPointers = false;
-                previousLines.reset();
+                line = nextLine();
+                while (line && !startsWith(*line, U"%FLAG")) {
+                    line = nextLine();
+                }
+                previous.reset();
                 continue;
             }
-            afterPointers = false;
-            previousLines = readKnownSection(*rule);
+            previous = std::make_pair(rule, readKnownSection(*rule));
             line = nextLine();
         }
     }
 
-    // Skips to the next line starting with %FLAG and returns it (nullptr at the end of the file).
-    const std::u32string* skipUnknownSection(bool firstSection) {
-        const std::u32string* line = nextLine();
-        while (line && !startsWith(*line, U"%FLAG")) {
-            line = nextLine();
-        }
-        if (line && firstSection) {
-            throw ReaderError("UnboundLocalError",
-                              "cannot access local variable 'numlines' where it is not associated "
-                              "with a value");
-        }
-        return line;
-    }
-
-    std::vector<FormatItem> readSectionFormat() {
+    std::vector<FormatItem> readSectionFormat(std::u32string_view flag) {
         while (true) {
-            const std::u32string& line = requireLine();
-            if (startsWith(line, U"%COMMENT")) {
+            const std::u32string* line = nextLine();
+            if (!line) {
+                fail("unexpected end of file in %FLAG " + utf8(flag) +
+                     " (expected a %FORMAT line)");
+            }
+            if (startsWith(*line, U"%COMMENT")) {
                 continue;
             }
-            if (startsWith(line, U"%FORMAT")) {
-                std::u32string_view text = std::u32string_view(line).substr(
-                    std::min<std::size_t>(8, line.size()));
+            if (startsWith(*line, U"%FORMAT")) {
+                std::u32string_view text = std::u32string_view(*line).substr(
+                    std::min<std::size_t>(8, line->size()));
                 const std::size_t close = text.find(U')');
                 if (close != std::u32string_view::npos) {
                     text = text.substr(0, close);
                 }
-                return parseFortranFormat(text);
+                const auto items = parseFortranFormat(text);
+                if (!items) {
+                    failAt(lineNumber(), "cannot parse the format of %FLAG " + utf8(flag) + ": " +
+                                             repr(utf8(strip(*line))));
+                }
+                return *items;
             }
-            throw ValueError(
-                "Invalid header line. Does not begin with either %FLAG, %FORMAT nor %COMMENT:\n" +
-                utf8(line));
+            failAt(lineNumber(), "expected %FORMAT or %COMMENT after %FLAG " + utf8(flag) +
+                                     ", found " + repr(utf8(strip(*line))));
         }
     }
 
-    // Reads the header and data lines of a known section; returns its line count.
+    std::int64_t pointer(std::size_t index) const { return m_pointers[index]; }
+
+    void convertField(const SectionRule& rule, const std::u32string& field, std::size_t line,
+                      std::size_t column, Collected& into) const {
+        const std::string text = utf8(field);
+        const auto where = [&] {
+            return flagName(rule) + " field " + std::to_string(column) + ": " + repr(text);
+        };
+        const auto bad = [&](const std::string& what) {
+            throw ValueError(m_file + " line " + std::to_string(line) + ", " + where() + what);
+        };
+        const auto integer = [&] {
+            std::optional<std::int64_t> value;
+            try {
+                value = core::tryPythonInt(text);
+            } catch (const std::overflow_error&) {
+                bad(" is too large");
+            }
+            if (!value) {
+                bad(" is not an integer");
+            }
+            return *value;
+        };
+        const auto real = [&] {
+            std::u32string s = field;
+            for (char32_t& c : s) {  // Fortran D exponents (RD-P07)
+                c = c == U'D' ? U'E' : c == U'd' ? U'e' : c;
+            }
+            const std::optional<double> value = core::tryPythonFloat(utf8(s));
+            if (!value) {
+                bad(" is not a number");
+            }
+            return *value;
+        };
+        switch (rule.kind) {
+        case FieldKind::Text: into.texts.push_back(text); break;
+        case FieldKind::Charge: into.reals.push_back(real() / kAmberChargeFactor); break;
+        case FieldKind::Real: into.reals.push_back(real()); break;
+        case FieldKind::Element: {
+            const std::int64_t z = integer();
+            if (z > static_cast<std::int64_t>(std::size(tables::kIndElements))) {
+                fail("ATOMIC_NUMBER " + std::to_string(z) + " of atom " +
+                     std::to_string(into.texts.size() + 1) + " is not an element");
+            }
+            into.texts.emplace_back(z <= 0 ? std::string_view()
+                                           : tables::kIndElements[static_cast<std::size_t>(z - 1)]
+                                                 .symbol);
+            break;
+        }
+        case FieldKind::Integer:
+        case FieldKind::Index: into.integers.push_back(integer()); break;
+        case FieldKind::Pointer: into.integers.push_back(integer() - 1); break;
+        }
+    }
+
+    // Reads the header and data lines of a known section; returns its data line count.
     std::int64_t readKnownSection(const SectionRule& rule) {
-        const std::vector<FormatItem> format = readSectionFormat();
-        const std::int64_t lineCount = ceilDiv(pointer(rule.pointer) * rule.perRecord, rule.perLine);
+        const std::size_t flagLine = lineNumber();
+        const std::vector<FormatItem> format = readSectionFormat(rule.flag);
+        const std::size_t perLine = fieldsPerLine(format);
+        const std::int64_t records = pointer(rule.pointer);
+        if (records < 0) {
+            fail("%FLAG POINTERS gives " + flagName(rule) + " a negative count (" +
+                 std::to_string(records) + ")");
+        }
+        if (records > std::numeric_limits<std::int64_t>::max() / rule.perRecord) {
+            fail("%FLAG POINTERS gives " + flagName(rule) + " too large a count (" +
+                 std::to_string(records) + ")");
+        }
+        const std::int64_t count = records * rule.perRecord;
+        if (perLine == 0 && count > 0) {
+            failAt(flagLine, "the %FORMAT of " + flagName(rule) + " has no data fields");
+        }
+        constexpr auto kMaxPerLine = static_cast<std::size_t>(std::numeric_limits<std::int64_t>::max());
+        const auto perLine64 = static_cast<std::int64_t>(std::min(perLine, kMaxPerLine));
+        const std::int64_t lineCount = count == 0 ? 0 : ceilDiv(count, perLine64);
         Collected collected;
-        std::vector<std::u32string> fields;
+        const bool text = rule.kind == FieldKind::Text;
         for (std::int64_t k = 0; k < lineCount; ++k) {
-            fields.clear();
-            splitFields(requireLine(), format, fields);
-            for (const std::u32string& field : fields) {
-                convertField(rule, field, collected);
+            const std::u32string* line = nextLine();
+            if (!line) {
+                fail("unexpected end of file in " + flagName(rule) + " (expected " +
+                     std::to_string(lineCount) + " data lines, found " + std::to_string(k) + ")");
+            }
+            const std::vector<std::u32string> fields = splitFields(*line, format);
+            std::size_t used = fields.size();  // up to the last non-blank field
+            while (used > 0 && fields[used - 1].empty()) {
+                --used;
+            }
+            for (std::size_t f = 0; f < used; ++f) {
+                if (fields[f].empty() && !text) {  // RD-P05
+                    failAt(lineNumber(), "blank field " + std::to_string(f + 1) + " in " +
+                                             flagName(rule));
+                }
+                convertField(rule, fields[f], lineNumber(), f + 1, collected);
             }
         }
-        const std::string key(rule.key);
-        if (m_sections.find(key) == m_sections.end()) {
-            m_order.push_back(key);
-        }
-        m_sections[key] = std::move(collected);
+        m_sections[std::string(rule.key)] = std::move(collected);
         return lineCount;
     }
 
@@ -700,50 +755,105 @@ private:
         return it == m_sections.end() ? nullptr : &it->second;
     }
 
+    void expectCount(std::string_view key, std::size_t expected, const char* what) const {
+        const std::size_t have = section(key)->size();
+        if (have != expected) {
+            fail(flagName(ruleOfKey(key)) + " has " + std::to_string(have) + " values for " +
+                 std::to_string(expected) + " " + what);
+        }
+    }
+
+    // The atom indices of a bond / angle / dihedral section, checked (RD-P10): each entry has
+    // `n` values, the first n - 1 of them atom indices 3 * (atom - 1) (dihedrals: the third and
+    // fourth may be negative, as Amber flags them).
+    std::vector<std::vector<std::int32_t>> recordTuples(std::string_view key,
+                                                        std::size_t atomCount) const {
+        const SectionRule& rule = ruleOfKey(key);
+        const std::vector<std::int64_t>& v = section(key)->integers;
+        const auto n = static_cast<std::size_t>(rule.perRecord);
+        if (v.size() % n != 0) {
+            fail(flagName(rule) + " entry " + std::to_string(v.size() / n + 1) + " has " +
+                 std::to_string(v.size() % n) + " of " + std::to_string(n) + " values");
+        }
+        std::vector<std::vector<std::int32_t>> out;
+        for (std::size_t k = 0; k < v.size(); k += n) {
+            std::vector<std::int32_t> atoms;
+            for (std::size_t i = 0; i + 1 < n; ++i) {
+                std::int64_t value = v[k + i];
+                const std::string entry =
+                    flagName(rule) + " entry " + std::to_string(k / n + 1) + ": atom index " +
+                    std::to_string(value);
+                if (n == 5 && i >= 2 && value < 0 && value != std::numeric_limits<std::int64_t>::min()) {
+                    value = -value;
+                }
+                if (value < 0) {
+                    fail(entry + " is negative");
+                }
+                if (value % 3 != 0) {
+                    fail(entry + " is not a multiple of 3");
+                }
+                if (static_cast<std::uint64_t>(value / 3) >= atomCount) {
+                    fail(entry + " refers to atom " + std::to_string(value / 3 + 1) + " of " +
+                         std::to_string(atomCount));
+                }
+                atoms.push_back(static_cast<std::int32_t>(value / 3));
+            }
+            out.push_back(std::move(atoms));
+        }
+        return out;
+    }
+
     std::shared_ptr<core::Topology> build() const {
         static constexpr std::array<std::string_view, 9> kRequired = {
             "name", "respoint", "resname", "bonda", "bondh", "anga", "angh", "diha", "dihh"};
         for (const std::string_view required : kRequired) {
             if (!section(required)) {
-                throw ReaderError("KeyError", "'" + std::string(required) + "'");
+                fail("required section " + flagName(ruleOfKey(required)) + " is missing");
             }
         }
+        const auto atomCount = static_cast<std::size_t>(pointer(0));
+        const auto residueCount = static_cast<std::size_t>(pointer(11));
+        // per-atom and per-residue sections against the POINTERS counts (RD-P14)
+        for (const std::string_view key : {"name", "charge", "elements", "mass", "types",
+                                           "type_indices"}) {
+            if (section(key)) {
+                expectCount(key, atomCount, "atoms");
+            }
+        }
+        expectCount("resname", residueCount, "residues");
+        expectCount("respoint", residueCount, "residues");
+
+        // residues: names from RESIDUE_LABEL, membership from RESIDUE_POINTER (RD-P08)
+        const std::vector<std::int64_t>& starts = section("respoint")->integers;
+        for (std::size_t r = 0; r < starts.size(); ++r) {
+            const std::string at = "%FLAG RESIDUE_POINTER residue " + std::to_string(r + 1) +
+                                   " starts at atom " + std::to_string(starts[r] + 1);
+            if (r == 0 && starts[0] != 0) {
+                fail(at + "; the first residue must start at atom 1");
+            }
+            if (r > 0 && starts[r] <= starts[r - 1]) {
+                fail("%FLAG RESIDUE_POINTER is not increasing at residue " +
+                     std::to_string(r + 1) + " (" + std::to_string(starts[r - 1] + 1) + ", then " +
+                     std::to_string(starts[r] + 1) + ")");
+            }
+            if (starts[r] >= static_cast<std::int64_t>(atomCount)) {
+                fail(at + " but there are " + std::to_string(atomCount) + " atoms");
+            }
+        }
+
         // bonds, angles and dihedrals: the topology keeps the bonds; the others are only checked
-        std::vector<std::vector<std::int64_t>> bondTuples =
-            recordTuples(*section("bonda"), 3, "bonds");
-        for (std::vector<std::int64_t>& t : recordTuples(*section("bondh"), 3, "bonds")) {
+        std::vector<std::vector<std::int32_t>> bondTuples = recordTuples("bonda", atomCount);
+        for (std::vector<std::int32_t>& t : recordTuples("bondh", atomCount)) {
             bondTuples.push_back(std::move(t));
         }
-        (void)recordTuples(*section("anga"), 4, "angles");
-        (void)recordTuples(*section("angh"), 4, "angles");
-        (void)recordTuples(*section("diha"), 5, "dihedrals");
-        (void)recordTuples(*section("dihh"), 5, "dihedrals");
+        for (const std::string_view key : {"anga", "angh", "diha", "dihh"}) {
+            (void)recordTuples(key, atomCount);
+        }
 
         auto topology = std::make_shared<core::Topology>();
         core::Topology& top = *topology;
-        const std::vector<std::string>& names = section("name")->texts;
-        const std::size_t atomCount = names.size();
-        for (const std::string& name : names) {
+        for (const std::string& name : section("name")->texts) {
             top.names.push_back(top.strings.intern(name));
-        }
-
-        // Universe construction: per-atom attributes against the atom count, in section order
-        static constexpr std::array<std::pair<std::string_view, std::string_view>, 5> kPerAtom = {{
-            {"charge", "charges"},
-            {"elements", "elements"},
-            {"mass", "masses"},
-            {"types", "types"},
-            {"type_indices", "type_indices"},
-        }};
-        for (const std::string& key : m_order) {
-            for (const auto& [sectionKey, attribute] : kPerAtom) {
-                const std::size_t have = section(key)->size();
-                if (key == sectionKey && have != atomCount) {
-                    throw ValueError("Length of " + std::string(attribute) +
-                                     " does not match number of atoms.\nExpect: " +
-                                     std::to_string(atomCount) + " Have: " + std::to_string(have));
-                }
-            }
         }
         if (const Collected* charges = section("charge")) {
             top.charges = charges->reals;
@@ -769,57 +879,25 @@ private:
         }
         top.ids = std::move(serials);
 
-        // bonds, oriented first <= last, then looked up as numpy indexes the atoms
-        const auto n = static_cast<std::int64_t>(atomCount);
         std::vector<core::Bond> bonds;
-        for (std::vector<std::int64_t>& t : bondTuples) {
-            if (t.front() > t.back()) {
-                std::reverse(t.begin(), t.end());
-            }
-            core::Bond bond{};
-            for (std::size_t k = 0; k < 2; ++k) {
-                if (t[k] >= n || t[k] < -n) {
-                    raiseIndexError("index " + std::to_string(t[k]) +
-                                    " is out of bounds for axis 0 with size " +
-                                    std::to_string(atomCount));
-                }
-                bond[k] = static_cast<std::int32_t>(t[k] < 0 ? t[k] + n : t[k]);
-            }
-            if (bond[0] != bond[1]) {  // MDBridge's bonds join two different atoms
-                bonds.push_back(bond);
+        for (const std::vector<std::int32_t>& t : bondTuples) {
+            if (t[0] != t[1]) {  // MDBridge's bonds join two different atoms
+                bonds.push_back({std::min(t[0], t[1]), std::max(t[0], t[1])});
             }
         }
         top.bonds = std::move(bonds);
 
-        // residues: names from RESIDUE_LABEL, membership from RESIDUE_POINTER (slice rules)
         const std::vector<std::string>& resnames = section("resname")->texts;
-        const std::size_t residueCount = resnames.size();
         for (std::size_t r = 0; r < residueCount; ++r) {
             top.resnames.push_back(top.strings.intern(resnames[r]));
             top.resids.push_back(static_cast<std::int64_t>(r) + 1);
         }
         top.resnums = top.resids;
         top.atomResidue.assign(atomCount, 0);
-        const std::vector<std::int64_t>& starts = section("respoint")->integers;
-        const auto clampBound = [n](std::int64_t b) {
-            if (b < 0) {
-                return std::max<std::int64_t>(b + n, 0);
-            }
-            return std::min(b, n);
-        };
-        for (std::size_t r = 0; r < starts.size(); ++r) {
-            const std::int64_t first = clampBound(starts[r]);
-            const std::int64_t last = r + 1 < starts.size() ? clampBound(starts[r + 1]) : n;
-            for (std::int64_t a = first; a < last; ++a) {
-                top.atomResidue[static_cast<std::size_t>(a)] = static_cast<std::int32_t>(r);
-            }
-        }
-        for (const std::int32_t r : top.atomResidue) {
-            if (static_cast<std::size_t>(r) >= residueCount) {
-                throw ValueError(m_file + ": RESIDUE_POINTER puts atoms in residue " +
-                                 std::to_string(r) + " but RESIDUE_LABEL has " +
-                                 std::to_string(residueCount) +
-                                 " residues; MDBridge cannot represent such a topology");
+        for (std::size_t r = 0; r < residueCount; ++r) {
+            const auto last = r + 1 < residueCount ? static_cast<std::size_t>(starts[r + 1]) : atomCount;
+            for (auto a = static_cast<std::size_t>(starts[r]); a < last; ++a) {
+                top.atomResidue[a] = static_cast<std::int32_t>(r);
             }
         }
 
@@ -838,6 +916,8 @@ private:
                 top.residueSegment.push_back(static_cast<std::int32_t>(top.segids.size() - 1));
             }
         } else {
+            // TODO(LD-03): warn "<file>: %FLAG RESIDUE_CHAINID has K values for N residues;
+            // chain IDs are not read"
             top.segids.push_back(top.strings.intern("SYSTEM"));
             top.residueSegment.assign(residueCount, 0);
         }
