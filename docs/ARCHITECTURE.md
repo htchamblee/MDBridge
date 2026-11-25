@@ -29,7 +29,8 @@ a source build does not pollute the system.
 ## Toolkit and libraries
 
 - GUI: Qt 6 (Widgets for the sidebar, wizard and planner; a Vulkan window for the 3D view;
-  charts drawn in Qt, e.g. QCustomPlot, replacing Matplotlib early)
+  charts drawn with MDBridge's own QPainter code, replacing Matplotlib (Qt Charts, Qt Graphs and
+  QCustomPlot are GPL in their open-source editions and are not used))
 - Trajectories and topologies: own readers and writers (parm7, PDB, GRO, DCD, XTC/TRR, AMBER NetCDF
   and ASCII, MRC/CCP4, mmCIF), matched to what MDAnalysis reads; chemfiles was dropped in
   milestone 2 because it reads these formats differently and parity needs MDAnalysis' behaviour
