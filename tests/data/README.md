@@ -784,6 +784,25 @@ with its notices). To regenerate, with Python 3.13 and Matplotlib 3.11.2 in `/op
 /opt/mdbridge-venv/bin/python -I -B tools/gen_mpl_tables.py                    # src/render/core/mpl_colors.inc
 /opt/mdbridge-venv/bin/python -I -B tests/parity/make_color_cases.py /tmp/mdatk tests/data/render/colors
 
+## render/text: the figure fonts and text metrics (milestone 4, W0-D)
+
+`render/text/text_cases.json` holds what Matplotlib 3.11.2 does with the DejaVu fonts MDBridge
+bundles (`data/fonts`, Matplotlib's own copies), for `src/render/core/font.cpp` and `text.cpp`
+(`tests/render/test_text.cpp`), written by `tests/parity/make_text_cases.py` (no MDATK needed): the
+five files' checksums, names and metrics (the committed `data/fonts` must have the same checksums);
+the face Matplotlib's `findfont` picks among the five for 792 font-property sets (family lists,
+weights, styles); and `get_text_width_height_descent` of 59 strings (MDATK's labels, tick labels,
+superscripts, Greek, ligatures, kerning pairs, blank text) on every face at four of ten (points, dpi)
+sizes, with `text.hinting: no_hinting` (width / height / descent and the glyph x positions in 26.6
+fixed point, which MDBridge reproduces exactly) and with Matplotlib's default hinting (MDATK's
+figures; MDBridge stays within a bound, docs/DIFFERENCES.md "Render: fonts and text"). Matplotlib's
+rcParams are its defaults and the machine's fonts are left out, so the output depends only on the
+Matplotlib wheel (its FreeType 2.14.3 and HarfBuzz) and is the same everywhere:
+
+```bash
+/opt/mdbridge-venv/bin/python -I -B tests/parity/make_text_cases.py tests/data/render/text
+```
+
 ## render/molecule_geometry: the 3D representations' geometry (milestone 4, W0-F)
 
 `tests/parity/make_molecule_geometry_cases.py` runs MDATK's `mdatk/render/molecule/` (topology.py,

@@ -118,11 +118,13 @@ mdbridge_target_warnings(mdbridge_commands_cli)
 
 # render core (no Qt): colours, colormaps, chain palettes and themes (data/render/colors,
 # tests/parity/make_color_cases.py); axis limits, ticks and tick labels (data/render/ticks,
-# tests/parity/make_tick_cases.py), against Matplotlib 3.11.2 and MDATK
-add_executable(mdbridge_render_core_tests render/test_colors.cpp render/test_ticks.cpp)
+# tests/parity/make_tick_cases.py); the bundled fonts and text metrics (data/render/text,
+# tests/parity/make_text_cases.py; the fonts in data/fonts), against Matplotlib 3.11.2 and MDATK
+add_executable(mdbridge_render_core_tests render/test_colors.cpp render/test_text.cpp render/test_ticks.cpp)
 target_include_directories(mdbridge_render_core_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/core")
 target_link_libraries(mdbridge_render_core_tests PRIVATE mdbridge::render_core mdbridge::core GTest::gtest_main)
-target_compile_definitions(mdbridge_render_core_tests PRIVATE MDBRIDGE_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data")
+target_compile_definitions(mdbridge_render_core_tests PRIVATE MDBRIDGE_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data"
+                           MDBRIDGE_FONT_DIR="${PROJECT_SOURCE_DIR}/data/fonts")
 mdbridge_target_warnings(mdbridge_render_core_tests)
 gtest_discover_tests(mdbridge_render_core_tests DISCOVERY_MODE PRE_TEST)
 
@@ -167,4 +169,11 @@ if(MDBRIDGE_BUILD_APP)
     target_link_libraries(mdbridge_render_tests PRIVATE mdbridge::render Vulkan::Headers GTest::gtest_main)
     mdbridge_target_warnings(mdbridge_render_tests)
     gtest_discover_tests(mdbridge_render_tests DISCOVERY_MODE PRE_TEST)
+
+    # the figure fonts in Qt: resources, registration, text drawn from outlines, the batch
+    # application on the offscreen platform (no display needed)
+    add_executable(mdbridge_text_qt_tests render/test_text_qt.cpp)
+    target_link_libraries(mdbridge_text_qt_tests PRIVATE mdbridge::render GTest::gtest)
+    mdbridge_target_warnings(mdbridge_text_qt_tests)
+    gtest_discover_tests(mdbridge_text_qt_tests DISCOVERY_MODE PRE_TEST)
 endif()

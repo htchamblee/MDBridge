@@ -33,6 +33,7 @@ Not adopted yet; it takes effect only after legal review and a formal change of 
    | nanoflann | BSD-2 | OK | planned |
    | FFmpeg (libavcodec, libavformat, libavutil, libswscale) | LGPL v2.1+ | own LGPL-only build (`packaging/ffmpeg`: `--disable-gpl --disable-nonfree --disable-version3`, no x264 / x265 or other GPL parts), linked dynamically, shipped with its licence and the corresponding source on each release; the GPL / non-free check runs at configure time (`cmake/FindFFmpegLGPL.cmake`) and at run time | milestone 4 (video) |
    | SVT-AV1 | BSD 3-Clause Clear + AOM Patent License 1.0 | OK (the AV1 encoder; shared library) | milestone 4 (video) |
+   | DejaVu fonts 2.35 (as Matplotlib ships them) | Bitstream Vera / Arev font licences (permissive; modified fonts must be renamed), DejaVu changes public domain | OK (unmodified, compiled in; licence in `packaging/licenses/DejaVu-LICENSE.txt`) | milestone 4 (figures) |
    | Lua | MIT | OK | planned |
    | Python, NumPy, SciPy (interim, embedded) | PSF / BSD-style | OK | planned |
    | MDAnalysis (interim) | check the bundled version's licence | verify before bundling | planned |
@@ -46,14 +47,17 @@ Not adopted yet; it takes effect only after legal review and a formal change of 
    | NumPy | BSD-3 | `numpy.interp` (`src/io/external.cpp`), `numpy.linspace` (`src/render/core/colormap.cpp`, milestone 4), pairwise summation of float32 / float64 arrays (`src/core/include/mdbridge/core/detail/numpy_sum.hpp`, used by `src/io/mrc.cpp` and the analyses (`src/analysis/spatial.cpp`, `rmsd.cpp`, `rmsd_qcp.cpp`, `energy.cpp`) and `src/render/molecule/ndimage.cpp`) | milestone 2 (summation shared since milestone 3) |
    | SciPy 1.18.1 | BSD-3 (and the ndimage package's BSD-style notice) | `scipy.ndimage` Gaussian filter (mode "constant"), order-1 interpolation and order-1 `affine_transform` (mode "constant") (`src/render/molecule/ndimage.cpp`, used by the molecular surface `src/render/molecule/surface.cpp` and the density shadow `src/render/molecule/density_shadow.cpp`) | milestone 4 |
    | CPython | PSF 2 | textwrap / splitlines (`src/core/text.cpp`), json.loads scanner (`src/core/json.cpp`), fnmatch / glob (`src/core/atom_selection.cpp`, `src/io/cif.cpp`) | milestone 2 |
-   | Matplotlib 3.11.2 | Matplotlib licence (PSF-style); its ColorBrewer schemes Apache 2.0 | `to_rgba` / `to_hex`, colormaps (`src/render/core/color.cpp`, `colormap.cpp`), tick locators and formatters, autoscaling and colour-bar limits (`src/render/core/ticks.cpp`) and the colour tables of `src/render/core/mpl_colors.inc` (`tools/gen_mpl_tables.py`; xkcd names and viridis family CC0, CSS4 names W3C) | milestone 4 |
+   | Matplotlib 3.11.2 | Matplotlib licence (PSF-style); its ColorBrewer schemes Apache 2.0 | `to_rgba` / `to_hex`, colormaps (`src/render/core/color.cpp`, `colormap.cpp`), tick locators and formatters, autoscaling and colour-bar limits (`src/render/core/ticks.cpp`), the font manager's font choice (`src/render/core/text.cpp`) and the colour tables of `src/render/core/mpl_colors.inc` (`tools/gen_mpl_tables.py`; xkcd names and viridis family CC0, CSS4 names W3C) | milestone 4 |
    | chemfiles, based on xdrfile 1.1.4 | BSD-3, BSD-2 | XTC decompression (`src/io/gromacs.cpp`); xdrfile releases before 1.1.4 were LGPL and must not be used | milestone 2 |
    | OpenMM 8.1.2 force-field files | MIT | residue / atom names and elements in `src/core/include/mdbridge/core/detail/data_tables_independent.inc` (with the wwPDB CCD, CC0, and CIAAW atomic weights; `data/sources/ATTRIBUTION.md`) | milestone 2 |
 
    Formats implemented from their published descriptions, without porting code (no notice
-   needed): the `.npy` / `.npz` files of the analysis cache (`src/analysis/cache.cpp`) follow
-   numpy's documented format (`numpy.lib.format`, NEP 1) and the ZIP application note; zlib does
-   the compression.
+   needed): the TrueType / OpenType tables of the bundled fonts (`src/render/core/font.cpp`: cmap,
+   glyf, hmtx, name, GDEF, GSUB ligatures, GPOS kerning) follow the OpenType specification, with the
+   fixed-point rounding FreeType (FTL / GPL 2) and HarfBuzz (MIT) document for scaling, checked
+   against Matplotlib's output (no FreeType or HarfBuzz code used); the `.npy` / `.npz` files of
+   the analysis cache (`src/analysis/cache.cpp`) follow numpy's documented format
+   (`numpy.lib.format`, NEP 1) and the ZIP application note; zlib does the compression.
 
    MDAnalysis (LGPL) defines the behaviour MDBridge reproduces, but none of its code may be
    copied or translated: reimplement from observed behaviour or from behaviour-only descriptions

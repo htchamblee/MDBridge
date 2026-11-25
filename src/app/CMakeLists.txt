@@ -4,6 +4,8 @@
 add_library(mdbridge_app STATIC
     cli.cpp
     cli.hpp
+    fonts_command.cpp
+    fonts_command.hpp
     gui/gui.cpp
     gui/gui.hpp
     gui/main_window.cpp

@@ -26,9 +26,10 @@ Qt is not fetched (building it per checkout would take an hour). Any of:
   installer's archives without an account and checks their SHA-1):
   ```bash
   python3 -m pip install py7zr
-  python3 tools/get_qt.py --version 6.11.3 --arch linux_gcc_64 --out ~/Qt/6.11.3/gcc_64 --archive qtbase --archive icu
-  python  tools\get_qt.py --version 6.11.3 --arch win64_msvc2022_64 --out C:\Qt\6.11.3\msvc2022_64
+  python3 tools/get_qt.py --version 6.11.3 --arch linux_gcc_64 --out ~/Qt/6.11.3/gcc_64 --archive qtbase --archive icu --archive qtsvg
+  python  tools\get_qt.py --version 6.11.3 --arch win64_msvc2022_64 --out C:\Qt\6.11.3\msvc2022_64 --archive qtbase --archive qtsvg
   ```
+  (Qt SVG is for the figures' SVG output, milestone 4.)
   ([aqtinstall](https://github.com/miurahr/aqtinstall) does the same, but its release 3.3.0 does not
   read the repository layout of Qt 6.11 for Windows);
 - the Qt online installer (Qt 6.11 for GCC 64-bit / MSVC 2022 64-bit);

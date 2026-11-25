@@ -79,6 +79,9 @@ if [ "$(cache MDBRIDGE_FFMPEG)" = ON ] && ! ls "$APPDIR"/usr/lib/libavcodec.so.*
     exit 1
 fi
 
+# fontconfig's configuration for hosts without one (AppRun); the figure fonts are compiled in
+install -D -m 644 "$HERE/fonts.conf" "$APPDIR/usr/share/mdbridge/fontconfig/fonts.conf"
+
 echo "== linuxdeploy (Qt and libraries)"
 export EXTRA_PLATFORM_PLUGINS="libqoffscreen.so"  # headless checks; xcb is always deployed
 # the build's Qt, not a distribution's Qt that may be installed too; the libraries the install put
