@@ -12,6 +12,7 @@
 #include <mutex>
 #include <string>
 #include <system_error>
+#include <thread>
 #include <utility>
 
 #include "mdbridge/core/paths.hpp"
@@ -280,6 +281,7 @@ struct VideoEncoder::Impl {
     AVCodecContext* encoder = nullptr;
     AVStream* stream = nullptr;
     SwsContext* scaler = nullptr;
+    AVFrame* source = nullptr;  // wraps the caller's RGBA (no copy)
     AVFrame* frame = nullptr;
     AVPacket* packet = nullptr;
     int frames = 0;
@@ -292,6 +294,7 @@ struct VideoEncoder::Impl {
     void release() noexcept {
         sws_freeContext(scaler);
         scaler = nullptr;
+        av_frame_free(&source);
         av_frame_free(&frame);
         av_packet_free(&packet);
         avcodec_free_context(&encoder);
@@ -440,8 +443,27 @@ struct VideoEncoder::Impl {
             fail("video: cannot start " + temporaryUtf8 + ": " + detail::ffmpegError(err));
         }
 
-        scaler = sws_getContext(options.width, options.height, AV_PIX_FMT_RGBA, options.width, options.height,
-                                AV_PIX_FMT_YUV420P, SWS_BICUBIC | SWS_ACCURATE_RND, nullptr, nullptr, nullptr);
+        // the legacy (explicitly initialised) scaler, as sws_getContext makes it, with slice threads:
+        // every thread computes whole output rows from the complete input, so the result is the
+        // same bytes for any number of threads (VideoFiles.ConversionThreadsGiveTheSameVideo)
+        scaler = sws_alloc_context();
+        if (scaler != nullptr) {
+            const int threads = options.conversionThreads > 0
+                                    ? options.conversionThreads
+                                    : static_cast<int>(std::clamp(std::thread::hardware_concurrency(), 1u, 8u));
+            av_opt_set_int(scaler, "srcw", options.width, 0);
+            av_opt_set_int(scaler, "srch", options.height, 0);
+            av_opt_set_pixel_fmt(scaler, "src_format", AV_PIX_FMT_RGBA, 0);
+            av_opt_set_int(scaler, "dstw", options.width, 0);
+            av_opt_set_int(scaler, "dsth", options.height, 0);
+            av_opt_set_pixel_fmt(scaler, "dst_format", AV_PIX_FMT_YUV420P, 0);
+            av_opt_set_int(scaler, "sws_flags", SWS_BICUBIC | SWS_ACCURATE_RND, 0);
+            av_opt_set_int(scaler, "threads", threads, 0);
+            if (sws_init_context(scaler, nullptr, nullptr) < 0) {
+                sws_freeContext(scaler);
+                scaler = nullptr;
+            }
+        }
         if (scaler == nullptr) {
             fail("video: cannot convert RGBA to yuv420p at " + sizeText() + ": " + detail::takeFfmpegLog());
         }
@@ -450,8 +472,9 @@ struct VideoEncoder::Impl {
                                  sws_getCoefficients(SWS_CS_ITU709), 0, 0, 1 << 16, 1 << 16);
 
         frame = av_frame_alloc();
+        source = av_frame_alloc();
         packet = av_packet_alloc();
-        if (frame == nullptr || packet == nullptr) {
+        if (frame == nullptr || source == nullptr || packet == nullptr) {
             fail("video: out of memory");
         }
         frame->format = AV_PIX_FMT_YUV420P;
@@ -526,9 +549,25 @@ void VideoEncoder::writeFrame(const std::uint8_t* rgba, std::size_t strideBytes)
     if (err < 0) {
         m->fail("video: " + detail::ffmpegError(err));
     }
-    const std::uint8_t* const sourceData[4] = {rgba, nullptr, nullptr, nullptr};
-    const int sourceStride[4] = {static_cast<int>(stride), 0, 0, 0};
-    sws_scale(m->scaler, sourceData, sourceStride, 0, m->options.height, m->frame->data, m->frame->linesize);
+    // the caller's pixels as a frame without copying them (a buffer that frees nothing)
+    av_frame_unref(m->source);
+    m->source->format = AV_PIX_FMT_RGBA;
+    m->source->width = m->options.width;
+    m->source->height = m->options.height;
+    const std::size_t bytes = stride * static_cast<std::size_t>(m->options.height - 1) +
+                              static_cast<std::size_t>(m->options.width) * 4;
+    m->source->buf[0] = av_buffer_create(const_cast<std::uint8_t*>(rgba), bytes, [](void*, std::uint8_t*) {},
+                                         nullptr, AV_BUFFER_FLAG_READONLY);
+    if (m->source->buf[0] == nullptr) {
+        m->fail("video: out of memory");
+    }
+    m->source->data[0] = const_cast<std::uint8_t*>(rgba);
+    m->source->linesize[0] = static_cast<int>(stride);
+    const int scaled = sws_scale_frame(m->scaler, m->frame, m->source);
+    av_frame_unref(m->source);
+    if (scaled < 0) {
+        m->fail("video: cannot convert a frame to yuv420p: " + detail::ffmpegError(scaled));
+    }
     m->frame->pts = m->frames;
     m->frame->duration = 1;
     if (m->codec.qualityOption == "qscale") {

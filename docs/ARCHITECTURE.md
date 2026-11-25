@@ -1,8 +1,10 @@
 # MDBridge: C++ architecture plan
 
 Status: agreed plan; milestones 1 (skeleton), 2 (`core` + `io`, with the commands `init`, `info`,
-`export-pdb` and `density info`) and 3 (`analysis`: the ten analyses, `analyze` and `list`, the
-cache, the frame-parallel runner) done, milestone 4 (`render`) next. The C++ successor of MDATK is
+`export-pdb` and `density info`), 3 (`analysis`: the ten analyses, `analyze` and `list`, the
+cache, the frame-parallel runner) and 4 (`render`: figures, charts, the structure view with the
+software and Vulkan renderers, MP4 video with bundled LGPL FFmpeg, the commands `render`, `charts`
+and `preview`, the GUI's 3D view and figure preview) done, milestone 5 (`app`) next. The C++ successor of MDATK is
 named **MDBridge** and lives in its own repository (`htchamblee/MDBridge`). The Python package MDATK (v0.0.4.1) is frozen as
 the reference implementation and receives bug fixes only.
 
@@ -35,7 +37,8 @@ a source build does not pollute the system.
   and ASCII, MRC/CCP4, mmCIF), matched to what MDAnalysis reads; chemfiles was dropped in
   milestone 2 because it reads these formats differently and parity needs MDAnalysis' behaviour
 - Linear algebra: Eigen; neighbour search: own cell list / nanoflann
-- Video: FFmpeg libraries, LGPL-only build (no x264; OpenH264 or AV1 encoders)
+- Video: FFmpeg libraries, own LGPL-only build (no x264); AV1 (SVT-AV1) in MP4 by default, FFmpeg's
+  `mpeg4` as the fallback (milestone 4, owner decision D1)
 - Scripting: embedded Lua for script/wizard generators
 - Interim only: an embedded, private Python interpreter inside the bundle for pieces not yet
   ported (never visible to the user, never installed on the system), with permissively
@@ -117,8 +120,11 @@ publishable. MDBridge writes and (on request) runs their scripts.
 
 A module is done when it reproduces MDATK v0.0.4.1 on the existing test trajectories, PDB files
 and workflows: the same numbers within floating-point tolerance, the same generated files
-byte for byte (except time stamps), and the same project files. The Python test suite is the
-specification; each Python test gets a C++ (or CLI-level) counterpart.
+byte for byte (except time stamps), and the same project files. Images and videos cannot match
+Matplotlib's or an encoder's bytes: for them "the same" means the same contents (owner decision D10
+of milestone 4: the data, colours, ticks, labels and legends a figure shows, its layout within a
+tolerance, a video's metadata; `docs/specs/m4-plan.md` section 3), with no golden reference images.
+The Python test suite is the specification; each Python test gets a C++ (or CLI-level) counterpart.
 
 Parity is the floor, not the goal: MDBridge is meant to surpass MDATK. Where MDATK (or MDAnalysis,
 whose behaviour it inherits) has a bug, a crash, a misleading message or a numerically fragile

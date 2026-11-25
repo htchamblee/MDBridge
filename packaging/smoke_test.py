@@ -16,6 +16,11 @@ Runs, in order:
   the text metrics equal those of another machine's report (CI: the bare Rocky Linux system against
   the build machine)
 * ``EXE info`` (demo system), ``EXE density info`` (a map) and ``EXE init`` (a new project file)
+* rendering without a display, on a project of the demo system with a cartoon representation:
+  ``EXE render`` (analyses, a 24-frame MP4 at 640 x 360 and the charts), the video read back with
+  ``EXE probe-video`` (the bundled FFmpeg libraries) and, when it is on PATH, ``ffprobe``; ``EXE
+  charts --from-cache`` (PNG, SVG, PDF) and ``EXE preview`` (PNG, PDF); ``--screenshot-dir`` keeps
+  the preview image
 * ``--gui``: ``EXE gui PROJECT --screenshot --preview-screenshot`` on a project of the demo system
   (tests/data) with the software view and the automatic choice (``--expect-renderer``: what the
   automatic choice must give; ``vulkan`` also forces a Vulkan run), checking that the 3D view shows
@@ -95,6 +100,99 @@ def demo_project(work: str) -> str:
     with open(path, "w", encoding="utf-8") as fh:
         fh.write(DEMO_PROJECT)
     return path
+
+
+# The demo project, rendered from the command line: the structure as a cartoon (the 3D renderer),
+# a small video, low-resolution charts
+RENDER_SETTINGS = """
+[visual]
+representations = [{style = "cartoon"}]
+
+[output]
+out_dir = "out"
+timestamp_files = false
+
+[output.video]
+width = 640
+height = 360
+dpi = 60
+
+[output.charts]
+dpi = 100
+"""
+
+
+def read_json(text: str):
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        return {}
+
+
+def file_starts_with(path: str, *signatures: bytes) -> bool:
+    if not os.path.isfile(path) or os.path.getsize(path) < 200:
+        return False
+    with open(path, "rb") as fh:
+        head = fh.read(64)
+    return any(sig in head for sig in signatures)
+
+
+def render_check(exe):
+    """render (video + charts), probe-video / ffprobe, charts and preview on the demo project."""
+    with tempfile.TemporaryDirectory() as work:
+        project = demo_project(work)
+        with open(project, "a", encoding="utf-8") as fh:
+            fh.write(RENDER_SETTINGS)
+        r = run(exe, "render", "-p", project, "--no-pdb", timeout=600)
+        out = read_json(r.stdout)
+        video = out.get("video") or ""
+        charts = out.get("charts") or []
+        detail = f"exit {r.returncode}; {r.stdout[-600:]} {r.stderr.strip()[-900:]}"
+        check(f"render: a video and {len(charts)} charts of the demo project",
+              r.returncode == 0 and os.path.isfile(video) and len(charts) > 0
+              and all(file_starts_with(c, b"\x89PNG") for c in charts), detail)
+        check("render: nothing left but the outputs (no temporary video file)",
+              not [n for n in os.listdir(os.path.join(work, "out")) if n.startswith(".MDATK_tmp")],
+              str(os.listdir(os.path.join(work, "out"))) if os.path.isdir(os.path.join(work, "out")) else "no out")
+
+        r = run(exe, "probe-video", video)
+        probe = read_json(r.stdout)
+        check(f"probe-video: {probe.get('codec')} {probe.get('width')} x {probe.get('height')}, "
+              f"{probe.get('packets')} frames at {probe.get('r_frame_rate')} fps, {probe.get('pix_fmt')}",
+              r.returncode == 0 and probe.get("codec") == "av1" and probe.get("width") == 640
+              and probe.get("height") == 360 and probe.get("packets") == 24 and probe.get("nb_frames") == 24
+              and probe.get("pix_fmt") == "yuv420p" and probe.get("faststart") is True
+              and probe.get("audio_streams") == 0 and probe.get("video_streams") == 1,
+              f"exit {r.returncode}; {r.stdout[-800:]} {r.stderr[-400:]}")
+        ffprobe = shutil.which("ffprobe")
+        if ffprobe and os.path.isfile(video):
+            f = subprocess.run([ffprobe, "-v", "error", "-select_streams", "v:0", "-count_packets", "-show_entries",
+                                "stream=codec_name,width,height,pix_fmt,nb_read_packets", "-of", "json", video],
+                               capture_output=True, encoding="utf-8", errors="replace", timeout=120)
+            stream = (read_json(f.stdout).get("streams") or [{}])[0]
+            check(f"ffprobe agrees: {stream}",
+                  f.returncode == 0 and stream.get("codec_name") == "av1" and stream.get("width") == 640
+                  and stream.get("height") == 360 and stream.get("nb_read_packets") == "24",
+                  f.stderr[-400:])
+
+        r = run(exe, "charts", "-p", project, "--from-cache", "--series", "rmsd/Complex", "--formats", "png,svg,pdf")
+        files = read_json(r.stdout).get("charts") or []
+        signatures = {".png": b"\x89PNG", ".svg": b"<?xml", ".pdf": b"%PDF"}
+        check(f"charts --from-cache: {', '.join(os.path.basename(c) for c in files)}",
+              r.returncode == 0 and len(files) == 3
+              and all(file_starts_with(c, signatures.get(os.path.splitext(c)[1], b"?")) for c in files),
+              f"exit {r.returncode}; {r.stdout[-600:]} {r.stderr.strip()[-600:]}")
+
+        for name, signature in (("preview.png", b"\x89PNG"), ("preview.pdf", b"%PDF")):
+            target = os.path.join(work, name)
+            r = run(exe, "preview", "-p", project, "--frame", "12", "--output", target)
+            check(f"preview --frame 12 --output {name}",
+                  r.returncode == 0 and r.stdout.strip() == target and file_starts_with(target, signature)
+                  and os.path.getsize(target) > 5000,
+                  f"exit {r.returncode}; {r.stdout[-300:]} {r.stderr.strip()[-600:]}")
+        if SCREENSHOT_DIR and os.path.isfile(os.path.join(work, "preview.png")):
+            os.makedirs(SCREENSHOT_DIR, exist_ok=True)
+            shutil.copy(os.path.join(work, "preview.png"), os.path.join(SCREENSHOT_DIR, "cli-preview.png"))
 
 
 def screenshot(exe, renderer: str, work: str):
@@ -218,6 +316,8 @@ def main(argv=None) -> int:
         project = os.path.join(work, "new.mdatk.toml")
         r = run(exe, "init", project, "-s", "notes=smoke test")
         check("init writes a project file", r.returncode == 0 and os.path.exists(project), r.stdout + r.stderr)
+
+    render_check(exe)
 
     if args.gui:
         with tempfile.TemporaryDirectory() as work:

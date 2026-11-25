@@ -6,7 +6,12 @@
 # - appimage-*:  the AppImage on Ubuntu 22.04 (with Vulkan) and on a bare Rocky Linux 9 (command
 #                line without X11 / OpenGL / fonts, whose text image must equal the linux job's,
 #                then the interface without a Vulkan driver)
-# - windows:     MSVC 2022 build and tests, zip and installer; smoke test of the installed program;
+#                every smoke test (packaging/smoke_test.py) also renders the demo project from the
+#                command line: an AV1 video (read back with `probe-video`, and ffprobe where
+#                installed), charts and previews; on the bare Rocky system that is the batch-on-a-
+#                cluster proof (no display, fonts or GPU)
+# - windows:     MSVC 2022 build and tests, zip and installer; smoke test of the installed program
+#                (video, charts, preview and the interface);
 #                FFmpeg + SVT-AV1 through vcpkg (packaging/ffmpeg/windows), cached; the Vulkan tests on
 #                Mesa's lavapipe (test-only, tools/get_lavapipe.py), cached
 # - parity:      MDATK v0.0.4.1 writes project files and records what it reads from them;
@@ -134,7 +139,7 @@ jobs:
       - name: glibc check (at most 2.34, RHEL 9)
         run: packaging/linux/check_glibc.sh build/appimage/AppDir 2.34
 
-      - name: Smoke test (Vulkan view on lavapipe, software view, project files)
+      - name: Smoke test (render, charts, preview; Vulkan view on lavapipe, software view, project files)
         run: |
           xvfb-run -a -s "-screen 0 1600x1000x24" python3.12 packaging/smoke_test.py dist/MDBridge-*-x86_64.AppImage \
             --gui --expect-renderer vulkan --version "${{ steps.version.outputs.version }}" \
@@ -212,12 +217,14 @@ jobs:
           path: text-report
       # no fonts, fontconfig, X11 or OpenGL installed: the figure text must still render, with the
       # same pixels and metrics as on the build machine (the linux job's report)
-      - name: Command line on the bare system (the AppImage's fallback libraries stand in)
+      # ... and a video, charts and previews of the demo project rendered there (software 3D
+      # renderer, bundled fonts and FFmpeg), the video checked with the AppImage's own probe-video
+      - name: Command line on the bare system, with render / charts / preview (the AppImage's fallback libraries stand in)
         run: |
           dnf install -y --setopt=install_weak_deps=False python3 findutils
           chmod +x dist/*.AppImage
           python3 packaging/smoke_test.py dist/MDBridge-*-x86_64.AppImage --version "${{ needs.linux.outputs.version }}" \
-            --compare-text-report text-report/text-report.json
+            --compare-text-report text-report/text-report.json --screenshot-dir cli-render-rocky
       - name: Interface under Xvfb, without a Vulkan driver (software view)
         run: |
           dnf install -y --setopt=install_weak_deps=False xorg-x11-server-Xvfb xorg-x11-xauth dejavu-sans-fonts
@@ -228,7 +235,9 @@ jobs:
         if: always()
         with:
           name: gui-screenshots-rocky
-          path: gui-screenshots
+          path: |
+            gui-screenshots
+            cli-render-rocky
           if-no-files-found: warn
 
   windows:
@@ -321,14 +330,22 @@ jobs:
           }
           if ($code -ne 0) { exit $code }
 
-      - name: Install for the current user, then smoke test the installed program
+      - name: Install for the current user, then smoke test the installed program (video, charts, preview, interface)
         run: |
           $setup = (Get-ChildItem dist\*-setup.exe).FullName
           $target = "$env:RUNNER_TEMP\MDBridge"
           Start-Process $setup -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/CURRENTUSER", "/NORESTART", "/DIR=$target" -Wait
           Get-ChildItem "$target\bin" | Select-Object -First 20 Name
-          python packaging\smoke_test.py "$target\bin\mdbridge.exe" --gui
+          python packaging\smoke_test.py "$target\bin\mdbridge.exe" --gui --screenshot-dir gui-screenshots
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      # the interface's 3D view and preview, and the command line's preview, for review
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        if: always()
+        with:
+          name: gui-screenshots-windows
+          path: gui-screenshots
+          if-no-files-found: warn
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:

@@ -29,7 +29,11 @@ Qt is not fetched (building it per checkout would take an hour). Any of:
   python3 tools/get_qt.py --version 6.11.3 --arch linux_gcc_64 --out ~/Qt/6.11.3/gcc_64 --archive qtbase --archive icu --archive qtsvg
   python  tools\get_qt.py --version 6.11.3 --arch win64_msvc2022_64 --out C:\Qt\6.11.3\msvc2022_64 --archive qtbase --archive qtsvg
   ```
-  (Qt SVG is for the figures' SVG output, milestone 4.)
+  Qt modules used: Qt Base (Core, Gui, Widgets; Gui also writes the PDF figures, and its JPEG, GIF
+  and ICO image-format plugins come with it) and Qt SVG (`qtsvg`: the figures' SVG output and the
+  SVG image plugin). Qt Image Formats (`qtimageformats`) is not needed: TIFF figures are written by
+  MDBridge itself. The JPEG plugin (`plugins/imageformats/qjpeg`) must be deployed with the program
+  for `.jpg` charts and previews; the AppImage and Windows scripts check it.
   ([aqtinstall](https://github.com/miurahr/aqtinstall) does the same, but its release 3.3.0 does not
   read the repository layout of Qt 6.11 for Windows);
 - the Qt online installer (Qt 6.11 for GCC 64-bit / MSVC 2022 64-bit);
@@ -50,9 +54,11 @@ Qt's CMake files need the OpenGL headers (RHEL / Rocky: `libglvnd-devel mesa-lib
 Ubuntu: `libgl-dev`), and the interface needs Qt's X11 libraries (most desktops have them; on RHEL /
 Rocky: `xcb-util-cursor xcb-util-wm xcb-util-image xcb-util-keysyms xcb-util-renderutil
 libxkbcommon-x11`). Useful options: `-DMDBRIDGE_WARNINGS_AS_ERRORS=ON` (as in CI),
-`-DMDBRIDGE_BUILD_APP=OFF` (only the Qt-free `core` and `io` libraries, the command line's MDATK
-commands and their tests: no Qt needed; `build/tests/mdbridge_commands_cli` then offers `init`, `info`,
-`list`, `analyze`, `export-pdb` and `density info` for `tests/parity/cli_parity.py --mdbridge`).
+`-DMDBRIDGE_BUILD_APP=OFF` (only the Qt-free libraries - `core`, `io`, `analysis`, the render core
+and panels, molecule geometry, software and offscreen Vulkan renderers, video encoder - the command
+line's MDATK commands and their tests: no Qt needed; `build/tests/mdbridge_commands_cli` then offers
+`init`, `info`, `list`, `analyze`, `export-pdb` and `density info` for `tests/parity/cli_parity.py
+--mdbridge`; `render`, `charts` and `preview` need the Qt build).
 
 ### AppImage
 
@@ -104,6 +110,8 @@ packaging\ffmpeg\windows\build_ffmpeg.ps1 -Prefix build\ffmpeg\prefix -Work C:\m
 packaging\windows\build_windows.ps1 -QtDir C:\Qt\6.11.3\msvc2022_64 -FFmpegRoot build\ffmpeg\prefix
 ```
 
+Tests of the encoder and the video loop (`mdbridge_video_tests`, `QtVideo.*`) skip themselves
+without the libraries; build with `-DMDBRIDGE_FFMPEG=ON` to run them (as CI does).
 `MDBRIDGE_FFMPEG` is `AUTO` by default (used when `cmake/FindFFmpegLGPL.cmake` finds the libraries),
 `ON` (required) or `OFF`. Without the libraries everything else builds and video encoding reports
 `video encoding is not available in this build`. The find module refuses libraries configured with
@@ -142,8 +150,11 @@ Installed packages can be used instead with `-DMDBRIDGE_USE_SYSTEM_DEPS=ON` (zli
   reads it: `tests/data/expected`), of the Vulkan probe, and a check that the committed SPIR-V
   matches the shader sources.
 - `packaging/smoke_test.py EXE [--gui]`: a finished build as users get it (AppImage, install tree
-  or `mdbridge.exe`): command line, project files against MDATK's reading, and the interface with
-  the software and the automatic 3D view (screenshots that must have content).
+  or `mdbridge.exe`): command line, project files against MDATK's reading, the figure fonts, a
+  `render` of the demo project (an AV1 video read back with `mdbridge probe-video` and, when it is
+  on `PATH`, `ffprobe`; charts), `charts` and `preview` without a display, and the interface with
+  the software and the automatic 3D view (screenshots that must have content). CI runs it on the
+  build machine, on Ubuntu 22.04, on a bare Rocky Linux 9 (no X11, fonts or Vulkan) and on Windows.
 - Parity with MDATK (CI job `parity`): MDATK v0.0.4.1 writes fresh project files and records what it
   reads from them (`tests/parity/make_projects.py`, `reference.py`); `tests/parity/compare.py`
   checks that MDBridge reads the same. `tests/data/README.md` explains how to regenerate the
@@ -164,10 +175,13 @@ The interface has check options for automation: `mdbridge gui PROJECT --renderer
 `--quit-after SECONDS` quits after a while. `QT_QPA_PLATFORM=offscreen` runs without a display
 (software view). `MDBRIDGE_VULKAN_VALIDATION=1` enables the Vulkan validation layer if installed.
 
-Vulkan tests (`ctest -L vulkan`, `tests/render/test_vulkan_offscreen.cpp`): the offscreen renderer
-(no window) on whatever Vulkan 1.3 driver the machine has; without one they are skipped with the
-reason, and with `MDBRIDGE_REQUIRE_VULKAN=1` (set in CI) they fail instead. Linux: Mesa's lavapipe
-(the `mesa-vulkan-drivers` package) runs them on the CPU. Windows:
+Vulkan tests (`ctest -L vulkan`: the offscreen renderer and the Vulkan scene renderer against the
+software renderer, `tests/render/test_vulkan_*.cpp`): on whatever Vulkan 1.3 driver the machine has;
+without one they are skipped with the reason, and with `MDBRIDGE_REQUIRE_VULKAN=1` (set in CI) they
+fail instead. Linux: Mesa's lavapipe (the `mesa-vulkan-drivers` package; RHEL / Rocky also
+`vulkan-loader`) runs them on the CPU; the window test `mdbridge_vulkan_window_tests` needs a display
+(`xvfb-run -a`, package `xorg-x11-server-Xvfb` / `xvfb`) and `MDBRIDGE_REQUIRE_VULKAN_WINDOW=1` to fail
+rather than skip. Lavapipe is a test-only driver: it is never bundled. Windows:
 `python tools/get_lavapipe.py --out build\lavapipe` fetches a test-only lavapipe (pinned, SHA-256
 checked); then set `PATH=build\lavapipe;%PATH%` and `VK_DRIVER_FILES=build\lavapipe\lvp_icd.x86_64.json`.
 In an elevated (administrator) shell the Vulkan loader ignores `VK_DRIVER_FILES`; register the

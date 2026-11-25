@@ -5,9 +5,12 @@
 // CI builds with -DMDBRIDGE_FFMPEG=ON, so they run there.
 #include <gtest/gtest.h>
 
+#include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
+#include <iterator>
 #include <set>
 #include <string>
 #include <vector>
@@ -267,6 +270,52 @@ TEST_F(VideoFiles, Mpeg4Fallback24Frames320x180) {
     EXPECT_EQ(p.packets, 24);
     EXPECT_EQ(p.audioStreams, 0);
     EXPECT_TRUE(p.moovBeforeMdat);
+}
+
+// The RGBA -> yuv420p conversion runs on several threads (EncoderOptions::conversionThreads): every
+// thread computes whole rows from the complete frame, so the video is the same bytes for any number
+// of threads; rows passed with padding (a stride) give the same video as packed rows.
+TEST_F(VideoFiles, ConversionThreadsGiveTheSameVideo) {
+    SKIP_WITHOUT_FFMPEG();
+    constexpr int w = 640, h = 360, frames = 5;
+    std::vector<std::vector<std::uint8_t>> input;
+    std::uint32_t state = 12345u;
+    for (int k = 0; k < frames; ++k) {
+        std::vector<std::uint8_t> rgba = testFrame(w, h, k * 5);
+        for (std::size_t i = 0; i < rgba.size(); i += 4) {  // noise: chroma filtering sees every row
+            for (int c = 0; c < 3; ++c) {
+                state = state * 1664525u + 1013904223u;
+                rgba[i + static_cast<std::size_t>(c)] ^= static_cast<std::uint8_t>((state >> 24) & 0x1F);
+            }
+        }
+        input.push_back(std::move(rgba));
+    }
+    const auto encodeWith = [&](int conversionThreads, std::size_t padding) {
+        EncoderOptions options{w, h, 24.0, "mpeg4", 20, 1};
+        options.conversionThreads = conversionThreads;
+        const fs::path path = dir / ("t" + std::to_string(conversionThreads) + "_" + std::to_string(padding) + ".mp4");
+        VideoEncoder encoder(path, options);
+        const std::size_t stride = static_cast<std::size_t>(w) * 4 + padding;
+        for (const std::vector<std::uint8_t>& rgba : input) {
+            std::vector<std::uint8_t> padded(stride * h, 0x5A);
+            for (int y = 0; y < h; ++y) {
+                std::copy_n(rgba.begin() + static_cast<std::ptrdiff_t>(y) * w * 4, w * 4,
+                            padded.begin() + static_cast<std::ptrdiff_t>(stride * static_cast<std::size_t>(y)));
+            }
+            encoder.writeFrame(padded.data(), stride);
+        }
+        encoder.finish();
+        std::ifstream in(path, std::ios::binary);
+        return std::string(std::istreambuf_iterator<char>(in), {});
+    };
+    const std::string one = encodeWith(1, 0);
+    ASSERT_GT(one.size(), 1000u);
+    EXPECT_TRUE(one == encodeWith(3, 0));
+    EXPECT_TRUE(one == encodeWith(8, 0));
+    EXPECT_TRUE(one == encodeWith(4, 64));
+    if (hasVideoDecoder("mpeg4")) {
+        EXPECT_EQ(decodeVideoFrames(dir / "t1_0.mp4").size(), static_cast<std::size_t>(frames));
+    }
 }
 
 TEST_F(VideoFiles, FractionalFrameRateAndReplacingAFile) {

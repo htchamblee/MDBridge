@@ -85,7 +85,8 @@ struct VideoRenderOptions {
 // render_video(dataset, project, path, reporter): build_figure at output.video's size and dpi,
 // the folder of `path` created, "Rendering N video frame(s) at WxH, F fps -> PATH" logged, the
 // encoder opened (output.video's codec, crf, fps; its warnings go to core::logWarning), the frame
-// loop, the file finished (temporary name renamed) and "Wrote PATH (N frames)" logged. Returns
+// loop (the frames are encoded in order on a thread of their own while the next ones are drawn:
+// the same file as encoding them on the calling thread), the file finished (temporary name renamed) and "Wrote PATH (N frames)" logged. Returns
 // `path`. On failure or cancellation the temporary file is removed and nothing is left at `path`
 // (an existing file there is kept). Throws VideoError for encoding errors and RN-02.
 std::filesystem::path renderVideo(const core::Dataset& dataset, const core::Project& project,

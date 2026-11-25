@@ -8,7 +8,7 @@ manage a language runtime: a Linux AppImage and a Windows installer.
 The plan (modules, libraries, migration order, definition of done) is in
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-## Status: milestone 3 done (`analysis`); next: milestone 4, rendering
+## Status: milestone 4 done (`render`); next: milestone 5, the interface (`app`)
 
 **Milestone 1, the skeleton**, proved the delivery path before any science moved:
 
@@ -66,8 +66,52 @@ in CI:
   fixed next (periodic distances, degenerate RMSD, reader messages, ...) in
   [docs/IMPROVEMENTS.md](docs/IMPROVEMENTS.md).
 
-Next, milestone 4: rendering (the Vulkan structure view and its representations, charts, figures
-and videos). The interface pages, PDB hygiene and the workflow planner follow (milestones 5 to 7);
+**Milestone 4, `render`**, draws what MDATK draws (charts, figures, videos and the structure view),
+without Matplotlib, Python or an `ffmpeg` executable, on a desktop or a headless cluster node:
+
+- **Figures**: MDATK's multi-panel figure (the structure view, time series, dual axis, heatmap,
+  contact map, sequence and secondary-structure panels; the 16 layout presets; light and dark
+  themes) on MDBridge's own figure model and QPainter backends (PNG, SVG, PDF, JPEG, TIFF, EPS,
+  PS). Matplotlib's colours, colormaps, tick locators and formatters and its constrained layout are
+  ported with their notice; text is drawn in the bundled DejaVu fonts (Matplotlib's), so a figure
+  looks the same on every machine and needs no fonts, fontconfig or display (Qt's `offscreen`
+  platform).
+- **Standalone charts**: MDATK's series and matrix charts (`output.charts`: sizes, styles,
+  smoothing, targets, title templates, file names).
+- **Structure view and 3D representations**: MDATK's cartoon, ribbon, tube, licorice, vdW, surface
+  and trace styles with its colour schemes, glow, ions, residue tags, centring and the projected
+  density-map shadow, drawn by two interchangeable renderers: a port of MDATK's software
+  rasteriser (multi-threaded, the same pixels as MDATK's) and a Vulkan 1.3 renderer (offscreen,
+  no window needed) that draws the same picture on the GPU; `visual.renderer` chooses (`auto`: the
+  GPU when there is one).
+- **Video**: MP4 encoded in process with an own LGPL-only build of FFmpeg's libraries and the
+  royalty-free AV1 encoder SVT-AV1 (owner decision D1; `mpeg4` as the fallback), bundled with the
+  programs together with the corresponding FFmpeg source on every release. The project files'
+  `codec = "libx264"` (GPL, never bundled) maps to AV1 with a warning; frames are composed on
+  several threads and encoded in order.
+- **Command line**: MDATK's `render` (full run: analyses, video, charts, PDBs, params log, step log),
+  `charts` and `preview`, with MDATK's options, output, files, messages and exit codes; project
+  settings are checked before any analysis runs. `probe-video FILE` reads back what a video holds.
+- **Interface**: the 3D view shows an opened project's reference-frame structure with its
+  representations (mouse rotation and zoom; Vulkan, or the software renderer without Vulkan 1.3),
+  above a read-only preview of its figure on MDATK's example data. The layout editor comes with
+  milestone 5.
+- **Parity method** (owner decision D10, contents only): generators in `tests/parity/` record what
+  MDATK's figures contain (the data, colours, ticks, labels, legends, images and colour bars of
+  every panel at the first, middle and last frame, the layout's boxes), what its software renderer
+  and molecule geometry produce, and what its `render` / `charts` / `preview` commands print and
+  write; the C++ tests compare contents exactly (numbers to 1e-9, renderer pixels bit for bit) and
+  layout boxes within 1.5 % of the figure size; videos by their metadata. There are no golden
+  reference images.
+- **Deliberate differences** (unhinted text metrics, exact canvas sizes, AV1 instead of H.264,
+  BT.709 colour tags, heatmap cells at non-uniform times, NaN-aware smoothing, settings checked up
+  front, the ion and chain legends, the renderer's halo seam, ...) are listed with their tests in
+  [docs/DIFFERENCES.md](docs/DIFFERENCES.md); the plan and its RN-xx items in
+  [docs/specs/m4-plan.md](docs/specs/m4-plan.md).
+
+Next, milestone 5 (`app`, docs/ARCHITECTURE.md "Migration order"): the interface pages and the
+canvas layout editor (dragging panels, rotating the model in the figure, moving the density map).
+PDB hygiene and base-pair annotation (`chem`) and the workflow planner follow (milestones 6 and 7);
 until then MDBridge's command line offers only the commands it has.
 
 ## Using it
@@ -82,6 +126,9 @@ chmod +x MDBridge-0.1.0-x86_64.AppImage
 ./MDBridge-0.1.0-x86_64.AppImage info -p run.mdatk.toml
 ./MDBridge-0.1.0-x86_64.AppImage export-pdb -p run.mdatk.toml --frame-list "0, last"
 ./MDBridge-0.1.0-x86_64.AppImage density info map.mrc
+./MDBridge-0.1.0-x86_64.AppImage render -p run.mdatk.toml                 # analyses, video, charts, PDBs
+./MDBridge-0.1.0-x86_64.AppImage charts -p run.mdatk.toml --formats png,svg
+./MDBridge-0.1.0-x86_64.AppImage preview -p run.mdatk.toml --frame 10 --output frame10.png
 ./MDBridge-0.1.0-x86_64.AppImage --help
 ```
 
@@ -109,11 +156,11 @@ ctest --test-dir build
 | `src/io` | topology, trajectory, PDB, density-map and dictionary readers and writers (no Qt) |
 | `src/chem` | secondary structure: dot-bracket notation, builtin base-pair detection (no Qt) |
 | `src/analysis` | the analyses, their registry, the frame-parallel runner, the cache and the `analyze` pipeline (no Qt) |
-| `src/render` | the 3D view: Vulkan 1.3 window, software view, Vulkan probe (Qt GUI, no widgets) |
+| `src/render` | figures, charts, panels, the molecule's 3D geometry, the software and Vulkan renderers, video encoding and the 3D view (`core`, `molecule`, `video`: no Qt; the rest Qt GUI, no widgets) |
 | `src/app` | the Qt interface and the command line, two thin front ends over the libraries |
 | `tests` | unit tests (GoogleTest), fixtures and MDATK's reference reading of them, parity scripts |
-| `packaging` | AppImage and Windows installer builds, smoke test, licence texts, icon |
-| `tools` | developer tools (shader compilation) |
+| `packaging` | AppImage and Windows installer builds, the LGPL FFmpeg build, smoke test, licence texts, icon |
+| `tools` | developer tools (shader compilation, Qt and lavapipe download, Matplotlib table generation) |
 
 ## Licence
 

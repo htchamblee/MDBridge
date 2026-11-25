@@ -799,7 +799,7 @@ maps, MDATK's chain palettes `palette(name, n)`, the themes' tokens, series colo
 ordinal ramps, and the properties `style_axes` / `style_legend` leave on a Matplotlib axes and
 legend. MDBridge's improvements (ordinal ramp for more than five classes, NaN tuples, the message
 for unbundled map names) come from `tests/parity/improvements_colors.py` (docs/DIFFERENCES.md,
-"Colours and themes"). Matplotlib's colour cache is cleared before every `to_rgba` (it cannot tell
+"Rendering: colours and themes"). Matplotlib's colour cache is cleared before every `to_rgba` (it cannot tell
 `-0.0` from `0.0`). `tools/gen_mpl_tables.py` writes the named colours, default colour cycle and
 bundled colormaps that the C++ code uses to `src/render/core/mpl_colors.inc` (Matplotlib's data
 with its notices). To regenerate, with Python 3.13 and Matplotlib 3.11.2 in `/opt/mdbridge-venv`
@@ -820,7 +820,7 @@ weights, styles); and `get_text_width_height_descent` of 59 strings (MDATK's lab
 superscripts, Greek, ligatures, kerning pairs, blank text) on every face at four of ten (points, dpi)
 sizes, with `text.hinting: no_hinting` (width / height / descent and the glyph x positions in 26.6
 fixed point, which MDBridge reproduces exactly) and with Matplotlib's default hinting (MDATK's
-figures; MDBridge stays within a bound, docs/DIFFERENCES.md "Render: fonts and text"). Matplotlib's
+figures; MDBridge stays within a bound, docs/DIFFERENCES.md "Rendering: fonts and text"). Matplotlib's
 rcParams are its defaults and the machine's fonts are left out, so the output depends only on the
 Matplotlib wheel (its FreeType 2.14.3 and HarfBuzz) and is the same everywhere:
 

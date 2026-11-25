@@ -608,7 +608,39 @@ hbonds 2, rmsd 2, proximity 2, atoms 3 ("Analysis cache" above has every analysi
   from the trace analysis' setup (once per run of the structural view; MDATK: silent). *Tested:*
   demo_dry_variants structure_unknown_group.
 
-## Colours and themes (src/render/core; milestone 4)
+## Rendering (milestone 4): overview
+
+Milestone 4 ports MDATK's presentation layer (`mdatk/render/`: figures, panels, charts, the
+structure view and its 3D representations, the video, the `render` / `charts` / `preview` commands)
+and Matplotlib's colour, tick and layout rules. Figures are compared by their contents, not their
+pixels (owner decision D10): the expected data of `tests/data/render` records what MDATK's figures
+contain (data, colours, ticks, labels, legends, images, colour bars, layout boxes) and what its
+software renderer, molecule geometry, density shadow and commands produce, and the C++ tests compare
+MDBridge's with it; there are no golden reference images. The sections below list the deliberate
+differences. The plan's improvement items (docs/specs/m4-plan.md section 4, with their status) are
+here:
+
+| Items | Section |
+|---|---|
+| RN-01, RN-04, RN-14 | Rendering: plot panels (charts: RN-01, RN-14 too) |
+| RN-02 | Rendering: structure view and sequence panels (the panels' `No data: no frames`), the video frame loop, the render commands |
+| RN-03, RN-08, RN-09, RN-33 | Rendering: structure view |
+| RN-05, RN-10, RN-11, RN-50 | Rendering: charts (RN-11 also: the render commands) |
+| RN-06 | Rendering: the figure framework, the video frame loop |
+| RN-07 | Rendering: video encoding, the render commands |
+| RN-12, RN-13, RN-18 | Rendering: colours and themes (RN-12, RN-13 also: the render commands) |
+| RN-15 | Rendering: the render commands |
+| RN-16 | Rendering: structure view, the Vulkan 3D renderer, the render commands |
+| RN-17 | kept as MDATK has it (Rendering: the video frame loop) |
+| RN-19 | Rendering: molecule geometry |
+| RN-20 | Project files |
+| RN-21 ... RN-25 | Rendering: residue shading, orientation and the example dataset |
+| RN-26 ... RN-29 | Rendering: software 3D renderer |
+| RN-30 ... RN-32 | Rendering: density shadow |
+| RN-40 ... RN-42 | Rendering: sequence and secondary-structure panels |
+| D5, D6, D8, D9, D11, D13 (owner decisions) | charts (D5), colours (D6), the render commands (D8, D9), structure view (D11), interface (D13) |
+
+## Rendering: colours and themes (src/render/core)
 
 Colour strings follow Matplotlib 3.11.2's `to_rgba` grammar exactly (names in its priority order and
 case rules, `C0`-`C9`, hex of 3 / 4 / 6 / 8 digits, grey levels in Python's `float()` syntax, its
@@ -640,7 +672,7 @@ below. *Tested:* `tests/render/test_colors.cpp` (`render/colors/color_cases.json
   `from_list`) at the first use; MDBridge raises the same message when the map is created, and also
   rejects a map without colours or with fewer than one entry. *Tested:* `Colormap.Errors`.
 
-## Render: axis ticks and numbers (src/render/core/ticks.cpp)
+## Rendering: axis ticks and numbers (src/render/core/ticks.cpp)
 
 Tick locations, tick labels, offset / scientific-notation texts, autoscaled and colour-bar limits are
 Matplotlib 3.11.2's bit for bit (ported with its notice); MDATK's `thin_ticks` likewise. Differences:
@@ -658,7 +690,7 @@ Matplotlib 3.11.2's bit for bit (ported with its notice); MDATK's `thin_ticks` l
   An empty `steps` list means Matplotlib's default steps (Matplotlib: `IndexError`). *Tested:*
   test_ticks.cpp `MaxNLocatorRejectsNoBins`, `ScalarFormatter` (the recorded error cases).
 
-## Render: fonts and text (src/render/core/font.cpp, text.cpp; src/render/text_qt.cpp)
+## Rendering: fonts and text (src/render/core/font.cpp, text.cpp; src/render/text_qt.cpp)
 
 MDATK draws text with Matplotlib's Agg backend in the DejaVu fonts Matplotlib ships. MDBridge
 bundles the same five files (DejaVu 2.35 from Matplotlib 3.11.2's wheel, `data/fonts`: Sans, Sans
@@ -1039,7 +1071,41 @@ later). The differences:
   (`No data: proximity`) or atoms (`No data: atoms`) result is missing, which it notices after
   hiding its spines (W2-B; *tested:* `StructurePanel.MissingResultsShowNoData`).
 
-## Video encoding (src/render/video)
+## Rendering: the Vulkan 3D renderer (src/render/vulkan/scene_renderer.cpp, src/render/panels/vulkan_stage.cpp)
+
+MDATK's GPU path was VTK (`renderer: vtk`): OpenGL impostor spheres and sticks with VTK's own
+lighting, no outlines, the glow tint and halo computed in numpy, and a crash risk without EGL
+(RN-16). MDBridge's GPU renderer is Vulkan 1.3 and draws the software renderer's picture: the
+primitives are set up on the CPU exactly as the software renderer sets them up (pixel boxes, the
+spheres' quarter-pixel phase, the widened triangle edges, the capsule bound of the sticks), the
+shaders repeat its per-pixel arithmetic in float32 (impostor spheres and cylinders, mesh
+triangles, the depth key with ties to the later primitive, the same lighting), and compute passes
+composite as the software renderer does (depth cue, glow tint, the halo from a quarter-resolution
+grid with scipy's Gaussian and the disc normalisation, ink outlines, edge anti-aliasing, the
+front-most translucent layer, fast quality). Differences:
+
+- **Same look, not same pixels.** On lavapipe the images equal the software renderer's on every
+  molecule case; on other drivers float32 rounding (division, square roots) may move single
+  pixels. The tests require coverage IoU >= 0.99 and SSIM >= 0.97 against the software renderer on
+  every render case and every scene of `tests/data/render/molecule` (also larger, rotated,
+  glowing and fast), and the resolved G-buffer against `SoftwareRenderer::resolve` (>= 99.5 %
+  of pixels, owners and depths). *Tested:* `VulkanScene.*`.
+- **`renderer = "auto"` uses the GPU (RN-16).** MDATK's `auto` always meant its built-in
+  renderer. In MDBridge `auto` uses the Vulkan renderer when it runs on a GPU, silently (same
+  picture), and the software renderer otherwise; a Vulkan driver that runs on the CPU (Mesa's
+  lavapipe) is left to the software renderer, which is about twice as fast there (`VulkanScene.
+  Benchmark`). `vtk` and `vulkan` use Vulkan on any device, the CPU's included, and fall back to
+  the software renderer with the RN-16 note. The program installs this choice at start
+  (`installGpuStageRenderers` in `main`), so figures, previews and video frames all use it; the
+  device opens on first use only. *Tested:* `VulkanStage.*`.
+- **A GPU failure never stops a video.** When the GPU cannot draw a frame (device lost, out of
+  memory, a scene or image beyond the device's limits) that frame and every later one are drawn by
+  the software renderer, with one warning `3D representations: the GPU renderer failed (...);
+  using the built-in renderer` (MDATK: VTK errors or crashes inside `Render()`). Unusable views and
+  items raise the software renderer's errors (RN-28). *Tested:*
+  `VulkanScene.UnusableViewsAndItemsThrowAsTheSoftwareRenderer`, `VulkanStage.InstallsAndUninstallsTheFactory`.
+
+## Rendering: video encoding (src/render/video encoder.cpp)
 
 MDATK pipes RGBA frames into an `ffmpeg` executable; MDBridge links its own LGPL-only build of
 FFmpeg's libraries with SVT-AV1 (`packaging/ffmpeg`; owner decisions D1, D2) and writes the same
@@ -1081,40 +1147,6 @@ target folder renamed at the end and removed on failure. Stream metadata (frame 
   and SVT-AV1 print nothing on the console. *Tested:* `VideoFiles.ClearErrors`,
   `VideoFfmpeg.NotAvailableMessage`.
 
-## Rendering: the Vulkan 3D renderer (src/render/vulkan/scene_renderer.cpp, src/render/panels/vulkan_stage.cpp)
-
-MDATK's GPU path was VTK (`renderer: vtk`): OpenGL impostor spheres and sticks with VTK's own
-lighting, no outlines, the glow tint and halo computed in numpy, and a crash risk without EGL
-(RN-16). MDBridge's GPU renderer is Vulkan 1.3 and draws the software renderer's picture: the
-primitives are set up on the CPU exactly as the software renderer sets them up (pixel boxes, the
-spheres' quarter-pixel phase, the widened triangle edges, the capsule bound of the sticks), the
-shaders repeat its per-pixel arithmetic in float32 (impostor spheres and cylinders, mesh
-triangles, the depth key with ties to the later primitive, the same lighting), and compute passes
-composite as the software renderer does (depth cue, glow tint, the halo from a quarter-resolution
-grid with scipy's Gaussian and the disc normalisation, ink outlines, edge anti-aliasing, the
-front-most translucent layer, fast quality). Differences:
-
-- **Same look, not same pixels.** On lavapipe the images equal the software renderer's on every
-  molecule case; on other drivers float32 rounding (division, square roots) may move single
-  pixels. The tests require coverage IoU >= 0.99 and SSIM >= 0.97 against the software renderer on
-  every render case and every scene of `tests/data/render/molecule` (also larger, rotated,
-  glowing and fast), and the resolved G-buffer against `SoftwareRenderer::resolve` (>= 99.5 %
-  of pixels, owners and depths). *Tested:* `VulkanScene.*`.
-- **`renderer = "auto"` uses the GPU (RN-16).** MDATK's `auto` always meant its built-in
-  renderer. In MDBridge `auto` uses the Vulkan renderer when it runs on a GPU, silently (same
-  picture), and the software renderer otherwise; a Vulkan driver that runs on the CPU (Mesa's
-  lavapipe) is left to the software renderer, which is about twice as fast there (`VulkanScene.
-  Benchmark`). `vtk` and `vulkan` use Vulkan on any device, the CPU's included, and fall back to
-  the software renderer with the RN-16 note. The program installs this choice at start
-  (`installGpuStageRenderers` in `main`), so figures, previews and video frames all use it; the
-  device opens on first use only. *Tested:* `VulkanStage.*`.
-- **A GPU failure never stops a video.** When the GPU cannot draw a frame (device lost, out of
-  memory, a scene or image beyond the device's limits) that frame and every later one are drawn by
-  the software renderer, with one warning `3D representations: the GPU renderer failed (...);
-  using the built-in renderer` (MDATK: VTK errors or crashes inside `Render()`). Unusable views and
-  items raise the software renderer's errors (RN-28). *Tested:*
-  `VulkanScene.UnusableViewsAndItemsThrowAsTheSoftwareRenderer`, `VulkanStage.InstallsAndUninstallsTheFactory`.
-
 ## Rendering: the video frame loop (src/render/video/frame_loop.cpp, src/render/video_qt.cpp)
 
 MDATK's `render_video` builds the figure once, marks the panels' animated artists, draws the
@@ -1130,11 +1162,15 @@ existing file at the target kept; `VideoRender.CancelLeavesNoFile`,
 - **Frames composed on several threads.** The panels are updated in order on the calling thread
   (they and the 3D stage renderer they call keep per-frame state), each frame's animated layer is
   composed over the background on a pool of threads (at most 8; the 3D renderer has its own
-  threads) and the frames are encoded in order. Composition is a pure function of the background
-  and the frame's layer, so the frames are the same bytes for any number of threads. *Tested:*
-  `FrameLoop.FramesInOrderAndIdenticalForAnyThreadCount`,
+  threads) and the frames are encoded in order on a thread of their own, while the next frames are
+  drawn; the encoder's RGBA -> yuv420p conversion runs on several threads too (whole rows per
+  thread). MDATK did all of it one frame at a time (with ffmpeg in a second process). Composition
+  is a pure function of the background and the frame's layer, and the conversion computes every row
+  from the whole frame, so the frames and the encoder's input are the same bytes for any number of
+  threads. *Tested:* `FrameLoop.FramesInOrderAndIdenticalForAnyThreadCount`,
   `QtVideo.ComposedFramesIdenticalForAnyThreadCount`,
-  `QtVideo.RepresentationsThroughTheStageRendererFactory`.
+  `QtVideo.RepresentationsThroughTheStageRendererFactory`, `VideoFiles.ConversionThreadsGiveTheSameVideo`
+  (the same mpeg4 file for 1, 3 and 8 conversion threads and for padded rows).
 - **No analysed frames (RN-02, the video part).** MDATK started ffmpeg on zero frames (or failed
   in the panels); MDBridge stops with `VideoError: no analysed frames to render` before anything is
   written. *Tested:* `VideoRender.NoFramesIsAnError`.
@@ -1142,9 +1178,6 @@ existing file at the target kept; `VideoRender.CancelLeavesNoFile`,
   (even) pixels for any dpi, so MDATK's `canvas size WxH is not even` and `canvas is WxH px but ...
   choose a DPI that divides the resolution` cannot occur (`render_odd_size`: 333 x 187 at dpi 37
   gives 332 x 186, as MDATK's). *Tested:* `RenderCliCases/VideoRun.AsMdatksVideo`.
-- **`output.video.ffmpeg_path` is not used (owner decision D8).** The bundled libraries encode;
-  the setting stays in project files. A missing or wrong ffmpeg path is therefore no error (MDATK:
-  `ffmpeg not executable at PATH`).
 - **Quality check.** Decoded mpeg4 frames are within 42 dB (RGB PSNR) of the composed ones at the
   default 1920 x 1080; at the parity cases' 320 x 180 yuv420p's chroma subsampling alone limits RGB
   to about 35 dB (thin coloured lines), and the luma is within 42 dB. AV1 videos are checked by
@@ -1202,8 +1235,8 @@ figures are compared by tests/render). Differences:
 - **No analysed frames (RN-02).** The video, the charts and the preview stop with `no analysed
   frames to render` before a figure is built (MDATK: an `IndexError` in the panels, the preview at
   position -1). *Tested:* `RenderPipeline.NoAnalysedFramesToRender`.
-- **`output.video.ffmpeg_path` (owner decision D8).** Not used: the bundled FFmpeg libraries encode.
-  A project naming another executable gets the log line `Note: output.video.ffmpeg_path (P) is not
+- **`output.video.ffmpeg_path` (owner decision D8).** Not used: the bundled FFmpeg libraries encode,
+  and the setting stays in project files. A project naming another executable gets the log line `Note: output.video.ffmpeg_path (P) is not
   used; MDBridge encodes with its bundled FFmpeg libraries` and its video (MDATK: `error: ffmpeg not
   executable at P`). *Tested:* cli_cases.json (`render_ffmpeg_path`),
   `RenderCommands.FfmpegPathIsNotUsedAndTheDensityMapIsNotFitted`.
@@ -1219,6 +1252,11 @@ figures are compared by tests/render). Differences:
 - **No VTK citation (RN-16).** MDATK cites VTK for `visual.renderer = "vtk"`; MDBridge has no VTK
   (`vtk` means its Vulkan renderer), so the params log, the step log and the BibTeX export never cite
   it. *Tested:* citation_cases.json (`pipeline`, `project`), `Citations.VtkIsNeverCited`.
+- **`probe-video` (a check command of MDBridge's own).** `mdbridge probe-video FILE` prints what a
+  video holds as JSON (streams, codec, size, frame rate, time base, frame and packet counts, pixel
+  format, colour tags, `faststart`), read back with the bundled FFmpeg libraries, so a machine
+  without `ffprobe` can check a `render` (the smoke test does so on a bare Rocky Linux 9). MDATK has
+  no such command. *Tested:* packaging/smoke_test.py.
 - **Locale.** The batch commands start Qt on the offscreen platform; on a host without a UTF-8
   locale Qt's notice about switching to `C.UTF-8` is not printed (the switch is made silently), and
   numbers in logs and files keep the decimal point whatever the user's locale.

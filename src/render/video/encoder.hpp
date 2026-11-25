@@ -8,7 +8,7 @@
 // name in the target folder (`.MDATK_tmp_<pid>_<name>`, as MDATK) and renamed when finished;
 // failures and abort() remove it.
 //
-// Codecs (RN-07, docs/DIFFERENCES.md "Video encoding"): `libx264` (the project files' default),
+// Codecs (RN-07, docs/DIFFERENCES.md "Rendering: video encoding"): `libx264` (the project files' default),
 // `libx265`, `h264`, `hevc` and `av1` map to the bundled AV1 encoder (SVT-AV1); `libsvtav1` and
 // `mpeg4` are used as named; any other name is used if the FFmpeg libraries have such an encoder,
 // else the first available of libsvtav1 / mpeg4 with a warning. `crf` is on the x264 / x265 scale
@@ -88,6 +88,9 @@ struct EncoderOptions {
     std::string codec = "libx264";
     int crf = 20;
     int threads = 0;  // encoder threads, 0 = the encoder's choice (all cores)
+    // threads converting RGBA to yuv420p, 0 = the hardware's (at most 8); the frames are the same
+    // bytes for any number
+    int conversionThreads = 0;
 };
 
 class VideoEncoder {

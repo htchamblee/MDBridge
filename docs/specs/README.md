@@ -24,3 +24,4 @@ MDAnalysis (for example its independent data tables, `data/sources/`), the code 
 | `m3-capped-distance.md` | 3 | the periodic pair search (`capped_distance`: method choice, distances, pair order, tolerances) |
 | `m3-rmsd.md` | 3 | the optimal-superposition RMSD (`rms.rmsd`: centring, weights, degenerate inputs, errors) |
 | `m3-universe-notes.md` | 3 | trajectory iteration by index arrays, cells, charges, chain IDs, bonds and fragments as the analyses use them |
+| `m4-plan.md` | 4 | the rendering milestone's plan: inventory of MDATK's rendering, dependencies and licences, parity strategy (contents only, owner decision D10), the RN-xx improvements with their status, work breakdown and owner decisions. Rendering ports MDATK's own code and permissively licensed Matplotlib / NumPy / SciPy algorithms (with notices); no MDAnalysis behaviour is involved, so it has no clean-room specs |

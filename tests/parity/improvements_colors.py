@@ -1,4 +1,4 @@
-"""MDBridge's colour improvements (docs/DIFFERENCES.md "Colours and themes"), for
+"""MDBridge's colour improvements (docs/DIFFERENCES.md "Rendering: colours and themes"), for
 make_color_cases.py: the expected values where MDBridge deliberately differs from MDATK /
 Matplotlib.
 

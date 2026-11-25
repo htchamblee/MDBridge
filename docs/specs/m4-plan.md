@@ -216,7 +216,7 @@ Pixels cannot match Matplotlib's Agg byte for byte. "Same output" is defined per
 | 3D layer image (software renderer) | MDATK's numpy `SoftwareRenderer.render` RGBA for the same items and viewport | ≥ 99.5 % of pixels equal, all within 2/255, coverage mask IoU ≥ 0.999 (rounding of float32 vs numpy order) |
 | 3D layer image (Vulkan) | the software renderer's image | coverage IoU ≥ 0.99, SSIM ≥ 0.97 on lavapipe; checked in CI, documented as "same look, not same pixels" |
 | Scene geometry (meshes, sticks, spheres per style, surface vertices / triangles, nearest atoms) | MDATK's `MoleculeScene.frame` DrawLists | vertices 1e-5 Å, indices exact |
-| Composite PNG / SVG / PDF (preview, charts, video frames) | MDBridge's own golden images, rendered once, reviewed by the owner against MDATK's renders side by side (`docs/specs/m4-gallery.md`), then committed | PNG: ≥ 99 % pixels within 8/255 and mean abs ≤ 1/255 (Linux / Windows, bundled fonts); SVG / PDF: structure checks (page size, text runs, embedded 3D raster position) |
+| Composite PNG / SVG / PDF (preview, charts, video frames) | no golden reference images (owner decision D10: contents only): the figure semantics and layout rows above, plus the files' own checks | PNG: exact pixel size and colours of the backend; SVG / PDF: structure checks (page size, text kept as text, embedded 3D raster position) |
 | Video | frame count, width / height, `r_frame_rate`, time base / duration, codec family, `yuv420p`, `moov` before `mdat` (faststart), no audio | exact; decoded frames vs MDBridge's composed RGBA: PSNR ≥ 38 dB (encoders are not bit-reproducible across thread counts, so no byte comparison) |
 
 Generators (`tests/parity/`, run by `regenerate_all.py`, MDATK in-process with
@@ -257,52 +257,55 @@ bundled FFmpeg) — this is the batch-on-a-cluster proof; `appimage-ubuntu` runs
 `--renderer vulkan` on lavapipe. Windows: render tests on the software path; Vulkan tests with
 Mesa's lavapipe for Windows (`vulkan_lvp.dll`, MIT, test-only via `VK_DRIVER_FILES`, never
 shipped) — WARP is Direct3D, not Vulkan (Mesa's Dozen on WARP is an option if lavapipe fails).
-Golden-image tests run on both platforms.
+The figure-content tests run on both platforms (no golden images, D10).
 
 ---------------------------------------------------------------------------------------------------
 
 ## 4. MDATK rendering bugs and fragile behaviour to fix (CLAUDE.md rule; ids RN-xx)
 
-Each lands in DIFFERENCES.md with a test; `improvements_render.py` adjusts the expected data.
+Each lands in DIFFERENCES.md with a test; `improvements_render.py` adjusts the expected data. Status
+at the end of milestone 4 (wave 4): every item done, RN-17 kept as a convention; RN-33 was found in
+W2-B and added.
 
-| Id | MDATK behaviour | MDBridge |
-|---|---|---|
-| RN-01 | Heatmap panel / matrix chart cells use `dt = t[1]-t[0]` for every column: with non-uniform times (concatenated trajectories with different `dt`, time resets) cells are misplaced and the cursor misses them | column edges at the midpoints between frame times (first / last half-step outward) |
-| RN-02 | No analysed frames (empty selection after `--from-cache` of an empty run) → `IndexError` at `t[0]` in every panel, crash with a traceback; `preview` computes `pos = -1` | panels show `No data: no frames`; `preview` / `render` stop with `no analysed frames to render` (exit 1) |
-| RN-03 | Non-finite coordinates (blown-up frame) make the structure view's radius NaN → `Axis limits cannot be NaN or Inf` crash; non-finite series values crash y autoscaling | finite-only extents (the 3D layer already skips them); `WARNING` once naming the frames |
-| RN-04 | `vmin > vmax` (heatmap options or a negative-valued matrix with default `vmin 0`) → Matplotlib `ValueError` at draw time, video aborted | clamp `vmax = max(vmax, vmin + 1e-9)` and warn once; `check()` validates numeric panel options and reports `layout.panels[k].options.vmin` |
-| RN-05 | Matrix chart height `0.18 in` per row: thousands of residues → images beyond Agg's 2^16 px limit, crash | height capped at 2^15 px (rows thinned, already ≤ 40 labels); warning with the cap |
-| RN-06 | Video size: `figsize = w/dpi` rounding can make the canvas differ from the request → `canvas size not even` / "choose a DPI that divides the resolution" errors | the canvas is exactly `figure_size(w, h)` pixels for any DPI (no error; message kept for impossible sizes < 2 px) |
-| RN-07 | `codec = "libx264"` (the default) falls back silently to whatever exists; CRF ignored for `libopenh264` and `mpeg4` | codec names map to the bundled encoders (`libx264`, `libx265`, `h264`, `hevc` → the H.264 / AV1 encoder of D1; `mpeg4`, `libaom-av1`, `libsvtav1`, `libopenh264` as named); one line `video: codec libx264 is not bundled (GPL); using <x>`; `crf` mapped to the encoder's quality scale (documented table) |
-| RN-08 | Structure legend always says `Mg²⁺`, whatever `analyses.mg.mg_selection` / `show_ions` selects (Na+, K+, Ca2+) | label from the ions' element(s): `Mg²⁺`, `K⁺`, `Na⁺`, `Ions` for mixtures |
-| RN-09 | Chain legend `Chain 1, 2, ...` from the chain index although chain letters are known (sequence panel shows `A, B`) — misleading next to `B:12` ranges | `Chain A` (the trace's chain names; index only when a chain has no name) — ASK (D11) |
-| RN-10 | `charts.series` naming a matrix key is dropped silently | charted as a heatmap (or warning `chart series K is a matrix; enable include_heatmaps`) |
-| RN-11 | Unknown chart / preview format (typo, gif, webp ...) → Matplotlib `ValueError` traceback after the analyses ran and the earlier formats' files were written (jpg and eps do work in MDATK, W0-A) | formats checked before anything is drawn (charts, W2-D) and in `check()` (W3-B): png, svg, pdf, jpg / jpeg (Qt), tif / tiff, eps, ps (own writers); others listed in the error |
-| RN-12 | Invalid colour strings (group colours, `glow_color`, chart `color`) raise in the middle of a video | `check()` validates every colour with Matplotlib's grammar and names the field |
-| RN-13 | `chain_palette` unknown → `ValueError` from Matplotlib's registry mid-render | validated in `check()`; error lists the bundled palettes |
-| RN-14 | `_running_mean` with NaN (an empty RMSD target, NaN frames) blanks whole windows | NaN-aware window mean (NaN only where the whole window is NaN) |
-| RN-15 | Panel options of the wrong type (`ylim = 5`, `frame = "x"`) → `TypeError` traceback | `check()` reports them (`layout.panels[k].options.ylim: expected two numbers`) |
-| RN-16 | The VTK probe / fallback note is per process; renderer `vtk` on machines without EGL can crash inside VTK | `vtk` means "GPU": Vulkan when usable, else the software renderer with the note (no VTK) |
-| RN-17 | Video positions with a stride skip the last frame (`0, s, 2s, ...`) | kept (convention: the frame count users expect); documented, not changed |
-| RN-18 | `theme.ordinal(n)` for more than 5 classes keeps the 4 ramp colours: classes share colours under the colour bar's distinct labels | n - 1 evenly spaced ramp steps (`from_list(ramp, N = n - 1)`); MDATK's colours up to 5 classes (W0-B) |
-| RN-19 | A `surf` grid for a blown-up frame (atoms thousands of Å apart) is allocated: `MemoryError` or gigabytes and minutes per frame | grids above 2^26 points refused up front; the surface is left out of that frame with the existing warning (W0-F) |
-| RN-20 | `visual.renderer = "vulkan"` is rejected by `validate()` (MDATK knows auto / software / vtk) | accepted (D7); the unknown-renderer message lists it (W0-G) |
-| RN-21 | Example dataset of a structure with one strand (one structure group / chain): `_example_basepairs` slices `a[:m - 2]` with `m = 0` → `IndexError`, the GUI's layout preview breaks | no example pairs for a single strand (W0-H) |
-| RN-22 | `wrap_degrees` uses `np.isclose(a, -180)`: every angle within 0.0018° of -180 becomes +180 | only -180 itself (within 1e-9) folds to +180 (W0-H) |
-| RN-23 | Unreadable `visual.label_residues` silently gives no tags | same tags, plus one warning naming the field and the parse error (W0-H) |
-| RN-24 | `visual.label_residues = "B:12"` ignores the chain (residue 12 of every chain tagged) | the chain is honoured, as `residue_rows` does (W0-H) |
-| RN-25 | Example data: `group_resids` expands whole ranges before keeping 400 (gigabytes for `1-1000000000`); the schematic sequence has 120 letters (`IndexError` for larger groups) | stop at 400 residues; the sequence repeats (W0-H) |
-| RN-26 | Software renderer: the edge anti-aliasing filters the molecule's box alone (zeros outside): a darker rectangle in every glow halo | the 3 x 3 mean sees the real neighbours (W1-B) |
-| RN-27 | Software renderer `fast` at odd sizes: half size rounded down (half to even), a transparent last column / row, the view scaled by up to 1 px | `ceil(size / 2)` with the limits widened, cropped (W1-B) |
-| RN-28 | Software renderer: equal x / y limits → `ZeroDivisionError`; reversed or NaN limits / rotation, coordinates beyond float32 → garbage; a sphere larger than the image → `MemoryError` | `invalid_argument("3D view ...")`; unplaceable primitives skipped; sprites clipped to the image (W1-B) |
-| RN-29 | Software renderer: the glow halo's normalisation cached under the size rounded to 0.01 px (depends on earlier renders) | computed for the exact size (W1-B) |
-| RN-30 | Density shadow: one NaN voxel makes the whole shadow NaN (`np.maximum` keeps NaN, the peak is NaN); an infinite voxel makes it NaN or blank | non-finite voxels carry no density; a non-finite level gives no shadow (W0-I) |
-| RN-31 | Non-finite placement, view, centre or map grid (NaN voxel size) → `cannot convert float NaN to integer` / `OverflowError` from `int(ceil(...))` | `ValueError("density map placement, view or grid is not finite")` (W0-I) |
-| RN-32 | `anchored` with a ragged anchor (rows not all x, y, z) or non-finite anchor / reference points → numpy's `inhomogeneous shape` `ValueError` / `LinAlgError: SVD did not converge`, the map not drawn | the stored placement used as it is, with a note saying why (for a warning) (W0-I) |
-| RN-40 | Sequence panel `per_row` that `int()` cannot read → `ValueError` out of `build_figure` (render aborted); a negative one → inverted axis, giant boxes | `No data: option 'per_row' must be a whole number ...`; 0 / truncating values as MDATK (W2-C) |
-| RN-41 | Secondary panel: any unknown `source` silently means `dynamic` | `No data: unknown source 'x' (option 'source': dynamic, first or dotbracket)` (W2-C) |
-| RN-42 | Secondary panel's "No data" messages after `_bare_axes` have no frame (other "No data" panels do) | the frame kept in both residue panels (W2-C) |
-| RN-50 | Charts with MDATK's chrome: `style_axes` styles the centre title, the chart's left title stays black 12 pt; the matrix charts' colour bar stays black: unreadable on the dark theme | title in the theme's ink at 11 pt, colour bar outline / ticks / labels in the theme's colours (W2-D) |
+| Id | MDATK behaviour | MDBridge | Status |
+|---|---|---|---|
+| RN-01 | Heatmap panel / matrix chart cells use `dt = t[1]-t[0]` for every column: with non-uniform times (concatenated trajectories with different `dt`, time resets) cells are misplaced and the cursor misses them | column edges at the midpoints between frame times (first / last half-step outward) | done (W2-A, W2-D): plot panels, charts |
+| RN-02 | No analysed frames (empty selection after `--from-cache` of an empty run) → `IndexError` at `t[0]` in every panel, crash with a traceback; `preview` computes `pos = -1` | panels show `No data: no frames`; `preview` / `render` stop with `no analysed frames to render` (exit 1) | done (W2-A..C, W3-A, W3-B): panels, video, commands |
+| RN-03 | Non-finite coordinates (blown-up frame) make the structure view's radius NaN → `Axis limits cannot be NaN or Inf` crash; non-finite series values crash y autoscaling | finite-only extents (the 3D layer already skips them); `WARNING` once naming the frames | done (W2-B): structure view; NaN series values were never a crash (autoscaling skips them; case `ts_nan_smooth`) |
+| RN-04 | `vmin > vmax` (heatmap options or a negative-valued matrix with default `vmin 0`) → Matplotlib `ValueError` at draw time, video aborted | clamp `vmax = max(vmax, vmin + 1e-9)` and warn once; `check()` validates numeric panel options and reports `layout.panels[k].options.vmin` | done (W2-A, W3-B), differently: MDATK did not raise (its colour bar rewrote the norm), so reversed limits are swapped with a warning; `check()` validates the options |
+| RN-05 | Matrix chart height `0.18 in` per row: thousands of residues → images beyond Agg's 2^16 px limit, crash | height capped at 2^15 px (rows thinned, already ≤ 40 labels); warning with the cap | done (W2-D) |
+| RN-06 | Video size: `figsize = w/dpi` rounding can make the canvas differ from the request → `canvas size not even` / "choose a DPI that divides the resolution" errors | the canvas is exactly `figure_size(w, h)` pixels for any DPI (no error; message kept for impossible sizes < 2 px) | done (W1-A, W3-A) |
+| RN-07 | `codec = "libx264"` (the default) falls back silently to whatever exists; CRF ignored for `libopenh264` and `mpeg4` | codec names map to the bundled encoders (`libx264`, `libx265`, `h264`, `hevc` → the H.264 / AV1 encoder of D1; `mpeg4`, `libaom-av1`, `libsvtav1`, `libopenh264` as named); one line `video: codec libx264 is not bundled (GPL); using <x>`; `crf` mapped to the encoder's quality scale (documented table) | done (W0-E, W3-B) |
+| RN-08 | Structure legend always says `Mg²⁺`, whatever `analyses.mg.mg_selection` / `show_ions` selects (Na+, K+, Ca2+) | label from the ions' element(s): `Mg²⁺`, `K⁺`, `Na⁺`, `Ions` for mixtures | done (W2-B) |
+| RN-09 | Chain legend `Chain 1, 2, ...` from the chain index although chain letters are known (sequence panel shows `A, B`) — misleading next to `B:12` ranges | `Chain A` (the trace's chain names; index only when a chain has no name) — ASK (D11) | done (W2-B; D11 decided: chain letters) |
+| RN-10 | `charts.series` naming a matrix key is dropped silently | charted as a heatmap (or warning `chart series K is a matrix; enable include_heatmaps`) | done (W2-D): charted as a matrix chart; pair maps warn |
+| RN-11 | Unknown chart / preview format (typo, gif, webp ...) → Matplotlib `ValueError` traceback after the analyses ran and the earlier formats' files were written (jpg and eps do work in MDATK, W0-A) | formats checked before anything is drawn (charts, W2-D) and in `check()` (W3-B): png, svg, pdf, jpg / jpeg (Qt), tif / tiff, eps, ps (own writers); others listed in the error | done (W2-D, W3-B) |
+| RN-12 | Invalid colour strings (group colours, `glow_color`, chart `color`) raise in the middle of a video | `check()` validates every colour with Matplotlib's grammar and names the field | done (W0-B, W3-B) |
+| RN-13 | `chain_palette` unknown → `ValueError` from Matplotlib's registry mid-render | validated in `check()`; error lists the bundled palettes | done (W0-B, W3-B) |
+| RN-14 | `_running_mean` with NaN (an empty RMSD target, NaN frames) blanks whole windows | NaN-aware window mean (NaN only where the whole window is NaN) | done (W2-A; charts share it) |
+| RN-15 | Panel options of the wrong type (`ylim = 5`, `frame = "x"`) → `TypeError` traceback | `check()` reports them (`layout.panels[k].options.ylim: expected two numbers`) | done (W3-B) |
+| RN-16 | The VTK probe / fallback note is per process; renderer `vtk` on machines without EGL can crash inside VTK | `vtk` means "GPU": Vulkan when usable, else the software renderer with the note (no VTK) | done (W2-B, W2-E, W3-B): `auto` uses a GPU silently, VTK never cited |
+| RN-17 | Video positions with a stride skip the last frame (`0, s, 2s, ...`) | kept (convention: the frame count users expect); documented, not changed | kept (convention) |
+| RN-18 | `theme.ordinal(n)` for more than 5 classes keeps the 4 ramp colours: classes share colours under the colour bar's distinct labels | n - 1 evenly spaced ramp steps (`from_list(ramp, N = n - 1)`); MDATK's colours up to 5 classes (W0-B) | done (W0-B) |
+| RN-19 | A `surf` grid for a blown-up frame (atoms thousands of Å apart) is allocated: `MemoryError` or gigabytes and minutes per frame | grids above 2^26 points refused up front; the surface is left out of that frame with the existing warning (W0-F) | done (W0-F) |
+| RN-20 | `visual.renderer = "vulkan"` is rejected by `validate()` (MDATK knows auto / software / vtk) | accepted (D7); the unknown-renderer message lists it (W0-G) | done (W0-G) |
+| RN-21 | Example dataset of a structure with one strand (one structure group / chain): `_example_basepairs` slices `a[:m - 2]` with `m = 0` → `IndexError`, the GUI's layout preview breaks | no example pairs for a single strand (W0-H) | done (W0-H) |
+| RN-22 | `wrap_degrees` uses `np.isclose(a, -180)`: every angle within 0.0018° of -180 becomes +180 | only -180 itself (within 1e-9) folds to +180 (W0-H) | done (W0-H) |
+| RN-23 | Unreadable `visual.label_residues` silently gives no tags | same tags, plus one warning naming the field and the parse error (W0-H) | done (W0-H) |
+| RN-24 | `visual.label_residues = "B:12"` ignores the chain (residue 12 of every chain tagged) | the chain is honoured, as `residue_rows` does (W0-H) | done (W0-H) |
+| RN-25 | Example data: `group_resids` expands whole ranges before keeping 400 (gigabytes for `1-1000000000`); the schematic sequence has 120 letters (`IndexError` for larger groups) | stop at 400 residues; the sequence repeats (W0-H) | done (W0-H) |
+| RN-26 | Software renderer: the edge anti-aliasing filters the molecule's box alone (zeros outside): a darker rectangle in every glow halo | the 3 x 3 mean sees the real neighbours (W1-B) | done (W1-B) |
+| RN-27 | Software renderer `fast` at odd sizes: half size rounded down (half to even), a transparent last column / row, the view scaled by up to 1 px | `ceil(size / 2)` with the limits widened, cropped (W1-B) | done (W1-B) |
+| RN-28 | Software renderer: equal x / y limits → `ZeroDivisionError`; reversed or NaN limits / rotation, coordinates beyond float32 → garbage; a sphere larger than the image → `MemoryError` | `invalid_argument("3D view ...")`; unplaceable primitives skipped; sprites clipped to the image (W1-B) | done (W1-B) |
+| RN-29 | Software renderer: the glow halo's normalisation cached under the size rounded to 0.01 px (depends on earlier renders) | computed for the exact size (W1-B) | done (W1-B) |
+| RN-30 | Density shadow: one NaN voxel makes the whole shadow NaN (`np.maximum` keeps NaN, the peak is NaN); an infinite voxel makes it NaN or blank | non-finite voxels carry no density; a non-finite level gives no shadow (W0-I) | done (W0-I) |
+| RN-31 | Non-finite placement, view, centre or map grid (NaN voxel size) → `cannot convert float NaN to integer` / `OverflowError` from `int(ceil(...))` | `ValueError("density map placement, view or grid is not finite")` (W0-I) | done (W0-I) |
+| RN-32 | `anchored` with a ragged anchor (rows not all x, y, z) or non-finite anchor / reference points → numpy's `inhomogeneous shape` `ValueError` / `LinAlgError: SVD did not converge`, the map not drawn | the stored placement used as it is, with a note saying why (for a warning) (W0-I) | done (W0-I) |
+| RN-33 | Density shadow: the contour level `mean + level x rms` of a map with one NaN voxel is NaN (with RN-30: no shadow at all) | the level from the finite voxels (same value when all are finite) (W2-B) | done (W2-B) |
+| RN-40 | Sequence panel `per_row` that `int()` cannot read → `ValueError` out of `build_figure` (render aborted); a negative one → inverted axis, giant boxes | `No data: option 'per_row' must be a whole number ...`; 0 / truncating values as MDATK (W2-C) | done (W2-C) |
+| RN-41 | Secondary panel: any unknown `source` silently means `dynamic` | `No data: unknown source 'x' (option 'source': dynamic, first or dotbracket)` (W2-C) | done (W2-C) |
+| RN-42 | Secondary panel's "No data" messages after `_bare_axes` have no frame (other "No data" panels do) | the frame kept in both residue panels (W2-C) | done (W2-C) |
+| RN-50 | Charts with MDATK's chrome: `style_axes` styles the centre title, the chart's left title stays black 12 pt; the matrix charts' colour bar stays black: unreadable on the dark theme | title in the theme's ink at 11 pt, colour bar outline / ticks / labels in the theme's colours (W2-D) | done (W2-D) |
 
 Not bugs, kept as conventions: DPI semantics (text size relative to the frame), `MDATK_` file names,
 the example dataset's seeds (crc32 of the key → numpy PCG64: ported exactly so the GUI preview looks
@@ -365,9 +368,37 @@ charts / preview entry points used by `analysis::Pipeline` callers). Commands in
 
 Docs (DIFFERENCES entries RN-xx, LICENSING rows: FFmpeg + encoder "since milestone 4", DejaVu,
 Matplotlib / scipy ports, QtSvg; THIRD_PARTY_NOTICES; ARCHITECTURE: replace "e.g. QCustomPlot" by
-"own QPainter charts (Qt Charts / QCustomPlot are GPL)"; README status), owner gallery review
-(`m4-gallery.md`), performance pass (target: ≥ 10 x MDATK's frames/s for 1080p with cartoon on the
+"own QPainter charts (Qt Charts / QCustomPlot are GPL)"; README status), performance pass (target: ≥ 10 x MDATK's frames/s for 1080p with cartoon on the
 demo), smoke tests for video on the bare Rocky system and Windows.
+
+**Wave 4 status (done).** Docs, licences and notices brought up to date (README, ARCHITECTURE,
+LICENSING, THIRD_PARTY_NOTICES with libjpeg-turbo of Qt's JPEG plugin, BUILDING, DIFFERENCES with an
+index of the RN items); the gallery review was dropped (D10: contents only). Smoke tests: every run
+of `packaging/smoke_test.py` (build machine, Ubuntu, bare Rocky Linux 9, installed Windows program)
+renders the demo project from the command line (24-frame AV1 MP4 checked with `mdbridge
+probe-video` and `ffprobe` where installed, charts in PNG / SVG / PDF, previews in PNG / PDF).
+
+Performance (1920 x 1080, 120 frames of `mdatk demo --no-solvent` with
+`representations = [{style = "cartoon"}]`, `render --from-cache --no-charts`, frames/s from the
+`Rendering ...` to the `Wrote ...` line, median of 3; 4-core x86-64 VM, lavapipe as the only Vulkan
+driver):
+
+| | MDATK 0.0.4.1 | MDBridge before wave 4 | MDBridge after wave 4 |
+|---|---|---|---|
+| default codec (MDATK: libx264 via ffmpeg; MDBridge: AV1, SVT-AV1 preset 8) | 16.2 | 30.2 | 35.8 (2.2 x) |
+| `codec = "mpeg4"` | 17.2 | 54.0 | 67.2 (3.9 x) |
+| `renderer = "vulkan"` on lavapipe (CPU), AV1 / mpeg4 | - | 21.3 / - | 22.9 / 34.6 |
+
+The target (10 x) is not reached on this machine. Wave 4 made the safe improvements (the same
+output bytes, tested): frames are encoded on a thread of their own while the next ones are drawn,
+and the RGBA -> yuv420p conversion runs on several threads. What limits it now, as follow-ups:
+(1) the AV1 encoder at preset 8 (about 36 frames/s here; preset 10 gives 58 frames/s, a quality /
+size trade-off for the owner); (2) the panels' per-frame update on one thread (the 3D layer about
+10 ms per frame at 1080p on 4 cores: about 70 frames/s at most), which needs frame-parallel panel
+updates (independent figure instances per thread); (3) the software renderer's per-frame
+allocations and zero-filling (about 8 % of the instructions), which persistent buffers would save;
+(4) a measurement of the Vulkan renderer on a real GPU (lavapipe runs on the CPU, so `auto` uses
+the software renderer there); (5) more cores scale the software renderer and the encoder.
 
 ### Critical path and parallelism
 
@@ -377,7 +408,7 @@ two platforms; blocked on D1 / D2) and `W0-G → W2-E` (Vulkan look). 9 agents i
 (the others continue tests / reviews), 5 in wave 2, 3-4 in wave 3.
 
 Chunks needing owner decisions before they start: W0-E (D1, D2), W2-D (D5), W0-B (D6), W2-B (D11),
-W3-B (D8, D9, D12), W3-C (D13), the golden-image review (D10).
+W3-B (D8, D9, D12), W3-C (D13), the image parity bar (D10).
 
 ---------------------------------------------------------------------------------------------------
 
@@ -407,7 +438,8 @@ W3-B (D8, D9, D12), W3-C (D13), the golden-image review (D10).
   W3-D if capacity allows, else milestone 6 with the warning `density map not drawn: no placement
   (run density fit)`.
 - **D10 Image parity bar**: recommend semantic dumps vs MDATK + MDBridge golden images approved in
-  a side-by-side gallery, not pixel comparisons with Matplotlib.
+  a side-by-side gallery, not pixel comparisons with Matplotlib (decided otherwise: contents only, no
+  golden images and no gallery, below).
 - **D11 Chain legend (RN-09)**: recommend chain letters (`Chain A`).
 - **D12 Defaults written by `init`**: recommend keeping `codec = "libx264"` and `crf = 20` in new
   project files (byte parity) and mapping at encode time (RN-07).
@@ -432,7 +464,7 @@ D14).
    speed: libaom is slow, SVT-AV1 needs AVX2 for speed). Mitigation: start W0-E first; cache builds.
 3. **Layout parity with Matplotlib's constrained layout**: an own solver will drift by pixels; tick
    counts can flip at `nbins` boundaries. Mitigation: identical fonts, tolerance in § 3, ticks
-   compared when `nbins` agrees, owner gallery for the rest.
+   compared when `nbins` agrees (they agree on every recorded axis).
 4. **Software renderer port fidelity**: numpy idioms (`np.maximum.at`, stable sorts on packed
    depth/id keys, float32 rounding) decide pixels; allow last-bit tolerance, port tests first.
 5. **Vulkan look vs software look** (outlines, AA, glow) and lavapipe speed in CI; Vulkan and

@@ -115,6 +115,86 @@ private:
     std::vector<std::thread> m_workers;
 };
 
+// Encodes frames on one worker thread, in the order they are pushed, while the calling thread
+// updates the panels for the next ones (the encoder's input conversion and the encoder's own work
+// no longer wait for the panels, and the other way round). The encoder sees the same frames in the
+// same order as when called directly, so the file is the same. At most `depth` frames wait; an
+// encoder error is rethrown by the next push() or by finish(). The encoder must outlive the writer.
+class AsyncFrameWriter {
+public:
+    explicit AsyncFrameWriter(VideoEncoder& encoder, std::size_t depth = 2) : m_encoder(encoder), m_depth(depth) {
+        m_thread = std::thread([this] { work(); });
+    }
+    ~AsyncFrameWriter() { stop(); }
+    AsyncFrameWriter(const AsyncFrameWriter&) = delete;
+    AsyncFrameWriter& operator=(const AsyncFrameWriter&) = delete;
+
+    void push(std::vector<std::uint8_t> rgba) {
+        std::unique_lock<std::mutex> lock(m_mutex);
+        m_space.wait(lock, [&] { return m_error || m_queue.size() < m_depth; });
+        if (m_error) std::rethrow_exception(m_error);
+        m_queue.push_back(std::move(rgba));
+        lock.unlock();
+        m_ready.notify_one();
+    }
+
+    // Waits until every pushed frame is encoded (rethrows the encoder's error).
+    void finish() {
+        {
+            std::unique_lock<std::mutex> lock(m_mutex);
+            m_closing = true;
+        }
+        m_ready.notify_one();
+        if (m_thread.joinable()) m_thread.join();
+        if (m_error) std::rethrow_exception(m_error);
+    }
+
+private:
+    void stop() noexcept {
+        {
+            const std::lock_guard<std::mutex> lock(m_mutex);
+            m_closing = true;
+            m_queue.clear();  // failure or cancellation: the frames still waiting are dropped
+        }
+        m_ready.notify_one();
+        if (m_thread.joinable()) m_thread.join();
+    }
+
+    void work() {
+        for (;;) {
+            std::vector<std::uint8_t> rgba;
+            {
+                std::unique_lock<std::mutex> lock(m_mutex);
+                m_ready.wait(lock, [&] { return m_closing || !m_queue.empty(); });
+                if (m_queue.empty()) return;  // closing, nothing left
+                rgba = std::move(m_queue.front());
+                m_queue.pop_front();
+            }
+            m_space.notify_one();
+            try {
+                m_encoder.writeFrame(rgba.data());
+            } catch (...) {
+                {
+                    const std::lock_guard<std::mutex> lock(m_mutex);
+                    m_error = std::current_exception();
+                    m_queue.clear();
+                }
+                m_space.notify_all();
+                return;
+            }
+        }
+    }
+
+    VideoEncoder& m_encoder;
+    const std::size_t m_depth;
+    std::mutex m_mutex;
+    std::condition_variable m_ready, m_space;
+    std::deque<std::vector<std::uint8_t>> m_queue;
+    std::exception_ptr m_error;
+    bool m_closing = false;
+    std::thread m_thread;  // last: started after the members it uses
+};
+
 }  // namespace
 
 void runFrameLoop(panels::BuiltFigure& figure, const FontSet& fonts, std::span<const std::size_t> positions,
@@ -190,6 +270,7 @@ fs::path renderVideo(const core::Dataset& dataset, const core::Project& project,
     eo.crf = static_cast<int>(std::clamp<std::int64_t>(vp.crf, -1000, 1000));
     eo.threads = options.encoderThreads;
     VideoEncoder encoder(path, eo, [](const std::string& message) { core::logWarning(message); });
+    AsyncFrameWriter writer(encoder);  // destroyed (joined) before the encoder
     runFrameLoop(
         figure, fonts, positions, compositor,
         [&](std::size_t, std::vector<std::uint8_t>& rgba) {
@@ -197,10 +278,11 @@ fs::path renderVideo(const core::Dataset& dataset, const core::Project& project,
                 throw VideoError("video: a composed frame has " + std::to_string(rgba.size()) + " bytes, not " +
                                  std::to_string(w) + "x" + std::to_string(h) + "x4");
             }
-            encoder.writeFrame(rgba.data());
+            writer.push(std::move(rgba));
         },
         reporter,
         options.loop);
+    writer.finish();
     encoder.finish();
     reporter.log("Wrote " + pathText + " (" + std::to_string(encoder.framesWritten()) + " frames)");
     return path;

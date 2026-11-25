@@ -23,7 +23,8 @@ Not adopted yet; it takes effect only after legal review and a formal change of 
 
    | Dependency | Licence | Rule | Used since |
    |---|---|---|---|
-   | Qt 6 (Qt Svg since milestone 4: SVG figures) | LGPL v3 | link dynamically; ship the licence and a source pointer | milestone 1 |
+   | Qt 6 (Qt Svg and the image-format plugins since milestone 4: SVG and JPEG figures) | LGPL v3 | link dynamically; ship the licence and a source pointer | milestone 1 |
+   | libjpeg-turbo 3.2.0 (inside Qt's JPEG plugin, as Qt ships it) | IJG licence + BSD-3-Clause | OK (licence in `packaging/licenses/libjpeg-turbo-LICENSE.txt`; the IJG acknowledgement in `THIRD_PARTY_NOTICES.md`) | milestone 4 (JPEG figures) |
    | toml++ | MIT | OK | milestone 1 |
    | CLI11 | BSD-3-Clause | OK | milestone 1 |
    | Vulkan-Headers | Apache 2.0 / MIT | OK (headers only; the Vulkan loader is the user's) | milestone 1 |
@@ -44,9 +45,9 @@ Not adopted yet; it takes effect only after legal review and a formal change of 
 
    | Source | Licence | Ported into | Since |
    |---|---|---|---|
-   | NumPy | BSD-3 | `numpy.interp` (`src/io/external.cpp`), `numpy.linspace` (`src/render/core/colormap.cpp`, milestone 4), pairwise summation of float32 / float64 arrays (`src/core/include/mdbridge/core/detail/numpy_sum.hpp`, used by `src/io/mrc.cpp` and the analyses (`src/analysis/spatial.cpp`, `rmsd.cpp`, `rmsd_qcp.cpp`, `energy.cpp`) and `src/render/molecule/ndimage.cpp`) | milestone 2 (summation shared since milestone 3) |
+   | NumPy | BSD-3 | `numpy.interp` (`src/io/external.cpp`), `numpy.linspace` and `searchsorted` (`src/render/core/colormap.cpp`, milestone 4), pairwise summation of float32 / float64 arrays (`src/core/include/mdbridge/core/detail/numpy_sum.hpp`, used by `src/io/mrc.cpp` and the analyses (`src/analysis/spatial.cpp`, `rmsd.cpp`, `rmsd_qcp.cpp`, `energy.cpp`) and `src/render/molecule/ndimage.cpp`) | milestone 2 (summation shared since milestone 3) |
    | NumPy 2.5.5 `numpy.random` | BSD-3 / NCSA; PCG (MIT); ziggurat from Julia (MIT) | SeedSequence, PCG64, `Generator.uniform` / `normal` / `integers` and the ziggurat tables (`src/render/core/numpy_random.cpp`, `ziggurat_constants.inc`; `packaging/licenses/numpy-random-LICENSE.txt`) | milestone 4 |
-   | SciPy 1.18.1 | BSD-3 (and the ndimage package's BSD-style notice) | `scipy.ndimage` Gaussian filter (mode "constant"), `uniform_filter1d` (mode "constant"), order-1 interpolation and order-1 `affine_transform` (mode "constant") (`src/render/molecule/ndimage.cpp`, used by the molecular surface `src/render/molecule/surface.cpp`, the density shadow `src/render/molecule/density_shadow.cpp` and the software renderer `src/render/molecule/software.cpp`) | milestone 4 |
+   | SciPy 1.18.1 | BSD-3 (and the ndimage package's BSD-style notice) | `scipy.ndimage` Gaussian filter (mode "constant"), `uniform_filter1d` (mode "constant"), order-1 interpolation and order-1 `affine_transform` (mode "constant") (`src/render/molecule/ndimage.cpp`, used by the molecular surface `src/render/molecule/surface.cpp`, the density shadow `src/render/molecule/density_shadow.cpp`, the software renderer `src/render/molecule/software.cpp` and the Vulkan renderer's halo weights `src/render/vulkan/scene_renderer.cpp`) | milestone 4 |
    | CPython | PSF 2 | textwrap / splitlines (`src/core/text.cpp`), json.loads scanner (`src/core/json.cpp`), fnmatch / glob (`src/core/atom_selection.cpp`, `src/io/cif.cpp`) | milestone 2 |
    | Matplotlib 3.11.2 | Matplotlib licence (PSF-style); its ColorBrewer schemes Apache 2.0 | `to_rgba` / `to_hex`, colormaps (`src/render/core/color.cpp`, `colormap.cpp`), tick locators and formatters, autoscaling and colour-bar limits (`src/render/core/ticks.cpp`), the font manager's font choice (`src/render/core/text.cpp`), the figure layout (constrained layout, text boxes, axis decorations, legends, colour-bar placement; `src/render/core/figure.cpp`, `figure_layout.cpp`, `display_list.cpp`) and the colour tables of `src/render/core/mpl_colors.inc` (`tools/gen_mpl_tables.py`; xkcd names and viridis family CC0, CSS4 names W3C) | milestone 4 |
    | chemfiles, based on xdrfile 1.1.4 | BSD-3, BSD-2 | XTC decompression (`src/io/gromacs.cpp`); xdrfile releases before 1.1.4 were LGPL and must not be used | milestone 2 |
@@ -66,8 +67,13 @@ Not adopted yet; it takes effect only after legal review and a formal change of 
    element and mass tables are built from independent public sources (`data/sources/`), so
    MDBridge deliberately differs from MDAnalysis where those tables differ.
 
-   Test-only tools (GoogleTest, BSD-3; on Windows CI Mesa's lavapipe Vulkan driver, MIT, with the
-   Khronos Vulkan loader, Apache 2.0, and the MSYS2 runtime libraries it needs, fetched by
-   `tools/get_lavapipe.py`) are not bundled. External programs MDBridge writes scripts
+   Test-only tools are not bundled: GoogleTest (BSD-3); Mesa's lavapipe Vulkan driver (MIT), on
+   Linux CI the distribution's package and on Windows CI MSYS2's build with the Khronos Vulkan
+   loader (Apache 2.0) and the MSYS2 runtime libraries it needs (LLVM: Apache 2.0 with the LLVM
+   exception; libstdc++ / libgcc with the GCC runtime exception; libiconv and gettext: LGPL; zlib,
+   zstd, libxml2, libffi: permissive), fetched with their licence folders by
+   `tools/get_lavapipe.py` (pinned by SHA-256) for the Vulkan tests only and never shipped; the
+   `ffmpeg` / `ffprobe` executables of the parity and regenerate jobs (Ubuntu's package, which may
+   be GPL) run MDATK's video and read metadata, and are never part of a build. External programs MDBridge writes scripts
    for (cpptraj, Amber, GROMACS, Rosetta, Phenix, Coot, ...) are not distributed with it and keep
    their own licences.

@@ -1,6 +1,7 @@
 #include "cli.hpp"
 
 #include <algorithm>
+#include <exception>
 #include <iostream>
 #include <optional>
 #include <string>
@@ -20,6 +21,8 @@
 #include "mdbridge/version.hpp"
 #include "project_summary.hpp"
 #include "render_backend_qt.hpp"
+#include "video/encoder.hpp"
+#include "video/probe.hpp"
 
 namespace mdbridge::app {
 
@@ -124,6 +127,39 @@ int graphics(bool json) {
     return 0;
 }
 
+// `probe-video FILE`: what a written video holds, read back with the bundled FFmpeg libraries
+// (demuxing only), as JSON; the smoke test checks the videos of `render` with it on machines
+// without ffprobe
+int probeVideoCommand(const std::string& file) {
+    try {
+        const render::video::VideoProbe p = render::video::probeVideo(core::pathFromUtf8(file));
+        const core::Value data = core::Table{
+            {"format", p.format},
+            {"video_streams", p.videoStreams},
+            {"audio_streams", p.audioStreams},
+            {"other_streams", p.otherStreams},
+            {"codec", p.codec},
+            {"pix_fmt", p.pixelFormat},
+            {"width", p.width},
+            {"height", p.height},
+            {"r_frame_rate", std::to_string(p.frameRateNum) + "/" + std::to_string(p.frameRateDen)},
+            {"time_base", std::to_string(p.timeBaseNum) + "/" + std::to_string(p.timeBaseDen)},
+            {"duration", p.durationSeconds},
+            {"nb_frames", p.nbFrames},
+            {"packets", p.packets},
+            {"keyframes", p.keyframes},
+            {"color_space", p.colorSpace},
+            {"color_range", p.colorRange},
+            {"faststart", p.moovBeforeMdat},
+        };
+        std::cout << core::toJson(data) << '\n';
+        return 0;
+    } catch (const std::exception& error) {
+        std::cerr << "mdbridge: " << error.what() << '\n';
+        return 1;
+    }
+}
+
 }  // namespace
 
 int cliMain(int argc, char** argv) {
@@ -161,6 +197,11 @@ int cliMain(int argc, char** argv) {
     fontsCmd->add_flag("--json", fontsJson, "print the report as JSON");
     fontsCmd->add_option("--render", fontsRender, "write the text image to this PNG file");
 
+    CLI::App* probeVideoCmd =
+        app.add_subcommand("probe-video", "what a video file holds (streams, size, frames, codec), as JSON (check)");
+    std::string probeFile;
+    probeVideoCmd->add_option("file", probeFile, "video file (.mp4)")->required();
+
     const RenderBackend renderBackend = qtRenderBackend(argv[0]);
     // init, info, list, analyze, export-pdb, render, charts, preview, density info
     CoreCommands mdatkCommands(app, &renderBackend);
@@ -182,6 +223,9 @@ int cliMain(int argc, char** argv) {
     }
     if (fontsCmd->parsed()) {
         return fontsCommand(argv[0], fontsJson, fontsRender);
+    }
+    if (probeVideoCmd->parsed()) {
+        return probeVideoCommand(probeFile);
     }
     Console console = standardConsole();
     if (const std::optional<int> code = mdatkCommands.run(console)) {
