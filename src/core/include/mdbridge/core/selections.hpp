@@ -7,6 +7,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 #include "mdbridge/core/errors.hpp"
@@ -15,10 +16,23 @@
 
 namespace mdbridge::core {
 
+// what() is the full message. Errors of group expansion and select() also say what went wrong and
+// carry the offending token (a group name, a selection token or the part that matched nothing), as
+// MDATK 0.1.x's SelectionError does, so that a caller can name the setting the text came from in
+// front of the message.
 class SelectionError : public ValueError {
 public:
+    enum class Kind { Other, UnknownGroup, Syntax, Empty, Nesting };
     using ValueError::ValueError;
+    SelectionError(const std::string& message, Kind kind, std::string token = {})
+        : ValueError(message), m_kind(kind), m_token(std::move(token)) {}
     const char* pythonName() const noexcept override { return "SelectionError"; }
+    Kind kind() const noexcept { return m_kind; }
+    const std::string& token() const noexcept { return m_token; }
+
+private:
+    Kind m_kind = Kind::Other;
+    std::string m_token;
 };
 
 struct ResidueRange {
@@ -43,7 +57,10 @@ std::string groupSelection(const ResidueGroup& group, const Topology* topology =
 // Every group:<Name> replaced by the group's selection, recursively (at most 8 levels). The name
 // runs to the next whitespace or parenthesis; the first group of a name wins. A name a group may
 // not have ([A-Za-z0-9_.-]+), or a defined group with such a name written after "group:", is an
-// error ("group name 'bad name' may only contain letters, digits, '_', '.' and '-'").
+// error ("group name 'bad name' may only contain letters, digits, '_', '.' and '-'"). An unknown
+// name lists the defined groups and suggests one ("unknown residue group 'Tagret' in the selection
+// of group 'B' (defined: A, B, Target); did you mean 'Target'?"); a group that contains itself
+// names the circle ("group definitions are nested in a circle: group:A → group:B → group:A").
 std::string expandGroups(std::string_view text, const std::vector<ResidueGroup>& groups,
                          const Topology* topology = nullptr);
 
@@ -51,8 +68,12 @@ std::string expandGroups(std::string_view text, const std::vector<ResidueGroup>&
 std::string resolveSelection(std::string_view text, const std::vector<ResidueGroup>& groups,
                              const Topology* topology = nullptr);
 
-// select(universe, text, groups, allow_empty): the atoms, sorted and unique. Throws SelectionError
-// ("invalid selection 'x' -> 'y': <MDAnalysis error>", "selection 'x' matched no atoms", ...).
+// select(universe, text, groups, allow_empty): the atoms, sorted and unique. Throws SelectionError:
+// "invalid selection 'x' (expanded: 'y'): <parser message> (<hint>)", the expansion shown when it
+// differs from the text, the hint naming a group meant ("to use the residue group write
+// group:Target"), a misspelt keyword or an unclosed parenthesis; "selection 'x' matched no atoms:
+// <why>", why naming the empty group (with its definition and the structure's residue numbers) or
+// the empty and / or part (MDATK 0.1.x selections.py syntax_error / explain_empty).
 AtomGroup select(const std::shared_ptr<const Topology>& topology, const Frame* current, std::string_view text,
                  const std::vector<ResidueGroup>& groups = {}, bool allowEmpty = false);
 AtomGroup select(const System& system, std::string_view text, const std::vector<ResidueGroup>& groups = {},

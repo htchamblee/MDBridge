@@ -315,22 +315,16 @@ def apply_mdatk():
     import mdatk.analysis.rmsd as rmsd
     import mdatk.analysis.structure as structure
     import mdatk.pipeline as pipeline
-    from mdatk.selections import SelectionError, resolve_selection
     from mdatk.spatial import kabsch as mdatk_kabsch
     from mdatk.spatial import pairs_within
 
     improvements_selections.patch_mdatk_analysis_base(base)
 
-    # SEL-17: distance keywords are periodic only with use_pbc (MDBridge's selections otherwise)
+    # SEL-17: distance keywords are periodic only with use_pbc (MDBridge's selections otherwise,
+    # with their messages: SEL-19, SEL-22)
     def select(self, text, allow_empty=False):
-        resolved = resolve_selection(text, self.project.groups, self.u)
-        try:
-            ag = improvements_selections.select_atoms(self.u, resolved, periodic=bool(self.use_pbc))
-        except Exception as exc:  # noqa: BLE001 - MDAnalysis raises several exception types
-            raise SelectionError(f"invalid selection {text!r} -> {resolved!r}: {exc}") from exc
-        if not allow_empty and ag.n_atoms == 0:
-            raise SelectionError(f"selection {text!r} matched no atoms")
-        return ag
+        return improvements_selections.select_mdbridge(mdatk_selections, self.u, text, self.project.groups,
+                                                       allow_empty, periodic=bool(self.use_pbc))
 
     base.AnalysisContext.select = select
 

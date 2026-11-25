@@ -15,6 +15,8 @@
 #include "mdbridge/core/json.hpp"
 #include "mdbridge/core/python.hpp"
 #include "mdbridge/core/selections.hpp"
+#include "mdbridge/core/suggest.hpp"
+#include "mdbridge/core/text.hpp"
 #include "topology_dump.hpp"
 
 using namespace mdbridge::core;
@@ -409,4 +411,71 @@ TEST(Selections, ElementFallbackPerAtom) {
     const AtomGroup ligand(topology, std::vector<std::int32_t>{0, 3});
     EXPECT_EQ(atomElements(ligand), (std::vector<std::string>{"CL", "MG"}));
     EXPECT_EQ(elementFilter(all, {"Cl"}).indices(), (std::vector<std::int32_t>{0}));
+}
+
+// SEL-19, SEL-20: "did you mean" (MDATK 0.1.x selections.suggest, Python's difflib)
+TEST(Selections, SuggestLikeDifflib) {
+    for (const Value& c : list(cases(), "similarity")) {
+        const std::u32string a = decodeUtf8(text(c, "a")), b = decodeUtf8(text(c, "b"));
+        EXPECT_EQ(similarity(a, b), *c.find("ratio")->get<double>()) << text(c, "a") << " / " << text(c, "b");
+    }
+    for (const Value& c : list(cases(), "suggest")) {
+        const std::optional<std::string> got = suggestName(text(c, "name"), strings(*c.find("candidates")));
+        const Value& expected = *c.find("result");
+        if (expected.isNull()) {
+            EXPECT_FALSE(got) << text(c, "name") << " -> " << got.value_or("");
+        } else {
+            EXPECT_EQ(got.value_or("<none>"), *expected.get<std::string>()) << text(c, "name");
+        }
+    }
+}
+
+// SEL-19 ... SEL-22 on a small example (the cases above cover the fixtures)
+TEST(Selections, MessagesNameTheProblem) {
+    const Fixture& f = fixture("fixture_chains.pdb");
+    const std::vector<ResidueGroup> groups = {{"Aptamer", "A:1-4", "", ""},
+                                              {"Target", "B:10-12", "", ""},
+                                              {"Far", "900-910", "", ""},
+                                              {"A", "", "group:B", ""},
+                                              {"B", "", "group:A", ""},
+                                              {"C", "", "group:Tagret", ""}};
+    const auto message = [&](const std::string& input) {
+        try {
+            select(f.dump.topology, f.frame(), input, groups);
+        } catch (const SelectionError& e) {
+            return std::string(e.what());
+        }
+        return std::string("no error");
+    };
+    EXPECT_EQ(message("Target and name P"),
+              "invalid selection 'Target and name P': Unknown selection token: 'Target' (to use the residue "
+              "group write group:Target)");
+    EXPECT_EQ(message("resnam G"),
+              "invalid selection 'resnam G': Unknown selection token: 'resnam' (did you mean 'resname'?)");
+    EXPECT_EQ(message("group:Aptamer and resnam G"),
+              "invalid selection 'group:Aptamer and resnam G' (expanded: '((chainID A and resid 1:4)) and resnam "
+              "G'): Unknown selection token: 'resnam' (did you mean 'resname'?)");
+    EXPECT_EQ(message("group Target"), "invalid selection 'group Target': Selection failed: 'Failed to find "
+                                       "group: Target' (write group:Target, with a colon, to use the residue group)");
+    EXPECT_EQ(message("group:Tagret"),
+              "unknown residue group 'Tagret' (defined: Aptamer, Target, Far, A, B, C); did you mean 'Target'?");
+    EXPECT_EQ(message("C"), "unknown residue group 'Tagret' in the selection of group 'C' (defined: Aptamer, "
+                            "Target, Far, A, B, C); did you mean 'Target'?");
+    EXPECT_EQ(message("A"), "group definitions are nested in a circle: group:A \xe2\x86\x92 group:B "
+                            "\xe2\x86\x92 group:A");
+    const std::string far = message("Far");
+    EXPECT_EQ(far.rfind("selection 'Far' matched no atoms: group 'Far' (residues '900-910') matches no atoms - "
+                        "the structure's residues are numbered ",
+                        0),
+              0u)
+        << far;
+    EXPECT_EQ(message("name P and resid 999"),
+              "selection 'name P and resid 999' matched no atoms: the part 'resid 999' matches no atoms");
+    try {
+        select(f.dump.topology, f.frame(), "group:Far", groups);
+        ADD_FAILURE() << "no error";
+    } catch (const SelectionError& e) {
+        EXPECT_EQ(e.kind(), SelectionError::Kind::Empty);
+        EXPECT_EQ(e.token(), "Far");
+    }
 }

@@ -408,7 +408,8 @@ test_selections.cpp; cli_cases.json (`info_groups`); framework_cases.json (cache
 - **SEL-08 Messages.** `Unknown 'same' property 'RESID' (choose one of: fragment, x, y, ...)`
   instead of `Unknown same property : RESIDChoose one of : dict_keys([...])`; an unknown token whose
   lower-case spelling is a keyword gets a hint: `Unknown selection token: 'AND' (keywords are lower
-  case: did you mean 'and'?)`. New messages are not wrapped in `Selection failed: '...'`.
+  case: did you mean 'and'?)`, and since SEL-19 a misspelt one too: `Unknown selection token:
+  'resnam' (did you mean 'resname'?)`. New messages are not wrapped in `Selection failed: '...'`.
 - **SEL-09 Float ranges** (`mass`, `charge`, ...) accept in each bound what a single value accepts
   (`mass 12:+13`, `mass -inf:inf`, `charge 1E-1:2`); a piece that is no number and no range of two
   numbers is `Failed to parse number: <piece>` (`mass :3`, `mass 1:2abc`). MDAnalysis failed with
@@ -432,6 +433,56 @@ test_selections.cpp; cli_cases.json (`info_groups`); framework_cases.json (cache
 - **SEL-15 Repeated group names:** the first group of a name wins in `group:` expansion and in the
   groups recorded in cache keys, as in `core::group()` and the GUI (MDATK: the last one in the
   expansion). validate() still reports the repetition.
+- **SEL-19 Selection errors: MDATK 0.1.x's frame, MDBridge's messages, hints** (follows MDATK
+  0.1.1 `mdatk/selections.py` `syntax_error`, `_syntax_hint`, `suggest`; also covers SEL-04,
+  SEL-08 and CLI-07). `select()` reports `invalid selection 'X' (expanded: 'Y'): <message>
+  (<hint>)`: the text as written (stripped), its expansion only when it differs (also from the text
+  after `sel:`), the parser's own message (SEL-03, SEL-04, SEL-08 ...; MDATK 0.1.x shows
+  `MDAnalysis says: <MDAnalysis' message>`, which MDBridge has no use for) and a hint where one
+  helps. MDATK 0.0.4.1 printed `invalid selection 'X' -> 'Y': ...`, the expansion even when it was
+  the text itself (`invalid selection 'name (' -> 'name (': ...`). The hints, as 0.1.x's:
+  - a token that is (by case or a typo) a group's name: `Unknown selection token: 'Target' (to use
+    the residue group write group:Target)`, in place of a keyword hint;
+  - a misspelt keyword: `(did you mean 'resname'?)` (`keywords are lower case: did you mean 'and'?`
+    when only the case differs, as SEL-08); no hint for `and` / `or` themselves where a selection
+    should start, or when nothing is close (0.1.x: `'foo' is not a selection keyword`, which repeats
+    the message);
+  - `group Target` (MDAnalysis' own group keyword): `Selection failed: 'Failed to find group:
+    Target' (write group:Target, with a colon, to use the residue group)`, or `(residue groups are
+    written group:<Name>)` when no group is close;
+  - `Unexpected token: 'x' Expected: ')'`: `(a parenthesis is not closed)`. The end of the selection
+    needs no hint: SEL-04's `Unexpected end of selection (expected ')')` says it (0.1.x hints at
+    MDAnalysis' `'None'` token instead).
+
+  "Close" is 0.1.x's `suggest`: a candidate equal ignoring case, else Python difflib's
+  `get_close_matches(..., n=1, cutoff=0.6)` on the lower-case spellings, reimplemented in
+  `core::suggestName` / `core::similarity` (src/core/suggest.cpp; no suggestion for a name of 200 or
+  more characters, where difflib's junk heuristic would start). The errors carry their kind and
+  offending token (`SelectionError::kind()`, `token()`), as 0.1.x's do, so that a later change can
+  put the setting's location in front of the message. *Also tested:* `Selections.SuggestLikeDifflib`
+  (ratios and suggestions against difflib, selections_cases.json `similarity` / `suggest`),
+  `Selections.MessagesNameTheProblem`; cli_cases.json (`info_groups`, `export_bad_selection`).
+- **SEL-20 Unknown groups suggest the group meant** (follows MDATK 0.1.1 `selections.py`
+  `unknown_group_error`). `unknown residue group 'Tagret' (defined: Aptamer, Target); did you mean
+  'Target'?`, and when a group's own selection names it, `unknown residue group 'Tagret' in the
+  selection of group 'Uses' (defined: ...)` (MDATK 0.0.4.1 named neither). The defined groups are
+  listed once each, in order. *Tested:* selections_cases.json (groups set `typos`).
+- **SEL-21 Circular group definitions named** (follows MDATK 0.1.1 `selections.py`
+  `expand_groups`). A group whose expansion reaches itself is `group definitions are nested in a
+  circle: group:Circle1 → group:Circle2 → group:Circle3 → group:Circle1`, from the group where the
+  expansion started; MDATK 0.0.4.1 expanded until the depth limit and reported `group definitions
+  are nested too deeply (circular reference?)`, which now only nine nested distinct groups give.
+  *Tested:* selections_cases.json (`Loop1` / `Loop2`, `Circle1` ...).
+- **SEL-22 Why a selection matched nothing** (follows MDATK 0.1.1 `selections.py`
+  `explain_empty`). `selection 'group:Far' matched no atoms: group 'Far' (residues '900-910')
+  matches no atoms - the structure's residues are numbered 1-302`: each group the text uses is tried
+  on its own, the empty ones are named with their definition (residue ranges add the structure's
+  residue numbers); otherwise each top-level and / or part is tried: `selection 'name P and resid
+  999' matched no atoms: the part 'resid 999' matches no atoms`, or `each part matches atoms, but
+  not in this combination (check 'and' / 'or')`. Parts that do not stand alone (`around 3 ...`) are
+  skipped. The tries use the same structure and frame as the selection (with `use_pbc` off, an open
+  box, SEL-17). The text is shown stripped. MDATK 0.0.4.1: `selection 'X' matched no atoms`.
+  *Tested:* selections_cases.json, cli_cases.json (`info_groups`), analysis micro / variant cases.
 - **SEL-16 (kept)** A residue number in a group's ranges means `resid N`, as the `resid` keyword:
   `45` excludes `45A` on files with insertion codes; ranges `44-46` include them. **SEL-11 (kept)**
   `and` and `or` have the same precedence and combine left to right (`A or B and C` is
@@ -524,6 +575,10 @@ test_selections.cpp; cli_cases.json (`info_groups`); framework_cases.json (cache
   sense in the other byte order give `... byte order of the map header (mode 33554432)` / `(cell
   angles [...])` instead of `unsupported MRC mode 33554432` / `non-orthogonal cell angles [6.47e-41,
   ...]`. *Tested:* io/maps/read_cases.json, cli_cases.json (density_info_* compared in full).
+- **CLI-07: selection errors** (`info`'s group entries, `analyze`, `export-pdb`) are SEL-19 ...
+  SEL-22's: `invalid selection 'group:Broken' (expanded: '(name ()'): Selection failed: 'Unexpected
+  token '(''`, `selection 'group:Target' matched no atoms: group 'Target' (residues '13-24') matches
+  no atoms - the structure's residues are numbered 1-1`. *Tested:* cli_cases.json.
 - **CLI-08: PDB export checks every frame first.** A frame with a coordinate beyond the PDB limits
   stops the export before any file is written: `PDB files must have coordinate values between
   -1000.000 and 9999.999 Angstroem: frame 2 is outside this range; no files were written.` (MDATK
@@ -1203,6 +1258,11 @@ middle and last frame. The generator applies the items below to MDATK test-side
   `StructurePanel.DensityLevelFromFiniteVoxels`.
 - **No analysed frames (RN-02, the panel part).** A trace without frames made MDATK fail with an
   `IndexError`; the panel shows `No data: no frames`.
+- **The centre warning names its setting (RN-51; follows MDATK 0.1.1 `render/panels.py`
+  `_view_centre`).** A `visual.center_on` that matches no residue warns `Structure view ›
+  Orientation › Centre on: no residue of the structure view matches 'Z:99'; using the model centre`
+  (MDATK 0.0.4.1: `structure view centre: ...`), the readable location MDATK 0.1.x gives that
+  setting. *Tested:* case `structure_centre_unknown`, `StructurePanel` zoom-and-centre test.
 
 ## Rendering: residue shading, orientation and the example dataset (src/render/core)
 

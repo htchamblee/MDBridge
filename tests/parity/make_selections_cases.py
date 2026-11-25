@@ -8,8 +8,9 @@ nested / cyclic / duplicate residue groups, frame and time lists. Results are JS
 are {"error": str(exc)}. Python ints beyond 64 bits are written as {"$int": "<digits>"}. Systems
 are the fixtures of tests/data/topology (by file name) with the frame of the dump. Needs MDATK's
 dependencies (numpy, MDAnalysis 2.11.0); nothing is written into the checkout. Where MDBridge
-deliberately differs (SEL-13, SEL-14, SEL-15 and the atom selections of docs/IMPROVEMENTS.md),
-improvements_selections.patch_mdatk replaces MDATK's function with MDBridge's behaviour.
+deliberately differs (SEL-13, SEL-14, SEL-15, SEL-19 ... SEL-22 and the atom selections of
+docs/IMPROVEMENTS.md), improvements_selections.patch_mdatk replaces MDATK's function with MDBridge's
+behaviour.
 """
 
 import json
@@ -134,13 +135,20 @@ def main():
                 ResidueGroup("g2", "3"), ResidueGroup("sel:x", "4"), ResidueGroup(" pad ", "5"),
                 ResidueGroup("\u00e9", "6")],
         "none": [],
+        # SEL-19 ... SEL-22: hints, suggestions, circles, empty groups
+        "typos": [ResidueGroup("Aptamer", "A:1-4"), ResidueGroup("Target", "B:10-12"),
+                  ResidueGroup("Uses", "", "group:Tagret and name P"), ResidueGroup("Far", "900-910"),
+                  ResidueGroup("FarSel", "", "resid 900:910"), ResidueGroup("Circle1", "", "group:Circle2 or name P"),
+                  ResidueGroup("Circle2", "", "resid 1 and group:Circle3"), ResidueGroup("Circle3", "", "group:Circle1"),
+                  ResidueGroup("protein", "5")],
     }
     texts = ["group:A", "group:B or resid 9", "A", "B", "sel:name P", "sel: group:A ", "group:Nope", "group:Loop1",
              "", "   ", "group:", "group:A)", "(group:A)and(group:B)", "xgroup:Ay", "group:A.B", "group:Aptamer",
              "Both", "Target", "group:Both and name P", "X", "group:X", "group:Empty", "group:Bad", "Sel",
              "G0", "group:G0", "group:G1", "group:G8", "a.b+c-d'e_f", "g", "group:g", "sel:x", "sel:",
              "sel:sel:x", " pad ", "pad", "\u00e9", "group:\u00e9", "\u2003A\u2003", "group:Agroup:B",
-             "group:A group:A", "group:G9", "Loop2"]
+             "group:A group:A", "group:G9", "Loop2", "group:Tagret", "group:target", "Uses", "group:Circle1",
+             "Circle3", "group:Loop2 or group:Nope"]
     out["groups"] = {}
     for name, groups in group_sets.items():
         cases = []
@@ -155,7 +163,16 @@ def main():
         out["groups"][name] = {"groups": groups_json(groups), "cases": cases}
 
     select_texts = texts + ["name P", "name Q", "resid 1:3", "foo", "around 3 name P", "group:A and name P",
-                            "sel:resid 200:206", "not all", "name", "resid 3A", "protein", "byres group:A"]
+                            "sel:resid 200:206", "not all", "name", "resid 3A", "protein", "byres group:A",
+                            # SEL-19: hints
+                            "resnam G", "Target and name P", "name P and Aptamer", "group Target", "group Nope",
+                            "group target", "(all x)", "(name P", "RESID 1", "namee P", "foo and name P",
+                            "Proteins", "sel:Target",
+                            # SEL-22: why nothing matched
+                            "group:Far", "group:FarSel", "group:Far or group:FarSel", "Far", "sel:resid 900",
+                            "name P and resid 999", "name P or resid 999", "name Q and resid 1:3",
+                            "name P and name O1P", "(name P) and (name Q or resid 999)", "group:Aptamer and name Q",
+                            "resid 999 and around 3 name P", "name P andname Q", "name Q and\u2003resid 1"]
     out["select"] = []
     for fixture in FIXTURES:
         u = system(fixture)
@@ -170,6 +187,21 @@ def main():
                   "name P", "group:Target", ",", "Aptamer,,Target"]:
             r = call(lambda: resolve_export_selection(u, t, group_sets["chains"]).indices)
             out["select"].append({"fixture": fixture, "groups": "chains", "text": t, "export": True, **r})
+
+    # core::suggestName / similarity (MDATK 0.1.x selections.suggest: difflib)
+    import difflib
+    words = ["resname", "resid", "name", "and", "or", "Target", "target", "TARGET", "Aptamer", "", "chainID",
+             "chainid", "altLoc", "nucleicbackbone", "\u00e9t\u00e9", "\u0130x", "abcabcabc", "bcab", "x" * 199]
+    names = ["resnam", "RESID", "nmae", "adn", "o", "Tagret", "tARGET", "aptamr", "", "chainjd", "CHAINID",
+             "altlok", "nucleicbackbon", "\u00c9T\u00c9", "ix", "cab", "abc", "zzz", "x" * 199, "x" * 200,
+             "Proteins", "nam", "rs", "bcabca"]
+    out["suggest"] = [{"name": n, "candidates": words,
+                       "result": improvements_selections.suggest(n, words)} for n in names]
+    out["suggest"] += [{"name": n, "candidates": c, "result": improvements_selections.suggest(n, c)}
+                       for n, c in [("ab", ["ba", "ab_"]), ("ab", ["ba", "aB"]), ("xy", ["xa", "ay"]),
+                                    ("Ab", ["aB", "AB"]), ("q", [])]]
+    out["similarity"] = [{"a": a, "b": b, "ratio": difflib.SequenceMatcher(None, a, b).ratio()}
+                         for a in words for b in names if len(b) < 200]
 
     out["guess_element"] = [{"args": [n, r, s], **call(S.guess_element, n, r, s)} for n, r, s in ELEMENT_NAMES]
     out["atoms"] = []

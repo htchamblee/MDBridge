@@ -27,6 +27,7 @@
 #include "mdbridge/core/detail/neighbors.hpp"
 #include "mdbridge/core/json.hpp"
 #include "mdbridge/core/python.hpp"
+#include "mdbridge/core/suggest.hpp"
 #include "mdbridge/core/text.hpp"
 
 namespace mdbridge::core {
@@ -1608,6 +1609,38 @@ const std::vector<Keyword>& keywords() {
     return table;
 }
 
+}  // namespace
+
+const std::vector<std::string>& selectionKeywords() {
+    static const std::vector<std::string> words = [] {
+        std::vector<std::string> out;
+        for (const Keyword& k : keywords()) {
+            out.emplace_back(k.word);
+        }
+        out.emplace_back("and");
+        out.emplace_back("or");
+        return out;
+    }();
+    return words;
+}
+
+std::string keywordHint(const std::string& token) {
+    const std::vector<std::string>& words = selectionKeywords();
+    if (std::find(words.begin(), words.end(), token) != words.end()) {
+        return "";  // "and" where a selection should start: no other spelling helps
+    }
+    const std::string lower = pythonLower(token);
+    if (lower != token && std::find(words.begin(), words.end(), lower) != words.end()) {
+        return "keywords are lower case: did you mean '" + lower + "'?";
+    }
+    if (const auto close = suggestName(token, words)) {
+        return "did you mean " + pythonStringRepr(*close) + "?";
+    }
+    return "";
+}
+
+namespace {
+
 const Keyword* findKeyword(const Token& token) {
     if (!token) {
         return nullptr;
@@ -1793,19 +1826,19 @@ private:
                 throw AtomSelectionError("Unexpected end of selection (expected ')')");
             }
             if (*close != ")") {
-                throw AtomSelectionError("Unexpected token: '" + *close + "' Expected: ')'");
+                const std::string message = "Unexpected token: '" + *close + "' Expected: ')'";
+                throw AtomSelectionError(message, AtomSelectionError::Problem::UnclosedParenthesis,
+                                         *close, message);
             }
             pop();
             return inner;
         }
         const Keyword* keyword = findKeyword(token);
         if (!keyword) {
-            std::string message = "Unknown selection token: '" + *token + "'";
-            const std::string lower = pythonLower(*token);
-            if (lower != *token && (lower == "and" || lower == "or" || findKeyword(lower))) {
-                message += " (keywords are lower case: did you mean '" + lower + "'?)";
-            }
-            throw AtomSelectionError(message);
+            const std::string message = "Unknown selection token: '" + *token + "'";
+            const std::string hint = keywordHint(*token);  // SEL-08, SEL-19
+            throw AtomSelectionError(hint.empty() ? message : message + " (" + hint + ")",
+                                     AtomSelectionError::Problem::UnknownToken, *token, message);
         }
         // a keyword's own arguments: value problems are reported as "Selection failed"
         try {
@@ -1907,7 +1940,10 @@ private:
                     "The 'updating' keyword is reserved and cannot be used as a selection group "
                     "name.");
             }
-            throw ValueError("Failed to find group: " + *name);  // no groups are passed
+            // no groups are passed (core::select adds a hint, SEL-19)
+            const std::string message = "Selection failed: 'Failed to find group: " + *name + "'";
+            throw AtomSelectionError(message, AtomSelectionError::Problem::UnknownGroup, *name,
+                                     message);
         }
         case Kind::Prop:
             return property();
