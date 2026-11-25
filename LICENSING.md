@@ -23,7 +23,7 @@ Not adopted yet; it takes effect only after legal review and a formal change of 
 
    | Dependency | Licence | Rule | Used since |
    |---|---|---|---|
-   | Qt 6 | LGPL v3 | link dynamically; ship the licence and a source pointer | milestone 1 |
+   | Qt 6 (Qt Svg since milestone 4: SVG figures) | LGPL v3 | link dynamically; ship the licence and a source pointer | milestone 1 |
    | toml++ | MIT | OK | milestone 1 |
    | CLI11 | BSD-3-Clause | OK | milestone 1 |
    | Vulkan-Headers | Apache 2.0 / MIT | OK (headers only; the Vulkan loader is the user's) | milestone 1 |
@@ -48,7 +48,7 @@ Not adopted yet; it takes effect only after legal review and a formal change of 
    | NumPy 2.5.5 `numpy.random` | BSD-3 / NCSA; PCG (MIT); ziggurat from Julia (MIT) | SeedSequence, PCG64, `Generator.uniform` / `normal` / `integers` and the ziggurat tables (`src/render/core/numpy_random.cpp`, `ziggurat_constants.inc`; `packaging/licenses/numpy-random-LICENSE.txt`) | milestone 4 |
    | SciPy 1.18.1 | BSD-3 (and the ndimage package's BSD-style notice) | `scipy.ndimage` Gaussian filter (mode "constant"), order-1 interpolation and order-1 `affine_transform` (mode "constant") (`src/render/molecule/ndimage.cpp`, used by the molecular surface `src/render/molecule/surface.cpp` and the density shadow `src/render/molecule/density_shadow.cpp`) | milestone 4 |
    | CPython | PSF 2 | textwrap / splitlines (`src/core/text.cpp`), json.loads scanner (`src/core/json.cpp`), fnmatch / glob (`src/core/atom_selection.cpp`, `src/io/cif.cpp`) | milestone 2 |
-   | Matplotlib 3.11.2 | Matplotlib licence (PSF-style); its ColorBrewer schemes Apache 2.0 | `to_rgba` / `to_hex`, colormaps (`src/render/core/color.cpp`, `colormap.cpp`), tick locators and formatters, autoscaling and colour-bar limits (`src/render/core/ticks.cpp`), the font manager's font choice (`src/render/core/text.cpp`) and the colour tables of `src/render/core/mpl_colors.inc` (`tools/gen_mpl_tables.py`; xkcd names and viridis family CC0, CSS4 names W3C) | milestone 4 |
+   | Matplotlib 3.11.2 | Matplotlib licence (PSF-style); its ColorBrewer schemes Apache 2.0 | `to_rgba` / `to_hex`, colormaps (`src/render/core/color.cpp`, `colormap.cpp`), tick locators and formatters, autoscaling and colour-bar limits (`src/render/core/ticks.cpp`), the font manager's font choice (`src/render/core/text.cpp`), the figure layout (constrained layout, text boxes, axis decorations, legends, colour-bar placement; `src/render/core/figure.cpp`, `figure_layout.cpp`, `display_list.cpp`) and the colour tables of `src/render/core/mpl_colors.inc` (`tools/gen_mpl_tables.py`; xkcd names and viridis family CC0, CSS4 names W3C) | milestone 4 |
    | chemfiles, based on xdrfile 1.1.4 | BSD-3, BSD-2 | XTC decompression (`src/io/gromacs.cpp`); xdrfile releases before 1.1.4 were LGPL and must not be used | milestone 2 |
    | OpenMM 8.1.2 force-field files | MIT | residue / atom names and elements in `src/core/include/mdbridge/core/detail/data_tables_independent.inc` (with the wwPDB CCD, CC0, and CIAAW atomic weights; `data/sources/ATTRIBUTION.md`) | milestone 2 |
 

@@ -1,6 +1,6 @@
 # render core: the Qt-free part of the render module (colours, colormaps, themes, ticks, fonts and
-# text metrics, residue shading, orientation, the example dataset with numpy's PCG64), testable
-# without Qt. Namespace mdbridge::render.
+# text metrics, residue shading, orientation, the example dataset with numpy's PCG64, the figure
+# model with its constrained layout, record writer and display list), testable without Qt. Namespace mdbridge::render.
 add_library(mdbridge_render_core STATIC
     include/mdbridge/render/color.hpp
     include/mdbridge/render/colormap.hpp
@@ -24,7 +24,14 @@ add_library(mdbridge_render_core STATIC
     numpy_random.cpp
     orientation.cpp
     shading.cpp
-    ziggurat_constants.inc)
+    ziggurat_constants.inc
+    include/mdbridge/render/figure.hpp
+    include/mdbridge/render/figure_dump.hpp
+    include/mdbridge/render/display_list.hpp
+    figure.cpp
+    figure_dump.cpp
+    figure_layout.cpp
+    display_list.cpp)
 add_library(mdbridge::render_core ALIAS mdbridge_render_core)
 target_include_directories(mdbridge_render_core
     PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include"
