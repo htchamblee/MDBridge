@@ -6,6 +6,11 @@
 // between their normals is <= angle_cutoff and the smaller lateral offset of one centroid from the
 // other ring's normal axis is <= offset_cutoff. Purines use all nine ring atoms.
 //
+// With use_pbc and a periodic cell, each ring's atoms are first put at the minimum image of the
+// ring's first atom (a ring split by per-atom wrapping is whole again) and the centroid offsets
+// are minimum-image vectors of any cell shape (docs/DIFFERENCES.md AN-12, AN-04); MDATK used raw
+// positions and corrected orthorhombic cells only.
+//
 // Compiled without floating-point contraction (see CMakeLists.txt): centroids, products and sums
 // are rounded as numpy rounds them.
 
@@ -166,17 +171,27 @@ public:
         }
         const core::StackingParams& p = m_p;
         const std::optional<Box> box = boxOf(context().box(frame));
+        const std::optional<PeriodicCell> cell = PeriodicCell::from(box);
         std::vector<Vec3> cent(nRings), norm(nRings);
         std::vector<double> planar(nRings);
         std::vector<Vec3> positions;
         for (const SizeGroup& group : m_bySize) {
             positions.clear();
             for (const std::size_t r : group.rings) {
+                const std::size_t first = positions.size();
                 for (const std::int32_t atom : m_rings[r]) {
                     const auto base = 3 * static_cast<std::size_t>(atom);
-                    positions.push_back({static_cast<double>(frame.positions.at(base)),
-                                         static_cast<double>(frame.positions.at(base + 1)),
-                                         static_cast<double>(frame.positions.at(base + 2))});
+                    Vec3 x{static_cast<double>(frame.positions.at(base)),
+                           static_cast<double>(frame.positions.at(base + 1)),
+                           static_cast<double>(frame.positions.at(base + 2))};
+                    if (cell && positions.size() > first) {
+                        // a ring split by per-atom wrapping made whole: each atom at the minimum
+                        // image of its first atom (docs/DIFFERENCES.md AN-12)
+                        const Vec3& x0 = positions[first];
+                        const Vec3 v = cell->minimumImage({x[0] - x0[0], x[1] - x0[1], x[2] - x0[2]});
+                        x = {x0[0] + v[0], x0[1] + v[1], x0[2] + v[2]};
+                    }
+                    positions.push_back(x);
                 }
             }
             const RingGeometry g = ringGeometry(positions, group.size);
@@ -304,7 +319,7 @@ public:
     StackingDescriptor()
         : AnalysisDescriptor({"stacking",
                               "π–π stacking",
-                              1,
+                              2,  // 2: MDBridge's periodic geometry (docs/DIFFERENCES.md AN-01 to AN-04)
                               false,
                               2,
                               {{"count", "π–π stacked pairs"},

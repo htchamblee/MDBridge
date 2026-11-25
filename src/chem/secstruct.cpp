@@ -1,6 +1,7 @@
 #include "mdbridge/chem/secstruct.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <numeric>
 #include <set>
@@ -44,11 +45,15 @@ bool lessNanLast(double a, double b) {
     return a < b;
 }
 
-// np.linalg.norm(a - b, axis=-1): sqrt((dx*dx + dy*dy) + dz*dz)
-double distance(const double* a, const double* b) {
-    const double dx = a[0] - b[0];
-    const double dy = a[1] - b[1];
-    const double dz = a[2] - b[2];
+// np.linalg.norm(a - b, axis=-1): sqrt((dx*dx + dy*dy) + dz*dz); with `image`, of image(a - b)
+double distance(const double* a, const double* b, const PairDetector::DifferenceImage* image = nullptr) {
+    std::array<double, 3> v{a[0] - b[0], a[1] - b[1], a[2] - b[2]};
+    if (image != nullptr) {
+        v = (*image)(v);
+    }
+    const double dx = v[0];
+    const double dy = v[1];
+    const double dz = v[2];
     const double xx = dx * dx;
     const double yy = dy * dy;
     const double zz = dz * dz;
@@ -373,7 +378,7 @@ PairDetector::PairDetector(std::span<const std::string> resnames, std::span<cons
     }
 }
 
-std::vector<PairCandidate> PairDetector::candidates(std::span<const double> xyz) const {
+std::vector<PairCandidate> PairDetector::candidates(std::span<const double> xyz, const DifferenceImage* image) const {
     if (xyz.size() % 3 != 0) {
         throw std::invalid_argument("PairDetector: coordinates must have 3 values per row");
     }
@@ -403,7 +408,7 @@ std::vector<PairCandidate> PairDetector::candidates(std::span<const double> xyz)
                 const std::int64_t* qb = rule.atomsQ.data() + b * k;
                 int bonds = 0;
                 for (std::size_t t = 0; t < k; ++t) {
-                    d[t] = (pa[t] < 0 || qb[t] < 0) ? HUGE_VAL : distance(at(pa[t]), at(qb[t]));
+                    d[t] = (pa[t] < 0 || qb[t] < 0) ? HUGE_VAL : distance(at(pa[t]), at(qb[t]), image);
                     bonds += d[t] <= m_cutoff ? 1 : 0;
                 }
                 if (bonds < rule.required) {
@@ -412,7 +417,7 @@ std::vector<PairCandidate> PairDetector::candidates(std::span<const double> xyz)
                 const std::int64_t ca = rule.c1P[a];
                 const std::int64_t cb = rule.c1Q[b];
                 const bool both = ca >= 0 && cb >= 0;
-                const double dc = distance(at(ca), at(cb));
+                const double dc = distance(at(ca), at(cb), image);
                 if (both && !(dc >= kC1WindowLow && dc <= kC1WindowHigh)) {
                     continue;
                 }
@@ -470,8 +475,8 @@ std::vector<BasePair> PairDetector::select(std::span<const PairCandidate> candid
     return keep;
 }
 
-std::vector<BasePair> PairDetector::detect(std::span<const double> xyz) const {
-    return select(candidates(xyz), m_n);
+std::vector<BasePair> PairDetector::detect(std::span<const double> xyz, const DifferenceImage* image) const {
+    return select(candidates(xyz, image), m_n);
 }
 
 }  // namespace mdbridge::chem

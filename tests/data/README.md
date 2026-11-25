@@ -639,7 +639,13 @@ triclinic cells, cutoffs beyond half a cell, the same array on both sides, dupli
 the grid method's order, and degenerate cutoffs (0, negative, NaN, infinite), angles, lengths and
 coordinates. Each case gives the method chosen, the pairs in MDAnalysis' order and the distances as
 `float.hex` (or the error and warnings); lattice cases give SHA-256 hashes; `band` lists the pairs
-within the spec's tolerance of the cutoff. Format in the generator's docstring:
+within the spec's tolerance of the cutoff. That is the reference behaviour; MDBridge's own periodic
+search (docs/DIFFERENCES.md AN-01 to AN-03) is tested against each case's `exact` column, computed
+independently by `tests/parity/improvements_periodic.py` (numpy). That module is also patched into
+MDATK by `make_analysis_cases.py`, `make_analysis_framework_cases.py`, `make_pipeline_cases.py` and
+`cli_parity.py`, so their `use_pbc` results, energy forces and the bumped analysis versions are
+MDBridge's (AN-04, AN-05, AN-11, AN-12), and adds the `improved` column of the `min_image` cases of
+`spatial_extra_cases.json`. Format in the generator's docstring:
 
 ```bash
 /opt/mdbridge-venv/bin/python -I -B tests/parity/make_distance_cases.py /tmp/mdatk tests/data/analysis

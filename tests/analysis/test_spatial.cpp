@@ -284,9 +284,9 @@ TEST(PairsWithin, UsableBoxTakesThePeriodicPath) {
     EXPECT_EQ(triples(fromDouble), triples(direct));
     EXPECT_EQ(triples(fromFloat), triples(direct));
     ASSERT_EQ(direct.size(), 1u);
-    // brute force (1 x 1 points): f32 difference 9 scaled by fl32(1 / 10), nearest image
-    const double s = 9.0 * static_cast<double>(static_cast<float>(1.0 / 10.0));
-    EXPECT_EQ(direct.d[0], std::abs(10.0 * (s - std::round(s))));
+    // the float64 minimum image of the float32 points (MDAnalysis' brute force scaled by
+    // fl32(1 / 10) and was off in the last bits; docs/DIFFERENCES.md AN-01)
+    EXPECT_EQ(direct.d[0], std::abs((static_cast<double>(0.2f) - 9.2f) + 10.0));
     // empty inputs return before the box is looked at
     EXPECT_TRUE(pairsWithin(std::vector<double>{}, b, 2.0, box).empty());
     EXPECT_THROW((void)pairsWithinPeriodic(std::vector<float>{0, 0}, asFloat(b), 2.0, box),
@@ -367,7 +367,8 @@ TEST(MinimumImageVectors, MatchesMdatk) {
                 context += " " + std::to_string(v);
             }
         }
-        expectSameValues(minimumImageVectors(vectors, box), hexValues(c, "out"), context);
+        // MDBridge's minimum images for every cell shape (AN-04), not MDATK's "out"
+        expectSameValues(minimumImageVectors(vectors, box), hexValues(c, "improved"), context);
     }
     const Vec3 v = minimumImageVector({15.0, -5.0, 4.0}, Box{10, 10, 10, 90, 90, 90});
     EXPECT_EQ(v, (Vec3{-5.0, -5.0, 4.0}));  // 1.5 -> 2, -0.5 -> -0: half to even

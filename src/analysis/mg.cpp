@@ -306,7 +306,7 @@ public:
     MgDescriptor()
         : AnalysisDescriptor({"mg",
                               "Mg coordination",
-                              1,
+                              2,  // 2: MDBridge's periodic geometry (docs/DIFFERENCES.md AN-01 to AN-04)
                               false,
                               2,
                               {{"contacts", "Mg–O inner-sphere contacts"},

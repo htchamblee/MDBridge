@@ -201,7 +201,7 @@ public:
     ContactsDescriptor()
         : AnalysisDescriptor({"contacts",
                               "Pairwise contacts",
-                              1,
+                              2,  // 2: MDBridge's periodic geometry (docs/DIFFERENCES.md AN-01 to AN-04)
                               false,
                               2,
                               {{"atom_pairs", "{a}–{b} heavy-atom contacts"},

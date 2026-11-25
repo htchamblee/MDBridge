@@ -668,7 +668,7 @@ public:
 
 class ProximityDescriptor final : public AnalysisDescriptor {
 public:
-    ProximityDescriptor() : AnalysisDescriptor({"proximity", "Proximity to residue set", 1, true, 0, {}}) {}
+    ProximityDescriptor() : AnalysisDescriptor({"proximity", "Proximity to residue set", 2, true, 0, {}}) {}
 
     ExpectedOutputs expectedOutputs(const core::Project&) const override { return {{}, {"min_distance"}, {}}; }
 

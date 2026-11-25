@@ -12,7 +12,10 @@ functions run in-process. Writes OUT_DIR/spatial_extra_cases.json:
                cutoff and pairs where sqrt(d2) <= r and d2 <= r * r disagree, a sparse spread that
                defeats a cell grid, cutoffs 0 / negative / infinite / NaN, non-finite points
   min_image    minimum_image_vectors(vectors, box) for boxes with and without 90-degree angles
-               (numpy's allclose margins), unusable boxes, half-box ties (np.round: half to even)
+               (numpy's allclose margins), unusable boxes, half-box ties (np.round: half to even):
+               MDATK's result ("out") and MDBridge's improved one ("improved", minimum images for
+               every cell shape, one float32 orthogonality test; docs/DIFFERENCES.md AN-04,
+               improvements_periodic.minimum_image_vectors), which the C++ test expects
   usable_box   _usable_box(box): the box, or None
   kabsch       kabsch(mobile, reference, weights): R, mobile centre, reference centre; random,
                weighted, reflected, coplanar (rank 2), fewer than 3 points
@@ -46,6 +49,9 @@ import numpy as np  # noqa: E402
 from mdatk import spatial as S  # noqa: E402
 from mdatk.analysis.stacking import ring_geometry  # noqa: E402
 from mdatk.render.orientation import euler_to_matrix  # noqa: E402
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import improvements_periodic  # noqa: E402
 
 OUT = os.path.abspath(sys.argv[2])
 rng = np.random.default_rng(20261124)
@@ -190,11 +196,14 @@ def min_image_cases():
     for box in boxes:
         arr = None if box is None else np.asarray(box, dtype=np.float64)
         out = S.minimum_image_vectors(vecs, arr)
-        cases.append({"vectors": hexes(vecs), "box": box_value(box), "out": hexes(out)})
+        improved = improvements_periodic.minimum_image_vectors(vecs, arr) if arr is not None else vecs
+        cases.append({"vectors": hexes(vecs), "box": box_value(box), "out": hexes(out),
+                      "improved": hexes(improved)})
     # float32 box values (ts.dimensions) widened to float64
     box32 = np.array([23.7, 31.3, 27.1, 90.0, 90.0, 90.0], dtype=np.float32)
     cases.append({"vectors": hexes(vecs), "box": box_value(box32.astype(np.float64)),
-                  "out": hexes(S.minimum_image_vectors(vecs, box32))})
+                  "out": hexes(S.minimum_image_vectors(vecs, box32)),
+                  "improved": hexes(improvements_periodic.minimum_image_vectors(vecs, box32))})
     return cases
 
 

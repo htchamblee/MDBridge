@@ -518,6 +518,9 @@ def child(mdatk, jobs_file, results_file):
     import independent_tables
 
     independent_tables.apply()
+    import improvements_periodic
+
+    improvements_periodic.apply_mdatk()  # MDBridge's periodic geometry, analysis versions
     from mdatk import cli
 
     def run(argv):

@@ -4,7 +4,11 @@
 // Rows are exactly the residues of the trace analysis (structureResidues, same order). Pairs are
 // detected with the builtin detector (chem::PairDetector: canonical Watson-Crick and optional G-U
 // wobble pairs, each base in at most one pair) on every stride-th analysed frame and held in
-// between. Distances ignore periodic images (paired bases belong to one molecule).
+// between. Without use_pbc distances ignore periodic images, as in MDATK. With use_pbc and a
+// periodic cell every donor-acceptor and C1'-C1' distance is a minimum-image distance (MDATK found
+// no pairs in a duplex wrapped across a face; docs/DIFFERENCES.md AN-11). Per-distance images
+// rather than whole residues: the distances read are at most 12.5 A, while residues' reference
+// atoms across a pair (P-P about 18 A) can be more than half a small cell apart.
 //
 // Outputs: pair map "map" (value 1 Watson-Crick, 2 wobble, 3 other; each pair once with i < j),
 // series "count" (pairs per frame), array "resindex" and meta residue_labels, engine, stride,
@@ -14,8 +18,10 @@
 // analysis warns and runs the builtin detector instead (meta engine "builtin", no lw_first_frame,
 // noncanonical has no effect); params keep the project's values, so the cache key is MDATK's.
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <memory>
 #include <span>
 #include <string>
@@ -24,6 +30,7 @@
 
 #include "builtin.hpp"
 #include "mdbridge/analysis/analyses.hpp"
+#include "mdbridge/analysis/spatial.hpp"
 #include "mdbridge/chem/secstruct.hpp"
 #include "mdbridge/core/errors.hpp"
 #include "mdbridge/core/selections.hpp"
@@ -100,6 +107,15 @@ public:
                 xyz.push_back(static_cast<double>(frame.positions[at + d]));
             }
         }
+        // with use_pbc and a periodic cell, every distance the detector reads is a minimum-image
+        // distance, so pairs across a face of a wrapped trajectory are found (AN-11)
+        if (const std::optional<PeriodicCell> cell = PeriodicCell::from(context().box(frame))) {
+            const chem::PairDetector::DifferenceImage image = [&cell](const std::array<double, 3>& v) {
+                return cell->minimumImage(v);
+            };
+            m_framePairs[k] = m_detector->detect(xyz, &image);
+            return;
+        }
         m_framePairs[k] = m_detector->detect(xyz);
     }
 
@@ -152,7 +168,7 @@ class BasePairsDescriptor final : public AnalysisDescriptor {
 public:
     BasePairsDescriptor()
         : AnalysisDescriptor(
-              {"basepairs", "Base pairs", 1, true, 0, {{"map", "Base pairs"}, {"count", "Base pairs"}}}) {}
+              {"basepairs", "Base pairs", 2, true, 0, {{"map", "Base pairs"}, {"count", "Base pairs"}}}) {}
 
     core::Table paramsFor(const core::Project& project) const override {
         const core::BasePairParams& bp = project.analyses.basepairs;

@@ -59,9 +59,8 @@ failures, cancellation); ctest runs every analysis parity test with 4 threads an
 
 MDATK's pairs without a periodic box come in the traversal order of scipy's k-d tree, which depends on
 how scipy was built. MDBridge returns them sorted by (i, j). The pair set and every distance are
-identical. With a periodic box (`use_pbc`) MDBridge returns MDAnalysis' order, so nothing below
-applies there. *Why:* a defined order that does not depend on the build of a library. Visible
-consequences without a box:
+identical. With a periodic box (`use_pbc`) the pairs are sorted by (i, j) too (AN-03, below).
+*Why:* a defined order that does not depend on the build of a library. Visible consequences:
 - energy sums over pairs (elec, vdw, net force) can differ in the last bits;
 - H-bond hydrogen guess: a hydrogen exactly as far from two donors goes to the donor with the lowest
   index (MDATK: the first in tree order);
@@ -71,6 +70,71 @@ consequences without a box:
 *Tested:* test_contacts_hbonds.cpp (tie case), test_mg_stacking.cpp (sorted comparison),
 test_structure.cpp, test_energy.cpp (tolerances).
 
+## Periodic geometry (`use_pbc`; src/analysis/spatial.cpp)
+
+MDATK computes periodic pairs with MDAnalysis' `capped_distance` and corrects difference vectors for
+orthorhombic cells only. MDBridge has one float64 minimum image for every cell shape
+(`PeriodicCell` in spatial.hpp) and uses it for the pairs and for every vector. The analyses whose
+periodic results change have version 2 (contacts, energy, hbonds, mg, stacking, proximity,
+basepairs), so caches written before recompute. *Tested:* the expected data of every case with
+`use_pbc` (and of the distance cases) comes from tests/parity/improvements_periodic.py, an
+independent numpy implementation of the same geometry that the generators patch into MDATK
+(bit-identical results); test_periodic.cpp also checks the cases below directly, and the cell list
+against comparing every pair.
+
+- **AN-01 One exact periodic distance.** MDAnalysis' brute-force route scaled each axis difference
+  by L * fl32(1 / L), so every distance was off by up to 2^-24 relative, even for pairs that need no
+  image: a pair at exactly 3.5 Å was kept for L = 25 and dropped for L = 30, and points far outside
+  the cell got errors of up to 0.5 Å (1e10 Å away: 1.48 instead of 1.0). The grid route wrapped in
+  float32. MDBridge takes the difference of the float32 positions in float64 and reduces it by
+  whole cells (v - L * nearbyint(v / L), repeated while |v| > L / 2; triclinic cells along c, b, a
+  and then the shortest of the 27 neighbouring images). A pair needing no image has exactly the
+  open path's distance, and a pair is kept iff d² <= c², the open path's test (MDAnalysis' brute
+  force tested sqrt(d²) <= c). Periodic energies change in about the sixth digit (MDAnalysis' grid
+  wrapped in float32), counts only at boundary pairs. *Why:* results must not depend on the box
+  size or route.
+  *Tested:* distance_cases.json `exact` column (495 cases); test_periodic.cpp
+  ExactBoundaryForEveryBoxSize, FarOutsidePointsAreExact.
+- **AN-02 No size-dependent errors.** `Cutoff must be positive`, `Cutoff <c> too large for box (max
+  <m>)` and `Any of the box dimensions cannot be 0` came only from MDAnalysis' grid route (both sets
+  of at least 10 points and a small cutoff, or n·m >= 1e8), so a project could fail on a large
+  system and work on a small one. MDBridge never raises them: a cell list with bins at least one
+  cutoff wide prunes candidates (all candidates along a direction narrower than three bins; points
+  more than 10^4 cells away are compared with everything), and the result does not depend on the
+  sizes. A cell without periodic geometry (angles that admit no third box vector, an angle outside
+  (0, 180), a non-finite triclinic length) gives plain distances; an orthogonal axis with an
+  infinite or zero length is not periodic. A point with a NaN or infinite coordinate is in no pair.
+  *Tested:* NoSizeDependentErrorsAndSameResultForAnySize, CellListMatchesAllPairs, the former error
+  cases of distance_cases.json.
+- **AN-03 Pair order.** Periodic pairs come sorted by (i, j), as without a box (MDAnalysis: brute
+  force row-major, grid cell by cell with j descending). The consequences listed under "Order effects
+  of the neighbour search" now apply with `use_pbc` too. *Tested:* test_periodic.cpp (sorted order),
+  the `use_pbc` analysis cases.
+- **AN-04 Minimum-image vectors for triclinic cells.** MDATK's `minimum_image_vectors` corrected
+  orthorhombic cells only (angles within `np.allclose` of 90), so H-bond angles, Mg geometry,
+  stacking offsets and the energy net force were wrong across a face of a triclinic cell (net force
+  195 vs 26 kcal/mol/Å for the same system), and for angles such as 90.0005° the pairs used
+  triclinic images while the vectors were not corrected. MDBridge uses the pair search's image for
+  every vector and one orthogonality test everywhere: the three angles exactly 90 after rounding to
+  float32. *Tested:* spatial_extra_cases.json `improved`; systems_cases.json `periodic_tric_*`.
+- **AN-05 Energy net force direction.** MDATK multiplied the real difference vector by the force
+  divided by the clamped distance max(r, 0.5), so for r < 0.5 Å the force was scaled by r / 0.5.
+  MDBridge uses the unit vector times the force at the clamped distance (zero for r = 0); for
+  r >= 0.5 nothing changes, bit for bit. *Tested:* test_energy.cpp
+  NetForceAtClampedDistanceHasFullMagnitude (open and across a face); the energy cases (expected
+  values from the patched MDATK step in improvements_periodic.py).
+- **AN-11 Base pairs on wrapped trajectories.** MDATK ignored the cell, so a duplex wrapped across a
+  face had no base pairs (every `periodic_*` case: 0 per frame). With `use_pbc` and a periodic cell
+  every donor-acceptor and C1'-C1' distance the detector reads is a minimum-image distance; without
+  `use_pbc` nothing changes. The register proposed making each residue pair whole by its first
+  atoms; per-distance images are used instead because the distances read are at most 12.5 Å while
+  reference atoms across a pair (P-P about 18 Å) can be more than half a 25 Å cell apart, where whole
+  residues would pick the wrong image. *Tested:* systems_cases.json `periodic_*_pbc` (basepairs).
+- **AN-12 Stacking rings split by wrapping.** Centroid, normal and planarity came from raw positions,
+  so a ring wrapped atom by atom was "non-planar" and missed. With `use_pbc` each ring atom is put at
+  the minimum image of the ring's first atom first. *Tested:* systems_cases.json `periodic_*_pbc`
+  (stacking).
+
 ## Readers and topologies
 
 - **Self-bonds** (`CONECT 1 1`, kept by MDAnalysis) are dropped; the topology model has none.
@@ -78,10 +142,6 @@ test_structure.cpp, test_energy.cpp (tolerances).
   which depends on the CPU's sort kernel).
 - **parm7 end of file:** the StopIteration carries "<file>: the parm7 file ends unexpectedly" instead
   of an empty message.
-- **Periodic pair search where MDAnalysis is undefined:** a point more than 2^31 cells away is not
-  moved along that vector (MDAnalysis overflows a 32-bit integer); a triclinic box vector with an
-  infinite component is not periodic; a point with a NaN or infinite coordinate is in no pair for
-  triclinic cells too (MDAnalysis reports it at distance 0 from every point, or crashes).
 - **Distance selections** (`around`, `sphzone`, ...) compute distances directly. The grid-search
   artefact of MDAnalysis with cutoff 0 and no box (atoms on opposite faces reported at distance 0) does
   not occur. Pairs at exactly the cutoff may differ.
@@ -128,8 +188,7 @@ test_structure.cpp, test_energy.cpp (tolerances).
 
 ## Planned (from the improvement register; add each entry here when it lands)
 
-Periodic distances and minimum images for every cell (AN-01–AN-04); degenerate RMSD (AN-16); base
-pairs and stacking on wrapped trajectories (AN-11, AN-12); setup-order independence (AN-13, SEL-17);
+Degenerate RMSD (AN-16); setup-order independence (AN-13, SEL-17);
 `prop` operand reversal (SEL-01, SEL-02); per-atom element fallback (SEL-13); reader fixes (RD-*,
 LD-*); validation of every cutoff (PRJ-01); readable messages in place of Python's internal texts
 (SEL-03/04/08, RD-*, CLI-01/03/04).

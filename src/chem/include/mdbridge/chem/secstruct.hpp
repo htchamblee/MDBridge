@@ -17,6 +17,7 @@
 
 #include <array>
 #include <cstdint>
+#include <functional>
 #include <map>
 #include <optional>
 #include <span>
@@ -133,12 +134,18 @@ public:
     PairDetector(std::span<const std::string> resnames, std::span<const AtomIndex> atomIndex,
                  double cutoff = 3.5, bool wobble = true);
 
+    // Maps an atom-atom difference vector (first minus second) to the vector whose length is the
+    // distance, e.g. its periodic minimum image.
+    using DifferenceImage = std::function<std::array<double, 3>(const std::array<double, 3>&)>;
+
     // Every pair meeting a rule, in MDATK's order: rule by rule, first residues in order, partners
     // in order. xyz: 3 values per row (x y z), float64. Throws std::out_of_range when a row the
-    // rules read is not in xyz.
-    std::vector<PairCandidate> candidates(std::span<const double> xyz) const;
+    // rules read is not in xyz. With `image`, every distance the rules read (donor-acceptor and
+    // C1'-C1') is the length of image(p - q) instead of |p - q| (MDBridge's periodic base pairs,
+    // docs/DIFFERENCES.md AN-11).
+    std::vector<PairCandidate> candidates(std::span<const double> xyz, const DifferenceImage* image = nullptr) const;
     // The pairs, sorted by (i, j): candidates taken greedily (see select).
-    std::vector<BasePair> detect(std::span<const double> xyz) const;
+    std::vector<BasePair> detect(std::span<const double> xyz, const DifferenceImage* image = nullptr) const;
 
     // detect's greedy step on given candidates: stable order by (round(score / 0.05) * 0.05 with
     // round half to even, then c1Deviation; NaN last), a candidate is kept when neither residue is

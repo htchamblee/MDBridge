@@ -210,7 +210,11 @@ public:
             const double inv6 = 1.0 / std::pow(d, 6.0);
             eVdw[p] = a * inv6 * inv6 - b * inv6;
             const double deVdw = (-12.0 * a * inv6 * inv6 + 6.0 * b * inv6) / d;
-            fmag[p] = -(deElec + deVdw) / d;
+            // the scalar force at the clamped distance along the unit vector of the real one:
+            // rvec * (F / r) (MDATK divides by the clamped d, which shrinks the force by r / 0.5
+            // for r < 0.5; docs/DIFFERENCES.md AN-05); no direction for r = 0
+            const double r = pairs.d[p];
+            fmag[p] = r > 0 ? -(deElec + deVdw) / r : 0.0;
         }
         m_elec[k] = core::detail::numpySum(std::span<const double>(eElec));
         m_vdw[k] = core::detail::numpySum(std::span<const double>(eVdw));
@@ -224,7 +228,7 @@ public:
             }
         }
         if (box) {
-            rvec = minimumImageVectors(rvec, box);
+            rvec = minimumImageVectors(rvec, box);  // the image the pair search measured
         }
         double total[3] = {0.0, 0.0, 0.0};
         for (std::size_t p = 0; p < n; ++p) {
@@ -280,7 +284,7 @@ public:
     EnergyDescriptor()
         : AnalysisDescriptor({"energy",
                               "Intermolecular energy",
-                              1,
+                              2,  // 2: periodic geometry and force direction (DIFFERENCES.md AN-01-AN-05)
                               false,
                               2,
                               {{"total", "{a}–{b} interaction energy"},
