@@ -46,9 +46,14 @@ expected data is adjusted on the test side; generated files are never edited by 
   improvement below can change its results for real inputs, so caches written before the change are
   not reused. MDBridge has not been released, so one bump (MDATK's version + 1) covers every
   improvement of this release: energy 2 (AN-01-AN-05, AN-07, AN-08, RD-P12's float64 charges,
-  SEL-13, AN-25-AN-27), hbonds 2 (AN-01-AN-04, AN-09, AN-10, SEL-13), rmsd 2 (AN-16-AN-18), proximity 2 (AN-01-AN-04,
-  AN-15, SEL-13), atoms 3 (AN-13, AN-14, SEL-13), contacts 2 and mg 2 (AN-01-AN-04, SEL-13),
-  basepairs 2 (AN-01-AN-04, AN-11, SEL-13), stacking 2 (AN-01-AN-04, AN-12) and trace 5 (SEL-13). The test side gives MDATK's analyses these
+  SEL-13, AN-25-AN-27), hbonds 2 (AN-01-AN-04, AN-09, AN-10, SEL-13, distance-only pairs counted once),
+  rmsd 2 (AN-16-AN-18), proximity 2 (AN-01-AN-04,
+  AN-15, SEL-13), atoms 3 (AN-13, AN-14, SEL-13), contacts 2 (AN-01-AN-04, SEL-13, a group with itself)
+  and mg 2 (AN-01-AN-04, SEL-13),
+  basepairs 2 (AN-01-AN-04, AN-11, SEL-13), stacking 2 (AN-01-AN-04, AN-12) and trace 5 (SEL-13; its key
+  now covers every group). The fixes taken from MDATK 0.1.x ("Fixes adopted from MDATK 0.1.x" below) are
+  in this release's bump; MDATK 0.1.1 numbers its own versions independently (energy 2, hbonds 2,
+  contacts 2, trace 5 mean other results there), which matters only when the parity reference moves. The test side gives MDATK's analyses these
   versions from one table, tests/parity/analysis_versions.py, which regenerate_all.py checks against
   the C++ descriptors.
 
@@ -248,10 +253,20 @@ never rewrapped in MDAnalysis' "Failed to construct topology ..." / ChainReader 
   trajectory's own time step).` for NaN, infinite and negative values, and loadSystem() rejects them
   (MDATK passed them on: NaN or decreasing times). *Tested:* test_project_model.cpp ValidateTimeStep,
   test_loader.cpp InvalidTimeStep, loader_cases.json.
-- **Given vs stored time step (LD-05).** When inputs.dt_ps is given for a file that keeps its own times
-  (NetCDF with a time variable) and the steps differ: `inputs.dt_ps (2.5 ps) differs from the time step
-  in <file> (10.0 ps); the file's times are used`. *Tested:* SystemWarnings, pipeline_cases.json,
-  cli_cases.json.
+- **The time step override replaces the files' times (LD-05).** With `inputs.dt_ps` set, frame k of
+  the trajectory (of the chain, counted from 0) is at k x dt_ps whatever the files' time stamps, for
+  every consumer (analysis time axes, the frame axis without analyses, frames chosen by time); a file
+  that stores its own times with another step says so: `inputs.dt_ps (2.5 ps) replaces the time step in
+  <file> (10.0 ps)`. The cache keys' input fingerprint gets `"time_axis": "frame x dt_ps"` when the
+  override is set, so results cached with the file's times are recomputed. MDATK 0.0.4.1 (MDAnalysis'
+  `dt`) kept a NetCDF file's stored times, so its time axis disagreed with the PDB export by time (frame x
+  dt) and, for a chain of NetCDF files each starting at its own first time, was not monotonic; MDBridge
+  first kept the file's times with a warning. This follows MDATK 0.1.0 (`mdatk/io/loader.py` _FrameTimes,
+  `analysis/base.py` run_analyses, `pipeline.py` input_fingerprint): MDBridge applies it in
+  `io::openTrajectory` / `openTrajectories` (`io::withFrameTimes`) and to coordinates read from the
+  topology file (MDATK 0.1.0's run_analyses uses frame x dt_ps there too). *Tested:* `Loader.SystemWarnings`,
+  trajectory cases.json (every case with a dt), pipeline_cases.json, cli_cases.json, the analysis cases
+  with `inputs.dt_ps`.
 - **No coordinates (LD-06):** `<file> has no coordinates; give a trajectory with --traj` (MDATK:
   AttributeError `No trajectory loaded into Universe`, a traceback in `info`). *Tested:*
   loader_cases.json, cli_cases.json `info_parm7_alone`.
@@ -812,6 +827,77 @@ hbonds 2, rmsd 2, proximity 2, atoms 3 ("Analysis cache" above has every analysi
 - **Unknown structure groups (AN-21).** `WARNING: structural view: unknown residue group 'X' ignored`
   from the trace analysis' setup (once per run of the structural view; MDATK: silent). *Tested:*
   demo_dry_variants structure_unknown_group.
+
+## Fixes adopted from MDATK 0.1.x (analysis)
+
+MDATK fixed these after 0.0.4.1; MDBridge takes MDATK's design (same owner; its code ported), cited per
+entry by version and file. Expected data: MDATK 0.0.4.1 patched to the same behaviour on the test side
+(tests/parity/improvements_analyses.py, improvements_readers_amber.py, improvements_readers_pdb.py,
+improvements_citations.py); the parity tests keep 0.0.4.1 as the reference. No analysis version is bumped
+for them: MDBridge has not been released, and hbonds, contacts and trace already carry this release's one
+bump ("Analysis cache" above).
+
+- **H-bonds by distance only count each atom pair once.** Without the angle (no hydrogens in the
+  topology, or `use_angle = false`) MDATK counted a donor-acceptor pair once per direction when both atoms
+  can donate and accept (every N / O of a heavy-atom PDB, two hydroxyls), inflating the count, maps and
+  per-residue series by up to 2x. Now a pair already counted with the donor in group A is not counted
+  again with the donor in group B (MDATK 0.1.0, `mdatk/analysis/hbonds.py` process(); MDBridge
+  src/analysis/hbonds.cpp process()). Distance-only runs with an angle are unchanged. Measured: the
+  `noh` system (the demo's heavy atoms, no hydrogens; systems_cases.json) 114, 114, 72, 108 -> 57, 57, 36,
+  54 H-bonds over its four frames (every N / O there both donates and accepts, so every pair was counted
+  twice). *Tested:* the
+  `*_distance_only` / `hbonds_no_angle` / `noh*` H-bond cases of micro_cases.json,
+  demo_dry_variants.json and systems_cases.json, pipeline_cases.json, cli_cases.json.
+- **Contacts of a group with itself.** (MDATK 0.1.0, `mdatk/analysis/contacts.py` version 2; MDBridge
+  src/analysis/contacts.cpp; register AN-23, which kept these as conventions.) (1) The map holds each
+  residue pair once (i < j), and `per_res_a` / `per_res_b` counted it on one residue only, so a residue's
+  count depended on index order; now both arrays are each residue's row plus its column (equal). (2)
+  Residues next to each other in sequence (`|resindex difference| <= 1`) are left out only within one
+  chain (`core::chainIds`: chain ID, segment, then bonded fragments): the last residue of a strand and
+  the first of the next (a duplex's closing base pair) are no neighbours and count. (3) The `atom_pairs`
+  series is labelled `A–B atom contacts`, not `heavy-atom contacts`, when hydrogens count
+  (`heavy_only = false`); the output label (`outputLabel`, chart and panel titles) says the same. *Why:*
+  bugs: order-dependent counts, missing contacts of the closing pair, a wrong label. *Tested:*
+  demo_dry_variants.json `contacts_self_duplex` (the demo duplex against itself: per_res_a equals
+  per_res_b; the closing pair 12-13, 14 atom contacts on the first frame, was left out before), the contacts_same_group / contacts_all_atoms cases of
+  micro_cases.json and demo_dry_variants.json; `AnalysisFramework.InstanceKeysAndLabels`.
+- **Structure trace cache key covers every group.** The trace result records every residue group's
+  residues (`group_member`, `group_index`), which colour the view and choose the residues of the 3D
+  representations, but its cache key covered only the groups shown (`visual.structure_groups`) and the
+  Mg selection, so editing a group that is not shown reused a stale trace. Its selection texts (and so
+  the key's `groups`) are now every group plus the Mg selection (MDATK 0.1.0,
+  `mdatk/analysis/structure.py` TraceAnalysis.selection_texts; MDBridge src/analysis/structure.cpp
+  TraceDescriptor). *Tested:* framework_cases.json (selection texts and keys), pipeline_cases.json and
+  cli_cases.json cache keys.
+- **parm7 LJ reader: CHAMBER and CMAP format lines.** MDATK's parm7 section reader (which reads the
+  Lennard-Jones table of the energy analysis) required a repeat count and no inner parentheses in
+  `%FORMAT`, and raised `cannot parse format line` for CHAMBER's `(a80)` (CTITLE) and `(i2,a78)`
+  (FORCE_FIELD_TYPE) and ff19SB's `(8(F9.5))` (CMAP parameters), before checking whether the section was
+  wanted; the energy analysis then warned and fell back to other parameters. Now `(a80)` reads with a
+  repeat count of 1, `(8(F9.5))` as `8F9.5`, and a section whose format still cannot be parsed is
+  skipped when it is not wanted (MDATK 0.1.0, `mdatk/io/parm7.py` `_FMT` and read_sections; MDBridge
+  src/io/parm7.cpp searchFormat / readParm7Sections). The topology reader already skipped such
+  sections. *Tested:* read_cases.json `format_no_count`, `format_inner_parens`,
+  `format_unparsed_unwanted`, `format_unparsed_wanted` (tests/parity/make_parm7_cases.py),
+  `Energy.Parm7WithChamberAndCmapFormatLines` (the demo's parm7 with CHAMBER and CMAP sections gives the
+  same energies, `lj_source` parm7).
+- **Energy metadata `lj_table`; citation resource `generic_lj`.** A run without parm7 parameters records
+  `lj_table`, MDATK 0.1.1's key (`mdatk/analysis/energy.py` finalize, `generic_lj.py` TABLE_NAME): the
+  name of the table its parameters come from, here `Amber force-field residue templates (OpenMM amber14:
+  ff14SB, OL15, OL3, TIP3P with Joung-Cheatham and Li-Merz ions), then Amber parm10 atom types,
+  Joung-Cheatham and Li-Merz (CM) ions for TIP3P (docs/GENERIC_LJ.md)`, after `n_excluded_pairs` as in
+  MDATK; MDBridge's own `lj_source`, `lj_atoms`, `lj_references` and `lj_default_elements` stay (AN-25 -
+  AN-27, CIT-04). `docs/GENERIC_LJ.md` records both layers as MDATK 0.1.1's `docs/GENERIC_LJ.md` records
+  its table: rules, every number with its file, SHA-256 and publication, and a test
+  (`EnergyParameters.GenericLjDocument`) that keeps the document equal to the extracts in
+  data/sources/forcefields. MDATK 0.1.1's citation resource `generic_lj` (`mdatk/citations.py`,
+  `_citation_data.py`) is in the citation table, so its params logs and project citations resolve; its
+  keys are those of MDBridge's typed layer (Cornell 1995, Wang 2000, Jorgensen 1983, Joung 2008, Li
+  2013: MDATK's four plus TIP3P's water oxygen `OW`). It is never a project resource: MDBridge cites the
+  energy parameters per run (CIT-04, CIT-06). The values differ from MDATK 0.1.1's for every run without
+  parm7 (demo duplex, strand against strand: -34.62 kcal/mol from the templates, MDATK 0.1.1 -34.1,
+  parm7 -34.67). *Tested:* `EnergyParameters.AnalysisChargesMetadataAndLog`, the energy metadata of the
+  analysis, pipeline and cli cases, citation_cases.json, `Citations.MethodsByTheirOriginators`.
 
 ## Rendering (milestone 4): overview
 

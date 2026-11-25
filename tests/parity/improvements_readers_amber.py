@@ -16,6 +16,16 @@ copy of a file). Never MDAnalysis code: only behaviour.
   parse() is wrapped (public API: the returned Topology's `charges` values are replaced) so that
   every Universe built from a parm7 file - topology dumps, selections, analyses (energy), the
   command line - carries MDBridge's charges.
+* apply() also gives MDATK's parm7 section reader (mdatk.io.parm7.read_sections, which the energy
+  analysis' LJ table and make_parm7_cases.py use) MDATK 0.1.0's format lines (same owner; its code
+  ported): '(a80)' without a repeat count (CHAMBER's CTITLE), '(8(F9.5))' (ff19SB's CMAP
+  parameters), and a section with a format it cannot parse is skipped when not wanted (CHAMBER's
+  '(i2,a78)'). MDATK 0.0.4.1 raised "cannot parse format line" for all three.
+* apply() also gives MDATK version 0.1.0's time-step override (LD-05; io/loader.py _FrameTimes,
+  pipeline.py input_fingerprint): with inputs.dt_ps set, load_universe's trajectory has frame k at
+  k x dt_ps whatever the files' time stamps, and the cache keys' input fingerprint gets
+  "time_axis": "frame x dt_ps". adjust_trajectory_cases() gives the trajectory cases with a dt the
+  same times (MDBridge's openTrajectories applies the override).
 * adjust_parm7_topologies(...): make_parm7_cases.py's topology variants (RD-P01 ... RD-P14):
   the error texts MDBridge gives, and the topologies of the files MDBridge now reads (dumped by
   MDAnalysis from a repaired copy).
@@ -79,6 +89,8 @@ def apply():
     # the energy results change with the charges: MDBridge's analysis versions (energy 2), from
     # the one table of them (analysis_versions.py), so the order of the improvement modules is moot
     _sibling("analysis_versions").apply_mdatk()
+    _patch_mdatk_parm7()
+    _patch_mdatk_time_step()
     if getattr(TOPParser, "_mdbridge_float64_charges", False):
         return
     original = TOPParser.parse
@@ -92,6 +104,109 @@ def apply():
 
     TOPParser.parse = parse
     TOPParser._mdbridge_float64_charges = True
+
+
+# MDATK 0.1.0, mdatk/io/parm7.py (_FMT and read_sections)
+_FMT_010 = re.compile(r"\(\s*(\d*)\s*\(?\s*([aAiIeEfF])\s*(\d+)(?:\.(\d+))?\s*\)?\s*\)")
+
+
+def _patch_mdatk_parm7():
+    """MDATK's parm7 section reader with MDATK 0.1.0's format lines (idempotent; a no-op without
+    MDATK)."""
+    try:
+        from mdatk.io import parm7
+    except ImportError:
+        return
+    if getattr(parm7, "_mdbridge_format_lines", False):
+        return
+    Section = parm7.Section
+
+    def read_sections(path, wanted=None):
+        wanted_set = set(wanted) if wanted is not None else None
+        out = {}
+        current = None
+
+        def flush():
+            if current is not None and (wanted_set is None or current.name in wanted_set):
+                out[current.name] = current.values()
+
+        with open(path, "r", encoding="utf-8", errors="replace") as fh:
+            for line in fh:
+                if line.startswith("%FLAG"):
+                    flush()
+                    current = Section(line[5:].strip(), 0, "a", 80, [])
+                    continue
+                if line.startswith("%FORMAT"):
+                    if current is None:
+                        continue
+                    m = _FMT_010.search(line)
+                    if not m:
+                        if wanted_set is not None and current.name not in wanted_set:
+                            current = None  # a section nobody asked for (CHAMBER's '(i2,a78)'): not read
+                            continue
+                        raise ValueError(f"{path}: cannot parse format line {line.strip()!r}")
+                    current.count = int(m.group(1) or 1)
+                    current.kind = m.group(2).lower()
+                    current.width = int(m.group(3))
+                    continue
+                if line.startswith("%VERSION") or line.startswith("%COMMENT"):
+                    continue
+                if current is not None and (wanted_set is None or current.name in wanted_set):
+                    current.lines.append(line)
+        flush()
+        return out
+
+    parm7._FMT = _FMT_010
+    parm7.read_sections = read_sections
+    parm7._mdbridge_format_lines = True
+
+
+class _FrameTimes:
+    """MDATK 0.1.0 (io/loader.py): trajectory transformation of the time-step override, the time of
+    frame k is k * dt."""
+
+    def __init__(self, dt_ps):
+        self.dt_ps = dt_ps
+
+    def __call__(self, ts):
+        ts.time = ts.frame * self.dt_ps
+        return ts
+
+
+def _patch_mdatk_time_step():
+    """LD-05: MDATK's load_universe with MDATK 0.1.0's override of the files' times, and its input
+    fingerprint with the "time_axis" entry (idempotent; a no-op without MDATK)."""
+    try:
+        from mdatk.io import loader
+    except ImportError:
+        return
+    if getattr(loader, "_mdbridge_frame_times", False):
+        return
+    original = loader.load_universe
+
+    def load_universe(topology, trajectories=(), dt_ps=None):
+        u = original(topology, trajectories, dt_ps)
+        if dt_ps and dt_ps == dt_ps:  # MDBridge: also coordinates read from the topology file
+            u.trajectory.add_transformations(_FrameTimes(float(dt_ps)))
+        return u
+
+    loader.load_universe = load_universe
+    loader._mdbridge_frame_times = True
+    import sys
+
+    pipeline = sys.modules.get("mdatk.pipeline")
+    if pipeline is None:
+        from mdatk import pipeline
+    pipeline.load_universe = load_universe
+    fingerprint = pipeline.Pipeline.input_fingerprint
+
+    def input_fingerprint(self, inputs):
+        fp = fingerprint(self, inputs)
+        if self.project.inputs.dt_ps:  # results cached with an override before it set the time axis
+            fp["time_axis"] = "frame x dt_ps"
+        return fp
+
+    pipeline.Pipeline.input_fingerprint = input_fingerprint
 
 
 def _sibling(name):
@@ -442,6 +557,15 @@ def adjust_trajectory_cases(cases, tmp, rerun):
             if found:
                 c["warnings"] = found
 
+    # LD-05 (MDATK 0.1.0): a given dt replaces the files' times, frame k at k x dt (after the warnings
+    # above, which compare the files' own steps)
+    for c in cases:
+        dt = float.fromhex(c["dt"]) if c.get("dt") is not None else 0.0
+        if "result" in c and dt:
+            for k, frame in enumerate(c["result"]["frames"]):
+                if "time" in frame:
+                    frame["time"] = (k * dt).hex()
+
 
 NO_TIMES = ": the file has no time information; frames are taken to be 1 ps apart (set inputs.dt_ps for the " \
            "real time step)"
@@ -460,8 +584,7 @@ def _time_step_warning(c, k, f, stored, single):
         return None
     step = float.fromhex(result["frames"][1]["time"]) - float.fromhex(result["frames"][0]["time"])
     if abs(step - dt) > 1e-4 * max(abs(dt), abs(step)):
-        return (f"inputs.dt_ps ({dt!r} ps) differs from the time step in {{path{k}}} ({step!r} ps); the file's "
-                "times are used")
+        return f"inputs.dt_ps ({dt!r} ps) replaces the time step in {{path{k}}} ({step!r} ps)"
     return None
 
 

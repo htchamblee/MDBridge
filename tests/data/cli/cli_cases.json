@@ -852,7 +852,7 @@
    "executable": [],
    "exit": 0,
    "stdout": "{\n  \"n_atoms\": 773,\n  \"n_residues\": 27,\n  \"n_segments\": 1,\n  \"n_frames\": 24,\n  \"dt_ps\": 5.0,\n  \"has_box\": true,\n  \"top_resnames\": {\n    \"C\": 7,\n    \"G\": 7,\n    \"A\": 5,\n    \"U\": 5,\n    \"MG\": 3\n  },\n  \"groups\": {\n    \"Aptamer\": {\n      \"atoms\": 256,\n      \"residues\": 8,\n      \"first\": \"G1\",\n      \"last\": \"C24\"\n    },\n    \"Target\": {\n      \"atoms\": 341,\n      \"residues\": 16,\n      \"first\": \"G5\",\n      \"last\": \"C20\"\n    }\n  },\n  \"problems\": []\n}\n",
-   "stderr": "WARNING: inputs.dt_ps (5.0 ps) differs from the time step in {work}/demo_dry.nc (10.0 ps); the file's times are used\n",
+   "stderr": "WARNING: inputs.dt_ps (5.0 ps) replaces the time step in {work}/demo_dry.nc (10.0 ps)\n",
    "written": {},
    "before_exits": [],
    "posix_only": true
@@ -881,7 +881,7 @@
    "executable": [],
    "exit": 0,
    "stdout": "{\n  \"n_atoms\": 773,\n  \"n_residues\": 27,\n  \"n_segments\": 1,\n  \"n_frames\": 30,\n  \"dt_ps\": 4.0,\n  \"has_box\": true,\n  \"top_resnames\": {\n    \"C\": 7,\n    \"G\": 7,\n    \"A\": 5,\n    \"U\": 5,\n    \"MG\": 3\n  },\n  \"groups\": {\n    \"Aptamer\": {\n      \"atoms\": 388,\n      \"residues\": 12,\n      \"first\": \"G1\",\n      \"last\": \"A12\"\n    },\n    \"Target\": {\n      \"atoms\": 382,\n      \"residues\": 12,\n      \"first\": \"U13\",\n      \"last\": \"C24\"\n    }\n  },\n  \"problems\": []\n}\n",
-   "stderr": "WARNING: inputs.dt_ps (4.0 ps) differs from the time step in {work}/demo_dry.nc (10.0 ps); the file's times are used\n",
+   "stderr": "WARNING: inputs.dt_ps (4.0 ps) replaces the time step in {work}/demo_dry.nc (10.0 ps)\n",
    "written": {},
    "before_exits": [],
    "posix_only": false
@@ -1273,7 +1273,7 @@
    "executable": [],
    "exit": 0,
    "stdout": "{\n  \"pdbs\": [\n    \"{work}/results/snap_00001.pdb\",\n    \"{work}/results/snap_00003.pdb\",\n    \"{work}/results/snap_00020.pdb\"\n  ]\n}\n",
-   "stderr": "[100.0%] inputs ready\nWARNING: inputs.dt_ps (5.0 ps) differs from the time step in {work}/demo_dry.nc (10.0 ps); the file's times are used\nExporting 3 frame(s) (256 atoms) as PDB\n[100.0%] PDB frame 20\n",
+   "stderr": "[100.0%] inputs ready\nWARNING: inputs.dt_ps (5.0 ps) replaces the time step in {work}/demo_dry.nc (10.0 ps)\nExporting 3 frame(s) (256 atoms) as PDB\n[100.0%] PDB frame 20\n",
    "written": {
     "results/snap_00001.pdb": {
      "sha256": "21ead8a632fbc5e9f04f57e397f701f56f39462d1635536c8115ae79d9088816",
@@ -12315,7 +12315,7 @@
    "executable": [],
    "exit": 0,
    "stdout": "{\n  \"cache_manifest\": \"{work}/MDATK_output/MDATK_cache/{manifest}\",\n  \"n_frames\": 3,\n  \"data_keys\": {\n    \"series\": [\n      \"hbonds/count\"\n    ],\n    \"matrices\": [\n      \"hbonds/per_residue_a\",\n      \"hbonds/per_residue_b\"\n    ],\n    \"pairmaps\": [\n      \"hbonds/map\"\n    ]\n  }\n}\n",
-   "stderr": "WARNING: inputs.dt_ps (2.5 ps) differs from the time step in {work}/demo_dry.nc (10.0 ps); the file's times are used\nPreparing Hydrogen bonds ...\nAnalysing 3 frame(s): Hydrogen bonds\n[100.0%] Analysing frame 3/3\n[100.0%] analysis done\n",
+   "stderr": "WARNING: inputs.dt_ps (2.5 ps) replaces the time step in {work}/demo_dry.nc (10.0 ps)\nPreparing Hydrogen bonds ...\nAnalysing 3 frame(s): Hydrogen bonds\n[100.0%] Analysing frame 3/3\n[100.0%] analysis done\n",
    "written": {
     "MDATK_output/MDATK_cache/hbonds-{key}.json": {
      "json": {
@@ -12488,7 +12488,7 @@
        [
         3
        ],
-       "[190.0,210.0,230.0]"
+       "[47.5,52.5,57.5]"
       ]
      ]
     },
@@ -12516,7 +12516,8 @@
          "stop": null,
          "step": 2
         },
-        "dt_ps": 2.5
+        "dt_ps": 2.5,
+        "time_axis": "frame x dt_ps"
        },
        "cleaning_key": null,
        "topology": "{work}/demo_dry.parm7",
@@ -12535,9 +12536,9 @@
       "time_axis": {
        "unit": "ps",
        "n": 3,
-       "start": 190.0,
-       "end": 230.0,
-       "dt": 20.0
+       "start": 47.5,
+       "end": 57.5,
+       "dt": 5.0
       },
       "groups": [
        {
@@ -17521,7 +17522,7 @@
    "executable": [],
    "exit": 0,
    "stdout": "{\n  \"cache_manifest\": \"{work}/results/MDATK_cache/{manifest}\",\n  \"n_frames\": 24,\n  \"data_keys\": {\n    \"series\": [\n      \"rmsd@Aptamer/Heavy\",\n      \"rmsd@Aptamer/Backbone\",\n      \"hbonds/count\"\n    ],\n    \"matrices\": [\n      \"hbonds/per_residue_a\",\n      \"hbonds/per_residue_b\"\n    ],\n    \"pairmaps\": [\n      \"hbonds/map\"\n    ]\n  }\n}\n",
-   "stderr": "WARNING: inputs.dt_ps (5.0 ps) differs from the time step in {work}/demo_dry.nc (10.0 ps); the file's times are used\nPreparing RMSD ...\nPreparing Hydrogen bonds ...\nAnalysing 24 frame(s): RMSD, Hydrogen bonds\n[100.0%] Analysing frame 24/24\n[100.0%] analysis done\n",
+   "stderr": "WARNING: inputs.dt_ps (5.0 ps) replaces the time step in {work}/demo_dry.nc (10.0 ps)\nPreparing RMSD ...\nPreparing Hydrogen bonds ...\nAnalysing 24 frame(s): RMSD, Hydrogen bonds\n[100.0%] Analysing frame 24/24\n[100.0%] analysis done\n",
    "written": {
     "results/MDATK_cache/hbonds-{key}.json": {
      "json": {
@@ -17694,7 +17695,7 @@
        [
         24
        ],
-       "[0.0,10.0,20.0,30.0,40.0,50.0,60.0,70.0,80.0,90.0,100.0,110.0,120.0,130.0,140.0,150.0,160.0,170.0,180.0,190.0,200.0,210.0,220.0,230.0]"
+       "[0.0,5.0,10.0,15.0,20.0,25.0,30.0,35.0,40.0,45.0,50.0,55.0,60.0,65.0,70.0,75.0,80.0,85.0,90.0,95.0,100.0,105.0,110.0,115.0]"
       ]
      ]
     },
@@ -17782,7 +17783,7 @@
        [
         24
        ],
-       "[0.0,10.0,20.0,30.0,40.0,50.0,60.0,70.0,80.0,90.0,100.0,110.0,120.0,130.0,140.0,150.0,160.0,170.0,180.0,190.0,200.0,210.0,220.0,230.0]"
+       "[0.0,5.0,10.0,15.0,20.0,25.0,30.0,35.0,40.0,45.0,50.0,55.0,60.0,65.0,70.0,75.0,80.0,85.0,90.0,95.0,100.0,105.0,110.0,115.0]"
       ]
      ]
     },
@@ -17810,7 +17811,8 @@
          "stop": null,
          "step": 1
         },
-        "dt_ps": 5.0
+        "dt_ps": 5.0,
+        "time_axis": "frame x dt_ps"
        },
        "cleaning_key": null,
        "topology": "{work}/demo_dry.parm7",
@@ -17830,8 +17832,8 @@
        "unit": "ps",
        "n": 24,
        "start": 0.0,
-       "end": 230.0,
-       "dt": 10.0
+       "end": 115.0,
+       "dt": 5.0
       },
       "groups": [
        {
