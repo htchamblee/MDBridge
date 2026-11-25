@@ -130,6 +130,12 @@ MACHINE_DEPENDENT = {
     "tests/data/analysis/demo_dry_variants.json",
     "tests/data/analysis/micro_cases.json",
     "tests/data/analysis/systems_cases.json",
+    # make_molecule_geometry_cases.py pins the same kernels; its spline weights go through a small
+    # BLAS matmul and its Gaussian kernels through np.exp, so a runner with other kernels may move
+    # the last bits of these (the C++ test compares them within 1e-5 A)
+    "tests/data/render/molecule_geometry/styles.json",
+    "tests/data/render/molecule_geometry/scenes.json",
+    "tests/data/render/molecule_geometry/ndimage.json",
 }
 # The JSON records of the render generators (make_figure_cases.py, make_chart_cases.py,
 # make_molecule_cases.py): view rotations and the trace's projection go through BLAS products
@@ -304,6 +310,8 @@ STEPS = [
          [f"{DATA}/render/molecule"]),
     Step("render_cli", "tests/parity/make_render_cli_cases.py", lambda ctx: [M(ctx), d(ctx, "render")],
          [f"{DATA}/render/cli"]),
+    # milestone 4: the 3D representations' geometry (W0-F; the demo files written above)
+    case_step("molecule_geometry", "make_molecule_geometry_cases.py", "render/molecule_geometry"),
 ]
 
 

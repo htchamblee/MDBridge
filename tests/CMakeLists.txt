@@ -126,6 +126,15 @@ target_compile_definitions(mdbridge_render_core_tests PRIVATE MDBRIDGE_TEST_DATA
 mdbridge_target_warnings(mdbridge_render_core_tests)
 gtest_discover_tests(mdbridge_render_core_tests DISCOVERY_MODE PRE_TEST)
 
+# render/molecule: the 3D representations' geometry (topology roles, styles, Gaussian surface,
+# scene colours, the scipy filters) against MDATK (data/render/molecule_geometry,
+# tests/parity/make_molecule_geometry_cases.py); no Qt
+add_executable(mdbridge_molecule_tests render/test_molecule_geometry.cpp)
+target_link_libraries(mdbridge_molecule_tests PRIVATE mdbridge::render_molecule mdbridge::core GTest::gtest_main)
+target_compile_definitions(mdbridge_molecule_tests PRIVATE MDBRIDGE_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data")
+mdbridge_target_warnings(mdbridge_molecule_tests)
+gtest_discover_tests(mdbridge_molecule_tests DISCOVERY_MODE PRE_TEST)
+
 # the committed SPIR-V matches the shader sources (tools/compile_shaders.py)
 add_test(NAME render.shaders_up_to_date
          COMMAND ${CMAKE_COMMAND} -DSHADER_DIR=${PROJECT_SOURCE_DIR}/src/render/shaders

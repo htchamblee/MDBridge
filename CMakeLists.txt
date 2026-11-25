@@ -45,6 +45,7 @@ add_subdirectory(src/io)
 add_subdirectory(src/chem)
 add_subdirectory(src/analysis)
 add_subdirectory(src/render/core)  # the render module's Qt-free part
+add_subdirectory(src/render/molecule)  # 3D representation geometry; no Qt
 if(MDBRIDGE_BUILD_APP OR MDBRIDGE_BUILD_TESTS)
     add_subdirectory(src/app/commands)  # the command line's MDATK commands; no Qt
 endif()
