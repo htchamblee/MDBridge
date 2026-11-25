@@ -1,0 +1,248 @@
+{
+ "case": "matrix_series",
+ "description": "matrix keys in the series list: matrix charts after the series, each once (RN-10)",
+ "input": "demo_dry",
+ "overrides": ["output.charts.series=[\"mg/occupancy\", \"rmsd/Complex\", \"contacts/per_residue_a\", \"mg/occupancy\"]","output.charts.dpi=80"],
+ "project": {
+  "notes": "",
+  "inputs": {"topology":"{data}/topology/demo_dry.parm7","trajectories":["{data}/io/trajectories/demo_dry.nc"],"start":0,"stop":null,"step":1,"dt_ps":null,"time_unit":"ns","external":[]},
+  "cleaning": {"enabled":false,"cpptraj_path":"cpptraj","conda_env":"","conda_exe":"","solvent_mask":":WAT,HOH,TIP3,SOL,T3P,T4P,SPC","ion_mask":":Na+,Cl-,K+,NA,CL,K,Na,Cl,SOD,CLA,POT","extra_strip_mask":"","autoimage":true,"autoimage_anchor":"","fit":true,"fit_mask":"@P,C4'","fit_reference":"first","remove_box_after_fit":true,"reference_frame":1,"reference_file":"","start":1,"stop":null,"offset":1,"extra_commands":"","output_dir":""},
+  "groups": [{"name":"Aptamer","residues":"1-12","selection":"","color":"#2a78d6"},{"name":"Target","residues":"13-24","selection":"","color":"#eb6834"}],
+  "analyses": {
+   "rmsd": {"enabled":true,"targets":[{"label":"Complex","selection":"(group:Aptamer or group:Target) and not name H*","fit_selection":""},{"label":"Backbone","selection":"(group:Aptamer or group:Target) and name C4'","fit_selection":""}],"reference_frame":0,"superposition":true,"mass_weighted":false},
+   "contacts": {"enabled":true,"group_a":"Aptamer","group_b":"Target","cutoff":4.5,"heavy_only":true},
+   "hbonds": {"enabled":true,"group_a":"Aptamer","group_b":"Target","distance_cutoff":3.5,"use_angle":true,"angle_cutoff":135.0,"donor_elements":"N,O","acceptor_elements":"N,O"},
+   "mg": {"enabled":true,"mg_selection":"resname MG Mg MG2 or name MG Mg","ligand_selection":"group:Aptamer or group:Target","ligand_elements":"O","group_a":"Aptamer","group_b":"Target","inner_cutoff":2.6,"outer_cutoff":4.5,"bridge_shell":"inner","geometry":false,"angle_tolerance":25.0,"occupancy_selection":"","occupancy_elements":"N,O"},
+   "stacking": {"enabled":true,"selection":"group:Aptamer or group:Target","scope":"all","group_a":"Aptamer","group_b":"Target","distance_cutoff":4.5,"angle_cutoff":30.0,"offset_cutoff":2.5,"planarity_cutoff":0.25},
+   "energy": {"enabled":true,"group_a":"Aptamer","group_b":"Target","cutoff":12.0,"dielectric":4.0,"distance_dependent":true,"use_parm7":true,"target_value":-60.0,"exclude_bonded":3},
+   "basepairs": {"engine":"builtin","stride":10,"cutoff":3.5,"wobble":true,"noncanonical":false},
+   "use_pbc": false,
+   "proximity_search_radius": 8.0
+  },
+  "visual": {"structure_groups":[],"trace_atoms":"C4',CA","representations":[],"renderer":"auto","rep_rest":"trace","backbone_atom":"P","rep_hydrogens":false,"show_ions":true,"align_frames":true,"rotation":[-90.0,0.0,0.0],"zoom":1.0,"center_on":"","center_follow":false,"color_mode":"groups","base_color":"#b5b3ad","chain_palette":"tab10","proximity_set":"Target","proximity_cutoff":4.0,"proximity_color":"#e34948","glow_mode":"fade","glow_color":"#ffb000","fade_frames":15,"glow_strength":1.0,"ion_color":"#008300","line_width":2.2,"point_size":22.0,"depth_cue":true,"theme":"light","font_size":11.0,"show_time_label":true,"label_every":0,"label_residues":"","title":""},
+  "density": {"map_path":"","show":true,"resolution":5.0,"level":2.0,"color":"#2a78d6","opacity":0.45,"front":false,"fit_frame":"ref","search":"global","angular_step":30.0,"auto_fit":true,"transform":[],"anchor":[],"fit_cc":0.0,"fit_info":""},
+  "layout": {"preset":"large_plus_4","panels":[{"type":"structure","series":[],"title":"Structure","options":{}},{"type":"timeseries","series":["rmsd/Complex"],"title":"RMSD","options":{}},{"type":"timeseries","series":["hbonds/count"],"title":"Inter-strand H-bonds","options":{}},{"type":"contact_map","series":["contacts/map"],"title":"","options":{"mode":"instant","transpose":true}},{"type":"heatmap","series":["mg/occupancy"],"title":"Mg occupancy","options":{}}]},
+  "output": {"out_dir":"{work}/out","cache_dir":"","video":{"enabled":true,"filename":"MDATK_video.mp4","fps":24,"width":1920,"height":1080,"dpi":120,"codec":"libx264","crf":20,"frame_stride":1,"ffmpeg_path":"ffmpeg"},"charts":{"enabled":true,"series":["mg/occupancy","rmsd/Complex","contacts/per_residue_a","mg/occupancy"],"include_heatmaps":false,"formats":["png"],"dpi":80,"width":8.0,"height":4.5,"style":"mdatk","color":"","line_width":1.5,"title":"","xlabel":"","ylabel":"","smoothing":0,"show_target":true,"prefix":"MDATK_chart"},"pdb":{"enabled":true,"frames":"0, last","times":"120ps","selection":"Aptamer, Target","prefix":"MDATK_frame"},"write_params_log":true,"timestamp_files":true},
+  "workflow": {"project_name":"project","stamp":"","use_stamp":true,"out_dir":"","step_folders":true,"nodes":[],"edges":[],"scratch":[]}
+ },
+ "stamp": "",
+ "improvements": ["D5","RN-01","RN-04","RN-05","RN-10","RN-11","RN-14","RN-50"],
+ "paths": ["{out}/out/MDATK_chart_rmsd_Complex.png","{out}/out/MDATK_chart_mg_occupancy.png","{out}/out/MDATK_chart_contacts_per_residue_a.png"],
+ "log": ["Wrote 3 chart file(s) to {out}/out"],
+ "progress": [["0x1.5555555555555p-2","Chart rmsd/Complex"],["0x1.5555555555555p-1","Chart mg/occupancy"],["0x1.0000000000000p+0","Chart contacts/per_residue_a"]],
+ "messages": ["INFO Wrote 3 chart file(s) to {out}/out"],
+ "charts": [
+  {
+   "key": "rmsd/Complex",
+   "kind": "series",
+   "files": [{"path":"{out}/out/MDATK_chart_rmsd_Complex.png","format":"png","magic":"89504e470d0a1a0a","bytes_nonzero":true,"size_px":[640,360]}],
+   "figure": {
+    "size_px": [640,360],
+    "dpi": 80.0,
+    "facecolor": [0.9882352941176471,0.9882352941176471,0.984313725490196,1.0],
+    "suptitle": null,
+    "texts": [],
+    "axes": [
+     {
+      "id": "ax0",
+      "position_px": [42.64284479166666,37.031733680555554,636.6664,339.99973333333327],
+      "tight_px": [3.3335999999999917,3.333599999999999,636.6664,356.66639999999995],
+      "facecolor": [0.9882352941176471,0.9882352941176471,0.984313725490196,1.0],
+      "visible": true,
+      "axison": true,
+      "xlim": [0.0,0.23],
+      "ylim": [-0.0799163088,1.6782424848000002],
+      "aspect": "auto",
+      "zorder": 0.0,
+      "titles": {"left":{"id":"ax0/title_left","kind":"text","zorder":3.0,"visible":true,"alpha":null,"animated":false,"text":"RMSD Complex","xy":[0.0,1.0],"coords":"other","ha":"left","va":"baseline","color":[0.043137254901960784,0.043137254901960784,0.043137254901960784,1.0],"size":11.0,"weight":"normal","style":"normal","family":["sans-serif"],"rotation":0.0,"clip_on":true,"wrap":false,"extent_px":[42.64284479166666,343.66639999999995,133.42409479166668,356.66639999999995]}},
+      "spines": {"left":{"visible":true,"color":[0.7647058823529411,0.7607843137254902,0.7176470588235294,1.0],"lw":0.8},"right":{"visible":false,"color":[0.0,0.0,0.0,1.0],"lw":0.8},"bottom":{"visible":true,"color":[0.7647058823529411,0.7607843137254902,0.7176470588235294,1.0],"lw":0.8},"top":{"visible":false,"color":[0.0,0.0,0.0,1.0],"lw":0.8}},
+      "xaxis": {
+       "label": {"text":"Time (ns)","color":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"size":9.9,"extent_px":[313.3264973958333,3.333599999999999,365.9827473958333,14.976178124999999]},
+       "scale": "linear",
+       "inverted": false,
+       "visible": true,
+       "ticks": [[0.0,"0.00",true,false],[0.05,"0.05",true,false],[0.1,"0.10",true,false],[0.15000000000000002,"0.15",true,false],[0.2,"0.20",true,false]],
+       "tick_style": {"tick1":true,"tick2":false,"label1":true,"label2":false,"color":[0.5372549019607843,0.5294117647058824,0.5058823529411764,1.0],"length":3.0,"width":0.6,"labelcolor":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"labelsize":9.35,"rotation":0.0,"gridOn":true,"grid":{"color":[0.8823529411764706,0.8784313725490196,0.8509803921568627,1.0],"lw":0.6,"ls":"-"}},
+       "offset_text": "",
+       "locator": {"class":"AutoLocator","nbins":"auto","steps":[1.0,2.0,2.5,5.0,10.0],"integer":false,"min_n_ticks":2,"symmetric":false,"prune":null,"tick_space":19,"auto_nbins":9},
+       "formatter": {"class":"ScalarFormatter","offset":0.0,"orderOfMagnitude":0,"format":"%1.2f","useMathText":false,"useOffset":true}
+      },
+      "yaxis": {
+       "label": {"text":"RMSD Complex (Å)","color":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"size":9.9,"extent_px":[3.3335999999999917,135.60948350694443,15.976178124999999,241.42198350694443]},
+       "scale": "linear",
+       "inverted": false,
+       "visible": true,
+       "ticks": [[0.0,"0.0",true,false],[0.2,"0.2",true,false],[0.4000000000000001,"0.4",true,false],[0.6000000000000001,"0.6",true,false],[0.8,"0.8",true,false],[1.0000000000000002,"1.0",true,false],[1.2000000000000002,"1.2",true,false],[1.4000000000000001,"1.4",true,false],[1.6,"1.6",true,false]],
+       "tick_style": {"tick1":true,"tick2":false,"label1":true,"label2":false,"color":[0.5372549019607843,0.5294117647058824,0.5058823529411764,1.0],"length":3.0,"width":0.6,"labelcolor":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"labelsize":9.35,"rotation":0.0,"gridOn":true,"grid":{"color":[0.8823529411764706,0.8784313725490196,0.8509803921568627,1.0],"lw":0.6,"ls":"-"}},
+       "offset_text": "",
+       "locator": {"class":"AutoLocator","nbins":"auto","steps":[1.0,2.0,2.5,5.0,10.0],"integer":false,"min_n_ticks":2,"symmetric":false,"prune":null,"tick_space":14,"auto_nbins":9},
+       "formatter": {"class":"ScalarFormatter","offset":0.0,"orderOfMagnitude":0,"format":"%1.1f","useMathText":false,"useOffset":true}
+      },
+      "artists": [{"id":"ax0/0","kind":"line","zorder":2.0,"visible":true,"alpha":null,"animated":false,"label":"RMSD Complex","x":[0.0,0.01,0.02,0.03,0.04,0.05,0.06,0.07,0.08,0.09,0.1,0.11,0.12,0.13,0.14,0.15,0.16,0.17,0.18,0.19,0.2,0.21,0.22,0.23],"y":[0.0,0.2894586496,0.2861828311,0.2857244546,0.2993893912,0.2933016995,0.2925160173,0.2826236512,0.4768154757,1.077474654,1.545306283,1.578631678,1.590748226,1.590714867,1.598326176,1.588462863,1.255736955,0.6233123267,0.3028492996,0.2907242131,0.2907708441,0.2881248696,0.2926872903,0.2994213838],"color":[0.16470588235294117,0.47058823529411764,0.8392156862745098,1.0],"lw":1.5,"ls":"-","dashes":null,"marker":"None","ms":6.0,"mfc":[0.16470588235294117,0.47058823529411764,0.8392156862745098,1.0],"mec":[0.16470588235294117,0.47058823529411764,0.8392156862745098,1.0],"mew":1.0,"drawstyle":"default","solid_capstyle":"projecting","transform":"data"}]
+     }
+    ]
+   }
+  },
+  {
+   "key": "mg/occupancy",
+   "kind": "matrix",
+   "files": [{"path":"{out}/out/MDATK_chart_mg_occupancy.png","format":"png","magic":"89504e470d0a1a0a","bytes_nonzero":true,"size_px":[640,465]}],
+   "figure": {
+    "size_px": [640,465],
+    "dpi": 80.0,
+    "facecolor": [0.9882352941176471,0.9882352941176471,0.984313725490196,1.0],
+    "suptitle": null,
+    "texts": [],
+    "axes": [
+     {
+      "id": "ax0",
+      "position_px": [45.64284479166667,37.031733680555554,511.0460145833333,446.31370902777786],
+      "tight_px": [3.3336000000000006,3.333599999999999,511.0460145833333,462.2664000000001],
+      "facecolor": [0.9882352941176471,0.9882352941176471,0.984313725490196,1.0],
+      "visible": true,
+      "axison": true,
+      "xlim": [-0.005,0.23500000000000001],
+      "ylim": [23.5,-0.5],
+      "aspect": "auto",
+      "zorder": 0.0,
+      "titles": {"left":{"id":"ax0/title_left","kind":"text","zorder":3.0,"visible":true,"alpha":null,"animated":false,"text":"Mg occupancy","xy":[0.0,1.0],"coords":"other","ha":"left","va":"baseline","color":[0.043137254901960784,0.043137254901960784,0.043137254901960784,1.0],"size":11.0,"weight":"normal","style":"normal","family":["sans-serif"],"rotation":0.0,"clip_on":true,"wrap":false,"extent_px":[45.64284479166667,449.98037569444455,133.64284479166668,462.2664000000001]}},
+      "spines": {"left":{"visible":true,"color":[0.7647058823529411,0.7607843137254902,0.7176470588235294,1.0],"lw":0.8},"right":{"visible":false,"color":[0.0,0.0,0.0,1.0],"lw":0.8},"bottom":{"visible":true,"color":[0.7647058823529411,0.7607843137254902,0.7176470588235294,1.0],"lw":0.8},"top":{"visible":false,"color":[0.0,0.0,0.0,1.0],"lw":0.8}},
+      "xaxis": {
+       "label": {"text":"Time (ns)","color":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"size":9.9,"extent_px":[252.0163046875,3.333599999999999,304.6725546875,14.976178124999999]},
+       "scale": "linear",
+       "inverted": false,
+       "visible": true,
+       "ticks": [[0.0,"0.00",true,false],[0.05,"0.05",true,false],[0.10000000000000002,"0.10",true,false],[0.15000000000000002,"0.15",true,false],[0.2,"0.20",true,false]],
+       "tick_style": {"tick1":true,"tick2":false,"label1":true,"label2":false,"color":[0.5372549019607843,0.5294117647058824,0.5058823529411764,1.0],"length":3.0,"width":0.6,"labelcolor":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"labelsize":9.35,"rotation":0.0,"gridOn":false,"grid":{"color":[0.6901960784313725,0.6901960784313725,0.6901960784313725,1.0],"lw":0.8,"ls":"-"}},
+       "offset_text": "",
+       "locator": {"class":"AutoLocator","nbins":"auto","steps":[1.0,2.0,2.5,5.0,10.0],"integer":false,"min_n_ticks":2,"symmetric":false,"prune":null,"tick_space":14,"auto_nbins":9},
+       "formatter": {"class":"ScalarFormatter","offset":0.0,"orderOfMagnitude":0,"format":"%1.2f","useMathText":false,"useOffset":true}
+      },
+      "yaxis": {
+       "label": {"text":"Residue","color":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"size":9.9,"extent_px":[3.3336000000000006,219.42272135416673,14.976178125000004,263.9227213541667]},
+       "scale": "linear",
+       "inverted": true,
+       "visible": true,
+       "ticks": [[0.0,"G1",true,false],[1.0,"C2",true,false],[2.0,"A3",true,false],[3.0,"U4",true,false],[4.0,"G5",true,false],[5.0,"G6",true,false],[6.0,"C7",true,false],[7.0,"A8",true,false],[8.0,"U9",true,false],[9.0,"C10",true,false],[10.0,"G11",true,false],[11.0,"A12",true,false],[12.0,"U13",true,false],[13.0,"C14",true,false],[14.0,"G15",true,false],[15.0,"A16",true,false],[16.0,"U17",true,false],[17.0,"G18",true,false],[18.0,"C19",true,false],[19.0,"C20",true,false],[20.0,"A21",true,false],[21.0,"U22",true,false],[22.0,"G23",true,false],[23.0,"C24",true,false]],
+       "tick_style": {"tick1":true,"tick2":false,"label1":true,"label2":false,"color":[0.5372549019607843,0.5294117647058824,0.5058823529411764,1.0],"length":3.0,"width":0.6,"labelcolor":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"labelsize":8.0,"rotation":0.0,"gridOn":false,"grid":{"color":[0.6901960784313725,0.6901960784313725,0.6901960784313725,1.0],"lw":0.8,"ls":"-"}},
+       "offset_text": "",
+       "locator": {"class":"FixedLocator","locs":[0.0,1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0,10.0,11.0,12.0,13.0,14.0,15.0,16.0,17.0,18.0,19.0,20.0,21.0,22.0,23.0],"nbins":null},
+       "formatter": {"class":"FuncFormatter"}
+      },
+      "artists": [{"id":"ax0/0","kind":"image","zorder":0.0,"visible":true,"alpha":null,"animated":false,"shape":[24,24],"extent":[-0.005,0.23500000000000001,23.5,-0.5],"origin":"upper","interpolation":"nearest","dtype":"float64","cmap":"unnamed","vmin":-0.5,"vmax":2.5,"masked":0,"x_edges":[-0.005,0.005,0.015,0.025,0.035,0.045,0.055,0.065,0.07500000000000001,0.08499999999999999,0.095,0.10500000000000001,0.11499999999999999,0.125,0.135,0.14500000000000002,0.155,0.165,0.175,0.185,0.195,0.20500000000000002,0.215,0.225,0.23500000000000001]}]
+     },
+     {
+      "id": "ax1",
+      "position_px": [534.3161730729166,37.031733680555554,554.7802718402777,446.31370902777786],
+      "tight_px": [534.3161730729166,37.031733680555554,635.3080496180555,446.31370902777786],
+      "facecolor": [1.0,1.0,1.0,1.0],
+      "visible": true,
+      "axison": true,
+      "xlim": [0.0,1.0],
+      "ylim": [-0.5,2.5],
+      "aspect": "auto",
+      "zorder": 0.0,
+      "titles": {},
+      "spines": {"left":{"visible":false,"color":[0.0,0.0,0.0,1.0],"lw":0.8},"right":{"visible":false,"color":[0.0,0.0,0.0,1.0],"lw":0.8},"bottom":{"visible":false,"color":[0.0,0.0,0.0,1.0],"lw":0.8},"top":{"visible":false,"color":[0.0,0.0,0.0,1.0],"lw":0.8},"outline":{"visible":true,"color":[0.8823529411764706,0.8784313725490196,0.8509803921568627,1.0],"lw":0.8}},
+      "xaxis": {"label":{"text":"","color":[0.0,0.0,0.0,1.0],"size":10.0,"extent_px":null},"scale":"linear","inverted":false,"visible":true,"ticks":[],"tick_style":{"tick1":true,"tick2":false,"label1":true,"label2":false,"color":[0.5372549019607843,0.5294117647058824,0.5058823529411764,1.0],"length":3.5,"width":0.8,"labelcolor":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"labelsize":10.0,"rotation":0.0,"gridOn":false,"grid":{"color":[0.6901960784313725,0.6901960784313725,0.6901960784313725,1.0],"lw":0.8,"ls":"-"}},"offset_text":"","locator":{"class":"FixedLocator","locs":[],"nbins":null},"formatter":{"class":"ScalarFormatter","offset":0.0,"orderOfMagnitude":0,"format":"","useMathText":false,"useOffset":true}},
+      "yaxis": {"label":{"text":"","color":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"size":10.0,"extent_px":null},"scale":"linear","inverted":false,"visible":true,"ticks":[[0.0,"none",false,true],[1.0,"outer sphere",false,true],[2.0,"inner sphere",false,true]],"tick_style":{"tick1":false,"tick2":true,"label1":false,"label2":true,"color":[0.5372549019607843,0.5294117647058824,0.5058823529411764,1.0],"length":3.5,"width":0.8,"labelcolor":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"labelsize":10.0,"rotation":0.0,"gridOn":false,"grid":{"color":[0.6901960784313725,0.6901960784313725,0.6901960784313725,1.0],"lw":0.8,"ls":"-"}},"offset_text":"","locator":{"class":"FixedLocator","locs":[0.0,1.0,2.0],"nbins":3},"formatter":{"class":"FuncFormatter"}},
+      "colorbar": {"mappable":"ax0/0","orientation":"vertical","vmin":-0.5,"vmax":2.5,"norm":"Normalize","cmap":{"name":"unnamed","N":3,"over":[0.050980392156862744,0.21176470588235294,0.4196078431372549,1.0],"under":[0.8823529411764706,0.8784313725490196,0.8509803921568627,1.0],"bad":[0.0,0.0,0.0,0.0]},"boundaries":[-0.5,0.5,1.5,2.5],"values":[0.0,1.0,2.0],"extend":"neither","outline":{"color":[0.8823529411764706,0.8784313725490196,0.8509803921568627,1.0],"lw":0.8},"label":""},
+      "artists": [{"id":"ax1/0","kind":"segments","zorder":2.0,"visible":true,"alpha":null,"animated":false,"segments":[],"colors":[[0.0,0.0,0.0,1.0]],"linewidths":[0.4],"capstyle":null,"linestyles":["(np.float64(0.0), None)"]},{"id":"ax1/1","kind":"other","zorder":1.0,"visible":true,"alpha":null,"animated":false,"class":"QuadMesh"}]
+     }
+    ]
+   }
+  },
+  {
+   "key": "contacts/per_residue_a",
+   "kind": "matrix",
+   "files": [{"path":"{out}/out/MDATK_chart_contacts_per_residue_a.png","format":"png","magic":"89504e470d0a1a0a","bytes_nonzero":true,"size_px":[640,360]}],
+   "figure": {
+    "size_px": [640,360],
+    "dpi": 80.0,
+    "facecolor": [0.9882352941176471,0.9882352941176471,0.984313725490196,1.0],
+    "suptitle": null,
+    "texts": [],
+    "axes": [
+     {
+      "id": "ax0",
+      "position_px": [45.64284479166667,37.031733680555554,557.1931555902778,339.99973333333327],
+      "tight_px": [3.3336000000000006,3.333599999999999,557.1931555902778,356.66639999999995],
+      "facecolor": [0.9882352941176471,0.9882352941176471,0.984313725490196,1.0],
+      "visible": true,
+      "axison": true,
+      "xlim": [-0.005,0.23500000000000001],
+      "ylim": [11.5,-0.5],
+      "aspect": "auto",
+      "zorder": 0.0,
+      "titles": {"left":{"id":"ax0/title_left","kind":"text","zorder":3.0,"visible":true,"alpha":null,"animated":false,"text":"Aptamer residue contacts with Target","xy":[0.0,1.0],"coords":"other","ha":"left","va":"baseline","color":[0.043137254901960784,0.043137254901960784,0.043137254901960784,1.0],"size":11.0,"weight":"normal","style":"normal","family":["sans-serif"],"rotation":0.0,"clip_on":true,"wrap":false,"extent_px":[45.64284479166667,343.66639999999995,272.1428447916667,356.66639999999995]}},
+      "spines": {"left":{"visible":true,"color":[0.7647058823529411,0.7607843137254902,0.7176470588235294,1.0],"lw":0.8},"right":{"visible":false,"color":[0.0,0.0,0.0,1.0],"lw":0.8},"bottom":{"visible":true,"color":[0.7647058823529411,0.7607843137254902,0.7176470588235294,1.0],"lw":0.8},"top":{"visible":false,"color":[0.0,0.0,0.0,1.0],"lw":0.8}},
+      "xaxis": {
+       "label": {"text":"Time (ns)","color":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"size":9.9,"extent_px":[275.08987519097224,3.333599999999999,327.74612519097224,14.976178124999999]},
+       "scale": "linear",
+       "inverted": false,
+       "visible": true,
+       "ticks": [[0.0,"0.00",true,false],[0.05,"0.05",true,false],[0.10000000000000002,"0.10",true,false],[0.15000000000000002,"0.15",true,false],[0.2,"0.20",true,false]],
+       "tick_style": {"tick1":true,"tick2":false,"label1":true,"label2":false,"color":[0.5372549019607843,0.5294117647058824,0.5058823529411764,1.0],"length":3.0,"width":0.6,"labelcolor":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"labelsize":9.35,"rotation":0.0,"gridOn":false,"grid":{"color":[0.6901960784313725,0.6901960784313725,0.6901960784313725,1.0],"lw":0.8,"ls":"-"}},
+       "offset_text": "",
+       "locator": {"class":"AutoLocator","nbins":"auto","steps":[1.0,2.0,2.5,5.0,10.0],"integer":false,"min_n_ticks":2,"symmetric":false,"prune":null,"tick_space":16,"auto_nbins":9},
+       "formatter": {"class":"ScalarFormatter","offset":0.0,"orderOfMagnitude":0,"format":"%1.2f","useMathText":false,"useOffset":true}
+      },
+      "yaxis": {
+       "label": {"text":"Residue","color":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"size":9.9,"extent_px":[3.3336000000000006,166.26573350694443,14.976178125000004,210.76573350694443]},
+       "scale": "linear",
+       "inverted": true,
+       "visible": true,
+       "ticks": [[0.0,"G1",true,false],[1.0,"C2",true,false],[2.0,"A3",true,false],[3.0,"U4",true,false],[4.0,"G5",true,false],[5.0,"G6",true,false],[6.0,"C7",true,false],[7.0,"A8",true,false],[8.0,"U9",true,false],[9.0,"C10",true,false],[10.0,"G11",true,false],[11.0,"A12",true,false]],
+       "tick_style": {"tick1":true,"tick2":false,"label1":true,"label2":false,"color":[0.5372549019607843,0.5294117647058824,0.5058823529411764,1.0],"length":3.0,"width":0.6,"labelcolor":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"labelsize":8.0,"rotation":0.0,"gridOn":false,"grid":{"color":[0.6901960784313725,0.6901960784313725,0.6901960784313725,1.0],"lw":0.8,"ls":"-"}},
+       "offset_text": "",
+       "locator": {"class":"FixedLocator","locs":[0.0,1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0,10.0,11.0],"nbins":null},
+       "formatter": {"class":"FuncFormatter"}
+      },
+      "artists": [{"id":"ax0/0","kind":"image","zorder":0.0,"visible":true,"alpha":null,"animated":false,"shape":[12,24],"extent":[-0.005,0.23500000000000001,11.5,-0.5],"origin":"upper","interpolation":"nearest","dtype":"float64","cmap":"mdatk_seq_light","vmin":0.0,"vmax":77.0,"masked":0,"x_edges":[-0.005,0.005,0.015,0.025,0.035,0.045,0.055,0.065,0.07500000000000001,0.08499999999999999,0.095,0.10500000000000001,0.11499999999999999,0.125,0.135,0.14500000000000002,0.155,0.165,0.175,0.185,0.195,0.20500000000000002,0.215,0.225,0.23500000000000001]}]
+     },
+     {
+      "id": "ax1",
+      "position_px": [582.7706711302084,37.031733680555554,597.9190711128472,339.99973333333327],
+      "tight_px": [582.7706711302084,30.141542708333333,635.2524044461805,339.99973333333327],
+      "facecolor": [1.0,1.0,1.0,1.0],
+      "visible": true,
+      "axison": true,
+      "xlim": [0.0,1.0],
+      "ylim": [0.0,77.0],
+      "aspect": "auto",
+      "zorder": 0.0,
+      "titles": {},
+      "spines": {"left":{"visible":false,"color":[0.0,0.0,0.0,1.0],"lw":0.8},"right":{"visible":false,"color":[0.0,0.0,0.0,1.0],"lw":0.8},"bottom":{"visible":false,"color":[0.0,0.0,0.0,1.0],"lw":0.8},"top":{"visible":false,"color":[0.0,0.0,0.0,1.0],"lw":0.8},"outline":{"visible":true,"color":[0.8823529411764706,0.8784313725490196,0.8509803921568627,1.0],"lw":0.8}},
+      "xaxis": {"label":{"text":"","color":[0.0,0.0,0.0,1.0],"size":10.0,"extent_px":null},"scale":"linear","inverted":false,"visible":true,"ticks":[],"tick_style":{"tick1":true,"tick2":false,"label1":true,"label2":false,"color":[0.5372549019607843,0.5294117647058824,0.5058823529411764,1.0],"length":3.5,"width":0.8,"labelcolor":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"labelsize":10.0,"rotation":0.0,"gridOn":false,"grid":{"color":[0.6901960784313725,0.6901960784313725,0.6901960784313725,1.0],"lw":0.8,"ls":"-"}},"offset_text":"","locator":{"class":"FixedLocator","locs":[],"nbins":null},"formatter":{"class":"ScalarFormatter","offset":0.0,"orderOfMagnitude":0,"format":"","useMathText":false,"useOffset":true}},
+      "yaxis": {
+       "label": {"text":"count","color":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"size":10.0,"extent_px":[624.1412933350695,173.01573350694443,635.2524044461805,204.01573350694443]},
+       "scale": "linear",
+       "inverted": false,
+       "visible": true,
+       "ticks": [[0.0,"0",false,true],[8.0,"8",false,true],[16.0,"16",false,true],[24.0,"24",false,true],[32.0,"32",false,true],[40.0,"40",false,true],[48.0,"48",false,true],[56.0,"56",false,true],[64.0,"64",false,true],[72.0,"72",false,true]],
+       "tick_style": {"tick1":false,"tick2":true,"label1":false,"label2":true,"color":[0.5372549019607843,0.5294117647058824,0.5058823529411764,1.0],"length":3.5,"width":0.8,"labelcolor":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"labelsize":10.0,"rotation":0.0,"gridOn":false,"grid":{"color":[0.6901960784313725,0.6901960784313725,0.6901960784313725,1.0],"lw":0.8,"ls":"-"}},
+       "offset_text": "",
+       "locator": {"class":"MaxNLocator","nbins":10,"steps":[1.0,1.5,2.0,2.5,3.0,4.0,5.0,6.0,8.0,10.0],"integer":true,"min_n_ticks":2,"symmetric":false,"prune":null},
+       "formatter": {"class":"ScalarFormatter","offset":0.0,"orderOfMagnitude":0,"format":"%1.0f","useMathText":false,"useOffset":true}
+      },
+      "colorbar": {
+       "mappable": "ax0/0",
+       "orientation": "vertical",
+       "vmin": 0.0,
+       "vmax": 77.0,
+       "norm": "Normalize",
+       "cmap": {"name":"mdatk_seq_light","N":256,"over":[0.050980392156862744,0.21176470588235294,0.4196078431372549,1.0],"under":[0.9882352941176471,0.9882352941176471,0.984313725490196,1.0],"bad":[0.8823529411764706,0.8784313725490196,0.8509803921568627,1.0]},
+       "boundaries": [0.0,0.30078125,0.6015625,0.90234375,1.203125,1.50390625,1.8046875,2.10546875,2.40625,2.70703125,3.0078125,3.30859375,3.609375,3.91015625,4.2109375,4.51171875,4.8125,5.11328125,5.4140625,5.71484375,6.015625,6.31640625,6.6171875,6.91796875,7.21875,7.51953125,7.8203125,8.12109375,8.421875,8.72265625,9.0234375,9.32421875,9.625,9.92578125,10.2265625,10.52734375,10.828125,11.12890625,11.4296875,11.73046875,12.03125,12.33203125,12.6328125,12.93359375,13.234375,13.53515625,13.8359375,14.13671875,14.4375,14.73828125,15.0390625,15.33984375,15.640625,15.94140625,16.2421875,16.54296875,16.84375,17.14453125,17.4453125,17.74609375,18.046875,18.34765625,18.6484375,18.94921875,19.25,19.55078125,19.8515625,20.15234375,20.453125,20.75390625,21.0546875,21.35546875,21.65625,21.95703125,22.2578125,22.55859375,22.859375,23.16015625,23.4609375,23.76171875,24.0625,24.36328125,24.6640625,24.96484375,25.265625,25.56640625,25.8671875,26.16796875,26.46875,26.76953125,27.0703125,27.37109375,27.671875,27.97265625,28.2734375,28.57421875,28.875,29.17578125,29.4765625,29.77734375,30.078125,30.37890625,30.6796875,30.98046875,31.28125,31.58203125,31.8828125,32.18359375,32.484375,32.78515625,33.0859375,33.38671875,33.6875,33.98828125,34.2890625,34.58984375,34.890625,35.19140625,35.4921875,35.79296875,36.09375,36.39453125,36.6953125,36.99609375,37.296875,37.59765625,37.8984375,38.19921875,38.5,38.80078125,39.1015625,39.40234375,39.703125,40.00390625,40.3046875,40.60546875,40.90625,41.20703125,41.5078125,41.80859375,42.109375,42.41015625,42.7109375,43.01171875,43.3125,43.61328125,43.9140625,44.21484375,44.515625,44.81640625,45.1171875,45.41796875,45.71875,46.01953125,46.3203125,46.62109375,46.921875,47.22265625,47.5234375,47.82421875,48.125,48.42578125,48.7265625,49.02734375,49.328125,49.62890625,49.9296875,50.23046875,50.53125,50.83203125,51.1328125,51.43359375,51.734375,52.03515625,52.3359375,52.63671875,52.9375,53.23828125,53.5390625,53.83984375,54.140625,54.44140625,54.7421875,55.04296875,55.34375,55.64453125,55.9453125,56.24609375,56.546875,56.84765625,57.1484375,57.44921875,57.75,58.05078125,58.3515625,58.65234375,58.953125,59.25390625,59.5546875,59.85546875,60.15625,60.45703125,60.7578125,61.05859375,61.359375,61.66015625,61.9609375,62.26171875,62.5625,62.86328125,63.1640625,63.46484375,63.765625,64.06640625,64.3671875,64.66796875,64.96875,65.26953125,65.5703125,65.87109375,66.171875,66.47265625,66.7734375,67.07421875,67.375,67.67578125,67.9765625,68.27734375,68.578125,68.87890625,69.1796875,69.48046875,69.78125,70.08203125,70.3828125,70.68359375,70.984375,71.28515625,71.5859375,71.88671875,72.1875,72.48828125,72.7890625,73.08984375,73.390625,73.69140625,73.9921875,74.29296875,74.59375,74.89453125,75.1953125,75.49609375,75.796875,76.09765625,76.3984375,76.69921875,77.0],
+       "values": [0.150390625,0.451171875,0.751953125,1.052734375,1.353515625,1.654296875,1.955078125,2.255859375,2.556640625,2.857421875,3.158203125,3.458984375,3.759765625,4.060546875,4.361328125,4.662109375,4.962890625,5.263671875,5.564453125,5.865234375,6.166015625,6.466796875,6.767578125,7.068359375,7.369140625,7.669921875,7.970703125,8.271484375,8.572265625,8.873046875,9.173828125,9.474609375,9.775390625,10.076171875,10.376953125,10.677734375,10.978515625,11.279296875,11.580078125,11.880859375,12.181640625,12.482421875,12.783203125,13.083984375,13.384765625,13.685546875,13.986328125,14.287109375,14.587890625,14.888671875,15.189453125,15.490234375,15.791015625,16.091796875,16.392578125,16.693359375,16.994140625,17.294921875,17.595703125,17.896484375,18.197265625,18.498046875,18.798828125,19.099609375,19.400390625,19.701171875,20.001953125,20.302734375,20.603515625,20.904296875,21.205078125,21.505859375,21.806640625,22.107421875,22.408203125,22.708984375,23.009765625,23.310546875,23.611328125,23.912109375,24.212890625,24.513671875,24.814453125,25.115234375,25.416015625,25.716796875,26.017578125,26.318359375,26.619140625,26.919921875,27.220703125,27.521484375,27.822265625,28.123046875,28.423828125,28.724609375,29.025390625,29.326171875,29.626953125,29.927734375,30.228515625,30.529296875,30.830078125,31.130859375,31.431640625,31.732421875,32.033203125,32.333984375,32.634765625,32.935546875,33.236328125,33.537109375,33.837890625,34.138671875,34.439453125,34.740234375,35.041015625,35.341796875,35.642578125,35.943359375,36.244140625,36.544921875,36.845703125,37.146484375,37.447265625,37.748046875,38.048828125,38.349609375,38.650390625,38.951171875,39.251953125,39.552734375,39.853515625,40.154296875,40.455078125,40.755859375,41.056640625,41.357421875,41.658203125,41.958984375,42.259765625,42.560546875,42.861328125,43.162109375,43.462890625,43.763671875,44.064453125,44.365234375,44.666015625,44.966796875,45.267578125,45.568359375,45.869140625,46.169921875,46.470703125,46.771484375,47.072265625,47.373046875,47.673828125,47.974609375,48.275390625,48.576171875,48.876953125,49.177734375,49.478515625,49.779296875,50.080078125,50.380859375,50.681640625,50.982421875,51.283203125,51.583984375,51.884765625,52.185546875,52.486328125,52.787109375,53.087890625,53.388671875,53.689453125,53.990234375,54.291015625,54.591796875,54.892578125,55.193359375,55.494140625,55.794921875,56.095703125,56.396484375,56.697265625,56.998046875,57.298828125,57.599609375,57.900390625,58.201171875,58.501953125,58.802734375,59.103515625,59.404296875,59.705078125,60.005859375,60.306640625,60.607421875,60.908203125,61.208984375,61.509765625,61.810546875,62.111328125,62.412109375,62.712890625,63.013671875,63.314453125,63.615234375,63.916015625,64.216796875,64.517578125,64.818359375,65.119140625,65.419921875,65.720703125,66.021484375,66.322265625,66.623046875,66.923828125,67.224609375,67.525390625,67.826171875,68.126953125,68.427734375,68.728515625,69.029296875,69.330078125,69.630859375,69.931640625,70.232421875,70.533203125,70.833984375,71.134765625,71.435546875,71.736328125,72.037109375,72.337890625,72.638671875,72.939453125,73.240234375,73.541015625,73.841796875,74.142578125,74.443359375,74.744140625,75.044921875,75.345703125,75.646484375,75.947265625,76.248046875,76.548828125,76.849609375],
+       "extend": "neither",
+       "outline": {"color":[0.8823529411764706,0.8784313725490196,0.8509803921568627,1.0],"lw":0.8},
+       "label": "count"
+      },
+      "artists": [{"id":"ax1/0","kind":"segments","zorder":2.0,"visible":true,"alpha":null,"animated":false,"segments":[],"colors":[[0.0,0.0,0.0,1.0]],"linewidths":[0.4],"capstyle":null,"linestyles":["(np.float64(0.0), None)"]},{"id":"ax1/1","kind":"other","zorder":1.0,"visible":true,"alpha":null,"animated":false,"class":"QuadMesh"}]
+     }
+    ]
+   }
+  }
+ ],
+ "files": ["MDATK_chart_contacts_per_residue_a.png","MDATK_chart_mg_occupancy.png","MDATK_chart_rmsd_Complex.png"]
+}

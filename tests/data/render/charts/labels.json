@@ -26,7 +26,7 @@
   "workflow": {"project_name":"project","stamp":"","use_stamp":true,"out_dir":"","step_folders":true,"nodes":[],"edges":[],"scratch":[]}
  },
  "stamp": "",
- "improvements": ["RN-01","RN-04","RN-14"],
+ "improvements": ["D5","RN-01","RN-04","RN-05","RN-10","RN-11","RN-14","RN-50"],
  "paths": ["{out}/out/MDATK_chart_rmsd_Backbone.png"],
  "log": ["Wrote 1 chart file(s) to {out}/out"],
  "progress": [["0x1.0000000000000p+0","Chart rmsd/Backbone"]],
@@ -45,7 +45,7 @@
     "axes": [
      {
       "id": "ax0",
-      "position_px": [47.00026666666667,37.031733680555554,636.6664,338.99973333333327],
+      "position_px": [47.00026666666667,37.031733680555554,636.6664,339.99973333333327],
       "tight_px": [3.3336000000000006,3.333599999999999,636.6664,356.66639999999995],
       "facecolor": [0.9882352941176471,0.9882352941176471,0.984313725490196,1.0],
       "visible": true,
@@ -54,7 +54,7 @@
       "ylim": [-0.08421070790000001,1.7684248659000001],
       "aspect": "auto",
       "zorder": 0.0,
-      "titles": {"left":{"id":"ax0/title_left","kind":"text","zorder":3.0,"visible":true,"alpha":null,"animated":false,"text":"RMSD Backbone of rmsd/Backbone","xy":[0.0,1.0],"coords":"other","ha":"left","va":"baseline","color":[0.0,0.0,0.0,1.0],"size":12.0,"weight":"normal","style":"normal","family":["sans-serif"],"rotation":0.0,"clip_on":true,"wrap":false,"extent_px":[47.00026666666667,342.46327499999995,274.7658916666667,356.66639999999995]}},
+      "titles": {"left":{"id":"ax0/title_left","kind":"text","zorder":3.0,"visible":true,"alpha":null,"animated":false,"text":"RMSD Backbone of rmsd/Backbone","xy":[0.0,1.0],"coords":"other","ha":"left","va":"baseline","color":[0.043137254901960784,0.043137254901960784,0.043137254901960784,1.0],"size":11.0,"weight":"normal","style":"normal","family":["sans-serif"],"rotation":0.0,"clip_on":true,"wrap":false,"extent_px":[47.00026666666667,343.73020208333327,257.7815166666667,356.66639999999995]}},
       "spines": {"left":{"visible":true,"color":[0.7647058823529411,0.7607843137254902,0.7176470588235294,1.0],"lw":0.8},"right":{"visible":false,"color":[0.0,0.0,0.0,1.0],"lw":0.8},"bottom":{"visible":true,"color":[0.7647058823529411,0.7607843137254902,0.7176470588235294,1.0],"lw":0.8},"top":{"visible":false,"color":[0.0,0.0,0.0,1.0],"lw":0.8}},
       "xaxis": {
        "label": {"text":"Simulation time","color":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"size":9.9,"extent_px":[297.8333333333333,3.333599999999999,385.8333333333333,14.976178124999999]},
@@ -68,7 +68,7 @@
        "formatter": {"class":"ScalarFormatter","offset":0.0,"orderOfMagnitude":0,"format":"%1.2f","useMathText":false,"useOffset":true}
       },
       "yaxis": {
-       "label": {"text":"Deviation","color":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"size":9.9,"extent_px":[3.3336000000000006,161.51573350694443,14.333600000000004,214.51573350694443]},
+       "label": {"text":"Deviation","color":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"size":9.9,"extent_px":[3.3336000000000006,162.01573350694443,14.333600000000004,215.01573350694443]},
        "scale": "linear",
        "inverted": false,
        "visible": true,

@@ -1,5 +1,5 @@
 {
- "improvements": ["RN-01","RN-04","RN-14","RN-26","RN-27"],
+ "improvements": ["D5","RN-01","RN-04","RN-05","RN-10","RN-11","RN-14","RN-50","RN-26","RN-27"],
  "topology": {
   "demo_dry": {
    "n_res": 24,

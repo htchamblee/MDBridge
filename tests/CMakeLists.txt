@@ -148,6 +148,16 @@ target_compile_definitions(mdbridge_panel_tests PRIVATE MDBRIDGE_TEST_DATA="${CM
 mdbridge_target_warnings(mdbridge_panel_tests)
 gtest_discover_tests(mdbridge_panel_tests DISCOVERY_MODE PRE_TEST)
 
+# render/panels: the standalone charts against MDATK's render_charts (data/render/charts,
+# tests/parity/make_chart_cases.py): paths, files, log, progress, warnings, figures; no Qt
+add_executable(mdbridge_chart_tests render/test_charts.cpp)
+target_include_directories(mdbridge_chart_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/core")
+target_link_libraries(mdbridge_chart_tests PRIVATE mdbridge::render_panels mdbridge::analysis mdbridge::core GTest::gtest_main)
+target_compile_definitions(mdbridge_chart_tests PRIVATE MDBRIDGE_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data"
+                           MDBRIDGE_FONT_DIR="${PROJECT_SOURCE_DIR}/data/fonts")
+mdbridge_target_warnings(mdbridge_chart_tests)
+gtest_discover_tests(mdbridge_chart_tests DISCOVERY_MODE PRE_TEST)
+
 # render core: residue shading, orientation, the example dataset and numpy's PCG64 against MDATK and
 # numpy (data/render/shading, tests/parity/make_shading_cases.py); no Qt
 add_executable(mdbridge_shading_tests render/test_shading.cpp)
@@ -230,4 +240,14 @@ if(MDBRIDGE_BUILD_APP)
     target_compile_definitions(mdbridge_figure_qt_tests PRIVATE MDBRIDGE_FONT_DIR="${PROJECT_SOURCE_DIR}/data/fonts")
     mdbridge_target_warnings(mdbridge_figure_qt_tests)
     gtest_discover_tests(mdbridge_figure_qt_tests DISCOVERY_MODE PRE_TEST)
+
+    # the standalone charts' files from the Qt backend: every format MDATK's charts write, their
+    # first bytes and sizes as MDATK's (data/render/charts), PostScript and TIFF (offscreen platform)
+    add_executable(mdbridge_charts_qt_tests render/test_charts_qt.cpp)
+    target_include_directories(mdbridge_charts_qt_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/core")
+    target_link_libraries(mdbridge_charts_qt_tests PRIVATE mdbridge::render mdbridge::render_panels mdbridge::analysis GTest::gtest)
+    target_compile_definitions(mdbridge_charts_qt_tests PRIVATE MDBRIDGE_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data"
+                               MDBRIDGE_FONT_DIR="${PROJECT_SOURCE_DIR}/data/fonts")
+    mdbridge_target_warnings(mdbridge_charts_qt_tests)
+    gtest_discover_tests(mdbridge_charts_qt_tests DISCOVERY_MODE PRE_TEST)
 endif()

@@ -26,7 +26,7 @@
   "workflow": {"project_name":"project","stamp":"","use_stamp":true,"out_dir":"","step_folders":true,"nodes":[],"edges":[],"scratch":[]}
  },
  "stamp": "",
- "improvements": ["RN-01","RN-04","RN-14"],
+ "improvements": ["D5","RN-01","RN-04","RN-05","RN-10","RN-11","RN-14","RN-50"],
  "paths": ["{out}/out/MDATK_chart_rmsd_Complex.png","{out}/out/MDATK_chart_hbonds_count.png","{out}/out/MDATK_chart_energy_total.png"],
  "log": ["Wrote 3 chart file(s) to {out}/out"],
  "progress": [["0x1.5555555555555p-2","Chart rmsd/Complex"],["0x1.5555555555555p-1","Chart hbonds/count"],["0x1.0000000000000p+0","Chart energy/total"]],
@@ -54,7 +54,7 @@
       "ylim": [-0.0799163088,1.6782424848000002],
       "aspect": "auto",
       "zorder": 0.0,
-      "titles": {"left":{"id":"ax0/title_left","kind":"text","zorder":3.0,"visible":true,"alpha":null,"animated":false,"text":"RMSD Complex","xy":[0.0,1.0],"coords":"other","ha":"left","va":"baseline","color":[0.0,0.0,0.0,1.0],"size":12.0,"weight":"normal","style":"normal","family":["sans-serif"],"rotation":0.0,"clip_on":true,"wrap":false,"extent_px":[31.026777994791665,138.91454687499998,93.88615299479167,147.91649999999998]}},
+      "titles": {"left":{"id":"ax0/title_left","kind":"text","zorder":3.0,"visible":true,"alpha":null,"animated":false,"text":"RMSD Complex","xy":[0.0,1.0],"coords":"other","ha":"left","va":"baseline","color":[0.043137254901960784,0.043137254901960784,0.043137254901960784,1.0],"size":11.0,"weight":"normal","style":"normal","family":["sans-serif"],"rotation":0.0,"clip_on":true,"wrap":false,"extent_px":[31.026777994791665,138.91649999999998,93.88615299479167,147.91649999999998]}},
       "spines": {"left":{"visible":true,"color":[0.7647058823529411,0.7607843137254902,0.7176470588235294,1.0],"lw":0.8},"right":{"visible":false,"color":[0.0,0.0,0.0,1.0],"lw":0.8},"bottom":{"visible":true,"color":[0.7647058823529411,0.7607843137254902,0.7176470588235294,1.0],"lw":0.8},"top":{"visible":false,"color":[0.0,0.0,0.0,1.0],"lw":0.8}},
       "xaxis": {
        "label": {"text":"Time (ns)","color":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"size":9.9,"extent_px":[98.08101399739581,2.083500000000001,130.86226399739581,9.735111328125]},
@@ -105,7 +105,7 @@
       "ylim": [19.4,32.6],
       "aspect": "auto",
       "zorder": 0.0,
-      "titles": {"left":{"id":"ax0/title_left","kind":"text","zorder":3.0,"visible":true,"alpha":null,"animated":false,"text":"Aptamer–Target H-bonds","xy":[0.0,1.0],"coords":"other","ha":"left","va":"baseline","color":[0.0,0.0,0.0,1.0],"size":12.0,"weight":"normal","style":"normal","family":["sans-serif"],"rotation":0.0,"clip_on":true,"wrap":false,"extent_px":[25.026777994791672,138.91454687499998,123.51115299479167,147.91649999999998]}},
+      "titles": {"left":{"id":"ax0/title_left","kind":"text","zorder":3.0,"visible":true,"alpha":null,"animated":false,"text":"Aptamer–Target H-bonds","xy":[0.0,1.0],"coords":"other","ha":"left","va":"baseline","color":[0.043137254901960784,0.043137254901960784,0.043137254901960784,1.0],"size":11.0,"weight":"normal","style":"normal","family":["sans-serif"],"rotation":0.0,"clip_on":true,"wrap":false,"extent_px":[25.026777994791672,138.91649999999998,123.62052799479167,147.91649999999998]}},
       "spines": {"left":{"visible":true,"color":[0.7647058823529411,0.7607843137254902,0.7176470588235294,1.0],"lw":0.8},"right":{"visible":false,"color":[0.0,0.0,0.0,1.0],"lw":0.8},"bottom":{"visible":true,"color":[0.7647058823529411,0.7607843137254902,0.7176470588235294,1.0],"lw":0.8},"top":{"visible":false,"color":[0.0,0.0,0.0,1.0],"lw":0.8}},
       "xaxis": {
        "label": {"text":"Time (ns)","color":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"size":9.9,"extent_px":[95.08101399739583,2.083500000000001,127.86226399739583,9.735111328125]},
@@ -147,8 +147,8 @@
     "axes": [
      {
       "id": "ax0",
-      "position_px": [34.02677799479167,23.519833550347222,197.91649999999998,137.41845312499998],
-      "tight_px": [2.0835,2.083500000000001,197.91649999999998,158.27383083767361],
+      "position_px": [34.02677799479167,23.519833550347222,197.91649999999998,137.74983333333336],
+      "tight_px": [2.0835,2.083500000000001,197.91649999999998,158.4395209418403],
       "facecolor": [0.9882352941176471,0.9882352941176471,0.984313725490196,1.0],
       "visible": true,
       "axison": true,
@@ -156,7 +156,7 @@
       "ylim": [-104.0961174565,30.7335323665],
       "aspect": "auto",
       "zorder": 0.0,
-      "titles": {"left":{"id":"ax0/title_left","kind":"text","zorder":3.0,"visible":true,"alpha":null,"animated":false,"text":"Aptamer–Target interaction energy","xy":[0.0,1.0],"coords":"other","ha":"left","va":"baseline","color":[0.0,0.0,0.0,1.0],"size":12.0,"weight":"normal","style":"normal","family":["sans-serif"],"rotation":0.0,"clip_on":true,"wrap":false,"extent_px":[34.02677799479167,139.58316666666667,172.37052799479167,147.9165]}},
+      "titles": {"left":{"id":"ax0/title_left","kind":"text","zorder":3.0,"visible":true,"alpha":null,"animated":false,"text":"Aptamer–Target interaction energy","xy":[0.0,1.0],"coords":"other","ha":"left","va":"baseline","color":[0.043137254901960784,0.043137254901960784,0.043137254901960784,1.0],"size":11.0,"weight":"normal","style":"normal","family":["sans-serif"],"rotation":0.0,"clip_on":true,"wrap":false,"extent_px":[34.02677799479167,139.91650000000004,172.47990299479167,147.91650000000004]}},
       "spines": {"left":{"visible":true,"color":[0.7647058823529411,0.7607843137254902,0.7176470588235294,1.0],"lw":0.8},"right":{"visible":false,"color":[0.0,0.0,0.0,1.0],"lw":0.8},"bottom":{"visible":true,"color":[0.7647058823529411,0.7607843137254902,0.7176470588235294,1.0],"lw":0.8},"top":{"visible":false,"color":[0.0,0.0,0.0,1.0],"lw":0.8}},
       "xaxis": {
        "label": {"text":"Time (ns)","color":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"size":9.9,"extent_px":[99.58101399739583,2.083500000000001,132.36226399739581,9.735111328125]},
@@ -170,7 +170,7 @@
        "formatter": {"class":"ScalarFormatter","offset":0.0,"orderOfMagnitude":0,"format":"%1.2f","useMathText":false,"useOffset":true}
       },
       "yaxis": {
-       "label": {"text":"Aptamer–Target interaction energy (kcal/mol)","color":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"size":9.9,"extent_px":[2.0835,2.6644558376736143,9.73511132812501,158.27383083767361]},
+       "label": {"text":"Aptamer–Target interaction energy (kcal/mol)","color":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"size":9.9,"extent_px":[2.0835,2.8301459418403,9.73511132812501,158.4395209418403]},
        "scale": "linear",
        "inverted": false,
        "visible": true,
@@ -191,7 +191,7 @@
         "alpha": null,
         "animated": false,
         "loc": 0,
-        "extent_px": [62.67865277777775,111.9822552083333,194.44427777777776,133.94623090277776],
+        "extent_px": [62.67865277777775,112.31363541666667,194.44427777777776,134.27761111111113],
         "frame": {"on":true,"facecolor":[0.9882352941176471,0.9882352941176471,0.984313725490196,0.8],"edgecolor":[0.8823529411764706,0.8784313725490196,0.8509803921568627,0.8],"lw":0.6},
         "entries": [
          {"text":"Aptamer–Target interaction energy","color":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"size":8.8,"handle":{"id":"?Line2D","kind":"line","zorder":2.0,"visible":true,"alpha":null,"animated":false,"label":"Aptamer–Target interaction energy","color":[0.16470588235294117,0.47058823529411764,0.8392156862745098,1.0],"lw":1.5,"ls":"-","dashes":null,"marker":"None","ms":6.0,"mfc":[0.16470588235294117,0.47058823529411764,0.8392156862745098,1.0],"mec":[0.16470588235294117,0.47058823529411764,0.8392156862745098,1.0],"mew":1.0,"drawstyle":"default","solid_capstyle":"projecting"}},

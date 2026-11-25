@@ -29,7 +29,7 @@
  "dpi": 60,
  "watermark": "Example data – layout preview",
  "positions": [0,12,23],
- "improvements": ["RN-01","RN-04","RN-14"],
+ "improvements": ["D5","RN-01","RN-04","RN-05","RN-10","RN-11","RN-14","RN-50"],
  "frames": [
   {
    "pos": 0,

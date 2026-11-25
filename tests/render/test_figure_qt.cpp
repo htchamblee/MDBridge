@@ -194,7 +194,9 @@ TEST(FigureFiles, ByExtension) {
     EXPECT_EQ(png.height(), 180);
     EXPECT_THROW(writeFigure(dl, dir / "figure.notaformat"), std::runtime_error);
     EXPECT_TRUE(canWriteFigureFormat("png"));
-    EXPECT_FALSE(canWriteFigureFormat("eps"));
+    EXPECT_TRUE(canWriteFigureFormat("eps"));  // render core's PostScript writer
+    EXPECT_TRUE(canWriteFigureFormat("tiff"));
+    EXPECT_FALSE(canWriteFigureFormat("notaformat"));
     std::filesystem::remove_all(dir);
 }
 

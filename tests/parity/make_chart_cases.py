@@ -5,7 +5,8 @@ MDBridge's charts (src/render charts; docs/specs/m4-plan.md sections 1.6 and 3).
 
 Needs MDATK's dependencies; nothing is written into the checkout. MDATK runs in-process, patched by
 render_common.setup() as in make_figure_cases.py. Reads the input datasets make_figure_cases.py
-wrote (OUT_DIR/inputs: demo_dry, demo_dry_1, demo_dry_nan; run that generator first). Writes
+wrote (OUT_DIR/inputs: demo_dry, demo_dry_1, demo_dry_nan, demo_dry_times; run that generator first)
+and its own charts/inputs/tall (a 700-row matrix, for RN-05's height cap). Writes
 OUT_DIR/charts/<case>.json and charts/<case>.npz (the images' arrays).
 
 A case is the demo project (make_figure_cases.demo_base) with `--set`-style overrides of
@@ -21,8 +22,9 @@ wrapped: the figure is drawn, walked by mpl_walker.Walker, then saved as MDATK s
   error     {type, message} when render_charts raises (e.g. a format Matplotlib does not know);
             the charts saved before stay recorded
   charts    one per figure in the order saved: key, kind ("series" / "matrix", from the
-            function that drew it), files [{path, format, size_px or size_pt (PNG: IHDR; SVG:
-            width / height; PDF: MediaBox), magic (first bytes, hex)}], figure (the walk, see
+            function that drew it), files [{path, format, size_px or size_pt (PNG: IHDR; JPEG:
+            the frame header; TIFF: the first IFD; SVG: width / height; PDF: MediaBox; EPS / PS:
+            the BoundingBox's width and height), magic (first bytes, hex)}], figure (the walk, see
             mpl_walker.py; array members "c<k>/<artist id>.<what>" in the .npz)
   files     every file left in the folder (names, sorted)
 
@@ -46,17 +48,20 @@ import shutil  # noqa: E402
 import struct  # noqa: E402
 import tempfile  # noqa: E402
 
+import numpy as np  # noqa: E402
 from matplotlib.figure import Figure  # noqa: E402
 
 import improvements_render  # noqa: E402
 import mpl_walker  # noqa: E402
 from mdatk import cli  # noqa: E402
+from mdatk.data import AnalysisResult, Dataset  # noqa: E402
 from mdatk.demo import demo_project  # noqa: E402
 from mdatk.progress import Reporter  # noqa: E402
 from mdatk.render import charts as charts_module  # noqa: E402
 
 INPUTS = os.path.join(OUT, "inputs")
 CHARTS = os.path.join(OUT, "charts")
+CHART_INPUTS = os.path.join(CHARTS, "inputs")  # this generator's own inputs
 
 
 def demo_base():
@@ -120,7 +125,50 @@ CASES = [
                                        s("output.charts.height", 3.0)], "", "small chart"),
     ("nan_smoothing", "demo_dry_nan", [s("output.charts.series", ["rmsd/Complex"]), s("output.charts.smoothing", 3)]
      + LOW, "", "a NaN value with smoothing (RN-14)"),
+    ("format_tif_ps", "demo_dry", [s("output.charts.series", ["rmsd/Complex"]),
+                                   s("output.charts.formats", ["tif", "TIFF", "ps"])] + LOW, "",
+     "TIFF and PostScript (pillow / Matplotlib's PS backend in MDATK)"),
+    ("format_unknown_two", "demo_dry", [s("output.charts.series", ["rmsd/Complex"]),
+                                        s("output.charts.formats", ["gif", "png", ".WebP"])] + LOW, "",
+     "two formats MDBridge does not write (RN-11)"),
+    ("matrix_series", "demo_dry", [s("output.charts.series", ["mg/occupancy", "rmsd/Complex", "contacts/per_residue_a",
+                                                              "mg/occupancy"])] + LOW, "",
+     "matrix keys in the series list: matrix charts after the series, each once (RN-10)"),
+    ("matrix_series_heatmaps", "demo_dry", [s("output.charts.series", ["hbonds/per_residue_b", "energy/total"]),
+                                            s("output.charts.include_heatmaps", True)] + LOW, "",
+     "a requested matrix first, then the other heatmaps (RN-10)"),
+    ("uneven_times", "demo_dry_times", [s("output.charts.series", ["rmsd/Complex"]),
+                                        s("output.charts.include_heatmaps", True)] + LOW, "",
+     "matrix cells of two runs with different time steps (RN-01)"),
+    ("style_default_smoothing", "demo_dry", THREE + LOW + [s("output.charts.style", "default"),
+                                                          s("output.charts.smoothing", 4),
+                                                          s("output.charts.include_heatmaps", True)], "",
+     "Matplotlib's default look: colour cycle, legend, target, matrix charts"),
+    ("style_default_color", "demo_dry", [s("output.charts.series", ["energy/total"]), s("output.charts.style", "default"),
+                                         s("output.charts.color", "tab:green"), s("output.charts.smoothing", 3)]
+     + LOW, "", "Matplotlib's default look with a colour"),
+    ("dark_heatmaps", "demo_dry", [s("output.charts.series", ["rmsd/Complex"]), s("output.charts.include_heatmaps", True),
+                                   s("visual.theme", "dark")] + LOW, "",
+     "dark theme matrix charts: title and colour bar in the theme's colours (RN-50)"),
+    ("matrix_tall", "tall", [s("output.charts.series", ["tall/occupancy"]), s("output.charts.width", 1.0)], "",
+     "a 700-row matrix at 300 dpi: 38 250 px tall, capped at 32 768 px (RN-05)"),
 ]
+
+
+def tall_input():
+    """demo_dry's frames with one synthetic 700 x 24 count matrix (labels R1 ... R700)."""
+    demo = rc.load_dataset(os.path.join(INPUTS, "demo_dry"))
+    ds = Dataset(demo.frames, demo.time_ps, time_unit=demo.time_unit)
+    rows, frames = 700, len(demo.frames)
+    r = np.arange(rows)[:, None]
+    f = np.arange(frames)[None, :]
+    res = AnalysisResult("tall", "synthetic", {}, {"occupancy": ((r * 7 + f * 3) % 5).astype(np.float64)},
+                         {"rows": [f"R{k + 1}" for k in range(rows)]})
+    res.add_matrix("occupancy", "occupancy", "rows", "Tall occupancy", kind="count")
+    ds.add(res)
+    folder = os.path.join(CHART_INPUTS, "tall")
+    rc.save_dataset(ds, folder)
+    return rc.load_dataset(folder)
 
 
 # --- recording ---------------------------------------------------------------------------------------
@@ -138,7 +186,41 @@ def file_info(path, folder):
     elif data[:5] == b"%PDF-":
         m = re.search(rb"/MediaBox \[ *([0-9. ]+)\]", data)
         info["size_pt"] = [float(v) for v in m.group(1).split()] if m else None
+    elif data[:2] == b"%!":
+        m = re.search(rb"%%BoundingBox: *(-?[0-9]+) +(-?[0-9]+) +(-?[0-9]+) +(-?[0-9]+)", data)
+        info["size_pt"] = [int(m.group(3)) - int(m.group(1)), int(m.group(4)) - int(m.group(2))] if m else None
+    elif data[:2] == b"\xff\xd8":
+        info["size_px"] = jpeg_size(data)
+    elif data[:4] in (b"II*\x00", b"MM\x00*"):
+        info["size_px"] = tiff_size(data)
     return info
+
+
+def jpeg_size(data):
+    """[width, height] from a JPEG's first SOF marker."""
+    at = 2
+    while at + 9 < len(data) and data[at] == 0xFF:
+        marker, length = data[at + 1], struct.unpack(">H", data[at + 2:at + 4])[0]
+        if 0xC0 <= marker <= 0xCF and marker not in (0xC4, 0xC8, 0xCC):
+            h, w = struct.unpack(">HH", data[at + 5:at + 9])
+            return [w, h]
+        at += 2 + length
+    return None
+
+
+def tiff_size(data):
+    """[width, height] from a TIFF's first IFD (tags 256 / 257)."""
+    e = "<" if data[:2] == b"II" else ">"
+    ifd = struct.unpack(e + "I", data[4:8])[0]
+    n = struct.unpack(e + "H", data[ifd:ifd + 2])[0]
+    size = {}
+    for k in range(n):
+        tag, typ, _count = struct.unpack(e + "HHI", data[ifd + 2 + 12 * k:ifd + 10 + 12 * k])
+        raw = data[ifd + 10 + 12 * k:ifd + 14 + 12 * k]
+        value = struct.unpack(e + "H", raw[:2])[0] if typ == 3 else struct.unpack(e + "I", raw)[0]
+        if tag in (256, 257):
+            size[tag] = value
+    return [size.get(256), size.get(257)]
 
 
 class Recorder:
@@ -164,11 +246,11 @@ class Recorder:
                 self.current["record"]["files"].append(file_info(path, self.folder))
 
 
-def run_case(name, inp, overrides, stamp, description):
+def run_case(name, inp, overrides, stamp, description, inputs):
     p = demo_base()
     for assignment in overrides:
         cli.apply_override(p, assignment)
-    ds = rc.load_dataset(os.path.join(INPUTS, inp))
+    ds = inputs[inp] if inp in inputs else rc.load_dataset(os.path.join(INPUTS, inp))
     folder = tempfile.mkdtemp(prefix="mdbridge-charts-")
     out_dir = os.path.join(folder, "out")
     rec = {"case": name, "description": description, "input": inp, "overrides": overrides,
@@ -218,8 +300,9 @@ def main():
     if os.path.isdir(CHARTS):
         shutil.rmtree(CHARTS)
     os.makedirs(CHARTS)
+    inputs = {"tall": tall_input()}
     for case in CASES:
-        rec, arrays = run_case(*case)
+        rec, arrays = run_case(*case, inputs)
         rc.write_json(os.path.join(CHARTS, f"{case[0]}.json"), rec)
         if arrays:
             rc.write_npz(os.path.join(CHARTS, f"{case[0]}.npz"), arrays)

@@ -1,6 +1,7 @@
 # render core: the Qt-free part of the render module (colours, colormaps, themes, ticks, fonts and
 # text metrics, residue shading, orientation, the example dataset with numpy's PCG64, the figure
-# model with its constrained layout, record writer and display list), testable without Qt. Namespace mdbridge::render.
+# model with its constrained layout, record writer and display list, PostScript / TIFF output),
+# testable without Qt. Namespace mdbridge::render.
 add_library(mdbridge_render_core STATIC
     include/mdbridge/render/color.hpp
     include/mdbridge/render/colormap.hpp
@@ -28,7 +29,9 @@ add_library(mdbridge_render_core STATIC
     include/mdbridge/render/figure.hpp
     include/mdbridge/render/figure_dump.hpp
     include/mdbridge/render/display_list.hpp
+    include/mdbridge/render/figure_formats.hpp
     figure.cpp
+    figure_formats.cpp
     figure_dump.cpp
     figure_layout.cpp
     display_list.cpp)

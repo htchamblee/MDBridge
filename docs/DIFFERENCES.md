@@ -764,6 +764,56 @@ the tolerance). Differences:
   *Tested:* `PlotArithmetic.RunningMeanNanAware`, the cases `ts_nan_smooth` and `ts_smooth`
   (and the chart records, regenerated with the same patch).
 
+## Rendering: charts (src/render/panels/charts.cpp; src/render/core/figure_formats.cpp)
+
+The standalone charts are MDATK's (`mdatk/render/charts.py`): the same charts (every series, or
+`output.charts.series`; the matrices with `include_heatmaps`), sizes, chrome, smoothing, targets,
+labels, title templates, file names, log (`Wrote N chart file(s) to D`), progress (`Chart <key>`)
+and warnings. Every chart case has MDATK's paths, files, messages and figure contents
+(`tests/render/test_charts.cpp` against `tests/data/render/charts`; the files' first bytes and
+sizes from the Qt backend in `tests/render/test_charts_qt.cpp`). Differences:
+
+- **Matrix-chart cells at the midpoints between frame times (RN-01), NaN-aware smoothing (RN-14).**
+  The heatmap panel's improvements (above) apply to the charts, which share the code. *Tested:*
+  the cases `uneven_times` (two runs with different time steps) and `nan_smoothing`.
+- **Matrix-chart height capped (RN-05).** A matrix chart is 0.18 in per residue row tall, so a
+  system of thousands of residues gave images beyond Agg's 2^16 px limit (a crash after the
+  analyses ran) and, below it, images of hundreds of megabytes. MDBridge caps the height at 2^15 px
+  (the row labels are thinned to 40 anyway) and warns `chart K: N rows need H px at D dpi; height
+  capped at 32768 px`. *Tested:* `ChartHeight.CappedAtTwoToTheFifteen`, the case `matrix_tall`
+  (700 rows at 300 dpi).
+- **Matrix keys in `output.charts.series` (RN-10).** MDATK dropped them silently (only series were
+  charted from that list). MDBridge charts a requested matrix as a matrix chart: after the series,
+  each matrix once, before the other `include_heatmaps` matrices. A pair-map key (no chart type)
+  warns `chart series K is a pair map; charts draw series and matrices (a contact_map panel shows
+  it)`. *Tested:* `ChartRun.MatrixSeriesAndPairMaps`, the cases `missing_and_matrix`,
+  `matrix_series`, `matrix_series_heatmaps`.
+- **Formats checked first (RN-11).** MDATK wrote every format Matplotlib and pillow know and failed
+  with Matplotlib's `ValueError` traceback at the first unknown one, after the analyses ran and
+  after the files before it were written. MDBridge writes png, svg, pdf, jpg / jpeg (Qt's JPEG
+  plugin), tif / tiff, eps and ps (its own writers: an uncompressed RGBA TIFF; PostScript Level 2
+  with text as glyph outlines and, as Matplotlib's PS backend, no transparency) and checks the list
+  before anything is drawn: `chart format 'bogus' is not supported (choose from png, svg, pdf, jpg,
+  jpeg, tif, tiff, eps, ps)` (`check()` reports the same, W3-B). Matplotlib's gif, webp, avif,
+  svgz, pgf, raw and rgba are no longer offered. The plan assumed jpg and eps failed in MDATK; they
+  did not, and they still work. *Tested:* `ChartFormats.CheckedBeforeAnythingIsWritten`, the cases
+  `formats`, `format_jpg_eps`, `format_tif_ps`, `format_unknown`, `format_unknown_two`;
+  `ChartFiles.*` and `ChartPostScript.VectorsTextAndImage` (Qt).
+- **Title and colour bar in the theme's colours (RN-50).** `style_axes` styled the axes' centre
+  title, but charts set the left one, which stayed Matplotlib's black at 12 pt; the matrix charts'
+  colour bar (outline, ticks, labels) stayed black too: black on the dark theme's near-black
+  surface, unreadable. MDBridge draws the title in the theme's ink at 11 pt (as `style_axes`
+  meant) and the colour bar's outline in the grid colour, its ticks muted and its tick labels and
+  label in ink2 (sizes unchanged). Matplotlib's `default` style is unchanged. *Tested:* every chart
+  case with MDATK's chrome; `dark_heatmaps`.
+- **Styles (owner decision D5).** MDATK applied any Matplotlib style sheet (`ggplot`,
+  `seaborn-v0_8`, a style file or URL) and warned only for unknown names, with Matplotlib's
+  message. MDBridge draws MDATK's chrome (`mdatk`, or empty) and Matplotlib's `default` look; any
+  other name warns, for each chart as MDATK warned, `unknown matplotlib style 'ggplot' (MDBridge
+  draws the styles 'mdatk' and 'default'); using MDATK chrome` and draws MDATK's chrome. *Tested:*
+  `style_default`, `style_default_smoothing`, `style_default_color`, `style_ggplot`,
+  `style_unknown`, `heatmaps_dark_style`.
+
 ## Rendering: molecule geometry (src/render/molecule)
 
 The 3D representations (MDATK's `mdatk/render/molecule/topology.py`, `geometry.py`, `surface.py`,
