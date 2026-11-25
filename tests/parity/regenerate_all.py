@@ -56,6 +56,8 @@ Special cases handled here (tests/data/README.md):
   make_analysis_cases.py but spatial_cases.json depend on the CPU's OpenBLAS / LAPACK kernels
   (MACHINE_DEPENDENT below): where their bytes differ, they are compared as JSON with numbers
   within a relative 1e-12 (an array's sha256 is ignored where its values agree).
+  The JSON records of the render generators (tests/data/render/figures, charts, molecule) get
+  the same comparison (MACHINE_DEPENDENT_JSON_UNDER: BLAS products of 3 x 3 rotations).
   Everything else must match exactly.
 
 Committed files without a generator (NOT_GENERATED: the hand-made project files, the golden
@@ -129,6 +131,12 @@ MACHINE_DEPENDENT = {
     "tests/data/analysis/micro_cases.json",
     "tests/data/analysis/systems_cases.json",
 }
+# The JSON records of the render generators (make_figure_cases.py, make_chart_cases.py,
+# make_molecule_cases.py): view rotations and the trace's projection go through BLAS products
+# (3 x 3 matrices), which the generators pin like make_analysis_cases.py; numpy's AVX-512 kernels
+# move them by an ulp (tried with --native). Their .npz files (images, geometry) did not change.
+MACHINE_DEPENDENT_JSON_UNDER = ("tests/data/render/figures/", "tests/data/render/charts/",
+                                "tests/data/render/molecule/")
 FLOAT_TOLERANCE = 1e-12
 HEX_FLOAT_RE = re.compile(r"^-?0x[0-9a-f]\.[0-9a-f]+p[+-][0-9]+$")  # float.hex() of a finite float
 
@@ -285,6 +293,17 @@ STEPS = [
     case_step("colors", "make_color_cases.py", "render/colors"),
     # milestone 4: axis limits, ticks and tick labels (Matplotlib as MDATK uses it, thin_ticks)
     case_step("ticks", "make_tick_cases.py", "render/ticks"),
+    # milestone 4: what MDATK's figures, charts, 3D representations and render commands show and
+    # write (contents only, no reference images); the figure step writes the input datasets the
+    # chart and molecule steps read; the command step needs ffmpeg / ffprobe
+    Step("render_figures", "tests/parity/make_figure_cases.py", lambda ctx: [M(ctx), d(ctx, "render")],
+         [f"{DATA}/render/inputs", f"{DATA}/render/figures"]),
+    Step("render_charts", "tests/parity/make_chart_cases.py", lambda ctx: [M(ctx), d(ctx, "render")],
+         [f"{DATA}/render/charts"]),
+    Step("render_molecule", "tests/parity/make_molecule_cases.py", lambda ctx: [M(ctx), d(ctx, "render")],
+         [f"{DATA}/render/molecule"]),
+    Step("render_cli", "tests/parity/make_render_cli_cases.py", lambda ctx: [M(ctx), d(ctx, "render")],
+         [f"{DATA}/render/cli"]),
 ]
 
 
@@ -569,7 +588,7 @@ def main(argv=None) -> int:
         old, new = read(os.path.join(ROOT, rel)), read(os.path.join(root, rel))
         if old == new or normalised(rel, old) == normalised(rel, new):
             continue
-        if rel in MACHINE_DEPENDENT:
+        if rel in MACHINE_DEPENDENT or (rel.endswith(".json") and rel.startswith(MACHINE_DEPENDENT_JSON_UNDER)):
             ok, why = numerically_equal(old, new)
             if ok:
                 tolerated.append((rel, why))

@@ -1,0 +1,23 @@
+{
+ "frames": [0,1,2],
+ "time_ps": [0.0,2.0,4.0],
+ "time_unit": "ps",
+ "results": [
+  {"name":"trace","key":"{key}","params":{"groups":["RNA","Protein"],"trace_atoms":"C4',CA","align":true,"show_ions":true,"ions":"resname MG Mg MG2 or name MG Mg","group_order":["RNA","Protein"]},"meta":{"residue_labels":["A:G1","A:C2","A:A3","A:U4","B:HSD5","B:PHE6","B:TYR7","B:TRP8","B:HIE9","B:HIS10"],"ion_labels":[],"group_names":["RNA","Protein"],"label":"Backbone trace","analysis":"trace","outputs":{"series":{},"matrices":{},"pairmaps":{}}},"arrays":["coords","ion_coords","chain","group_index","group_member","is_point","links","resindex","resid","resname","chain_name"]},
+  {
+   "name": "atoms",
+   "key": "{key}",
+   "params": {"groups":["RNA","Protein"],"trace_atoms":"C4',CA","align":true,"hydrogens":false,"ions":"resname MG Mg MG2 or name MG Mg","group_order":["RNA","Protein"]},
+   "meta": {
+    "atom_names": ["N9","C8","N7","C5","C6","N1","C2","N3","C4","O6","N2","C1'","O4'","C2'","O2'","C3'","C4'","O3'","C5'","O5'","P","OP1","OP2","N1","C2","N3","C4","C5","C6","O2","N4","C1'","O4'","C2'","O2'","C3'","C4'","O3'","C5'","O5'","P","OP1","OP2","N9","C8","N7","C5","C6","N1","C2","N3","C4","N6","C1'","O4'","C2'","O2'","C3'","C4'","O3'","C5'","O5'","P","OP1","OP2","N1","C2","N3","C4","C5","C6","O2","O4","C1'","O4'","C2'","O2'","C3'","C4'","O3'","C5'","O5'","P","OP1","OP2","CG","ND1","CE1","NE2","CD2","CB","CA","N","C","O","CZ","CE2","CD2","CG","CD1","CE1","CB","CA","N","C","O","CZ","CE2","CD2","CG","CD1","CE1","OH","CB","CA","N","C","O","CH2","CZ3","CE3","CD2","CE2","CZ2","CG","CD1","NE1","CB","CA","N","C","O","CG","ND1","CE1","NE2","CD2","CB","CA","N","C","O","CG","ND1","CE1","NE2","CD2","CB","CA","N","C","O"],
+    "elements": ["N","C","N","C","C","N","C","N","C","O","N","C","O","C","O","C","C","O","C","O","P","O","O","N","C","N","C","C","C","O","N","C","O","C","O","C","C","O","C","O","P","O","O","N","C","N","C","C","N","C","N","C","N","C","O","C","O","C","C","O","C","O","P","O","O","N","C","N","C","C","C","O","O","C","O","C","O","C","C","O","C","O","P","O","O","C","N","C","N","C","C","C","N","C","O","C","C","C","C","C","C","C","C","N","C","O","C","C","C","C","C","C","O","C","C","N","C","O","C","C","C","C","C","C","C","C","N","C","C","N","C","O","C","N","C","N","C","C","C","N","C","O","C","N","C","N","C","C","C","N","C","O"],
+    "resnames": ["G","G","G","G","G","G","G","G","G","G","G","G","G","G","G","G","G","G","G","G","G","G","G","C","C","C","C","C","C","C","C","C","C","C","C","C","C","C","C","C","C","C","C","A","A","A","A","A","A","A","A","A","A","A","A","A","A","A","A","A","A","A","A","A","A","U","U","U","U","U","U","U","U","U","U","U","U","U","U","U","U","U","U","U","U","HSD","HSD","HSD","HSD","HSD","HSD","HSD","HSD","HSD","HSD","PHE","PHE","PHE","PHE","PHE","PHE","PHE","PHE","PHE","PHE","PHE","TYR","TYR","TYR","TYR","TYR","TYR","TYR","TYR","TYR","TYR","TYR","TYR","TRP","TRP","TRP","TRP","TRP","TRP","TRP","TRP","TRP","TRP","TRP","TRP","TRP","TRP","HIE","HIE","HIE","HIE","HIE","HIE","HIE","HIE","HIE","HIE","HIS","HIS","HIS","HIS","HIS","HIS","HIS","HIS","HIS","HIS"],
+    "label": "Atomic coordinates (structure view)",
+    "analysis": "atoms",
+    "outputs": {"series":{},"matrices":{},"pairmaps":{}}
+   },
+   "arrays": ["coords","row","bonds","resid","atom_index","resindex"]
+  },
+  {"name":"proximity","key":"{key}","params":{"groups":["RNA","Protein"],"set":"Protein","radius":8.0,"ions":"resname MG Mg MG2 or name MG Mg"},"meta":{"residue_labels":["A:G1","A:C2","A:A3","A:U4","B:HSD5","B:PHE6","B:TYR7","B:TRP8","B:HIE9","B:HIS10"],"radius":8.0,"label":"Proximity to residue set","analysis":"proximity","outputs":{"series":{},"matrices":{"min_distance":{"array":"min_distance","rows":"residue_labels","label":"Distance to proximity set","kind":"value","unit":"Å"}},"pairmaps":{}}},"arrays":["min_distance","member","resindex"]}
+ ]
+}

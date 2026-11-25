@@ -1,0 +1,70 @@
+{
+ "case": "ts_missing_key",
+ "description": "No data: unknown key",
+ "input": "demo_dry",
+ "overrides": ["layout.preset=\"single\"","layout.panels=[{\"type\": \"timeseries\", \"series\": [\"nokey/x\"], \"title\": \"\", \"options\": {}}]"],
+ "project": {
+  "notes": "",
+  "inputs": {"topology":"{data}/topology/demo_dry.parm7","trajectories":["{data}/io/trajectories/demo_dry.nc"],"start":0,"stop":null,"step":1,"dt_ps":null,"time_unit":"ns","external":[]},
+  "cleaning": {"enabled":false,"cpptraj_path":"cpptraj","conda_env":"","conda_exe":"","solvent_mask":":WAT,HOH,TIP3,SOL,T3P,T4P,SPC","ion_mask":":Na+,Cl-,K+,NA,CL,K,Na,Cl,SOD,CLA,POT","extra_strip_mask":"","autoimage":true,"autoimage_anchor":"","fit":true,"fit_mask":"@P,C4'","fit_reference":"first","remove_box_after_fit":true,"reference_frame":1,"reference_file":"","start":1,"stop":null,"offset":1,"extra_commands":"","output_dir":""},
+  "groups": [{"name":"Aptamer","residues":"1-12","selection":"","color":"#2a78d6"},{"name":"Target","residues":"13-24","selection":"","color":"#eb6834"}],
+  "analyses": {
+   "rmsd": {"enabled":true,"targets":[{"label":"Complex","selection":"(group:Aptamer or group:Target) and not name H*","fit_selection":""},{"label":"Backbone","selection":"(group:Aptamer or group:Target) and name C4'","fit_selection":""}],"reference_frame":0,"superposition":true,"mass_weighted":false},
+   "contacts": {"enabled":true,"group_a":"Aptamer","group_b":"Target","cutoff":4.5,"heavy_only":true},
+   "hbonds": {"enabled":true,"group_a":"Aptamer","group_b":"Target","distance_cutoff":3.5,"use_angle":true,"angle_cutoff":135.0,"donor_elements":"N,O","acceptor_elements":"N,O"},
+   "mg": {"enabled":true,"mg_selection":"resname MG Mg MG2 or name MG Mg","ligand_selection":"group:Aptamer or group:Target","ligand_elements":"O","group_a":"Aptamer","group_b":"Target","inner_cutoff":2.6,"outer_cutoff":4.5,"bridge_shell":"inner","geometry":false,"angle_tolerance":25.0,"occupancy_selection":"","occupancy_elements":"N,O"},
+   "stacking": {"enabled":true,"selection":"group:Aptamer or group:Target","scope":"all","group_a":"Aptamer","group_b":"Target","distance_cutoff":4.5,"angle_cutoff":30.0,"offset_cutoff":2.5,"planarity_cutoff":0.25},
+   "energy": {"enabled":true,"group_a":"Aptamer","group_b":"Target","cutoff":12.0,"dielectric":4.0,"distance_dependent":true,"use_parm7":true,"target_value":-60.0,"exclude_bonded":3},
+   "basepairs": {"engine":"builtin","stride":10,"cutoff":3.5,"wobble":true,"noncanonical":false},
+   "use_pbc": false,
+   "proximity_search_radius": 8.0
+  },
+  "visual": {"structure_groups":[],"trace_atoms":"C4',CA","representations":[],"renderer":"auto","rep_rest":"trace","backbone_atom":"P","rep_hydrogens":false,"show_ions":true,"align_frames":true,"rotation":[-90.0,0.0,0.0],"zoom":1.0,"center_on":"","center_follow":false,"color_mode":"groups","base_color":"#b5b3ad","chain_palette":"tab10","proximity_set":"Target","proximity_cutoff":4.0,"proximity_color":"#e34948","glow_mode":"fade","glow_color":"#ffb000","fade_frames":15,"glow_strength":1.0,"ion_color":"#008300","line_width":2.2,"point_size":22.0,"depth_cue":true,"theme":"light","font_size":11.0,"show_time_label":true,"label_every":0,"label_residues":"","title":""},
+  "density": {"map_path":"","show":true,"resolution":5.0,"level":2.0,"color":"#2a78d6","opacity":0.45,"front":false,"fit_frame":"ref","search":"global","angular_step":30.0,"auto_fit":true,"transform":[],"anchor":[],"fit_cc":0.0,"fit_info":""},
+  "layout": {"preset":"single","panels":[{"type":"timeseries","series":["nokey/x"],"title":"","options":{}}]},
+  "output": {"out_dir":"{work}/out","cache_dir":"","video":{"enabled":true,"filename":"MDATK_video.mp4","fps":24,"width":1920,"height":1080,"dpi":120,"codec":"libx264","crf":20,"frame_stride":1,"ffmpeg_path":"ffmpeg"},"charts":{"enabled":true,"series":[],"include_heatmaps":false,"formats":["png"],"dpi":300,"width":8.0,"height":4.5,"style":"mdatk","color":"","line_width":1.5,"title":"","xlabel":"","ylabel":"","smoothing":0,"show_target":true,"prefix":"MDATK_chart"},"pdb":{"enabled":true,"frames":"0, last","times":"120ps","selection":"Aptamer, Target","prefix":"MDATK_frame"},"write_params_log":true,"timestamp_files":true},
+  "workflow": {"project_name":"project","stamp":"","use_stamp":true,"out_dir":"","step_folders":true,"nodes":[],"edges":[],"scratch":[]}
+ },
+ "size": [960,540],
+ "dpi": 60,
+ "watermark": "",
+ "positions": [0,12,23],
+ "improvements": [],
+ "frames": [
+  {
+   "pos": 0,
+   "figure": {
+    "size_px": [960,540],
+    "dpi": 60.0,
+    "facecolor": [0.9764705882352941,0.9764705882352941,0.9686274509803922,1.0],
+    "suptitle": null,
+    "texts": [],
+    "axes": [
+     {
+      "id": "ax0",
+      "position_px": [4.8,4.8,955.2,535.1999999999999],
+      "tight_px": [4.8,4.8,955.2,535.1999999999999],
+      "facecolor": [0.9882352941176471,0.9882352941176471,0.984313725490196,1.0],
+      "visible": true,
+      "axison": true,
+      "xlim": [0.0,1.0],
+      "ylim": [0.0,1.0],
+      "aspect": "auto",
+      "zorder": 0.0,
+      "titles": {},
+      "spines": {"left":{"visible":true,"color":[0.8823529411764706,0.8784313725490196,0.8509803921568627,1.0],"lw":0.8},"right":{"visible":false,"color":[0.8823529411764706,0.8784313725490196,0.8509803921568627,1.0],"lw":0.8},"bottom":{"visible":true,"color":[0.8823529411764706,0.8784313725490196,0.8509803921568627,1.0],"lw":0.8},"top":{"visible":false,"color":[0.8823529411764706,0.8784313725490196,0.8509803921568627,1.0],"lw":0.8}},
+      "xaxis": {"label":{"text":"","color":[0.0,0.0,0.0,1.0],"size":10.0,"extent_px":null},"scale":"linear","inverted":false,"visible":true,"ticks":[],"tick_style":{"tick1":true,"tick2":false,"label1":true,"label2":false,"color":[0.5372549019607843,0.5294117647058824,0.5058823529411764,1.0],"length":3.0,"width":0.6,"labelcolor":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"labelsize":9.35,"rotation":0.0,"gridOn":false,"grid":{"color":[0.8823529411764706,0.8784313725490196,0.8509803921568627,1.0],"lw":0.6,"ls":"-"}},"offset_text":"","locator":{"class":"FixedLocator","locs":[],"nbins":null},"formatter":{"class":"ScalarFormatter","offset":0.0,"orderOfMagnitude":0,"format":"","useMathText":false,"useOffset":true}},
+      "yaxis": {"label":{"text":"","color":[0.0,0.0,0.0,1.0],"size":10.0,"extent_px":null},"scale":"linear","inverted":false,"visible":true,"ticks":[],"tick_style":{"tick1":true,"tick2":false,"label1":true,"label2":false,"color":[0.5372549019607843,0.5294117647058824,0.5058823529411764,1.0],"length":3.0,"width":0.6,"labelcolor":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"labelsize":9.35,"rotation":0.0,"gridOn":false,"grid":{"color":[0.8823529411764706,0.8784313725490196,0.8509803921568627,1.0],"lw":0.6,"ls":"-"}},"offset_text":"","locator":{"class":"FixedLocator","locs":[],"nbins":null},"formatter":{"class":"ScalarFormatter","offset":0.0,"orderOfMagnitude":0,"format":"","useMathText":false,"useOffset":true}},
+      "artists": [{"id":"ax0/0","kind":"text","zorder":3.0,"visible":true,"alpha":null,"animated":false,"text":"No data: analysis 'nokey' has not been computed","xy":[0.5,0.5],"coords":"data","ha":"center","va":"center","color":[0.5372549019607843,0.5294117647058824,0.5058823529411764,1.0],"size":9.35,"weight":"normal","style":"normal","family":["sans-serif"],"rotation":0.0,"clip_on":false,"wrap":true,"extent_px":[379.64062500000006,265.5,580.359375,274.5]}],
+      "panel": 0,
+      "role": "main"
+     }
+    ]
+   }
+  },
+  {"pos":12,"artists":[]},
+  {"pos":23,"artists":[]}
+ ],
+ "panels": [{"type":"timeseries","ok":false,"auto_title":"","axes":{"main":"ax0"},"animated":[]}],
+ "log": []
+}

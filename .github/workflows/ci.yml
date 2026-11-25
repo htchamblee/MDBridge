@@ -288,6 +288,14 @@ jobs:
           "$RUNNER_TEMP/venv/bin/python" -m pip check
           "$RUNNER_TEMP/venv/bin/python" -m pip freeze
 
+      # MDATK's render / video commands (tests/parity/make_render_cli_cases.py) run the ffmpeg
+      # executable and the generator reads the videos' metadata with ffprobe (Ubuntu's package)
+      - name: FFmpeg for MDATK's video
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ffmpeg
+          ffmpeg -version | head -n 1
+
       - name: Regenerate every data set and compare with the committed files
         run: |
           python tests/parity/regenerate_all.py --mdatk mdatk --out "$RUNNER_TEMP/fresh" \

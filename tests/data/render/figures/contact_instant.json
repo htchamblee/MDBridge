@@ -1,0 +1,122 @@
+{
+ "case": "contact_instant",
+ "description": "instant map (animated)",
+ "input": "demo_dry",
+ "overrides": ["layout.preset=\"single\"","layout.panels=[{\"type\": \"contact_map\", \"series\": [\"contacts/map\"], \"title\": \"\", \"options\": {}}]"],
+ "project": {
+  "notes": "",
+  "inputs": {"topology":"{data}/topology/demo_dry.parm7","trajectories":["{data}/io/trajectories/demo_dry.nc"],"start":0,"stop":null,"step":1,"dt_ps":null,"time_unit":"ns","external":[]},
+  "cleaning": {"enabled":false,"cpptraj_path":"cpptraj","conda_env":"","conda_exe":"","solvent_mask":":WAT,HOH,TIP3,SOL,T3P,T4P,SPC","ion_mask":":Na+,Cl-,K+,NA,CL,K,Na,Cl,SOD,CLA,POT","extra_strip_mask":"","autoimage":true,"autoimage_anchor":"","fit":true,"fit_mask":"@P,C4'","fit_reference":"first","remove_box_after_fit":true,"reference_frame":1,"reference_file":"","start":1,"stop":null,"offset":1,"extra_commands":"","output_dir":""},
+  "groups": [{"name":"Aptamer","residues":"1-12","selection":"","color":"#2a78d6"},{"name":"Target","residues":"13-24","selection":"","color":"#eb6834"}],
+  "analyses": {
+   "rmsd": {"enabled":true,"targets":[{"label":"Complex","selection":"(group:Aptamer or group:Target) and not name H*","fit_selection":""},{"label":"Backbone","selection":"(group:Aptamer or group:Target) and name C4'","fit_selection":""}],"reference_frame":0,"superposition":true,"mass_weighted":false},
+   "contacts": {"enabled":true,"group_a":"Aptamer","group_b":"Target","cutoff":4.5,"heavy_only":true},
+   "hbonds": {"enabled":true,"group_a":"Aptamer","group_b":"Target","distance_cutoff":3.5,"use_angle":true,"angle_cutoff":135.0,"donor_elements":"N,O","acceptor_elements":"N,O"},
+   "mg": {"enabled":true,"mg_selection":"resname MG Mg MG2 or name MG Mg","ligand_selection":"group:Aptamer or group:Target","ligand_elements":"O","group_a":"Aptamer","group_b":"Target","inner_cutoff":2.6,"outer_cutoff":4.5,"bridge_shell":"inner","geometry":false,"angle_tolerance":25.0,"occupancy_selection":"","occupancy_elements":"N,O"},
+   "stacking": {"enabled":true,"selection":"group:Aptamer or group:Target","scope":"all","group_a":"Aptamer","group_b":"Target","distance_cutoff":4.5,"angle_cutoff":30.0,"offset_cutoff":2.5,"planarity_cutoff":0.25},
+   "energy": {"enabled":true,"group_a":"Aptamer","group_b":"Target","cutoff":12.0,"dielectric":4.0,"distance_dependent":true,"use_parm7":true,"target_value":-60.0,"exclude_bonded":3},
+   "basepairs": {"engine":"builtin","stride":10,"cutoff":3.5,"wobble":true,"noncanonical":false},
+   "use_pbc": false,
+   "proximity_search_radius": 8.0
+  },
+  "visual": {"structure_groups":[],"trace_atoms":"C4',CA","representations":[],"renderer":"auto","rep_rest":"trace","backbone_atom":"P","rep_hydrogens":false,"show_ions":true,"align_frames":true,"rotation":[-90.0,0.0,0.0],"zoom":1.0,"center_on":"","center_follow":false,"color_mode":"groups","base_color":"#b5b3ad","chain_palette":"tab10","proximity_set":"Target","proximity_cutoff":4.0,"proximity_color":"#e34948","glow_mode":"fade","glow_color":"#ffb000","fade_frames":15,"glow_strength":1.0,"ion_color":"#008300","line_width":2.2,"point_size":22.0,"depth_cue":true,"theme":"light","font_size":11.0,"show_time_label":true,"label_every":0,"label_residues":"","title":""},
+  "density": {"map_path":"","show":true,"resolution":5.0,"level":2.0,"color":"#2a78d6","opacity":0.45,"front":false,"fit_frame":"ref","search":"global","angular_step":30.0,"auto_fit":true,"transform":[],"anchor":[],"fit_cc":0.0,"fit_info":""},
+  "layout": {"preset":"single","panels":[{"type":"contact_map","series":["contacts/map"],"title":"","options":{}}]},
+  "output": {"out_dir":"{work}/out","cache_dir":"","video":{"enabled":true,"filename":"MDATK_video.mp4","fps":24,"width":1920,"height":1080,"dpi":120,"codec":"libx264","crf":20,"frame_stride":1,"ffmpeg_path":"ffmpeg"},"charts":{"enabled":true,"series":[],"include_heatmaps":false,"formats":["png"],"dpi":300,"width":8.0,"height":4.5,"style":"mdatk","color":"","line_width":1.5,"title":"","xlabel":"","ylabel":"","smoothing":0,"show_target":true,"prefix":"MDATK_chart"},"pdb":{"enabled":true,"frames":"0, last","times":"120ps","selection":"Aptamer, Target","prefix":"MDATK_frame"},"write_params_log":true,"timestamp_files":true},
+  "workflow": {"project_name":"project","stamp":"","use_stamp":true,"out_dir":"","step_folders":true,"nodes":[],"edges":[],"scratch":[]}
+ },
+ "size": [960,540],
+ "dpi": 60,
+ "watermark": "",
+ "positions": [0,12,23],
+ "improvements": [],
+ "frames": [
+  {
+   "pos": 0,
+   "figure": {
+    "size_px": [960,540],
+    "dpi": 60.0,
+    "facecolor": [0.9764705882352941,0.9764705882352941,0.9686274509803922,1.0],
+    "suptitle": null,
+    "texts": [],
+    "axes": [
+     {
+      "id": "ax0",
+      "position_px": [23.21666666666667,23.21666666666667,887.9669666666666,523.1999999999999],
+      "tight_px": [4.800000000000001,4.800000000000001,887.9669666666666,535.1999999999999],
+      "facecolor": [0.9882352941176471,0.9882352941176471,0.984313725490196,1.0],
+      "visible": true,
+      "axison": true,
+      "xlim": [-0.5,11.5],
+      "ylim": [11.5,-0.5],
+      "aspect": "auto",
+      "zorder": 0.0,
+      "titles": {"left":{"id":"ax0/title_left","kind":"text","zorder":3.0,"visible":true,"alpha":null,"animated":false,"text":"Aptamer–Target contact map","xy":[0.0,1.0],"coords":"other","ha":"left","va":"baseline","color":[0.043137254901960784,0.043137254901960784,0.043137254901960784,1.0],"size":11.0,"weight":"normal","style":"normal","family":["sans-serif"],"rotation":0.0,"clip_on":true,"wrap":false,"extent_px":[23.21666666666667,525.9978515624999,162.54479166666667,535.1999999999999]}},
+      "spines": {"left":{"visible":true,"color":[0.7647058823529411,0.7607843137254902,0.7176470588235294,1.0],"lw":0.8},"right":{"visible":false,"color":[0.0,0.0,0.0,1.0],"lw":0.8},"bottom":{"visible":true,"color":[0.7647058823529411,0.7607843137254902,0.7176470588235294,1.0],"lw":0.8},"top":{"visible":false,"color":[0.0,0.0,0.0,1.0],"lw":0.8}},
+      "xaxis": {
+       "label": {"text":"","color":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"size":9.9,"extent_px":null},
+       "scale": "linear",
+       "inverted": false,
+       "visible": true,
+       "ticks": [[0.0,"U13",true,false],[1.0,"C14",true,false],[2.0,"G15",true,false],[3.0,"A16",true,false],[4.0,"U17",true,false],[5.0,"G18",true,false],[6.0,"C19",true,false],[7.0,"C20",true,false],[8.0,"A21",true,false],[9.0,"U22",true,false],[10.0,"G23",true,false],[11.0,"C24",true,false]],
+       "tick_style": {"tick1":true,"tick2":false,"label1":true,"label2":false,"color":[0.5372549019607843,0.5294117647058824,0.5058823529411764,1.0],"length":3.0,"width":0.6,"labelcolor":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"labelsize":7.15,"rotation":90.0,"gridOn":false,"grid":{"color":[0.8823529411764706,0.8784313725490196,0.8509803921568627,1.0],"lw":0.6,"ls":"-"}},
+       "offset_text": "",
+       "locator": {"class":"FixedLocator","locs":[0.0,1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0,10.0,11.0],"nbins":null},
+       "formatter": {"class":"FuncFormatter"}
+      },
+      "yaxis": {"label":{"text":"","color":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"size":9.9,"extent_px":null},"scale":"linear","inverted":true,"visible":true,"ticks":[[0.0,"G1",true,false],[1.0,"C2",true,false],[2.0,"A3",true,false],[3.0,"U4",true,false],[4.0,"G5",true,false],[5.0,"G6",true,false],[6.0,"C7",true,false],[7.0,"A8",true,false],[8.0,"U9",true,false],[9.0,"C10",true,false],[10.0,"G11",true,false],[11.0,"A12",true,false]],"tick_style":{"tick1":true,"tick2":false,"label1":true,"label2":false,"color":[0.5372549019607843,0.5294117647058824,0.5058823529411764,1.0],"length":3.0,"width":0.6,"labelcolor":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"labelsize":7.15,"rotation":0.0,"gridOn":false,"grid":{"color":[0.8823529411764706,0.8784313725490196,0.8509803921568627,1.0],"lw":0.6,"ls":"-"}},"offset_text":"","locator":{"class":"FixedLocator","locs":[0.0,1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0,10.0,11.0],"nbins":null},"formatter":{"class":"FuncFormatter"}},
+      "artists": [{"id":"ax0/0","kind":"image","zorder":0.0,"visible":true,"alpha":null,"animated":false,"shape":[12,12],"extent":[-0.5,11.5,11.5,-0.5],"origin":"upper","interpolation":"nearest","dtype":"float64","cmap":"mdatk_seq_light","vmin":0.0,"vmax":41.0,"masked":0}],
+      "panel": 0,
+      "role": "main"
+     },
+     {
+      "id": "ax1",
+      "position_px": [905.2619726666667,23.21666666666667,930.2611393333333,523.1999999999999],
+      "tight_px": [905.2619726666667,18.95336100260417,954.7611393333334,523.1999999999999],
+      "facecolor": [1.0,1.0,1.0,1.0],
+      "visible": true,
+      "axison": true,
+      "xlim": [0.0,1.0],
+      "ylim": [0.0,41.0],
+      "aspect": "auto",
+      "zorder": 0.0,
+      "titles": {},
+      "spines": {"left":{"visible":false,"color":[0.0,0.0,0.0,1.0],"lw":0.8},"right":{"visible":false,"color":[0.0,0.0,0.0,1.0],"lw":0.8},"bottom":{"visible":false,"color":[0.0,0.0,0.0,1.0],"lw":0.8},"top":{"visible":false,"color":[0.0,0.0,0.0,1.0],"lw":0.8},"outline":{"visible":true,"color":[0.8823529411764706,0.8784313725490196,0.8509803921568627,1.0],"lw":0.8}},
+      "xaxis": {"label":{"text":"","color":[0.0,0.0,0.0,1.0],"size":10.0,"extent_px":null},"scale":"linear","inverted":false,"visible":true,"ticks":[],"tick_style":{"tick1":true,"tick2":false,"label1":true,"label2":false,"color":[0.5372549019607843,0.5294117647058824,0.5058823529411764,1.0],"length":3.5,"width":0.8,"labelcolor":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"labelsize":8.25,"rotation":0.0,"gridOn":false,"grid":{"color":[0.6901960784313725,0.6901960784313725,0.6901960784313725,1.0],"lw":0.8,"ls":"-"}},"offset_text":"","locator":{"class":"FixedLocator","locs":[],"nbins":null},"formatter":{"class":"ScalarFormatter","offset":0.0,"orderOfMagnitude":0,"format":"","useMathText":false,"useOffset":true}},
+      "yaxis": {
+       "label": {"text":"count","color":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"size":8.8,"extent_px":[947.427806,263.70833333333326,954.7611393333334,282.70833333333326]},
+       "scale": "linear",
+       "inverted": false,
+       "visible": true,
+       "ticks": [[0.0,"0",false,true],[5.0,"5",false,true],[10.0,"10",false,true],[15.0,"15",false,true],[20.0,"20",false,true],[25.0,"25",false,true],[30.0,"30",false,true],[35.0,"35",false,true],[40.0,"40",false,true]],
+       "tick_style": {"tick1":false,"tick2":true,"label1":false,"label2":true,"color":[0.5372549019607843,0.5294117647058824,0.5058823529411764,1.0],"length":3.5,"width":0.8,"labelcolor":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"labelsize":8.25,"rotation":0.0,"gridOn":false,"grid":{"color":[0.6901960784313725,0.6901960784313725,0.6901960784313725,1.0],"lw":0.8,"ls":"-"}},
+       "offset_text": "",
+       "locator": {"class":"MaxNLocator","nbins":10,"steps":[1.0,1.5,2.0,2.5,3.0,4.0,5.0,6.0,8.0,10.0],"integer":true,"min_n_ticks":2,"symmetric":false,"prune":null},
+       "formatter": {"class":"ScalarFormatter","offset":0.0,"orderOfMagnitude":0,"format":"%1.0f","useMathText":false,"useOffset":true}
+      },
+      "colorbar": {
+       "mappable": "ax0/0",
+       "orientation": "vertical",
+       "vmin": 0.0,
+       "vmax": 41.0,
+       "norm": "Normalize",
+       "cmap": {"name":"mdatk_seq_light","N":256,"over":[0.050980392156862744,0.21176470588235294,0.4196078431372549,1.0],"under":[0.9882352941176471,0.9882352941176471,0.984313725490196,1.0],"bad":[0.0,0.0,0.0,0.0]},
+       "boundaries": [0.0,0.16015625,0.3203125,0.48046875,0.640625,0.80078125,0.9609375,1.12109375,1.28125,1.44140625,1.6015625,1.76171875,1.921875,2.08203125,2.2421875,2.40234375,2.5625,2.72265625,2.8828125,3.04296875,3.203125,3.36328125,3.5234375,3.68359375,3.84375,4.00390625,4.1640625,4.32421875,4.484375,4.64453125,4.8046875,4.96484375,5.125,5.28515625,5.4453125,5.60546875,5.765625,5.92578125,6.0859375,6.24609375,6.40625,6.56640625,6.7265625,6.88671875,7.046875,7.20703125,7.3671875,7.52734375,7.6875,7.84765625,8.0078125,8.16796875,8.328125,8.48828125,8.6484375,8.80859375,8.96875,9.12890625,9.2890625,9.44921875,9.609375,9.76953125,9.9296875,10.08984375,10.25,10.41015625,10.5703125,10.73046875,10.890625,11.05078125,11.2109375,11.37109375,11.53125,11.69140625,11.8515625,12.01171875,12.171875,12.33203125,12.4921875,12.65234375,12.8125,12.97265625,13.1328125,13.29296875,13.453125,13.61328125,13.7734375,13.93359375,14.09375,14.25390625,14.4140625,14.57421875,14.734375,14.89453125,15.0546875,15.21484375,15.375,15.53515625,15.6953125,15.85546875,16.015625,16.17578125,16.3359375,16.49609375,16.65625,16.81640625,16.9765625,17.13671875,17.296875,17.45703125,17.6171875,17.77734375,17.9375,18.09765625,18.2578125,18.41796875,18.578125,18.73828125,18.8984375,19.05859375,19.21875,19.37890625,19.5390625,19.69921875,19.859375,20.01953125,20.1796875,20.33984375,20.5,20.66015625,20.8203125,20.98046875,21.140625,21.30078125,21.4609375,21.62109375,21.78125,21.94140625,22.1015625,22.26171875,22.421875,22.58203125,22.7421875,22.90234375,23.0625,23.22265625,23.3828125,23.54296875,23.703125,23.86328125,24.0234375,24.18359375,24.34375,24.50390625,24.6640625,24.82421875,24.984375,25.14453125,25.3046875,25.46484375,25.625,25.78515625,25.9453125,26.10546875,26.265625,26.42578125,26.5859375,26.74609375,26.90625,27.06640625,27.2265625,27.38671875,27.546875,27.70703125,27.8671875,28.02734375,28.1875,28.34765625,28.5078125,28.66796875,28.828125,28.98828125,29.1484375,29.30859375,29.46875,29.62890625,29.7890625,29.94921875,30.109375,30.26953125,30.4296875,30.58984375,30.75,30.91015625,31.0703125,31.23046875,31.390625,31.55078125,31.7109375,31.87109375,32.03125,32.19140625,32.3515625,32.51171875,32.671875,32.83203125,32.9921875,33.15234375,33.3125,33.47265625,33.6328125,33.79296875,33.953125,34.11328125,34.2734375,34.43359375,34.59375,34.75390625,34.9140625,35.07421875,35.234375,35.39453125,35.5546875,35.71484375,35.875,36.03515625,36.1953125,36.35546875,36.515625,36.67578125,36.8359375,36.99609375,37.15625,37.31640625,37.4765625,37.63671875,37.796875,37.95703125,38.1171875,38.27734375,38.4375,38.59765625,38.7578125,38.91796875,39.078125,39.23828125,39.3984375,39.55859375,39.71875,39.87890625,40.0390625,40.19921875,40.359375,40.51953125,40.6796875,40.83984375,41.0],
+       "values": [0.080078125,0.240234375,0.400390625,0.560546875,0.720703125,0.880859375,1.041015625,1.201171875,1.361328125,1.521484375,1.681640625,1.841796875,2.001953125,2.162109375,2.322265625,2.482421875,2.642578125,2.802734375,2.962890625,3.123046875,3.283203125,3.443359375,3.603515625,3.763671875,3.923828125,4.083984375,4.244140625,4.404296875,4.564453125,4.724609375,4.884765625,5.044921875,5.205078125,5.365234375,5.525390625,5.685546875,5.845703125,6.005859375,6.166015625,6.326171875,6.486328125,6.646484375,6.806640625,6.966796875,7.126953125,7.287109375,7.447265625,7.607421875,7.767578125,7.927734375,8.087890625,8.248046875,8.408203125,8.568359375,8.728515625,8.888671875,9.048828125,9.208984375,9.369140625,9.529296875,9.689453125,9.849609375,10.009765625,10.169921875,10.330078125,10.490234375,10.650390625,10.810546875,10.970703125,11.130859375,11.291015625,11.451171875,11.611328125,11.771484375,11.931640625,12.091796875,12.251953125,12.412109375,12.572265625,12.732421875,12.892578125,13.052734375,13.212890625,13.373046875,13.533203125,13.693359375,13.853515625,14.013671875,14.173828125,14.333984375,14.494140625,14.654296875,14.814453125,14.974609375,15.134765625,15.294921875,15.455078125,15.615234375,15.775390625,15.935546875,16.095703125,16.255859375,16.416015625,16.576171875,16.736328125,16.896484375,17.056640625,17.216796875,17.376953125,17.537109375,17.697265625,17.857421875,18.017578125,18.177734375,18.337890625,18.498046875,18.658203125,18.818359375,18.978515625,19.138671875,19.298828125,19.458984375,19.619140625,19.779296875,19.939453125,20.099609375,20.259765625,20.419921875,20.580078125,20.740234375,20.900390625,21.060546875,21.220703125,21.380859375,21.541015625,21.701171875,21.861328125,22.021484375,22.181640625,22.341796875,22.501953125,22.662109375,22.822265625,22.982421875,23.142578125,23.302734375,23.462890625,23.623046875,23.783203125,23.943359375,24.103515625,24.263671875,24.423828125,24.583984375,24.744140625,24.904296875,25.064453125,25.224609375,25.384765625,25.544921875,25.705078125,25.865234375,26.025390625,26.185546875,26.345703125,26.505859375,26.666015625,26.826171875,26.986328125,27.146484375,27.306640625,27.466796875,27.626953125,27.787109375,27.947265625,28.107421875,28.267578125,28.427734375,28.587890625,28.748046875,28.908203125,29.068359375,29.228515625,29.388671875,29.548828125,29.708984375,29.869140625,30.029296875,30.189453125,30.349609375,30.509765625,30.669921875,30.830078125,30.990234375,31.150390625,31.310546875,31.470703125,31.630859375,31.791015625,31.951171875,32.111328125,32.271484375,32.431640625,32.591796875,32.751953125,32.912109375,33.072265625,33.232421875,33.392578125,33.552734375,33.712890625,33.873046875,34.033203125,34.193359375,34.353515625,34.513671875,34.673828125,34.833984375,34.994140625,35.154296875,35.314453125,35.474609375,35.634765625,35.794921875,35.955078125,36.115234375,36.275390625,36.435546875,36.595703125,36.755859375,36.916015625,37.076171875,37.236328125,37.396484375,37.556640625,37.716796875,37.876953125,38.037109375,38.197265625,38.357421875,38.517578125,38.677734375,38.837890625,38.998046875,39.158203125,39.318359375,39.478515625,39.638671875,39.798828125,39.958984375,40.119140625,40.279296875,40.439453125,40.599609375,40.759765625,40.919921875],
+       "extend": "neither",
+       "outline": {"color":[0.8823529411764706,0.8784313725490196,0.8509803921568627,1.0],"lw":0.8},
+       "label": "count"
+      },
+      "artists": [{"id":"ax1/0","kind":"segments","zorder":2.0,"visible":true,"alpha":null,"animated":false,"segments":[],"colors":[[0.0,0.0,0.0,1.0]],"linewidths":[0.4],"capstyle":null,"linestyles":["(np.float64(0.0), None)"]},{"id":"ax1/1","kind":"other","zorder":1.0,"visible":true,"alpha":null,"animated":false,"class":"QuadMesh"}],
+      "panel": 0,
+      "role": "colorbar"
+     }
+    ]
+   }
+  },
+  {"pos":12,"artists":[{"id":"ax0/0"}]},
+  {"pos":23,"artists":[{"id":"ax0/0"}]}
+ ],
+ "panels": [{"type":"contact_map","ok":true,"auto_title":"Aptamer–Target contact map","axes":{"main":"ax0","colorbar":"ax1"},"animated":["ax0/0"]}],
+ "log": []
+}
