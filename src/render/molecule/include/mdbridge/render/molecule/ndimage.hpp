@@ -2,12 +2,14 @@
 // The pieces of scipy.ndimage that MDATK's molecular surface uses, on 3-D float32 arrays in C order
 // ([z, y, x], shape {nz, ny, nx}), rounded as scipy rounds them: gaussian_filter1d /
 // gaussian_filter with mode "constant" (separable correlation in double precision, each pass
-// stored as float32) and map_coordinates with order 1 and mode "nearest". Ported from SciPy 1.18.1
+// stored as float32), map_coordinates with order 1 and mode "nearest", and affine_transform with
+// order 1 and mode "constant" (the density shadow). Ported from SciPy 1.18.1
 // (scipy/ndimage/_filters.py, src/ni_filters.c, src/ni_interpolation.c, src/ni_splines.c; BSD
 // licence, see ndimage.cpp and THIRD_PARTY_NOTICES.md).
 
 #include <array>
 #include <cstddef>
+#include <span>
 #include <vector>
 
 namespace mdbridge::render::molecule {
@@ -33,6 +35,22 @@ void gaussianFilter(std::vector<float>& data, const Shape3& shape, double sigma,
 template <class F>
 float mapCoordinatesLinearNearest(const F& value, const Shape3& shape, double z, double y, double x);
 
+// affine_transform(data, matrix, offset, output_shape, order=1, mode="constant", cval,
+// prefilter=False) for a 3 x 3 matrix (row-major): output[o] = the order-1 interpolation of data at
+// matrix @ o + offset (output index o as doubles, products added in order to the offset). A
+// coordinate below 0 or above length - 1 along any axis (or NaN) gives cval; the result of each point
+// is stored as float32, as for a float32 input with no output array.
+using Matrix3 = std::array<std::array<double, 3>, 3>;
+std::vector<float> affineTransformLinearConstant(std::span<const float> data, const Shape3& shape, const Matrix3& matrix,
+                                                 const std::array<double, 3>& offset, const Shape3& outputShape,
+                                                 double cval = 0.0);
+
+// One output point of affineTransformLinearConstant (output index (i, j, k)), before the float32
+// rounding: the interpolated value in double precision, or cval.
+double affineSampleLinearConstant(std::span<const float> data, const Shape3& shape, const Matrix3& matrix,
+                                  const std::array<double, 3>& offset, std::size_t i, std::size_t j, std::size_t k,
+                                  double cval = 0.0);
+
 // Implementation --------------------------------------------------------------------------------------
 
 namespace detail {
@@ -42,6 +60,9 @@ struct LinearAxis {
     double weight[2];
 };
 LinearAxis linearAxis(double coordinate, std::size_t length);
+// mode "constant": false (cval) when the coordinate is below 0, above length - 1 or NaN; taps beyond
+// the last grid line (coordinate == length - 1) are mirrored, with weight 0
+bool linearAxisConstant(double coordinate, std::size_t length, LinearAxis& out);
 }  // namespace detail
 
 template <class F>

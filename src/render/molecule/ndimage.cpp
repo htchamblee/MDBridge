@@ -1,8 +1,9 @@
 // Gaussian filtering (mode "constant") and order-1 interpolation (mode "nearest") as
 // scipy.ndimage computes them, ported from SciPy 1.18.1: _gaussian_kernel1d / gaussian_filter1d /
 // gaussian_filter (scipy/ndimage/_filters.py), NI_Correlate1D and its line buffers
-// (scipy/ndimage/src/ni_filters.c, ni_support.c), NI_GeometricTransform's interpolation and
-// map_coordinate (src/ni_interpolation.c) and get_spline_interpolation_weights (src/ni_splines.c),
+// (scipy/ndimage/src/ni_filters.c, ni_support.c), NI_GeometricTransform's interpolation (its
+// matrix path for affine_transform, scipy/ndimage/_interpolation.py) and map_coordinate
+// (src/ni_interpolation.c) and get_spline_interpolation_weights (src/ni_splines.c),
 // used under SciPy's licence and the licence of its ndimage package:
 //
 // Copyright (c) 2001-2002 Enthought, Inc. 2003, SciPy Developers.
@@ -34,7 +35,8 @@
 // OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 //
-// Only the paths MDATK uses are ported (order-0 kernels, which are symmetric; one mode each). The
+// Only the paths MDATK uses are ported (order-0 kernels, which are symmetric; order-1
+// interpolation in mode "nearest" for map_coordinates and mode "constant" for affine_transform). The
 // kernel's normalising sum is numpy's pairwise sum (core/detail/numpy_sum.hpp). Built without
 // floating-point contraction, so that every product and sum rounds as in scipy.
 
@@ -141,6 +143,94 @@ LinearAxis linearAxis(double coordinate, std::size_t length) {
     return out;
 }
 
+bool linearAxisConstant(double coordinate, std::size_t length, LinearAxis& out) {
+    // map_coordinate(): mode "constant" maps a coordinate outside [0, length - 1] to -1, which (as
+    // NaN does) fails the `cc > -1.0` test: the point is cval
+    double cc = coordinate;
+    const auto len = static_cast<double>(length);
+    if (cc < 0) {
+        cc = -1;
+    } else if (cc > len - 1) {
+        cc = -1;
+    }
+    if (!(cc > -1.0)) {
+        return false;
+    }
+    const double fl = std::floor(cc);
+    const auto start = static_cast<std::ptrdiff_t>(fl);
+    const auto n = static_cast<std::ptrdiff_t>(length);
+    for (int k = 0; k < 2; ++k) {
+        std::ptrdiff_t idx = start + k;
+        if (start < 0 || start + 1 >= n) {
+            // the spline boundary of mode "constant" is "mirror" (only idx == length is reached)
+            if (n <= 1) {
+                idx = 0;
+            } else if (idx > n - 1) {
+                const std::ptrdiff_t sz2 = 2 * n - 2;
+                idx -= sz2 * (idx / sz2);
+                if (idx >= n) {
+                    idx = sz2 - idx;
+                }
+            }
+        }
+        out.index[k] = idx;
+    }
+    const double x = cc - fl;
+    out.weight[0] = 1.0 - x;
+    out.weight[1] = 1.0 - out.weight[0];
+    return true;
+}
+
 }  // namespace detail
+
+double affineSampleLinearConstant(std::span<const float> data, const Shape3& shape, const Matrix3& matrix,
+                                  const std::array<double, 3>& offset, std::size_t i, std::size_t j, std::size_t k,
+                                  double cval) {
+    const double o[3] = {static_cast<double>(i), static_cast<double>(j), static_cast<double>(k)};
+    detail::LinearAxis axes[3];
+    for (std::size_t h = 0; h < 3; ++h) {
+        double tmp = offset[h];
+        tmp += o[0] * matrix[h][0];
+        tmp += o[1] * matrix[h][1];
+        tmp += o[2] * matrix[h][2];
+        if (!detail::linearAxisConstant(tmp, shape[h], axes[h])) {
+            return cval;
+        }
+    }
+    const auto ny = static_cast<std::ptrdiff_t>(shape[1]);
+    const auto nx = static_cast<std::ptrdiff_t>(shape[2]);
+    double t = 0.0;
+    for (int fz = 0; fz < 2; ++fz) {  // the last axis varies fastest, as in scipy's filter footprint
+        for (int fy = 0; fy < 2; ++fy) {
+            for (int fx = 0; fx < 2; ++fx) {
+                const std::ptrdiff_t idx = (axes[0].index[fz] * ny + axes[1].index[fy]) * nx + axes[2].index[fx];
+                double coeff = static_cast<double>(data[static_cast<std::size_t>(idx)]);
+                coeff *= axes[0].weight[fz];
+                coeff *= axes[1].weight[fy];
+                coeff *= axes[2].weight[fx];
+                t += coeff;
+            }
+        }
+    }
+    return t;
+}
+
+std::vector<float> affineTransformLinearConstant(std::span<const float> data, const Shape3& shape, const Matrix3& matrix,
+                                                 const std::array<double, 3>& offset, const Shape3& outputShape,
+                                                 double cval) {
+    if (data.size() != shape[0] * shape[1] * shape[2]) {
+        throw std::invalid_argument("affineTransformLinearConstant: data does not match the shape");
+    }
+    std::vector<float> out(outputShape[0] * outputShape[1] * outputShape[2]);
+    std::size_t n = 0;
+    for (std::size_t i = 0; i < outputShape[0]; ++i) {
+        for (std::size_t j = 0; j < outputShape[1]; ++j) {
+            for (std::size_t k = 0; k < outputShape[2]; ++k) {
+                out[n++] = static_cast<float>(affineSampleLinearConstant(data, shape, matrix, offset, i, j, k, cval));
+            }
+        }
+    }
+    return out;
+}
 
 }  // namespace mdbridge::render::molecule

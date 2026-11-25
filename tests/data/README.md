@@ -810,6 +810,31 @@ topology and trajectory generators:
 /opt/mdbridge-venv/bin/python -I -B tests/parity/make_molecule_geometry_cases.py /tmp/mdatk tests/data/render/molecule_geometry
 ```
 
+## render/density_shadow: the density shadow (milestone 4, W0-I)
+
+`tests/parity/make_density_shadow_cases.py` runs MDATK's `mdatk/density.py` (`_above_level`,
+`project_density`, `shadow_rgba`, `anchored`) and `scipy.ndimage.affine_transform` in-process, for
+`src/render/molecule/density_shadow.cpp` and the affine resampling of `ndimage.cpp`
+(`tests/render/test_density_shadow.cpp`: images within 1e-6, placements within 1e-9). The maps are
+committed files read with MDATK's `read_map`: `render/inputs/demo_dry_map.mrc` (figure step) and
+`io/maps/files/*` (map step: permuted axes, NSTART origins, constant, NaN, inf, float32 extremes,
+NaN cell). MDBridge's improvements RN-30 ... RN-32 (docs/DIFFERENCES.md) are applied test-side;
+records keep MDATK's own outcome under `mdatk` where they change it.
+
+| File | Content |
+|---|---|
+| `affine.json` | `affine_transform(order=1, mode="constant", prefilter=False)` of float32 arrays: shape, values, 3 x 3 matrix, offset, output shape, cval and the float32 output (last grid lines exactly, outside, NaN offset, empty output) |
+| `shadows.json` | `kind` `above_level`: `_above_level(map, level)` of small maps; `kind` `project`: `project_density` inputs (map, placement, view, centre, level, window, max_pixels, max_depth) and the image (rows bottom -> top), extent, `null` or the error, and `shadow_rgba` of some images |
+| `anchored.json` | `anchored(values, anchor, reference).to_list(12)`, the error, or the RN-32 note |
+
+Floats are exact (float32 values widened). numpy's and OpenBLAS' kernels are pinned as in
+`make_analysis_cases.py`; `regenerate_all.py` compares these files as JSON within a relative 1e-12
+where their bytes differ (3 x 3 products and kabsch's SVD):
+
+```bash
+/opt/mdbridge-venv/bin/python -I -B tests/parity/make_density_shadow_cases.py /tmp/mdatk tests/data/render/density_shadow
+```
+
 ## Checking that the data is reproducible
 
 `tests/parity/regenerate_all.py` runs every generator above (and `tools/gen_*.py`) in this order
