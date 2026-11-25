@@ -238,14 +238,14 @@ core::Value dumpFigure(const Figure& fig, const FontSet& fonts) {
                 t.insert(t.end(), {{"segments", segs}, {"colors", colors(g->colors)}, {"linewidths", nums(g->widths)},
                                    {"capstyle", capName(g->capStyle)}});
                 arts.push_back(t);
-            } else if (const Image* im = std::get_if<Image>(&art); im && im->fillsAxes) {
-                Table t = common(*im, aid, "pixel_image");
-                if (im->rows <= 0 || im->cols <= 0) {
+            } else if (const Image* pix = std::get_if<Image>(&art); pix && pix->fillsAxes) {
+                Table t = common(*pix, aid, "pixel_image");
+                if (pix->rows <= 0 || pix->cols <= 0) {
                     t.emplace_back("shape", Value());
                 } else {
                     std::int64_t coverage = 0;
-                    for (std::size_t i = 3; i < im->rgba.size(); i += 4) coverage += im->rgba[i] > 0 ? 1 : 0;
-                    t.insert(t.end(), {{"shape", Array{im->rows, im->cols, 4}}, {"dtype", "uint8"}, {"coverage", coverage}});
+                    for (std::size_t i = 3; i < pix->rgba.size(); i += 4) coverage += pix->rgba[i] > 0 ? 1 : 0;
+                    t.insert(t.end(), {{"shape", Array{pix->rows, pix->cols, 4}}, {"dtype", "uint8"}, {"coverage", coverage}});
                 }
                 arts.push_back(t);
             } else if (const Image* im = std::get_if<Image>(&art)) {

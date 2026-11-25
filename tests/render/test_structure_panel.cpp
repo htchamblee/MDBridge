@@ -153,7 +153,7 @@ double num(const Value& v) {
 // title.
 class Placeholder final : public Panel {
 public:
-    Placeholder(const core::PanelSpec& spec, Context& ctx) : Panel(spec.type, spec, ctx) {}
+    Placeholder(const core::PanelSpec& spec, Context& context) : Panel(spec.type, spec, context) {}
 
 protected:
     void setup(Figure& /*fig*/) override {}
