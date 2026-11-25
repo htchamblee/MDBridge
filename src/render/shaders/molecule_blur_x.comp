@@ -1,0 +1,27 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+// Compositing, pass 4: the coarse grid's Gaussian along x, normalised so that a glowing residue
+// reaches full strength and clipped to 0..1, coarseB -> coarseA.
+
+#include "molecule_compute.glsl"
+
+layout(local_size_x = 8, local_size_y = 8) in;
+
+void main() {
+    ivec2 cell = ivec2(gl_GlobalInvocationID.xy);
+    if (cell.x >= int(pc.cw) || cell.y >= int(pc.ch)) {
+        return;
+    }
+    Region r = haloRegion();
+    float v = 0.0;
+    if (haloOn() && r.any && cell.x < r.ww && cell.y < r.hh) {
+        for (int k = -pc.radius; k <= pc.radius; ++k) {
+            int i = cell.x + k;
+            if (i >= 0 && i < r.ww) {
+                v += weight[k + pc.radius] * coarseB[cell.y * int(pc.cw) + i];
+            }
+        }
+        v = clamp(v * pc.norm, 0.0, 1.0);
+    }
+    coarseA[cell.y * int(pc.cw) + cell.x] = v;
+}

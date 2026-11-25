@@ -1,0 +1,66 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+// Compositing, pass 1: the box of the opaque pixels, the box of the pixels the halo grows from
+// (opaque + front translucent), the largest glow among them, and whether a front translucent
+// pixel glows at all (state[], cleared to "empty" before the pass).
+
+#include "molecule_compute.glsl"
+
+layout(local_size_x = 16, local_size_y = 16) in;
+
+shared int sBox[8];
+shared uint sGlowOp, sGlowHalo, sGlass;
+
+void main() {
+    uint li = gl_LocalInvocationIndex;
+    if (li == 0u) {
+        for (int k = 0; k < 8; ++k) {
+            sBox[k] = (k % 4) < 2 ? 0x7fffffff : -1;
+        }
+        sGlowOp = 0u;
+        sGlowHalo = 0u;
+        sGlass = 0u;
+    }
+    barrier();
+    ivec2 p = ivec2(gl_GlobalInvocationID.xy);
+    if (p.x < int(pc.W) && p.y < int(pc.H)) {
+        Fragment op = fragmentOf(imageLoad(gOpaque, p));
+        Fragment gl = fragmentOf(imageLoad(gGlass, p));
+        bool front = frontGlass(op, gl);
+        if (op.covered) {
+            atomicMin(sBox[0], p.x);
+            atomicMin(sBox[1], p.y);
+            atomicMax(sBox[2], p.x);
+            atomicMax(sBox[3], p.y);
+            uint g = floatBitsToUint(max(glowOf(op.owner), 0.0));
+            atomicMax(sGlowOp, g);
+            atomicMax(sGlowHalo, g);
+        }
+        if (op.covered || front) {
+            atomicMin(sBox[4], p.x);
+            atomicMin(sBox[5], p.y);
+            atomicMax(sBox[6], p.x);
+            atomicMax(sBox[7], p.y);
+        }
+        if (front) {
+            float g = glowOf(gl.owner);
+            atomicMax(sGlowHalo, floatBitsToUint(max(g, 0.0)));
+            if (g != 0.0) {
+                atomicMax(sGlass, 1u);
+            }
+        }
+    }
+    barrier();
+    if (li == 0u) {
+        for (int k = 0; k < 8; ++k) {
+            if ((k % 4) < 2) {
+                atomicMin(state[k], sBox[k]);
+            } else {
+                atomicMax(state[k], sBox[k]);
+            }
+        }
+        atomicMax(state[STATE_GMAX_OP], int(sGlowOp));
+        atomicMax(state[STATE_GMAX_HALO], int(sGlowHalo));
+        atomicMax(state[STATE_GLASS_GLOW], int(sGlass));
+    }
+}

@@ -26,3 +26,12 @@ if(MSVC)
 else()
     set_source_files_properties(seqpanels.cpp structure.cpp PROPERTIES COMPILE_OPTIONS -ffp-contract=off)
 endif()
+
+# the structure view's 3D layer on the GPU (Vulkan scene renderer) and the renderer choice that
+# installs it (vulkan_stage.hpp); a library of its own so the panels need no Vulkan
+add_library(mdbridge_render_panels_vulkan STATIC
+    include/mdbridge/render/panels/vulkan_stage.hpp
+    vulkan_stage.cpp)
+add_library(mdbridge::render_panels_vulkan ALIAS mdbridge_render_panels_vulkan)
+target_link_libraries(mdbridge_render_panels_vulkan PUBLIC mdbridge::render_panels mdbridge::render_vulkan_scene)
+mdbridge_target_warnings(mdbridge_render_panels_vulkan)

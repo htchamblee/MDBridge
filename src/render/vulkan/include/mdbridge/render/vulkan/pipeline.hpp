@@ -34,6 +34,9 @@ struct GraphicsPipelineDesc {
     std::vector<VkVertexInputBindingDescription> vertexBindings;
     std::vector<VkVertexInputAttributeDescription> vertexAttributes;
     std::vector<VkDescriptorSetLayout> setLayouts;  // not owned
+    // a render pass object (subpass 0) instead of dynamic rendering, e.g. a QVulkanWindow's
+    // default render pass; colorFormat / depthFormat are then ignored
+    VkRenderPass renderPass = VK_NULL_HANDLE;
 };
 
 class Pipeline {
@@ -59,6 +62,37 @@ private:
     VkPipelineLayout m_layout = VK_NULL_HANDLE;
     VkPipeline m_pipeline = VK_NULL_HANDLE;
     VkShaderStageFlags m_pushStages = 0;
+};
+
+struct ComputePipelineDesc {
+    std::span<const std::uint32_t> spirv;  // a compute shader
+    std::uint32_t pushConstantBytes = 0;
+    std::vector<VkDescriptorSetLayout> setLayouts;  // not owned
+};
+
+// A compute pipeline through the context's pipeline cache.
+class ComputePipeline {
+public:
+    // nullptr with `problem` set if the shader module or the pipeline cannot be created
+    static std::unique_ptr<ComputePipeline> create(Context& context, const ComputePipelineDesc& desc,
+                                                   std::string* problem);
+    ~ComputePipeline();
+    ComputePipeline(const ComputePipeline&) = delete;
+    ComputePipeline& operator=(const ComputePipeline&) = delete;
+
+    VkPipeline handle() const { return m_pipeline; }
+    VkPipelineLayout layout() const { return m_layout; }
+    // vkCmdBindPipeline for compute
+    void bind(VkCommandBuffer cmd) const;
+    // vkCmdPushConstants of `bytes` at offset 0 (compute stage)
+    void push(VkCommandBuffer cmd, const void* data, std::uint32_t bytes) const;
+
+private:
+    explicit ComputePipeline(Context& context) : m_context(context) {}
+
+    Context& m_context;
+    VkPipelineLayout m_layout = VK_NULL_HANDLE;
+    VkPipeline m_pipeline = VK_NULL_HANDLE;
 };
 
 }  // namespace mdbridge::render::vulkan

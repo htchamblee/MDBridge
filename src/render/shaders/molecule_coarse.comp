@@ -1,0 +1,37 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+// Compositing, pass 2 (software.cpp glowHalo): the halo's coarse grid, a quarter of the
+// resolution aligned to the region's corner: per cell the largest glow of its opaque and front
+// translucent pixels.
+
+#include "molecule_compute.glsl"
+
+layout(local_size_x = 8, local_size_y = 8) in;
+
+void main() {
+    ivec2 cell = ivec2(gl_GlobalInvocationID.xy);
+    if (cell.x >= int(pc.cw) || cell.y >= int(pc.ch)) {
+        return;
+    }
+    Region r = haloRegion();
+    float v = 0.0;
+    if (haloOn() && r.any && cell.x < r.ww && cell.y < r.hh) {
+        for (int dy = 0; dy < 4; ++dy) {
+            for (int dx = 0; dx < 4; ++dx) {
+                ivec2 p = ivec2(r.gx0 + 4 * cell.x + dx, r.gy0 + 4 * cell.y + dy);
+                if (p.x >= r.gx1 || p.y >= r.gy1) {
+                    continue;
+                }
+                Fragment op = fragmentOf(imageLoad(gOpaque, p));
+                Fragment gl = fragmentOf(imageLoad(gGlass, p));
+                if (op.covered) {
+                    v = max(v, glowOf(op.owner));
+                }
+                if (frontGlass(op, gl)) {
+                    v = max(v, glowOf(gl.owner));
+                }
+            }
+        }
+    }
+    coarseA[cell.y * int(pc.cw) + cell.x] = v;
+}

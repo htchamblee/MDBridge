@@ -1,0 +1,88 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+// Compositing, pass 5 (software.cpp composite): the halo of the glow colour (the coarse grid
+// upsampled bilinearly, edges clamped), the opaque pixels with the depth cue, the glow tint and
+// ink outlines at depth jumps, and the silhouette's ink outside them.
+
+#include "molecule_compute.glsl"
+
+layout(local_size_x = 16, local_size_y = 16) in;
+
+// bilinear weights of fine pixel j of a coarse cell (offset (j + 0.5) / 4 - 0.5 from its centre)
+void taps(int f, int n, out int ia, out int ib, out float wa, out float wb) {
+    int i = f / 4;
+    float o = (float(f % 4) + 0.5) / 4.0 - 0.5;
+    if (o < 0.0) {
+        ia = max(i - 1, 0);
+        ib = i;
+        wa = -o;
+        wb = 1.0 + o;
+    } else {
+        ia = i;
+        ib = min(i + 1, n - 1);
+        wa = 1.0 - o;
+        wb = o;
+    }
+}
+
+float haloAt(ivec2 p, Region r) {
+    int ya, yb, xa, xb;
+    float wya, wyb, wxa, wxb;
+    taps(p.y - r.gy0, r.hh, ya, yb, wya, wyb);
+    taps(p.x - r.gx0, r.ww, xa, xb, wxa, wxb);
+    int cw = int(pc.cw);
+    precise float ca = coarseA[ya * cw + xa] * wya + coarseA[yb * cw + xa] * wyb;
+    precise float cb = coarseA[ya * cw + xb] * wya + coarseA[yb * cw + xb] * wyb;
+    precise float v = ca * wxa + cb * wxb;
+    return v;
+}
+
+float depthAt(ivec2 q) {
+    Fragment f = fragmentOf(imageLoad(gOpaque, q));
+    return f.covered ? f.depth : pc.zFar;
+}
+
+// a 4-neighbour in front by more than 1.6 Angstrom
+bool edgeAt(ivec2 p, float d) {
+    const float t = 1.6;
+    bool e = false;
+    if (p.y > 0) e = e || depthAt(p + ivec2(0, -1)) - d > t;
+    if (p.y + 1 < int(pc.H)) e = e || depthAt(p + ivec2(0, 1)) - d > t;
+    if (p.x > 0) e = e || depthAt(p + ivec2(-1, 0)) - d > t;
+    if (p.x + 1 < int(pc.W)) e = e || depthAt(p + ivec2(1, 0)) - d > t;
+    return e;
+}
+
+void main() {
+    ivec2 p = ivec2(gl_GlobalInvocationID.xy);
+    if (p.x >= int(pc.W) || p.y >= int(pc.H)) {
+        return;
+    }
+    uvec4 c = uvec4(0u);
+    Region r = haloRegion();
+    if (haloOn() && r.any && p.x >= r.gx0 && p.x < r.gx1 && p.y >= r.gy0 && p.y < r.gy1) {
+        float v = haloAt(p, r);
+        c = uvec4(unitToByte(pc.glowR), unitToByte(pc.glowG), unitToByte(pc.glowB),
+                  toByte(clamp(v * 191.25 + 0.5, 0.0, 255.0)));
+    }
+    Fragment op = fragmentOf(imageLoad(gOpaque, p));
+    if (op.covered) {
+        vec3 rgb = op.rgb;
+        if ((pc.flags & FLAG_FOG) != 0u) {
+            rgb = fogged(rgb, op.depth);
+        }
+        if (uintBitsToFloat(uint(state[STATE_GMAX_OP])) > 0.01) {
+            rgb = tint(rgb, glowOf(op.owner));
+        }
+        if (pc.outline > 0.0 && edgeAt(p, op.depth)) {
+            float keep = 1.0 - pc.outline;
+            float ink = kInk * pc.outline;
+            rgb = rgb * keep + ink;
+        }
+        c = uvec4(unitToByte(rgb.r), unitToByte(rgb.g), unitToByte(rgb.b), 255u);
+    } else if (pc.outline > 0.0 && edgeAt(p, pc.zFar)) {
+        uint ink8 = unitToByte(kInk);
+        c = uvec4(ink8, ink8, ink8, max(c.a, uint(pc.outline * 0.8 * 255.0)));
+    }
+    comp[p.y * int(pc.W) + p.x] = packRgba(c);
+}

@@ -107,7 +107,8 @@ std::unique_ptr<Pipeline> Pipeline::create(Context& context, const GraphicsPipel
 
     VkGraphicsPipelineCreateInfo info{};
     info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-    info.pNext = &rendering;
+    info.pNext = desc.renderPass ? nullptr : &rendering;
+    info.renderPass = desc.renderPass;
     info.stageCount = static_cast<std::uint32_t>(stages.size());
     info.pStages = stages.data();
     info.pVertexInputState = &vertexInput;
@@ -145,6 +146,70 @@ void Pipeline::bind(VkCommandBuffer cmd) const {
 
 void Pipeline::push(VkCommandBuffer cmd, const void* data, std::uint32_t bytes) const {
     m_context.vk.vkCmdPushConstants(cmd, m_layout, m_pushStages, 0, bytes, data);
+}
+
+std::unique_ptr<ComputePipeline> ComputePipeline::create(Context& context, const ComputePipelineDesc& desc,
+                                                         std::string* problem) {
+    const DeviceFunctions& vk = context.vk;
+    const VkDevice device = context.device();
+    std::unique_ptr<ComputePipeline> pipeline(new ComputePipeline(context));
+    VkPushConstantRange range{};
+    range.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    range.size = desc.pushConstantBytes;
+    VkPipelineLayoutCreateInfo layoutInfo{};
+    layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    layoutInfo.setLayoutCount = static_cast<std::uint32_t>(desc.setLayouts.size());
+    layoutInfo.pSetLayouts = desc.setLayouts.data();
+    layoutInfo.pushConstantRangeCount = desc.pushConstantBytes ? 1 : 0;
+    layoutInfo.pPushConstantRanges = &range;
+    if (const VkResult r = vk.vkCreatePipelineLayout(device, &layoutInfo, nullptr, &pipeline->m_layout);
+        r != VK_SUCCESS) {
+        pipeline->m_layout = VK_NULL_HANDLE;
+        *problem = "could not create a Vulkan pipeline layout (" + resultText(r) + ")";
+        return nullptr;
+    }
+    VkShaderModuleCreateInfo moduleInfo{};
+    moduleInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+    moduleInfo.codeSize = desc.spirv.size_bytes();
+    moduleInfo.pCode = desc.spirv.data();
+    VkShaderModule module = VK_NULL_HANDLE;
+    if (const VkResult r = vk.vkCreateShaderModule(device, &moduleInfo, nullptr, &module); r != VK_SUCCESS) {
+        *problem = "could not create a Vulkan shader module (" + resultText(r) + ")";
+        return nullptr;
+    }
+    VkComputePipelineCreateInfo info{};
+    info.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+    info.stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    info.stage.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+    info.stage.module = module;
+    info.stage.pName = "main";
+    info.layout = pipeline->m_layout;
+    const VkResult r =
+        vk.vkCreateComputePipelines(device, context.pipelineCache(), 1, &info, nullptr, &pipeline->m_pipeline);
+    vk.vkDestroyShaderModule(device, module, nullptr);
+    if (r != VK_SUCCESS) {
+        pipeline->m_pipeline = VK_NULL_HANDLE;
+        *problem = "could not create a Vulkan compute pipeline (" + resultText(r) + ")";
+        return nullptr;
+    }
+    return pipeline;
+}
+
+ComputePipeline::~ComputePipeline() {
+    if (m_pipeline) {
+        m_context.vk.vkDestroyPipeline(m_context.device(), m_pipeline, nullptr);
+    }
+    if (m_layout) {
+        m_context.vk.vkDestroyPipelineLayout(m_context.device(), m_layout, nullptr);
+    }
+}
+
+void ComputePipeline::bind(VkCommandBuffer cmd) const {
+    m_context.vk.vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_pipeline);
+}
+
+void ComputePipeline::push(VkCommandBuffer cmd, const void* data, std::uint32_t bytes) const {
+    m_context.vk.vkCmdPushConstants(cmd, m_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, bytes, data);
 }
 
 }  // namespace mdbridge::render::vulkan

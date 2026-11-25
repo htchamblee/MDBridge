@@ -1,0 +1,59 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+// Compositing, pass 6 (software.cpp antialias and blend): alpha anti-aliasing of the edges around
+// the opaque pixels (where a pixel's alpha differs from its 3 x 3 mean by more than 1: the average
+// of the two; zeros beyond the image), then the front-most translucent layer blended over it once
+// (depth cue and glow tint as the opaque pixels).
+
+#include "molecule_compute.glsl"
+
+layout(local_size_x = 16, local_size_y = 16) in;
+
+float alphaAt(ivec2 q) {
+    if (q.x < 0 || q.y < 0 || q.x >= int(pc.W) || q.y >= int(pc.H)) {
+        return 0.0;
+    }
+    return float(comp[q.y * int(pc.W) + q.x] >> 24);
+}
+
+void main() {
+    ivec2 p = ivec2(gl_GlobalInvocationID.xy);
+    if (p.x >= int(pc.W) || p.y >= int(pc.H)) {
+        return;
+    }
+    uvec4 c = unpackRgba(comp[p.y * int(pc.W) + p.x]);
+    int maxx = state[STATE_OP_BOX + 2];
+    if ((pc.flags & FLAG_AA) != 0u && maxx >= 0) {
+        int x0 = max(state[STATE_OP_BOX + 0] - 2, 0), x1 = min(maxx + 3, int(pc.W));
+        int y0 = max(state[STATE_OP_BOX + 1] - 2, 0), y1 = min(state[STATE_OP_BOX + 3] + 3, int(pc.H));
+        if (p.x >= x0 && p.x < x1 && p.y >= y0 && p.y < y1) {
+            float t[3];
+            for (int dx = -1; dx <= 1; ++dx) {  // the mean along y, then along x
+                ivec2 q = p + ivec2(dx, 0);
+                t[dx + 1] = (alphaAt(q + ivec2(0, -1)) + alphaAt(q) + alphaAt(q + ivec2(0, 1))) / 3.0;
+            }
+            precise float m = (t[0] + t[1] + t[2]) / 3.0;
+            float v = float(c.a);
+            float res = abs(m - v) > 1.0 ? 0.5 * (v + m) : v;
+            c.a = toByte(res);
+        }
+    }
+    Fragment op = fragmentOf(imageLoad(gOpaque, p));
+    Fragment gl = fragmentOf(imageLoad(gGlass, p));
+    if (frontGlass(op, gl)) {
+        vec3 rgb = gl.rgb;
+        if ((pc.flags & FLAG_FOG) != 0u) {
+            rgb = fogged(rgb, gl.depth);
+        }
+        if (state[STATE_GLASS_GLOW] != 0) {
+            rgb = tint(rgb, glowOf(gl.owner));
+        }
+        float a = gl.alpha;
+        float dstA = float(c.a) / 255.0;
+        precise float outA = a + dstA * (1.0 - a);
+        vec3 dst = vec3(c.rgb) / 255.0;
+        precise vec3 col = (rgb * a + dst * dstA * (1.0 - a)) / max(outA, 1e-6);
+        c = uvec4(unitToByte(col.r), unitToByte(col.g), unitToByte(col.b), unitToByte(outA));
+    }
+    outImage[p.y * int(pc.W) + p.x] = packRgba(c);
+}

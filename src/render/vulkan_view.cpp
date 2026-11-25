@@ -1,11 +1,14 @@
 #include "vulkan_view.hpp"
 
+#include <exception>
+
 #include <QElapsedTimer>
 #include <QGuiApplication>
 #include <QTimer>
 #include <QVulkanDeviceFunctions>
 #include <QVulkanFunctions>
 
+#include "mdbridge/render/vulkan/scene_renderer.hpp"
 #include "mdbridge/render/vulkan_probe.hpp"
 #include "scene.hpp"
 #include "shaders/spirv.hpp"
@@ -23,6 +26,8 @@ struct Scene {  // push constants of shaders/placeholder.vert
     float aspect;
 };
 
+// The molecule (VulkanWindow::moleculeFrame) through the GPU scene renderer on Qt's device, or the
+// placeholder triangle without one (or when the scene renderer cannot run on this device).
 class PlaceholderRenderer : public QVulkanWindowRenderer {
 public:
     explicit PlaceholderRenderer(VulkanWindow* window) : m_window(window) {}
@@ -33,13 +38,45 @@ public:
 
 private:
     VkShaderModule shaderModule(const std::uint32_t* code, std::size_t bytes);
+    void initScene();
 
     VulkanWindow* m_window;
     QVulkanDeviceFunctions* m_f = nullptr;
     VkPipelineLayout m_layout = VK_NULL_HANDLE;
     VkPipeline m_pipeline = VK_NULL_HANDLE;
     QElapsedTimer m_clock;
+    std::unique_ptr<vulkan::Context> m_context;  // Qt's device, adopted
+    std::unique_ptr<vulkan::SceneRenderer> m_scene;
+    bool m_sceneFailed = false;  // warned once
 };
+
+void PlaceholderRenderer::initScene() {
+    QVulkanInstance* instance = m_window->vulkanInstance();
+    vulkan::AdoptedDevice device;
+    device.getInstanceProcAddr =
+        reinterpret_cast<PFN_vkGetInstanceProcAddr>(instance->getInstanceProcAddr("vkGetInstanceProcAddr"));
+    device.instance = instance->vkInstance();
+    device.physicalDevice = m_window->physicalDevice();
+    device.device = m_window->device();
+    device.queueFamily = m_window->graphicsQueueFamilyIndex();
+    device.queue = m_window->graphicsQueue();
+    std::string problem;
+    m_context = vulkan::Context::adopt(device, &problem);
+    if (m_context) {
+        vulkan::SceneRendererOptions options;
+        options.frameSlots = static_cast<std::uint32_t>(m_window->concurrentFrameCount());
+        m_scene = vulkan::SceneRenderer::create(*m_context, &problem, options);
+        if (m_scene && !m_scene->createPresentPipeline(m_window->defaultRenderPass(), m_window->sampleCountFlagBits(),
+                                                       &problem)) {
+            m_scene.reset();
+        }
+    }
+    if (!m_scene) {
+        m_context.reset();
+        qWarning("MDBridge: the Vulkan scene renderer cannot run on this device (%s); the 3D view shows a placeholder",
+                 problem.c_str());
+    }
+}
 
 VkShaderModule PlaceholderRenderer::shaderModule(const std::uint32_t* code, std::size_t bytes) {
     const VkShaderModuleCreateInfo info{
@@ -145,9 +182,12 @@ void PlaceholderRenderer::initResources() {
     }
     m_f->vkDestroyShaderModule(device, vertex, nullptr);
     m_f->vkDestroyShaderModule(device, fragment, nullptr);
+    initScene();
 }
 
 void PlaceholderRenderer::releaseResources() {
+    m_scene.reset();
+    m_context.reset();
     const VkDevice device = m_window->device();
     m_f->vkDestroyPipeline(device, m_pipeline, nullptr);
     m_f->vkDestroyPipelineLayout(device, m_layout, nullptr);
@@ -172,8 +212,25 @@ void PlaceholderRenderer::startNextFrame() {
         .pClearValues = clear,
     };
     const VkCommandBuffer commands = m_window->currentCommandBuffer();
+    const std::shared_ptr<const MoleculeFrame> frame = m_window->moleculeFrame();
+    bool molecule = false;
+    if (frame && m_scene) {
+        try {  // geometry and compositing before the render pass, then drawn into it
+            m_scene->recordFrame(commands, static_cast<std::uint32_t>(m_window->currentFrame()), frame->items,
+                                 fittedViewport(*frame, size.width(), size.height()), frame->shading, frame->quality);
+            molecule = true;
+            m_sceneFailed = false;
+        } catch (const std::exception& e) {
+            if (!m_sceneFailed) {
+                qWarning("MDBridge: the 3D view could not draw the molecule: %s", e.what());
+                m_sceneFailed = true;
+            }
+        }
+    }
     m_f->vkCmdBeginRenderPass(commands, &begin, VK_SUBPASS_CONTENTS_INLINE);
-    if (m_pipeline) {
+    if (molecule) {
+        m_scene->recordPresent(commands, width, height, frame->background);
+    } else if (m_pipeline) {
         const VkViewport viewport{0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f};
         const VkRect2D scissor{{0, 0}, {width, height}};
         m_f->vkCmdSetViewport(commands, 0, 1, &viewport);
@@ -188,7 +245,9 @@ void PlaceholderRenderer::startNextFrame() {
     m_f->vkCmdEndRenderPass(commands);
     m_window->frameReady();
     m_window->frameDone();
-    m_window->requestUpdate();  // animate: the next frame follows the display (FIFO present)
+    if (!frame) {
+        m_window->requestUpdate();  // animate the placeholder: the next frame follows the display (FIFO present)
+    }
 }
 
 }  // namespace
@@ -202,6 +261,19 @@ VulkanWindow::VulkanWindow(std::unique_ptr<QVulkanInstance> instance) : m_instan
 VulkanWindow::~VulkanWindow() { destroy(); }
 
 QVulkanWindowRenderer* VulkanWindow::createRenderer() { return new PlaceholderRenderer(this); }
+
+void VulkanWindow::setMoleculeFrame(std::shared_ptr<const MoleculeFrame> frame) {
+    {
+        const std::lock_guard<std::mutex> lock(m_frameMutex);
+        m_frame = std::move(frame);
+    }
+    QMetaObject::invokeMethod(this, [this] { requestUpdate(); }, Qt::QueuedConnection);
+}
+
+std::shared_ptr<const MoleculeFrame> VulkanWindow::moleculeFrame() const {
+    const std::lock_guard<std::mutex> lock(m_frameMutex);
+    return m_frame;
+}
 
 void VulkanWindow::exposeEvent(QExposeEvent* event) {
     QVulkanWindow::exposeEvent(event);
@@ -219,6 +291,15 @@ VulkanView::VulkanView(VulkanWindow* window, const QString& description)
     : View(window, Renderer::Vulkan, description) {
     connect(window, &VulkanWindow::frameRendered, this, [this] { countFrame(); });
     connect(window, &VulkanWindow::failed, this, &View::failed);
+}
+
+bool VulkanView::setMoleculeFrame(std::shared_ptr<const MoleculeFrame> frame) {
+    auto* w = static_cast<VulkanWindow*>(window());
+    if (!w) {
+        return false;
+    }
+    w->setMoleculeFrame(std::move(frame));
+    return true;
 }
 
 QImage VulkanView::grabFrame() {
@@ -260,6 +341,28 @@ std::unique_ptr<View> createVulkanView(QString* reason) {
         return nullptr;
     }
     window->setPhysicalDeviceIndex(chosen);
+    // the scene renderer draws with dynamic rendering and synchronization2 (Vulkan 1.3 core
+    // features Qt does not switch on by itself)
+    window->setEnabledFeaturesModifier([](VkPhysicalDeviceFeatures2& features) {
+        static VkPhysicalDeviceVulkan13Features added{};
+        auto* link = reinterpret_cast<VkBaseOutStructure*>(&features);
+        for (; link; link = link->pNext) {
+            if (link->sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES) {
+                auto* v13 = reinterpret_cast<VkPhysicalDeviceVulkan13Features*>(link);
+                v13->dynamicRendering = VK_TRUE;
+                v13->synchronization2 = VK_TRUE;
+                return;
+            }
+            if (!link->pNext) {
+                break;
+            }
+        }
+        added = {};
+        added.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+        added.dynamicRendering = VK_TRUE;
+        added.synchronization2 = VK_TRUE;
+        link->pNext = reinterpret_cast<VkBaseOutStructure*>(&added);
+    });
     // colours are sRGB-encoded like everything QPainter draws, so a UNORM swapchain shows them as
     // the software view does (an _SRGB format would encode them a second time)
     window->setPreferredColorFormats({VK_FORMAT_B8G8R8A8_UNORM, VK_FORMAT_R8G8B8A8_UNORM});
