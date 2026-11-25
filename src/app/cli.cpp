@@ -12,6 +12,7 @@
 #endif
 
 #include "commands.hpp"
+#include "fonts_command.hpp"
 #include "gui/gui.hpp"
 #include "mdbridge/core/json.hpp"
 #include "mdbridge/core/paths.hpp"
@@ -149,6 +150,13 @@ int cliMain(int argc, char** argv) {
     bool graphicsJson = false;
     graphicsCommand->add_flag("--json", graphicsJson, "print the report as JSON");
 
+    CLI::App* fontsCmd = app.add_subcommand(
+        "fonts", "the figure fonts (bundled DejaVu): metrics and a text image drawn without a display (check)");
+    bool fontsJson = false;
+    std::string fontsRender;
+    fontsCmd->add_flag("--json", fontsJson, "print the report as JSON");
+    fontsCmd->add_option("--render", fontsRender, "write the text image to this PNG file");
+
     CoreCommands mdatkCommands(app);  // init, info, list, analyze, export-pdb, density info
 
     try {
@@ -165,6 +173,9 @@ int cliMain(int argc, char** argv) {
     }
     if (graphicsCommand->parsed()) {
         return graphics(graphicsJson);
+    }
+    if (fontsCmd->parsed()) {
+        return fontsCommand(argv[0], fontsJson, fontsRender);
     }
     Console console = standardConsole();
     if (const std::optional<int> code = mdatkCommands.run(console)) {

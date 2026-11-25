@@ -30,7 +30,16 @@ for lib in "$HERE"/usr/lib/fallback/*; do
     fi
 done
 
-# X11, also in Wayland sessions (through XWayland): the AppImage has no Wayland platform plugin yet
+# fontconfig (bundled as a fallback library above) without the host's configuration: the AppImage's
+# minimal one. Figures use MDBridge's compiled-in fonts and draw without a display in any case.
+if [ -z "${FONTCONFIG_FILE:-}" ] && [ ! -e /etc/fonts/fonts.conf ]; then
+    FONTCONFIG_FILE="$HERE/usr/share/mdbridge/fontconfig/fonts.conf"
+    export FONTCONFIG_FILE
+fi
+
+# X11, also in Wayland sessions (through XWayland): the AppImage has no Wayland platform plugin yet.
+# The commands that draw without a window (render, charts, preview, fonts) use "offscreen" instead
+# (set by the program), so they need no display.
 QT_QPA_PLATFORM="${QT_QPA_PLATFORM:-xcb}"
 export QT_QPA_PLATFORM
 

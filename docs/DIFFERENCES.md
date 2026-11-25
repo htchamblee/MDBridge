@@ -651,6 +651,42 @@ Matplotlib 3.11.2's bit for bit (ported with its notice); MDATK's `thin_ticks` l
   An empty `steps` list means Matplotlib's default steps (Matplotlib: `IndexError`). *Tested:*
   test_ticks.cpp `MaxNLocatorRejectsNoBins`, `ScalarFormatter` (the recorded error cases).
 
+## Render: fonts and text (src/render/core/font.cpp, text.cpp; src/render/text_qt.cpp)
+
+MDATK draws text with Matplotlib's Agg backend in the DejaVu fonts Matplotlib ships. MDBridge
+bundles the same five files (DejaVu 2.35 from Matplotlib 3.11.2's wheel, `data/fonts`: Sans, Sans
+Bold, Sans Oblique, Sans Mono, Sans Mono Bold) compiled into the programs, chooses among them with
+Matplotlib's font-manager scoring, and lays text out with its own TrueType reader. Differences:
+
+- **Unhinted text metrics and glyphs.** With its default `text.hinting`, Matplotlib 3.11 measures and
+  draws glyphs hinted by FreeType's TrueType interpreter: advances and heights snap to whole pixels,
+  so a label's width depends on the dpi grid and on the FreeType build (up to 0.66 px per glyph and
+  2 px in height against the unhinted outline at MDATK's sizes; 17 % narrower for small monospace
+  text). MDBridge measures and draws the unhinted outlines, exactly as Matplotlib does with
+  `text.hinting: no_hinting` (width, height, descent and every glyph position equal in 26.6 fixed
+  point, kerning and ligatures included). *Why:* the same layout and text pixels on Linux, Windows
+  and any server, at every dpi, independent of a font engine's version or the system's font
+  settings; the figure layout tolerance (docs/specs/m4-plan.md, section 3) covers the difference.
+  *Tested:* `tests/render/test_text.cpp` (`TextMetrics.AsMatplotlibUnhinted`: exact against
+  `no_hinting`, and within 0.7 px per glyph / 2 px / 1.5 px of the default hinting, for every case of
+  `tests/data/render/text/text_cases.json`).
+- **Figures never use the machine's fonts.** MDATK's text follows the Matplotlib configuration of the
+  machine it runs on (`font.family` of a matplotlibrc, other DejaVu releases or fonts installed
+  there), so the same project renders differently on two machines. MDBridge always uses the bundled
+  faces; font properties choose among them as Matplotlib's `findfont` scores (bold oblique and mono
+  oblique, which MDATK does not use, are not bundled: the closest bundled face by that score).
+  Missing glyphs are the font's `.notdef` box (Matplotlib falls back to other fonts with a warning).
+  *Tested:* `FontChoice.AsMatplotlibsFontManager` (Matplotlib's choice among the bundled faces for
+  792 property sets), `BundledFonts.AreMatplotlibsFiles` (the files' checksums).
+- **Text pixels come from the outlines.** Raster figures fill the glyph outlines as paths with Qt's
+  antialiasing instead of FreeType's glyph bitmaps (Agg); shapes and positions are the unhinted
+  outline's, the antialiasing differs slightly (no gamma). A text image is identical wherever the
+  same build runs: CI draws one on the build machine and on a bare Rocky Linux 9 without fonts,
+  fontconfig or X11 and compares the pixels (`packaging/smoke_test.py --compare-text-report`).
+- **No display needed.** `render`, `charts`, `preview` (and `fonts`) start Qt on its `offscreen`
+  platform on Linux whatever `DISPLAY` or `QT_QPA_PLATFORM` say, like MDATK's Agg backend, which
+  never needed a display. *Tested:* `TextQt.BatchPlatform`, the smoke test's `fonts` check.
+
 ## Rendering: molecule geometry (src/render/molecule)
 
 The 3D representations (MDATK's `mdatk/render/molecule/topology.py`, `geometry.py`, `surface.py`,

@@ -8,12 +8,14 @@ if(NOT TARGET Vulkan::Headers)  # Qt's package defines it when it found installe
 endif()
 
 add_library(mdbridge_render STATIC
+    include/mdbridge/render/text_qt.hpp
     include/mdbridge/render/view.hpp
     include/mdbridge/render/vulkan_probe.hpp
     scene.hpp
     shaders/spirv.hpp
     software_view.cpp
     software_view.hpp
+    text_qt.cpp
     view.cpp
     vulkan_probe.cpp
     vulkan_view.cpp
@@ -26,3 +28,11 @@ target_include_directories(mdbridge_render
 # Vulkan headers only: Qt and the probe load the system's Vulkan loader at run time
 target_link_libraries(mdbridge_render PUBLIC Qt6::Gui mdbridge::render_core PRIVATE Vulkan::Headers)
 mdbridge_target_warnings(mdbridge_render)
+
+# the figure fonts (data/fonts: DejaVu 2.35 as Matplotlib ships it; licence in packaging/licenses)
+# compiled into the programs: figures never depend on the system's fonts
+set(MDBRIDGE_FONT_FILES DejaVuSans.ttf DejaVuSans-Bold.ttf DejaVuSans-Oblique.ttf DejaVuSansMono.ttf
+                        DejaVuSansMono-Bold.ttf)
+list(TRANSFORM MDBRIDGE_FONT_FILES PREPEND "${PROJECT_SOURCE_DIR}/data/fonts/" OUTPUT_VARIABLE mdbridge_font_paths)
+qt_add_resources(mdbridge_render mdbridge_fonts PREFIX /mdbridge/fonts BASE "${PROJECT_SOURCE_DIR}/data/fonts"
+                 FILES ${mdbridge_font_paths})

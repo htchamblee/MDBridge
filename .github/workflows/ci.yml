@@ -4,7 +4,8 @@
 #                glibc check, smoke test with the Vulkan view (lavapipe) and the software view;
 #                the LGPL FFmpeg + SVT-AV1 libraries (packaging/ffmpeg) built there, cached
 # - appimage-*:  the AppImage on Ubuntu 22.04 (with Vulkan) and on a bare Rocky Linux 9 (command
-#                line without X11 / OpenGL, then the interface without a Vulkan driver)
+#                line without X11 / OpenGL / fonts, whose text image must equal the linux job's,
+#                then the interface without a Vulkan driver)
 # - windows:     MSVC 2022 build and tests, zip and installer; smoke test of the installed program;
 #                FFmpeg + SVT-AV1 through vcpkg (packaging/ffmpeg/windows), cached
 # - parity:      MDATK v0.0.4.1 writes project files and records what it reads from them;
@@ -69,7 +70,7 @@ jobs:
         run: |
           python3.12 -m pip install "py7zr==$PY7ZR_VERSION"
           python3.12 tools/get_qt.py --version "$QT_VERSION" --arch linux_gcc_64 --out "/opt/Qt/$QT_VERSION/gcc_64" \
-            --archive qtbase --archive icu
+            --archive qtbase --archive icu --archive qtsvg
           echo "QT_DIR=/opt/Qt/$QT_VERSION/gcc_64" >> "$GITHUB_ENV"
 
       # video encoding: rebuilt only when packaging/ffmpeg changes (pins, scripts)
@@ -117,7 +118,15 @@ jobs:
       - name: Smoke test (Vulkan view on lavapipe, software view, project files)
         run: |
           xvfb-run -a -s "-screen 0 1600x1000x24" python3.12 packaging/smoke_test.py dist/MDBridge-*-x86_64.AppImage \
-            --gui --expect-renderer vulkan --version "${{ steps.version.outputs.version }}"
+            --gui --expect-renderer vulkan --version "${{ steps.version.outputs.version }}" \
+            --text-report text-report/text-report.json
+
+      # the text image and metrics drawn here: appimage-rocky must draw the same on a bare system
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: text-report-linux
+          path: text-report/text-report.json
+          if-no-files-found: error
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
@@ -170,11 +179,18 @@ jobs:
         with:
           name: mdbridge-linux-x86_64
           path: dist
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
+        with:
+          name: text-report-linux
+          path: text-report
+      # no fonts, fontconfig, X11 or OpenGL installed: the figure text must still render, with the
+      # same pixels and metrics as on the build machine (the linux job's report)
       - name: Command line on the bare system (the AppImage's fallback libraries stand in)
         run: |
           dnf install -y --setopt=install_weak_deps=False python3 findutils
           chmod +x dist/*.AppImage
-          python3 packaging/smoke_test.py dist/MDBridge-*-x86_64.AppImage --version "${{ needs.linux.outputs.version }}"
+          python3 packaging/smoke_test.py dist/MDBridge-*-x86_64.AppImage --version "${{ needs.linux.outputs.version }}" \
+            --compare-text-report text-report/text-report.json
       - name: Interface under Xvfb, without a Vulkan driver (software view)
         run: |
           dnf install -y --setopt=install_weak_deps=False xorg-x11-server-Xvfb xorg-x11-xauth dejavu-sans-fonts
@@ -195,7 +211,8 @@ jobs:
       - name: Qt ${{ env.QT_VERSION }}
         run: |
           python -m pip install "py7zr==$env:PY7ZR_VERSION"
-          python tools\get_qt.py --version $env:QT_VERSION --arch win64_msvc2022_64 --out "C:\Qt\$env:QT_VERSION\msvc2022_64"
+          python tools\get_qt.py --version $env:QT_VERSION --arch win64_msvc2022_64 --out "C:\Qt\$env:QT_VERSION\msvc2022_64" `
+            --archive qtbase --archive qtsvg
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Inno Setup

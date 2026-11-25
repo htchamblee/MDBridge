@@ -1,14 +1,18 @@
-# render core: the Qt-free part of the render module (colours, colormaps, themes, ticks; later
-# molecule geometry, shading ...), testable without Qt. Namespace mdbridge::render.
+# render core: the Qt-free part of the render module (colours, colormaps, themes, ticks, fonts and
+# text metrics; later shading ...), testable without Qt. Namespace mdbridge::render.
 add_library(mdbridge_render_core STATIC
     include/mdbridge/render/color.hpp
     include/mdbridge/render/colormap.hpp
+    include/mdbridge/render/font.hpp
+    include/mdbridge/render/text.hpp
     include/mdbridge/render/theme.hpp
     color.cpp
     colormap.cpp
+    font.cpp
     mpl_colors.inc
     mpl_tables.hpp
     include/mdbridge/render/ticks.hpp
+    text.cpp
     theme.cpp
     ticks.cpp)
 add_library(mdbridge::render_core ALIAS mdbridge_render_core)
