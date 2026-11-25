@@ -548,3 +548,32 @@ TEST(Log, MessagesFromManyThreadsReachTheSinkOneAtATime) {
     setLogSink(previous);
     EXPECT_EQ(seen.size(), 4000u);
 }
+
+// str(OSError) reads the same on every platform: Linux's errno and glibc's wording, whatever the
+// standard library's own message (MSVC: "no such file or directory") or code (Windows' system
+// error codes) is.
+TEST(PythonOsError, TextIsLinuxPythonsOnEveryPlatform) {
+    EXPECT_EQ(pythonOsErrorText(std::make_error_code(std::errc::no_such_file_or_directory), "a.pdb"),
+              "[Errno 2] No such file or directory: 'a.pdb'");
+    EXPECT_EQ(pythonOsErrorText(std::make_error_code(std::errc::filename_too_long)),
+              "[Errno 36] File name too long");
+    EXPECT_EQ(pythonOsErrorText(std::make_error_code(std::errc::directory_not_empty), "d", "e"),
+              "[Errno 39] Directory not empty: 'd' -> 'e'");
+    EXPECT_EQ(pythonOsErrorText(std::make_error_code(std::errc::permission_denied), "it's"),
+              "[Errno 13] Permission denied: \"it's\"");
+    const fs::path missing = fs::temp_directory_path() / "mdbridge-no-such-dir" / "a.pdb";
+    try {
+        (void)fs::file_size(missing);
+        FAIL() << "file_size of a missing file did not throw";
+    } catch (const fs::filesystem_error& e) {
+        EXPECT_EQ(pythonOsErrorText(e),
+                  "[Errno 2] No such file or directory: " + pythonRepr(Value(pathToUtf8(missing))));
+    }
+#ifdef _WIN32
+    // ERROR_FILE_NOT_FOUND and ERROR_PATH_NOT_FOUND are both Python's ENOENT
+    EXPECT_EQ(pythonOsErrorText(std::error_code(2, std::system_category())),
+              "[Errno 2] No such file or directory");
+    EXPECT_EQ(pythonOsErrorText(std::error_code(3, std::system_category())),
+              "[Errno 2] No such file or directory");
+#endif
+}

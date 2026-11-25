@@ -9,6 +9,7 @@
 #include <optional>
 #include <stdexcept>
 #include <string>
+#include <system_error>
 #include <utility>
 #include <vector>
 
@@ -842,6 +843,66 @@ std::pair<std::string, std::string> splitext(std::string_view path) {
 }
 
 }  // namespace posixpath
+
+namespace {
+
+struct OsErrorEntry {
+    std::errc condition;
+    int number;        // errno on Linux
+    const char* text;  // glibc's strerror()
+};
+
+constexpr OsErrorEntry kOsErrors[] = {
+    {std::errc::operation_not_permitted, 1, "Operation not permitted"},
+    {std::errc::no_such_file_or_directory, 2, "No such file or directory"},
+    {std::errc::io_error, 5, "Input/output error"},
+    {std::errc::bad_file_descriptor, 9, "Bad file descriptor"},
+    {std::errc::not_enough_memory, 12, "Cannot allocate memory"},
+    {std::errc::permission_denied, 13, "Permission denied"},
+    {std::errc::device_or_resource_busy, 16, "Device or resource busy"},
+    {std::errc::file_exists, 17, "File exists"},
+    {std::errc::cross_device_link, 18, "Invalid cross-device link"},
+    {std::errc::not_a_directory, 20, "Not a directory"},
+    {std::errc::is_a_directory, 21, "Is a directory"},
+    {std::errc::invalid_argument, 22, "Invalid argument"},
+    {std::errc::too_many_files_open, 24, "Too many open files"},
+    {std::errc::file_too_large, 27, "File too large"},
+    {std::errc::no_space_on_device, 28, "No space left on device"},
+    {std::errc::read_only_file_system, 30, "Read-only file system"},
+    {std::errc::filename_too_long, 36, "File name too long"},
+    {std::errc::directory_not_empty, 39, "Directory not empty"},
+    {std::errc::too_many_symbolic_link_levels, 40, "Too many levels of symbolic links"},
+};
+
+}  // namespace
+
+std::string pythonOsErrorText(const std::error_code& code, const std::filesystem::path& path1,
+                              const std::filesystem::path& path2) {
+    int number = code.value();
+    std::string text = code.message();
+    const std::error_condition condition = code.default_error_condition();
+    if (condition.category() == std::generic_category()) {
+        for (const OsErrorEntry& entry : kOsErrors) {
+            if (condition.value() == static_cast<int>(entry.condition)) {
+                number = entry.number;
+                text = entry.text;
+                break;
+            }
+        }
+    }
+    std::string out = "[Errno " + std::to_string(number) + "] " + text;
+    if (!path1.empty()) {
+        out += ": " + pythonRepr(Value(pathToUtf8(path1)));
+        if (!path2.empty()) {
+            out += " -> " + pythonRepr(Value(pathToUtf8(path2)));
+        }
+    }
+    return out;
+}
+
+std::string pythonOsErrorText(const std::filesystem::filesystem_error& error) {
+    return pythonOsErrorText(error.code(), error.path1(), error.path2());
+}
 
 std::string currentDirectory() { return pathToUtf8(std::filesystem::current_path()); }
 

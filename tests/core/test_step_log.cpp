@@ -8,7 +8,9 @@
 
 #include <gtest/gtest.h>
 
+#include "mdbridge/core/paths.hpp"
 #include "mdbridge/core/project_io.hpp"
+#include "mdbridge/core/python.hpp"
 #include "mdbridge/core/step_log.hpp"
 #include "mdbridge/core/text.hpp"
 #include "test_support.hpp"
@@ -173,10 +175,8 @@ TEST(StepLog, StatusAndSummaryOfFailures) {
     EXPECT_EQ(log[1].find("summary")->stringOr(), "ValueError: ");
     EXPECT_EQ(log[2].find("summary")->stringOr(), "exit status 3");
     EXPECT_EQ(log[3].find("summary")->stringOr(), "SystemExit: 3");
-#ifndef _WIN32
-    EXPECT_EQ(log[4].find("summary")->stringOr(),
-              "FileNotFoundError: [Errno 2] No such file or directory: '" + (dir / "a.pdb").string() + "'");
-#endif
+    EXPECT_EQ(log[4].find("summary")->stringOr(), "FileNotFoundError: [Errno 2] No such file or directory: " +
+                                                       pythonRepr(Value(pathToUtf8(dir / "a.pdb"))));
 }
 
 // tests/test_projectfile.py::test_concurrent_saves_and_log_appends_keep_every_entry

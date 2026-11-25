@@ -53,15 +53,6 @@ bool exists(const std::string& path) {
     return !path.empty() && fs::exists(core::pathFromUtf8(path), ec);
 }
 
-// str(OSError): "[Errno 2] No such file or directory: '<path>'"
-std::string osErrorText(const fs::filesystem_error& e) {
-    std::string text = "[Errno " + std::to_string(e.code().value()) + "] " + e.code().message();
-    if (!e.path1().empty()) {
-        text += ": " + core::pythonStringRepr(core::pathToUtf8(e.path1()));
-    }
-    return text;
-}
-
 // Set-or-append of a table entry (a Python dict assignment).
 void setEntry(Table& table, const std::string& key, Value value) {
     for (auto& [k, v] : table) {
@@ -413,7 +404,7 @@ core::Dataset Pipeline::analyze(const std::optional<std::vector<std::string>>& r
         } catch (const core::ValueError& e) {
             throw PipelineError(std::string("external data: ") + e.what());
         } catch (const fs::filesystem_error& e) {
-            throw PipelineError("external data: " + osErrorText(e));
+            throw PipelineError("external data: " + core::pythonOsErrorText(e));
         }
     }
     Table frameSelection{{"start", p.inputs.start},

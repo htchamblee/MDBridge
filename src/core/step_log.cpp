@@ -209,13 +209,7 @@ std::string exceptionSummary(const std::exception& error) {
         } else if (code == std::errc::not_a_directory) {
             name = "NotADirectoryError";
         }
-        std::string text = name + ": [Errno " + std::to_string(code.value()) + "] " + code.message();
-        if (!fsError->path1().empty()) {
-            text += ": " + pythonRepr(Value(pathToUtf8(fsError->path1())));
-            if (!fsError->path2().empty()) {
-                text += " -> " + pythonRepr(Value(pathToUtf8(fsError->path2())));
-            }
-        }
+        std::string text = name + ": " + pythonOsErrorText(*fsError);
         return text;
     }
     if (const auto* value = dynamic_cast<const ValueError*>(&error)) {
