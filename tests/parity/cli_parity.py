@@ -561,6 +561,9 @@ def child(mdatk, jobs_file, results_file):
     import independent_tables
 
     independent_tables.apply()
+    import improvements_periodic
+
+    improvements_periodic.apply_mdatk()  # MDBridge's periodic geometry (before the analysis items)
     # MDBridge's deliberate differences in the selections (improvements_selections.py)
     import improvements_selections
     from mdatk import selections

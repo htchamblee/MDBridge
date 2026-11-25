@@ -211,12 +211,16 @@ def apply_mdatk():
     """Patch MDATK's analyses (in this process) to the improved behaviour of the items above."""
     from MDAnalysis.analysis import rms as mda_rms
 
-    # the selection improvements first (SEL-01 ... SEL-15, improvements_selections.py): the analyses
-    # select with MDBridge's selections whatever the generator applies
+    # the selection improvements (SEL-01 ... SEL-15, improvements_selections.py) and the periodic
+    # geometry (AN-01 ... AN-05, AN-11, AN-12, improvements_periodic.py) first: the analyses select with
+    # MDBridge's selections, and the items below wrap the periodic functions, whatever the generator
+    # applies (both are idempotent)
+    import improvements_periodic
     import improvements_selections
     import mdatk.selections as mdatk_selections
 
     improvements_selections.patch_mdatk(mdatk_selections)
+    improvements_periodic.apply_mdatk()
 
     import mdatk.analysis as analysis_pkg
     import mdatk.analysis.base as base

@@ -306,7 +306,7 @@ public:
     MgDescriptor()
         : AnalysisDescriptor({"mg",
                               "Mg coordination",
-                              2,  // v2: per-atom element fallback in the ligand / occupancy elements (SEL-13)
+                              2,  // v2: periodic geometry (AN-01-AN-04); per-atom element fallback (SEL-13)
                               false,
                               2,
                               {{"contacts", "Mg–O inner-sphere contacts"},

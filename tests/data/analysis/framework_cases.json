@@ -131,7 +131,7 @@
   {
    "name": "stacking",
    "label": "π–π stacking",
-   "version": 1,
+   "version": 2,
    "internal": false,
    "group_slots": 2,
    "output_labels": [
@@ -709,8 +709,8 @@
       ]
      ],
      "cache_keys": [
-      "3b722e94bd999e91",
-      "917e6503e116303b"
+      "d56dac0994dcde7c",
+      "3a799a38e26db928"
      ],
      "referenced_groups": [
       {
@@ -2115,8 +2115,8 @@
        ]
       ],
       "cache_keys": [
-       "2b483657fbf8257e",
-       "4b90e706601cc583"
+       "44d7816dd2ff19a4",
+       "4ba7e5dccdb5942e"
       ],
       "referenced_groups": [
        {
@@ -3827,8 +3827,8 @@
       ]
      ],
      "cache_keys": [
-      "1acef97e4a50cf50",
-      "f3c310f01eb29925"
+      "c0de247eed03187d",
+      "6fc0f8d8af7b5e50"
      ],
      "referenced_groups": [
       {
@@ -5462,8 +5462,8 @@
        ]
       ],
       "cache_keys": [
-       "44e6b0692ee30128",
-       "2f3e9d9c558bb4ef"
+       "e4bf8a1e7c5628de",
+       "e460a94220dcb5a2"
       ],
       "referenced_groups": [
        {
@@ -5544,8 +5544,8 @@
        ]
       ],
       "cache_keys": [
-       "3bf22eac475289f7",
-       "1777bc5ef9b5cfca"
+       "044fa11277758038",
+       "da5c480c15977793"
       ],
       "referenced_groups": [
        {
@@ -7274,8 +7274,8 @@
       ]
      ],
      "cache_keys": [
-      "3b722e94bd999e91",
-      "917e6503e116303b"
+      "d56dac0994dcde7c",
+      "3a799a38e26db928"
      ],
      "referenced_groups": [
       {
@@ -8659,8 +8659,8 @@
        ]
       ],
       "cache_keys": [
-       "2b483657fbf8257e",
-       "4b90e706601cc583"
+       "44d7816dd2ff19a4",
+       "4ba7e5dccdb5942e"
       ],
       "referenced_groups": [
        {
@@ -10142,8 +10142,8 @@
       ]
      ],
      "cache_keys": [
-      "f28937444f023c45",
-      "48e133debd27dfb2"
+      "3c92c65025d2e613",
+      "76f7edca091dd853"
      ],
      "referenced_groups": [
       {
@@ -11552,8 +11552,8 @@
        ]
       ],
       "cache_keys": [
-       "d30f34106a9a8782",
-       "ebfc15e4303d79de"
+       "2be0cc73f917f55a",
+       "4cf3bba21784e728"
       ],
       "referenced_groups": [
        {
@@ -13000,8 +13000,8 @@
       ]
      ],
      "cache_keys": [
-      "03297c8d5ea88a28",
-      "ad3cbd15a53f847f"
+      "f25828711e23b7ef",
+      "2bc9476ec343dfe7"
      ],
      "referenced_groups": [],
      "new_result": [

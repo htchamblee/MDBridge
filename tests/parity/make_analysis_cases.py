@@ -7,7 +7,11 @@ Needs MDAnalysis 2.11.0, numpy and scipy (MDATK's dependencies); MDATK's tests/c
 test_analyses.py, test_basepairs.py and test_pdbtools.py are imported for their geometry helpers (a
 stand-in for pytest is installed when pytest is missing). Nothing is written into the checkout.
 MDAnalysis runs with MDBridge's independent tables (independent_tables.apply(), and the
-residue-scoped ion rule on every topology file; tests/data/README.md). Reads
+residue-scoped ion rule on every topology file; tests/data/README.md), and MDATK runs with
+MDBridge's periodic geometry (improvements_periodic.apply_mdatk(): exact minimum images for every
+cell, sorted periodic pairs, the energy force direction, base pairs and stacking on wrapped
+trajectories, bumped analysis versions; docs/DIFFERENCES.md); spatial_cases.json still records
+MDATK's own spatial helpers. Reads
 tests/data/topology/demo_dry.parm7, tests/data/io/trajectories/demo_dry.nc and its DCD / XTC / TRR
 copies (written by earlier generators). Writes into OUT_DIR:
 
@@ -140,6 +144,10 @@ sys.path.insert(0, HERE)
 import independent_tables  # noqa: E402
 
 independent_tables.apply()  # MDAnalysis with MDBridge's independent tables (tests/data/README.md)
+import improvements_periodic  # noqa: E402
+
+improvements_periodic.apply_mdatk()  # MDBridge's periodic geometry (AN-01-AN-05, AN-11, AN-12)
+
 import improvements_analyses  # noqa: E402
 
 improvements_analyses.apply_mdatk()  # MDATK with MDBridge's analysis improvements (docs/DIFFERENCES.md)
@@ -1226,6 +1234,7 @@ def systems_cases():
 # --- mdatk.spatial ----------------------------------------------------------------------------------
 
 def spatial_cases():
+    # MDATK's own helpers (the reference behaviour), not the improved ones apply_mdatk() installed
     rng = np.random.default_rng(20261124)
     hexes = lambda a: [fhex(v) for v in np.asarray(a, dtype=np.float64).reshape(-1)]  # noqa: E731
 
@@ -1243,7 +1252,7 @@ def spatial_cases():
              "zero": np.array([0.0, 0.0, 0.0, 90.0, 90.0, 90.0]), "short": np.array([20.0, 20.0, 20.0])}
 
     def add_pairs(name, a, b, cutoff, box_name):
-        i, j, d = S.pairs_within(a, b, cutoff, boxes[box_name])
+        i, j, d = S.mdatk_pairs_within(a, b, cutoff, boxes[box_name])
         pairs.append({"name": name, "a": hexes(a), "b": hexes(b), "cutoff": fhex(cutoff), "box": box_name,
                       "i": [int(v) for v in i], "j": [int(v) for v in j], "d": hexes(d),
                       "dtypes": [i.dtype.str, j.dtype.str, d.dtype.str]})
@@ -1273,7 +1282,7 @@ def spatial_cases():
     for box in image_boxes:
         v = np.vstack([rng.uniform(-30, 30, (12, 3)), ties])
         images.append({"box": None if box is None else hexes(box), "vectors": hexes(v),
-                       "result": hexes(S.minimum_image_vectors(v, box))})
+                       "result": hexes(S.mdatk_minimum_image_vectors(v, box))})
 
     kab = []
 

@@ -64,9 +64,8 @@ std::optional<Box> usableBox(const std::optional<std::array<float, 6>>& dims);  
 // within a frame in pair order) and atom_bonds' distance fallback (bond rows in pair order); see
 // docs/specs/m3-plan.md (risks: pair order) and docs/DIFFERENCES.md.
 //
-// With a usable box (use_pbc): MDAnalysis' capped_distance on float32 coordinates (float64 points
-// are rounded to float32 first), which pairsWithinPeriodic implements, in MDAnalysis' order (not
-// sorted; see there).
+// With a usable box (use_pbc): pairsWithinPeriodic on the points rounded to float32 (as MDATK
+// passes them to its periodic search), also sorted by (i, j).
 PairList pairsWithin(std::span<const double> a, std::span<const double> b, double cutoff,
                      const std::optional<Box>& box = std::nullopt);
 PairList pairsWithin(std::span<const float> a, std::span<const float> b, double cutoff,
@@ -75,54 +74,62 @@ PairList pairsWithin(std::span<const float> a, std::span<const float> b, double 
 // The open-boundary search alone (the path above without a box).
 PairList pairsWithinOpen(std::span<const double> a, std::span<const double> b, double cutoff);
 
-// The periodic search: pairs within the cutoff under periodic boundaries, as MDAnalysis'
-// capped_distance(a, b, max_cutoff=cutoff, box=box, return_distances=True) returns them, written
-// clean-room from docs/specs/m3-capped-distance.md (section numbers below refer to it). box is a
-// usable box; the cell is rounded to float32 and is orthogonal iff its three float32 angles are
-// exactly 90, otherwise it becomes float32 lower-triangular box vectors (all zero, "invalid", for
-// angles <= 0 or >= 180, NaN, lengths <= 0 or no third vector: plain distances).
-//
-// The method is chosen as MDAnalysis chooses it (periodicSearchUsesGrid): brute force or a cell
-// grid. The two differ in rounding (brute force on an orthogonal cell scales by the float32
-// reciprocal of each length, so even pairs that need no image are off by up to 2^-24 relative),
-// in the boundary test (brute force keeps sqrt(d2) <= cutoff, the grid d2 <= cutoff * cutoff) and
-// in their errors. Each (i, j) occurs at most once, with its nearest-image distance, even for
-// cutoffs beyond half the cell. A point with a NaN or infinite coordinate is in no pair (MDAnalysis
-// is only consistent about this for orthogonal cells). Errors, grid method only:
-// core::ValueError("Cutoff must be positive") for a negative cutoff, "Cutoff <c> too large for box
-// (max <M>)" beyond the grid's limit, "Any of the box dimensions cannot be 0" for a length that
-// is 0 in float32. A NaN cutoff gives no pairs.
-//
-// Order: MDAnalysis' order, NOT the (i, j) order of the open path, because the analyses' outputs
-// that depend on pair order (energy sums, the H-bond hydrogen tie, stacking CSR entries, atom-bond
-// rows) must follow MDATK's. Brute force: i ascending, then j ascending. Grid: i ascending; for
-// each i the 27 grid cells around its cell (x offset outermost, z innermost, -1 / 0 / +1, the grid
-// wrapping periodically), and within a cell j DESCENDING.
-//
-// Precision: orthogonal cells reproduce MDAnalysis bit for bit (pairs, order, distances).
-// Triclinic cells are wrapped in single precision as the spec describes; every probe case of
-// tests/data/analysis/distance_cases.json matches bit for bit too (test_periodic.cpp), but the
-// spec only guarantees that wrap to within 8 ulp32 of the largest of the pair's coordinates and
-// the cell lengths: where it differs, pairs within that band of the cutoff may be in or out and a
-// point moved to a neighbouring grid cell changes the order of its reference point's pairs.
-// Deliberate deviations where MDAnalysis' result is undefined or meaningless: a point more than
-// 2^31 cells away along a vector is not moved along it (MDAnalysis overflows a 32-bit integer);
-// a triclinic box vector with an infinite component is not periodic (MDAnalysis reports distinct
-// points at distance 0).
+// A periodic cell for minimum-image geometry (MDBridge's own; docs/DIFFERENCES.md AN-01 / AN-04).
+// The six values are rounded to float32 (as trajectories store them) and widened again. The cell
+// is orthogonal iff its three float32 angles are exactly 90 (the one orthogonality test for pairs
+// and vectors alike); then each axis whose length is finite and > 0 is periodic (the others are
+// not). Otherwise its float64 box vectors are a = (a, 0, 0), b = (b cos g, b sin g, 0),
+// c = (c cos be, c (cos al - cos be cos g) / sin g, sqrt(c^2 - cx^2 - cy^2)) (cos 90 = 0 and
+// sin 90 = 1 exactly), and from() gives std::nullopt (no periodic geometry: plain distances) when
+// a length is not finite or not > 0, an angle is not in (0, 180) or c_z is not a positive number.
+class PeriodicCell {
+public:
+    static std::optional<PeriodicCell> from(const Box& box);
+    // usableBox first (std::nullopt without a usable box)
+    static std::optional<PeriodicCell> from(const std::optional<Box>& box);
+    static std::optional<PeriodicCell> from(const std::optional<std::array<float, 6>>& dims);
+
+    // The minimum image of the difference vector d, in float64: orthogonal cells per periodic
+    // axis v - L * nearbyint(v / L) (half to even), repeated while |v| > L / 2 (so a vector within
+    // half a cell is returned unchanged, bit for bit); triclinic cells reduce along c (while
+    // |v_z| > c_z / 2), then b (|v_y| > b_y / 2), then a (|v_x| > a_x / 2) the same way, and then
+    // take the shortest of the 27 neighbouring images v + i a + j b + k c (i, j, k in -1, 0, 1;
+    // x = ((v_x + i a_x) + j b_x) + k c_x, y = (v_y + j b_y) + k c_y, z = v_z + k c_z; squared
+    // length (x x + y y) + z z; v itself unless another is strictly shorter, a outermost).
+    Vec3 minimumImage(const Vec3& d) const;
+
+    bool orthogonal() const { return m_orthogonal; }
+    const std::array<bool, 3>& periodic() const { return m_periodic; }
+    const std::array<Vec3, 3>& vectors() const { return m_vectors; }
+    // the distances between opposite faces (orthogonal: the lengths)
+    std::array<double, 3> widths() const;
+    // fractional coordinates of a point along a, b, c (orthogonal: 0 along a non-periodic axis)
+    std::array<double, 3> fractions(const Vec3& x) const;
+
+private:
+    bool m_orthogonal = false;
+    std::array<bool, 3> m_periodic{};
+    std::array<Vec3, 3> m_vectors{};
+};
+
+// The periodic search (MDBridge's own; replaces MDATK's call of MDAnalysis' capped_distance, whose
+// behaviour docs/specs/m3-capped-distance.md records): every pair (i, j) whose minimum-image
+// distance is within the cutoff, once, sorted by (i, j) like the open path. The difference is
+// a[i] - b[j] in float64 (the float32 points widened), PeriodicCell::minimumImage of it, the
+// squared distance s = (x x + y y) + z z; a pair is kept iff s <= cutoff * cutoff (the open
+// path's test: a negative cutoff acts as its absolute value, an infinite one keeps every pair, a
+// NaN one none) and its distance is sqrt(s). A cell without periodic geometry (PeriodicCell::from
+// gives std::nullopt) gives plain distances. A point with a NaN or infinite coordinate is in no
+// pair. The result does not depend on the number of points or the cutoff's size relative to the
+// cell (a cell list only prunes candidates), and nothing throws for any cutoff or cell.
 PairList pairsWithinPeriodic(std::span<const float> a, std::span<const float> b, double cutoff,
                              const Box& box);
+PairList pairsWithinPeriodic(std::span<const double> a, std::span<const double> b, double cutoff,
+                             const Box& box);
 
-// The method rule of pairsWithinPeriodic for n reference and m configuration points: brute force
-// (false) when n < 10 or m < 10; the grid (true) when n * m >= 1e8; otherwise brute force when
-// float32(cutoff) > float32(0.3) * S on any axis (float32 product, strictly greater), S the three
-// float32 lengths of an orthogonal cell or, per Cartesian axis, the extent of the three box
-// vectors' components (0 for an invalid cell), and the grid otherwise.
-bool periodicSearchUsesGrid(std::size_t n, std::size_t m, double cutoff, const Box& box);
-
-// minimum_image_vectors(vectors, box): with a usable box whose three angles are all close to 90
-// degrees (np.allclose: |angle - 90| <= 1e-8 + 1e-5 * 90), v - L * round(v / L) per component
-// with round half to even (np.round); otherwise (no box, unusable, any other angle: triclinic
-// cells are not handled, as in MDATK) the vectors unchanged.
+// minimum_image_vectors(vectors, box): with a usable box and PeriodicCell geometry, each vector's
+// PeriodicCell::minimumImage (orthogonal and triclinic cells: the same image the pair search
+// uses); otherwise (no box, unusable, no periodic geometry) the vectors unchanged.
 std::vector<double> minimumImageVectors(std::span<const double> vectors,
                                         const std::optional<Box>& box);
 Vec3 minimumImageVector(const Vec3& vector, const std::optional<Box>& box);

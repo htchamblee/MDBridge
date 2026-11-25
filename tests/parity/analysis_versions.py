@@ -15,18 +15,18 @@ Policy: MDBridge has not been released, so an analysis is bumped once, MDATK's v
 all the improvements of this release that can change its results; a later improvement in the same
 release adds its item to the list below instead of bumping again.
 
-Per analysis, the improvements that bumped it (docs/DIFFERENCES.md):
-  energy 2     AN-07, AN-08 (exclusions); RD-P12 (float64 parm7 charges); SEL-13 (generic LJ
-               elements)
-  hbonds 2     AN-09, AN-10 (guessed hydrogens); SEL-13 (donor / acceptor elements)
+Per analysis, the improvements that bumped it (docs/DIFFERENCES.md; "periodic": AN-01 .. AN-04):
+  energy 2     AN-07, AN-08 (exclusions); RD-P12 (float64 parm7 charges); periodic, AN-05 (net
+               force); SEL-13 (generic LJ elements)
+  hbonds 2     AN-09, AN-10 (guessed hydrogens); periodic; SEL-13 (donor / acceptor elements)
   rmsd 2       AN-16 .. AN-18
-  proximity 2  AN-15; SEL-13 (heavy atoms)
+  proximity 2  AN-15; periodic; SEL-13 (heavy atoms)
   atoms 3      AN-13, AN-14; SEL-13 (elements, heavy atoms, bond guess) (MDATK: 2)
-  contacts 2   SEL-13 (heavy_only)
-  mg 2         SEL-13 (ligand / occupancy elements)
-  basepairs 2  SEL-13 (heavy atoms)
+  contacts 2   periodic; SEL-13 (heavy_only)
+  mg 2         periodic; SEL-13 (ligand / occupancy elements)
+  basepairs 2  periodic, AN-11; SEL-13 (heavy atoms)
+  stacking 2   periodic, AN-12 (ring atoms by name: SEL-13 does not change it)
   trace 5      SEL-13 (heavy-atom centroids of residues without a trace atom) (MDATK: 4)
-  stacking 1   (ring atoms by name: SEL-13 does not change it)
 """
 
 import os
@@ -43,7 +43,7 @@ VERSIONS = {
     "hbonds": ("mdatk.analysis.hbonds", "HBondAnalysis", 2),
     "mg": ("mdatk.analysis.mg", "MgAnalysis", 2),
     "rmsd": ("mdatk.analysis.rmsd", "RMSDAnalysis", 2),
-    "stacking": ("mdatk.analysis.stacking", "StackingAnalysis", 1),
+    "stacking": ("mdatk.analysis.stacking", "StackingAnalysis", 2),
     "trace": ("mdatk.analysis.structure", "TraceAnalysis", 5),
     "proximity": ("mdatk.analysis.structure", "ProximityAnalysis", 2),
     "atoms": ("mdatk.analysis.structure", "AtomsAnalysis", 3),

@@ -1,9 +1,11 @@
-// The periodic pair search (pairsWithinPeriodic) against what MDAnalysis 2.11.0's capped_distance
-// returns for every case of data/analysis/distance_cases.json (docs/specs/m3-capped-distance.md
-// §7, data/README.md). Orthogonal cells must match exactly: method, pairs, order and distance
-// bits. Triclinic and invalid cells within the spec's tolerance (§6): distances within
-// 8 ulp32(M), M the largest of the pair's absolute coordinates and the cell lengths; the pair set
-// exact except for the pairs the case lists in `band`; the order is reported.
+// The periodic pair search (pairsWithinPeriodic) on every case of data/analysis/distance_cases.json
+// (data/README.md): MDBridge's float64 minimum-image search (docs/DIFFERENCES.md AN-01 to AN-03)
+// against the case's `exact` column, computed independently with numpy
+// (tests/parity/improvements_periodic.py). Pairs and order (sorted by (i, j)) must match exactly
+// and so must the distance bits; for triclinic cells, whose box vectors come from libm's cos / sin,
+// distances may differ by a few float64 ulps on another C library and a pair within that of the
+// cutoff may be in or out. The MDAnalysis columns (capped_distance, the old reference behaviour,
+// docs/specs/m3-capped-distance.md) are only compared to count where MDBridge now differs.
 
 #include <algorithm>
 #include <cmath>
@@ -12,7 +14,8 @@
 #include <cstdlib>
 #include <cstring>
 #include <map>
-#include <set>
+#include <optional>
+#include <span>
 #include <string>
 #include <utility>
 #include <vector>
@@ -95,31 +98,12 @@ std::string sha256Of(const std::vector<T>& values) {
 
 using Pair = std::pair<std::int64_t, std::int64_t>;
 
-double ulp32(double x) {
-    const double m = std::abs(x);
-    if (!std::isfinite(m)) {
-        return m;
-    }
-    const int exponent = std::ilogb(std::max(m, 0x1p-126));  // m = f * 2^exponent, 1 <= f < 2
-    return std::ldexp(1.0, exponent - 23);
-}
-
-struct Counts {
-    int exact = 0;      // pairs, order and every distance bit
-    int tolerance = 0;  // same pairs, distances within the tolerance (order may differ)
-    int band = 0;       // pair sets differ only by listed band pairs
-    int failed = 0;
-    int orderDiffers = 0;  // of tolerance / band cases: common pairs in another order
-    int deviations = 0;    // documented deviations from MDAnalysis
-    std::vector<std::string> failures;
-};
-
 }  // namespace
 
-TEST(PairsWithinPeriodic, MatchesCappedDistance) {
+TEST(PairsWithinPeriodic, MatchesExactMinimumImage) {
     const Array& all = list(*distanceCases().find("cases"));
     ASSERT_EQ(all.size(), 495u);
-    Counts counts;
+    int exact = 0, nearly = 0, failed = 0, differFromMdanalysis = 0;
     for (const Value& c : all) {
         const std::string name = *c.find("name")->get<std::string>();
         SCOPED_TRACE(name);
@@ -135,44 +119,14 @@ TEST(PairsWithinPeriodic, MatchesCappedDistance) {
         const bool orthogonal = static_cast<float>(box[3]) == 90.0f &&
                                 static_cast<float>(box[4]) == 90.0f &&
                                 static_cast<float>(box[5]) == 90.0f;
+        const Value& expected = *c.find("exact");
 
-        const bool grid = *c.find("method")->get<std::string>() == "grid";
-        EXPECT_EQ(periodicSearchUsesGrid(a.size() / 3, b.size() / 3, cutoff, box), grid);
-
-        if (const Value* error = c.find("error")) {
-            const std::string expected = *error->find("message")->get<std::string>();
-            try {
-                (void)pairsWithinPeriodic(a, b, cutoff, box);
-                ADD_FAILURE() << "no error, expected " << expected;
-                ++counts.failed;
-                counts.failures.push_back(name);
-            } catch (const core::ValueError& e) {
-                EXPECT_EQ(std::string(e.what()), expected);
-                if (std::string(e.what()) == expected) {
-                    ++counts.exact;
-                } else {
-                    ++counts.failed;
-                    counts.failures.push_back(name);
-                }
-            }
-            continue;
-        }
-
-        const PairList got = pairsWithinPeriodic(a, b, cutoff, box);
+        PairList got;
+        ASSERT_NO_THROW(got = pairsWithinPeriodic(a, b, cutoff, box));  // never an error (AN-02)
         ASSERT_EQ(got.i.size(), got.j.size());
         ASSERT_EQ(got.i.size(), got.d.size());
-        if (name == "lengths [inf, 25.0, 25.0] triclinic") {
-            // Deviation: MDAnalysis reports 126 of the 144 pairs, all at distance 0 (meaningless:
-            // the points are 4 Å or more apart, cutoff 3). MDBridge treats the infinite vector as
-            // not periodic, as for an orthogonal cell: each point only with itself.
-            ASSERT_EQ(got.size(), a.size() / 3);
-            for (std::size_t k = 0; k < got.size(); ++k) {
-                EXPECT_EQ(got.i[k], static_cast<std::int64_t>(k));
-                EXPECT_EQ(got.j[k], static_cast<std::int64_t>(k));
-                EXPECT_EQ(got.d[k], 0.0);
-            }
-            ++counts.deviations;
-            continue;
+        for (std::size_t k = 1; k < got.size(); ++k) {
+            EXPECT_TRUE(std::pair(got.i[k - 1], got.j[k - 1]) < std::pair(got.i[k], got.j[k]));
         }
         if (isLattice) {
             std::vector<std::int64_t> flat;
@@ -180,62 +134,60 @@ TEST(PairsWithinPeriodic, MatchesCappedDistance) {
                 flat.push_back(got.i[k]);
                 flat.push_back(got.j[k]);
             }
-            const auto expectedCount = static_cast<std::size_t>(*c.find("count")->get<std::int64_t>());
-            const bool same = got.size() == expectedCount &&
-                              sha256Of(flat) == *c.find("pairs_sha256")->get<std::string>() &&
-                              sha256Of(got.d) == *c.find("distances_sha256")->get<std::string>();
-            EXPECT_EQ(got.size(), expectedCount);
-            EXPECT_EQ(sha256Of(flat), *c.find("pairs_sha256")->get<std::string>());
+            EXPECT_EQ(got.size(), static_cast<std::size_t>(*expected.find("count")->get<std::int64_t>()));
+            EXPECT_EQ(sha256Of(flat), *expected.find("pairs_sha256")->get<std::string>());
+            const bool bits = sha256Of(got.d) == *expected.find("distances_sha256")->get<std::string>();
             if (orthogonal) {
-                EXPECT_EQ(sha256Of(got.d), *c.find("distances_sha256")->get<std::string>());
+                EXPECT_TRUE(bits);
             }
-            if (same) {
-                ++counts.exact;
-            } else if (!orthogonal && got.size() == expectedCount &&
-                       sha256Of(flat) == *c.find("pairs_sha256")->get<std::string>()) {
-                ++counts.tolerance;  // pairs and order exact; distances not hashed per pair
-            } else {
-                ++counts.failed;
-                counts.failures.push_back(name);
+            ++(bits ? exact : nearly);
+            if (c.find("error") != nullptr || *c.find("count")->get<std::int64_t>() !=
+                                                  *expected.find("count")->get<std::int64_t>() ||
+                *c.find("pairs_sha256")->get<std::string>() != *expected.find("pairs_sha256")->get<std::string>() ||
+                *c.find("distances_sha256")->get<std::string>() != *expected.find("distances_sha256")->get<std::string>()) {
+                ++differFromMdanalysis;
             }
             continue;
         }
 
-        std::vector<Pair> expectedPairs;
-        for (const Value& p : list(*c.find("pairs"))) {
-            expectedPairs.emplace_back(*list(p)[0].get<std::int64_t>(),
-                                       *list(p)[1].get<std::int64_t>());
+        std::vector<Pair> expectedPairs, gotPairs;
+        for (const Value& p : list(*expected.find("pairs"))) {
+            expectedPairs.emplace_back(*list(p)[0].get<std::int64_t>(), *list(p)[1].get<std::int64_t>());
         }
         std::vector<double> expectedDistances;
-        for (const Value& d : list(*c.find("distances"))) {
+        for (const Value& d : list(*expected.find("distances"))) {
             expectedDistances.push_back(hexNumber(d));
         }
-        std::vector<Pair> gotPairs;
         for (std::size_t k = 0; k < got.size(); ++k) {
             gotPairs.emplace_back(got.i[k], got.j[k]);
         }
-        bool exact = gotPairs == expectedPairs;
-        for (std::size_t k = 0; exact && k < got.size(); ++k) {
-            exact = std::memcmp(&got.d[k], &expectedDistances[k], sizeof(double)) == 0;
+        bool same = gotPairs == expectedPairs;
+        for (std::size_t k = 0; same && k < got.size(); ++k) {
+            same = std::memcmp(&got.d[k], &expectedDistances[k], sizeof(double)) == 0;
         }
-        if (exact) {
-            ++counts.exact;
+        if (const Value* mda = c.find("pairs"); mda == nullptr || list(*mda).size() != expectedPairs.size()) {
+            ++differFromMdanalysis;
+        } else {
+            for (std::size_t k = 0; k < expectedPairs.size(); ++k) {
+                const Array& p = list(list(*mda)[k]);
+                const double md = hexNumber(list(*c.find("distances"))[k]);
+                if (Pair(*p[0].get<std::int64_t>(), *p[1].get<std::int64_t>()) != expectedPairs[k] ||
+                    std::memcmp(&md, &expectedDistances[k], sizeof(double)) != 0) {
+                    ++differFromMdanalysis;
+                    break;
+                }
+            }
+        }
+        if (same) {
+            ++exact;
             continue;
         }
         if (orthogonal) {
             ADD_FAILURE() << "orthogonal cell: not an exact match";
-            ++counts.failed;
-            counts.failures.push_back(name);
+            ++failed;
             continue;
         }
-
-        // triclinic / invalid cell: the tolerance of §6
-        std::set<Pair> band;
-        if (const Value* listed = c.find("band")) {
-            for (const Value& p : list(*listed)) {
-                band.emplace(*list(p)[0].get<std::int64_t>(), *list(p)[1].get<std::int64_t>());
-            }
-        }
+        // triclinic: distances within a few ulps; pairs that close to the cutoff may differ
         std::map<Pair, double> mine, theirs;
         for (std::size_t k = 0; k < got.size(); ++k) {
             mine.emplace(gotPairs[k], got.d[k]);
@@ -243,65 +195,145 @@ TEST(PairsWithinPeriodic, MatchesCappedDistance) {
         for (std::size_t k = 0; k < expectedPairs.size(); ++k) {
             theirs.emplace(expectedPairs[k], expectedDistances[k]);
         }
-        double lengths = 0;
-        for (std::size_t k = 0; k < 3; ++k) {
-            lengths = std::max(lengths, std::abs(static_cast<double>(static_cast<float>(box[k]))));
-        }
-        bool ok = true, bandOnly = false;
+        const double band = 1e-13 * std::max(1.0, std::abs(cutoff));
+        bool ok = true;
         for (const auto& [pair, d] : theirs) {
             const auto found = mine.find(pair);
             if (found == mine.end()) {
-                bandOnly = true;
-                ok = ok && band.count(pair) > 0;
-                EXPECT_TRUE(band.count(pair) > 0) << "missing " << pair.first << ", " << pair.second;
-                continue;
+                ok = ok && std::abs(d - std::abs(cutoff)) <= band;
+            } else {
+                ok = ok && std::abs(found->second - d) <= 1e-13 * std::max(1.0, d);
             }
-            double m = lengths;
-            for (std::size_t k = 0; k < 3; ++k) {
-                m = std::max({m, std::abs(static_cast<double>(a[3 * static_cast<std::size_t>(pair.first) + k])),
-                              std::abs(static_cast<double>(b[3 * static_cast<std::size_t>(pair.second) + k]))});
-            }
-            const double allowed = 8 * ulp32(m);
-            const bool near = std::abs(found->second - d) <= allowed;
-            ok = ok && near;
-            EXPECT_TRUE(near) << pair.first << ", " << pair.second << ": " << found->second
-                              << " vs " << d;
         }
         for (const auto& [pair, d] : mine) {
             if (theirs.count(pair) == 0) {
-                bandOnly = true;
-                ok = ok && band.count(pair) > 0;
-                EXPECT_TRUE(band.count(pair) > 0) << "extra " << pair.first << ", " << pair.second;
+                ok = ok && std::abs(d - std::abs(cutoff)) <= band;
             }
         }
-        if (!ok) {
-            ++counts.failed;
-            counts.failures.push_back(name);
-            continue;
-        }
-        // the order of the pairs both lists hold
-        std::vector<Pair> commonMine, commonTheirs;
-        for (const Pair& p : gotPairs) {
-            if (theirs.count(p) != 0) {
-                commonMine.push_back(p);
-            }
-        }
-        for (const Pair& p : expectedPairs) {
-            if (mine.count(p) != 0) {
-                commonTheirs.push_back(p);
-            }
-        }
-        if (commonMine != commonTheirs) {
-            ++counts.orderDiffers;
-            std::printf("  order differs: %s\n", name.c_str());
-        }
-        ++(bandOnly ? counts.band : counts.tolerance);
+        EXPECT_TRUE(ok);
+        ++(ok ? nearly : failed);
     }
-    std::printf("periodic cases: %d exact, %d within tolerance, %d band differences, %d documented "
-                "deviation(s), %d failed (%d with another order)\n",
-                counts.exact, counts.tolerance, counts.band, counts.deviations, counts.failed,
-                counts.orderDiffers);
-    for (const std::string& f : counts.failures) {
-        std::printf("  failed: %s\n", f.c_str());
+    std::printf("periodic cases: %d exact, %d within float64 rounding, %d failed; %d differ from "
+                "MDAnalysis' capped_distance\n",
+                exact, nearly, failed, differFromMdanalysis);
+}
+
+// The behaviours MDATK / MDAnalysis got wrong (docs/IMPROVEMENTS.md AN-01, AN-02), directly.
+TEST(PairsWithinPeriodic, ExactBoundaryForEveryBoxSize) {
+    // a pair at exactly 3.5 A is kept whatever the box length (MDAnalysis' brute force dropped it
+    // for L = 30, 18.3, 40, 60)
+    for (const double length : {25.0, 30.0, 31.7, 18.3, 40.0, 60.0, 77.1}) {
+        const Box box{length, length, length, 90, 90, 90};
+        const PairList got = pairsWithinPeriodic(std::vector<float>{1, 1, 1}, std::vector<float>{4.5f, 1, 1}, 3.5, box);
+        ASSERT_EQ(got.size(), 1u) << length;
+        EXPECT_EQ(got.d[0], 3.5) << length;
+        // across the face: from L - 0.5 to 3.0 is 3.5 too
+        const auto x = static_cast<float>(length - 0.5);
+        const PairList across =
+            pairsWithinPeriodic(std::vector<float>{x, 1, 1}, std::vector<float>{3.0f, 1, 1}, 3.5, box);
+        ASSERT_EQ(across.size(), 1u) << length;
+        EXPECT_NEAR(across.d[0], 3.5, 1e-12) << length;
     }
+}
+
+TEST(PairsWithinPeriodic, FarOutsidePointsAreExact) {
+    const Box box{25, 25, 25, 90, 90, 90};
+    const PairList got = pairsWithinPeriodic(std::vector<float>{0, 0, 0},
+                                             std::vector<float>{1e4f, 0, 0, 1e10f + 0.0f, 0, 0, 1e4f + 3, 0, 0}, 5.0, box);
+    ASSERT_EQ(got.size(), 3u);
+    EXPECT_EQ(got.d[0], 0.0);  // MDAnalysis: 2.2e-4
+    EXPECT_EQ(got.d[2], 3.0);
+}
+
+TEST(PairsWithinPeriodic, NoSizeDependentErrorsAndSameResultForAnySize) {
+    // cutoffs MDAnalysis' grid refused ("too large for box", "must be positive") on large inputs
+    std::vector<float> a, b;
+    for (int k = 0; k < 40; ++k) {
+        a.insert(a.end(), {static_cast<float>(k * 0.61), static_cast<float>(k * 1.37), static_cast<float>(k * 0.29)});
+        b.insert(b.end(), {static_cast<float>(24.9 - k * 0.53), static_cast<float>(k * 0.71), static_cast<float>(k * 1.13)});
+    }
+    for (const Box& box : {Box{25, 25, 25, 90, 90, 90}, Box{25, 27, 29, 60, 70, 80}}) {
+        for (const double cutoff : {13.0, 30.0, -3.0, 0.0, 3.0}) {
+            PairList all;
+            ASSERT_NO_THROW(all = pairsWithinPeriodic(a, b, cutoff, box));
+            // the first 5 points alone give the same pairs among them
+            const PairList few = pairsWithinPeriodic(std::span(a).first(15), std::span(b).first(15), cutoff, box);
+            std::size_t k = 0;
+            for (std::size_t p = 0; p < all.size(); ++p) {
+                if (all.i[p] < 5 && all.j[p] < 5) {
+                    ASSERT_LT(k, few.size());
+                    EXPECT_EQ(all.i[p], few.i[k]);
+                    EXPECT_EQ(all.j[p], few.j[k]);
+                    EXPECT_EQ(all.d[p], few.d[k]);
+                    ++k;
+                }
+            }
+            EXPECT_EQ(k, few.size());
+        }
+    }
+}
+
+// The cell list only prunes: the same pairs as comparing every pair, for many cells and cutoffs.
+TEST(PairsWithinPeriodic, CellListMatchesAllPairs) {
+    std::uint64_t state = 12345;
+    const auto next = [&state] {
+        state = state * 6364136223846793005ULL + 1442695040888963407ULL;
+        return static_cast<double>(state >> 11) * 0x1p-53;
+    };
+    for (const Box& box : {Box{25, 25, 25, 90, 90, 90}, Box{40, 33, 51, 90, 90, 90}, Box{25, 27, 29, 60, 70, 80},
+                           Box{40, 40, 40, 109.4712, 109.4712, 109.4712}, Box{60, 60, 60, 90, 90, 120},
+                           Box{30, 1e30, 30, 90, 90, 90}}) {
+        std::vector<float> a, b;
+        for (int k = 0; k < 300; ++k) {
+            for (int c = 0; c < 3; ++c) {
+                a.push_back(static_cast<float>(next() * 90 - 30));
+                b.push_back(static_cast<float>(next() * 90 - 30));
+            }
+        }
+        b.insert(b.end(), {2e5f, 1, 1});  // far outside: compared with everything
+        const std::optional<PeriodicCell> cell = PeriodicCell::from(box);
+        ASSERT_TRUE(cell);
+        for (const double cutoff : {0.5, 2.5, 4.0, 7.9}) {
+            const PairList got = pairsWithinPeriodic(a, b, cutoff, box);
+            PairList brute;
+            for (std::size_t i = 0; i < a.size() / 3; ++i) {
+                for (std::size_t j = 0; j < b.size() / 3; ++j) {
+                    const Vec3 v = cell->minimumImage({static_cast<double>(a[3 * i]) - b[3 * j],
+                                                       static_cast<double>(a[3 * i + 1]) - b[3 * j + 1],
+                                                       static_cast<double>(a[3 * i + 2]) - b[3 * j + 2]});
+                    const double s = (v[0] * v[0] + v[1] * v[1]) + v[2] * v[2];
+                    if (s <= cutoff * cutoff) {
+                        brute.i.push_back(static_cast<std::int64_t>(i));
+                        brute.j.push_back(static_cast<std::int64_t>(j));
+                        brute.d.push_back(std::sqrt(s));
+                    }
+                }
+            }
+            EXPECT_EQ(got.i, brute.i) << cutoff;
+            EXPECT_EQ(got.j, brute.j) << cutoff;
+            EXPECT_EQ(got.d, brute.d) << cutoff;
+        }
+    }
+}
+
+TEST(PeriodicCell, OneOrthogonalityTestAndTriclinicImages) {
+    // 90.0005 is not 90 in float32: a triclinic cell for pairs and vectors alike (MDATK's vectors
+    // used np.allclose and were left uncorrected for the pair search's triclinic image)
+    const std::optional<PeriodicCell> slanted = PeriodicCell::from(Box{10, 10, 10, 90.0005, 90, 90});
+    ASSERT_TRUE(slanted);
+    EXPECT_FALSE(slanted->orthogonal());
+    EXPECT_TRUE(PeriodicCell::from(Box{10, 10, 10, 90.000001, 90, 90})->orthogonal());
+    // a triclinic cell: the image across the slanted face is the short one
+    const Box tric{25, 25, 25, 60, 70, 80};
+    const Vec3 v = minimumImageVector({24.0, 0.0, 0.0}, tric);
+    EXPECT_NEAR(std::sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]), 1.0, 1e-12);
+    const Vec3 w = minimumImageVector({3.0, 4.0, 0.0}, tric);
+    EXPECT_EQ(w, (Vec3{3.0, 4.0, 0.0}));  // within the cell: unchanged
+    // no periodic geometry: unchanged vectors, plain distances
+    EXPECT_FALSE(PeriodicCell::from(Box{25, 25, 25, 60, 60, 150}));
+    EXPECT_EQ(minimumImageVector({24.0, 0.0, 0.0}, Box{25, 25, 25, 60, 60, 150}), (Vec3{24.0, 0.0, 0.0}));
+    const PairList plain = pairsWithinPeriodic(std::vector<float>{0, 0, 0}, std::vector<float>{24, 0, 0, NAN, 0, 0},
+                                               30.0, Box{25, 25, 25, 60, 60, 150});
+    ASSERT_EQ(plain.size(), 1u);
+    EXPECT_EQ(plain.d[0], 24.0);
 }

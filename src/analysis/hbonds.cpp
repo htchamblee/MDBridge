@@ -418,7 +418,7 @@ public:
     HBondsDescriptor()
         : AnalysisDescriptor({"hbonds",
                               "Hydrogen bonds",
-                              2,  // v2: guessed hydrogens by the pair distance, N-H not acceptors (AN-09, AN-10)
+                              2,  // v2: guessed hydrogens (AN-09, AN-10); periodic geometry (AN-01-AN-04); SEL-13
                               false,
                               2,
                               {{"count", "{a}–{b} H-bonds"},

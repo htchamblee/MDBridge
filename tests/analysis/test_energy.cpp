@@ -12,6 +12,7 @@
 // compared within a relative 1e-14 of the value itself.
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstdint>
 #include <iostream>
@@ -23,6 +24,7 @@
 #include <span>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <gtest/gtest.h>
@@ -411,6 +413,42 @@ TEST(Energy, AnalyticCoulombAndLennardJones) {
     project.analyses.energy.distance_dependent = true;
     res = run(project);
     near(value(res, "elec"), -kEnergyCoulomb / (4.0 * r * r), 1e-9);
+}
+
+// AN-05 (docs/DIFFERENCES.md): for overlapping atoms (r < 0.5 A) the net force is the force at the
+// clamped distance 0.5 along the unit vector; MDATK scaled it by r / 0.5. Open and periodic paths.
+TEST(Energy, NetForceAtClampedDistanceHasFullMagnitude) {
+    const double r = 0.3;
+    const std::vector<MicroAtom> atoms = {{"NA", 1, "NA", "NA", 22.99, 1.0}, {"CL", 2, "CL", "CL", 35.45, -1.0}};
+    core::Project project;
+    project.groups = {{"Aptamer", "1", "", "#2a78d6"}, {"Target", "2", "", "#2a78d6"}};
+    const double rmin = 1.369 + 2.513;  // GENERIC_LJ NA, CL
+    const double eps = std::sqrt(0.0874 * 0.0355);
+    const double d = 0.5;
+    const double dE = kEnergyCoulomb / (d * d) - 12 * eps * std::pow(rmin, 12) / std::pow(d, 13) +
+                      12 * eps * std::pow(rmin, 6) / std::pow(d, 7);  // qq = -332.0522
+    for (const bool periodic : {false, true}) {
+        // across the face of a 20 A cell with use_pbc: 19.85 and 0.15 -> 0.3 A apart
+        const std::vector<double> xyz = periodic ? std::vector<double>{19.85, 5, 5, 0.15, 5, 5}
+                                                 : std::vector<double>{5, 5, 5, 5.3, 5, 5};
+        core::System system = makeMicroSystem(atoms, {xyz});
+        core::Project p = project;
+        if (periodic) {
+            core::Frame frame;
+            for (const double v : xyz) {
+                frame.positions.push_back(static_cast<float>(v));
+            }
+            frame.box = std::array<float, 6>{20, 20, 20, 90, 90, 90};
+            std::vector<core::Frame> frames;
+            frames.push_back(std::move(frame));
+            system.trajectory = std::make_unique<core::MemoryTrajectory>(std::move(frames));
+            p.analyses.use_pbc = true;
+        }
+        const core::AnalysisResult res = runOne("energy", system, p);
+        const double force = res.array("force")->values<double>()[0];
+        EXPECT_LE(std::abs(force - std::abs(dE)), 1e-6 * std::abs(dE)) << periodic << ": " << force << " vs " << dE
+                                                                        << " (MDATK: " << std::abs(dE) * r / d << ")";
+    }
 }
 
 // use_parm7 with a parm7 file whose atom count differs from the system's: MDATK's warning and the

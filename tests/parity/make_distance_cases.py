@@ -34,6 +34,14 @@ give the same pairs and distances (checked here, not written). Writes OUT_DIR/di
                      may disagree with MDAnalysis on exactly these pairs. Absent when empty or for
                      lattice cases.
 
+    exact            MDBridge's improved periodic search (docs/DIFFERENCES.md AN-01 to AN-03,
+                     computed independently by improvements_periodic.pairs_within_periodic): the
+                     float64 minimum-image distance of every pair, kept iff d^2 <= cutoff^2, sorted
+                     by (i, j), never an error: {"pairs", "distances"} as above, or for lattice
+                     cases {"count", "pairs_sha256", "distances_sha256"}. The C++ test expects
+                     these; the MDAnalysis columns stay as the record of the reference behaviour
+                     (docs/specs/m3-capped-distance.md).
+
 Inputs MDAnalysis handles inconsistently (non-finite coordinates with a triclinic box: garbage pairs
 or a crash) are not recorded; the spec says what MDBridge does instead.
 """
@@ -55,6 +63,9 @@ import MDAnalysis.lib.distances as mdadist  # noqa: E402
 from MDAnalysis.lib.distances import capped_distance, distance_array  # noqa: E402
 
 from mdatk import spatial  # noqa: E402
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import improvements_periodic  # noqa: E402
 
 OUT = os.path.abspath(sys.argv[2])
 rng = np.random.default_rng(20261124)
@@ -158,6 +169,9 @@ def add(name, group, a, b, cutoff, box, band=True):
         case["distances"] = [float(x).hex() for x in dist]
     if msgs:
         case["warnings"] = msgs
+    ei, ej, ed = improvements_periodic.pairs_within_periodic(a, b, cutoff, box)
+    case["exact"] = {"pairs": [[int(i), int(j)] for i, j in zip(ei, ej)],
+                     "distances": [float(x).hex() for x in ed]}
     if band:
         bp = band_pairs(a, b, box, cutoff)
         if bp:
@@ -180,6 +194,11 @@ def add_lattice(name, group, la, lb, cutoff, box):
         case["distances_sha256"] = hashlib.sha256(dist.astype("<f8").tobytes()).hexdigest()
     if msgs:
         case["warnings"] = msgs
+    ei, ej, ed = improvements_periodic.pairs_within_periodic(a, b, cutoff, box)
+    flat = np.stack([ei, ej], axis=1) if len(ei) else np.zeros((0, 2), dtype=np.int64)
+    case["exact"] = {"count": int(len(ei)),
+                     "pairs_sha256": hashlib.sha256(flat.astype("<i8").tobytes()).hexdigest(),
+                     "distances_sha256": hashlib.sha256(ed.astype("<f8").tobytes()).hexdigest()}
     CASES.append(case)
 
 

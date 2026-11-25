@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <limits>
 #include <stdexcept>
@@ -181,277 +182,127 @@ PairList pairsWithinOpen(std::span<const double> a, std::span<const double> b, d
     return out;
 }
 
-// ---- periodic pairs (MDAnalysis' capped_distance) ----------------------------------------------
+// ---- periodic cells and minimum images (docs/DIFFERENCES.md, AN-01 to AN-04) -------------------
 //
-// Written from the behaviour specification docs/specs/m3-capped-distance.md (clean room); the
-// section numbers below refer to it. Single-precision steps use float variables: each float
-// operation rounds to binary32, each double one to binary64 (no contraction, see above).
+// MDBridge's own periodic geometry; it replaces the reproduction of MDAnalysis' capped_distance
+// (docs/specs/m3-capped-distance.md documents that reference behaviour). Every step is a float64
+// operation in the order written here (no contraction, see above), so that
+// tests/parity/improvements_periodic.py reproduces the results bit for bit with numpy.
 
 namespace {
 
 constexpr double kRadiansPerDegree = 3.14159265358979323846 / 180.0;
 
-using Point = std::array<float, 3>;
+// At most this many reductions by whole cells along one vector: each one shrinks the component
+// by a factor of about 2^-52, so float64 values from float32 inputs never need more than ~25.
+constexpr int kMaxReductions = 64;
 
-// The whole number of cells a far point is moved by. MDAnalysis holds it in a 32-bit integer and
-// its result is undefined beyond that (§4.1: |x| beyond about 2^31 L); MDBridge then leaves the
-// point where it is along that axis (0 cells), which is what MDAnalysis returned in the one probed
-// case (a 1e-10 Å triclinic length, points 1-9 Å from the origin).
-double wholeCells(double fraction) {
-    const double n = std::floor(fraction);
-    return std::abs(n) < 0x1p31 ? n : 0.0;
+double cosineOf(double degrees) {
+    return degrees == 90.0 ? 0.0 : std::cos(degrees * kRadiansPerDegree);
 }
 
-// §2: the cell rounded to float32; for a cell that is not orthogonal, its lower-triangular box
-// vectors a = (ax, 0, 0), b = (bx, by, 0), c = (cx, cy, cz), all zero when the cell is invalid
-struct PeriodicCell {
-    std::array<float, 3> length{};
-    std::array<float, 3> angle{};
-    bool orthogonal = false;
-    bool valid = false;  // orthogonal, or a triclinic cell with box vectors
-    float ax = 0, bx = 0, by = 0, cx = 0, cy = 0, cz = 0;
-};
+double sineOf(double degrees) {
+    return degrees == 90.0 ? 1.0 : std::sin(degrees * kRadiansPerDegree);
+}
 
-PeriodicCell periodicCell(const Box& box) {
-    PeriodicCell cell;
-    for (std::size_t k = 0; k < 3; ++k) {
-        cell.length[k] = static_cast<float>(box[k]);
-        cell.angle[k] = static_cast<float>(box[3 + k]);
+// v - n * u for n = nearbyint(v[k] / u[k]) (half to even), repeated while |v[k]| > u[k] / 2
+void reduceAlong(Vec3& v, const Vec3& u, std::size_t k) {
+    const double half = u[k] / 2;
+    for (int step = 0; step < kMaxReductions && std::abs(v[k]) > half; ++step) {
+        const double n = std::nearbyint(v[k] / u[k]);
+        for (std::size_t c = 0; c <= k; ++c) {  // components c > k of u are 0
+            v[c] = v[c] - n * u[c];
+        }
     }
-    cell.orthogonal = cell.angle[0] == 90.0f && cell.angle[1] == 90.0f && cell.angle[2] == 90.0f;
-    if (cell.orthogonal) {
-        cell.valid = true;
-        cell.ax = cell.length[0];
-        cell.by = cell.length[1];
-        cell.cz = cell.length[2];
+}
+
+double squaredLength(const Vec3& v) {
+    return (v[0] * v[0] + v[1] * v[1]) + v[2] * v[2];
+}
+
+}  // namespace
+
+std::optional<PeriodicCell> PeriodicCell::from(const Box& box) {
+    PeriodicCell cell;
+    std::array<double, 3> length{}, angle{};
+    for (std::size_t k = 0; k < 3; ++k) {
+        length[k] = static_cast<float>(box[k]);
+        angle[k] = static_cast<float>(box[3 + k]);
+    }
+    cell.m_orthogonal = angle[0] == 90.0 && angle[1] == 90.0 && angle[2] == 90.0;
+    if (cell.m_orthogonal) {
+        for (std::size_t k = 0; k < 3; ++k) {
+            cell.m_periodic[k] = std::isfinite(length[k]) && length[k] > 0;
+            cell.m_vectors[k][k] = cell.m_periodic[k] ? length[k] : 0.0;
+        }
         return cell;
     }
-    const double a = cell.length[0], b = cell.length[1], c = cell.length[2];
-    const double alpha = cell.angle[0], beta = cell.angle[1], gamma = cell.angle[2];
-    const auto cosine = [](double degrees) {
-        return degrees == 90.0 ? 0.0 : std::cos(degrees * kRadiansPerDegree);
-    };
-    const double cosAlpha = cosine(alpha), cosBeta = cosine(beta), cosGamma = cosine(gamma);
-    const double sinGamma = gamma == 90.0 ? 1.0 : std::sin(gamma * kRadiansPerDegree);
+    const double a = length[0], b = length[1], c = length[2];
+    for (std::size_t k = 0; k < 3; ++k) {
+        if (!(std::isfinite(length[k]) && length[k] > 0 && angle[k] > 0 && angle[k] < 180)) {
+            return std::nullopt;
+        }
+    }
+    const double cosAlpha = cosineOf(angle[0]), cosBeta = cosineOf(angle[1]), cosGamma = cosineOf(angle[2]);
+    const double sinGamma = sineOf(angle[2]);
     const double bx = b * cosGamma;
     const double by = b * sinGamma;
     const double cx = c * cosBeta;
     const double cy = c * (cosAlpha - cosBeta * cosGamma) / sinGamma;
     const double cz = std::sqrt(c * c - cx * cx - cy * cy);  // NaN for a negative radicand
-    const bool positive = a > 0 && b > 0 && c > 0 && alpha > 0 && beta > 0 && gamma > 0;
-    const bool below180 = alpha < 180 && beta < 180 && gamma < 180;
-    cell.valid = positive && below180 && cz > 0;
-    if (cell.valid) {
-        cell.ax = static_cast<float>(a);
-        cell.bx = static_cast<float>(bx);
-        cell.by = static_cast<float>(by);
-        cell.cx = static_cast<float>(cx);
-        cell.cy = static_cast<float>(cy);
-        cell.cz = static_cast<float>(cz);
+    if (!(by > 0 && cz > 0 && std::isfinite(cz))) {
+        return std::nullopt;
     }
+    cell.m_vectors = {Vec3{a, 0.0, 0.0}, Vec3{bx, by, 0.0}, Vec3{cx, cy, cz}};
+    cell.m_periodic = {true, true, true};
     return cell;
 }
 
-// §3: the automatic method choice
-bool useBruteForce(std::size_t n, std::size_t m, double cutoff, const PeriodicCell& cell) {
-    if (n < 10 || m < 10) {
-        return true;
-    }
-    if (static_cast<std::uint64_t>(n) * static_cast<std::uint64_t>(m) >= 100000000u) {
-        return false;
-    }
-    std::array<float, 3> size = cell.length;
-    if (!cell.orthogonal) {
-        // per axis, the largest minus the smallest component of the three box vectors
-        const auto extent = [](float u, float v, float w) {
-            return std::max({u, v, w}) - std::min({u, v, w});
-        };
-        size = {extent(cell.ax, cell.bx, cell.cx), extent(0.0f, cell.by, cell.cy),
-                extent(0.0f, 0.0f, cell.cz)};
-    }
-    const float c = static_cast<float>(cutoff);
-    return std::any_of(size.begin(), size.end(), [c](float s) { return c > 0.3f * s; });
+std::optional<PeriodicCell> PeriodicCell::from(const std::optional<Box>& box) {
+    const std::optional<Box> usable = usableBox(box);
+    return usable ? from(*usable) : std::nullopt;
 }
 
-bool finitePoint(std::span<const float> xyz, std::size_t p) {
-    return std::isfinite(xyz[3 * p]) && std::isfinite(xyz[3 * p + 1]) &&
-           std::isfinite(xyz[3 * p + 2]);
+std::optional<PeriodicCell> PeriodicCell::from(const std::optional<std::array<float, 6>>& dims) {
+    const std::optional<Box> usable = usableBox(dims);
+    return usable ? from(*usable) : std::nullopt;
 }
 
-void addPair(PairList& out, std::size_t i, std::size_t j, double d) {
-    out.i.push_back(static_cast<std::int64_t>(i));
-    out.j.push_back(static_cast<std::int64_t>(j));
-    out.d.push_back(d);
-}
-
-// §4.1, brute force on an orthogonal cell: the difference scaled by the float32 reciprocal of
-// the length, reduced to the nearest image (round half away from zero), scaled back
-PairList bruteForceOrthogonal(std::span<const float> a, std::span<const float> b, double cutoff,
-                              const PeriodicCell& cell) {
-    const std::size_t n = a.size() / 3, m = b.size() / 3;
-    std::array<double, 3> length{}, reciprocal{};
-    std::array<bool, 3> periodic{};
-    for (std::size_t k = 0; k < 3; ++k) {
-        length[k] = cell.length[k];
-        reciprocal[k] = static_cast<float>(1.0 / length[k]);
-        periodic[k] = length[k] > 0x1p-23;
-    }
-    PairList out;
-    for (std::size_t i = 0; i < n; ++i) {
-        if (!finitePoint(a, i)) {
-            continue;
-        }
-        for (std::size_t j = 0; j < m; ++j) {
-            if (!finitePoint(b, j)) {
-                continue;
+Vec3 PeriodicCell::minimumImage(const Vec3& d) const {
+    Vec3 v = d;
+    if (m_orthogonal) {
+        for (std::size_t k = 0; k < 3; ++k) {
+            const double length = m_vectors[k][k];
+            const double half = length / 2;
+            for (int step = 0; m_periodic[k] && step < kMaxReductions && std::abs(v[k]) > half; ++step) {
+                v[k] = v[k] - length * std::nearbyint(v[k] / length);
             }
-            std::array<double, 3> square{};
-            for (std::size_t k = 0; k < 3; ++k) {
-                const float difference = b[3 * j + k] - a[3 * i + k];
-                double d = difference;
-                if (periodic[k]) {
-                    const double s = d * reciprocal[k];
-                    d = length[k] * (s - std::round(s));
+        }
+        return v;
+    }
+    reduceAlong(v, m_vectors[2], 2);
+    reduceAlong(v, m_vectors[1], 1);
+    reduceAlong(v, m_vectors[0], 0);
+    // the shortest of the 27 neighbouring images; the image itself unless another is strictly
+    // shorter (a first, b, c innermost)
+    const Vec3& va = m_vectors[0];
+    const Vec3& vb = m_vectors[1];
+    const Vec3& vc = m_vectors[2];
+    Vec3 best = v;
+    double bestSquare = squaredLength(v);
+    for (int i = -1; i <= 1; ++i) {
+        for (int j = -1; j <= 1; ++j) {
+            for (int k = -1; k <= 1; ++k) {
+                if (i == 0 && j == 0 && k == 0) {
+                    continue;
                 }
-                square[k] = d * d;
-            }
-            const double distance = std::sqrt((square[0] + square[1]) + square[2]);
-            if (distance <= cutoff) {
-                addPair(out, i, j, distance);
-            }
-        }
-    }
-    return out;
-}
-
-// §4.1, grid: x wrapped into [0, L) in single precision; an infinite length is not periodic
-float wrapOrthogonal(float x, float length) {
-    if (!std::isfinite(length)) {
-        return x;
-    }
-    const double inverse = 1.0 / static_cast<double>(length);
-    const auto reduced = [&](float v) {
-        const double n = wholeCells(static_cast<double>(v) * inverse);
-        const float multiple = static_cast<float>(n * static_cast<double>(length));
-        return v - multiple;
-    };
-    float v = x;
-    if (x < 0.0f) {
-        const float y = x + length;
-        if (!(y >= 0.0f)) {
-            float r = reduced(x);
-            if (r < 0.0f) {
-                r = r + length;
-            }
-            return r;
-        }
-        v = y;
-    }
-    if (v >= length) {
-        const float w = v - length;
-        if (w < length) {
-            return w;
-        }
-        float r = reduced(v);
-        if (r >= length) {
-            r = r - length;
-        }
-        return r;
-    }
-    return v;
-}
-
-// §4.3 step 1: a point moved into the primary cell by whole box vectors, c first (0 <= z < cz),
-// then b (bounds tilted by c), then a (bounds tilted by b and c). Along each vector: a point less
-// than one cell outside moves by that vector once; one further out first moves by floor of its
-// fractional coordinate (float32 multiple) and then by one more vector if still outside.
-Point wrapTriclinic(Point p, const PeriodicCell& cell) {
-    const Point va{cell.ax, 0.0f, 0.0f}, vb{cell.bx, cell.by, 0.0f}, vc{cell.cx, cell.cy, cell.cz};
-    const double cyz = static_cast<double>(cell.cy) / cell.cz;
-    const double cxz = static_cast<double>(cell.cx) / cell.cz;
-    const double bxy = static_cast<double>(cell.bx) / cell.by;
-    const auto plus = [](Point q, const Point& v) {
-        for (std::size_t k = 0; k < 3; ++k) {
-            q[k] = q[k] + v[k];
-        }
-        return q;
-    };
-    const auto minus = [](Point q, const Point& v) {
-        for (std::size_t k = 0; k < 3; ++k) {
-            q[k] = q[k] - v[k];
-        }
-        return q;
-    };
-    const auto minusMultiple = [](Point q, const Point& v, double n) {
-        for (std::size_t k = 0; k < 3; ++k) {
-            const float multiple = static_cast<float>(n * static_cast<double>(v[k]));
-            q[k] = q[k] - multiple;
-        }
-        return q;
-    };
-    // k: the axis of the vector's own component; lower(q): the lower bound of q[k]
-    const auto along = [&](Point q, const Point& v, std::size_t k, const auto& lower) {
-        const double extent = v[k];
-        if (!std::isfinite(v[0]) || !std::isfinite(v[1]) || !std::isfinite(v[2])) {
-            return q;  // an infinite cell length: not periodic along this vector
-        }
-        if (static_cast<double>(q[k]) < lower(q)) {
-            const Point once = plus(q, v);
-            if (!(static_cast<double>(once[k]) >= lower(once))) {
-                q = minusMultiple(q, v, wholeCells((q[k] - lower(q)) / extent));
-                if (static_cast<double>(q[k]) < lower(q)) {
-                    q = plus(q, v);
-                }
-                return q;
-            }
-            q = once;
-        }
-        if (static_cast<double>(q[k]) >= lower(q) + extent) {
-            const Point once = minus(q, v);
-            if (static_cast<double>(once[k]) < lower(once) + extent) {
-                return once;
-            }
-            q = minusMultiple(q, v, wholeCells((q[k] - lower(q)) / extent));
-            if (static_cast<double>(q[k]) >= lower(q) + extent) {
-                q = minus(q, v);
-            }
-        }
-        return q;
-    };
-    p = along(p, vc, 2, [](const Point&) { return 0.0; });
-    p = along(p, vb, 1, [cyz](const Point& q) { return q[2] * cyz; });
-    p = along(p, va, 0, [cyz, cxz, bxy](const Point& q) {
-        return (q[1] - q[2] * cyz) * bxy + q[2] * cxz;
-    });
-    return p;
-}
-
-// §4.3 steps 2-3: the squared length of the shortest of the 27 images of p - q (the first
-// strictly shorter one, i outermost, k innermost); an invalid cell's zero vectors give |p - q|^2.
-// A box vector with an infinite component (an infinite cell length) is not periodic: only its
-// 0 multiple is tried, and it adds nothing (MDAnalysis' result is meaningless there: distinct
-// points at distance 0).
-double squaredTriclinic(const Point& p, const Point& q, const PeriodicCell& cell) {
-    const float fx = p[0] - q[0], fy = p[1] - q[1], fz = p[2] - q[2];
-    const double dx = fx, dy = fy, dz = fz;
-    const double ax = cell.ax, bx = cell.bx, by = cell.by, cx = cell.cx, cy = cell.cy,
-                 cz = cell.cz;
-    const double spanA = std::isfinite(ax) ? 1.0 : 0.0;
-    const double spanB = std::isfinite(bx) && std::isfinite(by) ? 1.0 : 0.0;
-    const double spanC = std::isfinite(cx) && std::isfinite(cy) && std::isfinite(cz) ? 1.0 : 0.0;
-    const auto times = [](double n, double v) { return n == 0.0 ? 0.0 : n * v; };
-    double best = 0.0;
-    bool first = true;
-    for (double i = -spanA; i <= spanA; ++i) {
-        for (double j = -spanB; j <= spanB; ++j) {
-            for (double k = -spanC; k <= spanC; ++k) {
-                const double x = dx + times(i, ax) + times(j, bx) + times(k, cx);
-                const double y = dy + times(j, by) + times(k, cy);
-                const double z = dz + times(k, cz);
-                const double s = (x * x + y * y) + z * z;
-                if (first || s < best) {
-                    best = s;
-                    first = false;
+                const double fi = i, fj = j, fk = k;
+                const Vec3 w{((v[0] + fi * va[0]) + fj * vb[0]) + fk * vc[0],
+                             (v[1] + fj * vb[1]) + fk * vc[1], v[2] + fk * vc[2]};
+                const double s = squaredLength(w);
+                if (s < bestSquare) {
+                    best = w;
+                    bestSquare = s;
                 }
             }
         }
@@ -459,244 +310,207 @@ double squaredTriclinic(const Point& p, const Point& q, const PeriodicCell& cell
     return best;
 }
 
-// §4.1, grid: the squared minimum-image distance of wrapped points (reference minus configuration)
-double squaredOrthogonal(const Point& p, const Point& q, const std::array<float, 3>& length) {
-    std::array<double, 3> square{};
-    for (std::size_t k = 0; k < 3; ++k) {
-        const float difference = p[k] - q[k];
-        double d = difference;
-        const double box = length[k];
-        if (d > box / 2) {
-            d -= box;
-        } else if (d <= -box / 2) {
-            d += box;
-        }
-        square[k] = d * d;
+std::array<double, 3> PeriodicCell::widths() const {
+    if (m_orthogonal) {
+        return {m_vectors[0][0], m_vectors[1][1], m_vectors[2][2]};
     }
-    return (square[0] + square[1]) + square[2];
+    const Vec3& a = m_vectors[0];
+    const Vec3& b = m_vectors[1];
+    const Vec3& c = m_vectors[2];
+    const auto cross = [](const Vec3& x, const Vec3& y) {
+        return Vec3{x[1] * y[2] - x[2] * y[1], x[2] * y[0] - x[0] * y[2], x[0] * y[1] - x[1] * y[0]};
+    };
+    const double volume = a[0] * b[1] * c[2];
+    return {volume / std::sqrt(squaredLength(cross(b, c))), volume / std::sqrt(squaredLength(cross(c, a))),
+            volume / std::sqrt(squaredLength(cross(a, b)))};
 }
 
-// both point sets wrapped as the method needs (orthogonal per axis, triclinic by box vectors,
-// nothing for an invalid cell's brute force); non-finite points are left as they are (skipped)
-std::vector<Point> wrappedPoints(std::span<const float> xyz, const PeriodicCell& cell,
-                                 bool orthogonal) {
-    std::vector<Point> out(xyz.size() / 3);
-    for (std::size_t p = 0; p < out.size(); ++p) {
-        Point q{xyz[3 * p], xyz[3 * p + 1], xyz[3 * p + 2]};
-        if (finitePoint(xyz, p)) {
-            if (orthogonal) {
-                for (std::size_t k = 0; k < 3; ++k) {
-                    q[k] = wrapOrthogonal(q[k], cell.length[k]);
-                }
-            } else if (cell.valid) {
-                q = wrapTriclinic(q, cell);
-            }
+std::array<double, 3> PeriodicCell::fractions(const Vec3& x) const {
+    if (m_orthogonal) {
+        std::array<double, 3> s{};
+        for (std::size_t k = 0; k < 3; ++k) {
+            s[k] = m_periodic[k] ? x[k] / m_vectors[k][k] : 0.0;
         }
-        out[p] = q;
+        return s;
     }
-    return out;
+    const Vec3& a = m_vectors[0];
+    const Vec3& b = m_vectors[1];
+    const Vec3& c = m_vectors[2];
+    const double sc = x[2] / c[2];
+    const double sb = (x[1] - sc * c[1]) / b[1];
+    const double sa = (x[0] - sb * b[0] - sc * c[0]) / a[0];
+    return {sa, sb, sc};
 }
 
-// §4.3, brute force on a triclinic or invalid cell
-PairList bruteForceTriclinic(std::span<const float> a, std::span<const float> b, double cutoff,
-                             const PeriodicCell& cell) {
-    const std::vector<Point> pa = wrappedPoints(a, cell, false);
-    const std::vector<Point> pb = wrappedPoints(b, cell, false);
-    PairList out;
-    for (std::size_t i = 0; i < pa.size(); ++i) {
-        if (!finitePoint(a, i)) {
-            continue;
-        }
-        for (std::size_t j = 0; j < pb.size(); ++j) {
-            if (!finitePoint(b, j)) {
-                continue;
-            }
-            const double distance = std::sqrt(squaredTriclinic(pa[i], pb[j], cell));
-            if (distance <= cutoff) {
-                addPair(out, i, j, distance);
-            }
-        }
-    }
-    return out;
+// ---- periodic pairs ----------------------------------------------------------------------------
+
+namespace {
+
+bool finitePoint(std::span<const double> xyz, std::size_t p) {
+    return std::isfinite(xyz[3 * p]) && std::isfinite(xyz[3 * p + 1]) && std::isfinite(xyz[3 * p + 2]);
 }
 
-// §3.1: the largest cutoff the grid accepts (float32)
-float gridLimit(const PeriodicCell& cell) {
-    if (cell.orthogonal) {
-        return std::min({cell.length[0], cell.length[1], cell.length[2]}) / 2.0f;
-    }
-    const auto sine = [](float degrees) {
-        const float radians = static_cast<float>(static_cast<double>(degrees) * kRadiansPerDegree);
-        return static_cast<float>(std::sin(static_cast<double>(radians)));
-    };
-    const float sa = sine(cell.angle[0]), sb = sine(cell.angle[1]), sg = sine(cell.angle[2]);
-    const std::array<float, 6> products = {cell.by * sa, cell.cz * sa, cell.ax * sb,
-                                           cell.cz * sb, cell.ax * sg, cell.by * sg};
-    float smallest = products[0];
-    for (const float v : products) {
-        smallest = std::min(smallest, v);
-    }
-    return smallest / 2.0f;
+Vec3 pointAt(std::span<const double> xyz, std::size_t p) {
+    return {xyz[3 * p], xyz[3 * p + 1], xyz[3 * p + 2]};
 }
 
-// §3.1, §4.1, §4.3, §5: the grid method
-PairList gridSearch(std::span<const float> a, std::span<const float> b, double cutoff,
-                    const PeriodicCell& cell) {
-    if (cutoff < 0) {
-        throw core::ValueError("Cutoff must be positive");
-    }
-    if (cell.length[0] == 0.0f || cell.length[1] == 0.0f || cell.length[2] == 0.0f) {
-        throw core::ValueError("Any of the box dimensions cannot be 0");
-    }
-    const float limit = gridLimit(cell);
-    if (cutoff > static_cast<double>(limit)) {
-        throw core::ValueError("Cutoff " + core::pythonFloatRepr(cutoff) +
-                               " too large for box (max " +
-                               core::pythonFloatRepr(static_cast<double>(limit)) + ")");
-    }
-    PairList out;
-    if (std::isnan(cutoff)) {
-        return out;
-    }
-    const double bound = cutoff * cutoff;
-    // an invalid triclinic cell is wrapped and searched as an orthogonal one with its lengths
-    const bool orthogonal = cell.orthogonal || !cell.valid;
-    const std::vector<Point> pa = wrappedPoints(a, cell, orthogonal);
-    const std::vector<Point> pb = wrappedPoints(b, cell, orthogonal);
-
-    // cells per axis: the cell's perpendicular widths (from the box vectors; 0 for an invalid
-    // cell) over max(cutoff, 1) + 0.001; up to 3 cells is one cell, not wrapped
-    const double ax = cell.ax, bx = cell.bx, by = cell.by, cx = cell.cx, cy = cell.cy,
-                 cz = cell.cz;
-    std::array<double, 3> width{};
-    if (cell.orthogonal) {
-        width = {ax, by, cz};
-    } else if (cell.valid) {
-        const double volume = ax * by * cz;
-        const double t = bx * cy - by * cx;
-        width = {volume / std::sqrt((by * cz) * (by * cz) + (bx * cz) * (bx * cz) + t * t),
-                 by * cz / std::sqrt(cy * cy + cz * cz), cz};
-    }
-    const float reach = static_cast<float>(std::max(cutoff, 1.0));
-    const float h = static_cast<float>(static_cast<double>(reach) + 0.001);
-    std::array<std::int64_t, 3> count{};
-    std::array<bool, 3> wrapped{};
-    for (std::size_t k = 0; k < 3; ++k) {
-        const double q = std::floor(width[k] / h);
-        wrapped[k] = q >= 4;
-        count[k] = wrapped[k] ? static_cast<std::int64_t>(std::min(q, 1290.0)) : 1;
-    }
-    // the grid cell of a wrapped point: integer parts truncated, then the remainder modulo the
-    // count with the dividend's sign; for an orthogonal search the tilt terms vanish
-    const std::array<double, 3> extent =
-        orthogonal ? std::array<double, 3>{cell.length[0], cell.length[1], cell.length[2]}
-                   : std::array<double, 3>{ax, by, cz};
-    const double tiltYz = orthogonal ? 0.0 : cy / cz;
-    const double tiltXy = orthogonal ? 0.0 : bx / by;
-    const double tiltXz = orthogonal ? 0.0 : cx / cz;
-    const auto index = [&](double v, std::size_t k) -> std::int64_t {
-        const double size = extent[k] / static_cast<double>(count[k]);
-        const double r = std::fmod(std::trunc(v / size), static_cast<double>(count[k]));
-        return std::isfinite(r) ? static_cast<std::int64_t>(r) : 0;
-    };
-    using Cell = std::array<std::int64_t, 3>;
-    const auto cellOf = [&](const Point& p) -> Cell {
-        const double x = p[0], y = p[1], z = p[2];
-        const double y1 = y - z * tiltYz;
-        return {index(x - y1 * tiltXy - z * tiltXz, 0), index(y1, 1), index(z, 2)};
-    };
-    const auto key = [](const Cell& c) {
-        return ((c[0] + 2048) * 4096 + (c[1] + 2048)) * 4096 + (c[2] + 2048);
-    };
-
-    // configuration points by cell, each cell in descending index order
-    std::vector<std::pair<std::int64_t, std::size_t>> sorted;
-    sorted.reserve(pb.size());
-    for (std::size_t j = 0; j < pb.size(); ++j) {
-        if (finitePoint(b, j)) {
-            sorted.emplace_back(key(cellOf(pb[j])), j);
+// Plain distances for a cell without periodic geometry: the open path on the finite points.
+PairList plainPairs(std::span<const double> a, std::span<const double> b, double cutoff) {
+    std::vector<double> fa, fb;
+    std::vector<std::int64_t> ia, ib;
+    for (std::size_t p = 0; p < a.size() / 3; ++p) {
+        if (finitePoint(a, p)) {
+            fa.insert(fa.end(), a.begin() + static_cast<std::ptrdiff_t>(3 * p),
+                      a.begin() + static_cast<std::ptrdiff_t>(3 * p + 3));
+            ia.push_back(static_cast<std::int64_t>(p));
         }
     }
-    std::sort(sorted.begin(), sorted.end(), [](const auto& l, const auto& r) {
-        return l.first != r.first ? l.first < r.first : l.second > r.second;
-    });
-    std::unordered_map<std::int64_t, std::pair<std::size_t, std::size_t>> members;
-    for (std::size_t s = 0; s < sorted.size();) {
-        std::size_t e = s;
-        while (e < sorted.size() && sorted[e].first == sorted[s].first) {
-            ++e;
+    for (std::size_t p = 0; p < b.size() / 3; ++p) {
+        if (finitePoint(b, p)) {
+            fb.insert(fb.end(), b.begin() + static_cast<std::ptrdiff_t>(3 * p),
+                      b.begin() + static_cast<std::ptrdiff_t>(3 * p + 3));
+            ib.push_back(static_cast<std::int64_t>(p));
         }
-        members.emplace(sorted[s].first, std::pair(s, e));
-        s = e;
     }
-
-    // each reference point in turn; its 27 neighbour cells x outermost, z innermost (offsets
-    // -1, 0, +1; only 0 along an axis that is not wrapped)
-    for (std::size_t i = 0; i < pa.size(); ++i) {
-        if (!finitePoint(a, i)) {
-            continue;
-        }
-        const Cell home = cellOf(pa[i]);
-        const auto neighbour = [&](std::size_t k, std::int64_t offset) {
-            std::int64_t v = home[k] + offset;
-            if (v == -1) {
-                v = count[k] - 1;
-            } else if (v == count[k]) {
-                v = 0;
-            }
-            return v;
-        };
-        for (std::int64_t dx = -1; dx <= 1; ++dx) {
-            if (!wrapped[0] && dx != 0) {
-                continue;
-            }
-            for (std::int64_t dy = -1; dy <= 1; ++dy) {
-                if (!wrapped[1] && dy != 0) {
-                    continue;
-                }
-                for (std::int64_t dz = -1; dz <= 1; ++dz) {
-                    if (!wrapped[2] && dz != 0) {
-                        continue;
-                    }
-                    const auto found =
-                        members.find(key({neighbour(0, dx), neighbour(1, dy), neighbour(2, dz)}));
-                    if (found == members.end()) {
-                        continue;
-                    }
-                    for (std::size_t s = found->second.first; s < found->second.second; ++s) {
-                        const std::size_t j = sorted[s].second;
-                        const double d2 = orthogonal ? squaredOrthogonal(pa[i], pb[j], cell.length)
-                                                     : squaredTriclinic(pa[i], pb[j], cell);
-                        if (d2 <= bound) {
-                            addPair(out, i, j, std::sqrt(d2));
-                        }
-                    }
-                }
-            }
-        }
+    PairList out = pairsWithinOpen(fa, fb, cutoff);
+    for (std::size_t k = 0; k < out.size(); ++k) {
+        out.i[k] = ia[static_cast<std::size_t>(out.i[k])];
+        out.j[k] = ib[static_cast<std::size_t>(out.j[k])];
     }
     return out;
 }
 
 }  // namespace
 
-PairList pairsWithinPeriodic(std::span<const float> a, std::span<const float> b, double cutoff,
+PairList pairsWithinPeriodic(std::span<const double> a, std::span<const double> b, double cutoff,
                              const Box& box) {
     const std::size_t n = pointCount(a.size(), "pairsWithinPeriodic");
     const std::size_t m = pointCount(b.size(), "pairsWithinPeriodic");
-    if (n == 0 || m == 0) {
-        return {};
+    PairList out;
+    const double bound = cutoff * cutoff;
+    if (n == 0 || m == 0 || std::isnan(bound)) {
+        return out;
     }
-    const PeriodicCell cell = periodicCell(box);
-    if (useBruteForce(n, m, cutoff, cell)) {
-        return cell.orthogonal ? bruteForceOrthogonal(a, b, cutoff, cell)
-                               : bruteForceTriclinic(a, b, cutoff, cell);
+    const std::optional<PeriodicCell> cell = PeriodicCell::from(box);
+    if (!cell) {
+        return plainPairs(a, b, cutoff);
     }
-    return gridSearch(a, b, cutoff, cell);
+
+    // Candidate pairs from a cell list over the fractional coordinates wrapped into [0, 1): along
+    // each periodic direction, bins at least |cutoff| (plus a margin for rounding) wide, so that
+    // every image within the cutoff lies in the same or a neighbouring bin. A direction narrower
+    // than three bins is one bin (every candidate along it: cutoffs beyond a third of the cell).
+    // Points very far outside the cell (fractions beyond 1e4) are compared with every point.
+    const std::array<double, 3> width = cell->widths();
+    const double reach = std::abs(cutoff);
+    std::array<std::int64_t, 3> bins{};
+    for (std::size_t k = 0; k < 3; ++k) {
+        bins[k] = 1;
+        if (cell->periodic()[k] && std::isfinite(reach)) {
+            const double size = reach + 1e-7 * (reach + width[k]);
+            const double q = std::floor(width[k] / size);
+            if (q >= 3) {
+                bins[k] = static_cast<std::int64_t>(std::min(q, 256.0));
+            }
+        }
+    }
+    const auto binOf = [&](std::span<const double> xyz, std::size_t p, std::int64_t& key) {
+        const std::array<double, 3> s = cell->fractions(pointAt(xyz, p));
+        std::array<std::int64_t, 3> idx{};
+        for (std::size_t k = 0; k < 3; ++k) {
+            if (bins[k] == 1) {
+                continue;
+            }
+            if (!(std::abs(s[k]) <= 1e4)) {
+                return false;  // far outside: compared with everything
+            }
+            const double f = s[k] - std::floor(s[k]);
+            idx[k] = std::min<std::int64_t>(static_cast<std::int64_t>(f * static_cast<double>(bins[k])), bins[k] - 1);
+        }
+        key = (idx[0] * bins[1] + idx[1]) * bins[2] + idx[2];
+        return true;
+    };
+
+    std::vector<std::pair<std::int64_t, std::size_t>> binned;  // (bin, j)
+    std::vector<std::size_t> farB;
+    for (std::size_t j = 0; j < m; ++j) {
+        if (!finitePoint(b, j)) {
+            continue;
+        }
+        std::int64_t key = 0;
+        if (binOf(b, j, key)) {
+            binned.emplace_back(key, j);
+        } else {
+            farB.push_back(j);
+        }
+    }
+    std::sort(binned.begin(), binned.end());
+    std::unordered_map<std::int64_t, std::pair<std::size_t, std::size_t>> members;
+    for (std::size_t s = 0; s < binned.size();) {
+        std::size_t e = s;
+        while (e < binned.size() && binned[e].first == binned[s].first) {
+            ++e;
+        }
+        members.emplace(binned[s].first, std::pair(s, e));
+        s = e;
+    }
+    std::vector<std::size_t> everyB;
+    for (const auto& entry : binned) {
+        everyB.push_back(entry.second);
+    }
+    everyB.insert(everyB.end(), farB.begin(), farB.end());
+    std::sort(everyB.begin(), everyB.end());
+
+    std::vector<std::size_t> candidates;
+    for (std::size_t i = 0; i < n; ++i) {
+        if (!finitePoint(a, i)) {
+            continue;
+        }
+        std::int64_t key = 0;
+        if (!binOf(a, i, key)) {
+            candidates = everyB;
+        } else {
+            candidates = farB;
+            const std::int64_t home[3] = {key / (bins[1] * bins[2]), (key / bins[2]) % bins[1], key % bins[2]};
+            const auto offsets = [&](std::size_t k) {
+                return bins[k] == 1 ? std::vector<std::int64_t>{0} : std::vector<std::int64_t>{-1, 0, 1};
+            };
+            for (const std::int64_t dx : offsets(0)) {
+                for (const std::int64_t dy : offsets(1)) {
+                    for (const std::int64_t dz : offsets(2)) {
+                        const auto wrap = [&](std::size_t k, std::int64_t v) { return (v + bins[k]) % bins[k]; };
+                        const std::int64_t neighbour =
+                            (wrap(0, home[0] + dx) * bins[1] + wrap(1, home[1] + dy)) * bins[2] + wrap(2, home[2] + dz);
+                        const auto found = members.find(neighbour);
+                        if (found == members.end()) {
+                            continue;
+                        }
+                        for (std::size_t s = found->second.first; s < found->second.second; ++s) {
+                            candidates.push_back(binned[s].second);
+                        }
+                    }
+                }
+            }
+            std::sort(candidates.begin(), candidates.end());
+        }
+        const Vec3 p = pointAt(a, i);
+        for (const std::size_t j : candidates) {
+            const Vec3 q = pointAt(b, j);
+            const Vec3 image = cell->minimumImage({p[0] - q[0], p[1] - q[1], p[2] - q[2]});
+            const double s = squaredLength(image);
+            if (s <= bound) {
+                out.i.push_back(static_cast<std::int64_t>(i));
+                out.j.push_back(static_cast<std::int64_t>(j));
+                out.d.push_back(std::sqrt(s));
+            }
+        }
+    }
+    return out;
 }
 
-bool periodicSearchUsesGrid(std::size_t n, std::size_t m, double cutoff, const Box& box) {
-    return !useBruteForce(n, m, cutoff, periodicCell(box));
+PairList pairsWithinPeriodic(std::span<const float> a, std::span<const float> b, double cutoff,
+                             const Box& box) {
+    return pairsWithinPeriodic(widened(a), widened(b), cutoff, box);
 }
 
 PairList pairsWithin(std::span<const double> a, std::span<const double> b, double cutoff,
@@ -707,7 +521,7 @@ PairList pairsWithin(std::span<const double> a, std::span<const double> b, doubl
         return {};
     }
     if (const std::optional<Box> usable = usableBox(box)) {
-        // MDATK passes np.asarray(a, np.float32) to capped_distance
+        // MDATK passes np.asarray(a, np.float32) to the periodic search
         return pairsWithinPeriodic(narrowed(a), narrowed(b), cutoff, *usable);
     }
     return pairsWithinOpen(a, b, cutoff);
@@ -728,44 +542,23 @@ PairList pairsWithin(std::span<const float> a, std::span<const float> b, double 
 
 // ---- minimum_image_vectors ---------------------------------------------------------------------
 
-namespace {
-
-// usable and np.allclose(box[3:], 90.0): |x - 90| <= atol + rtol * |90| (NaN and inf fail)
-bool orthorhombic(const std::optional<Box>& box) {
-    if (!usableBox(box)) {
-        return false;
-    }
-    constexpr double tolerance = 1e-8 + 1e-5 * 90.0;
-    for (std::size_t k = 3; k < 6; ++k) {
-        if (!(std::abs((*box)[k] - 90.0) <= tolerance)) {
-            return false;
-        }
-    }
-    return true;
-}
-
-}  // namespace
-
-std::vector<double> minimumImageVectors(std::span<const double> vectors,
-                                        const std::optional<Box>& box) {
+std::vector<double> minimumImageVectors(std::span<const double> vectors, const std::optional<Box>& box) {
     const std::size_t n = pointCount(vectors.size(), "minimumImageVectors");
     std::vector<double> out(vectors.begin(), vectors.end());
-    if (!orthorhombic(box)) {
+    const std::optional<PeriodicCell> cell = PeriodicCell::from(box);
+    if (!cell) {
         return out;
     }
     for (std::size_t p = 0; p < n; ++p) {
-        for (std::size_t k = 0; k < 3; ++k) {
-            const double length = (*box)[k];
-            double& v = out[3 * p + k];
-            v = v - length * std::nearbyint(v / length);  // np.round: half to even
-        }
+        const Vec3 v = cell->minimumImage({out[3 * p], out[3 * p + 1], out[3 * p + 2]});
+        std::copy(v.begin(), v.end(), out.begin() + static_cast<std::ptrdiff_t>(3 * p));
     }
     return out;
 }
 
 Vec3 minimumImageVector(const Vec3& vector, const std::optional<Box>& box) {
-    const std::vector<double> out = minimumImageVectors(vector, box);
-    return {out[0], out[1], out[2]};
+    const std::optional<PeriodicCell> cell = PeriodicCell::from(box);
+    return cell ? cell->minimumImage(vector) : vector;
 }
 
 // ---- kabsch ------------------------------------------------------------------------------------

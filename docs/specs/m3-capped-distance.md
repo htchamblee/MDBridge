@@ -1,5 +1,10 @@
 # Periodic pair search (`capped_distance`) — behaviour specification (MDAnalysis 2.11.0)
 
+> **Reference behaviour only.** MDBridge no longer reproduces this function: its periodic search is
+> an exact float64 minimum image for every cell shape, sorted by (i, j), without these errors
+> (docs/DIFFERENCES.md, "Periodic geometry"; AN-01 to AN-04). This spec records what MDATK and
+> MDAnalysis do, which distance_cases.json still lists beside MDBridge's `exact` expectations.
+
 Clean-room behaviour description of MDAnalysis 2.11.0's public function `capped_distance`, as MDATK
 v0.0.4.1 calls it, derived by reading and running MDAnalysis 2.11.0 (NumPy 2.5.5, x86-64, Linux).
 "f32"/"f64" are IEEE binary32/binary64; fl32(x) and fl64(x) mean x rounded to nearest (ties to

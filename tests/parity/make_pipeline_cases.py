@@ -67,6 +67,10 @@ sys.path.insert(0, HERE)
 import independent_tables  # noqa: E402
 
 independent_tables.apply()  # MDAnalysis with MDBridge's independent tables (tests/data/README.md)
+import improvements_periodic  # noqa: E402
+
+improvements_periodic.apply_mdatk()  # MDBridge's periodic geometry (AN-01-AN-05, AN-11, AN-12)
+
 import improvements_analyses  # noqa: E402
 
 improvements_analyses.apply_mdatk()  # MDATK with MDBridge's analysis improvements (docs/DIFFERENCES.md)

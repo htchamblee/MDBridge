@@ -658,7 +658,8 @@ public:
 
 class ProximityDescriptor final : public AnalysisDescriptor {
 public:
-    // version 2: members are 0 also when no structure atoms remain (AN-15)
+    // version 2: members are 0 also when no structure atoms remain (AN-15); periodic geometry
+    // (AN-01-AN-04); heavy atoms by the per-atom element fallback (SEL-13)
     ProximityDescriptor() : AnalysisDescriptor({"proximity", "Proximity to residue set", 2, true, 0, {}}) {}
 
     ExpectedOutputs expectedOutputs(const core::Project&) const override { return {{}, {"min_distance"}, {}}; }
