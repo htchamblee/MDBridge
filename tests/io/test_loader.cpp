@@ -482,13 +482,24 @@ TEST(Loader, SystemWarnings) {
     // every file's warnings once, in order: a PDB file as topology and as its own trajectory
     const fs::path models(fileText("models_some_cryst.pdb"));
     EXPECT_EQ(io::loadSystem(models, {models}).warnings.size(), 2u);
-    // LD-05: a time step given for a file that keeps its own times
+    // LD-05: a time step given for a file that keeps its own times replaces them (MDATK 0.1.0)
     const fs::path nc = kData / "io" / "trajectories" / "demo_dry.nc";
     core::System system = io::loadSystem(kData / "topology" / "demo_dry.parm7", {nc}, 2.5);
-    EXPECT_EQ(system.warnings, Lines{"inputs.dt_ps (2.5 ps) differs from the time step in " + pathText(nc) +
-                                     " (10.0 ps); the file's times are used"});
-    EXPECT_EQ(system.trajectory->seek(1).time, 10.0);
+    EXPECT_EQ(system.warnings, Lines{"inputs.dt_ps (2.5 ps) replaces the time step in " + pathText(nc) + " (10.0 ps)"});
+    EXPECT_EQ(system.trajectory->current().time, 0.0);
+    EXPECT_EQ(system.trajectory->seek(1).time, 2.5);
+    EXPECT_EQ(system.trajectory->seek(3).time, 7.5);
+    EXPECT_EQ(system.trajectory->current().time, 7.5);
+    EXPECT_EQ(system.trajectory->seek(-1).time, static_cast<double>(system.trajectory->frameCount() - 1) * 2.5);
+    EXPECT_EQ(system.trajectory->dt(), 2.5);
     EXPECT_TRUE(io::loadSystem(kData / "topology" / "demo_dry.parm7", {nc}, 10.0).warnings.empty());
+    // the same file twice: the second starts again at its own first time; the override runs on
+    const core::System chained = io::loadSystem(kData / "topology" / "demo_dry.parm7", {nc, nc}, 2.5);
+    const std::int64_t n = chained.trajectory->frameCount() / 2;
+    EXPECT_EQ(chained.trajectory->seek(n).time, static_cast<double>(n) * 2.5);
+    // without the override, the file's times
+    core::System own = io::loadSystem(kData / "topology" / "demo_dry.parm7", {nc});
+    EXPECT_EQ(own.trajectory->seek(1).time, 10.0);
 }
 
 TEST(Loader, WarningScopes) {

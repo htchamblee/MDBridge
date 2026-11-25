@@ -202,7 +202,7 @@ core::System loadSystem(const std::filesystem::path& topology,
     if (!trajectories.empty()) {
         system.trajectory = openTrajectories(trajectories, formats, dt, file.topology->atomCount());
     } else if (file.coordinates) {
-        system.trajectory = std::move(file.coordinates);
+        system.trajectory = withFrameTimes(std::move(file.coordinates), dt);  // the override (MDATK 0.1.0)
     } else {
         throw ValueError(noCoordinates(topologyText));
     }

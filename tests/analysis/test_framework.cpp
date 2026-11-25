@@ -238,6 +238,10 @@ TEST(AnalysisFramework, InstanceKeysAndLabels) {
     EXPECT_EQ(q.analyses.contacts.group_b, "Aptamer");
     EXPECT_EQ(p.analyses.contacts.group_a, "Aptamer");  // the original project is untouched
     EXPECT_EQ(keyLabel("contacts@Target+Aptamer/atom_pairs", p), "Target–Aptamer heavy-atom contacts");
+    core::Project allAtoms;  // hydrogens count: not heavy-atom contacts (MDATK 0.1.0)
+    allAtoms.analyses.contacts.heavy_only = false;
+    EXPECT_EQ(keyLabel("contacts@Target+Aptamer/atom_pairs", allAtoms), "Target–Aptamer atom contacts");
+    EXPECT_EQ(keyLabel("contacts@Target+Aptamer/residue_pairs", allAtoms), "Target–Aptamer residue contacts");
     EXPECT_EQ(keyLabel("rmsd@Target/Backbone", p), "RMSD Backbone");
     EXPECT_THROW((void)instanceProject(p, "contacts@Nope+Target"), core::ValueError);
     EXPECT_THROW((void)instanceProject(p, "contacts@Target"), core::ValueError);

@@ -19,15 +19,17 @@ Per analysis, the improvements that bumped it (docs/DIFFERENCES.md; "periodic": 
   energy 2     AN-07, AN-08 (exclusions); RD-P12 (float64 parm7 charges); periodic, AN-05 (net
                force); SEL-13 (generic LJ elements); AN-25 - AN-27 (parameters and charges without
                parm7: Amber residue templates, Amber atom types)
-  hbonds 2     AN-09, AN-10 (guessed hydrogens); periodic; SEL-13 (donor / acceptor elements)
+  hbonds 2     AN-09, AN-10 (guessed hydrogens); periodic; SEL-13 (donor / acceptor elements);
+               distance-only pairs counted once (MDATK 0.1.0)
   rmsd 2       AN-16 .. AN-18
   proximity 2  AN-15; periodic; SEL-13 (heavy atoms)
   atoms 3      AN-13, AN-14; SEL-13 (elements, heavy atoms, bond guess) (MDATK: 2)
-  contacts 2   periodic; SEL-13 (heavy_only)
+  contacts 2   periodic; SEL-13 (heavy_only); a group against itself (MDATK 0.1.0)
   mg 2         periodic; SEL-13 (ligand / occupancy elements)
   basepairs 2  periodic, AN-11; SEL-13 (heavy atoms)
   stacking 2   periodic, AN-12 (ring atoms by name: SEL-13 does not change it)
-  trace 5      SEL-13 (heavy-atom centroids of residues without a trace atom) (MDATK: 4)
+  trace 5      SEL-13 (heavy-atom centroids of residues without a trace atom) (MDATK: 4); its key
+               covers every group (MDATK 0.1.0; no new results)
 """
 
 import os

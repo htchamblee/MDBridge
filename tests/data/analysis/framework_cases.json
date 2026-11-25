@@ -3861,9 +3861,15 @@
      "enabled": false,
      "params": "{'groups': ['Target', 'Mg', 'Target'], 'trace_atoms': \"P, C4'\", 'align': False, 'show_ions': False, 'ions': '', 'group_order': ['Aptamer', 'Target', 'Mg', 'Pocket', \"Weird.name-1'\", 'Both', 'My group', 'Gruppe-ä', 'Self']}",
      "selection_texts": [
+      "Aptamer",
       "Target",
       "Mg",
-      "Target",
+      "Pocket",
+      "Weird.name-1'",
+      "Both",
+      "My group",
+      "Gruppe-ä",
+      "Self",
       "group:Mg"
      ],
      "expected_outputs": {
@@ -3883,18 +3889,53 @@
       ]
      ],
      "cache_keys": [
-      "7a253a015dcc4521",
-      "503cb6c1459f1656"
+      "459b85079b928e1c",
+      "608476436ae7641b"
      ],
      "referenced_groups": [
+      {
+       "name": "Aptamer",
+       "residues": "1-12",
+       "selection": ""
+      },
+      {
+       "name": "Both",
+       "residues": "",
+       "selection": " group:Pocket or group:Target or group:Nope "
+      },
+      {
+       "name": "Gruppe-ä",
+       "residues": "6",
+       "selection": "group:Self"
+      },
       {
        "name": "Mg",
        "residues": "",
        "selection": "resname MG"
       },
       {
+       "name": "My group",
+       "residues": "4-5",
+       "selection": ""
+      },
+      {
+       "name": "Pocket",
+       "residues": "",
+       "selection": "group:Aptamer and around 5 group:Mg"
+      },
+      {
+       "name": "Self",
+       "residues": "",
+       "selection": "group:Self or group:Gruppe-ä"
+      },
+      {
        "name": "Target",
        "residues": "13-24",
+       "selection": ""
+      },
+      {
+       "name": "Weird.name-1'",
+       "residues": "3",
        "selection": ""
       }
      ],
@@ -5160,9 +5201,15 @@
       "enabled": false,
       "params": "{'groups': ['Target', 'Mg', 'Target'], 'trace_atoms': \"P, C4'\", 'align': False, 'show_ions': False, 'ions': '', 'group_order': ['Aptamer', 'Target', 'Mg', 'Pocket', \"Weird.name-1'\", 'Both', 'My group', 'Gruppe-ä', 'Self']}",
       "selection_texts": [
+       "Aptamer",
        "Target",
        "Mg",
-       "Target",
+       "Pocket",
+       "Weird.name-1'",
+       "Both",
+       "My group",
+       "Gruppe-ä",
+       "Self",
        "group:Mg"
       ],
       "expected_outputs": {
@@ -5182,18 +5229,53 @@
        ]
       ],
       "cache_keys": [
-       "7a253a015dcc4521",
-       "503cb6c1459f1656"
+       "459b85079b928e1c",
+       "608476436ae7641b"
       ],
       "referenced_groups": [
+       {
+        "name": "Aptamer",
+        "residues": "1-12",
+        "selection": ""
+       },
+       {
+        "name": "Both",
+        "residues": "",
+        "selection": " group:Pocket or group:Target or group:Nope "
+       },
+       {
+        "name": "Gruppe-ä",
+        "residues": "6",
+        "selection": "group:Self"
+       },
        {
         "name": "Mg",
         "residues": "",
         "selection": "resname MG"
        },
        {
+        "name": "My group",
+        "residues": "4-5",
+        "selection": ""
+       },
+       {
+        "name": "Pocket",
+        "residues": "",
+        "selection": "group:Aptamer and around 5 group:Mg"
+       },
+       {
+        "name": "Self",
+        "residues": "",
+        "selection": "group:Self or group:Gruppe-ä"
+       },
+       {
         "name": "Target",
         "residues": "13-24",
+        "selection": ""
+       },
+       {
+        "name": "Weird.name-1'",
+        "residues": "3",
         "selection": ""
        }
       ]
@@ -5211,9 +5293,15 @@
       "enabled": false,
       "params": "{'groups': ['Target', 'Mg', 'Target'], 'trace_atoms': \"P, C4'\", 'align': False, 'show_ions': False, 'ions': '', 'group_order': ['Aptamer', 'Target', 'Mg', 'Pocket', \"Weird.name-1'\", 'Both', 'My group', 'Gruppe-ä', 'Self']}",
       "selection_texts": [
+       "Aptamer",
        "Target",
        "Mg",
-       "Target",
+       "Pocket",
+       "Weird.name-1'",
+       "Both",
+       "My group",
+       "Gruppe-ä",
+       "Self",
        "group:Mg"
       ],
       "expected_outputs": {
@@ -5233,18 +5321,53 @@
        ]
       ],
       "cache_keys": [
-       "7a253a015dcc4521",
-       "503cb6c1459f1656"
+       "459b85079b928e1c",
+       "608476436ae7641b"
       ],
       "referenced_groups": [
+       {
+        "name": "Aptamer",
+        "residues": "1-12",
+        "selection": ""
+       },
+       {
+        "name": "Both",
+        "residues": "",
+        "selection": " group:Pocket or group:Target or group:Nope "
+       },
+       {
+        "name": "Gruppe-ä",
+        "residues": "6",
+        "selection": "group:Self"
+       },
        {
         "name": "Mg",
         "residues": "",
         "selection": "resname MG"
        },
        {
+        "name": "My group",
+        "residues": "4-5",
+        "selection": ""
+       },
+       {
+        "name": "Pocket",
+        "residues": "",
+        "selection": "group:Aptamer and around 5 group:Mg"
+       },
+       {
+        "name": "Self",
+        "residues": "",
+        "selection": "group:Self or group:Gruppe-ä"
+       },
+       {
         "name": "Target",
         "residues": "13-24",
+        "selection": ""
+       },
+       {
+        "name": "Weird.name-1'",
+        "residues": "3",
         "selection": ""
        }
       ]

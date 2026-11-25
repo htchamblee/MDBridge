@@ -167,6 +167,15 @@ READ = [
     ("empty_sections", P("%FLAG A", "%FORMAT(10I8)", "", "%FLAG B", "%FORMAT(20a4)", "", "%FLAG C",
                          "%FORMAT(5E16.8)")),
     ("whitespace_only_a", P("%FLAG A", "%FORMAT(20a4)", "        ")),
+    # MDATK 0.1.0's format lines (improvements_readers_amber.py): no repeat count, an item in parentheses
+    ("format_no_count", P("%FLAG CTITLE", "%FORMAT(a80)", "CHARMM force field".ljust(80), "%FLAG B",
+                          "%FORMAT( I8 )", "       3")),
+    ("format_inner_parens", P("%FLAG CMAP_PARAMETER_01", "%FORMAT(8(F9.5))",
+                              "  0.12500 -1.50000  2.00000", "%FLAG B", "%FORMAT(3( a4 ) )", "ab  cd  ")),
+    ("format_unparsed_unwanted", P("%FLAG FORCE_FIELD_TYPE", "%FORMAT(i2,a78)", " 1 CHARMM 36", "%FLAG B",
+                                   "%FORMAT(10I8)", "       5"), ["B"]),
+    ("format_unparsed_wanted", P("%FLAG FORCE_FIELD_TYPE", "%FORMAT(i2,a78)", " 1 CHARMM 36", "%FLAG B",
+                                 "%FORMAT(10I8)", "       5"), ["B", "FORCE_FIELD_TYPE"]),
 ]
 
 random.seed(7)

@@ -9,6 +9,8 @@
 // Deliberate differences (docs/DIFFERENCES.md): hydrogens assigned from distances go to the donor
 // nearest by the pair search's distance (minimum image with use_pbc; AN-09), and nitrogens that get
 // a hydrogen that way are not acceptors, as with topology bonds (AN-10).
+// Without the angle (no hydrogens, or use_angle off) a donor-acceptor atom pair is counted once,
+// not once per direction when both atoms can donate and accept (with AN-10; MDATK 0.1.0, hbonds.py).
 //
 // Deliberate difference: in the distance assignment of hydrogens, a hydrogen goes to its nearest
 // candidate donor with MDATK's strict "<" (the first pair wins a tie). MDATK's pair order is
@@ -192,6 +194,10 @@ public:
         const std::vector<Vec3> pos = positions(frame);
         const std::optional<Box> box = widenedBox(context().box(frame));
         std::vector<std::int64_t> rowsA, rowsB;
+        // Distance only: the atom pairs counted with the donor in group A. Without the angle nothing
+        // tells which atom donates, so two atoms that can both donate and accept (every N / O of a
+        // topology without hydrogens, two hydroxyls) are one bond, not two (MDATK 0.1.0).
+        std::set<std::pair<std::size_t, std::size_t>> counted;
         for (int s = 0; s < 2; ++s) {
             const std::vector<std::size_t>& don = m_donorIdx[s];
             const std::vector<std::size_t>& acc = m_accIdx[1 - s];
@@ -199,6 +205,13 @@ public:
             for (std::size_t e = 0; e < pairs.size(); ++e) {
                 const std::size_t d = don[static_cast<std::size_t>(pairs.i[e])];
                 const std::size_t ac = acc[static_cast<std::size_t>(pairs.j[e])];
+                if (!m_useAngle) {
+                    if (s == 0) {
+                        counted.emplace(d, ac);
+                    } else if (counted.contains({ac, d})) {
+                        continue;
+                    }
+                }
                 std::size_t accepted = 1;
                 if (m_useAngle) {
                     accepted = 0;

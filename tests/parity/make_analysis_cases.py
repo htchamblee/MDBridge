@@ -635,6 +635,8 @@ def run_case(name, system, base, overrides=(), instances=None, note=""):
     fingerprint = {"topology": system.fp_topology, "trajectories": system.fp_trajectories,
                    "frames": {"start": project.inputs.start, "stop": project.inputs.stop,
                               "step": project.inputs.step}, "dt_ps": project.inputs.dt_ps}
+    if project.inputs.dt_ps:  # LD-05 (MDATK 0.1.0, pipeline.py input_fingerprint)
+        fingerprint["time_axis"] = "frame x dt_ps"
     case["fingerprint"] = tagged(fingerprint)
     logs, progress = [], []
     reporter = Reporter(log_cb=logs.append, progress_cb=lambda f, msg: progress.append([fhex(f), msg]))
@@ -897,6 +899,9 @@ def demo_variants():
     case("rmsd_no_targets", ["analyses.rmsd.targets=[]"], ["rmsd"])
     # contacts
     case("contacts_same_group", ["analyses.contacts.group_b=Aptamer"], ["contacts"])
+    # a group against itself across both strands (MDATK 0.1.0's fixes: every residue's row plus column,
+    # the closing base pair 12-13 counted although its residue indices are consecutive)
+    case("contacts_self_duplex", ["groups.0.residues=1-24", "analyses.contacts.group_b=Aptamer"], ["contacts"])
     case("contacts_all_atoms", ["analyses.contacts.heavy_only=false"], ["contacts"])
     case("contacts_cutoff_3", ["analyses.contacts.cutoff=3.0"], ["contacts"])
     case("contacts_cutoff_8", ["analyses.contacts.cutoff=8.0"], ["contacts"])

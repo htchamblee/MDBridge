@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <memory>
+#include <optional>
 #include <stdexcept>
 #include <utility>
 
@@ -351,7 +353,7 @@ std::string coordinateFormatForExtension(std::string_view path) {
 namespace {
 
 // inputs.dt_ps given for a file that stores its own times (NetCDF with a time variable): the
-// file's times are kept (MDAnalysis' convention), so say so when its step is another one.
+// override replaces them (frame x dt_ps, MDATK 0.1.0), so say so when the file's step is another one.
 void warnTimeStep(core::Trajectory& trajectory, const std::string& fileText, double dt) {
     if (trajectory.frameCount() < 2) {
         return;
@@ -361,12 +363,56 @@ void warnTimeStep(core::Trajectory& trajectory, const std::string& fileText, dou
     trajectory.seek(0);
     const double step = t1 - t0;
     if (std::abs(step - dt) > 1e-4 * std::max(std::abs(dt), std::abs(step))) {
-        readerWarning("inputs.dt_ps (" + core::pythonFloatRepr(dt) + " ps) differs from the time step in " +
-                      fileText + " (" + core::pythonFloatRepr(step) + " ps); the file's times are used");
+        readerWarning("inputs.dt_ps (" + core::pythonFloatRepr(dt) + " ps) replaces the time step in " + fileText +
+                      " (" + core::pythonFloatRepr(step) + " ps)");
     }
 }
 
+// The time-step override (MDATK 0.1.0, io/loader.py _FrameTimes): the time of frame k is
+// k x dt, whatever the file's time stamps. MDAnalysis' own dt only fills in for trajectories
+// without time stamps; a NetCDF file keeps the times stored in it, and a second file of a chain
+// starts again at its own first time.
+class FrameTimesTrajectory final : public core::Trajectory {
+public:
+    FrameTimesTrajectory(std::unique_ptr<core::Trajectory> inner, double dt) : m_inner(std::move(inner)), m_dt(dt) {}
+
+    core::TrajectoryInfo info() const override { return m_inner->info(); }
+    std::int64_t frameCount() const override { return m_inner->frameCount(); }
+    double dt() const override { return m_inner->dt(); }
+    const core::Frame& seek(std::int64_t index) override {
+        m_valid = false;
+        retime(m_inner->seek(index));
+        return m_frame;
+    }
+    const core::Frame& current() const override {
+        if (!m_valid) {  // the frame the reader opened on (only seek() moves the inner reader)
+            retime(m_inner->current());
+        }
+        return m_frame;
+    }
+
+private:
+    void retime(const core::Frame& frame) const {
+        m_frame = frame;
+        m_frame.time = static_cast<double>(frame.index) * m_dt;
+        m_valid = true;
+    }
+
+    std::unique_ptr<core::Trajectory> m_inner;
+    double m_dt;
+    mutable core::Frame m_frame;
+    mutable bool m_valid = false;
+};
+
 }  // namespace
+
+std::unique_ptr<core::Trajectory> withFrameTimes(std::unique_ptr<core::Trajectory> trajectory,
+                                                 std::optional<double> dt) {
+    if (!dt || *dt == 0.0) {
+        return trajectory;
+    }
+    return std::make_unique<FrameTimesTrajectory>(std::move(trajectory), *dt);
+}
 
 std::unique_ptr<core::Trajectory> openTrajectory(const std::filesystem::path& path,
                                                  std::string_view format, std::optional<double> dt,
@@ -379,7 +425,7 @@ std::unique_ptr<core::Trajectory> openTrajectory(const std::filesystem::path& pa
     if (dt) {
         warnTimeStep(*trajectory, detail::pathText(path), *dt);
     }
-    return trajectory;
+    return withFrameTimes(std::move(trajectory), dt);
 }
 
 std::unique_ptr<core::Trajectory> openTrajectories(const std::vector<std::filesystem::path>& paths,
@@ -432,7 +478,7 @@ std::unique_ptr<core::Trajectory> openTrajectories(const std::vector<std::filesy
     }
     auto chain = chainTrajectories(std::move(parts));
     checkAtoms(*chain, atoms, "CHAIN", pythonListRepr(texts));
-    return chain;
+    return withFrameTimes(std::move(chain), dt);
 }
 
 std::unique_ptr<core::Trajectory> chainTrajectories(

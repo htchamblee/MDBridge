@@ -192,6 +192,9 @@ TEST(Citations, MethodsByTheirOriginators) {
     using Ids = std::vector<std::string>;
     EXPECT_EQ(cit::keysFor(Ids{"qcp"}), (Ids{"theobald2005", "liu2010"}));
     EXPECT_EQ(cit::keysFor(Ids{"kabsch"}), (Ids{"kabsch1976", "kabsch1978"}));
+    // MDATK 0.1.1's resource of its generic Lennard-Jones table resolves (MDBridge's typed layer's
+    // references), but is never a project resource: MDBridge cites the energy parameters per run
+    EXPECT_EQ(cit::keysFor(Ids{"generic_lj"}), (Ids{"cornell1995", "wang2000", "jorgensen1983", "joung2008", "li2013"}));
     for (const char* key : {"theobald2005", "liu2010", "kabsch1976", "kabsch1978"}) {
         const cit::Reference* r = cit::findReference(key);
         ASSERT_NE(r, nullptr) << key;

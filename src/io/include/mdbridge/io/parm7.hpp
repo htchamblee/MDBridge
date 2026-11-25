@@ -23,7 +23,9 @@ namespace mdbridge::io {
 using Parm7Values = std::variant<std::vector<std::string>, std::vector<std::int64_t>, std::vector<double>>;
 using Parm7Sections = std::vector<std::pair<std::string, Parm7Values>>;  // file order; a repeated flag: the last
 
-// read_sections(path, wanted): every (or every wanted) section, decoded with its %FORMAT. Throws
+// read_sections(path, wanted): every (or every wanted) section, decoded with its %FORMAT. Formats
+// as MDATK 0.1.0 reads them: '(20a4)', '(a80)' (no repeat count), '(8(F9.5))'; a section whose
+// format cannot be parsed is skipped when `wanted` leaves it out (CHAMBER's '(i2,a78)'). Throws
 // core::ValueError with MDATK's / Python's messages ("<path>: cannot parse format line '...'",
 // "invalid literal for int() with base 10: '...'", "could not convert string to float: '...'"),
 // std::filesystem::filesystem_error when the file cannot be read.

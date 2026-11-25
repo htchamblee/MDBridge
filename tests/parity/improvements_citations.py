@@ -17,7 +17,9 @@ apply_mdatk() alone.
           its builtin detector runs; docs/DIFFERENCES.md "No Barnaba"). Its table entry stays.
   CIT-04  The energy analysis' parameters without parm7 (Amber force-field residue templates, Amber
           atom types) cite the originators of the numbers used; the one reference MDATK's table lacks
-          (Li et al. 2015) joins it; the analysis cites them in its log line and lj_references.
+          (Li et al. 2015) joins it; the analysis cites them in its log line and lj_references. MDATK
+          0.1.1's resource generic_lj is known (the typed layer's references) but never a project
+          resource.
   CIT-06  Run-time citations: the references a run's cached results record (meta "citation_keys":
           the energy analysis' force fields and atom types, Cordero et al.'s radii of a bond guess)
           follow the settings' ones in the parameter log and the render step's log entry
@@ -148,6 +150,17 @@ ADDED_RESOURCES = [
         "name": "Kabsch superposition (RMSD fit selection)",
         "keys": ["kabsch1976", "kabsch1978"],
         "note": "RMSD targets superposed on a fit selection (analyses.rmsd).",
+    },
+    # CIT-04: MDATK 0.1.1's resource for its generic Lennard-Jones table (citations.py, generic_lj.py
+    # CITATION_KEYS), known here so that its params logs and project citations that name it resolve.
+    # MDBridge cites by run (lj_references) and never lists it in pipeline_resources; its keys are those
+    # of MDBridge's typed layer (docs/GENERIC_LJ.md): MDATK's four plus Jorgensen et al. 1983 (TIP3P's
+    # water oxygen, type OW).
+    {
+        "id": "generic_lj",
+        "name": "Generic Lennard-Jones table of the energy analysis (Amber atom types and ions)",
+        "keys": ["cornell1995", "wang2000", "jorgensen1983", "joung2008", "li2013"],
+        "note": "topologies without atom types; docs/GENERIC_LJ.md",
     },
 ]
 

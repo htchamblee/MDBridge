@@ -661,8 +661,11 @@ public:
                 {"group_order", stringArray(core::groupNames(project))}};
     }
 
+    // Every group, not only those shown: the result records each group's residues (group_member,
+    // group_index), which colour the view and choose the residues of the 3D representations, so
+    // editing a group that is not shown changes the trace (MDATK 0.1.0, structure.py).
     std::vector<std::string> selectionTexts(const core::Project& project) const override {
-        std::vector<std::string> out = structureGroups(project);
+        std::vector<std::string> out = core::groupNames(project);
         out.push_back(project.analyses.mg.mg_selection);
         return out;
     }

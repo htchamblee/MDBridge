@@ -24,7 +24,7 @@ Items:
          neighbours, carbon's for unknown elements (warning);
   AN-27  without topology charges: the charges of completely matched templates (warning for the rest);
   CIT-04 one log line naming the parameters' sources and references; metadata lj_atoms, charge_atoms,
-         lj_references, lj_default_elements.
+         lj_references, lj_default_elements; lj_table (MDATK 0.1.1's key) without parm7 parameters.
   AN-09  H-bonds: a guessed hydrogen goes to the donor nearest by the pair search's distance.
   AN-10  H-bonds: nitrogens carrying a guessed hydrogen are not acceptors.
   AN-13  atoms: bonds guessed from the first analysed frame.
@@ -37,6 +37,14 @@ Items:
   AN-21  structural view: unknown residue groups are named in a warning.
   SEL-17 the analyses' selections are evaluated on the first analysed frame whatever the setup
          order, and distance keywords in them honour analyses.use_pbc.
+
+From MDATK 0.1.0 (same owner; its code ported):
+  H-bonds by distance only (no hydrogens, or use_angle off): each donor-acceptor atom pair counts
+         once, not once per direction (hbonds.py process).
+  Contacts of a group with itself: per_res_a / per_res_b are each residue's row plus its column;
+         sequence neighbours (|resindex difference| <= 1) are left out only within one chain
+         (structure.chain_ids); the atom_pairs label says "atom contacts" without heavy_only.
+  Structure trace: the cache key's groups are every residue group, not only the shown ones.
 """
 
 import math
@@ -211,6 +219,10 @@ def _covalent_radii():
 
 CARBON_RADIUS = 0.76
 BOND_TOLERANCE = 0.4
+# energy: metadata "lj_table" without parm7 parameters (MDATK 0.1.1's key; src/analysis/energy.cpp kLjTable)
+LJ_TABLE = ("Amber force-field residue templates (OpenMM amber14: ff14SB, OL15, OL3, TIP3P with Joung-Cheatham and "
+            "Li-Merz ions), then Amber parm10 atom types, Joung-Cheatham and Li-Merz (CM) ions for TIP3P "
+            "(docs/GENERIC_LJ.md)")
 CORDERO_CITATION = "(covalent radii: Cordero et al., Dalton Trans. 2008, 2832-2838, doi:10.1039/b801115j)"
 
 
@@ -362,9 +374,10 @@ def apply_mdatk():
                          "distance searches")
             state["range"] = None
 
+        dt_ps = ctx.project.inputs.dt_ps  # LD-05 (MDATK 0.1.0): the override is the time axis, frame x dt
         for k, ts in enumerate(traj[frame_indices]):
             reporter.check_cancel()
-            times[k] = ts.time
+            times[k] = frame_indices[k] * float(dt_ps) if dt_ps else ts.time
             if ctx.use_pbc and not state["pbc"] and not _usable_cell(ts.dimensions):
                 state["pbc"] = True
                 ctx.warn(f"use_pbc is on but trajectory frame {ts.frame} has no usable periodic cell; "
@@ -614,6 +627,8 @@ def apply_mdatk():
         meta = {}
         for key, value in res.meta.items():
             if key == "label":  # MDBridge's keys before label / analysis, as newResult appends them
+                if self.lj_source != "parm7":  # MDATK 0.1.1's key (energy.cpp kLjTable)
+                    meta["lj_table"] = LJ_TABLE
                 meta.update(lj_atoms=dict(self.lj_atoms), charge_atoms=dict(self.charge_atoms),
                             lj_references=list(self.lj_references),
                             lj_default_elements=list(self.lj_default_elements),
@@ -654,6 +669,118 @@ def apply_mdatk():
         self._build_donor_lists()
 
     hbonds.HBondAnalysis._guess_hydrogens = guess_hydrogens
+
+    # MDATK 0.1.0: H-bonds by distance only count each donor-acceptor atom pair once
+    def hbonds_process(self, k, ts):
+        pos = self.ab.positions.astype(np.float64)
+        box = self.ctx.box(ts)
+        if self._finalize_donors_pending:
+            self._guess_hydrogens(pos, box)
+            self._finalize_donors_pending = False
+        rows_a, rows_b = [], []
+        total = 0
+        counted = None  # distance only: the atom pairs counted with the donor in group A
+        n_atoms = len(pos)
+        for s in (0, 1):
+            don = self.donor_idx[s]
+            acc = self.acc_idx[1 - s]
+            i, j, _ = hbonds.pairs_within(pos[don], pos[acc], self.dcut, box)
+            if len(i) == 0:
+                continue
+            d_atoms = don[i]
+            a_atoms = acc[j]
+            if not self.use_angle:
+                if s == 0:
+                    counted = d_atoms * n_atoms + a_atoms
+                elif counted is not None:
+                    new = ~np.isin(a_atoms * n_atoms + d_atoms, counted)
+                    d_atoms, a_atoms = d_atoms[new], a_atoms[new]
+            if self.use_angle:
+                n_h = self.h_start[d_atoms + 1] - self.h_start[d_atoms]
+                rep_d = np.repeat(d_atoms, n_h)
+                rep_a = np.repeat(a_atoms, n_h)
+                offs = np.repeat(self.h_start[d_atoms], n_h)
+                within = np.arange(n_h.sum()) - np.repeat(np.cumsum(n_h) - n_h, n_h)
+                hyd = self.h_flat[offs + within]
+                v1 = hbonds.minimum_image_vectors(pos[rep_d] - pos[hyd], box)
+                v2 = hbonds.minimum_image_vectors(pos[rep_a] - pos[hyd], box)
+                cosang = (v1 * v2).sum(1) / np.maximum(
+                    np.linalg.norm(v1, axis=1) * np.linalg.norm(v2, axis=1), 1e-12)
+                ok = cosang <= self.cos_cut  # angle >= cutoff
+                d_atoms, a_atoms = rep_d[ok], rep_a[ok]
+            total += len(d_atoms)
+            if s == 0:
+                rows_a.append(self.row[d_atoms])
+                rows_b.append(self.row[a_atoms])
+            else:
+                rows_a.append(self.row[a_atoms])
+                rows_b.append(self.row[d_atoms])
+        self.count[k] = total
+        if total:
+            ra = np.concatenate(rows_a).astype(np.int64)
+            rb = np.concatenate(rows_b).astype(np.int64)
+            uniq, cnt = np.unique(ra * self.n_b + rb, return_counts=True)
+            self.csr.add(uniq // self.n_b, uniq % self.n_b, cnt)
+        else:
+            self.csr.add([], [], [])
+
+    hbonds.HBondAnalysis.process = hbonds_process
+
+    # MDATK 0.1.0: contacts of a group with itself
+    import mdatk.analysis.contacts as contacts
+
+    contacts_setup = contacts.ContactAnalysis.setup
+
+    def contacts_setup_chains(self, frame_indices):
+        contacts_setup(self, frame_indices)
+        self.chain = structure.chain_ids(self.res_a) if self.same else None
+
+    def contacts_process(self, k, ts):
+        i, j, _ = contacts.pairs_within(self.a.positions, self.b.positions, self.cutoff, self.ctx.box(ts))
+        if self.same and len(i):
+            ri = self.a.resindices[i]
+            rj = self.b.resindices[j]
+            bonded = (np.abs(ri - rj) <= 1) & (self.chain[self.row_a[i]] == self.chain[self.row_b[j]])
+            keep = (self.a.ix[i] < self.b.ix[j]) & ~bonded
+            i, j = i[keep], j[keep]
+        self.atom_pairs[k] = len(i)
+        if len(i) == 0:
+            self.csr.add([], [], [])
+            return
+        keys = self.row_a[i].astype(np.int64) * self.n_b + self.row_b[j]
+        uniq, cnt = np.unique(keys, return_counts=True)
+        self.residue_pairs[k] = len(uniq)
+        self.csr.add(uniq // self.n_b, uniq % self.n_b, cnt)
+
+    contacts_finalize = contacts.ContactAnalysis.finalize
+
+    def contacts_finalize_improved(self):
+        res = contacts_finalize(self)
+        if self.same:  # the map holds each pair once (i < j): a residue's contacts are its row plus its column
+            res.arrays["per_res_a"] = res.arrays["per_res_b"] = res.arrays["per_res_a"] + res.arrays["per_res_b"]
+        if not self.project.analyses.contacts.heavy_only:
+            series = res.meta["outputs"]["series"]["atom_pairs"]
+            series["label"] = series["label"].replace("heavy-atom contacts", "atom contacts")
+        return res
+
+    base_output_label = contacts.ContactAnalysis.output_label.__func__
+
+    def contacts_output_label(cls, project, out):
+        label = base_output_label(cls, project, out)
+        if out == "atom_pairs" and not project.analyses.contacts.heavy_only:
+            label = label.replace("heavy-atom contacts", "atom contacts")  # hydrogens are counted too
+        return label
+
+    if not getattr(contacts.ContactAnalysis, "_mdbridge_self_group", False):
+        contacts.ContactAnalysis.setup = contacts_setup_chains
+        contacts.ContactAnalysis.process = contacts_process
+        contacts.ContactAnalysis.finalize = contacts_finalize_improved
+        contacts.ContactAnalysis.output_label = classmethod(contacts_output_label)
+        contacts.ContactAnalysis._mdbridge_self_group = True
+
+    # MDATK 0.1.0: the structure trace's cache key covers every residue group
+    structure.TraceAnalysis.selection_texts = classmethod(
+        lambda cls, project: project.group_names() + [project.analyses.mg.mg_selection])
 
     # AN-16 / AN-17 / AN-18
     class _Rms:

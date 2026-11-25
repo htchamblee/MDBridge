@@ -17514,7 +17514,7 @@
       }
      },
      "log": [
-      "WARNING: inputs.dt_ps (2.5 ps) differs from the time step in {data}/io/trajectories/demo_dry.nc (10.0 ps); the file's times are used",
+      "WARNING: inputs.dt_ps (2.5 ps) replaces the time step in {data}/io/trajectories/demo_dry.nc (10.0 ps)",
       "Preparing Pairwise contacts ...",
       "Analysing 5 frame(s): Pairwise contacts"
      ],
@@ -17551,7 +17551,7 @@
      "keys": [
       [
        "contacts",
-       "31a42f1661d376e9"
+       "597f0c8a344bad02"
       ]
      ],
      "manifest_keys": [
@@ -17586,7 +17586,8 @@
          "stop": null,
          "step": 1
         },
-        "dt_ps": 2.5
+        "dt_ps": 2.5,
+        "time_axis": "frame x dt_ps"
        },
        "cleaning_key": null,
        "topology": "{data}/topology/demo_dry.parm7",
@@ -17605,9 +17606,9 @@
       "time_axis": {
        "unit": "ps",
        "n": 5,
-       "start": 190.0,
-       "end": 230.0,
-       "dt": 10.0
+       "start": 47.5,
+       "end": 57.5,
+       "dt": 2.5
       },
       "groups": [
        {
@@ -17642,8 +17643,8 @@
       "entries": [
        {
         "name": "contacts",
-        "key": "31a42f1661d376e9",
-        "file": "contacts-31a42f1661d376e9.npz",
+        "key": "597f0c8a344bad02",
+        "file": "contacts-597f0c8a344bad02.npz",
         "params": {
          "enabled": null,
          "group_a": "Aptamer",
@@ -17670,8 +17671,8 @@
       "all_entries": [
        {
         "name": "contacts",
-        "key": "31a42f1661d376e9",
-        "file": "contacts-31a42f1661d376e9.npz"
+        "key": "597f0c8a344bad02",
+        "file": "contacts-597f0c8a344bad02.npz"
        },
        {
         "name": "hbonds",
@@ -17688,7 +17689,7 @@
      "entries": {
       "contacts": {
        "name": "contacts",
-       "key": "31a42f1661d376e9",
+       "key": "597f0c8a344bad02",
        "params": {
         "enabled": null,
         "group_a": "Aptamer",
@@ -17787,7 +17788,7 @@
       }
      },
      "cached": [
-      "contacts-31a42f1661d376e9",
+      "contacts-597f0c8a344bad02",
       "hbonds-b2cea2e5e9e2b6a7",
       "rmsd@Target-07bf0db251599fbd"
      ],
@@ -17800,11 +17801,11 @@
        23
       ],
       "time_ps": [
-       "0x1.7c00000000000p+7",
-       "0x1.9000000000000p+7",
-       "0x1.a400000000000p+7",
-       "0x1.b800000000000p+7",
-       "0x1.cc00000000000p+7"
+       "0x1.7c00000000000p+5",
+       "0x1.9000000000000p+5",
+       "0x1.a400000000000p+5",
+       "0x1.b800000000000p+5",
+       "0x1.cc00000000000p+5"
       ],
       "time_unit": "ns",
       "results": [
@@ -18294,8 +18295,8 @@
       "all_entries": [
        {
         "name": "contacts",
-        "key": "31a42f1661d376e9",
-        "file": "contacts-31a42f1661d376e9.npz"
+        "key": "597f0c8a344bad02",
+        "file": "contacts-597f0c8a344bad02.npz"
        },
        {
         "name": "hbonds",
@@ -18311,7 +18312,7 @@
      },
      "entries": {},
      "cached": [
-      "contacts-31a42f1661d376e9",
+      "contacts-597f0c8a344bad02",
       "hbonds-b2cea2e5e9e2b6a7",
       "rmsd@Target-07bf0db251599fbd"
      ],
@@ -18877,8 +18878,8 @@
       "all_entries": [
        {
         "name": "contacts",
-        "key": "31a42f1661d376e9",
-        "file": "contacts-31a42f1661d376e9.npz"
+        "key": "597f0c8a344bad02",
+        "file": "contacts-597f0c8a344bad02.npz"
        },
        {
         "name": "hbonds",
@@ -19034,7 +19035,7 @@
       }
      },
      "cached": [
-      "contacts-31a42f1661d376e9",
+      "contacts-597f0c8a344bad02",
       "hbonds-b2cea2e5e9e2b6a7",
       "rmsd@Target-07bf0db251599fbd"
      ],

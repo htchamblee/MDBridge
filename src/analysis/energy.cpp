@@ -49,6 +49,14 @@ namespace {
 
 core::Array stringArray(const std::vector<std::string>& items) { return core::Array(items.begin(), items.end()); }
 
+// Metadata "lj_table" of a run without parm7 parameters: the name of the table the parameters come
+// from, as MDATK 0.1.1 names its generic table (generic_lj.py TABLE_NAME); docs/GENERIC_LJ.md
+// records every number of both layers.
+constexpr std::string_view kLjTable =
+    "Amber force-field residue templates (OpenMM amber14: ff14SB, OL15, OL3, TIP3P with Joung-Cheatham and "
+    "Li-Merz ions), then Amber parm10 atom types, Joung-Cheatham and Li-Merz (CM) ions for TIP3P "
+    "(docs/GENERIC_LJ.md)";
+
 std::string atomCount(std::int64_t n) { return std::to_string(n) + (n == 1 ? " atom" : " atoms"); }
 
 std::vector<double> widenedPositions(const core::AtomGroup& atoms, const core::Frame& frame) {
@@ -360,6 +368,15 @@ public:
                                                   {"lj_references", stringArray(m_ljReferences)},
                                                   {"lj_default_elements", stringArray(m_defaultElements)},
                                                   {"citation_keys", stringArray(citationKeys())}});
+        if (m_ljSource != "parm7") {
+            // MDATK 0.1.1's key, after n_excluded_pairs as MDATK has it (a run without parm7 parameters)
+            for (auto it = res.meta.begin(); it != res.meta.end(); ++it) {
+                if (it->first == "n_excluded_pairs") {
+                    res.meta.insert(it + 1, {"lj_table", core::Value(std::string(kLjTable))});
+                    break;
+                }
+            }
+        }
         std::vector<double> total(m_elec.size());
         for (std::size_t k = 0; k < total.size(); ++k) {
             total[k] = m_elec[k] + m_vdw[k];

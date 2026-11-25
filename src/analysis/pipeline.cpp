@@ -275,10 +275,15 @@ Value Pipeline::inputFingerprint(const ResolvedInputs& inputs) const {
     for (const std::string& t : inputs.trajectories) {
         trajectories.push_back(core::fileFingerprint(core::pathFromUtf8(t)));
     }
-    return Table{{"topology", core::fileFingerprint(core::pathFromUtf8(inputs.topology))},
-                 {"trajectories", trajectories},
-                 {"frames", Table{{"start", p.start}, {"stop", p.stop ? Value(*p.stop) : Value()}, {"step", p.step}}},
-                 {"dt_ps", p.dt_ps ? Value(*p.dt_ps) : Value()}};
+    Table fp{{"topology", core::fileFingerprint(core::pathFromUtf8(inputs.topology))},
+             {"trajectories", trajectories},
+             {"frames", Table{{"start", p.start}, {"stop", p.stop ? Value(*p.stop) : Value()}, {"step", p.step}}},
+             {"dt_ps", p.dt_ps ? Value(*p.dt_ps) : Value()}};
+    if (p.dt_ps && *p.dt_ps != 0.0) {
+        // results cached with an override before it set the time axis hold the file's times (MDATK 0.1.0)
+        fp.emplace_back("time_axis", Value(std::string("frame x dt_ps")));
+    }
+    return fp;
 }
 
 std::vector<std::string> Pipeline::requiredAnalyses(std::optional<bool> video, std::optional<bool> charts) const {

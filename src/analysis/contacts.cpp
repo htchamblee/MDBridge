@@ -1,10 +1,17 @@
 // Heavy-atom and residue contacts between two groups (mdatk/analysis/contacts.py).
+//
+// Deliberate differences (docs/DIFFERENCES.md "Contacts of a group with itself"; MDATK 0.1.0's
+// design, contacts.py version 2): a group against itself counts each pair on both residues' rows
+// of per_res_a / per_res_b; residues next to each other in sequence are left out only within one
+// chain, so the last residue of a strand and the first of the next count; the atom_pairs series is
+// labelled "atom contacts" when hydrogens count (heavy_only = false).
 
 #include <algorithm>
 #include <cstdint>
 #include <memory>
 #include <set>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -15,6 +22,7 @@
 #include "mdbridge/core/errors.hpp"
 #include "mdbridge/core/python.hpp"
 #include "mdbridge/core/selections.hpp"
+#include "mdbridge/core/topology.hpp"
 
 namespace mdbridge::analysis {
 
@@ -65,8 +73,12 @@ public:
         m_rowA = std::move(ra.rows);
         m_resB = std::move(rb.residues);
         m_rowB = std::move(rb.rows);
+        // a group against itself: the chain of every residue row (sequence neighbours are left out
+        // only within a chain, below)
+        m_chain = m_same ? core::chainIds(context().topology(), m_resA) : std::vector<std::int64_t>{};
         m_nB = static_cast<std::int64_t>(m_resB.size());
         m_cutoff = p.cutoff;
+        m_heavyOnly = p.heavy_only;
         m_atomPairs.assign(frameCount(), 0);
         m_residuePairs.assign(frameCount(), 0);
         m_map.reset(frameCount());
@@ -83,7 +95,9 @@ public:
         std::vector<std::int64_t>& i = pairs.i;
         std::vector<std::int64_t>& j = pairs.j;
         if (m_same && !i.empty()) {
-            // keep a.ix[i] < b.ix[j] and |resindex difference| > 1
+            // each pair once (a.ix[i] < b.ix[j]), without a residue's own atoms and its neighbours in
+            // the chain (|resindex difference| <= 1 in one chain); the last residue of a strand and the
+            // first of the next are no neighbours (a duplex's closing base pair)
             const core::Topology& t = context().topology();
             std::size_t kept = 0;
             for (std::size_t n = 0; n < i.size(); ++n) {
@@ -91,7 +105,10 @@ public:
                 const std::int32_t bj = m_b[static_cast<std::size_t>(j[n])];
                 const std::int64_t ri = t.atomResidue[static_cast<std::size_t>(ai)];
                 const std::int64_t rj = t.atomResidue[static_cast<std::size_t>(bj)];
-                if (ai < bj && (ri > rj ? ri - rj : rj - ri) > 1) {
+                const bool sameChain = m_chain[static_cast<std::size_t>(m_rowA[static_cast<std::size_t>(i[n])])] ==
+                                       m_chain[static_cast<std::size_t>(m_rowB[static_cast<std::size_t>(j[n])])];
+                const bool neighbours = (ri > rj ? ri - rj : rj - ri) <= 1 && sameChain;
+                if (ai < bj && !neighbours) {
                     i[kept] = i[n];
                     j[kept] = j[n];
                     ++kept;
@@ -165,6 +182,17 @@ public:
         }
         core::NumArray perA = perRowCounts(offsets, mi, mv, m_resA.size());
         core::NumArray perB = perRowCounts(offsets, mj, mv, m_resB.size());
+        if (m_same) {
+            // the map holds each pair once (i < j): a residue's contacts are its row plus its column
+            const auto va = perA.values<float>();
+            const auto vb = perB.values<float>();
+            std::vector<float> sum(va.size());
+            for (std::size_t x = 0; x < sum.size(); ++x) {
+                sum[x] = va[x] + vb[x];
+            }
+            perA = core::NumArray(std::move(sum), perA.shape());
+            perB = perA;
+        }
         for (auto& entry : arrays) {
             res.setArray(entry.first, std::move(entry.second));
         }
@@ -175,7 +203,9 @@ public:
         res.setArray("per_res_b", std::move(perB));
         const std::string& ga = m_groupA;
         const std::string& gb = m_groupB;
-        res.addSeries("atom_pairs", "atom_pairs", ga + "–" + gb + " heavy-atom contacts", "count");
+        // hydrogens are counted too without heavy_only
+        res.addSeries("atom_pairs", "atom_pairs",
+                      ga + "–" + gb + (m_heavyOnly ? " heavy-atom contacts" : " atom contacts"), "count");
         res.addSeries("residue_pairs", "residue_pairs", ga + "–" + gb + " residue contacts", "count");
         res.addSeries("q_native", "q_native", "Fraction of native contacts (Q)", "");
         res.addMatrix("per_residue_a", "per_res_a", "labels_a", ga + " residue contacts with " + gb, "count");
@@ -186,6 +216,8 @@ public:
 
 private:
     bool m_same = false;
+    bool m_heavyOnly = true;
+    std::vector<std::int64_t> m_chain;  // chain of each residue row (a group against itself)
     core::AtomGroup m_a, m_b;
     std::vector<std::int32_t> m_resA, m_resB;
     std::vector<std::int64_t> m_rowA, m_rowB;
@@ -201,7 +233,8 @@ public:
     ContactsDescriptor()
         : AnalysisDescriptor({"contacts",
                               "Pairwise contacts",
-                              2,  // v2: periodic geometry (AN-01-AN-04); SEL-13 heavy_only
+                              2,  // v2: periodic geometry (AN-01-AN-04); SEL-13 heavy_only; a group
+                                  // against itself (per-residue counts, strand ends; MDATK 0.1.0)
                               false,
                               2,
                               {{"atom_pairs", "{a}–{b} heavy-atom contacts"},
@@ -212,6 +245,19 @@ public:
                                {"map", "{a}–{b} contact map"}}}) {}
 
     bool enabled(const core::Project& project) const override { return project.analyses.contacts.enabled; }
+
+    std::string outputLabel(const core::Project& project, std::string_view out) const override {
+        std::string label = AnalysisDescriptor::outputLabel(project, out);
+        if (out == "atom_pairs" && !project.analyses.contacts.heavy_only) {
+            // hydrogens are counted too (MDATK 0.1.0)
+            const std::string from = "heavy-atom contacts";
+            const std::size_t at = label.find(from);
+            if (at != std::string::npos) {
+                label.replace(at, from.size(), "atom contacts");
+            }
+        }
+        return label;
+    }
 
     core::Table paramsFor(const core::Project& project) const override {
         return detail::sectionParams(project, "contacts");
