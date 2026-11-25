@@ -73,11 +73,17 @@ echo "== install into the AppDir"
 APPDIR="$WORK/AppDir"
 rm -rf "$APPDIR"
 cmake --install "$BUILD" --prefix "$APPDIR/usr" > "$WORK/install.log"
+# video encoding: FFmpeg's and SVT-AV1's shared libraries (packaging/ffmpeg) come with the install
+if [ "$(cache MDBRIDGE_FFMPEG)" = ON ] && ! ls "$APPDIR"/usr/lib/libavcodec.so.* > /dev/null 2>&1; then
+    echo "the build uses FFmpeg (MDBRIDGE_FFMPEG=ON) but its libraries were not installed" >&2
+    exit 1
+fi
 
 echo "== linuxdeploy (Qt and libraries)"
 export EXTRA_PLATFORM_PLUGINS="libqoffscreen.so"  # headless checks; xcb is always deployed
-# the build's Qt, not a distribution's Qt that may be installed too
-LD_LIBRARY_PATH="$QT_DIR/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" "$LINUXDEPLOY" --appdir "$APPDIR" \
+# the build's Qt, not a distribution's Qt that may be installed too; the libraries the install put
+# into usr/lib (FFmpeg's) resolve there
+LD_LIBRARY_PATH="$QT_DIR/lib:$APPDIR/usr/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" "$LINUXDEPLOY" --appdir "$APPDIR" \
     --executable "$APPDIR/usr/bin/mdbridge" \
     --desktop-file "$APPDIR/usr/share/applications/mdbridge.desktop" \
     --icon-file "$APPDIR/usr/share/icons/hicolor/256x256/apps/mdbridge.png" \
@@ -129,6 +135,7 @@ mkdir -p "$LICENSES"
 for lib in "$APPDIR"/usr/lib/*.so* "$FALLBACK"/*.so*; do
     name="$(basename "$lib")"
     [ -e "$QT_DIR/lib/$name" ] && continue  # Qt's own (and its ICU): Qt's notice covers them
+    [[ "$name" =~ ^lib(avcodec|avformat|avutil|swscale|SvtAv1Enc)\.so ]] && continue  # licenses/FFmpeg-*, SVT-AV1-*
     source="$(ldconfig -p | awk -v n="$name" '$1 == n {print $NF; exit}')"
     [ -n "$source" ] || source="$(find /usr/lib64 /usr/lib /lib64 /lib -name "$name" 2>/dev/null | head -n 1)"
     package=""

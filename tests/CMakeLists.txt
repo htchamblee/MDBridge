@@ -116,6 +116,18 @@ add_executable(mdbridge_commands_cli cli/commands_cli.cpp)
 target_link_libraries(mdbridge_commands_cli PRIVATE mdbridge::commands)
 mdbridge_target_warnings(mdbridge_commands_cli)
 
+# render/video: MP4 encoding with the LGPL FFmpeg libraries (codec and quality map, LGPL-only check,
+# encoded files checked by demuxing); the encoding tests skip in builds without FFmpeg. No Qt.
+add_executable(mdbridge_video_tests render/test_video_encoder.cpp)
+target_link_libraries(mdbridge_video_tests PRIVATE mdbridge::video GTest::gtest_main)
+mdbridge_target_warnings(mdbridge_video_tests)
+if(WIN32 AND MDBRIDGE_VIDEO_RUNTIME_FILES)  # the FFmpeg DLLs next to the test program
+    add_custom_command(TARGET mdbridge_video_tests POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${MDBRIDGE_VIDEO_RUNTIME_FILES} $<TARGET_FILE_DIR:mdbridge_video_tests>
+        VERBATIM)
+endif()
+gtest_discover_tests(mdbridge_video_tests DISCOVERY_MODE PRE_TEST)
+
 # the committed SPIR-V matches the shader sources (tools/compile_shaders.py)
 add_test(NAME render.shaders_up_to_date
          COMMAND ${CMAKE_COMMAND} -DSHADER_DIR=${PROJECT_SOURCE_DIR}/src/render/shaders

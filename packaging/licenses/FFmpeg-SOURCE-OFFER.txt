@@ -1,0 +1,42 @@
+FFmpeg in MDBridge: licence and source
+======================================
+
+MDBridge encodes videos with the FFmpeg libraries libavcodec, libavformat, libavutil and libswscale
+(FFmpeg 9.0.2, https://ffmpeg.org), licensed under the GNU Lesser General Public License version
+2.1 or later (FFmpeg-LGPL-2.1.txt; FFmpeg's own summary: FFmpeg-LICENSE.txt). They were built
+without any GPL or non-free component (configure: --disable-gpl --disable-nonfree
+--disable-version3); the exact configuration is in FFmpeg-BUILDINFO.txt next to this file and is
+what avcodec_configuration() reports. The AV1 encoder they use is SVT-AV1 4.1.0 (BSD 3-Clause
+Clear licence and the Alliance for Open Media Patent License 1.0: SVT-AV1-*.txt).
+
+The FFmpeg libraries are separate shared libraries, linked dynamically, which you may replace with
+your own build of a compatible FFmpeg version (LGPL 2.1 section 6):
+
+  Linux AppImage   usr/lib/libavcodec.so.63, libavformat.so.63, libavutil.so.61, libswscale.so.10
+                   (and libSvtAv1Enc.so.4); unpack with  ./MDBridge-*.AppImage --appimage-extract
+  Windows          avcodec-*.dll, avformat-*.dll, avutil-*.dll, swscale-*.dll (and
+                   SvtAv1Enc.dll) next to mdbridge.exe
+
+MDBridge checks at run time that the FFmpeg libraries it loads are LGPL builds (no --enable-gpl, no
+--enable-nonfree) and does not encode with others.
+
+Corresponding source
+--------------------
+
+The complete corresponding source of the FFmpeg libraries in each build is published with every
+MDBridge release, from the same place as the builds (the GitHub release page of MDBridge):
+
+  ffmpeg-9.0.2-source.tar.xz        Linux build: FFmpeg at tag n9.0.2 (commit
+                                    946fcce07b6dcd0331c8cc609192aeff5e1924f8) and, in
+                                    MDBRIDGE-BUILD/, the script and pinned versions that built it
+  ffmpeg-9.0.2-vcpkg-source.zip     Windows build: FFmpeg's source archive as vcpkg 2026.10.16
+                                    downloaded it, vcpkg's ffmpeg port (build recipe and patches)
+                                    and the script that ran it
+
+The build scripts are also in MDBridge's source tree (packaging/ffmpeg). FFmpeg's upstream source:
+https://ffmpeg.org/releases/ffmpeg-9.0.2.tar.xz and https://git.ffmpeg.org/ffmpeg.git (mirror:
+https://github.com/FFmpeg/FFmpeg).
+
+For at least three years after a release, the same source is also available on request from the
+distributor of MDBridge, for no more than the cost of providing it; ask through the MDBridge
+project's issue tracker or the contact given with the release.

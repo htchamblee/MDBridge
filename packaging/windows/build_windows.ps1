@@ -1,16 +1,20 @@
 # Build MDBridge for Windows x64: programs, tests, zip and installer.
 #
 #   packaging\windows\build_windows.ps1 -QtDir C:\Qt\6.11.3\msvc2022_64 [-Out dist] [-Work build\windows] [-SkipTests]
+#                                         [-FFmpegRoot build\ffmpeg\prefix]
 #
 # Needs Visual Studio 2022 with the C++ workload, CMake 3.24+, Qt 6 for MSVC 2022 (-QtDir), and
-# Inno Setup 6 for the installer (skipped with a warning when ISCC.exe is not found).
+# Inno Setup 6 for the installer (skipped with a warning when ISCC.exe is not found). -FFmpegRoot:
+# the LGPL FFmpeg libraries of packaging\ffmpeg\windows\build_ffmpeg.ps1 (required then; without
+# it, video encoding is used when CMake finds the libraries, else left out).
 # Result: OUT\MDBridge-<version>-windows-x64.zip and OUT\MDBridge-<version>-windows-x64-setup.exe;
 # the unpacked programs are in WORK\install.
 param(
     [Parameter(Mandatory = $true)][string]$QtDir,
     [string]$Out = "dist",
     [string]$Work = "build\windows",
-    [switch]$SkipTests
+    [switch]$SkipTests,
+    [string]$FFmpegRoot = ""
 )
 $ErrorActionPreference = "Stop"
 $Root = (Resolve-Path "$PSScriptRoot\..\..").Path
@@ -23,8 +27,12 @@ function Invoke-Checked {
 }
 
 Write-Output "== configure and build (Qt at $QtDir)"
+$ffmpegArgs = @()
+if ($FFmpegRoot) {
+    $ffmpegArgs = @("-DMDBRIDGE_FFMPEG=ON", "-DMDBRIDGE_FFMPEG_ROOT=$((Resolve-Path $FFmpegRoot).Path)")
+}
 Invoke-Checked cmake -S $Root -B $Build -G "Visual Studio 17 2022" -A x64 "-DCMAKE_PREFIX_PATH=$QtDir" `
-    -DMDBRIDGE_WARNINGS_AS_ERRORS=ON
+    -DMDBRIDGE_WARNINGS_AS_ERRORS=ON @ffmpegArgs
 Invoke-Checked cmake --build $Build --config Release --parallel
 
 if (-not $SkipTests) {
