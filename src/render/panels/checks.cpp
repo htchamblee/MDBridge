@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <string_view>
 
+#include "mdbridge/core/json.hpp"
 #include "mdbridge/core/python.hpp"
 #include "mdbridge/render/color.hpp"
 #include "mdbridge/render/colormap.hpp"

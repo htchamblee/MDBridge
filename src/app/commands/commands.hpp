@@ -1,9 +1,11 @@
 #pragma once
 // The commands of MDATK's `mdatk` command line that the libraries support so far: init
-// (init-params), info, list, analyze, export-pdb and density info. Names, options, defaults,
-// output, files and exit codes are MDATK v0.0.4.1's (mdatk/cli.py); MDATK's other commands (render,
-// charts, clean, preview, density fit / simulate, pdb, build, dict, workflow, demo) follow with
-// later milestones and are not offered until then. `analyze` keeps MDBridge's own cache
+// (init-params), info, list, analyze, export-pdb, render, charts, preview and density info. Names,
+// options, defaults, output, files and exit codes are MDATK v0.0.4.1's (mdatk/cli.py); MDATK's other
+// commands (clean, density fit / simulate, pdb, build, dict, workflow, demo) follow with later
+// milestones and are not offered until then. render, charts and preview draw with a RenderBackend
+// (render_pipeline.hpp) that the program passes (the Qt one in the `mdbridge` program); without
+// one they fail with "figures cannot be drawn by this program". `analyze` keeps MDBridge's own cache
 // (mdbridge/analysis/cache.hpp) and does not clean with cpptraj (mdbridge/analysis/pipeline.hpp).
 //
 // This library needs no Qt: the `mdbridge` program adds these commands to its own (gui, project,
@@ -17,6 +19,10 @@
 #include <string_view>
 
 #include "mdbridge/core/project.hpp"
+
+namespace mdbridge::app {
+struct RenderBackend;
+}
 
 namespace CLI {
 class App;
@@ -38,7 +44,7 @@ Console standardConsole();
 class CoreCommands {
 public:
     // Adds the commands to `app` (the root of the command line).
-    explicit CoreCommands(CLI::App& app);
+    explicit CoreCommands(CLI::App& app, const RenderBackend* backend = nullptr);
     ~CoreCommands();
     CoreCommands(const CoreCommands&) = delete;
     CoreCommands& operator=(const CoreCommands&) = delete;
@@ -58,7 +64,7 @@ private:
 // A command line with only these commands (the program name is argv[0]), for tests and for
 // checking parity without the Qt front end: parse errors print CLI11's message and give 2, as
 // argparse does; without a command the help is printed and 2 returned (MDATK's `mdatk`).
-int runCoreCommandLine(int argc, const char* const* argv, Console& console);
+int runCoreCommandLine(int argc, const char* const* argv, Console& console, const RenderBackend* backend = nullptr);
 
 // What `list` prints (cmd_list): the analyses, the conda environments with cpptraj
 // (core::conda::findCpptrajEnvs), the panel types, the layout presets and a note on data keys.
