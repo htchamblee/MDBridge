@@ -15,7 +15,9 @@ add_library(mdbridge_render_panels STATIC
     include/mdbridge/render/panels/structure.hpp
     structure.cpp
     include/mdbridge/render/panels/charts.hpp
-    charts.cpp)
+    charts.cpp
+    include/mdbridge/render/panels/checks.hpp
+    checks.cpp)
 add_library(mdbridge::render_panels ALIAS mdbridge_render_panels)
 target_include_directories(mdbridge_render_panels PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_link_libraries(mdbridge_render_panels PUBLIC mdbridge::render_core mdbridge::render_molecule mdbridge::io mdbridge::core

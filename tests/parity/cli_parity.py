@@ -8,9 +8,11 @@
 Every case (CASES below) runs `mdatk ARGS` and `EXE ARGS` in two fresh work folders holding the
 same inputs (copies of files of tests/data, and files written by the case), then compares the exit
 status, stdout, stderr and every file the command left in the folder (byte for byte, except the
-analysis cache: see below). `init` / `init-params`, `info`, `list`, `analyze`, `export-pdb` and
-`density info` are covered: their results, files (project files, PDB files, the analysis cache),
-messages and errors. A case may first run other command lines in the same folder (`before`: an
+analysis cache: see below). `init` / `init-params`, `info`, `list`, `analyze`, `export-pdb`,
+`density info`, `render`, `charts` and `preview` are covered: their results, files (project files,
+PDB files, the analysis cache; figures and videos by their metadata, see RENDER_PROJECT), messages
+and errors. The render cases need the Qt program (the `mdbridge` program or the AppImage, not
+`mdbridge_commands_cli`) and `ffprobe` on PATH (MDATK's side also `ffmpeg`). A case may first run other command lines in the same folder (`before`: an
 earlier `analyze` whose cache the case reuses; they must succeed), set environment variables
 (`env`: a fake conda installation for `list`) and make files executable (`executable`).
 
@@ -144,14 +146,19 @@ GROUPS = json.dumps([
 ])
 
 
-def case(name, argv, inputs=None, setup=None, exit_only=False, before=None, env=None, executable=None):
+def case(name, argv, inputs=None, setup=None, exit_only=False, before=None, env=None, executable=None,
+         render=False):
     """inputs: work-folder path -> file of tests/data copied there; setup: path -> text written there
     ({work}: the folder); before: command lines run first in the folder; env: environment variables
     of the runs ({work}: the folder; "" counts as unset for MDATK); executable: setup files made
-    executable."""
-    return {"name": name, "argv": argv, "inputs": dict(inputs or {}), "setup": dict(setup or {}),
-            "exit_only": exit_only, "before": list(before or []), "env": dict(env or {}),
-            "executable": list(executable or [])}
+    executable; render: a render / charts / preview case (figures and videos compared by their
+    metadata, see RENDER below)."""
+    out = {"name": name, "argv": argv, "inputs": dict(inputs or {}), "setup": dict(setup or {}),
+           "exit_only": exit_only, "before": list(before or []), "env": dict(env or {}),
+           "executable": list(executable or [])}
+    if render:
+        out["render"] = True
+    return out
 
 
 # `list` without conda installations, and with a fake one: an installation whose base and three
@@ -178,6 +185,148 @@ ALL_GROUP = ["-s", 'groups=[{"name": "All", "selection": "all"}]', "-s", "analys
              "-s", "analyses.hbonds.enabled=false", "-s", "analyses.mg.enabled=false", "-s",
              "analyses.stacking.enabled=false", "-s", "analyses.energy.enabled=false"]
 EXTERNAL = "time_ps,potential,temp K\n0,1.5,300\n100,2.5,301\n200,4.0,299.5\n300,3.0,300.25\n"
+
+
+# ---- render, charts, preview (RENDER) ------------------------------------------------------------
+# The demo project of tests/parity/make_render_cli_cases.py (MDATK's demo system on the demo files,
+# a 320 x 180 video at dpi 40 and 12 fps, charts of three series at dpi 40, time-stamped names).
+# Images (PNG, JPEG, SVG, PDF, EPS, TIFF) are compared by their format and size (MDATK draws with
+# Matplotlib, MDBridge with its own figure code: the figures' contents are compared by
+# tests/render against tests/data/render), videos by ffprobe's metadata without the codec name
+# (frame count, size, pixel format, frame rates, time base, container, no audio, moov before mdat:
+# MDBridge encodes AV1, MDATK's ffmpeg H.264; RN-07), the params log by its run's outputs and time
+# stamp; the project file's step log in full (time and duration masked). MDBridge's improvements
+# are patched into MDATK (improvements_render.py: D8, D9, RN-02, RN-07, RN-11 ... RN-15).
+RENDER_PROJECT = """format = "mdatk-project"
+
+[inputs]
+topology = "demo_dry.parm7"
+trajectories = ["demo_dry.nc"]
+time_unit = "ns"
+
+[analyses.mg]
+enabled = false
+
+[analyses.stacking]
+enabled = false
+
+[analyses.energy]
+target_value = -60.0
+
+[layout]
+preset = "large_plus_3"
+
+[[layout.panels]]
+type = "structure"
+title = "Structure"
+
+[[layout.panels]]
+type = "timeseries"
+series = ["rmsd/Complex"]
+title = "RMSD"
+
+[[layout.panels]]
+type = "timeseries"
+series = ["hbonds/count"]
+
+[[layout.panels]]
+type = "heatmap"
+series = ["contacts/per_residue_a"]
+options = {max_ticks = 6}
+
+[output]
+out_dir = "results"
+timestamp_files = true
+
+[output.video]
+fps = 12
+width = 320
+height = 180
+dpi = 40
+
+[output.charts]
+dpi = 40
+series = ["rmsd/Complex", "hbonds/count", "energy/total"]
+
+[output.pdb]
+enabled = false
+frames = "0, last"
+times = "120ps"
+selection = "Aptamer, Target"
+
+[[groups]]
+name = "Aptamer"
+residues = "1-12"
+color = "#2a78d6"
+
+[[groups]]
+name = "Target"
+residues = "13-24"
+color = "#eb6834"
+"""
+RP = ["-p", "demo.mdatk.toml"]
+ANALYZE_RP = [["analyze", *RP, "-q"]]
+
+
+def rset(key, value):
+    return ["-s", f"{key}={json.dumps(value)}"]
+
+
+def render_case(name, argv, before=None, setup=None):
+    return case(name, argv, DEMO, {"demo.mdatk.toml": RENDER_PROJECT, **(setup or {})}, before=before, render=True)
+
+
+def render_cases():
+    return [
+        render_case("render_full", ["render", *RP]),
+        render_case("render_no_stamp", ["render", *RP, "--no-video", *rset("output.timestamp_files", False)]),
+        render_case("render_from_cache", ["render", *RP, "--from-cache"], ANALYZE_RP),
+        render_case("render_from_cache_no_video", ["render", *RP, "--from-cache", "--no-video"], ANALYZE_RP),
+        render_case("render_from_cache_nothing", ["render", *RP, "--from-cache", "--no-video", "--no-charts"],
+                    ANALYZE_RP),
+        render_case("render_stride", ["render", *RP, "--no-charts", *rset("output.video.frame_stride", 5)]),
+        render_case("render_mpeg4", ["render", *RP, "--no-charts", *rset("output.video.codec", "mpeg4"),
+                                     *rset("output.video.filename", "clip.mp4"), *rset("output.video.fps", 30)]),
+        render_case("render_codec_unknown", ["render", *RP, "--no-charts", *rset("output.video.codec", "nosuchcodec")]),
+        render_case("render_odd_size", ["render", *RP, "--no-charts", *rset("output.video.width", 333),
+                                        *rset("output.video.height", 187), *rset("output.video.dpi", 37)]),
+        render_case("render_ffmpeg_path", ["render", *RP, "--no-charts",
+                                           *rset("output.video.ffmpeg_path", "/nonexistent/ffmpeg")]),
+        render_case("render_pdb", ["render", *RP, "--no-video", "--no-charts", "--pdb"]),
+        render_case("render_params_log_off", ["render", *RP, "--no-video", "--charts", "--no-pdb",
+                                              *rset("output.write_params_log", False),
+                                              *rset("output.charts.enabled", False)]),
+        render_case("render_invalid", ["render", *RP, *rset("visual.glow_color", "gold-ish"),
+                                       *rset("visual.chain_palette", "Tab10"),
+                                       *rset("output.charts.formats", ["png", "gif"]),
+                                       "-s", 'layout.panels.1.options={"ylim": 5, "smooth": "x"}',
+                                       "-s", 'layout.panels.3.options={"vmin": "low", "max_ticks": 0}']),
+        render_case("render_from_cache_invalid", ["render", *RP, "--from-cache",
+                                                  *rset("groups.0.color", "#12"),
+                                                  "-s", 'layout.panels.3.type="contact_map"',
+                                                  "-s", 'layout.panels.3.options={"mode": "mean"}'], ANALYZE_RP),
+        render_case("render_from_params_log", ["render", "-p", "results/MDATK_params_log.toml", "--no-video",
+                                               *rset("output.timestamp_files", False)],
+                    [["render", *RP, "--no-video", "-q"]]),
+        render_case("charts", ["charts", *RP]),
+        render_case("charts_svg_pdf", ["charts", *RP, "--from-cache", "--formats", "svg,pdf", "--dpi", "30"],
+                    ANALYZE_RP),
+        render_case("charts_jpg_eps_tif", ["charts", *RP, "--from-cache", "--formats", " jpg, .EPS,tif,",
+                                           "--series", "hbonds/count"], ANALYZE_RP),
+        render_case("charts_series", ["charts", *RP, "--from-cache", "--series", "energy/total,nokey/x"],
+                    ANALYZE_RP),
+        render_case("charts_bad_format", ["charts", *RP, "--from-cache", "--formats", "png,bogus"], ANALYZE_RP),
+        render_case("charts_bad_format_check", ["charts", *RP, "--formats", "webp"]),
+        render_case("preview", ["preview", *RP]),
+        render_case("preview_svg", ["preview", *RP, "--from-cache", "--frame", "5", "--output", "shot.svg"],
+                    ANALYZE_RP),
+        render_case("preview_pdf_clamped", ["preview", *RP, "--from-cache", "--frame", "999", "--output",
+                                            "out/last.pdf"], ANALYZE_RP),
+        render_case("preview_negative", ["preview", *RP, "--from-cache", "--frame=-3"], ANALYZE_RP),
+        render_case("preview_jpg", ["preview", *RP, "--from-cache", "--output", "a.jpg"], ANALYZE_RP),
+        render_case("preview_no_extension", ["preview", *RP, "--from-cache", "--output", "still"], ANALYZE_RP),
+        render_case("preview_bad_format", ["preview", *RP, "--output", "anim.gif"]),
+    ]
 
 
 def map_cases():
@@ -361,11 +510,20 @@ CASES = [
     case("density_missing", ["density", "info", "missing.mrc"]),
     case("density_folder", ["density", "info", "."]),
     case("density_no_action", ["density"], exit_only=True),
+
+    # ---- render, charts, preview
+    *render_cases(),
 ]
 
 STAMP_RE = re.compile(r"\d{4}-\d{2}-\d{2}_\d{6}")
 SAVED_RE = re.compile(r"^saved = \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?$", re.M)
 OFFSETS_RE = re.compile(r"^\..+_offsets\.(npz|lock)$")
+FINISHED_RE = re.compile(r"Finished in [0-9.]+ s")
+# the run's first log line names the program (pipeline.py PROJECT_TITLE / MDBridge's name) and version
+PROGRAM_RE = re.compile(r"^(Molecular Dynamic Analysis Tool Kit \(MDATK\) 0\.0\.4\.1|MDBridge \S+) - output directory",
+                        re.M)
+LOG_TIME_RE = re.compile(r"^time = \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?$", re.M)
+LOG_DURATION_RE = re.compile(r"^duration_s = [0-9.e+-]+$", re.M)
 NETCDF_NOTICE = "WARNING: netCDF4 is not available. Writing AMBER ncdf files will be slow.\n"
 TRACEBACK = "Traceback (most recent call last):"
 # MDATK's words that MDBridge's libraries replace by its own name (applied to MDATK's output)
@@ -410,6 +568,7 @@ def case_env(case_, folder):
 def normalise(text, folder):
     for path in {os.path.realpath(folder), os.path.abspath(folder)}:
         text = text.replace(path, "{work}")
+    text = PROGRAM_RE.sub("{program} - output directory", FINISHED_RE.sub("Finished in {seconds} s", text))
     return MANIFEST_RE.sub("{manifest}", CACHE_KEY_RE.sub("-{key}", STAMP_RE.sub("{stamp}", text)))
 
 
@@ -419,7 +578,7 @@ def normalise_name(rel, folder):
     return CACHE_ENTRY_RE.sub(r"-{key}.\1", rel)
 
 
-def collect(case_, folder):
+def collect(case_, folder, paths=None):
     """Files left in the folder (inputs included when the run changed them): compared path -> [bytes]
     (several for the cache entries of one analysis with different keys)."""
     out = {}
@@ -439,6 +598,8 @@ def collect(case_, folder):
             if key in out and not is_cache_file(key):
                 raise RuntimeError(f"{case_['name']}: {rel} and another file are both compared as {key}")
             out.setdefault(key, []).append(data)  # cache entries of one analysis with several keys
+            if paths is not None:
+                paths[key] = full
     return dict(sorted(out.items()))
 
 
@@ -526,6 +687,73 @@ def file_entry(rel, data, folder):
     return {"sha256": hashlib.sha256(raw).hexdigest(), "size": len(raw)}
 
 
+def mp4_info(path):
+    """What ffprobe reports about a video, without the codec name (RN-07), and whether moov comes
+    before mdat (faststart)."""
+    probe = subprocess.run(["ffprobe", "-v", "error", "-count_frames", "-show_entries",
+                            "stream=codec_type,width,height,pix_fmt,r_frame_rate,avg_frame_rate,time_base,"
+                            "nb_read_frames:format=format_name,nb_streams", "-of", "json", path],
+                           capture_output=True, text=True, check=True)
+    data = json.loads(probe.stdout)
+    boxes = []
+    with open(path, "rb") as fh:
+        while True:
+            head = fh.read(8)
+            if len(head) < 8:
+                break
+            size, kind = struct.unpack(">I4s", head)
+            if size == 1:
+                size = struct.unpack(">Q", fh.read(8))[0]
+                fh.seek(size - 16, 1)
+            else:
+                fh.seek(size - 8, 1)
+            boxes.append(kind.decode("latin-1"))
+            if size == 0:
+                break
+    streams = sorted((dict(sorted(st.items())) for st in data.get("streams", [])), key=json.dumps)
+    return {"streams": streams, "format": dict(sorted(data.get("format", {}).items())),
+            "faststart": "moov" in boxes and "mdat" in boxes and boxes.index("moov") < boxes.index("mdat")}
+
+
+def svg_points(value, unit):
+    return round(float(value) * {"pt": 1.0, "in": 72.0, "mm": 72.0 / 25.4, "cm": 72.0 / 2.54, "px": 0.75, "": 0.75}[unit], 3)
+
+
+def render_file_entry(rel, data, full, folder):
+    """A render case's file: images by format and size, videos by metadata, the params log by its
+    run's outputs and time stamp, the rest as file_entry."""
+    if data[:8] == b"\x89PNG\r\n\x1a\n":
+        return {"png": list(struct.unpack(">II", data[16:24]))}
+    if data[:3] == b"\xff\xd8\xff":
+        return {"jpeg": True}
+    if data[:4] in (b"II*\0", b"MM\0*"):
+        return {"tiff": True}
+    if data[:5] == b"%PDF-":
+        m = re.search(rb"/MediaBox *\[ *([0-9. ]+?) *\]", data)
+        return {"pdf": [round(float(v), 3) for v in m.group(1).split()] if m else None}
+    if data[:4] == b"%!PS":
+        m = re.search(rb"%%BoundingBox: *([0-9 .-]+)", data)
+        return {"ps": data[:40].startswith(b"%!PS-Adobe-3.0 EPSF") and "eps" or "ps",
+                "bbox": [round(float(v)) for v in m.group(1).split()] if m else None}
+    if b"<svg" in data[:4000]:
+        m = re.search(rb'<svg[^>]*?width="([0-9.]+)(pt|in|mm|cm|px|)"[^>]*?height="([0-9.]+)(pt|in|mm|cm|px|)"', data,
+                      re.S)
+        return {"svg": [svg_points(m.group(1), m.group(2).decode()), svg_points(m.group(3), m.group(4).decode())]
+                if m else None}
+    if rel.endswith(".mp4"):
+        return {"mp4": mp4_info(full)}
+    if rel.endswith("MDATK_params_log.toml"):
+        import tomllib
+
+        run = tomllib.loads(data.decode("utf-8")).get("run", {})
+        outputs = json.loads(normalise(json.dumps(run.get("outputs"), ensure_ascii=False), folder))
+        return {"params_log": {"outputs": outputs, "timestamp": run.get("timestamp") and normalise(run["timestamp"], folder)}}
+    entry = file_entry(rel, data, folder)
+    if "text" in entry:
+        entry["text"] = LOG_DURATION_RE.sub("duration_s = 0.0", LOG_TIME_RE.sub("time = {time}", entry["text"]))
+    return entry
+
+
 def written_entry(rel, datas, folder):
     """file_entry, or {"several": [file_entry, ...]} (in a fixed order) for several cache entries."""
     if len(datas) == 1:
@@ -534,15 +762,22 @@ def written_entry(rel, datas, folder):
 
 
 def result(case_, folder, code, stdout, stderr, before):
-    files = collect(case_, folder)
+    paths = {}
+    files = collect(case_, folder, paths)
     # results that hold absolute paths or OS error texts, or read a project file's paths: defined on
     # Linux only (the C++ test skips them on Windows). The cache manifest's path that analyze prints
     # and the paths in cache files are compared on Windows too (the C++ test normalises their form).
     texts = [stderr, *(data[0].decode("utf-8", "replace") for rel, data in files.items() if not is_cache_file(rel))]
     if case_["argv"][:1] != ["analyze"]:
         texts.append(stdout)
+    if case_.get("render"):
+        written = {rel: (written_entry(rel, data, folder) if is_cache_file(rel) or len(data) != 1
+                         else render_file_entry(rel, data[0], paths[rel], folder))
+                   for rel, data in files.items()}
+    else:
+        written = {rel: written_entry(rel, data, folder) for rel, data in files.items()}
     return {"exit": code, "stdout": normalise(stdout, folder), "stderr": normalise(stderr, folder),
-            "written": {rel: written_entry(rel, data, folder) for rel, data in files.items()},
+            "written": written,
             "before_exits": before,
             "posix_only": any("{work}" in normalise(t, folder) for t in texts) or "[Errno" in stderr
             or any(a in ("-p", "--project", "--params") for a in case_["argv"]) or bool(case_["env"])}
@@ -579,6 +814,17 @@ def child(mdatk, jobs_file, results_file):
     import improvements_cli
 
     improvements_cli.apply()  # MDBridge's documented improvements (docs/DIFFERENCES.md)
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import improvements_render
+    from mdatk import density
+
+    map_level = density.map_level
+    improvements_render.apply_mdatk()  # MDBridge's rendering improvements (render, charts, preview)
+    # RN-33 (the structure view's finite-voxel contour level) is the structure panel's; `density
+    # info` reports MDATK's level_2sigma (no render case shows a map)
+    density.map_level = map_level
     from mdatk import cli
 
     def run(argv):

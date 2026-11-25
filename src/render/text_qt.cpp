@@ -1,5 +1,11 @@
 #include "mdbridge/render/text_qt.hpp"
 
+#include <clocale>
+#include <string_view>
+#if !defined(_WIN32) && !defined(__APPLE__)
+#include <langinfo.h>
+#endif
+
 #include <mutex>
 #include <string>
 
@@ -156,7 +162,17 @@ std::unique_ptr<QGuiApplication> startBatchApplication(const char* program) {
     static char* argv[] = {nullptr, nullptr};
     name = program ? program : "mdbridge";
     argv[0] = name.data();
-    return std::make_unique<QGuiApplication>(argc, argv);
+#if !defined(_WIN32) && !defined(__APPLE__)
+    // Qt switches a non-UTF-8 locale (LANG=C, a bare server) to C.UTF-8 and says so on stderr; the
+    // batch commands' output must not carry that notice, so the switch is made here, silently
+    if (std::setlocale(LC_ALL, "") == nullptr || std::string_view(nl_langinfo(CODESET)) != "UTF-8") {
+        qputenv("LC_ALL", "C.UTF-8");
+    }
+#endif
+    auto app = std::make_unique<QGuiApplication>(argc, argv);
+    // Qt sets the user's locale (setlocale(LC_ALL, "")): numbers in logs and files keep the "."
+    std::setlocale(LC_NUMERIC, "C");
+    return app;
 }
 
 }  // namespace mdbridge::render

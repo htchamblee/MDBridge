@@ -1,5 +1,6 @@
 // MDATK's commands (mdatk/cli.py cmd_init, cmd_info, cmd_list, cmd_analyze, cmd_export_pdb,
-// cmd_density_info and the parts of load_project, make_reporter and Pipeline they use).
+// cmd_render, cmd_charts, cmd_preview, cmd_density_info and the parts of load_project,
+// make_reporter and Pipeline they use; the outputs in render_pipeline.cpp).
 #include "commands.hpp"
 
 #include <algorithm>
@@ -42,6 +43,9 @@
 #include "mdbridge/io/loader.hpp"
 #include "mdbridge/io/mrc.hpp"
 #include "mdbridge/io/pdb_export.hpp"
+#include "mdbridge/render/panels/charts.hpp"
+#include "mdbridge/render/panels/checks.hpp"
+#include "render_pipeline.hpp"
 
 namespace mdbridge::app {
 
@@ -79,6 +83,10 @@ struct CoreCommands::Arguments {
     CLI::App* exportPdb = nullptr;
     CLI::App* density = nullptr;
     CLI::App* densityInfo = nullptr;
+    CLI::App* render = nullptr;
+    CLI::App* charts = nullptr;
+    CLI::App* preview = nullptr;
+    const RenderBackend* backend = nullptr;
 
     CommonArguments initCommon;
     std::string initOutput;
@@ -98,6 +106,20 @@ struct CoreCommands::Arguments {
     CLI::Option* selectionOption = nullptr;
 
     std::string map;
+
+    CommonArguments renderCommon;
+    bool video = false, noVideo = false, chartsOn = false, noCharts = false, pdb = false, noPdb = false;
+    bool renderForce = false, renderFromCache = false;
+
+    CommonArguments chartsCommon;
+    std::string series, formats;
+    std::int64_t dpi = 0;
+    bool chartsFromCache = false;
+
+    CommonArguments previewCommon;
+    std::int64_t frame = 0;
+    std::string output;
+    bool previewFromCache = false;
 };
 
 namespace {
@@ -341,6 +363,9 @@ int commandInfo(CLI::App& command, const CommonArguments& common, Console& conso
     for (const std::string& p : core::validate(project)) {
         problems.emplace_back(p);
     }
+    for (const std::string& p : render::panels::renderProblems(project)) {  // RN-11 ... RN-15
+        problems.emplace_back(p);
+    }
     core::Table& table = *info.get<core::Table>();
     table.emplace_back("groups", std::move(groups));
     table.emplace_back("problems", std::move(problems));
@@ -359,7 +384,7 @@ int commandAnalyze(CLI::App& command, const CoreCommands::Arguments& a, Console&
     core::Project project = loadProject(command, a.analyzeCommon, true);
     ConsoleReporter consoleReporter(console, a.analyzeCommon.quiet, a.analyzeCommon.verbose);
     analysis::Pipeline pipeline(std::move(project), consoleReporter.reporter());
-    pipeline.check();
+    checkProject(pipeline.project(), pipeline.reporter());
     std::optional<std::vector<std::string>> names;  // args.only.split(","), each stripped
     if (!a.only.empty()) {
         names.emplace();
@@ -398,18 +423,7 @@ int commandExportPdb(CLI::App& command, const CoreCommands::Arguments& a, Consol
         pdb.selection = a.selection;
     }
 
-    // Pipeline.check()
-    const std::vector<std::string> problems = core::validate(project);
-    if (!problems.empty()) {
-        std::string text = "Invalid parameters:";
-        for (const std::string& p : problems) {
-            text += "\n  - " + p;
-        }
-        throw PipelineError(text);
-    }
-    for (const std::string& warning : core::layoutWarnings(project)) {
-        reporter.log("WARNING: " + warning);
-    }
+    checkProject(project, reporter);  // Pipeline.check()
     const std::string outDir = core::outDir(project);
     fs::create_directories(core::pathFromUtf8(outDir));
 
@@ -448,6 +462,116 @@ int commandExportPdb(CLI::App& command, const CoreCommands::Arguments& a, Consol
     return 0;
 }
 
+// args.x.split(","), each stripped, empty ones dropped (cmd_charts)
+std::vector<std::string> commaList(const std::string& text) {
+    std::vector<std::string> out;
+    std::size_t start = 0;
+    while (true) {
+        const std::size_t comma = text.find(',', start);
+        const std::string part = core::pythonStrip(
+            std::string_view(text).substr(start, comma == std::string::npos ? std::string::npos : comma - start));
+        if (!part.empty()) {
+            out.push_back(part);
+        }
+        if (comma == std::string::npos) {
+            return out;
+        }
+        start = comma + 1;
+    }
+}
+
+core::Array textArray(const std::vector<std::string>& items) {
+    core::Array out;
+    for (const std::string& s : items) {
+        out.emplace_back(s);
+    }
+    return out;
+}
+
+// _dataset(pipe, args): the cached dataset (MDBridge: the render settings checked first, RN-11 ...
+// RN-15), or check() and analyze()
+core::Dataset commandDataset(RenderPipeline& render, bool fromCache) {
+    if (fromCache) {
+        checkRenderSettings(render.project());
+        return render.analyses().loadCachedDataset();
+    }
+    render.check();
+    return render.analyses().analyze();
+}
+
+int commandRender(CLI::App& command, const CoreCommands::Arguments& a, Console& console) {
+    const CommonArguments& common = a.renderCommon;
+    ConsoleReporter consoleReporter(console, common.quiet, common.verbose);
+    analysis::Pipeline pipeline(loadProject(command, common, true), consoleReporter.reporter());
+    RenderPipeline render(pipeline, *a.backend, core::pathFromUtf8(common.params));
+    const core::Project& project = pipeline.project();
+    if (a.renderFromCache) {
+        checkRenderSettings(project);
+        fs::create_directories(core::pathFromUtf8(core::outDir(project)));
+        const core::Dataset dataset = pipeline.loadCachedDataset();
+        core::Table out;
+        if (!a.noVideo && (project.output.video.enabled || a.video)) {
+            out.emplace_back("video", render.renderVideo(dataset));
+        }
+        if (!a.noCharts && (project.output.charts.enabled || a.chartsOn)) {
+            out.emplace_back("charts", textArray(render.renderCharts(dataset)));
+        }
+        console.out << jsonForConsole(out) << '\n';
+        return 0;
+    }
+    const auto choice = [](bool off, bool on) { return off ? std::optional<bool>(false) : on ? std::optional<bool>(true) : std::nullopt; };
+    const RunOutputs outputs =
+        render.run(choice(a.noVideo, a.video), choice(a.noCharts, a.chartsOn), choice(a.noPdb, a.pdb), a.renderForce);
+    console.out << jsonForConsole(outputs.summary()) << '\n';
+    return 0;
+}
+
+int commandCharts(CLI::App& command, const CoreCommands::Arguments& a, Console& console) {
+    const CommonArguments& common = a.chartsCommon;
+    core::Project project = loadProject(command, common, true);
+    if (!a.series.empty()) {
+        project.output.charts.series = commaList(a.series);
+    }
+    if (!a.formats.empty()) {
+        project.output.charts.formats = commaList(a.formats);
+    }
+    if (a.dpi != 0) {
+        project.output.charts.dpi = a.dpi;
+    }
+    ConsoleReporter consoleReporter(console, common.quiet, common.verbose);
+    analysis::Pipeline pipeline(std::move(project), consoleReporter.reporter());
+    RenderPipeline render(pipeline, *a.backend, core::pathFromUtf8(common.params));
+    const core::Dataset dataset = commandDataset(render, a.chartsFromCache);
+    console.out << jsonForConsole(core::Table{{"charts", textArray(render.renderCharts(dataset))}}) << '\n';
+    return 0;
+}
+
+int commandPreview(CLI::App& command, const CoreCommands::Arguments& a, Console& console) {
+    const CommonArguments& common = a.previewCommon;
+    ConsoleReporter consoleReporter(console, common.quiet, common.verbose);
+    analysis::Pipeline pipeline(loadProject(command, common, true), consoleReporter.reporter());
+    RenderPipeline render(pipeline, *a.backend, core::pathFromUtf8(common.params));
+    // RN-11: the file's format before the analyses run
+    if (const auto problem = render::panels::figureFileProblem(a.output.empty() ? std::string("x.png") : a.output)) {
+        throw core::ValueError(*problem);
+    }
+    const core::Dataset dataset = commandDataset(render, a.previewFromCache);
+    if (dataset.frameCount() == 0) {  // RN-02 (MDATK: position -1, then a crash in the panels)
+        throw PipelineError("no analysed frames to render");
+    }
+    const std::int64_t last = static_cast<std::int64_t>(dataset.frameCount()) - 1;
+    const std::int64_t pos = std::min(std::max<std::int64_t>(0, a.frame), last);
+    std::string out = a.output;
+    if (out.empty()) {
+        char name[64];
+        std::snprintf(name, sizeof name, "MDATK_preview_%05lld.png", static_cast<long long>(pos));
+        out = core::pathToUtf8(core::pathFromUtf8(core::outDir(pipeline.project())) / name);
+    }
+    fs::create_directories(core::pathFromUtf8(absolutePath(out)).parent_path());
+    console.out << render.renderPreview(dataset, static_cast<std::size_t>(pos), out) << '\n';
+    return 0;
+}
+
 int commandList(Console& console) {
     printList(console.out);
     return 0;
@@ -471,8 +595,10 @@ Console standardConsole() {
     return Console{std::cout, std::cerr, tty};
 }
 
-CoreCommands::CoreCommands(CLI::App& app) : m_args(std::make_unique<Arguments>()) {
+CoreCommands::CoreCommands(CLI::App& app, const RenderBackend* backend) : m_args(std::make_unique<Arguments>()) {
     Arguments& a = *m_args;
+    static const RenderBackend kNoBackend;
+    a.backend = backend ? backend : &kNoBackend;
 
     a.init = app.add_subcommand("init", "write a project file with default settings");
     a.init->alias("init-params");
@@ -498,6 +624,31 @@ CoreCommands::CoreCommands(CLI::App& app) : m_args(std::make_unique<Arguments>()
     a.selectionOption = lastWins(
         a.exportPdb->add_option("--selection", a.selection, "group names (comma separated) or a selection"));
 
+    a.render = app.add_subcommand("render", "full run: clean, analyse, video, charts, PDBs");
+    addCommon(*a.render, a.renderCommon);
+    a.render->add_flag("--video", a.video, "force video output on");
+    a.render->add_flag("--no-video", a.noVideo, "skip video output");
+    a.render->add_flag("--charts", a.chartsOn, "force charts output on");
+    a.render->add_flag("--no-charts", a.noCharts, "skip charts output");
+    a.render->add_flag("--pdb", a.pdb, "force pdb output on");
+    a.render->add_flag("--no-pdb", a.noPdb, "skip pdb output");
+    a.render->add_flag("--force", a.renderForce, "recompute analyses");
+    a.render->add_flag("--from-cache", a.renderFromCache,
+                       "re-render from the cache manifest without touching trajectories");
+
+    a.charts = app.add_subcommand("charts", "write standalone time charts");
+    addCommon(*a.charts, a.chartsCommon);
+    lastWins(a.charts->add_option("--series", a.series, "comma separated data keys (default: all)"));
+    lastWins(a.charts->add_option("--formats", a.formats, "comma separated: png,svg,pdf"));
+    lastWins(a.charts->add_option("--dpi", a.dpi, "raster resolution"));
+    a.charts->add_flag("--from-cache", a.chartsFromCache, "use the analyses of the cache manifest");
+
+    a.preview = app.add_subcommand("preview", "render one composite frame as an image");
+    addCommon(*a.preview, a.previewCommon);
+    lastWins(a.preview->add_option("--frame", a.frame, "position in the analysed frames"))->capture_default_str();
+    lastWins(a.preview->add_option("--output", a.output, "image path (.png/.svg/.pdf)"));
+    a.preview->add_flag("--from-cache", a.previewFromCache, "use the analyses of the cache manifest");
+
     a.density = app.add_subcommand("density", "density maps (MRC / CCP4): header info");
     a.density->require_subcommand(0, 1);
     a.densityInfo = a.density->add_subcommand("info", "print a map's grid, voxel size, origin and statistics");
@@ -509,7 +660,8 @@ CoreCommands::~CoreCommands() = default;
 std::optional<int> CoreCommands::run(Console& console) {
     Arguments& a = *m_args;
     const bool any = a.init->parsed() || a.info->parsed() || a.list->parsed() || a.analyze->parsed() ||
-                     a.exportPdb->parsed() || a.density->parsed();
+                     a.exportPdb->parsed() || a.density->parsed() || a.render->parsed() || a.charts->parsed() ||
+                     a.preview->parsed();
     if (!any) {
         return std::nullopt;
     }
@@ -544,6 +696,15 @@ std::optional<int> CoreCommands::run(Console& console) {
         if (a.exportPdb->parsed()) {
             return commandExportPdb(*a.exportPdb, a, console);
         }
+        if (a.render->parsed()) {
+            return commandRender(*a.render, a, console);
+        }
+        if (a.charts->parsed()) {
+            return commandCharts(*a.charts, a, console);
+        }
+        if (a.preview->parsed()) {
+            return commandPreview(*a.preview, a, console);
+        }
         return commandDensityInfo(a.map, console);
     } catch (const core::Cancelled&) {
         console.err << "cancelled\n";
@@ -555,11 +716,11 @@ std::optional<int> CoreCommands::run(Console& console) {
     }
 }
 
-int runCoreCommandLine(int argc, const char* const* argv, Console& console) {
+int runCoreCommandLine(int argc, const char* const* argv, Console& console, const RenderBackend* backend) {
     CLI::App app("MDBridge: the MDATK commands of the core and io libraries (no interface)",
                  argc > 0 ? core::pathBasename(argv[0]) : "mdbridge");
     app.require_subcommand(0, 1);
-    CoreCommands commands(app);
+    CoreCommands commands(app, backend);
     try {
         app.parse(argc, argv);
     } catch (const CLI::ParseError& error) {

@@ -449,8 +449,16 @@ internal analyses and an empty list, cache reuse after an earlier run, partial r
 parameter, `--force`, frame selections, output and cache folders, `use_pbc`, layout warnings and the
 panels' and charts' analyses, no analyses at all, external data, a project file, every error),
 `export-pdb` (frame lists, times, groups and selections, time stamps, `--quiet` / `--verbose`,
-layout warnings, a project's `[output.pdb]`, every error) and `density info` of every map of
-`io/maps/files`. Each case names the command line, the inputs (files of `tests/data` copied into an
+layout warnings, a project's `[output.pdb]`, every error), `density info` of every map of
+`io/maps/files`, and `render`, `charts` and `preview` (`render: true`; the demo project of
+`make_render_cli_cases.py`: full runs, `--from-cache`, strides, codecs, odd sizes, `ffmpeg_path`, PDBs,
+a parameter log as project, every format, unknown formats and invalid settings, frames out of range).
+The render cases' figures and videos are recorded by metadata only (PNG size, JPEG / TIFF kind, SVG
+and PDF page size in points, PostScript bounding box, ffprobe's video metadata without the codec
+name and faststart; the parameter log as its run's `outputs` and `timestamp`; the step log in the
+project file with `time` / `duration_s` masked), with MDBridge's rendering improvements patched into
+MDATK (`improvements_render.py`); `tests/cli/test_commands.cpp` runs those that draw nothing, the
+others need the Qt program (CI's `parity` job; FFmpeg's `ffprobe` on PATH). Each case names the command line, the inputs (files of `tests/data` copied into an
 empty work folder, files written there: `setup`, with `{work}` for the folder; `executable` ones
 made executable), command lines run first in the same folder (`before`, with their exit statuses
 `before_exits`), environment variables (`env`) and MDATK's exit status, stdout, stderr and the files

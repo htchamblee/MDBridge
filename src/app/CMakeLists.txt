@@ -13,12 +13,14 @@ add_library(mdbridge_app STATIC
     gui/project_panel.cpp
     gui/project_panel.hpp
     project_summary.cpp
-    project_summary.hpp)
+    project_summary.hpp
+    render_backend_qt.cpp
+    render_backend_qt.hpp)
 set_target_properties(mdbridge_app PROPERTIES AUTOMOC ON)
 target_include_directories(mdbridge_app PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 target_link_libraries(mdbridge_app
     PUBLIC mdbridge::core mdbridge::render Qt6::Widgets
-    PRIVATE mdbridge::commands CLI11::CLI11)
+    PRIVATE mdbridge::commands mdbridge::video CLI11::CLI11)
 mdbridge_target_warnings(mdbridge_app)
 
 set(MDBRIDGE_ICON_ICO "${PROJECT_SOURCE_DIR}/data/icons/mdbridge.ico")
@@ -39,6 +41,11 @@ function(mdbridge_program name)
         set_target_properties(${name} PROPERTIES WIN32_EXECUTABLE ON)
     endif()
     mdbridge_target_warnings(${name})
+    if(WIN32 AND MDBRIDGE_VIDEO_RUNTIME_FILES)  # the FFmpeg DLLs next to the build tree's program
+        add_custom_command(TARGET ${name} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different ${MDBRIDGE_VIDEO_RUNTIME_FILES} $<TARGET_FILE_DIR:${name}>
+            VERBATIM)
+    endif()
     install(TARGETS ${name} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 endfunction()
 

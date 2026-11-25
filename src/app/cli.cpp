@@ -19,6 +19,7 @@
 #include "mdbridge/render/vulkan_probe.hpp"
 #include "mdbridge/version.hpp"
 #include "project_summary.hpp"
+#include "render_backend_qt.hpp"
 
 namespace mdbridge::app {
 
@@ -157,7 +158,9 @@ int cliMain(int argc, char** argv) {
     fontsCmd->add_flag("--json", fontsJson, "print the report as JSON");
     fontsCmd->add_option("--render", fontsRender, "write the text image to this PNG file");
 
-    CoreCommands mdatkCommands(app);  // init, info, list, analyze, export-pdb, density info
+    const RenderBackend renderBackend = qtRenderBackend(argv[0]);
+    // init, info, list, analyze, export-pdb, render, charts, preview, density info
+    CoreCommands mdatkCommands(app, &renderBackend);
 
     try {
         app.parse(argc, utf8);

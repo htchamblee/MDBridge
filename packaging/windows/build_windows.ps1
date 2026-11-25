@@ -44,6 +44,11 @@ if (-not $SkipTests) {
 Write-Output "== install (windeployqt, MSVC runtime, licences)"
 if (Test-Path $Install) { Remove-Item -Recurse -Force $Install }
 Invoke-Checked cmake --install $Build --config Release --prefix $Install
+# JPEG figures (charts / preview as .jpg) need Qt's JPEG image plugin, which windeployqt deploys with
+# the other image formats; the zip and the installer take the install folder as it is
+if (-not (Get-ChildItem -Path $Install -Recurse -Filter qjpeg.dll | Where-Object { $_.Directory.Name -eq "imageformats" })) {
+    throw "Qt's JPEG image plugin (imageformats\qjpeg.dll) is missing from the install: JPEG charts would fail"
+}
 $version = (Select-String -Path "$Build\CMakeCache.txt" -Pattern '^CMAKE_PROJECT_VERSION:STATIC=(.+)$').Matches[0].Groups[1].Value
 $name = "MDBridge-$version-windows-x64"
 New-Item -ItemType Directory -Force $Out | Out-Null
