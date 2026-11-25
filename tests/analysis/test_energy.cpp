@@ -15,12 +15,14 @@
 #include <array>
 #include <cmath>
 #include <cstdint>
+#include <filesystem>
 #include <iostream>
 #include <iterator>
 #include <limits>
 #include <map>
 #include <memory>
 #include <optional>
+#include <set>
 #include <span>
 #include <stdexcept>
 #include <string>
@@ -710,6 +712,9 @@ TEST(EnergyParameters, AnalysisChargesMetadataAndLog) {
                       "templates (TIP3P); partial charges of 6 atoms from the templates. Cite: Jorgensen et al. 1983, "
                       "doi:10.1063/1.445869");
     EXPECT_EQ(metaString(res, "lj_source"), "templates");
+    // MDATK 0.1.1's key: the table the parameters come from (docs/GENERIC_LJ.md)
+    EXPECT_NE(metaString(res, "lj_table").find("Amber force-field residue templates"), std::string::npos);
+    EXPECT_NE(metaString(res, "lj_table").find("(docs/GENERIC_LJ.md)"), std::string::npos);
     EXPECT_EQ(metaString(res, "charge_source"), "partial");
     EXPECT_EQ(metaInt(res, "lj_atoms", "template"), 7);
     EXPECT_EQ(metaInt(res, "charge_atoms", "template"), 6);
@@ -827,4 +832,143 @@ TEST(EnergyParameters, ChainEndsFromChainIdsNumberingAndBonds) {
     expect(build({1, 2, 3}, {"A", "A", "B"}, {"", "", ""}, false), oh, "new chain ID: a break");
     expect(build({1, 2, 7}, {"A", "A", "A"}, {"", "", ""}, false), oh, "numbering gap, no bond: a break");
     expect(build({1, 2, 7}, {"A", "A", "A"}, {"", "", ""}, true), os, "numbering gap with a bond: no break");
+}
+
+// MDATK 0.1.0's parm7 format lines: a CHAMBER topology ('(a80)' CTITLE, '(i2,a78)' FORCE_FIELD_TYPE)
+// or an ff19SB one ('(8(F9.5))' CMAP parameters) gives its own Lennard-Jones parameters (MDATK
+// 0.0.4.1: "cannot parse format line", and the energy fell back to other parameters)
+TEST(Energy, Parm7WithChamberAndCmapFormatLines) {
+    const std::filesystem::path demo = test::kData / "topology" / "demo_dry.parm7";
+    const std::filesystem::path trajectory = test::kData / "io" / "trajectories" / "demo_dry.nc";
+    test::TempDir dir;
+    const std::filesystem::path chamber = dir / "chamber.parm7";
+    std::string text = test::readFile(demo);
+    const std::size_t at = text.find("%FLAG POINTERS");
+    ASSERT_NE(at, std::string::npos);
+    text.insert(at, "%FLAG CTITLE\n%FORMAT(a80)\nCHARMM topology\n%FLAG FORCE_FIELD_TYPE\n%FORMAT(i2,a78)\n"
+                    " 1 CHARMM 36\n%FLAG CMAP_COUNT\n%FORMAT(2I8)\n       0       1\n%FLAG CMAP_PARAMETER_01\n"
+                    "%FORMAT(8(F9.5))\n  0.12500 -1.50000  2.00000\n");
+    test::writeFile(chamber, text);
+    core::Project project;
+    project.groups = {{"Aptamer", "1-13", "", "#2a78d6"}, {"Target", "14-26", "", "#2a78d6"}};
+    core::System plain = io::loadSystem(demo, {trajectory}, std::nullopt);
+    core::System modified = io::loadSystem(chamber, {trajectory}, std::nullopt);
+    const core::AnalysisResult expected = runOne("energy", plain, project, demo.string());
+    const core::AnalysisResult got = runOne("energy", modified, project, chamber.string());
+    EXPECT_EQ(metaString(got, "lj_source"), "parm7");
+    EXPECT_TRUE(std::none_of(got.meta.begin(), got.meta.end(), [](const auto& e) { return e.first == "lj_table"; }));
+    EXPECT_EQ(got.array("vdw")->values<double>()[0], expected.array("vdw")->values<double>()[0]);
+    EXPECT_EQ(got.array("elec")->values<double>()[0], expected.array("elec")->values<double>()[0]);
+}
+
+namespace {
+
+std::vector<std::string> splitOn(const std::string& line, char sep) {
+    std::vector<std::string> out(1);
+    for (const char c : line) {
+        if (c == sep) {
+            out.emplace_back();
+        } else {
+            out.back() += c;
+        }
+    }
+    return out;
+}
+
+std::string trimmed(const std::string& text) {
+    const std::size_t first = text.find_first_not_of(" \r");
+    const std::size_t last = text.find_last_not_of(" \r");
+    return first == std::string::npos ? std::string() : text.substr(first, last - first + 1);
+}
+
+// The rows of a tab-separated table with a header line: one map per row, by column name.
+std::vector<std::map<std::string, std::string>> readTsv(const std::filesystem::path& path) {
+    std::vector<std::map<std::string, std::string>> out;
+    const std::vector<std::string> lines = splitOn(test::readFile(path), '\n');
+    const std::vector<std::string> header = splitOn(trimmed(lines.at(0)), '\t');
+    for (std::size_t k = 1; k < lines.size(); ++k) {
+        if (trimmed(lines[k]).empty()) {
+            continue;
+        }
+        const std::vector<std::string> cells = splitOn(trimmed(lines[k]), '\t');
+        std::map<std::string, std::string> row;
+        for (std::size_t c = 0; c < header.size() && c < cells.size(); ++c) {
+            row[header[c]] = cells[c];
+        }
+        out.push_back(std::move(row));
+    }
+    return out;
+}
+
+bool sameNumber(double a, double b) { return std::abs(a - b) <= 1e-9 * std::max(std::abs(a), std::abs(b)) + 1e-15; }
+
+}  // namespace
+
+// docs/GENERIC_LJ.md records every number of both parameter layers: its tables are those of the
+// extracts the analysis' tables are generated from (data/sources/forcefields; tools/gen_energy_lj.py)
+TEST(EnergyParameters, GenericLjDocument) {
+    const std::filesystem::path root = test::kData.parent_path().parent_path();
+    const std::filesystem::path sources = root / "data" / "sources" / "forcefields";
+    std::set<std::string> typedDoc, typedSource;
+    std::map<std::string, std::vector<std::string>> templateDoc;  // class -> {R*, epsilon, files}
+    for (const std::string& line : splitOn(test::readFile(root / "docs" / "GENERIC_LJ.md"), '\n')) {
+        if (line.rfind("| `", 0) != 0) {
+            continue;
+        }
+        std::vector<std::string> cells = splitOn(trimmed(line), '|');
+        cells = std::vector<std::string>(cells.begin() + 1, cells.end() - 1);
+        for (std::string& c : cells) {
+            c = trimmed(c);
+        }
+        const std::string name = cells[0].substr(1, cells[0].size() - 2);
+        if (cells.size() == 6) {  // layer 2: type, R*, epsilon, file, line, reference
+            typedDoc.insert(name + "|" + cells[1] + "|" + cells[2] + "|" + cells[3] + "|" + cells[4]);
+        } else if (cells.size() == 5 && cells[3].find(".xml`") != std::string::npos) {  // layer 1
+            std::string cls = name;
+            if (cells[3] == "`amber14/tip3p.xml`") {
+                const bool ion = name.find('+') != std::string::npos || name.find('-') != std::string::npos;
+                cls = (ion ? "tip3p_standard-" : "tip3p-") + name;
+            }
+            EXPECT_TRUE(templateDoc.emplace(cls, std::vector<std::string>{cells[1], cells[2], cells[3]}).second) << cls;
+        }
+    }
+    for (const auto& row : readTsv(sources / "amber_lj_types.tsv")) {
+        typedSource.insert(row.at("type") + "|" + row.at("rstar_angstrom") + "|" + row.at("epsilon_kcal_per_mol") +
+                           "|`" + row.at("file") + "`|" + row.at("line"));
+    }
+    EXPECT_EQ(typedDoc, typedSource);
+
+    std::map<std::string, std::pair<double, double>> classes;
+    std::map<std::string, std::set<std::string>> files;
+    for (const auto& row : readTsv(sources / "openmm_amber14_templates.tsv")) {
+        if (row.at("sigma_nm").empty()) {
+            continue;
+        }
+        const double sigma = std::stod(row.at("sigma_nm"));
+        const double epsilon = std::stod(row.at("epsilon_kj_per_mol"));
+        classes.emplace(row.at("class"), std::pair{sigma * std::pow(2.0, 1.0 / 6.0) / 2.0 * 10.0, epsilon / 4.184});
+        std::string file = row.at("file");
+        file.replace(0, std::string("amber14_").size(), "amber14/");
+        files[row.at("class")].insert("`" + file + "`");
+    }
+    EXPECT_EQ(templateDoc.size(), classes.size());
+    for (const auto& [cls, values] : classes) {
+        const auto found = templateDoc.find(cls);
+        if (found == templateDoc.end()) {
+            ADD_FAILURE() << "docs/GENERIC_LJ.md has no row of class " << cls;
+            continue;
+        }
+        const std::vector<std::string>& doc = found->second;
+        EXPECT_TRUE(sameNumber(std::stod(doc[1]), values.second)) << cls << ": " << doc[1];
+        if (values.second == 0.0) {
+            EXPECT_EQ(doc[0], "-") << cls;  // no Lennard-Jones term
+        } else {
+            EXPECT_TRUE(sameNumber(std::stod(doc[0]), values.first)) << cls << ": " << doc[0];
+        }
+        std::string listed;
+        for (const std::string& f : files[cls]) {
+            listed += (listed.empty() ? "" : ", ") + f;
+        }
+        EXPECT_EQ(doc[2], listed) << cls;
+    }
 }

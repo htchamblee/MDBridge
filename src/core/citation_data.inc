@@ -60,6 +60,12 @@ inline constexpr std::string_view kResourceKeys49[] = {"kim2023pubchem"};
 inline constexpr std::string_view kResourceKeys50[] = {"safaee2013"};
 inline constexpr std::string_view kResourceKeys51[] = {"theobald2005", "liu2010"};
 inline constexpr std::string_view kResourceKeys52[] = {"kabsch1976", "kabsch1978"};
+inline constexpr std::string_view kResourceKeys53[] = {
+    "cornell1995",
+    "wang2000",
+    "jorgensen1983",
+    "joung2008",
+    "li2013"};
 
 inline constexpr Reference kReferences[] = {
     Reference{
@@ -1405,6 +1411,12 @@ inline constexpr Resource kResources[] = {
         .name = "Kabsch superposition (RMSD fit selection)",
         .keys = kResourceKeys52,
         .note = "RMSD targets superposed on a fit selection (analyses.rmsd).",
+    },
+    Resource{
+        .id = "generic_lj",
+        .name = "Generic Lennard-Jones table of the energy analysis (Amber atom types and ions)",
+        .keys = kResourceKeys53,
+        .note = "topologies without atom types; docs/GENERIC_LJ.md",
     },
 };
 
