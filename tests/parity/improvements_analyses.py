@@ -61,24 +61,100 @@ def _collinear(x, w):
     return bool(q <= COLLINEAR * p * p)
 
 
+def rotate_rows(x, r):
+    """x @ r for rows x (..., 3) and a 3 x 3 matrix r, as elementwise products and sums in a fixed
+    order. numpy's matmul goes to OpenBLAS, whose kernels (chosen per CPU) round differently, which
+    made the generated data depend on the machine (CI run 45551493216)."""
+    x = np.asarray(x, dtype=np.float64)
+    r = np.asarray(r, dtype=np.float64)
+    return np.stack([(x[..., 0] * r[0, k] + x[..., 1] * r[1, k]) + x[..., 2] * r[2, k] for k in range(3)],
+                    axis=-1)
+
+
+def _top_eigenvector(k):
+    """The unit eigenvector of the largest eigenvalue of the symmetric 4 x 4 matrix k: cyclic Jacobi
+    rotations in plain Python floats (ties to the lowest index), the operations and order of
+    topEigenvector in src/analysis/rmsd_qcp.cpp."""
+    k = [[float(v) for v in row] for row in k]
+    v = [[1.0 if i == j else 0.0 for j in range(4)] for i in range(4)]
+    for _sweep in range(64):
+        off = 0.0
+        for p in range(4):
+            for q in range(p + 1, 4):
+                off += k[p][q] * k[p][q]
+        if off == 0.0:
+            break
+        for p in range(4):
+            for q in range(p + 1, 4):
+                if k[p][q] == 0.0:
+                    continue
+                theta = (k[q][q] - k[p][p]) / (2.0 * k[p][q])
+                t = (1.0 if theta >= 0.0 else -1.0) / (abs(theta) + math.sqrt(theta * theta + 1.0))
+                c = 1.0 / math.sqrt(t * t + 1.0)
+                s = t * c
+                for r in range(4):  # k <- J^T k J
+                    krp, krq = k[r][p], k[r][q]
+                    k[r][p] = c * krp - s * krq
+                    k[r][q] = s * krp + c * krq
+                for r in range(4):
+                    kpr, kqr = k[p][r], k[q][r]
+                    k[p][r] = c * kpr - s * kqr
+                    k[q][r] = s * kpr + c * kqr
+                k[p][q] = 0.0
+                k[q][p] = 0.0
+                for r in range(4):  # v <- v J
+                    vrp, vrq = v[r][p], v[r][q]
+                    v[r][p] = c * vrp - s * vrq
+                    v[r][q] = s * vrp + c * vrq
+    best = 0
+    for i in range(1, 4):
+        if k[i][i] > k[best][best]:
+            best = i
+    q = [v[r][best] for r in range(4)]
+    norm = math.sqrt(q[0] * q[0] + q[1] * q[1] + q[2] * q[2] + q[3] * q[3])
+    return [x / norm for x in q]
+
+
 def exact_rmsd(a, b, w=None):
-    """The exact superposition RMSD: SVD rotation, residual summed after rotating; one atom 0,
-    identical inputs exactly 0."""
+    """The exact superposition RMSD: the optimal rotation from the top eigenvector of Horn's key
+    matrix, the residual summed after rotating; one atom 0, identical inputs exactly 0. Plain
+    Python floats in the order of exactRmsd in src/analysis/rmsd_qcp.cpp (no LAPACK / BLAS, whose
+    last bits depend on the CPU), so the value is the same on every machine."""
     a = np.asarray(a, dtype=np.float64)
     b = np.asarray(b, dtype=np.float64)
     n = len(a)
     if n == 1 or (a.shape == b.shape and np.array_equal(a, b)):
         return 0.0
     w = np.ones(n) if w is None else np.asarray(w, dtype=np.float64)
-    wn = w / w.mean()
-    ac = _centred(a, w)
-    bc = _centred(b, w)
-    h = (wn[:, None] * ac).T @ bc
-    u, _s, vt = np.linalg.svd(h)
-    d = np.sign(np.linalg.det(u @ vt)) or 1.0
-    r = u @ np.diag([1.0, 1.0, d]) @ vt
-    diff = ac @ r - bc
-    return float(np.sqrt(np.sum(wn * np.sum(diff * diff, axis=1)) / n))
+    wn = (w / w.mean()).tolist()
+    ac = _centred(a, w).tolist()
+    bc = _centred(b, w).tolist()
+    m = [[0.0] * 3 for _ in range(3)]  # sum w a b^T
+    for i in range(n):
+        for r in range(3):
+            for c in range(3):
+                m[r][c] += wn[i] * (ac[i][r] * bc[i][c])
+    k = [
+        [m[0][0] + m[1][1] + m[2][2], m[1][2] - m[2][1], m[2][0] - m[0][2], m[0][1] - m[1][0]],
+        [m[1][2] - m[2][1], m[0][0] - m[1][1] - m[2][2], m[0][1] + m[1][0], m[2][0] + m[0][2]],
+        [m[2][0] - m[0][2], m[0][1] + m[1][0], -m[0][0] + m[1][1] - m[2][2], m[1][2] + m[2][1]],
+        [m[0][1] - m[1][0], m[2][0] + m[0][2], m[1][2] + m[2][1], -m[0][0] - m[1][1] + m[2][2]],
+    ]
+    q0, q1, q2, q3 = _top_eigenvector(k)
+    rot = [
+        [q0 * q0 + q1 * q1 - q2 * q2 - q3 * q3, 2.0 * (q1 * q2 - q0 * q3), 2.0 * (q1 * q3 + q0 * q2)],
+        [2.0 * (q1 * q2 + q0 * q3), q0 * q0 - q1 * q1 + q2 * q2 - q3 * q3, 2.0 * (q2 * q3 - q0 * q1)],
+        [2.0 * (q1 * q3 - q0 * q2), 2.0 * (q2 * q3 + q0 * q1), q0 * q0 - q1 * q1 - q2 * q2 + q3 * q3],
+    ]
+    total = 0.0
+    for i in range(n):
+        ai, bi = ac[i], bc[i]
+        d2 = 0.0
+        for c in range(3):
+            d = ((rot[c][0] * ai[0] + rot[c][1] * ai[1]) + rot[c][2] * ai[2]) - bi[c]
+            d2 += d * d
+        total += wn[i] * d2
+    return math.sqrt(total / n)
 
 
 def rmsd_expected(a, b, w, mda):

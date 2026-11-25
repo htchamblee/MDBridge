@@ -210,6 +210,15 @@ def apply_mdatk():
     _patch_basepairs(basepairs, secstruct)
 
 
+def _pow(x, exponent):
+    """x ** exponent elementwise through libm's pow, as numpy's generic power loop and energy.cpp's
+    std::pow compute it. numpy's own `**` dispatches to SVML's pow on AVX-512 CPUs, whose results
+    differ in the last bits from libm's, which made the generated energies depend on the machine
+    (CI run 45551493216)."""
+    return np.array([math.pow(v, exponent) for v in np.asarray(x, dtype=np.float64).tolist()],
+                    dtype=np.float64)
+
+
 def _patch_energy(energy):
     """AN-05: the net force is r_hat times the force at the clamped distance (0 for r = 0)."""
     from mdatk.analysis import ANALYSES
@@ -234,7 +243,7 @@ def _patch_energy(energy):
         qq = COULOMB * self.qa[i] * self.qb[j] / p.dielectric
         if p.distance_dependent:
             e_el = qq / (d * d)
-            de_el = -2.0 * qq / d ** 3
+            de_el = -2.0 * qq / _pow(d, 3.0)
         else:
             e_el = qq / d
             de_el = -qq / (d * d)
@@ -243,10 +252,10 @@ def _patch_energy(energy):
         else:
             rmin = self.ra[i] + self.rb[j]
             eps = np.sqrt(self.ea[i] * self.eb[j])
-            r6 = rmin ** 6
+            r6 = _pow(rmin, 6.0)
             acoef = eps * r6 * r6
             bcoef = 2.0 * eps * r6
-        inv6 = 1.0 / d ** 6
+        inv6 = 1.0 / _pow(d, 6.0)
         e_vdw = acoef * inv6 * inv6 - bcoef * inv6
         de_vdw = (-12.0 * acoef * inv6 * inv6 + 6.0 * bcoef * inv6) / d
         self.e_el[k] = e_el.sum()
@@ -254,7 +263,10 @@ def _patch_energy(energy):
         rvec = energy.minimum_image_vectors(pa[i] - pb[j], box)
         with np.errstate(divide="ignore", invalid="ignore"):
             fmag = np.where(r > 0, -(de_el + de_vdw) / r, 0.0)
-        self.force[k] = np.linalg.norm((rvec * fmag[:, None]).sum(axis=0))
+        total = (rvec * fmag[:, None]).sum(axis=0).tolist()
+        # np.linalg.norm of a 3-vector is sqrt(x . x) through BLAS' ddot (CPU-dependent kernels):
+        # the sum in energy.cpp's order instead
+        self.force[k] = math.sqrt((total[0] * total[0] + total[1] * total[1]) + total[2] * total[2])
 
     cls.process = process
 

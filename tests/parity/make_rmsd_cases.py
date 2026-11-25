@@ -28,13 +28,17 @@ nothing is written into it. Writes OUT_DIR/rmsd_cases.json:
 
 Floats are float.hex() strings ("nan", "inf", "-inf" for non-finite values). Everything recorded
 is deterministic (MDAnalysis' sums are sequential C loops and numpy's pairwise sums are fixed);
-no LAPACK result is written, so the file does not depend on the CPU.
+nothing goes through LAPACK or BLAS, whose kernels are chosen per CPU and round differently (the
+random rotations come from quaternions and are applied elementwise, the exact superposition RMSD
+of the improved values is computed in plain floats: improvements_analyses.exact_rmsd), so the
+file does not depend on the CPU.
 
---report also prints the spread between MDAnalysis and an exact superposition (numpy's SVD, the
-residual computed directly after rotating) per family: the evidence for the spec's tolerances.
+--report also prints the spread between MDAnalysis and an exact superposition (Horn's quaternion,
+the residual computed directly after rotating) per family: the evidence for the spec's tolerances.
 """
 
 import json
+import math
 import os
 import sys
 import warnings
@@ -92,22 +96,6 @@ def scale_of(a, b, w):
         return float((np.sum(wn[:, None] * ac * ac) + np.sum(wn[:, None] * bc * bc)) / (2 * n))
 
 
-def exact_rmsd(a, b, w):
-    """Reference only (--report): optimal superposition by SVD, residual summed after rotating."""
-    n = len(a)
-    w = np.ones(n) if w is None else np.asarray(w, dtype=np.float64)
-    ac = a - (a * w[:, None]).sum(axis=0) / w.sum()
-    bc = b - (b * w[:, None]).sum(axis=0) / w.sum()
-    wn = w / w.mean()
-    h = (wn[:, None] * ac).T @ bc
-    u, _s, vt = np.linalg.svd(h)
-    d = np.sign(np.linalg.det(u @ vt)) or 1.0
-    r = u @ np.diag([1.0, 1.0, d]) @ vt
-    diff = ac @ r - bc
-    with np.errstate(all="ignore"):
-        return float(np.sqrt(np.sum(wn * np.sum(diff * diff, axis=1)) / n))
-
-
 def call(a, b, w):
     """rms.rmsd as MDATK calls it: result, error, warnings."""
     with warnings.catch_warnings(record=True) as caught:
@@ -147,8 +135,8 @@ def case(group, a, b, w=None, degenerate=False):
     CASES.append(entry)
     if REPORT and result is not None and np.isfinite(result) and a.shape[0] > 0:
         try:
-            ref = exact_rmsd(a, b, wa)
-        except np.linalg.LinAlgError:
+            ref = improved.exact_rmsd(a, b, wa)
+        except ZeroDivisionError:
             return
         s = scale_of(a, b, wa)
         eps = np.finfo(float).eps
@@ -161,10 +149,21 @@ def case(group, a, b, w=None, degenerate=False):
 
 
 def rotation():
-    q, _ = np.linalg.qr(rng.normal(size=(3, 3)))
-    if np.linalg.det(q) < 0:
-        q[:, 0] = -q[:, 0]
-    return q
+    """A random rotation (applied to rows by rot), from a normalised random quaternion in plain
+    floats: numpy's QR and matmul go to LAPACK / OpenBLAS, whose last bits depend on the CPU."""
+    q0, q1, q2, q3 = (float(v) for v in rng.normal(size=4))
+    s = math.sqrt(q0 * q0 + q1 * q1 + q2 * q2 + q3 * q3)
+    q0, q1, q2, q3 = q0 / s, q1 / s, q2 / s, q3 / s
+    return np.array([
+        [q0 * q0 + q1 * q1 - q2 * q2 - q3 * q3, 2.0 * (q1 * q2 - q0 * q3), 2.0 * (q1 * q3 + q0 * q2)],
+        [2.0 * (q1 * q2 + q0 * q3), q0 * q0 - q1 * q1 + q2 * q2 - q3 * q3, 2.0 * (q2 * q3 - q0 * q1)],
+        [2.0 * (q1 * q3 - q0 * q2), 2.0 * (q2 * q3 + q0 * q1), q0 * q0 - q1 * q1 - q2 * q2 + q3 * q3],
+    ])
+
+
+def rot(x, r):
+    """x @ r without BLAS (improvements_analyses.rotate_rows)."""
+    return improved.rotate_rows(x, r)
 
 
 def as_f32(x):
@@ -193,12 +192,12 @@ def general_cases():
             for kind in ("none", kinds[1 + count % 3]):
                 count += 1
                 a = as_f32(rng.normal(size=(n, 3)) * rng.choice([3.0, 15.0, 40.0]) + rng.normal(size=3) * 30)
-                b = as_f32(a @ rotation() + rng.normal(size=3) * 20 + rng.normal(size=(n, 3)) * noise)
+                b = as_f32(rot(a, rotation()) + rng.normal(size=3) * 20 + rng.normal(size=(n, 3)) * noise)
                 case(f"general_noise_{noise:g}", a, b, weights_for(n, kind))
     # beyond numpy's 128-element pairwise-summation block (the sum of the weights)
     for n, noise in [(129, 0.0), (129, 0.5), (300, 1e-6), (300, 2.0)]:
         a = as_f32(rng.normal(size=(n, 3)) * 15 + rng.normal(size=3) * 30)
-        b = as_f32(a @ rotation() + rng.normal(size=3) * 20 + rng.normal(size=(n, 3)) * noise)
+        b = as_f32(rot(a, rotation()) + rng.normal(size=3) * 20 + rng.normal(size=(n, 3)) * noise)
         case(f"general_noise_{noise:g}", a, b, weights_for(n, "masses"))
     # identical inputs (MDATK's reference frame against itself), translated and rotated copies
     for n in [3, 4, 5, 9, 24, 100]:
@@ -207,20 +206,20 @@ def general_cases():
             w = weights_for(n, kind)
             case("identical", a, a.copy(), w)
             case("translated", a, a + np.array([1.5, -2.25, 40.0]), w)
-            case("rotated", a, a @ rotation(), w)
+            case("rotated", a, rot(a, rotation()), w)
     # coplanar sets (unique optimal rotation, a doubly degenerate inertia only)
     for n in [3, 4, 6, 12]:
         a = rng.normal(size=(n, 3)) * 8
         a[:, 2] = 1.25
-        b = a @ rotation() + rng.normal(size=(n, 3)) * 0.3
+        b = rot(a, rotation()) + rng.normal(size=(n, 3)) * 0.3
         case("planar", a, b)
         b = a + rng.normal(size=(n, 3)) * 0.3
         b[:, 2] = -3.0
-        case("planar_both", a, b @ rotation())
+        case("planar_both", a, rot(b, rotation()))
     # magnitudes
     for mag in [1e-6, 1e-3, 1e3, 1e6]:
         a = rng.normal(size=(10, 3)) * mag
-        case("magnitude", a, a @ rotation() + rng.normal(size=(10, 3)) * mag * 0.01)
+        case("magnitude", a, rot(a, rotation()) + rng.normal(size=(10, 3)) * mag * 0.01)
 
 
 def degenerate_cases():
@@ -234,7 +233,7 @@ def degenerate_cases():
         if k < 6:
             b = a.copy()
         elif k < 11:
-            b = as_f32(a @ rotation() * rng.choice([1.0, 1.05]) + rng.normal(size=3))
+            b = as_f32(rot(a, rotation()) * rng.choice([1.0, 1.05]) + rng.normal(size=3))
         else:
             b = as_f32(a + rng.normal(size=(2, 3)) * 0.5)
         case("two_atoms", a, b, w, degenerate=True)
@@ -243,16 +242,16 @@ def degenerate_cases():
         d = rng.normal(size=3)
         a = np.outer(rng.normal(size=n) * 6, d) + rng.normal(size=3) * 4
         if k < 4:
-            b = a @ rotation() * 1.1
+            b = rot(a, rotation()) * 1.1
         elif k < 8:
-            b = a @ rotation() + rng.normal(size=(n, 3)) * 0.3
+            b = rot(a, rotation()) + rng.normal(size=(n, 3)) * 0.3
         else:
             b = a.copy()
         case("collinear", a, b, degenerate=True)
     for k in range(4):  # collinear in float32 (MDATK's inputs) up to rounding
         n = 4 + k
         a = as_f32(np.outer(np.arange(n) * 1.5, [0.3, -0.7, 0.2]) + 10)
-        case("collinear_f32", a, as_f32(a @ rotation() + 2), degenerate=True)
+        case("collinear_f32", a, as_f32(rot(a, rotation()) + 2), degenerate=True)
     for n in [2, 5]:  # coincident atoms
         a = np.tile([[3.0, -1.0, 7.5]], (n, 1))
         case("coincident", a, a.copy(), degenerate=True)
@@ -260,7 +259,7 @@ def degenerate_cases():
     # weights that leave one or two atoms
     n = 8
     a = rng.normal(size=(n, 3)) * 6
-    b = a @ rotation() + rng.normal(size=(n, 3)) * 0.2
+    b = rot(a, rotation()) + rng.normal(size=(n, 3)) * 0.2
     for w in ([0, 0, 0, 0, 0, 0, 0, 1.0], [0, 0, 5.0, 0, 0, 0, 0, 0], [1.0, 0, 0, 0, 0, 0, 0, 2.0]):
         case("weights_few", a, b, w, degenerate=True)
 
@@ -268,7 +267,7 @@ def degenerate_cases():
 def special_cases():
     n = 6
     a = rng.normal(size=(n, 3)) * 6
-    b = a @ rotation() + rng.normal(size=(n, 3)) * 0.2
+    b = rot(a, rotation()) + rng.normal(size=(n, 3)) * 0.2
     for where, value in [("a", np.nan), ("b", np.nan), ("a", np.inf), ("b", -np.inf)]:
         x, y = a.copy(), b.copy()
         (x if where == "a" else y)[2, 1] = value

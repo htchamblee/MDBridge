@@ -530,7 +530,10 @@ MDBridge's improvements of the analyses (docs/DIFFERENCES.md, "Analyses") are ap
 side by `tests/parity/improvements_analyses.py`: `make_analysis_cases.py`,
 `make_analysis_framework_cases.py`, `make_pipeline_cases.py` and `cli_parity.py` (its MDATK child)
 patch MDATK with it, and `make_rmsd_cases.py` records MDBridge's values for the improved RMSD cases
-("improved", "near", "mdanalysis"). The covalent radii of the bond guess come from
+("improved", "near", "mdanalysis"). The energy step of `tests/parity/improvements_periodic.py` takes
+integer powers through libm's `pow` (`math.pow`, as `energy.cpp` does) and the net force's length as
+`sqrt((x*x + y*y) + z*z)`: numpy's `**` uses SVML's `pow` on AVX-512 CPUs and `np.linalg.norm` of a
+vector BLAS' `ddot`, both of which made `cli/cli_cases.json` depend on the CPU. The covalent radii of the bond guess come from
 `data/sources/covalent_radii` through `tools/gen_covalent_radii.py` (`src/analysis/covalent_radii.inc`).
 
 The tests share one helper header, `tests/analysis/analysis_test_support.hpp` (case files, micro
@@ -694,9 +697,12 @@ specifications `docs/specs/m3-rmsd.md` and `m3-universe-notes.md`:
 | `universe_files/*` | the crafted inputs of `universe_cases.json`: `frag_conect.pdb` (CONECT records out of order, four fragments), `conect_lonely.pdb` (a CONECT record without partners), `cell_*.nc` / `.dcd` / `.xtc` / `.trr` (cells with a zero length, zero lengths, all zeros, a zero angle, orthorhombic) |
 
 Floats are `float.hex()` strings. Both generators run MDAnalysis with the independent tables (first
-section); neither imports MDATK (its checkout is only the common first argument). No LAPACK result is
-recorded, so the files do not depend on the CPU (`make_rmsd_cases.py --report` prints the spread
-between MDAnalysis and an SVD superposition that the spec's tolerances rest on). To regenerate, with
+section); neither imports MDATK (its checkout is only the common first argument). Nothing recorded
+goes through LAPACK or BLAS, whose kernels are chosen per CPU: the random rotations come from
+quaternions and are applied elementwise, and the exact superposition RMSD of the improved values is
+computed in plain floats (`improvements_analyses.exact_rmsd`, Horn's quaternion by Jacobi rotations
+as in `rmsd_qcp.cpp`), so the files do not depend on the CPU (`make_rmsd_cases.py --report` prints the
+spread between MDAnalysis and that exact superposition that the spec's tolerances rest on). To regenerate, with
 Python 3.13 and MDAnalysis 2.11.0 in `/opt/mdbridge-venv` (the output is reproducible; the universe
 cases read `io/loader/files` and `io/trajectories`, so run those generators first):
 
