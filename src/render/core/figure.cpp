@@ -255,9 +255,10 @@ void Axes::clear() {
     for (Axis* a : {&xaxis, &yaxis}) {
         Axis fresh = makeAxis(a->direction);
         fresh.labelOpposite = a->labelOpposite;
-        fresh.ticks = a->ticks;  // Matplotlib's cla keeps the tick parameters
-        fresh.label.font.size = a->label.font.size;
-        fresh.label.color = a->label.color;
+        // Matplotlib's cla keeps the tick parameters but turns the grid off (rcParams axes.grid)
+        // and gives the axis label rcParams' colour and size (black, 10 pt)
+        fresh.ticks = a->ticks;
+        fresh.ticks.gridOn = false;
         *a = std::move(fresh);
     }
     for (Text& t : titles) {

@@ -29,7 +29,7 @@
  "dpi": 60,
  "watermark": "",
  "positions": [0,12,23],
- "improvements": [],
+ "improvements": ["RN-01","RN-04","RN-14"],
  "frames": [
   {
    "pos": 0,

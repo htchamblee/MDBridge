@@ -38,7 +38,8 @@ Status of the items (see the plan for the full text):
   RN-17  video positions with a stride skip the last frame: kept (convention, no patch)
   RN-21 ... RN-25  residue shading, orientation and the example dataset: improvements_shading.py
 
-None of them is patched yet (milestone 4, wave 0: the generators and this skeleton).
+Patched so far: RN-01, RN-04, RN-14 (the plot panels, W2-A; src/render/panels/plots.cpp). The
+others are MDATK's behaviour until their chunk fills them in.
 
 RN-26 ... RN-29 (the software 3D renderer, W1-B; src/render/molecule/software.cpp) change only the
 renderer's own images, which make_molecule_cases.py alone records: it calls
@@ -60,10 +61,10 @@ from __future__ import annotations
 # item -> function(mdatk modules are importable) that patches MDATK in this process, or None while
 # the item is not implemented in MDBridge (the expected data is then MDATK's behaviour)
 PATCHES = {
-    "RN-01": None,
+    "RN-01": "_rn01_heatmap_column_edges",
     "RN-02": None,
     "RN-03": None,
-    "RN-04": None,
+    "RN-04": "_rn04_heatmap_vmin_above_vmax",
     "RN-05": None,
     "RN-06": None,
     "RN-07": None,
@@ -73,12 +74,107 @@ PATCHES = {
     "RN-11": None,
     "RN-12": None,
     "RN-13": None,
-    "RN-14": None,
+    "RN-14": "_rn14_nan_aware_running_mean",
     "RN-15": None,
     "RN-16": None,
     "RN-17": None,  # a documented convention, never patched
 }
 
+
+
+def _rn01_heatmap_column_edges():
+    """HeatmapPanel: the frame cells span the midpoints between frame times, half a step outward at
+    both ends (MDATK: every column t[1] - t[0] wide, misplaced for non-uniform times). The image
+    keeps imshow's extent (first and last edge) and carries the edges as ``_mdbridge_x_edges``,
+    which mpl_walker.py records as the image's "x_edges" (MDBridge draws columns of their own
+    widths). Uniform times: MDATK's cells; one frame: t0 -/+ 0.5 as MDATK; a matrix whose column
+    count is not the frame count keeps MDATK's cells."""
+    import numpy as np
+    from mdatk.render import panels
+
+    original = panels.HeatmapPanel.setup
+
+    def setup(self):
+        original(self)
+        t = np.asarray(self.ctx.time, dtype=np.float64)
+        images = self.ax.get_images()
+        if not images or len(t) == 0:
+            return
+        im = images[0]
+        if im.get_array().shape[1] != len(t):
+            return
+        if len(t) == 1:
+            edges = np.array([t[0] - 0.5, t[0] + 0.5])
+        else:
+            edges = np.empty(len(t) + 1)
+            edges[0] = t[0] - (t[1] - t[0]) / 2
+            edges[1:-1] = (t[:-1] + t[1:]) / 2
+            edges[-1] = t[-1] + (t[-1] - t[-2]) / 2
+        left, right, bottom, top = im.get_extent()
+        im.set_extent((float(edges[0]), float(edges[-1]), bottom, top))
+        im._mdbridge_x_edges = [float(e) for e in edges]
+
+    panels.HeatmapPanel.setup = setup
+
+
+def _rn04_heatmap_vmin_above_vmax():
+    """HeatmapPanel (sequential maps): vmin above vmax (the options, or vmin above the largest
+    value) swapped, with a warning. MDATK did not raise (the plan's premise): its colour bar ran
+    nonsingular() on the reversed norm through its callbacks, which set vmin while the old vmax was
+    still in place, so vmin 5 / vmax 1 became 0.9 / 5 (an artefact of the callback order) without a
+    word; Matplotlib alone raises "minvalue must be less than or equal to maxvalue" at draw time.
+    A negative-valued matrix with the default vmin 0 never failed (vmax is at least 1e-9)."""
+    import numpy as np
+    from mdatk.render import panels
+
+    original = panels.HeatmapPanel.setup
+
+    def setup(self):
+        try:
+            m = self.ctx.dataset.matrix(self.spec.series[0]) if self.spec.series else None
+        except KeyError:
+            m = None
+        if m is not None and m.values.size and not (m.kind == "class" and m.classes):
+            values = np.ma.masked_invalid(np.asarray(m.values, dtype=np.float64))
+            vmax = float(self.options.get("vmax", 0) or (values.max() if values.count() else 1.0))
+            vmax = max(vmax, 1e-9)
+            vmin = float(self.options.get("vmin", 0.0))
+            if vmin > vmax:
+                panels.log.warning("heatmap %s: vmin %s is above vmax %s; using vmin %s, vmax %s", m.key,
+                                   f"{vmin:g}", f"{vmax:g}", f"{vmax:g}", f"{vmin:g}")
+                self.options = {**self.options, "vmin": vmax, "vmax": vmin}
+        original(self)
+
+    panels.HeatmapPanel.setup = setup
+
+
+def _rn14_nan_aware_running_mean():
+    """_running_mean (the time-series panel and the series charts): the mean of the finite values
+    of each window (edge padding and the window clipped to the series as MDATK), NaN only where the
+    whole window is not finite (MDATK: np.convolve spread one NaN over every window it fell in)."""
+    import numpy as np
+    from mdatk.render import charts, panels
+
+    def running_mean(y, window):
+        if window <= 1 or len(y) < 2:
+            return y
+        window = min(window, len(y))
+        pad_l = window // 2
+        pad_r = window - 1 - pad_l
+        padded = np.pad(np.asarray(y, dtype=np.float64), (pad_l, pad_r), mode="edge")
+        finite = np.isfinite(padded)
+        out = np.empty(len(y))
+        for i in range(len(y)):
+            w, f = padded[i:i + window], finite[i:i + window]
+            n = int(f.sum())
+            total = 0.0
+            for v in w[f]:  # left to right, as MDBridge sums
+                total += float(v)
+            out[i] = total / n if n else np.nan
+        return out
+
+    panels._running_mean = running_mean
+    charts._running_mean = running_mean
 
 
 def _rn26_antialias_with_neighbours():
@@ -134,6 +230,9 @@ def _rn27_fast_odd_sizes():
 
     sw._Cam.__init__ = init
 
+
+# PATCHES names the functions defined above (they follow the table)
+PATCHES = {k: (globals()[v] if isinstance(v, str) else v) for k, v in PATCHES.items()}
 
 # the software renderer's items (make_molecule_cases.py), applied by apply_software_renderer()
 SOFTWARE_RENDERER = {
