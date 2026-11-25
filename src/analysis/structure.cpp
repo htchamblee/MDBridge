@@ -28,6 +28,7 @@
 #include "mdbridge/analysis/spatial.hpp"
 #include "mdbridge/core/json.hpp"
 #include "mdbridge/core/selections.hpp"
+#include "mdbridge/io/pdb.hpp"
 #include "mdbridge/core/text.hpp"
 
 namespace mdbridge::analysis {
@@ -434,6 +435,17 @@ public:
         res.arrays.emplace_back("resid", NumArray(resids(t, m_residues)));
         res.arrays.emplace_back("resname", NumArray::strings(resnames, 8));
         res.arrays.emplace_back("chain_name", NumArray(core::chainNames(t, m_residues)));
+        // a backbone atom per residue: the sequence panel takes a nucleotide name (but not the
+        // detergent LDA's) for a nucleotide only with one (MDATK 0.1.x; render::oneLetter)
+        std::vector<bool> backbone;
+        for (const std::int32_t r : m_residues) {
+            std::vector<std::string> names;
+            for (const std::int32_t a : t.residueAtoms(r)) {
+                names.push_back(t.name(a));
+            }
+            backbone.push_back(io::hasBackboneAtoms(names));
+        }
+        res.arrays.emplace_back("backbone", NumArray(backbone));
         return res;
     }
 

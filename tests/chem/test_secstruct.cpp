@@ -476,7 +476,9 @@ TEST(Secstruct, NonNucleotidesHaveNoRules) {
 
 TEST(Secstruct, RowsOutOfRange) {
     const std::vector<std::string> names = {"G", "C"};
-    const std::vector<AtomIndex> index = {{{"N1", 0}, {"N2", 1}, {"O6", 2}}, {{"N3", 3}, {"O2", 4}, {"N4", 9}}};
+    // (C1': a backbone atom, without which a residue is no nucleotide, NA-01)
+    const std::vector<AtomIndex> index = {{{"N1", 0}, {"N2", 1}, {"O6", 2}, {"C1'", 0}},
+                                          {{"N3", 3}, {"O2", 4}, {"N4", 9}, {"C1'", 3}}};
     const PairDetector det(names, index);
     EXPECT_THROW(det.candidates(std::vector<double>(15, 0.0)), std::out_of_range);
     EXPECT_THROW(det.candidates(std::vector<double>(4, 0.0)), std::invalid_argument);

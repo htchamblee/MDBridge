@@ -48,7 +48,7 @@ expected data is adjusted on the test side; generated files are never edited by 
   improvement of this release: energy 2 (AN-01-AN-05, AN-07, AN-08, RD-P12's float64 charges,
   SEL-13, AN-25-AN-27), hbonds 2 (AN-01-AN-04, AN-09, AN-10, SEL-13), rmsd 2 (AN-16-AN-18), proximity 2 (AN-01-AN-04,
   AN-15, SEL-13), atoms 3 (AN-13, AN-14, SEL-13), contacts 2 and mg 2 (AN-01-AN-04, SEL-13),
-  basepairs 2 (AN-01-AN-04, AN-11, SEL-13), stacking 2 (AN-01-AN-04, AN-12) and trace 5 (SEL-13). The test side gives MDATK's analyses these
+  basepairs 2 (AN-01-AN-04, AN-11, SEL-13, NA-01), stacking 2 (AN-01-AN-04, AN-12, NA-01) and trace 5 (SEL-13, NA-01). The test side gives MDATK's analyses these
   versions from one table, tests/parity/analysis_versions.py, which regenerate_all.py checks against
   the C++ descriptors.
 
@@ -867,6 +867,42 @@ hbonds 2, rmsd 2, proximity 2, atoms 3 ("Analysis cache" above has every analysi
 - **Unknown structure groups (AN-21).** `WARNING: structural view: unknown residue group 'X' ignored`
   from the trace analysis' setup (once per run of the structural view; MDATK: silent). *Tested:*
   demo_dry_variants structure_unknown_group.
+
+## Nucleotide names: DNA, L-DNA and CCD components (src/io/pdb.cpp, src/chem/secstruct.cpp)
+
+- **NA-01 L-DNA names, the CCD's own atom names and the backbone guard** (follows MDATK 0.1.1
+  `mdatk/pdbtools.py` `parse_residue_name`, `has_backbone_atoms`, `standard_atom_name`, and their
+  readers `secstruct.PairDetector`, `analysis/basepairs.py`, `analysis/stacking.py` `ring_atoms`,
+  `analysis/structure.py`'s trace flag `backbone`, `render/molecule/topology.py`,
+  `render/residues.py` `one_letter` and the sequence panel; MDATK 0.0.13 - 0.0.17). MDATK 0.0.4.1
+  read D-DNA (DA, DA5, DA3, DAN, THY ...) but no L-DNA, took any residue named like a nucleotide for
+  one, and looked for the standard atom names only. MDBridge:
+  - reads the L-DNA names: the CCD's L-deoxyribonucleotides 0DA 0DC 0DG 0DT, and MDATK's own LDA LDC
+    LDG LDT (LDA5 / LDA3 / LDAN in older files) as L-DNA A C G T (`io::parseResidueName`; the
+    sequence panel, base pairs and the molecule view's base colours). MDATK 0.0.4.1: `X` / no base;
+  - takes a residue for a nucleotide by its name only when it has a backbone atom (a primed name,
+    an old-style `*` or P; `io::hasBackboneAtoms`): in the CCD, LA and RA are the lanthanum and
+    radium ions and LDA a detergent, which neither pair (the base-pair detector) nor show as `A` in
+    the sequence panel (through the trace's new per-row array `backbone`; a trace cached without it
+    reads the names alone, as 0.1.x does);
+  - reads the atoms that the CCD names its own way in 0DA (adenine N9A, C8A, N7A, C5A, C6A, N6A, N1A,
+    C2A, N3A, C4A; H8A, H2A, HN61, HN62; H2P on a protonated OP2) and 0DT (C5M, the methyl carbon) by
+    their standard names (N9 ... C7; `io::standardAtomName`) in the base-pair detector, the stacking
+    rings and the molecule topology, so their pairs, rings and bonds are found. An atom of the
+    standard name wins over a renamed one in the detector.
+
+  The tables come from the CCD (data/sources/ccd/l_deoxyribonucleotide_atoms.tsv, cut by
+  `tools/extract_ccd.py`: the released L-DNA linking components whose atoms and bonds match DA, DC,
+  DG or DT, each atom with the matching standard atom by a graph match that keeps names where the
+  bonds allow), not from MDATK's or MDAnalysis' tables; the result is the same as 0.1.x's
+  `CCD_ATOM_NAMES`. Not adopted here: 0.1.x's PDB reading and writing of the components' names
+  (`read_pdb` / `write_pdb`), its naming schemes and the `pdb clean` changes (the PDB tools). The
+  cache versions of base pairs (2), stacking (2) and the trace (5) already differ from MDATK's
+  ("Analysis cache"). *Tested:* chem/secstruct_cases.json (`residue_names`; detector cases `L-DNA
+  0DA with CCD atom names`, `LDA without a backbone`, `LA without a backbone`), io/pdb/pdb_cases.json
+  (`residue_names`), render/shading one_letter, `Pdb.BackboneAtomsAndComponentAtomNames`,
+  `Shading.OneLetterNeedsABackbone`; the trace's `backbone` array in every analysis case. Expected
+  data: tests/parity/improvements_nucleotides.py.
 
 ## Rendering (milestone 4): overview
 

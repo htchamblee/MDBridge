@@ -35,6 +35,12 @@ used), each with its CCD element:
 check_collisions() verifies the written tables against these rules and the run fails if one is
 left. The dropped entries are listed in comments of the output.
 
+Nucleotide components (ccd/l_deoxyribonucleotide_atoms.tsv): kIndLDeoxyribonucleotides lists the
+CCD's L-deoxyribonucleotides (0DA, 0DC, 0DG, 0DT) with their base, and kIndComponentAtomNames the
+atoms of those that the CCD names otherwise than the same atom of the standard residue (0DA's N9A
+... HN61, H2P; 0DT's C5M), with the standard name. The residue readers (io::parseResidueName,
+io::standardAtomName) use them.
+
 Residue-scoped ion elements (MDBridge's own rule, beyond MDAnalysis). The name-only rules cannot
 tell a calcium ion named CA from a carbon alpha, so kIndResidueAtomElements lists (residue name,
 atom name, element) for atoms whose element the residue decides: every CCD one-atom component
@@ -413,6 +419,17 @@ def hg_cl_residues() -> tuple[list[str], list[str]]:
 
 # --- output ---------------------------------------------------------------------------------------
 
+def l_deoxyribonucleotides() -> tuple[list[tuple[str, str]], list[tuple[str, str, str]]]:
+    """The CCD's L-DNA mirror images of DA DC DG DT (ccd/l_deoxyribonucleotide_atoms.tsv): (residue,
+    base) and (residue, atom name, standard atom name) for the atoms named otherwise than in the
+    standard residue (0DA's N9A is N9 ...)."""
+    rows = read_tsv("ccd", "l_deoxyribonucleotide_atoms.tsv")
+    bases = sorted({(r["comp_id"], r["base"]) for r in rows})
+    names = sorted({(r["comp_id"], r["atom_id"], r["standard_atom_id"]) for r in rows
+                    if r["atom_id"] != r["standard_atom_id"]})
+    return bases, names
+
+
 def cstr(s: str) -> str:
     return '"' + s.replace("\\", "\\\\").replace('"', '\\"') + '"'
 
@@ -521,6 +538,31 @@ def main() -> int:
                         "CCD components in which the atom named HG is mercury.")
     out += string_array("kIndChlorineClResidues", cl,
                         "CCD components in which the atom named CL is chlorine.", per_line=10)
+    ldna, own_names = l_deoxyribonucleotides()
+    out += ["// ---- Nucleotide components of the CCD ----", "",
+            "struct IndResidueBase {",
+            "    std::string_view residue;",
+            "    char base;  // A C G T",
+            "};",
+            "",
+            "// The CCD's L-deoxyribonucleotides: the L-DNA linking components whose atoms and bonds are those of",
+            "// DA, DC, DG or DT (their mirror images), sorted.",
+            "inline constexpr IndResidueBase kIndLDeoxyribonucleotides[] = {"]
+    for res, b in ldna:
+        out.append(f"    {{{cstr(res)}, '{b}'}},")
+    out += ["};", "",
+            "struct IndComponentAtomName {",
+            "    std::string_view residue;",
+            "    std::string_view name;      // the component's own name",
+            "    std::string_view standard;  // the name of the same atom in the standard residue",
+            "};",
+            "",
+            "// Atoms of those components named otherwise than the same atom of the standard residue (0DA's",
+            "// N9A is DA's N9), sorted by residue then name.",
+            "inline constexpr IndComponentAtomName kIndComponentAtomNames[] = {"]
+    for res, name, std_name in own_names:
+        out.append(f"    {{{cstr(res)}, {cstr(name)}, {cstr(std_name)}}},")
+    out += ["};", ""]
     text = "\n".join(out).rstrip("\n") + "\n"
     with open(OUTPUT, "w", encoding="utf-8", newline="\n") as fh:
         fh.write(text)

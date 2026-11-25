@@ -12,7 +12,8 @@ into the checkout. The output is reproducible (fixed random seeds). Writes pdb_c
               SIGATM / SIGUIJ, MASTER, records after END, CONECT variants, serial and residue
               number wraps, lower-case records, Unicode, line ends, broken fields, random mutations
   files       read_pdb of a file (bytes as hex): strict UTF-8, universal newlines
-  residue_names parse_residue_name of every name of up to three characters over an alphabet
+  residue_names parse_residue_name of every name of up to three characters over an alphabet (with
+              MDBridge's L-DNA names, NA-01: improvements_nucleotides.py)
   insert      annotate._insert_records
   transform   builder.transform_pdb_text (ANISOU included), or None / the error
   tail        builder._tail, or the error
@@ -38,6 +39,9 @@ import numpy as np  # noqa: E402
 
 from mdatk import annotate, builder  # noqa: E402
 from mdatk import pdbtools as pt  # noqa: E402
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import improvements_nucleotides  # noqa: E402  (NA-01: the L-DNA names of parse_residue_name)
 
 spec = importlib.util.spec_from_file_location("mdatk_test_pdbtools",
                                               os.path.join(CHECKOUT, "tests", "test_pdbtools.py"))
@@ -313,10 +317,11 @@ def residue_name_cases():
     for n in (1, 2, 3):
         names.update("".join(p) for p in itertools.product(alphabet, repeat=n))
     names.update(["ADE", "cyt", " GUA ", "URA", "URI", "THY", "thy", "RAN", "LA5 ", "0A3", "DAN", "DT5",
-                  "LT", "0T", "RT", "ADEN", "ıA", "ɐ", "A5\n", "\tG\t", "AAAA", "ﬀ"])
+                  "LT", "0T", "RT", "ADEN", "ıA", "ɐ", "A5\n", "\tG\t", "AAAA", "ﬀ",
+                  "LDA5", "LDT3", "LDGN", "ldc", " 0dt ", "LDU", "0DU", "LDA6", "0DAN"])
     out = []
     for name in sorted(names):
-        r = pt.parse_residue_name(name)
+        r = improvements_nucleotides.parse_residue_name(name)  # NA-01: also L-DNA names
         out.append([name, None if r is None else [r.base, r.sugar, r.chirality, r.terminal]])
     return out
 

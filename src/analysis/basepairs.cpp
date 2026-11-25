@@ -34,6 +34,7 @@
 #include "mdbridge/chem/secstruct.hpp"
 #include "mdbridge/core/errors.hpp"
 #include "mdbridge/core/selections.hpp"
+#include "mdbridge/io/pdb.hpp"
 
 namespace mdbridge::analysis {
 
@@ -76,6 +77,8 @@ public:
                         c = '\'';  // old-style primes
                     }
                 }
+                // a CCD component's own names (0DA's N1A ...) by the standard ones (MDATK 0.1.x)
+                name = io::standardAtomName(t.resname(r), name);
                 // first alternate location wins
                 if (names.emplace(std::move(name), static_cast<std::int64_t>(m_atoms.size())).second) {
                     m_atoms.push_back(a);

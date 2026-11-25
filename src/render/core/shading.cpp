@@ -219,8 +219,8 @@ void resetWarnOnce() {
     warned().clear();
 }
 
-std::string oneLetter(std::string_view resname) {
-    if (const auto info = io::parseResidueName(resname)) {
+std::string oneLetter(std::string_view resname, std::optional<bool> backbone) {
+    if (const auto info = backbone != false ? io::parseResidueName(resname) : std::nullopt) {
         return std::string(1, info->base);
     }
     static const std::map<std::string, char, std::less<>> amino{
@@ -248,6 +248,18 @@ std::string oneLetter(std::string_view resname) {
     }
     const auto it = amino.find(key);
     return std::string(1, it != amino.end() ? it->second : 'X');
+}
+
+std::optional<std::vector<bool>> backboneFlags(const AnalysisResult& trace) {
+    const NumArray* flags = trace.array("backbone");
+    if (flags == nullptr) {
+        return std::nullopt;
+    }
+    std::vector<bool> out;
+    for (const double v : flags->toDouble()) {
+        out.push_back(v != 0.0);
+    }
+    return out;
 }
 
 std::vector<std::string> chainNames(const AnalysisResult& trace) {

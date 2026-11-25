@@ -307,6 +307,8 @@ def apply_mdatk():
 
     improvements_selections.patch_mdatk(mdatk_selections)
     improvements_periodic.apply_mdatk()
+    import improvements_nucleotides  # NA-01: L-DNA names, CCD atom names, backbone guard
+    improvements_nucleotides.apply_mdatk()
 
     import mdatk.analysis as analysis_pkg
     import mdatk.analysis.base as base

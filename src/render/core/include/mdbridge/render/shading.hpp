@@ -70,8 +70,15 @@ void warnOnce(const std::string& message);
 void resetWarnOnce();
 
 // one_letter: the base letter of a nucleotide in any naming scheme (io::parseResidueName: G5, RA,
-// LG, 0A, DT ...), the amino-acid code (incl. HID / HIE / HIP / CYX), else "X".
-std::string oneLetter(std::string_view resname);
+// LG, 0A, DT, 0DA, LDA ...), the amino-acid code (incl. HID / HIE / HIP / CYX), else "X".
+// `backbone` (MDATK 0.1.x): whether the residue has a backbone atom (a primed atom or P;
+// backboneFlags); a residue without one is no nucleotide whatever its name parses as (the detergent
+// LDA, a lanthanum ion LA); nullopt (not known: a trace cached without the flags): the name decides.
+std::string oneLetter(std::string_view resname, std::optional<bool> backbone = std::nullopt);
+
+// backbone_flags (MDATK 0.1.x): per trace row, whether the residue has a backbone atom (the trace's
+// "backbone" array); nullopt for a trace without it.
+std::optional<std::vector<bool>> backboneFlags(const core::AnalysisResult& trace);
 
 // chain_names: the chain letters of the trace rows ("chain_name" when any is non-empty; else
 // letters A..Z from the chain index, modulo 26).
