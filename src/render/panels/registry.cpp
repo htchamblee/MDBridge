@@ -10,6 +10,7 @@
 #include "mdbridge/core/panels.hpp"
 #include "mdbridge/core/python.hpp"
 #include "mdbridge/render/panels/panel.hpp"
+#include "mdbridge/render/panels/seqpanels.hpp"
 
 namespace mdbridge::render::panels {
 
@@ -23,6 +24,7 @@ const std::map<std::string, PanelFactory, std::less<>>& factories() {
         };
 
         add(plotPanels());  // W2-A: timeseries, dual_axis, heatmap, contact_map
+        add(residuePanels());  // W2-C: sequence, secondary
 
         return m;
     }();

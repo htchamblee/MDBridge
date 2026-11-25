@@ -453,6 +453,10 @@ CASES = [
      "No data: dot-bracket of the wrong length"),
     ("secondary_dotbracket_empty", "demo_dry", layout("single_strip", S, P("secondary", source="dotbracket")), {},
      "No data: no dot-bracket"),
+    ("sequence_per_row_invalid", "demo_dry", layout("single_strip", S, P("sequence", per_row=-3)), {},
+     "No data: a negative per_row (RN-40)"),
+    ("secondary_source_unknown", "demo_dry", layout("single_strip", S, P("secondary", source="dynamc")), {},
+     "No data: an unknown source (RN-41)"),
     # three chains (synthetic)
     ("chains_sequence", "three_chains", layout("single_strip", S, SEQ) + [s("visual.color_mode", "chain")], {},
      "three chains: chain labels in the gaps, wrapping, warning"),

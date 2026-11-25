@@ -26,7 +26,7 @@
   "workflow": {"project_name":"project","stamp":"","use_stamp":true,"out_dir":"","step_folders":true,"nodes":[],"edges":[],"scratch":[]}
  },
  "stamp": "",
- "improvements": [],
+ "improvements": ["RN-40","RN-41","RN-42"],
  "paths": ["{out}/out/MDATK_chart_rmsd_Complex.jpg","{out}/out/MDATK_chart_rmsd_Complex.eps"],
  "log": ["Wrote 2 chart file(s) to {out}/out"],
  "progress": [["0x1.0000000000000p+0","Chart rmsd/Complex"]],
