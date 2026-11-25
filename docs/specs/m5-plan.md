@@ -331,6 +331,9 @@ Chunks needing owner decisions first: W0-B (D5, D6, D8, D9), W1-A (D1, D2, D3, D
 
 ## 7. Owner decisions (one line each, with recommendation)
 
+All decided by the owner on 2026-11-25: every recommendation below is accepted; D4 as amended.
+Also accepted: the pre-M5 fix wave from the MDATK 0.1.1 comparison (section 5).
+
 - **D1 RNAdo split**: recommend M5 builds the analysis window only; in M7 the planner, wizard, PDB
   clean-up and builder become a second program `rnado` (AppImage action, Start-menu entry) as MDATK
   0.0.11 did.
@@ -339,8 +342,11 @@ Chunks needing owner decisions first: W0-B (D5, D6, D8, D9), W1-A (D1, D2, D3, D
   empty windows.
 - **D3 Look**: recommend Qt's Fusion style on both platforms with the system light / dark scheme
   (Qt 6.5+) and native file dialogs (XDG portal on Linux).
-- **D4 Window layout**: recommend MDATK's (page buttons, 520 px side bar, canvas right, log fold,
-  action bar), with MDBridge's 3D view as a tab beside the figure canvas (M4 put it above the preview).
+- **D4 Window layout**: MDATK's (page buttons, 520 px side bar, canvas right, log fold, action bar).
+  **Decided:** the separate live 3D view of M1/M4 is removed; the canvas's structure panel is the
+  3D view (rotate, zoom, map move in place, as MDATK), drawn by the Vulkan renderer while dragging
+  when a GPU is available, else the software renderer. A dedicated 3D window may return later if it
+  earns a purpose (builder, M6; very large systems).
 - **D5 Undo**: recommend undo / redo (Ctrl+Z, Ctrl+Shift+Z) of whole-project snapshots for every edit
   and canvas action (a drag = one step), not persisted (MDATK has none).
 - **D6 Unsaved changes and auto-save**: recommend a modified marker, the Save / Discard / Cancel
