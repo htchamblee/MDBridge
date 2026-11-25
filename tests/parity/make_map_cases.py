@@ -61,6 +61,9 @@ from mdatk import cli  # noqa: E402
 from mdatk import density as D  # noqa: E402
 from mdatk.io.mrc import DensityMap, MapError, read_map, write_map  # noqa: E402
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import improvements_cli  # noqa: E402
+
 OUT = os.path.abspath(sys.argv[2])
 FILES = os.path.join(OUT, "files")
 U64 = np.uint64
@@ -382,7 +385,8 @@ def read_cases(files):
             if isinstance(exc, MapError):
                 if deviation not in (None, "shorter"):
                     raise SystemExit(f"{name}: MapError {message!r}, expected {deviation}")
-                case["error"] = message
+                # mrc.cpp's wording: the byte-order problems with the path (improvements_cli.py, CLI-04)
+                case["error"] = improvements_cli.improve_map_message(message, data, "{path}")
             else:
                 case["python"] = {"type": type(exc).__name__, "message": message}
                 if deviation == "eof":  # truncated gzip: where the data ends decides the message

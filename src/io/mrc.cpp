@@ -494,7 +494,7 @@ DensityMap readMap(const fs::path& path) {
             }
         }
         if (!found) {
-            throw MapError("cannot determine the byte order of the map header");
+            fail(name, "cannot determine the byte order of the map header");  // MDATK: without the path
         }
     }
     const auto word = [&raw, big](std::size_t k) {
@@ -512,6 +512,11 @@ DensityMap readMap(const fs::path& path) {
     const std::int32_t nsymbt = word(23);
     const core::Vec3 originField{real(49), real(50), real(51)};
 
+    // CLI-04: a MODE or cell angles that only make sense in the other byte order mean a wrong machine
+    // stamp (or guess), not an unsupported map
+    if (!supportedMode(mode) && supportedMode(detail::loadI32(raw.data() + 12, !big))) {
+        fail(name, "cannot determine the byte order of the map header (mode " + std::to_string(mode) + ")");
+    }
     if (!supportedMode(mode)) {
         fail(name, "unsupported MRC mode " + std::to_string(mode) + " (supported: 0, 1, 2, 6, 12)");
     }
@@ -532,6 +537,19 @@ DensityMap readMap(const fs::path& path) {
     const bool skewed = std::any_of(angles.begin(), angles.end(),
                                     [](double a) { return std::abs(a - 90.0) > 0.01; });
     const bool positive = std::all_of(angles.begin(), angles.end(), [](double a) { return a > 0; });
+    const bool swappedOrthogonal = [&raw, big] {
+        for (std::size_t k = 13; k < 16; ++k) {
+            if (!(std::abs(static_cast<double>(detail::loadF32(raw.data() + 4 * k, !big)) - 90.0) <= 0.01)) {
+                return false;
+            }
+        }
+        return true;
+    }();
+    if (skewed && positive && swappedOrthogonal) {
+        fail(name, "cannot determine the byte order of the map header (cell angles [" +
+                       core::pythonFloatRepr(angles[0]) + ", " + core::pythonFloatRepr(angles[1]) + ", " +
+                       core::pythonFloatRepr(angles[2]) + "])");
+    }
     if (skewed && positive) {
         fail(name, "non-orthogonal cell angles [" + core::pythonFloatRepr(angles[0]) + ", " +
                        core::pythonFloatRepr(angles[1]) + ", " + core::pythonFloatRepr(angles[2]) +

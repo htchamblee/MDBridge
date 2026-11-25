@@ -205,13 +205,27 @@ public:
                 read(oneTrajectory ? Value(Array{value}) : value, at, member);
             });
             if (!known) {
-                warn(where + ": ignoring unknown key " + repr(key));
+                warn(where + ": ignoring unknown key " + repr(key) + unknownKeyHint<T>(key));
             }
         }
         out = std::move(result);
     }
 
 private:
+    // The folders of Project that are properties, not fields (PRJ-07): name the field to set.
+    template <class T>
+    static std::string unknownKeyHint([[maybe_unused]] std::string_view key) {
+        if constexpr (std::is_same_v<T, Project>) {
+            if (key == "out_dir" || key == "cache_dir") {
+                return " (did you mean output." + std::string(key) + "?)";
+            }
+            if (key == "workflow_dir") {
+                return " (did you mean workflow.out_dir?)";
+            }
+        }
+        return {};
+    }
+
     template <class T>
     static std::string_view alias(std::string_view key) {
         if constexpr (std::is_same_v<T, InputParams>) {
@@ -533,6 +547,78 @@ std::vector<std::string> densityProblems(const Project& project) {
     return out;
 }
 
+namespace {
+
+// _out_key of the RMSD analysis: re.sub(r"[^A-Za-z0-9_.+\-]+", "_", label).strip("_") or "target<k>"
+std::string rmsdDataKey(std::string_view label, std::size_t k) {
+    std::string key;
+    bool inRun = false;
+    for (const char c : label) {
+        const bool keep = (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') ||
+                          c == '_' || c == '.' || c == '+' || c == '-';
+        if (keep) {
+            key += c;
+        } else if (!inRun) {
+            key += '_';
+        }
+        inRun = !keep;
+    }
+    const std::size_t first = key.find_first_not_of('_');
+    if (first == std::string::npos) {
+        return "target" + std::to_string(k);
+    }
+    return key.substr(first, key.find_last_not_of('_') - first + 1);
+}
+
+}  // namespace
+
+std::vector<std::string> analysisParameterProblems(const Project& project) {
+    std::vector<std::string> out;
+    const AnalysisParams& a = project.analyses;
+    // a cutoff, radius or tolerance: a finite number > 0 (NaN fails every comparison)
+    const auto positive = [&out](double value, std::string_view what) {
+        if (!(value > 0)) {
+            out.push_back(std::string(what) + " must be positive.");
+        } else if (!std::isfinite(value)) {
+            out.push_back(std::string(what) + " must be finite.");
+        }
+        return value > 0 && std::isfinite(value);
+    };
+    const auto angle = [&out](double value, std::string_view what) {
+        if (!(0 <= value && value <= 180)) {
+            out.push_back(std::string(what) + " must be between 0 and 180 degrees.");
+        }
+    };
+    positive(a.contacts.cutoff, "Contact cutoff");
+    positive(a.hbonds.distance_cutoff, "H-bond distance cutoff");
+    angle(a.hbonds.angle_cutoff, "H-bond angle cutoff");
+    const bool inner = positive(a.mg.inner_cutoff, "Mg inner-sphere cutoff");
+    const bool outer = positive(a.mg.outer_cutoff, "Mg outer-sphere cutoff");
+    if (inner && outer && a.mg.inner_cutoff > a.mg.outer_cutoff) {
+        out.push_back("Mg inner-sphere cutoff must not exceed the outer-sphere cutoff.");
+    }
+    positive(a.mg.angle_tolerance, "Mg angle tolerance");
+    positive(a.stacking.distance_cutoff, "Stacking distance cutoff");
+    angle(a.stacking.angle_cutoff, "Stacking angle cutoff");
+    positive(a.stacking.offset_cutoff, "Stacking offset cutoff");
+    positive(a.stacking.planarity_cutoff, "Stacking planarity cutoff");
+    positive(a.energy.cutoff, "Energy cutoff");
+    positive(a.energy.dielectric, "Energy dielectric constant");
+    positive(a.proximity_search_radius, "Proximity search radius");
+    const std::vector<RMSDTarget>& targets = a.rmsd.targets;
+    for (std::size_t j = 1; j < targets.size(); ++j) {
+        const std::string key = rmsdDataKey(targets[j].label, j);
+        for (std::size_t i = 0; i < j; ++i) {
+            if (rmsdDataKey(targets[i].label, i) == key) {
+                out.push_back("RMSD targets " + std::to_string(i + 1) + " and " + std::to_string(j + 1) +
+                              " give the same data key " + repr(key) + "; rename one.");
+                break;
+            }
+        }
+    }
+    return out;
+}
+
 std::vector<std::string> validate(const Project& project) {
     std::vector<std::string> problems;
     const InputParams& in = project.inputs;
@@ -587,11 +673,8 @@ std::vector<std::string> validate(const Project& project) {
             }
         }
     }
-    if (a.contacts.cutoff <= 0) {
-        problems.push_back("Contact cutoff must be positive.");
-    }
-    if (a.mg.inner_cutoff > a.mg.outer_cutoff) {
-        problems.push_back("Mg inner-sphere cutoff must not exceed the outer-sphere cutoff.");
+    for (std::string& problem : analysisParameterProblems(project)) {
+        problems.push_back(std::move(problem));
     }
     const VisualParams& v = project.visual;
     if (!oneOf(v.color_mode, {"chain", "groups", "proximity"})) {

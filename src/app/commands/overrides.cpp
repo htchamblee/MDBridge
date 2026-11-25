@@ -125,6 +125,8 @@ void applyOverride(core::Project& project, std::string_view assignment) {
                     inRange = -size <= k && k < size;
                 } catch (const std::overflow_error&) {
                     inRange = false;  // beyond 64 bits: outside any list
+                } catch (const core::ValueError&) {
+                    inRange = false;  // "--1": MDATK reports int()'s "invalid literal" (PRJ-04)
                 }
             }
             if (!inRange) {

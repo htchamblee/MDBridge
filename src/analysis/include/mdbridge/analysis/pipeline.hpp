@@ -101,7 +101,8 @@ public:
     // video is on, the instances of charted series ("<instance>/<output>") when charts are on
     // (video / charts: the project's output settings when not given), without "external";
     // instances instanceProject rejects are left out with the log line
-    // "WARNING: skipping data source '<instance>': <error>" (in sorted order; MDATK's order is
+    // "WARNING: skipping data source '<instance>': <error>" (a KeyError's message without the
+    // quotes MDATK prints, CLI-01; in sorted order; MDATK's order is
     // that of a Python set). Sorted by registry index, then instance id.
     std::vector<std::string> requiredAnalyses(std::optional<bool> video = std::nullopt,
                                               std::optional<bool> charts = std::nullopt) const;
@@ -112,7 +113,8 @@ public:
     // 0.02 - 1 part) and are stored; then the trajectory is back on frame 0, as MDATK's iteration
     // over a frame list leaves it. Without names, the frame axis alone (times read frame by frame).
     // Then the dataset (time unit inputs.time_unit), display overrides, external data
-    // (PipelineError("external data: <reason>")), the manifest, progress(1, "analysis done").
+    // (PipelineError("external data: <reason>"); the files are first read once before the frame
+    // loop, so such an error comes before the analyses run: CLI-02), the manifest, progress(1, "analysis done").
     // Throws std::out_of_range / core::ValueError for unknown analyses and bad instances,
     // core::ValueError for empty frame selections, core::Cancelled, and what the analyses and the
     // readers throw.

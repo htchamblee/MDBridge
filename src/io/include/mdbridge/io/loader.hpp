@@ -33,8 +33,8 @@ core::System loadSystem(const std::filesystem::path& topology, const std::vector
                         std::optional<double> dtPs = std::nullopt);
 
 // frame_indices(n_frames, start, stop, step): Python slice semantics. Throws core::ValueError
-// ("frame step must be >= 1", "frame selection start=5 stop=None step=1 selects no frames
-// (trajectory has 24)").
+// ("frame step must be >= 1", "frame selection start=5 stop=end step=1 selects no frames
+// (trajectory has 24)"; MDATK prints stop=None: CLI-03).
 std::vector<std::int64_t> frameIndices(std::int64_t frameCount, std::int64_t start = 0,
                                        std::optional<std::int64_t> stop = std::nullopt, std::int64_t step = 1);
 

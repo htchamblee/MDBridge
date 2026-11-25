@@ -71,6 +71,10 @@ import improvements_analyses  # noqa: E402
 
 improvements_analyses.apply_mdatk()  # MDATK with MDBridge's analysis improvements (docs/DIFFERENCES.md)
 
+import improvements_cli  # noqa: E402
+
+improvements_cli.apply()  # MDBridge's improvements (validation, external data before the frame loop, ...)
+
 import numpy as np  # noqa: E402
 
 import mdatk.cleaning.cpptraj as cpptraj  # noqa: E402
@@ -396,7 +400,8 @@ def sequences():
 
 
 def main():
-    data = {"required": required_cases(), "sequences": sequences()}
+    # MDBridge's wording of KeyErrors and empty frame selections (improvements_cli.py, CLI-01 / CLI-03)
+    data = improvements_cli.improve_strings({"required": required_cases(), "sequences": sequences()})
     os.makedirs(OUT, exist_ok=True)
     with open(os.path.join(OUT, "pipeline_cases.json"), "w", encoding="utf-8", newline="\n") as fh:
         json.dump(data, fh, indent=1, ensure_ascii=False, allow_nan=False)

@@ -15,6 +15,12 @@
 //   128 KiB read-ahead may check it (and raise) earlier.
 // - Header sizes beyond the file (up to 2^93 bytes) raise "{path}: file is shorter than its header
 //   says" without allocating them (Python: MemoryError or that message).
+// - Byte order (CLI-04): "{path}: cannot determine the byte order of the map header" carries the
+//   path; a MODE that is unsupported in the stamped (or guessed) byte order but supported in the
+//   other one gives "{path}: cannot determine the byte order of the map header (mode 33554432)",
+//   and skewed positive cell angles that are all 90 degrees in the other byte order give "... (cell
+//   angles [6.466431893473301e-41, ...])" (MDATK: "unsupported MRC mode" / "non-orthogonal cell
+//   angles").
 // - Statistics: min / max of maps holding both +0.0 and -0.0 as the extreme may differ from numpy
 //   in the sign of the zero (numpy's SIMD reduction order depends on the CPU); a NaN result keeps
 //   the first NaN's bits.

@@ -669,7 +669,8 @@ Value toPlain(const Project& project);
 // Throws ProjectError with MDATK's message for the first entry (in the order of `data`) that has
 // the wrong type, e.g. "project.analyses.contacts.cutoff: expected a number, got 'far'".
 // Unknown keys are reported to `warnings` (or, when it is null, logged as warnings), e.g.
-// "project.inputs: ignoring unknown key 'bogus'". Aliases: [input] for [inputs], and
+// "project.inputs: ignoring unknown key 'bogus'"; the Project properties out_dir, cache_dir and
+// workflow_dir at the top add a hint, "(did you mean output.out_dir?)" (PRJ-07). Aliases: [input] for [inputs], and
 // inputs.trajectory (a string or a list) for inputs.trajectories.
 //
 // Deviations, where MDATK has no usable behaviour: an integer field given an integral number
@@ -735,8 +736,20 @@ bool densityActive(const Project& project);
 
 // Every problem of the project in MDATK's order and words (empty when it can be run). Files are
 // looked up relative to the current directory. The defaults give
-// {"No topology file selected.", "No trajectory file selected."}.
+// {"No topology file selected.", "No trajectory file selected."}. Where MDATK checks only
+// contacts.cutoff <= 0 and Mg inner > outer, the problems of analysisParameterProblems() take
+// their place (docs/DIFFERENCES.md, PRJ-01 / PRJ-03).
 std::vector<std::string> validate(const Project& project);
+
+// The numeric analysis parameters and the RMSD data keys, in this order: every cutoff, radius
+// and tolerance finite and > 0 ("Contact cutoff must be positive." / "... must be finite.":
+// contacts, H-bond distance, Mg inner / outer sphere, Mg angle tolerance, stacking distance /
+// offset / planarity, energy cutoff and dielectric constant, proximity search radius), the
+// H-bond and stacking angle cutoffs in [0, 180] ("... must be between 0 and 180 degrees."),
+// the Mg inner-sphere cutoff not above the outer one (when both are valid), and RMSD targets
+// whose labels give the same data key ("RMSD targets 1 and 2 give the same data key 'A_B';
+// rename one.").
+std::vector<std::string> analysisParameterProblems(const Project& project);
 
 // The density-map part of validate().
 std::vector<std::string> densityProblems(const Project& project);

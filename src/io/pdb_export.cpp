@@ -287,6 +287,15 @@ std::vector<std::filesystem::path> exportFrames(
     std::filesystem::create_directories(outDir);
     const std::int64_t count = system.trajectory->frameCount();
     const std::size_t width = std::max<std::size_t>(5, std::to_string(count).size());
+    // CLI-08: every frame's coordinates are checked before the first file is written (MDATK stops at
+    // the first bad frame and leaves the files written before it)
+    for (const std::int64_t f : frames) {
+        if (!validCoordinates(system.trajectory->seek(f).positions, atoms)) {
+            throw core::ValueError("PDB files must have coordinate values between -1000.000 and 9999.999 "
+                                   "Angstroem: frame " + std::to_string(f) +
+                                   " is outside this range; no files were written.");
+        }
+    }
     const core::TrajectoryInfo info = system.trajectory->info();
     std::vector<std::filesystem::path> paths;
     for (std::size_t k = 0; k < frames.size(); ++k) {

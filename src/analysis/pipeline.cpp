@@ -79,6 +79,17 @@ std::string lower(std::string text) {
     return text;
 }
 
+// load_external(specs, dataset), its errors as "external data: <message>"
+core::AnalysisResult externalData(const core::Project& p, const core::Dataset& dataset) {
+    try {
+        return io::loadExternal(p.inputs.external, dataset);
+    } catch (const core::ValueError& e) {
+        throw PipelineError(std::string("external data: ") + e.what());
+    } catch (const fs::filesystem_error& e) {
+        throw PipelineError("external data: " + core::pythonOsErrorText(e));
+    }
+}
+
 }  // namespace
 
 // ---- cleaning -----------------------------------------------------------------------------------
@@ -294,9 +305,8 @@ std::vector<std::string> Pipeline::requiredAnalyses(std::optional<bool> video, s
     for (const std::string& instance : names) {
         try {  // the affected panels / charts report "No data"
             instanceProject(p, instance);
-        } catch (const std::out_of_range& e) {  // MDATK's KeyError: str() is the repr of the message
-            m_reporter.log("WARNING: skipping data source " + core::pythonStringRepr(instance) + ": " +
-                           core::pythonStringRepr(e.what()));
+        } catch (const std::out_of_range& e) {  // MDATK's KeyError prints the repr of the message (CLI-01)
+            m_reporter.log("WARNING: skipping data source " + core::pythonStringRepr(instance) + ": " + e.what());
             continue;
         } catch (const core::ValueError& e) {
             m_reporter.log("WARNING: skipping data source " + core::pythonStringRepr(instance) + ": " + e.what());
@@ -370,6 +380,11 @@ core::Dataset Pipeline::analyze(const std::optional<std::vector<std::string>>& r
             contexts.push_back(std::make_unique<AnalysisContext>(system, projects.at(n), inputs.topology, rep));
             analyses.push_back(analysisFor(n).create(*contexts.back(), n));
         }
+        if (!p.inputs.external.empty()) {
+            // CLI-02: a missing or unreadable external file fails before the frame loop, not after
+            // it (MDATK); the files are read again onto the analysed frames below
+            externalData(p, core::Dataset({}, {}, {}, p.inputs.time_unit));
+        }
         const core::Reporter runReporter = rep.sub(0.02, 1.0);
         RunResult run = runAnalyses(*contexts.front(), analyses, idx, &runReporter, RunOptions{m_threads});
         system.trajectory->seek(0);  // MDATK iterates trajectory[idx], which rewinds to frame 0
@@ -399,13 +414,7 @@ core::Dataset Pipeline::analyze(const std::optional<std::vector<std::string>>& r
     }
     applyDisplayOverrides(dataset);
     if (!p.inputs.external.empty()) {
-        try {
-            dataset.add(io::loadExternal(p.inputs.external, dataset));
-        } catch (const core::ValueError& e) {
-            throw PipelineError(std::string("external data: ") + e.what());
-        } catch (const fs::filesystem_error& e) {
-            throw PipelineError("external data: " + core::pythonOsErrorText(e));
-        }
+        dataset.add(externalData(p, dataset));
     }
     Table frameSelection{{"start", p.inputs.start},
                          {"stop", p.inputs.stop ? Value(*p.inputs.stop) : Value()},

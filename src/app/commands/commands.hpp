@@ -77,7 +77,8 @@ void applyOverride(core::Project& project, std::string_view assignment);
 std::string jsonForConsole(const core::Value& value);
 
 // str(exc) of the Python exception MDATK raises where C++ throws `error` (OSError texts for
-// file-system errors, the repr for KeyError, the message otherwise).
+// file-system errors, the message otherwise). A KeyError (std::out_of_range) gives its message
+// without the quotes of Python's str(KeyError) (docs/DIFFERENCES.md, CLI-01).
 std::string pythonErrorText(const std::exception& error);
 
 }  // namespace mdbridge::app
