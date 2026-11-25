@@ -383,3 +383,30 @@ TEST(Selections, PythonIntAndFloat) {
         }
     }
 }
+
+// SEL-13: an atom without an element is guessed from its own name; the others keep theirs, whatever
+// group they are in (MDATK guesses the whole group from names as soon as one element is missing).
+TEST(Selections, ElementFallbackPerAtom) {
+    auto topology = std::make_shared<Topology>();
+    Topology& t = *topology;
+    const char* names[] = {"CL1", "C2", "EP1", "MG"};
+    const char* elements[] = {"Cl", "C", "", "Mg"};
+    for (std::size_t a = 0; a < 4; ++a) {
+        t.names.push_back(t.strings.intern(names[a]));
+        t.atomResidue.push_back(a < 3 ? 0 : 1);
+    }
+    t.elements = std::vector<std::uint32_t>{};
+    for (const char* e : elements) {
+        t.elements->push_back(t.strings.intern(e));
+    }
+    t.resids = {1, 2};
+    t.resnames = {t.strings.intern("LIG"), t.strings.intern("MG")};
+    t.residueSegment = {0, 0};
+    t.segids = {t.strings.intern("A")};
+    t.finish();
+    const AtomGroup all(topology, std::vector<std::int32_t>{0, 1, 2, 3});
+    EXPECT_EQ(atomElements(all), (std::vector<std::string>{"CL", "C", "E", "MG"}));
+    const AtomGroup ligand(topology, std::vector<std::int32_t>{0, 3});
+    EXPECT_EQ(atomElements(ligand), (std::vector<std::string>{"CL", "MG"}));
+    EXPECT_EQ(elementFilter(all, {"Cl"}).indices(), (std::vector<std::int32_t>{0}));
+}

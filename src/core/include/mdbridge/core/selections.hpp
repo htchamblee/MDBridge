@@ -40,7 +40,10 @@ std::string rangesToSelection(std::string_view text, const Topology* topology = 
 // "(<selection>)" of a group (its selection wins over its residues).
 std::string groupSelection(const ResidueGroup& group, const Topology* topology = nullptr);
 
-// Every group:<Name> replaced by the group's selection, recursively (at most 8 levels).
+// Every group:<Name> replaced by the group's selection, recursively (at most 8 levels). The name
+// runs to the next whitespace or parenthesis; the first group of a name wins. A name a group may
+// not have ([A-Za-z0-9_.-]+), or a defined group with such a name written after "group:", is an
+// error ("group name 'bad name' may only contain letters, digits, '_', '.' and '-'").
 std::string expandGroups(std::string_view text, const std::vector<ResidueGroup>& groups,
                          const Topology* topology = nullptr);
 
@@ -58,7 +61,7 @@ AtomGroup select(const System& system, std::string_view text, const std::vector<
 // Upper-case element of an atom name ("C4'" -> "C"; ions of single-atom residues -> "MG", "NA" ...).
 std::string guessElement(std::string_view name, std::string_view resname = {}, bool singleAtomResidue = false);
 
-// Upper-case element per atom: the topology's when every atom of the group has one, else guessed.
+// Upper-case element per atom: the topology's, or guessed from that atom's name when it has none.
 std::vector<std::string> atomElements(const AtomGroup& atoms);
 std::vector<bool> heavyMask(const AtomGroup& atoms);
 AtomGroup heavy(const AtomGroup& atoms);

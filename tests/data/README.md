@@ -66,6 +66,13 @@ and `residue_rule_pdb_text` (the name column of the files the export generator r
 / H), lone ions named the CCD way and the force-field way, `CD2`/`CD`, `EMC`/`HG`, and `K+`/`K+`,
 which no source names (name rule: K).
 
+**Selection improvements (docs/DIFFERENCES.md "Selections").** `tests/parity/improvements_selections.py`
+turns MDAnalysis' and MDATK's selection answers into MDBridge's: `make_atom_selection_cases.py`
+passes every case through its model of MDBridge's grammar (checked against MDAnalysis wherever
+MDBridge keeps its answer), and `make_selections_cases.py`, `make_analysis_framework_cases.py` and
+`cli_parity.py` replace MDATK's group expansion, `select()`, `atom_elements` and the cache keys'
+group lookup with MDBridge's behaviour.
+
 `projects/` holds project files; `expected/` holds what MDATK v0.0.4.1 (the reference
 implementation) reads from each of them. `tests/core/test_project_file.cpp` checks that MDBridge
 reads every file in `projects/` the same way, byte for byte in the JSON form of the result.

@@ -176,9 +176,10 @@ ExpectedOutputs expectedKeys(const core::Project& project, bool includeDisabled)
 }
 
 core::Array referencedGroups(const std::vector<std::string>& texts, const core::Project& project) {
-    std::map<std::string, const core::ResidueGroup*> byName;  // a repeated name: its last group
+    // a repeated name: its first group, the one selections use (MDATK: the last)
+    std::map<std::string, const core::ResidueGroup*> byName;
     for (const core::ResidueGroup& g : project.groups) {
-        byName[g.name] = &g;
+        byName.emplace(g.name, &g);
     }
     std::map<std::string, core::Table> seen;  // sorted by name, as sorted() of Python strings
     std::vector<std::string> stack(texts.begin(), texts.end());

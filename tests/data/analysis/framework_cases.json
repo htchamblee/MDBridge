@@ -9745,14 +9745,14 @@
       ]
      ],
      "cache_keys": [
-      "2dc386138890bd2a",
-      "05bb59c502c4ff27"
+      "fe0530635e19fe5f",
+      "5a6ed875bd3850fa"
      ],
      "referenced_groups": [
       {
        "name": "Aptamer",
-       "residues": "7-12",
-       "selection": "group:Target"
+       "residues": "1-6",
+       "selection": ""
       },
       {
        "name": "Target",
@@ -9898,14 +9898,14 @@
       ]
      ],
      "cache_keys": [
-      "23b8bb266d390ef6",
-      "c7e0683b30698056"
+      "6a04150ea5b24462",
+      "cebc2d586d7cd849"
      ],
      "referenced_groups": [
       {
        "name": "Aptamer",
-       "residues": "7-12",
-       "selection": "group:Target"
+       "residues": "1-6",
+       "selection": ""
       },
       {
        "name": "Target",
@@ -9995,14 +9995,14 @@
       ]
      ],
      "cache_keys": [
-      "3e3be7e238b68737",
-      "1c71200210535911"
+      "3733bb92469ee161",
+      "be6a6e29589cf9a3"
      ],
      "referenced_groups": [
       {
        "name": "Aptamer",
-       "residues": "7-12",
-       "selection": "group:Target"
+       "residues": "1-6",
+       "selection": ""
       },
       {
        "name": "Target",
@@ -10062,14 +10062,14 @@
       ]
      ],
      "cache_keys": [
-      "7038d348823ab7f5",
-      "90c06571b7869102"
+      "a735ef428f4448fe",
+      "63fc4c5a922b0ab0"
      ],
      "referenced_groups": [
       {
        "name": "Aptamer",
-       "residues": "7-12",
-       "selection": "group:Target"
+       "residues": "1-6",
+       "selection": ""
       },
       {
        "name": "Target",
@@ -10142,14 +10142,14 @@
       ]
      ],
      "cache_keys": [
-      "03bc48e3bf088b2f",
-      "0f4b892476fbce48"
+      "f28937444f023c45",
+      "48e133debd27dfb2"
      ],
      "referenced_groups": [
       {
        "name": "Aptamer",
-       "residues": "7-12",
-       "selection": "group:Target"
+       "residues": "1-6",
+       "selection": ""
       },
       {
        "name": "Target",
@@ -10198,14 +10198,14 @@
       ]
      ],
      "cache_keys": [
-      "ef01128179c68b3a",
-      "ea18304263d6cfc0"
+      "a333c837b52f71f3",
+      "360f79c0476f3a5e"
      ],
      "referenced_groups": [
       {
        "name": "Aptamer",
-       "residues": "7-12",
-       "selection": "group:Target"
+       "residues": "1-6",
+       "selection": ""
       },
       {
        "name": "Target",
@@ -10261,14 +10261,14 @@
       ]
      ],
      "cache_keys": [
-      "59a9db1fee0339f8",
-      "4315094dfab5bf50"
+      "c4788787f7585902",
+      "40b5a55b1076962d"
      ],
      "referenced_groups": [
       {
        "name": "Aptamer",
-       "residues": "7-12",
-       "selection": "group:Target"
+       "residues": "1-6",
+       "selection": ""
       },
       {
        "name": "Target",
@@ -10317,14 +10317,14 @@
       ]
      ],
      "cache_keys": [
-      "b29a303cb7c7db8f",
-      "6e1ff45b7708b72d"
+      "f4742defbde54daa",
+      "3fd2fcc205e732f7"
      ],
      "referenced_groups": [
       {
        "name": "Aptamer",
-       "residues": "7-12",
-       "selection": "group:Target"
+       "residues": "1-6",
+       "selection": ""
       },
       {
        "name": "Target",
@@ -10385,14 +10385,14 @@
       ]
      ],
      "cache_keys": [
-      "7117baf2f55456e8",
-      "5db51fe0b06e900d"
+      "1f1694cb88f6bc9c",
+      "f81e0a5cb5626d21"
      ],
      "referenced_groups": [
       {
        "name": "Aptamer",
-       "residues": "7-12",
-       "selection": "group:Target"
+       "residues": "1-6",
+       "selection": ""
       },
       {
        "name": "Target",
@@ -10498,12 +10498,7 @@
      [
       {
        "name": "Aptamer",
-       "residues": "7-12",
-       "selection": "group:Target"
-      },
-      {
-       "name": "Target",
-       "residues": "13-24",
+       "residues": "1-6",
        "selection": ""
       }
      ]
@@ -10703,14 +10698,14 @@
        ]
       ],
       "cache_keys": [
-       "2dc386138890bd2a",
-       "05bb59c502c4ff27"
+       "fe0530635e19fe5f",
+       "5a6ed875bd3850fa"
       ],
       "referenced_groups": [
        {
         "name": "Aptamer",
-        "residues": "7-12",
-        "selection": "group:Target"
+        "residues": "1-6",
+        "selection": ""
        },
        {
         "name": "Target",
@@ -10791,14 +10786,14 @@
        ]
       ],
       "cache_keys": [
-       "d68b88f72cefa495",
-       "7e6a3c91b260f83e"
+       "649204dd609bbbe2",
+       "c02c88e41738dd0a"
       ],
       "referenced_groups": [
        {
         "name": "Aptamer",
-        "residues": "7-12",
-        "selection": "group:Target"
+        "residues": "1-6",
+        "selection": ""
        },
        {
         "name": "Target",
@@ -10920,14 +10915,14 @@
        ]
       ],
       "cache_keys": [
-       "2dc386138890bd2a",
-       "05bb59c502c4ff27"
+       "fe0530635e19fe5f",
+       "5a6ed875bd3850fa"
       ],
       "referenced_groups": [
        {
         "name": "Aptamer",
-        "residues": "7-12",
-        "selection": "group:Target"
+        "residues": "1-6",
+        "selection": ""
        },
        {
         "name": "Target",
@@ -11008,14 +11003,14 @@
        ]
       ],
       "cache_keys": [
-       "d68b88f72cefa495",
-       "7e6a3c91b260f83e"
+       "649204dd609bbbe2",
+       "c02c88e41738dd0a"
       ],
       "referenced_groups": [
        {
         "name": "Aptamer",
-        "residues": "7-12",
-        "selection": "group:Target"
+        "residues": "1-6",
+        "selection": ""
        },
        {
         "name": "Target",
@@ -11093,14 +11088,14 @@
        ]
       ],
       "cache_keys": [
-       "2dc386138890bd2a",
-       "05bb59c502c4ff27"
+       "fe0530635e19fe5f",
+       "5a6ed875bd3850fa"
       ],
       "referenced_groups": [
        {
         "name": "Aptamer",
-        "residues": "7-12",
-        "selection": "group:Target"
+        "residues": "1-6",
+        "selection": ""
        },
        {
         "name": "Target",
@@ -11276,14 +11271,14 @@
        ]
       ],
       "cache_keys": [
-       "ef01128179c68b3a",
-       "ea18304263d6cfc0"
+       "a333c837b52f71f3",
+       "360f79c0476f3a5e"
       ],
       "referenced_groups": [
        {
         "name": "Aptamer",
-        "residues": "7-12",
-        "selection": "group:Target"
+        "residues": "1-6",
+        "selection": ""
        },
        {
         "name": "Target",
@@ -11327,14 +11322,14 @@
        ]
       ],
       "cache_keys": [
-       "ef01128179c68b3a",
-       "ea18304263d6cfc0"
+       "a333c837b52f71f3",
+       "360f79c0476f3a5e"
       ],
       "referenced_groups": [
        {
         "name": "Aptamer",
-        "residues": "7-12",
-        "selection": "group:Target"
+        "residues": "1-6",
+        "selection": ""
        },
        {
         "name": "Target",
@@ -11557,14 +11552,14 @@
        ]
       ],
       "cache_keys": [
-       "27e57f59fc25c314",
-       "67b649606441d426"
+       "d30f34106a9a8782",
+       "ebfc15e4303d79de"
       ],
       "referenced_groups": [
        {
         "name": "Aptamer",
-        "residues": "7-12",
-        "selection": "group:Target"
+        "residues": "1-6",
+        "selection": ""
        },
        {
         "name": "Target",
@@ -11667,14 +11662,14 @@
        ]
       ],
       "cache_keys": [
-       "3e3be7e238b68737",
-       "1c71200210535911"
+       "3733bb92469ee161",
+       "be6a6e29589cf9a3"
       ],
       "referenced_groups": [
        {
         "name": "Aptamer",
-        "residues": "7-12",
-        "selection": "group:Target"
+        "residues": "1-6",
+        "selection": ""
        },
        {
         "name": "Target",

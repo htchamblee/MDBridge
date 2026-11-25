@@ -17,7 +17,9 @@ earlier `analyze` whose cache the case reuses; they must succeed), set environme
 MDATK runs in-process in one child interpreter (this script with --child), from MDATK_CHECKOUT
 (nothing is written into it), with MDBridge's independent data tables patched into MDAnalysis
 (independent_tables.py, tests/data/README.md): MDBridge deliberately uses its own residue,
-element and mass tables, so the reference is MDAnalysis' behaviour with those tables. The child
+element and mass tables, so the reference is MDAnalysis' behaviour with those tables, and with
+MDBridge's selection improvements (improvements_selections.py: group expansion, select(),
+atom_elements, the groups of the cache keys; docs/DIFFERENCES.md). The child
 needs Python 3.13 with MDATK's dependencies at the reference versions (MDAnalysis 2.11.0;
 requirements-regenerate.txt); EXE is the `mdbridge` program, the AppImage, or the test build's
 `mdbridge_commands_cli` (the same commands without the Qt front end).
@@ -518,6 +520,14 @@ def child(mdatk, jobs_file, results_file):
     import independent_tables
 
     independent_tables.apply()
+    # MDBridge's deliberate differences in the selections (improvements_selections.py)
+    import improvements_selections
+    from mdatk import selections
+
+    improvements_selections.patch_mdatk(selections)
+    from mdatk.analysis import base
+
+    improvements_selections.patch_mdatk_analysis_base(base)
     from mdatk import cli
 
     def run(argv):

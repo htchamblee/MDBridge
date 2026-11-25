@@ -13,7 +13,8 @@ src/core/atom_selection.cpp. Writes
                               far outside the cell) and the distance keywords evaluated on them
 
 Selected atoms are stored as [first, last] runs of indices. "error" is str(exception) (what MDATK
-puts in its messages); "unsupported" marks selections MDBridge rejects on purpose (smarts, cyzone,
+puts in its messages), except where MDBridge deliberately differs: improvements_selections.py turns
+MDAnalysis' answer into MDBridge's (SEL-01 ... SEL-10 of docs/IMPROVEMENTS.md); "unsupported" marks selections MDBridge rejects on purpose (smarts, cyzone,
 cylayer with coordinates, type_index), where MDAnalysis gives a result or an ImportError.
 MDATK_CHECKOUT is accepted for symmetry with the other generators; MDATK itself is not imported.
 """
@@ -32,6 +33,7 @@ warnings.filterwarnings("ignore")
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
+import improvements_selections  # noqa: E402
 import independent_tables  # noqa: E402
 
 independent_tables.apply()  # MDAnalysis with MDBridge's independent tables (tests/data/README.md)
@@ -64,11 +66,12 @@ def unsupported(sel, u):
 
 
 def evaluate(u, sel):
-    case = {"sel": sel}
     try:
-        case["atoms"] = runs(u.select_atoms(sel).indices)
+        answer = {"atoms": runs(u.select_atoms(sel).indices)}
     except Exception as exc:  # what MDATK's select() wraps
-        case["error"] = str(exc)
+        answer = {"error": str(exc)}
+    # MDBridge's deliberate differences (improvements_selections.py, docs/DIFFERENCES.md)
+    case = {"sel": sel, **improvements_selections.improve_case(u, sel, answer)}
     if unsupported(sel, u):
         case["unsupported"] = True
     return case
