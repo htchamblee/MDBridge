@@ -3,13 +3,18 @@
 // (data/analysis/micro_cases.json, demo_dry_cases.json, demo_dry_variants.json, systems_cases.json;
 // format in data/README.md and the generator's docstring):
 //
-//   * JSON accessors and float.hex() parsing;
+//   * JSON accessors, float.hex() parsing and the generator's tagged JSON ({"$float": ...});
 //   * microSystem(): the core::System of a micro system recorded as atoms + float32 frames (what
 //     MDATK's tests/conftest.make_universe builds), caseSystem(): the system of any case (micro, or
 //     topology / trajectory files loaded with io::loadSystem);
 //   * runCase(): one case run as the generator runs it (instance projects, cache keys, analyses
 //     created in order, the frames of inputs.start / stop / step, runAnalyses with one reporter),
 //     restricted to the instances a test covers, catching the error as {type, message};
+//     runCaseWithProbes(): every instance of a case, those not under test as probes, recording the
+//     frame current at each setup;
+//   * wrappers around an analysis: SeekBeforeSetup (the trajectory moved to MDATK's setup frame)
+//     and Recorded (a probe or a real analysis, recording its setup frame); both pass prepare()
+//     and concurrentProcess() through to the wrapped analysis;
 //   * comparison of arrays ({dtype, shape, values}), of tagged JSON (tables compared without regard
 //     to key order), of log lines restricted to the covered analyses, and the decision margins.
 
@@ -21,8 +26,10 @@
 #include <filesystem>
 #include <functional>
 #include <limits>
+#include <map>
 #include <memory>
 #include <optional>
+#include <span>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -85,6 +92,31 @@ inline std::vector<std::string> strings(const Value& value) {
         out.push_back(str(v));
     }
     return out;
+}
+inline std::vector<std::int64_t> integers(const Value& value) {
+    std::vector<std::int64_t> out;
+    for (const Value& v : list(value)) {
+        out.push_back(integer(v));
+    }
+    return out;
+}
+inline std::vector<double> hexFloats(const Value& value) {
+    std::vector<double> out;
+    for (const Value& v : list(value)) {
+        out.push_back(hexFloat(v));
+    }
+    return out;
+}
+
+// Doubles equal bit for bit up to NaN payloads: NaN equals NaN, 0.0 differs from -0.0.
+inline bool sameDouble(double a, double b) {
+    return (std::isnan(a) && std::isnan(b)) || (a == b && std::signbit(a) == std::signbit(b));
+}
+
+// One float32 ulp of |x| (the spacing above it)
+inline double ulp32(double x) {
+    const float f = static_cast<float>(std::abs(x));
+    return static_cast<double>(std::nextafter(f, std::numeric_limits<float>::infinity()) - f);
 }
 
 // The generator's tagged JSON: {"$float": "nan" | "inf" | "-inf"} stands for a non-finite float.
@@ -286,6 +318,18 @@ inline core::System caseSystem(const Value& file, const std::string& name, std::
     return io::loadSystem(dataPath(str(at(system, "topology"))), trajectories, dtPs);
 }
 
+// The topology file of the system `name` of a case file ("" for a micro system: MDATK's run_one
+// passes none).
+inline std::string caseTopologyPath(const Value& file, const std::string& name) {
+    if (const Value* top = at(at(file, "systems"), name).find("topology")) {
+        return dataPath(str(*top)).string();
+    }
+    return {};
+}
+
+// The project of a case, its tagged JSON read as a project file's plain data.
+inline core::Project caseProject(const Value& c) { return core::projectFromPlain(untag(at(c, "project"))); }
+
 // ---- running a case --------------------------------------------------------------------------------
 
 struct CaseError {
@@ -335,7 +379,7 @@ inline CaseRun runCase(const Value& file, const Value& c, const std::vector<std:
                        const analysis::RunOptions& options = {}) {
     CaseRun out;
     out.instances = instances;
-    const core::Project project = core::projectFromPlain(untag(at(c, "project")));
+    const core::Project project = caseProject(c);
     const core::Reporter reporter([&](const std::string& m) { out.logs.push_back(m); },
                                   [&](double f, const std::string& m) { out.progress.emplace_back(f, m); });
     const Value fingerprint = untag(at(c, "fingerprint"));
@@ -350,12 +394,7 @@ inline CaseRun runCase(const Value& file, const Value& c, const std::vector<std:
         for (std::size_t n = 0; n < instances.size(); ++n) {
             out.keys.push_back(analysis::analysisFor(instances[n]).cacheKey(projects[n], fingerprint));
         }
-        std::string topologyPath;
-        if (const Value* files = at(file, "systems").find(str(at(c, "system")))) {
-            if (const Value* top = files->find("topology")) {
-                topologyPath = dataPath(str(*top)).string();
-            }
-        }
+        const std::string topologyPath = caseTopologyPath(file, str(at(c, "system")));
         std::vector<std::unique_ptr<analysis::AnalysisContext>> contexts;
         std::vector<std::unique_ptr<analysis::Analysis>> analyses;
         for (std::size_t n = 0; n < instances.size(); ++n) {
@@ -407,6 +446,153 @@ inline std::vector<std::string> expectedLog(const Value& c, const std::vector<st
     return out;
 }
 
+// ---- wrapped analyses ------------------------------------------------------------------------------
+
+// Runs `inner` with the trajectory moved to `setupFrame` before its setup, as MDATK's run left it
+// (the rmsd analysis' setup seeks its reference frame; the atoms analysis guesses bonds from the
+// frame current at its setup).
+class SeekBeforeSetup final : public analysis::Analysis {
+public:
+    SeekBeforeSetup(std::unique_ptr<analysis::Analysis> inner, std::int64_t setupFrame)
+        : Analysis(inner->descriptor(), inner->context(), inner->instance()), m_inner(std::move(inner)),
+          m_setupFrame(setupFrame) {}
+
+    void setup(std::span<const std::int64_t> frames) override {
+        Analysis::setup(frames);
+        context().system().trajectory->seek(m_setupFrame);
+        m_inner->setup(frames);
+    }
+    void prepare(const core::Frame& first) override { m_inner->prepare(first); }
+    bool concurrentProcess() const override { return m_inner->concurrentProcess(); }
+    void process(std::size_t k, const core::Frame& frame) override { m_inner->process(k, frame); }
+    core::AnalysisResult finalize() override { return m_inner->finalize(); }
+
+private:
+    std::unique_ptr<analysis::Analysis> m_inner;
+    std::int64_t m_setupFrame;
+};
+
+// An instance of a run: the real analysis `inner`, or a probe (no `inner`: an analysis with the
+// descriptor's label and params that computes nothing); either records the trajectory frame
+// current at its setup in `setupFrames` (-1 when none).
+class Recorded final : public analysis::Analysis {
+public:
+    Recorded(const analysis::AnalysisDescriptor& d, analysis::AnalysisContext& context, std::string instance,
+             std::unique_ptr<analysis::Analysis> inner, std::map<std::string, std::int64_t>& setupFrames)
+        : Analysis(d, context, std::move(instance)), m_inner(std::move(inner)), m_setupFrames(&setupFrames) {}
+
+    void setup(std::span<const std::int64_t> frames) override {
+        const core::Frame* current = context().system().currentFrame();
+        (*m_setupFrames)[instance()] = current ? current->index : -1;
+        Analysis::setup(frames);
+        if (m_inner) {
+            m_inner->setup(frames);
+        }
+    }
+    void prepare(const core::Frame& first) override {
+        if (m_inner) {
+            m_inner->prepare(first);
+        }
+    }
+    bool concurrentProcess() const override { return !m_inner || m_inner->concurrentProcess(); }
+    void process(std::size_t k, const core::Frame& frame) override {
+        if (m_inner) {
+            m_inner->process(k, frame);
+        }
+    }
+    core::AnalysisResult finalize() override { return m_inner ? m_inner->finalize() : newResult(); }
+    bool real() const { return m_inner != nullptr; }
+
+private:
+    std::unique_ptr<analysis::Analysis> m_inner;
+    std::map<std::string, std::int64_t>* m_setupFrames;
+};
+
+// ---- running a case with probes --------------------------------------------------------------------
+
+struct ProbedRun {
+    core::Project project;
+    std::vector<std::string> instances;  // every instance of the case
+    std::vector<core::Project> projects;  // per instance
+    std::vector<std::int64_t> frames;
+    std::vector<std::string> log;
+    std::map<std::string, std::int64_t> setupFrames;
+    std::optional<CaseError> error;
+    analysis::RunResult run;
+    std::vector<bool> real;  // per instance: ran the analysis under test
+};
+
+// One run of every instance of a case as MDATK's Pipeline.analyze builds it: the analyses whose
+// name `underTest` accepts are created for real, the others run as probes (Recorded), so the frame
+// state across setups is that of the whole run. The project is read without untagging and with
+// its warnings collected (not logged); a ValueError / NamedError is caught as {type, message}.
+inline ProbedRun runCaseWithProbes(const Value& file, const Value& c,
+                                   const std::function<bool(const std::string&)>& underTest) {
+    ProbedRun out;
+    std::vector<std::string> warnings;
+    out.project = core::projectFromPlain(at(c, "project"), {}, &warnings);
+    const core::InputParams& inputs = out.project.inputs;
+    const std::string& systemName = str(at(c, "system"));
+    core::System system = caseSystem(file, systemName, inputs.dt_ps);
+    const std::string topologyPath = caseTopologyPath(file, systemName);
+    const core::Reporter reporter([&out](const std::string& m) { out.log.push_back(m); });
+    out.instances = strings(at(c, "instances"));
+    std::vector<std::unique_ptr<analysis::AnalysisContext>> contexts;
+    std::vector<std::unique_ptr<analysis::Analysis>> analyses;
+    try {
+        out.frames = io::frameIndices(system.trajectory->frameCount(), inputs.start, inputs.stop, inputs.step);
+        for (const std::string& instance : out.instances) {
+            out.projects.push_back(analysis::instanceProject(out.project, instance));
+        }
+        for (std::size_t i = 0; i < out.instances.size(); ++i) {
+            const std::string& instance = out.instances[i];
+            const analysis::AnalysisDescriptor& d = analysis::analysisFor(instance);
+            contexts.push_back(
+                std::make_unique<analysis::AnalysisContext>(system, out.projects[i], topologyPath, reporter));
+            std::unique_ptr<analysis::Analysis> inner;
+            if (underTest(d.name())) {
+                inner = d.create(*contexts.back(), instance);
+            }
+            out.real.push_back(inner != nullptr);
+            analyses.push_back(
+                std::make_unique<Recorded>(d, *contexts.back(), instance, std::move(inner), out.setupFrames));
+        }
+        out.run = analysis::runAnalyses(*contexts.front(), analyses, out.frames, &reporter);
+    } catch (const core::ValueError& e) {
+        out.error = caseError(e);
+    } catch (const core::NamedError& e) {
+        out.error = caseError(e);
+    }
+    return out;
+}
+
+// The recorded result of `instance` in a case, or nullptr.
+inline const Value* recordedResult(const Value& c, const std::string& instance) {
+    const Value* results = c.find("results");
+    if (!results) {
+        return nullptr;
+    }
+    for (const Value& r : list(*results)) {
+        if (str(at(r, "instance")) == instance) {
+            return &r;
+        }
+    }
+    return nullptr;
+}
+
+// The log lines of a case that a run with probes reproduces: all but the warnings of the other
+// analyses (warnings whose text does not start with `prefix`).
+inline std::vector<std::string> logWithoutOtherWarnings(const Value& c, std::string_view prefix) {
+    std::vector<std::string> out;
+    for (const std::string& line : strings(at(c, "log"))) {
+        if (line.rfind("WARNING: ", 0) == 0 && line.compare(9, prefix.size(), prefix) != 0) {
+            continue;
+        }
+        out.push_back(line);
+    }
+    return out;
+}
+
 // ---- arrays and margins ----------------------------------------------------------------------------
 
 // numpy's dtype.str of an array
@@ -421,6 +607,31 @@ inline std::string numpyDtype(const core::NumArray& a) {
     case core::NumArray::DType::String: return std::string(a.dtypeName());
     }
     return "?";
+}
+
+// The values of an integer array as int64 (empty for other types).
+inline std::vector<std::int64_t> integerValues(const core::NumArray& a) {
+    std::vector<std::int64_t> out;
+    switch (a.dtype()) {
+    case core::NumArray::DType::Int8:
+        for (const std::int8_t v : a.values<std::int8_t>()) {
+            out.push_back(v);
+        }
+        break;
+    case core::NumArray::DType::Int32:
+        for (const std::int32_t v : a.values<std::int32_t>()) {
+            out.push_back(v);
+        }
+        break;
+    case core::NumArray::DType::Int64:
+        for (const std::int64_t v : a.values<std::int64_t>()) {
+            out.push_back(v);
+        }
+        break;
+    default:
+        break;
+    }
+    return out;
 }
 
 struct ArrayDiff {
@@ -461,9 +672,7 @@ inline ArrayDiff compareArray(const Value& expected, const core::NumArray& actua
         } else {
             want = hexFloat(v);
         }
-        const bool same = (std::isnan(want) && std::isnan(got[n])) ||
-                          (want == got[n] && std::signbit(want) == std::signbit(got[n]));
-        if (!same) {
+        if (!sameDouble(want, got[n])) {
             diff.differing.push_back(n);
         }
     }
@@ -486,6 +695,23 @@ inline double smallestMargin(const Value& result) {
         }
     }
     return smallest;
+}
+
+// The smallest |margin| of analysed frame k over every quantity of a result's `margins` (+inf when
+// nothing was recorded for the frame).
+inline double frameMargin(const Value& margins, std::size_t k) {
+    double out = std::numeric_limits<double>::infinity();
+    const Value* frames = margins.find("frames");
+    if (!frames) {
+        return out;
+    }
+    for (const auto& [name, values] : *frames->get<Table>()) {
+        const Value& v = list(values).at(k);
+        if (!v.isNull()) {
+            out = std::min(out, std::abs(hexFloat(v)));
+        }
+    }
+    return out;
 }
 
 // A count that differs where the smallest margin is below this (and not an exact tie, margin 0) may

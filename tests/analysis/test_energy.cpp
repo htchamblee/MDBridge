@@ -15,10 +15,11 @@
 #include <cmath>
 #include <cstdint>
 #include <iostream>
-#include <limits>
 #include <iterator>
+#include <limits>
 #include <map>
 #include <memory>
+#include <optional>
 #include <span>
 #include <stdexcept>
 #include <string>
@@ -26,7 +27,7 @@
 
 #include <gtest/gtest.h>
 
-#include "analysis_test_support_energy.hpp"
+#include "analysis_test_support.hpp"
 #include "mdbridge/analysis/analyses.hpp"
 #include "mdbridge/analysis/analysis.hpp"
 #include "mdbridge/analysis/context.hpp"
@@ -37,10 +38,7 @@
 
 using namespace mdbridge;
 using namespace mdbridge::analysis;
-using namespace mdbridge::test::energy_support;
-using core::Array;
-using core::Table;
-using core::Value;
+using namespace mdbridge::test::analysis_cases;
 
 namespace {
 
@@ -55,22 +53,10 @@ constexpr double kForceUlps = 256.0;
 // lies within this relative margin of the cutoff (plan 4.3).
 constexpr double kCutoffMargin = 1e-9;
 
-const Value& microCases() {
-    static const Value data = test::readJson(test::kData / "analysis" / "micro_cases.json");
-    return data;
-}
-const Value& demoCases() {
-    static const Value data = test::readJson(test::kData / "analysis" / "demo_dry_cases.json");
-    return data;
-}
-const Value& variantCases() {
-    static const Value data = test::readJson(test::kData / "analysis" / "demo_dry_variants.json");
-    return data;
-}
-const Value& systemCases() {
-    static const Value data = test::readJson(test::kData / "analysis" / "systems_cases.json");
-    return data;
-}
+const Value& microCases() { return caseFile("micro_cases.json"); }
+const Value& demoCases() { return caseFile("demo_dry_cases.json"); }
+const Value& variantCases() { return caseFile("demo_dry_variants.json"); }
+const Value& systemCases() { return caseFile("systems_cases.json"); }
 
 // The worst |delta| / (eps * sum(|term|)) seen per case group and quantity.
 std::map<std::string, double>& worstRatios() {
@@ -119,7 +105,7 @@ void compareSeries(const std::string& ratioKey, const std::string& name, std::sp
 }
 
 // Runs the energy instances of a case (others are left to their own tests) and compares them.
-Outcome runCase(const Value& c, const Value& systems, const std::string& group) {
+Outcome runEnergyCase(const Value& c, const Value& file, const std::string& group) {
     const std::string name = str(at(c, "name"));
     SCOPED_TRACE(group + " case " + name);
     const std::vector<std::string> allInstances = strings(at(c, "instances"));
@@ -127,7 +113,8 @@ Outcome runCase(const Value& c, const Value& systems, const std::string& group) 
     std::copy_if(allInstances.begin(), allInstances.end(), std::back_inserter(instances), isEnergyInstance);
     const bool energyOnly = instances.size() == allInstances.size();
 
-    LoadedSystem loaded = caseSystem(systems, str(at(c, "system")));
+    core::System system = caseSystem(file, str(at(c, "system")), std::nullopt);
+    const std::string topologyPath = caseTopologyPath(file, str(at(c, "system")));
     const core::Project base = core::projectFromPlain(at(c, "project"));
     std::vector<std::string> logs;
     std::vector<std::pair<double, std::string>> progress;
@@ -136,8 +123,8 @@ Outcome runCase(const Value& c, const Value& systems, const std::string& group) 
     std::vector<std::unique_ptr<AnalysisContext>> contexts;
     std::vector<std::unique_ptr<Analysis>> analyses;
     for (const std::string& instance : instances) {
-        contexts.push_back(std::make_unique<AnalysisContext>(loaded.system, instanceProject(base, instance),
-                                                             loaded.topologyPath, reporter));
+        contexts.push_back(std::make_unique<AnalysisContext>(system, instanceProject(base, instance), topologyPath,
+                                                             reporter));
         analyses.push_back(analysisFor(instance).create(*contexts.back(), instance));
     }
     const Value* framesValue = c.find("frames");  // absent for errors
@@ -210,11 +197,9 @@ Outcome runCase(const Value& c, const Value& systems, const std::string& group) 
         // the cache key for the case's fixed fingerprint
         EXPECT_EQ(analysisFor(ours.name).cacheKey(contexts[n]->project(), at(c, "fingerprint")),
                   str(at(expected, "key")));
-        EXPECT_TRUE(sameValue(Value(ours.params), at(expected, "params")))
-            << core::toJson(Value(ours.params), -1) << "\nvs " << core::toJson(at(expected, "params"), -1);
+        expectSameValue(at(expected, "params"), Value(ours.params), "params");
         const Value meta(ours.meta);
-        EXPECT_TRUE(sameValue(meta, at(expected, "meta")))
-            << core::toJson(meta, -1) << "\nvs " << core::toJson(at(expected, "meta"), -1);
+        expectSameValue(at(expected, "meta"), meta, "meta");
         // output order
         std::vector<std::string> seriesOrder;
         if (const Value* series = meta.path({"outputs", "series"})) {
@@ -313,7 +298,7 @@ std::vector<std::string> runCases(const Value& file, const std::string& group, F
         if (!hasEnergy(c) || !filter(c)) {
             continue;
         }
-        if (runCase(c, at(file, "systems"), group) == Outcome::PeriodicMissing) {
+        if (runEnergyCase(c, file, group) == Outcome::PeriodicMissing) {
             skipped.push_back(str(at(c, "name")));
         } else {
             ++ran;

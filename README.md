@@ -8,7 +8,7 @@ manage a language runtime: a Linux AppImage and a Windows installer.
 The plan (modules, libraries, migration order, definition of done) is in
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-## Status: milestone 2 done (`core` + `io`); next: milestone 3, the analyses
+## Status: milestone 3 done (`analysis`); next: milestone 4, rendering
 
 **Milestone 1, the skeleton**, proved the delivery path before any science moved:
 
@@ -38,10 +38,35 @@ before its analyses start, checked against MDATK itself in CI:
   some selection macros and PDB atom-name columns can differ from stock MDAnalysis by design
   (`tests/data/README.md`).
 
-Next, milestone 3: the analyses (RMSD, contacts, H-bonds, Mg2+ coordination, stacking, energy, base
-pairs) and MDATK's `analyze` command, compared with MDATK on the test trajectories. Rendering,
-charts and videos, the interface pages, PDB hygiene and the workflow planner follow (milestones 4
-to 7); until then MDBridge's command line offers only the commands it has.
+**Milestone 3, `analysis`**, computes what MDATK's analyses compute, checked against MDATK itself
+in CI:
+
+- **The ten analyses**: RMSD (optimal superposition, fit selections, mass weighting), contacts
+  (with the native fraction), H-bonds, Mg2+ coordination (bridges, geometry, outer shell,
+  occupancy), stacking, interaction energy (Coulomb + Lennard-Jones, parm7 or generic parameters,
+  bonded exclusions), base pairs (MDBridge's own detector), and the structural view's trace,
+  proximity and atoms; instances (`rmsd@G`, `contacts@Target+Aptamer`), frame selections and
+  periodic cells (`use_pbc`) as MDATK has them.
+- **Command line**: `analyze` (MDATK's options, `--only`, `--force`, cache reuse) and `list`
+  (the analyses, panel types and layout presets), with MDATK's output and exit codes.
+- **Cache**: MDBridge writes its own files (`MDBridge_cache.json`, `<name>-<key>.mdbridge.npz` /
+  `.json`, readable with numpy) next to MDATK's, which it never reads or overwrites; the cache
+  keys are MDATK's, so a change of input or parameter invalidates the same entries.
+- **Frame-parallel runner**: the frames of one pass are processed on several threads
+  (`MDBRIDGE_THREADS`, default: the processor's threads, at most 16); results, logs and progress are
+  identical to a sequential run.
+- **Parity method**: generators in `tests/parity/` run MDATK (and MDAnalysis) in-process on MDATK's
+  own micro systems, the demo project and its variants and small generated systems, and record
+  every array bit for bit with the decision margins; the C++ tests compare exactly, except for
+  documented last-bit tolerances (`tests/data/README.md`, `docs/specs/m3-plan.md` 4.3).
+- **Deliberate differences** from MDATK (no Barnaba, pair order of the neighbour search, own cache
+  files, ...) are listed in [docs/DIFFERENCES.md](docs/DIFFERENCES.md); the inherited bugs being
+  fixed next (periodic distances, degenerate RMSD, reader messages, ...) in
+  [docs/IMPROVEMENTS.md](docs/IMPROVEMENTS.md).
+
+Next, milestone 4: rendering (the Vulkan structure view and its representations, charts, figures
+and videos). The interface pages, PDB hygiene and the workflow planner follow (milestones 5 to 7);
+until then MDBridge's command line offers only the commands it has.
 
 ## Using it
 
@@ -79,6 +104,9 @@ ctest --test-dir build
 | Path | Contents |
 |---|---|
 | `src/core` | data model and project files (no Qt): plain TOML data, MDATK's file formats, JSON |
+| `src/io` | topology, trajectory, PDB, density-map and dictionary readers and writers (no Qt) |
+| `src/chem` | secondary structure: dot-bracket notation, builtin base-pair detection (no Qt) |
+| `src/analysis` | the analyses, their registry, the frame-parallel runner, the cache and the `analyze` pipeline (no Qt) |
 | `src/render` | the 3D view: Vulkan 1.3 window, software view, Vulkan probe (Qt GUI, no widgets) |
 | `src/app` | the Qt interface and the command line, two thin front ends over the libraries |
 | `tests` | unit tests (GoogleTest), fixtures and MDATK's reference reading of them, parity scripts |

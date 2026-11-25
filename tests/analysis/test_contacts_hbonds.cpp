@@ -7,9 +7,9 @@
 // progress, times and errors.
 //
 // A count that differs only where the generator's margin to a threshold is below kFlipMargin is
-// reported as a possible last-bit flip; anywhere else it fails. Cases with use_pbc and a cell need
-// the periodic neighbour search (W1.1): until it exists pairsWithin throws, and those cases are
-// skipped ("needs periodic search").
+// reported as a possible last-bit flip; anywhere else it fails. Cases with use_pbc and a cell go
+// through the periodic neighbour search (pairsWithinPeriodic); a build without it would skip them
+// ("needs periodic search").
 //
 // Also: the counterparts of MDATK's tests/test_analyses.py tests of these analyses, and the
 // deliberate difference of the hydrogen guess on an exact distance tie (lowest donor index wins;
@@ -85,7 +85,7 @@ TEST_P(ContactsHBondsCase, MatchesMdatk) {
 
     const Value* expectedError = c.find("error");
     if (run.error && run.error->type == "C++" && run.error->message == "periodic neighbour search not implemented yet") {
-        GTEST_SKIP() << "needs periodic search (use_pbc with a cell; pairsWithinPeriodic throws until W1.1)";
+        GTEST_SKIP() << "needs periodic search (use_pbc with a cell; pairsWithinPeriodic unavailable)";
     }
     if (expectedError) {
         if (!whole) {

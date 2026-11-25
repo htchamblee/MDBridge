@@ -16,7 +16,6 @@
 #include <cmath>
 #include <iostream>
 #include <limits>
-#include <map>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -25,7 +24,7 @@
 
 #include <gtest/gtest.h>
 
-#include "analysis_test_support_mg.hpp"
+#include "analysis_test_support.hpp"
 #include "mdbridge/analysis/analyses.hpp"
 #include "mdbridge/analysis/analysis.hpp"
 #include "mdbridge/analysis/context.hpp"
@@ -35,26 +34,12 @@
 
 using namespace mdbridge;
 using namespace mdbridge::analysis;
-using namespace mdbridge::test::mgsupport;
-using core::Array;
-using core::Table;
-using core::Value;
+using namespace mdbridge::test::analysis_cases;
 
 namespace {
 
-constexpr double kFlipMargin = 1e-8;  // margins below this (and above 0) allow a last-bit flip
-
 const char* const kFiles[] = {"micro_cases.json", "demo_dry_cases.json", "demo_dry_variants.json",
                               "systems_cases.json"};
-
-const Value& caseFile(const std::string& file) {
-    static std::map<std::string, Value> files;
-    auto it = files.find(file);
-    if (it == files.end()) {
-        it = files.emplace(file, test::readJson(test::kData / "analysis" / file)).first;
-    }
-    return it->second;
-}
 
 bool isMine(const std::string& instance) {
     const std::string base = parseInstance(instance).base;
@@ -121,7 +106,7 @@ public:
         : m_margins(expectedResult.find("margins")), m_context(std::move(context)) {}
 
     void differs(std::size_t k, const std::string& what) {
-        const double margin = m_margins ? smallestMargin(*m_margins, k) : std::numeric_limits<double>::infinity();
+        const double margin = m_margins ? frameMargin(*m_margins, k) : std::numeric_limits<double>::infinity();
         if (margin > 0 && margin < kFlipMargin) {
             std::cout << "[last-bit flip] " << m_context << " " << what << " frame " << k << " (margin " << margin
                       << ")\n";
@@ -188,8 +173,8 @@ void compareResult(const core::AnalysisResult& got, const Value& expected, const
                    const Value& fingerprint, std::size_t nFrames, const std::string& context) {
     SCOPED_TRACE(context);
     EXPECT_EQ(got.name, str(at(expected, "instance")));
-    EXPECT_EQ(sortedKeys(Value(got.params)), sortedKeys(untagged(at(expected, "params"))));
-    EXPECT_EQ(sortedKeys(Value(got.meta)), sortedKeys(untagged(at(expected, "meta"))))
+    EXPECT_EQ(sortedTables(Value(got.params)), sortedTables(untag(at(expected, "params"))));
+    EXPECT_EQ(sortedTables(Value(got.meta)), sortedTables(untag(at(expected, "meta"))))
         << core::toJson(Value(got.meta), -1) << "\nvs\n" << core::toJson(at(expected, "meta"), -1);
     // output order (add_series / add_matrix / add_pairmap order)
     const Value metaValue(got.meta);
@@ -213,7 +198,7 @@ void compareResult(const core::AnalysisResult& got, const Value& expected, const
         }
     }
     const AnalysisDescriptor& descriptor = analysisFor(got.name);
-    EXPECT_EQ(descriptor.cacheKey(project, untagged(fingerprint)), str(at(expected, "key")));
+    EXPECT_EQ(descriptor.cacheKey(project, untag(fingerprint)), str(at(expected, "key")));
 
     // arrays
     const Table& expectedArrays = *at(expected, "arrays").get<Table>();
@@ -273,15 +258,8 @@ TEST_P(MgStackingParity, MatchesMdatk) {
     const Value& c = list(at(file, "cases"))[ref.index];
     ASSERT_EQ(c.find("error"), nullptr) << "a case of these analyses with an error: extend the test";
 
-    const core::Project project = core::projectFromPlain(untagged(at(c, "project")));
-    const std::string& systemName = str(at(c, "system"));
-    std::optional<double> dt;
-    if (project.inputs.dt_ps) {
-        dt = *project.inputs.dt_ps;
-    }
-    core::System system = ref.file == "micro_cases.json"
-                              ? microSystem(at(at(file, "systems"), systemName))
-                              : fileSystem(at(at(file, "systems"), systemName), dt);
+    const core::Project project = caseProject(c);
+    core::System system = caseSystem(file, str(at(c, "system")), project.inputs.dt_ps);
 
     std::vector<std::string> logs;
     const core::Reporter reporter([&logs](const std::string& m) { logs.push_back(m); });

@@ -24,23 +24,44 @@ expected data is adjusted on the test side; generated files are never edited by 
   in column 13 when the element has two letters. MDAnalysis decides by name alone, so a calcium ion
   named CA is carbon there. *Tested:* io/loader/files/ions.pdb and ions.gro; residue_rule_universe and
   residue_rule_pdb_text post-process MDAnalysis' results.
-- **No Barnaba.** Barnaba is GPL. With `analyses.basepairs.engine = "barnaba"`, MDBridge warns and runs
-  its builtin detector (meta `engine = "builtin"`, no `lw_first_frame`, `noncanonical` has no effect).
-  The params, and so the cache key, keep the project's values. *Tested:* tests/analysis/test_basepairs.cpp.
+- **No Barnaba.** Barnaba is GPL. With `analyses.basepairs.engine = "barnaba"`, MDBridge logs
+  `WARNING: basepairs: Barnaba is not available in MDBridge; using the builtin detector` and runs its
+  builtin detector (meta `engine = "builtin"`, no `lw_first_frame`, `noncanonical` has no effect).
+  (MDATK without Barnaba installed stops at setup with an installation hint.) The params, and so the
+  cache key, keep the project's values; the parity cases leave the barnaba engine out. *Tested:*
+  tests/analysis/test_basepairs.cpp.
 
 ## Analysis cache
 
-- **Own cache format.** MDBridge writes its own archives and manifest (`MDBridge_cache.json`,
-  `<name>-<key>.npz/.json`; src/analysis/include/mdbridge/analysis/cache.hpp). It does not read
-  MDATK's cache: results are recomputed once. Data keys, cache keys and the JSON descriptions keep
-  MDATK's meaning. *Tested:* tests/analysis/test_pipeline.cpp; cli_parity.py compares cache files by
-  meaning.
+- **Own cache files.** MDBridge writes its own archives and manifest in the same cache folder
+  (`MDBridge_cache.json`, `<name>-<key>.mdbridge.npz` / `<name>-<key>.mdbridge.json`;
+  src/analysis/include/mdbridge/analysis/cache.hpp), so they never collide with MDATK's
+  (`MDATK_cache.json`, `<name>-<key>.npz` / `.json`). It does not read MDATK's cache: results are
+  recomputed once. The archives are numpy `.npz` files; data keys, cache keys and the JSON
+  descriptions keep MDATK's meaning (the manifest's version field is `mdbridge_version`). *Why:*
+  the stored format is MDBridge's to evolve, and a project shared between MDATK and MDBridge keeps
+  both caches intact. *Tested:* tests/analysis/test_pipeline.cpp; cli_parity.py compares cache files
+  by meaning.
+
+## Frame-parallel runner
+
+MDATK processes the frames of a pass one after the other. MDBridge processes them on several
+threads (`MDBRIDGE_THREADS`, default: the processor's threads, at most 16; 1 runs sequentially).
+The trajectory is read in order on one thread, analyses that need the frames in order see them in
+order, and results are retired in frame order, so arrays, metadata, logs, progress calls, frame
+times, the frame left current and the first error are identical to a sequential run, bit for bit.
+*Why:* speed; MDATK's single-threaded loop is the bottleneck on long trajectories. *Tested:*
+tests/analysis/test_parallel.cpp (every parity case with 1, 2, 4 and 8 threads, errors, reader
+failures, cancellation); ctest runs every analysis parity test with 4 threads and again with 1
+(`<test>/threads1`).
 
 ## Order effects of the neighbour search
 
 MDATK's pairs without a periodic box come in the traversal order of scipy's k-d tree, which depends on
 how scipy was built. MDBridge returns them sorted by (i, j). The pair set and every distance are
-identical. Visible consequences:
+identical. With a periodic box (`use_pbc`) MDBridge returns MDAnalysis' order, so nothing below
+applies there. *Why:* a defined order that does not depend on the build of a library. Visible
+consequences without a box:
 - energy sums over pairs (elec, vdw, net force) can differ in the last bits;
 - H-bond hydrogen guess: a hydrogen exactly as far from two donors goes to the donor with the lowest
   index (MDATK: the first in tree order);

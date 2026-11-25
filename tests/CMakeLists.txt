@@ -59,8 +59,11 @@ gtest_discover_tests(mdbridge_chem_tests DISCOVERY_MODE PRE_TEST)
 
 
 # analysis: the framework (registry, instance ids, labels, cache keys, runner, common helpers) as
-# MDATK computes it (data/analysis, tests/parity/make_analysis_framework_cases.py), and the analyses
-# against MDATK's runs (tests/parity/make_analysis_cases.py)
+# MDATK computes it (data/analysis, tests/parity/make_analysis_framework_cases.py), the analyses
+# against MDATK's runs (tests/parity/make_analysis_cases.py), MDATK's spatial helpers
+# (data/analysis/spatial_extra_cases.json), the periodic pair search against MDAnalysis
+# (data/analysis/distance_cases.json) and the optimal-superposition RMSD against MDAnalysis
+# (data/analysis/rmsd_cases.json, docs/specs/m3-rmsd.md)
 add_executable(mdbridge_analysis_tests
     analysis/test_basepairs.cpp
     analysis/test_contacts_hbonds.cpp
@@ -68,24 +71,35 @@ add_executable(mdbridge_analysis_tests
     analysis/test_framework.cpp
     analysis/test_mg_stacking.cpp
     analysis/test_parallel.cpp
+    analysis/test_periodic.cpp
     analysis/test_pipeline.cpp
     analysis/test_rmsd_analysis.cpp
+    analysis/test_rmsd_qcp.cpp
+    analysis/test_spatial.cpp
     analysis/test_structure.cpp)
 target_include_directories(mdbridge_analysis_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/core")
-target_link_libraries(mdbridge_analysis_tests PRIVATE mdbridge::analysis GTest::gtest_main)
+target_link_libraries(mdbridge_analysis_tests PRIVATE mdbridge::analysis mdbridge::io GTest::gtest_main)
 target_compile_definitions(mdbridge_analysis_tests PRIVATE MDBRIDGE_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data")
 mdbridge_target_warnings(mdbridge_analysis_tests)
+# the spatial tests compute their expected sums and products as numpy does: no fused multiply-adds
+if(MSVC)
+    set_source_files_properties(analysis/test_spatial.cpp analysis/test_periodic.cpp
+                                PROPERTIES COMPILE_OPTIONS "/fp:precise")
+else()
+    set_source_files_properties(analysis/test_spatial.cpp analysis/test_periodic.cpp
+                                PROPERTIES COMPILE_OPTIONS "-ffp-contract=off")
+endif()
 # every case twice: with the frame-parallel runner (4 threads, whatever the machine) and
-# sequentially (MDBRIDGE_THREADS=1, tests named "<test>/threads1")
+# sequentially (MDBRIDGE_THREADS=1, tests named "<test>/threads1"); the numerics that do not go
+# through the runner (spatial helpers, periodic pair search, QCP RMSD) only once
 gtest_discover_tests(mdbridge_analysis_tests DISCOVERY_MODE PRE_TEST PROPERTIES ENVIRONMENT "MDBRIDGE_THREADS=4")
+set(mdbridge_runner_free_suites
+    Kabsch Linalg MinimumImageVectors NumpySum PairsWithin PairsWithinPeriodic UsableBox RmsdQcp)
+list(TRANSFORM mdbridge_runner_free_suites APPEND ".*")
+list(JOIN mdbridge_runner_free_suites ":" mdbridge_runner_free_filter)
 gtest_discover_tests(mdbridge_analysis_tests DISCOVERY_MODE PRE_TEST TEST_SUFFIX "/threads1"
+                     TEST_FILTER "-${mdbridge_runner_free_filter}"
                      PROPERTIES ENVIRONMENT "MDBRIDGE_THREADS=1")
-
-# analysis spatial helpers (mdatk/spatial.py)
-add_subdirectory(analysis_spatial)
-
-# optimal-superposition RMSD (docs/specs/m3-rmsd.md)
-add_subdirectory(analysis_rmsd)
 
 # app/commands: MDATK's init, info, list, analyze, export-pdb and density info, run in-process
 # against what MDATK printed and wrote (data/cli, tests/parity/cli_parity.py); no Qt needed

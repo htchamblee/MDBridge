@@ -18,14 +18,14 @@
 
 #include <gtest/gtest.h>
 
-#include "analysis_test_support_rmsd.hpp"
+#include "analysis_test_support.hpp"
 #include "mdbridge/analysis/analyses.hpp"
 #include "mdbridge/analysis/rmsd_qcp.hpp"
 #include "mdbridge/core/python.hpp"
 #include "mdbridge/core/text.hpp"
 
 using namespace mdbridge;
-using namespace mdbridge::test::rmsd_support;
+using namespace mdbridge::test::analysis_cases;
 
 namespace {
 
@@ -48,7 +48,7 @@ bool runsRmsd(const Value& c) {
     return false;
 }
 
-void compareRmsdResult(const CaseRun& run, std::size_t i, const core::AnalysisResult& actual, const Value& expected,
+void compareRmsdResult(const ProbedRun& run, std::size_t i, const core::AnalysisResult& actual, const Value& expected,
                        const Value& fingerprint, Tally& tally) {
     const std::string& instance = run.instances[i];
     SCOPED_TRACE(instance);
@@ -87,7 +87,7 @@ void compareRmsdResult(const CaseRun& run, std::size_t i, const core::AnalysisRe
         const Array& wantValues = list(at(want, "values"));
         ASSERT_EQ(values.size(), wantValues.size());
         for (std::size_t k = 0; k < values.size(); ++k) {
-            const double e = hexDouble(wantValues[k]);
+            const double e = hexFloat(wantValues[k]);
             const double a = values[k];
             if (sameDouble(a, e)) {
                 ++tally.exact;
@@ -116,7 +116,7 @@ void checkCaseFile(const std::string& fileName, Tally& tally) {
         SCOPED_TRACE(fileName + " " + name);
         ++tally.cases;
         const test::LogCapture quiet;  // the warnings are checked through the reporter
-        const CaseRun run = runCase(file, c, [](const std::string& base) { return base == "rmsd"; });
+        const ProbedRun run = runCaseWithProbes(file, c, [](const std::string& base) { return base == "rmsd"; });
 
         // frame state at every setup (rmsd moves it to its reference frame)
         std::map<std::string, std::int64_t> setupFrames;
@@ -124,15 +124,15 @@ void checkCaseFile(const std::string& fileName, Tally& tally) {
             setupFrames[instance] = integer(frame);
         }
         EXPECT_EQ(run.setupFrames, setupFrames);
-        EXPECT_EQ(run.log, expectedLog(c, "RMSD"));
+        EXPECT_EQ(run.log, logWithoutOtherWarnings(c, "RMSD"));
 
         if (const Value* error = c.find("error")) {
             ASSERT_TRUE(run.error.has_value()) << "expected " << str(at(*error, "type"));
-            EXPECT_EQ(run.error->first, str(at(*error, "type")));
-            EXPECT_EQ(run.error->second, str(at(*error, "message")));
+            EXPECT_EQ(run.error->type, str(at(*error, "type")));
+            EXPECT_EQ(run.error->message, str(at(*error, "message")));
             continue;
         }
-        ASSERT_FALSE(run.error.has_value()) << run.error->first << ": " << run.error->second;
+        ASSERT_FALSE(run.error.has_value()) << run.error->type << ": " << run.error->message;
         std::vector<std::int64_t> frames;
         for (const Value& f : list(at(c, "frames"))) {
             frames.push_back(integer(f));
@@ -141,7 +141,7 @@ void checkCaseFile(const std::string& fileName, Tally& tally) {
         const Array& times = list(at(c, "times"));
         ASSERT_EQ(run.run.timePs.size(), times.size());
         for (std::size_t k = 0; k < times.size(); ++k) {
-            EXPECT_EQ(run.run.timePs[k], hexDouble(times[k])) << "time " << k;
+            EXPECT_EQ(run.run.timePs[k], hexFloat(times[k])) << "time " << k;
         }
         ASSERT_EQ(run.run.results.size(), run.instances.size());
         for (std::size_t i = 0; i < run.instances.size(); ++i) {
@@ -236,19 +236,15 @@ std::vector<float> rotated(const std::vector<float>& p) {
     return out;
 }
 
-core::Project microProject() {
-    core::Project p;
-    p.groups = {{"Aptamer", "1", "", "#2a78d6"}, {"Target", "2", "", "#2a78d6"}};
+// conftest.micro_project with the groups of the two residues and one rmsd target over both
+core::Project rmsdProject() {
+    core::Project p = microProject({{"Aptamer", "1"}, {"Target", "2"}});
     p.analyses.rmsd.targets = {{"All", "group:Aptamer or group:Target", ""}};
     return p;
 }
 
-core::AnalysisResult runOne(core::System& system, const core::Project& project) {
-    analysis::AnalysisContext context(system, project);
-    std::vector<std::unique_ptr<analysis::Analysis>> analyses;
-    analyses.push_back(analysis::rmsdAnalysis().create(context));
-    const std::vector<std::int64_t> frames{0, 1};
-    return analysis::runAnalyses(context, analyses, frames).results.at(0);
+core::AnalysisResult runRmsd(core::System& system, const core::Project& project) {
+    return runOne("rmsd", system, project);
 }
 
 }  // namespace
@@ -257,37 +253,37 @@ core::AnalysisResult runOne(core::System& system, const core::Project& project) 
 TEST(RmsdAnalysis, SuperpositionRemovesRigidMotion) {
     const std::vector<float> x = points(3.0, 0.0);
     core::System system = smallSystem({x, rotated(x)});
-    core::Project p = microProject();
-    EXPECT_NEAR(runOne(system, p).array("rmsd_0")->values<double>()[1], 0.0, 1e-4);
+    core::Project p = rmsdProject();
+    EXPECT_NEAR(runRmsd(system, p).array("rmsd_0")->values<double>()[1], 0.0, 1e-4);
     p.analyses.rmsd.targets[0].fit_selection = "group:Aptamer";
-    EXPECT_NEAR(runOne(system, p).array("rmsd_0")->values<double>()[1], 0.0, 1e-4);
+    EXPECT_NEAR(runRmsd(system, p).array("rmsd_0")->values<double>()[1], 0.0, 1e-4);
     p.analyses.rmsd.mass_weighted = true;
-    EXPECT_NEAR(runOne(system, p).array("rmsd_0")->values<double>()[1], 0.0, 1e-4);
+    EXPECT_NEAR(runRmsd(system, p).array("rmsd_0")->values<double>()[1], 0.0, 1e-4);
     p.analyses.rmsd.superposition = false;
-    EXPECT_GT(runOne(system, p).array("rmsd_0")->values<double>()[1], 1.0);
+    EXPECT_GT(runRmsd(system, p).array("rmsd_0")->values<double>()[1], 1.0);
 }
 
 TEST(RmsdAnalysis, ZeroMassesAndErrors) {
     const std::vector<float> x = points(3.0, 0.0);
     core::System system = smallSystem({x, rotated(x)}, 0.0);
-    core::Project p = microProject();
+    core::Project p = rmsdProject();
     p.analyses.rmsd.mass_weighted = true;
     // rms.rmsd's and np.average's ZeroDivisionError, raised while processing
-    EXPECT_THROW((void)runOne(system, p), analysis::ZeroDivisionError);
+    EXPECT_THROW((void)runRmsd(system, p), analysis::ZeroDivisionError);
     p.analyses.rmsd.superposition = false;
     try {
-        (void)runOne(system, p);
+        (void)runRmsd(system, p);
         ADD_FAILURE() << "no error";
     } catch (const analysis::ZeroDivisionError& e) {
         EXPECT_EQ(std::string(e.what()), "Weights sum to zero, can't be normalized");
     }
     // a fit selection matching nothing is a selection error (allow_empty only for the target)
-    p = microProject();
+    p = rmsdProject();
     p.analyses.rmsd.targets[0].fit_selection = "name ZZ";
-    EXPECT_THROW((void)runOne(system, p), core::ValueError);
+    EXPECT_THROW((void)runRmsd(system, p), core::ValueError);
     // a blank fit selection counts as none
     p.analyses.rmsd.targets[0].fit_selection = " \t";
-    EXPECT_NO_THROW((void)runOne(system, p));
+    EXPECT_NO_THROW((void)runRmsd(system, p));
 }
 
 TEST(RmsdAnalysis, ReferenceFrameBecomesCurrentForLaterSetups) {
@@ -296,7 +292,7 @@ TEST(RmsdAnalysis, ReferenceFrameBecomesCurrentForLaterSetups) {
         frames.push_back(points(3.0, f * 0.1));
     }
     core::System system = smallSystem(frames);
-    core::Project p = microProject();
+    core::Project p = rmsdProject();
     p.analyses.rmsd.reference_frame = 2;
     analysis::AnalysisContext context(system, p);
     std::map<std::string, std::int64_t> setupFrames;
