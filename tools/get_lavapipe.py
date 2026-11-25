@@ -8,6 +8,11 @@ Then, for the Vulkan tests (tests/render/test_vulkan_offscreen.cpp):
     $env:VK_DRIVER_FILES = "<OUT>\\lvp_icd.x86_64.json"         # only this driver
     ctest --test-dir <build> -C Release -L vulkan
 
+In an elevated (administrator) process, which is what CI runners give, the Vulkan loader ignores
+VK_DRIVER_FILES and VK_ICD_FILENAMES and reads drivers only from the registry: there, add the
+manifest's full path as a DWORD value 0 under HKLM\\SOFTWARE\\Khronos\\Vulkan\\Drivers instead
+(.github/workflows/ci.yml does this for its Vulkan test step and removes it afterwards).
+
 Owner decision D14 (docs/specs/m4-plan.md): Windows CI runners have no GPU and no Vulkan driver;
 lavapipe stands in for one there, as mesa-vulkan-drivers does in the Linux job. It is never shipped
 with MDBridge (users have their graphics driver's Vulkan, or the software renderer).

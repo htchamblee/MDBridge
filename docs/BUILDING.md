@@ -170,6 +170,8 @@ reason, and with `MDBRIDGE_REQUIRE_VULKAN=1` (set in CI) they fail instead. Linu
 (the `mesa-vulkan-drivers` package) runs them on the CPU. Windows:
 `python tools/get_lavapipe.py --out build\lavapipe` fetches a test-only lavapipe (pinned, SHA-256
 checked); then set `PATH=build\lavapipe;%PATH%` and `VK_DRIVER_FILES=build\lavapipe\lvp_icd.x86_64.json`.
+In an elevated (administrator) shell the Vulkan loader ignores `VK_DRIVER_FILES`; register the
+manifest instead (its full path as a DWORD value 0 under `HKLM\SOFTWARE\Khronos\Vulkan\Drivers`, as CI does).
 `MDBRIDGE_VULKAN_DEVICE=<part of the name>` picks a device when there are several.
 
 ## Shaders
