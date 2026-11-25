@@ -62,7 +62,7 @@ std::optional<Box> usableBox(const std::optional<std::array<float, 6>>& dims);  
 // sums, net force: equal within rounding), the H-bond hydrogen guess (an exact tie between two
 // donors goes to the first pair: here the lowest donor index), the stacking pair map (CSR entries
 // within a frame in pair order) and atom_bonds' distance fallback (bond rows in pair order); see
-// docs/specs/m3-plan.md and the W0.7 notes.
+// docs/specs/m3-plan.md (risks: pair order) and docs/DIFFERENCES.md.
 //
 // With a usable box (use_pbc): MDAnalysis' capped_distance on float32 coordinates (float64 points
 // are rounded to float32 first), which pairsWithinPeriodic implements, in MDAnalysis' order (not

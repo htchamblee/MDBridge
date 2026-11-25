@@ -16,6 +16,7 @@
 #include <cmath>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <set>
 #include <stdexcept>
 #include <string>
@@ -24,7 +25,7 @@
 
 #include <gtest/gtest.h>
 
-#include "analysis_test_support_structure.hpp"
+#include "analysis_test_support.hpp"
 #include "mdbridge/analysis/analyses.hpp"
 #include "mdbridge/analysis/analysis.hpp"
 #include "mdbridge/analysis/context.hpp"
@@ -34,7 +35,7 @@
 
 using namespace mdbridge;
 using namespace mdbridge::analysis;
-using namespace mdbridge::test::structure;
+using namespace mdbridge::test::analysis_cases;
 
 namespace {
 
@@ -48,7 +49,7 @@ bool isStructure(const std::string& instance) {
 struct Counts {
     int instances = 0;  // instances compared
     int errors = 0;  // expected errors reproduced
-    int periodicSkipped = 0;  // instances that need the periodic search (not merged yet)
+    int periodicSkipped = 0;  // instances skipped for want of the periodic search
 };
 
 std::size_t product(const std::vector<std::size_t>& shape) {
@@ -69,7 +70,7 @@ std::vector<std::pair<std::int64_t, std::int64_t>> sortedRows(std::span<const st
     return rows;
 }
 
-void compareArray(const std::string& name, const core::NumArray& actual, const Value& expected, bool aligned,
+void compareStructureArray(const std::string& name, const core::NumArray& actual, const Value& expected, bool aligned,
                   bool rowsAsSet) {
     SCOPED_TRACE("array " + name);
     ASSERT_EQ(numpyDtype(actual), str(at(expected, "dtype")));
@@ -197,13 +198,13 @@ void compareResult(const core::AnalysisResult& res, const Value& expected, const
             ADD_FAILURE() << "missing array " << name;
             continue;
         }
-        compareArray(name, *actual, values, aligned && name.find("coords") != std::string::npos,
+        compareStructureArray(name, *actual, values, aligned && name.find("coords") != std::string::npos,
                      base == "atoms" && name == "bonds");
     }
 }
 
 // One case's run of the structure analyses.
-struct CaseRun {
+struct StructureRun {
     std::string file;
     const Value* c = nullptr;
     core::Project project;
@@ -214,10 +215,10 @@ struct CaseRun {
 };
 
 // Runs one instance of the case in its own pass and compares its result (errors propagate).
-void runInstance(const CaseRun& run, const std::string& instance, Counts& counts) {
+void runInstance(const StructureRun& run, const std::string& instance, Counts& counts) {
     SCOPED_TRACE("instance " + instance);
     const Value& c = *run.c;
-    core::System system = caseSystem(run.file, c);
+    core::System system = caseSystem(caseFile(run.file), str(at(c, "system")), std::nullopt);
     std::vector<std::string> log;
     core::Reporter reporter([&](const std::string& m) { log.push_back(m); });
     const core::Project project = instanceProject(run.project, instance);
@@ -281,7 +282,7 @@ Counts runCases(const std::string& file, Want&& want) {
             continue;
         }
         SCOPED_TRACE(file + " case " + name);
-        CaseRun run{file, &c, caseProject(c), untag(at(c, "fingerprint")), {}, c.find("error"), {}};
+        StructureRun run{file, &c, caseProject(c), untag(at(c, "fingerprint")), {}, c.find("error"), {}};
         if (run.error && !all) {
             continue;  // an error of another analysis
         }
@@ -317,8 +318,9 @@ Counts runCases(const std::string& file, Want&& want) {
 
 bool any(std::string_view) { return true; }
 
-const Value& findCase(std::string_view file, std::string_view name) {
-    for (const Value& c : list(at(caseFile(file), "cases"))) {
+const Value& findCase(const std::string& file, std::string_view name) {
+    const Value& data = caseFile(file);
+    for (const Value& c : list(at(data, "cases"))) {
         if (str(at(c, "name")) == name) {
             return c;
         }
@@ -343,34 +345,34 @@ void report(const Counts& c, int instances, int errors) {
 TEST(StructureAnalyses, MicroSystems) {
     // contacts_micro_all, duplex_all (3 each), duplex_stride_1, structure_residues_only (2),
     // proximity_unknown_set (error)
-    report(runCases("micro_cases", any), 9, 1);
+    report(runCases("micro_cases.json", any), 9, 1);
 }
 
 // ---------------------------------------------------------------- demo
 
-TEST(StructureAnalyses, DemoDefault) { report(runCases("demo_dry_cases", any), 3, 0); }
+TEST(StructureAnalyses, DemoDefault) { report(runCases("demo_dry_cases.json", any), 3, 0); }
 
 TEST(StructureAnalyses, DemoVariants) {
     // every variant but use_pbc: readers (3 x 3), frames (3 + 1), mg_no_ions (2), trace / atoms
     // (2 + 1 + 2 + 2), structure groups (3 + error), proximity sets (2 + error), atoms_hydrogens,
     // instance_no_groups (error)
-    report(runCases("demo_dry_variants", [](std::string_view n) { return n != "use_pbc"; }), 28, 3);
+    report(runCases("demo_dry_variants.json", [](std::string_view n) { return n != "use_pbc"; }), 28, 3);
 }
 
 TEST(StructureAnalyses, DemoUsePbc) {
     // trace and atoms do not search neighbours; proximity does (periodic search)
-    report(runCases("demo_dry_variants", [](std::string_view n) { return n == "use_pbc"; }), 3, 0);
+    report(runCases("demo_dry_variants.json", [](std::string_view n) { return n == "use_pbc"; }), 3, 0);
 }
 
 // ---------------------------------------------------------------- new small systems
 
 TEST(StructureAnalyses, PeriodicSystemsOpen) {
-    report(runCases("systems_cases", [](std::string_view n) { return n.find("_open") != std::string_view::npos; }),
+    report(runCases("systems_cases.json", [](std::string_view n) { return n.find("_open") != std::string_view::npos; }),
            6, 0);
 }
 
 TEST(StructureAnalyses, PeriodicSystemsPbc) {
-    report(runCases("systems_cases",
+    report(runCases("systems_cases.json",
                     [](std::string_view n) {
                         return n.rfind("periodic", 0) == 0 && n.find("_pbc") != std::string_view::npos;
                     }),
@@ -379,7 +381,7 @@ TEST(StructureAnalyses, PeriodicSystemsPbc) {
 
 TEST(StructureAnalyses, PdbAndGroWithoutBonds) {
     // elements guessed, chain IDs (PDB), bonds guessed from distances (rows compared as a set)
-    report(runCases("systems_cases",
+    report(runCases("systems_cases.json",
                     [](std::string_view n) {
                         return (n.rfind("pdb_nobonds", 0) == 0 || n.rfind("gro_nobonds", 0) == 0) &&
                                n != "pdb_nobonds_dcd_pbc";
@@ -389,11 +391,11 @@ TEST(StructureAnalyses, PdbAndGroWithoutBonds) {
 
 TEST(StructureAnalyses, PdbWithoutBondsPbc) {
     // atoms only: its bond guess never uses the cell
-    report(runCases("systems_cases", [](std::string_view n) { return n == "pdb_nobonds_dcd_pbc"; }), 1, 0);
+    report(runCases("systems_cases.json", [](std::string_view n) { return n == "pdb_nobonds_dcd_pbc"; }), 1, 0);
 }
 
 TEST(StructureAnalyses, HeavyAtomsAndAromatic) {
-    report(runCases("systems_cases", [](std::string_view n) { return n == "noh" || n == "aromatic"; }), 6, 0);
+    report(runCases("systems_cases.json", [](std::string_view n) { return n == "noh" || n == "aromatic"; }), 6, 0);
 }
 
 // ---------------------------------------------------------------- helpers
@@ -429,8 +431,9 @@ TEST(StructureAnalyses, SelectionText) {
 }
 
 TEST(StructureAnalyses, StructureResiduesLeaveOutIons) {
-    const Value& c = findCase("demo_dry_cases", "default");
-    core::System system = caseSystem("demo_dry_cases", c);
+    const std::string fileName = "demo_dry_cases.json";
+    const Value& c = findCase(fileName, "default");
+    core::System system = caseSystem(caseFile(fileName), str(at(c, "system")), std::nullopt);
     core::Project project = caseProject(c);
     project.groups.push_back({"Ions", "25-27", "", "#000000"});
     project.visual.structure_groups = {"Aptamer", "Ions"};

@@ -1,4 +1,4 @@
-"""What MDATK's spatial helpers give (mdatk/spatial.py), for tests/analysis_spatial/test_spatial.cpp.
+"""What MDATK's spatial helpers give (mdatk/spatial.py), for tests/analysis/test_spatial.cpp.
 
     /opt/mdbridge-venv/bin/python -I -B make_spatial_cases.py MDATK_CHECKOUT OUT_DIR
 

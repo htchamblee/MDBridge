@@ -1,5 +1,5 @@
 """What MDATK's analyses (mdatk/analysis/*.py) compute (tests/data/analysis), for the C++ analysis
-module of milestone 3 (docs/specs/m3-plan.md, sections 4.1 / 4.2, chunk W0.6).
+module of milestone 3 (docs/specs/m3-plan.md, sections 4.1 / 4.2).
 
     /opt/mdbridge-venv/bin/python -I -B make_analysis_cases.py MDATK_CHECKOUT OUT_DIR [--native]
 

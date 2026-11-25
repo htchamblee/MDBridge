@@ -27,8 +27,9 @@ lists, and its include / exclude pairs (empty: no independent counterpart). Only
 replaced, no MDAnalysis function. The generators that depend on these tables apply the patch:
 `dump_topologies.py` (every dump, also when imported), `make_atom_selection_cases.py`,
 `make_selections_cases.py`, `make_parm7_cases.py`, `make_loader_cases.py`, `make_export_cases.py`,
-`make_rmsd_cases.py`, `make_universe_cases.py`, `make_analysis_cases.py` and `cli_parity.py` (its
-MDATK side); the others do not touch them. `tools/gen_selection_tables.py` and
+`make_rmsd_cases.py`, `make_universe_cases.py`, `make_analysis_cases.py`,
+`make_analysis_framework_cases.py`, `make_pipeline_cases.py`, `make_secstruct_cases.py` and
+`cli_parity.py` (its MDATK side); the others do not touch them. `tools/gen_selection_tables.py` and
 `tools/gen_pdb_tables.py` no longer write any of these tables, only the property names of the
 selection language and Python's Unicode data.
 
@@ -366,47 +367,6 @@ at `v0.0.4.1` (nothing is written into it; the output is reproducible):
 /opt/mdbridge-venv/bin/python -I -B tests/parity/make_rigid_cases.py /tmp/mdatk tests/data/rigid
 ```
 
-`analysis/spatial_extra_cases.json` holds what MDATK's spatial helpers (`mdatk/spatial.py`) compute,
-for `src/analysis/spatial.cpp` and the numerics under it (`core/linalg.hpp`,
-`core/detail/numpy_sum.hpp`, `core/detail/neighbors.hpp`; `tests/analysis_spatial/test_spatial.cpp`),
-written by `tests/parity/make_spatial_cases.py`, which runs MDATK's functions in-process. Every float
-is `float.hex()`. `pairs`: `pairs_within` without a box (scipy's cKDTree) on random float64 and
-float32-widened points, clusters, duplicates, a lattice at distances equal to the cutoff, crafted
-pairs within an ulp of the cutoff (including pairs where `sqrt(d2) <= r` and `d2 <= r * r` disagree:
-scipy compares squares), a spread that defeats a cell grid, special cutoffs (0, negative, infinite,
-NaN) and non-finite points (scipy's error); the pairs in MDATK's (tree) order, which the test sorts:
-MDBridge returns them sorted by (i, j) and must match the set and every distance exactly.
-`min_image` / `usable_box`: `minimum_image_vectors` and `_usable_box` for boxes near and away from 90
-degrees (numpy's `allclose` margins), unusable boxes and half-box ties. `kabsch`: random, weighted,
-mirrored, coplanar and tiny sets, fewer than 3 points (compared within a relative 1e-14).
-`rings`: `ring_geometry` of the stacking analysis (batched `np.linalg.svd`; planarity within 1e-14,
-normals up to sign within 1e-13). `sums`: `np.sum` / `np.mean` of float64 arrays of 0 to 300 and
-some larger lengths, whose values the test computes itself (`value(k)` in the generator), bit for
-bit. `tests`: the inputs of MDATK's `test_pairs_within_matches_brute_force_and_pbc` and
-`test_kabsch_recovers_rotation`, which the test ports (the periodic half is disabled until the
-periodic neighbour search exists).
-
-```bash
-/opt/mdbridge-venv/bin/python -I -B tests/parity/make_spatial_cases.py /tmp/mdatk tests/data/analysis
-```
-
-`analysis/distance_cases.json` holds what MDAnalysis 2.11.0's `capped_distance` returns for the calls
-MDATK's `pairs_within` makes with a periodic box (`mdatk/spatial.py`; every case is also run through
-`pairs_within` and must agree), for MDBridge's periodic pair search
-(`docs/specs/m3-capped-distance.md`; `tests/analysis_spatial/test_periodic.cpp`, lattice points
-x fastest): the automatic method rule (sizes 9 / 10, cutoff around
-0.3 x the cell, n x m >= 1e8 on generated lattices), points at and one float32 step around the
-cutoff along axes and across faces, random sets inside, near and far outside orthogonal and
-triclinic cells, cutoffs beyond half a cell, the same array on both sides, duplicates, dense sets for
-the grid method's order, and degenerate cutoffs (0, negative, NaN, infinite), angles, lengths and
-coordinates. Each case gives the method chosen, the pairs in MDAnalysis' order and the distances as
-`float.hex` (or the error and warnings); lattice cases give SHA-256 hashes; `band` lists the pairs
-within the spec's tolerance of the cutoff. Format in the generator's docstring:
-
-```bash
-/opt/mdbridge-venv/bin/python -I -B tests/parity/make_distance_cases.py /tmp/mdatk tests/data/analysis
-```
-
 `citations/citation_cases.json` holds what MDATK's citation module (`mdatk/citations.py`)
 computes, for `src/core/citations.cpp` (`tests/core/test_citations.cpp`): `REFERENCES` and
 `RESOURCES` with every field (the same data as `src/core/citation_data.inc`), `unique`,
@@ -527,30 +487,31 @@ reproducible):
 
 ```bash
 /opt/mdbridge-venv/bin/python -I -B tests/parity/make_secstruct_cases.py /tmp/mdatk tests/data/chem
-`analysis/` holds the probe data of the milestone-3 behaviour specifications (`docs/specs/m3-*.md`),
-for the tests of `src/analysis/`:
+```
 
-| File | Content |
-|---|---|
-| `rmsd_cases.json` | `docs/specs/m3-rmsd.md`: MDAnalysis 2.11.0's `rms.rmsd(a, b, weights, center=True, superposition=True)` of about 240 coordinate pairs (general structures with noise from 0 to 5 Å, identical / translated / rotated copies, planar sets, one and two atoms, collinear and coincident atoms, weights leaving one or two atoms, NaN / infinite inputs and weights, negative, zero-sum, tiny and huge weights, empty inputs, shape and weight errors) with the result, error or numpy warnings, `scale` (E0 / N, the scale of the tolerance) and a `degenerate` flag; and the series MDATK's rmsd analysis computes on the demo trajectory (targets as atom-index runs, masses or no weights, reference frames 0 / 5 / 23) |
-| `universe_cases.json` | `docs/specs/m3-universe-notes.md`: iteration over `trajectory[int64 array]` on the demo NetCDF / XTC / DCD / TRR files, a multi-model PDB and a GRO file (order, repeats, negative and out-of-range indices, stopping early; the current frame afterwards); cells read back from files with zero lengths / angles; per topology (parm7, PDB with and without CONECT, GRO) whether charges and chain IDs exist, the errors when not, bonds in order, fragment indices and, per atom group, its bonds, fragment indices, residues, residue atoms, boolean-mask subsets and unions |
-| `universe_files/*` | the crafted inputs of `universe_cases.json`: `frag_conect.pdb` (CONECT records out of order, four fragments), `conect_lonely.pdb` (a CONECT record without partners), `cell_*.nc` / `.dcd` / `.xtc` / `.trr` (cells with a zero length, zero lengths, all zeros, a zero angle, orthorhombic) |
+The analysis module of milestone 3 (`src/analysis/`, tested by `tests/analysis/`) is checked against
+the files of `analysis/`, written by six generators (in the order `regenerate_all.py` runs them):
 
-Floats are `float.hex()` strings. Both generators run MDAnalysis with the independent tables (first
-section); neither imports MDATK (its checkout is only the common first argument). No LAPACK result is
-recorded, so the files do not depend on the CPU (`make_rmsd_cases.py --report` prints the spread
-between MDAnalysis and an SVD superposition that the spec's tolerances rest on). To regenerate, with
-Python 3.13 and MDAnalysis 2.11.0 in `/opt/mdbridge-venv` (the output is reproducible; the universe
-cases read `io/loader/files` and `io/trajectories`, so run those generators first):
+| Generator | Files | Tests |
+|---|---|---|
+| `make_analysis_cases.py` | `micro_cases.json`, `demo_dry_cases.json`, `demo_dry_variants.json`, `systems/`, `systems_cases.json`, `spatial_cases.json` | `test_contacts_hbonds.cpp`, `test_mg_stacking.cpp`, `test_energy.cpp`, `test_rmsd_analysis.cpp`, `test_structure.cpp`, `test_basepairs.cpp`, `test_parallel.cpp` |
+| `make_distance_cases.py` | `distance_cases.json` | `test_periodic.cpp` |
+| `make_rmsd_cases.py` | `rmsd_cases.json` | `test_rmsd_qcp.cpp` |
+| `make_universe_cases.py` | `universe_cases.json`, `universe_files/` | none: the record behind `docs/specs/m3-universe-notes.md` |
+| `make_analysis_framework_cases.py` | `framework_cases.json` | `test_framework.cpp` |
+| `make_spatial_cases.py` | `spatial_extra_cases.json` | `test_spatial.cpp` |
+| `make_pipeline_cases.py` | `pipeline_cases.json` | `test_pipeline.cpp` |
 
-```bash
-/opt/mdbridge-venv/bin/python -I -B tests/parity/make_rmsd_cases.py /tmp/mdatk tests/data/analysis
-/opt/mdbridge-venv/bin/python -I -B tests/parity/make_universe_cases.py /tmp/mdatk tests/data/analysis
+The tests share one helper header, `tests/analysis/analysis_test_support.hpp` (case files, micro
+systems, case runs, tagged JSON, array comparison, margins). Every test that goes through the
+analysis runner runs twice under ctest, with the frame-parallel runner (`MDBRIDGE_THREADS=4`) and
+sequentially (`<test>/threads1`), and must pass both ways; the spatial, periodic-search and QCP
+tests run once.
 
-`analysis/` holds what MDATK's analyses (`mdatk/analysis/*.py`: contacts, energy, hbonds, mg, rmsd,
-stacking, trace, proximity, atoms, basepairs) compute, for the analysis module of milestone 3
-(`docs/specs/m3-plan.md`, 4.1 / 4.2; `tests/analysis/`). MDATK runs in-process with the independent
-tables applied and the residue-scoped ion rule on every topology file (first section).
+`make_analysis_cases.py` records what MDATK's ten analyses (`mdatk/analysis/*.py`: contacts, energy,
+hbonds, mg, rmsd, stacking, trace, proximity, atoms, basepairs) compute (`docs/specs/m3-plan.md`,
+4.1 / 4.2). MDATK runs in-process with the independent tables applied and the residue-scoped ion
+rule on every topology file (first section).
 
 | File | Content |
 |---|---|
@@ -559,7 +520,7 @@ tables applied and the residue-scoped ion rule on every topology file (first sec
 | `demo_dry_variants.json` | the demo project with settings changed: the DCD / XTC / TRR copies of `io/trajectories/files` (every analysis), `use_pbc` (the demo's orthorhombic cell), frame slices (start / stop / step, negative start, dt given), RMSD mass-weighted / fit selections / no superposition / reference frames 5, 999, -3 (clamped) / odd target labels and an empty selection / no targets, contacts A = A / all atoms / cutoffs 3 and 8, H-bonds without angle / strict / other element lists, Mg geometry / tolerance / outer shell / occupancy selection / cutoffs / no ions, stacking inter / strict / no rings / one group, energy generic LJ / exclusions 0, 1, 5 / plain Coulomb / cutoff 8, base pairs stride 1 and 7 / no wobble / cutoff 3.0, trace without alignment / ions / with `trace_atoms` P or none, structure groups (Target only, unknown), proximity sets `sel:resid 3` / a group with radius 4 / unknown, atoms with hydrogens, instances `X@Target+Aptamer`, `rmsd@G`, and errors (instance groups unknown / wrong count / not taken, unknown analysis, group B inside A for contacts / H-bonds / energy, unknown group, empty group) |
 | `systems/` | new small systems (generated, no research data): `periodic_ortho` / `periodic_tric` (`.parm7` written by `mdatk.demo.write_topology`, `.nc` by MDAnalysis' NCDFWriter: `build_system("GCAU", n_frames=6, seed=11)`'s 4-bp duplex and its 3 Mg ions moved to straddle a cell corner and wrapped into a 25 Å cube / a 25 x 27 x 29 Å cell with angles 60 / 70 / 80), `pdb_nobonds.pdb` (demo frame 0: no CONECT, no element column, chain IDs A / B / C, CRYST1), `.gro` (MDAnalysis' GROWriter) and `.dcd` (8 frames), `noh.pdb` (the heavy atoms, element column) and `.dcd` (frames 0, 6, 12, 18), `aromatic.pdb` (3 models: G / C / A / U and HSD with PHE / TYR / TRP / HIE / HIS stacked on them, offset, tilted, too far, one ring atom lifted out of plane) |
 | `systems_cases.json` | the analyses on `systems/`: periodic systems with `use_pbc` off and on, cutoffs up to 12 Å against the 25 Å cell, Mg geometry and H-bond angles across faces (minimum image only for orthorhombic cells, by MDATK's design); PDB / GRO topologies without bonds or charges, alone and with the DCD (elements and masses guessed, hydrogens assigned from distances, bonds guessed, generic LJ, no-charge warning, chain IDs), mass-weighted RMSD, `use_pbc`; heavy atoms only (the H-bond "no hydrogens" fallback); the aromatic rings (ring sizes 5, 6 and 9, all / inter / strict / proteins only) |
-| `spatial_cases.json` | `mdatk.spatial`: `_usable_box` of valid and unusable boxes; `pairs_within` (i, j, d in MDATK's order, and their dtypes) of random points without a box, in orthorhombic and triclinic cells and with unusable boxes, empty inputs, a == b, an exact cutoff distance, pairs across a face, points far outside the cell, duplicated points, cutoffs at and beyond half the cell; `minimum_image_vectors` with half-length ties (rounding half to even), angles within and beyond `np.allclose`, triclinic and unusable boxes; `kabsch` of 1, 2, 3, 5, 20 points with and without weights, identical, reflected, collinear and planar sets, zero weights |
+| `spatial_cases.json` | (not read by the C++ tests, which use `spatial_extra_cases.json` and `distance_cases.json` below) `mdatk.spatial`: `_usable_box` of valid and unusable boxes; `pairs_within` (i, j, d in MDATK's order, and their dtypes) of random points without a box, in orthorhombic and triclinic cells and with unusable boxes, empty inputs, a == b, an exact cutoff distance, pairs across a face, points far outside the cell, duplicated points, cutoffs at and beyond half the cell; `minimum_image_vectors` with half-length ties (rounding half to even), angles within and beyond `np.allclose`, triclinic and unusable boxes; `kabsch` of 1, 2, 3, 5, 20 points with and without weights, identical, reflected, collinear and planar sets, zero weights |
 
 Each case is one run of `run_analyses` built as `Pipeline.analyze` builds it: the base project with
 `--set`-style overrides (`mdatk.cli.apply_override`; listed per case), the instances with
@@ -577,9 +538,9 @@ quantity from its threshold (cutoff distances, cosines of angle cutoffs, planari
 H-guess distances and ties, the base-pair C1' window, score grid and score ties, trace links, guessed
 bonds), and the energy's sums of |term| for relative tolerances: a count that differs where the
 margin is tiny can be a last-bit flip, anywhere else it is a bug (a margin of exactly 0 is an exact
-tie built into the geometry, e.g. MDATK's contacts test at 3.5 Å, and must match exactly). The cosines MDATK compares with are
-recorded as numpy computes them and as libm's `cos(x * pi / 180)`. The full list is in the
-generator's docstring.
+tie built into the geometry, e.g. MDATK's contacts test at 3.5 Å, and must match exactly). The
+cosines MDATK compares with are recorded as numpy computes them and as libm's
+`cos(x * pi / 180)`. The full list is in the generator's docstring.
 
 numpy's SIMD kernels (`power`, `cos`) and OpenBLAS / LAPACK's kernels (SVD of `kabsch` and of the
 ring planes, BLAS products) are chosen per CPU and differ in the last bits (relative 1e-16 to 1e-13
@@ -596,7 +557,7 @@ is reproducible):
 
 ```bash
 /opt/mdbridge-venv/bin/python -I -B tests/parity/make_analysis_cases.py /tmp/mdatk tests/data/analysis
-
+```
 
 `analysis/framework_cases.json` holds what MDATK's analysis framework (`mdatk/analysis/base.py`,
 `__init__.py`, `common.py`) computes, for `src/analysis/` (`tests/analysis/test_framework.cpp`):
@@ -642,6 +603,67 @@ themselves are MDBridge's own (`src/analysis/include/mdbridge/analysis/cache.hpp
 
 ```bash
 /opt/mdbridge-venv/bin/python -I -B tests/parity/make_pipeline_cases.py /tmp/mdatk tests/data/analysis
+```
+
+`analysis/spatial_extra_cases.json` holds what MDATK's spatial helpers (`mdatk/spatial.py`) compute,
+for `src/analysis/spatial.cpp` and the numerics under it (`core/linalg.hpp`,
+`core/detail/numpy_sum.hpp`, `core/detail/neighbors.hpp`; `tests/analysis/test_spatial.cpp`),
+written by `tests/parity/make_spatial_cases.py`, which runs MDATK's functions in-process. Every float
+is `float.hex()`. `pairs`: `pairs_within` without a box (scipy's cKDTree) on random float64 and
+float32-widened points, clusters, duplicates, a lattice at distances equal to the cutoff, crafted
+pairs within an ulp of the cutoff (including pairs where `sqrt(d2) <= r` and `d2 <= r * r` disagree:
+scipy compares squares), a spread that defeats a cell grid, special cutoffs (0, negative, infinite,
+NaN) and non-finite points (scipy's error); the pairs in MDATK's (tree) order, which the test sorts:
+MDBridge returns them sorted by (i, j) and must match the set and every distance exactly.
+`min_image` / `usable_box`: `minimum_image_vectors` and `_usable_box` for boxes near and away from 90
+degrees (numpy's `allclose` margins), unusable boxes and half-box ties. `kabsch`: random, weighted,
+mirrored, coplanar and tiny sets, fewer than 3 points (compared within a relative 1e-14).
+`rings`: `ring_geometry` of the stacking analysis (batched `np.linalg.svd`; planarity within 1e-14,
+normals up to sign within 1e-13). `sums`: `np.sum` / `np.mean` of float64 arrays of 0 to 300 and
+some larger lengths, whose values the test computes itself (`value(k)` in the generator), bit for
+bit. `tests`: the inputs of MDATK's `test_pairs_within_matches_brute_force_and_pbc` (open and
+periodic halves) and `test_kabsch_recovers_rotation`, which the test ports.
+
+```bash
+/opt/mdbridge-venv/bin/python -I -B tests/parity/make_spatial_cases.py /tmp/mdatk tests/data/analysis
+```
+
+`analysis/distance_cases.json` holds what MDAnalysis 2.11.0's `capped_distance` returns for the calls
+MDATK's `pairs_within` makes with a periodic box (`mdatk/spatial.py`; every case is also run through
+`pairs_within` and must agree), for MDBridge's periodic pair search
+(`docs/specs/m3-capped-distance.md`; `tests/analysis/test_periodic.cpp`, lattice points
+x fastest): the automatic method rule (sizes 9 / 10, cutoff around
+0.3 x the cell, n x m >= 1e8 on generated lattices), points at and one float32 step around the
+cutoff along axes and across faces, random sets inside, near and far outside orthogonal and
+triclinic cells, cutoffs beyond half a cell, the same array on both sides, duplicates, dense sets for
+the grid method's order, and degenerate cutoffs (0, negative, NaN, infinite), angles, lengths and
+coordinates. Each case gives the method chosen, the pairs in MDAnalysis' order and the distances as
+`float.hex` (or the error and warnings); lattice cases give SHA-256 hashes; `band` lists the pairs
+within the spec's tolerance of the cutoff. Format in the generator's docstring:
+
+```bash
+/opt/mdbridge-venv/bin/python -I -B tests/parity/make_distance_cases.py /tmp/mdatk tests/data/analysis
+```
+
+`make_rmsd_cases.py` and `make_universe_cases.py` write the probe data of the milestone-3 behaviour
+specifications `docs/specs/m3-rmsd.md` and `m3-universe-notes.md`:
+
+| File | Content |
+|---|---|
+| `rmsd_cases.json` | `docs/specs/m3-rmsd.md`: MDAnalysis 2.11.0's `rms.rmsd(a, b, weights, center=True, superposition=True)` of about 240 coordinate pairs (general structures with noise from 0 to 5 Å, identical / translated / rotated copies, planar sets, one and two atoms, collinear and coincident atoms, weights leaving one or two atoms, NaN / infinite inputs and weights, negative, zero-sum, tiny and huge weights, empty inputs, shape and weight errors) with the result, error or numpy warnings, `scale` (E0 / N, the scale of the tolerance) and a `degenerate` flag; and the series MDATK's rmsd analysis computes on the demo trajectory (targets as atom-index runs, masses or no weights, reference frames 0 / 5 / 23) |
+| `universe_cases.json` | `docs/specs/m3-universe-notes.md`: iteration over `trajectory[int64 array]` on the demo NetCDF / XTC / DCD / TRR files, a multi-model PDB and a GRO file (order, repeats, negative and out-of-range indices, stopping early; the current frame afterwards); cells read back from files with zero lengths / angles; per topology (parm7, PDB with and without CONECT, GRO) whether charges and chain IDs exist, the errors when not, bonds in order, fragment indices and, per atom group, its bonds, fragment indices, residues, residue atoms, boolean-mask subsets and unions |
+| `universe_files/*` | the crafted inputs of `universe_cases.json`: `frag_conect.pdb` (CONECT records out of order, four fragments), `conect_lonely.pdb` (a CONECT record without partners), `cell_*.nc` / `.dcd` / `.xtc` / `.trr` (cells with a zero length, zero lengths, all zeros, a zero angle, orthorhombic) |
+
+Floats are `float.hex()` strings. Both generators run MDAnalysis with the independent tables (first
+section); neither imports MDATK (its checkout is only the common first argument). No LAPACK result is
+recorded, so the files do not depend on the CPU (`make_rmsd_cases.py --report` prints the spread
+between MDAnalysis and an SVD superposition that the spec's tolerances rest on). To regenerate, with
+Python 3.13 and MDAnalysis 2.11.0 in `/opt/mdbridge-venv` (the output is reproducible; the universe
+cases read `io/loader/files` and `io/trajectories`, so run those generators first):
+
+```bash
+/opt/mdbridge-venv/bin/python -I -B tests/parity/make_rmsd_cases.py /tmp/mdatk tests/data/analysis
+/opt/mdbridge-venv/bin/python -I -B tests/parity/make_universe_cases.py /tmp/mdatk tests/data/analysis
 ```
 
 ## Checking that the data is reproducible

@@ -1,7 +1,8 @@
 # MDBridge: C++ architecture plan
 
-Status: agreed plan; milestones 1 (skeleton) and 2 (`core` + `io`, with the commands `init`, `info`,
-`export-pdb` and `density info`) done, milestone 3 (`analysis`) next. The C++ successor of MDATK is
+Status: agreed plan; milestones 1 (skeleton), 2 (`core` + `io`, with the commands `init`, `info`,
+`export-pdb` and `density info`) and 3 (`analysis`: the ten analyses, `analyze` and `list`, the
+cache, the frame-parallel runner) done, milestone 4 (`render`) next. The C++ successor of MDATK is
 named **MDBridge** and lives in its own repository (`htchamblee/MDBridge`). The Python package MDATK (v0.0.4.1) is frozen as
 the reference implementation and receives bug fixes only.
 

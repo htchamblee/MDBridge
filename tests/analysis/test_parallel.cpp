@@ -1,6 +1,6 @@
-// The frame-parallel runner (analysis.hpp runAnalyses, plan W4.1): every analysis case of the
-// parity data run with 1, 2, 4 and 8 threads gives byte-identical arrays, the same metadata, logs,
-// progress calls, frame times and errors; ordered analyses see the sequential call order;
+// The frame-parallel runner (analysis.hpp runAnalyses, MDBRIDGE_THREADS): every analysis case of
+// the parity data run with 1, 2, 4 and 8 threads gives byte-identical arrays, the same metadata,
+// logs, progress calls, frame times and errors; ordered analyses see the sequential call order;
 // errors, reader failures and cancellation behave as in the sequential run; the thread count.
 
 #include <atomic>

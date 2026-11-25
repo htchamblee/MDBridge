@@ -21,4 +21,6 @@ MDAnalysis (for example its independent data tables, `data/sources/`), the code 
 | `m2-parm7-topology.md`, `m2-pdb-*.md`, `m2-gro.md` | 2 | topology readers, PDB atom-name placement |
 | `m2-dcd-unitcell.md`, `m2-netcdf-amber.md`, `m2-amber-ascii.md`, `m2-triclinic-box.md` | 2 | trajectory readers and box conversion |
 | `m3-plan.md` | 3 | the analysis milestone's plan (inventory of MDATK's analyses and work breakdown) |
-| `m3-*.md` (others) | 3 | MDAnalysis behaviour used by the analyses |
+| `m3-capped-distance.md` | 3 | the periodic pair search (`capped_distance`: method choice, distances, pair order, tolerances) |
+| `m3-rmsd.md` | 3 | the optimal-superposition RMSD (`rms.rmsd`: centring, weights, degenerate inputs, errors) |
+| `m3-universe-notes.md` | 3 | trajectory iteration by index arrays, cells, charges, chain IDs, bonds and fragments as the analyses use them |
