@@ -7,7 +7,10 @@
 // Tolerances (docs/specs/m3-plan.md 4.3): the rms.rmsd path (superposition without a fit
 // selection) and the plain path (no superposition) must match bit for bit (NaN equals NaN); the
 // fit-selection path goes through kabsch, whose SVD and BLAS products differ from LAPACK / OpenBLAS
-// in the last bits, so it is compared within |a - e| <= 1e-12 * max(1, |e|).
+// in the last bits, so it is compared within |a - e| <= 1e-12 * max(1, |e|). So are the values of
+// the improved RMSD (AN-16 / AN-17: the exact superposition RMSD where the expectation holds numpy's
+// SVD value); values below 1e-4 Å may also differ by up to 1e-4 Å (QCP or exact value near the
+// AN-17 threshold).
 
 #include <algorithm>
 #include <cmath>
@@ -30,6 +33,7 @@ using namespace mdbridge::test::analysis_cases;
 namespace {
 
 constexpr double kFitTolerance = 1e-12;
+constexpr double kNearZero = 1e-4;  // Å
 
 struct Tally {
     int cases = 0;
@@ -94,7 +98,13 @@ void compareRmsdResult(const ProbedRun& run, std::size_t i, const core::Analysis
                 continue;
             }
             const double deviation = std::fabs(a - e);
-            if (fitPath && std::isfinite(e) && deviation <= kFitTolerance * std::max(1.0, std::fabs(e))) {
+            // AN-16 / AN-17 values come from the exact path (numpy's SVD there, a Jacobi
+            // eigen-solution here): the same tolerance as kabsch's; below kNearZero the QCP and the
+            // exact value may be chosen differently near the AN-17 threshold
+            const bool exactPath = !fitPath && project.analyses.rmsd.superposition;
+            const bool nearZero = std::min(std::fabs(a), std::fabs(e)) < kNearZero && deviation <= kNearZero;
+            if ((fitPath || exactPath) && std::isfinite(e) &&
+                (deviation <= kFitTolerance * std::max(1.0, std::fabs(e)) || (exactPath && nearZero))) {
                 ++tally.withinTolerance;
                 tally.worstRelative = std::max(tally.worstRelative, deviation / std::max(1.0, std::fabs(e)));
                 continue;
@@ -286,7 +296,9 @@ TEST(RmsdAnalysis, ZeroMassesAndErrors) {
     EXPECT_NO_THROW((void)runRmsd(system, p));
 }
 
-TEST(RmsdAnalysis, ReferenceFrameBecomesCurrentForLaterSetups) {
+// SEL-17 / AN-13 (docs/DIFFERENCES.md): every setup starts on the first analysed frame, also after
+// rmsd's setup moved the trajectory to its reference frame (MDATK: the later setups start there).
+TEST(RmsdAnalysis, EverySetupStartsOnTheFirstAnalysedFrame) {
     std::vector<std::vector<float>> frames;
     for (int f = 0; f < 6; ++f) {
         frames.push_back(points(3.0, f * 0.1));
@@ -304,10 +316,10 @@ TEST(RmsdAnalysis, ReferenceFrameBecomesCurrentForLaterSetups) {
     analyses.push_back(std::make_unique<Recorded>(analysis::traceAnalysis(), context, "trace", nullptr, setupFrames));
     const std::vector<std::int64_t> analysed{1, 3, 4, 5};
     const analysis::RunResult run = analysis::runAnalyses(context, analyses, analysed);
-    // reference position 2 of the analysed frames: frame 4
-    EXPECT_EQ(setupFrames, (std::map<std::string, std::int64_t>{{"contacts", 0}, {"rmsd", 0}, {"trace", 4}}));
+    // reference position 2 of the analysed frames is frame 4; the setups all start on frame 1
+    EXPECT_EQ(setupFrames, (std::map<std::string, std::int64_t>{{"contacts", 1}, {"rmsd", 1}, {"trace", 1}}));
     const auto values = run.results.at(1).array("rmsd_0")->values<double>();
-    EXPECT_NEAR(values[2], 0.0, 1e-6);
+    EXPECT_EQ(values[2], 0.0);  // AN-17: the reference frame against itself is exactly 0
     EXPECT_GT(values[0], 0.0);
     EXPECT_EQ(*core::Value(run.results.at(1).meta).find("reference_frame_index")->get<std::int64_t>(), 2);
 }

@@ -518,6 +518,9 @@ def child(mdatk, jobs_file, results_file):
     import independent_tables
 
     independent_tables.apply()
+    import improvements_analyses
+
+    improvements_analyses.apply_mdatk()  # the analysis improvements (docs/DIFFERENCES.md)
     from mdatk import cli
 
     def run(argv):

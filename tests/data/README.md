@@ -502,6 +502,13 @@ the files of `analysis/`, written by six generators (in the order `regenerate_al
 | `make_spatial_cases.py` | `spatial_extra_cases.json` | `test_spatial.cpp` |
 | `make_pipeline_cases.py` | `pipeline_cases.json` | `test_pipeline.cpp` |
 
+MDBridge's improvements of the analyses (docs/DIFFERENCES.md, "Analyses") are applied on the test
+side by `tests/parity/improvements_analyses.py`: `make_analysis_cases.py`,
+`make_analysis_framework_cases.py`, `make_pipeline_cases.py` and `cli_parity.py` (its MDATK child)
+patch MDATK with it, and `make_rmsd_cases.py` records MDBridge's values for the improved RMSD cases
+("improved", "near", "mdanalysis"). The covalent radii of the bond guess come from
+`data/sources/covalent_radii` through `tools/gen_covalent_radii.py` (`src/analysis/covalent_radii.inc`).
+
 The tests share one helper header, `tests/analysis/analysis_test_support.hpp` (case files, micro
 systems, case runs, tagged JSON, array comparison, margins). Every test that goes through the
 analysis runner runs twice under ctest, with the frame-parallel runner (`MDBRIDGE_THREADS=4`) and

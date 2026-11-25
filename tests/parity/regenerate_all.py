@@ -205,6 +205,8 @@ STEPS = [
          ["src/core/step_types.inc", f"{DATA}/step-types/step_types.json"]),
     Step("panel_tables", "tools/gen_panel_tables.py", lambda ctx: [M(ctx)], ["src/core/panel_tables.inc"]),
     Step("data_tables", "tools/gen_data_tables.py", lambda ctx: [], [DATA_TABLES], flags=["-I", "-B"]),
+    Step("covalent_radii", "tools/gen_covalent_radii.py", lambda ctx: [], ["src/analysis/covalent_radii.inc"],
+         flags=["-I", "-B"]),
     Step("selection_tables", "tools/gen_selection_tables.py", lambda ctx: [], ["src/core/selection_tables.inc"],
          flags=["-I"]),
     Step("pdb_tables", "tools/gen_pdb_tables.py", lambda ctx: [], ["src/io/pdb_tables.inc"], flags=["-I"]),

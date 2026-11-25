@@ -51,8 +51,8 @@ std::optional<Box> usableBox(const std::optional<std::array<float, 6>>& dims);  
 // <= cutoff * cutoff (scipy compares squares, not sqrt(d2) <= cutoff: they disagree for some pairs
 // within an ulp of the cutoff), and the distance is sqrt of that sum. Hence a negative cutoff acts
 // as its absolute value, an infinite one keeps every pair and a NaN one none. Empty a or b give no
-// pairs; otherwise a non-finite coordinate in a or b throws core::ValueError("data must be finite,
-// check for nan or inf values") (scipy's message).
+// pairs. A point with a non-finite coordinate is in no pair (AN-20; MDATK: scipy's ValueError
+// "data must be finite, check for nan or inf values").
 //
 // Order (open path only): MDATK's order is cKDTree's traversal order, which depends on the tree's
 // construction (std::nth_element of the C++ library scipy was built with), so MDBridge does not

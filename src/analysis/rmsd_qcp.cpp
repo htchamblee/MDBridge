@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <limits>
 #include <stdexcept>
 #include <vector>
 
@@ -20,6 +21,14 @@ namespace {
 
 constexpr std::size_t kMaxNewtonSteps = 50;
 constexpr double kNewtonTolerance = 1e-14;
+// AN-16: a centred set whose weighted inner-product matrix has q <= kCollinear * p^2 (p its trace,
+// q the sum of its principal 2 x 2 minors; equivalently the second-largest eigenvalue is within
+// about 1e-10 of the largest) has no unique optimal rotation.
+constexpr double kCollinear = 1e-10;
+// AN-17: E0 - lambda below kCancellation * eps * E0 is dominated by rounding: the iteration stops
+// at a relative step of 1e-14 (about 45 eps) and E0 - lambda cancels; identical structures were
+// seen at 250 eps (the register's 64 eps catches too few of them).
+constexpr double kCancellation = 4096.0;
 
 // The coordinates minus their (weighted) centre, §3: sums in atom order, one division.
 std::vector<double> centred(std::span<const double> x, std::size_t n, const double* w, double weightSum) {
@@ -39,6 +48,132 @@ std::vector<double> centred(std::span<const double> x, std::size_t n, const doub
         }
     }
     return out;
+}
+
+// AN-16: whether the centred set x (weights w, none: 1) is collinear or a single point: the
+// weighted inner-product matrix M = sum w x x^T has (almost) one non-zero eigenvalue.
+bool degenerate(const std::vector<double>& x, std::size_t n, const double* w) {
+    if (n < 3) {
+        return true;
+    }
+    double m[3][3] = {};
+    for (std::size_t i = 0; i < n; ++i) {
+        const double wi = w ? w[i] : 1.0;
+        for (std::size_t r = 0; r < 3; ++r) {
+            for (std::size_t c = 0; c < 3; ++c) {
+                m[r][c] += wi * (x[3 * i + r] * x[3 * i + c]);
+            }
+        }
+    }
+    const double p = m[0][0] + m[1][1] + m[2][2];
+    const double q = (m[0][0] * m[1][1] - m[0][1] * m[1][0]) + (m[0][0] * m[2][2] - m[0][2] * m[2][0]) +
+                     (m[1][1] * m[2][2] - m[1][2] * m[2][1]);
+    return q <= kCollinear * p * p;
+}
+
+// The eigenvector of the largest eigenvalue of the symmetric 4 x 4 matrix k (cyclic Jacobi
+// rotations; ties go to the lowest index). Rows of k already diagonal are never touched, so an
+// exactly diagonal first row gives exactly (1, 0, 0, 0).
+std::array<double, 4> topEigenvector(std::array<std::array<double, 4>, 4> k) {
+    std::array<std::array<double, 4>, 4> v{};
+    for (std::size_t i = 0; i < 4; ++i) {
+        v[i][i] = 1.0;
+    }
+    for (int sweep = 0; sweep < 64; ++sweep) {
+        double off = 0.0;
+        for (std::size_t p = 0; p < 4; ++p) {
+            for (std::size_t q = p + 1; q < 4; ++q) {
+                off += k[p][q] * k[p][q];
+            }
+        }
+        if (off == 0.0) {
+            break;
+        }
+        for (std::size_t p = 0; p < 4; ++p) {
+            for (std::size_t q = p + 1; q < 4; ++q) {
+                if (k[p][q] == 0.0) {
+                    continue;
+                }
+                const double theta = (k[q][q] - k[p][p]) / (2.0 * k[p][q]);
+                const double t = (theta >= 0.0 ? 1.0 : -1.0) / (std::fabs(theta) + std::sqrt(theta * theta + 1.0));
+                const double c = 1.0 / std::sqrt(t * t + 1.0);
+                const double s = t * c;
+                for (std::size_t r = 0; r < 4; ++r) {  // k <- J^T k J
+                    const double krp = k[r][p];
+                    const double krq = k[r][q];
+                    k[r][p] = c * krp - s * krq;
+                    k[r][q] = s * krp + c * krq;
+                }
+                for (std::size_t r = 0; r < 4; ++r) {
+                    const double kpr = k[p][r];
+                    const double kqr = k[q][r];
+                    k[p][r] = c * kpr - s * kqr;
+                    k[q][r] = s * kpr + c * kqr;
+                }
+                k[p][q] = 0.0;
+                k[q][p] = 0.0;
+                for (std::size_t r = 0; r < 4; ++r) {  // v <- v J
+                    const double vrp = v[r][p];
+                    const double vrq = v[r][q];
+                    v[r][p] = c * vrp - s * vrq;
+                    v[r][q] = s * vrp + c * vrq;
+                }
+            }
+        }
+    }
+    std::size_t best = 0;
+    for (std::size_t i = 1; i < 4; ++i) {
+        if (k[i][i] > k[best][best]) {
+            best = i;
+        }
+    }
+    std::array<double, 4> q{v[0][best], v[1][best], v[2][best], v[3][best]};
+    const double norm = std::sqrt(q[0] * q[0] + q[1] * q[1] + q[2] * q[2] + q[3] * q[3]);
+    for (double& x : q) {
+        x /= norm;
+    }
+    return q;
+}
+
+// AN-16 / AN-17: the exact superposition RMSD of centred a (moved) onto centred b: the optimal
+// rotation from the top eigenvector of Horn's key matrix, then the residual summed directly after
+// rotating (never E0 - lambda). One atom and identical centred sets give exactly 0.
+double exactRmsd(const std::vector<double>& a, const std::vector<double>& b, std::size_t n, const double* w) {
+    if (n == 1 || a == b) {
+        return 0.0;  // one atom, identical structures: exactly 0
+    }
+    double m[3][3] = {};  // sum w a b^T
+    for (std::size_t i = 0; i < n; ++i) {
+        const double wi = w ? w[i] : 1.0;
+        for (std::size_t r = 0; r < 3; ++r) {
+            for (std::size_t c = 0; c < 3; ++c) {
+                m[r][c] += wi * (a[3 * i + r] * b[3 * i + c]);  // symmetric for a == b
+            }
+        }
+    }
+    const std::array<std::array<double, 4>, 4> k{{
+        {m[0][0] + m[1][1] + m[2][2], m[1][2] - m[2][1], m[2][0] - m[0][2], m[0][1] - m[1][0]},
+        {m[1][2] - m[2][1], m[0][0] - m[1][1] - m[2][2], m[0][1] + m[1][0], m[2][0] + m[0][2]},
+        {m[2][0] - m[0][2], m[0][1] + m[1][0], -m[0][0] + m[1][1] - m[2][2], m[1][2] + m[2][1]},
+        {m[0][1] - m[1][0], m[2][0] + m[0][2], m[1][2] + m[2][1], -m[0][0] - m[1][1] + m[2][2]},
+    }};
+    const auto [q0, q1, q2, q3] = topEigenvector(k);
+    const double r[3][3] = {
+        {q0 * q0 + q1 * q1 - q2 * q2 - q3 * q3, 2.0 * (q1 * q2 - q0 * q3), 2.0 * (q1 * q3 + q0 * q2)},
+        {2.0 * (q1 * q2 + q0 * q3), q0 * q0 - q1 * q1 + q2 * q2 - q3 * q3, 2.0 * (q2 * q3 - q0 * q1)},
+        {2.0 * (q1 * q3 - q0 * q2), 2.0 * (q2 * q3 + q0 * q1), q0 * q0 - q1 * q1 - q2 * q2 + q3 * q3},
+    };
+    double sum = 0.0;
+    for (std::size_t i = 0; i < n; ++i) {
+        double d2 = 0.0;
+        for (std::size_t c = 0; c < 3; ++c) {
+            const double moved = (r[c][0] * a[3 * i] + r[c][1] * a[3 * i + 1]) + r[c][2] * a[3 * i + 2];
+            const double d = moved - b[3 * i + c];
+            d2 += d * d;
+        }
+        sum += (w ? w[i] : 1.0) * d2;
+    }
+    return std::sqrt(sum / static_cast<double>(n));
 }
 
 // §4: QCP on centred coordinates a (moved) and b (reference), weights normalised to mean 1.
@@ -97,6 +232,7 @@ double qcpRmsd(const std::vector<double>& a, const std::vector<double>& b, std::
     const double c0 = t1 + t2 + t3 + t4 + t5 + t6;
 
     double lambda = e0;
+    bool converged = false;
     for (std::size_t step = 0; step < kMaxNewtonSteps; ++step) {
         const double old = lambda;
         const double x2 = lambda * lambda;
@@ -105,10 +241,31 @@ double qcpRmsd(const std::vector<double>& a, const std::vector<double>& b, std::
         const double delta = (alpha * lambda + c0) / (2.0 * x2 * lambda + beta + alpha);
         lambda -= delta;
         if (std::fabs(lambda - old) < std::fabs(kNewtonTolerance * lambda)) {
+            converged = true;
             break;
         }
     }
-    return std::sqrt(std::fabs(2.0 * (e0 - lambda) / static_cast<double>(n)));
+    const double qcp = std::sqrt(std::fabs(2.0 * (e0 - lambda) / static_cast<double>(n)));
+    if (n == 0) {
+        return qcp;  // NaN
+    }
+    for (std::size_t i = 0; i < 3 * n; ++i) {
+        if (!std::isfinite(a[i]) || !std::isfinite(b[i])) {
+            return qcp;  // non-finite input: NaN as before
+        }
+    }
+    if (w) {
+        for (std::size_t i = 0; i < n; ++i) {
+            if (!(w[i] >= 0.0) || !std::isfinite(w[i])) {
+                return qcp;  // negative or non-finite weights: no minimum to speak of; MDAnalysis' value
+            }
+        }
+    }
+    const bool cancelled = e0 - lambda < kCancellation * std::numeric_limits<double>::epsilon() * e0;
+    if (std::isfinite(qcp) && converged && !cancelled && !degenerate(a, n, w) && !degenerate(b, n, w)) {
+        return qcp;  // the QCP value, bit for bit
+    }
+    return exactRmsd(a, b, n, w);
 }
 
 }  // namespace

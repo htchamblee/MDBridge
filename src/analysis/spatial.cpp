@@ -39,12 +39,33 @@ std::vector<float> narrowed(std::span<const double> xyz) {
     return out;
 }
 
-void requireFinite(std::span<const double> xyz) {
+// AN-20: the points whose three coordinates are finite (their indices), or std::nullopt when all are
+std::optional<std::vector<std::size_t>> finitePoints(std::span<const double> xyz) {
+    const std::size_t n = xyz.size() / 3;
+    bool all = true;
     for (const double v : xyz) {
-        if (!std::isfinite(v)) {
-            throw core::ValueError("data must be finite, check for nan or inf values");
+        all = all && std::isfinite(v);
+    }
+    if (all) {
+        return std::nullopt;
+    }
+    std::vector<std::size_t> out;
+    for (std::size_t i = 0; i < n; ++i) {
+        if (std::isfinite(xyz[3 * i]) && std::isfinite(xyz[3 * i + 1]) && std::isfinite(xyz[3 * i + 2])) {
+            out.push_back(i);
         }
     }
+    return out;
+}
+
+std::vector<double> pointsAt(std::span<const double> xyz, const std::vector<std::size_t>& rows) {
+    std::vector<double> out;
+    out.reserve(3 * rows.size());
+    for (const std::size_t i : rows) {
+        out.insert(out.end(), xyz.begin() + static_cast<std::ptrdiff_t>(3 * i),
+                   xyz.begin() + static_cast<std::ptrdiff_t>(3 * i + 3));
+    }
+    return out;
 }
 
 // np.sign, with MDATK's 0 -> 1
@@ -101,8 +122,24 @@ PairList pairsWithinOpen(std::span<const double> a, std::span<const double> b, d
     if (na == 0 || nb == 0) {
         return out;
     }
-    requireFinite(a);  // cKDTree(a) is built first, then cKDTree(b): the same message either way
-    requireFinite(b);
+    // AN-20: points with a non-finite coordinate are in no pair (MDATK: scipy's "data must be
+    // finite" error); the search runs on the finite points and the indices are mapped back
+    const std::optional<std::vector<std::size_t>> finiteA = finitePoints(a);
+    const std::optional<std::vector<std::size_t>> finiteB = finitePoints(b);
+    if (finiteA || finiteB) {
+        const std::vector<double> fa = finiteA ? pointsAt(a, *finiteA) : std::vector<double>(a.begin(), a.end());
+        const std::vector<double> fb = finiteB ? pointsAt(b, *finiteB) : std::vector<double>(b.begin(), b.end());
+        out = pairsWithinOpen(fa, fb, cutoff);
+        for (std::size_t p = 0; p < out.size(); ++p) {
+            if (finiteA) {
+                out.i[p] = static_cast<std::int64_t>((*finiteA)[static_cast<std::size_t>(out.i[p])]);
+            }
+            if (finiteB) {
+                out.j[p] = static_cast<std::int64_t>((*finiteB)[static_cast<std::size_t>(out.j[p])]);
+            }
+        }
+        return out;
+    }
     // scipy keeps d2 <= r ** 2 (RectRectDistanceTracker: upper_bound = r * r for p = 2)
     const double bound = cutoff * cutoff;
     if (std::isnan(bound)) {

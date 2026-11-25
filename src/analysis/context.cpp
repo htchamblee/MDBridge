@@ -13,6 +13,13 @@ AnalysisContext::AnalysisContext(core::System& system, core::Project project, st
       m_reporter(std::move(reporter)), m_usePbc(m_project.analyses.use_pbc) {}
 
 core::AtomGroup AnalysisContext::select(std::string_view text, bool allowEmpty) const {
+    const core::Frame* current = m_system->currentFrame();
+    if (current && current->box && !m_usePbc) {
+        // SEL-17: distance keywords are periodic only with analyses.use_pbc
+        core::Frame open = *current;
+        open.box.reset();
+        return core::select(m_system->topology, &open, text, m_project.groups, allowEmpty);
+    }
     return core::select(*m_system, text, m_project.groups, allowEmpty);
 }
 

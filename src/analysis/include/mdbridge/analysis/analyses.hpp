@@ -37,11 +37,11 @@ std::string rmsdOutputKey(std::string_view label, std::size_t k);
 inline constexpr double kEnergyCoulomb = 332.0522;
 
 // energy._bonded_exclusions(u, a, b, depth): the sorted keys a_local * b.size() + b_local of the
-// A-B pairs separated by <= depth bonds (none for depth <= 0 or a topology without bonds). The
-// search starts from the A atoms within depth - 1 bonds (through A atoms) of a bond between A and
-// B, and reaches B atoms through any atoms.
+// A-B pairs joined by a path of <= depth bonds through any atoms (AN-08; MDATK only follows paths
+// that start at a direct A-B bond), along `bonds` (the topology's when null). None for depth <= 0
+// or without bonds. A repeated A atom keys every position; a repeated B atom its last one.
 std::vector<std::int64_t> energyBondedExclusions(const core::AtomGroup& a, const core::AtomGroup& b,
-                                                 std::int64_t depth);
+                                                 std::int64_t depth, const std::vector<core::Bond>* bonds = nullptr);
 
 // structure.structure_groups(project): visual.structure_groups (all group names when empty),
 // unknown names left out.
@@ -60,6 +60,15 @@ struct StructureResidues {
 // Throws core::SelectionError from the selections (no structure groups, no atoms selected, invalid
 // selections); the residues may be empty (every atom an ion).
 StructureResidues structureResidues(const AnalysisContext& context);
+
+// AN-14 (docs/DIFFERENCES.md): bonds among `atoms` guessed from their positions in `frame`, as
+// local index pairs (i < j) [m, 2] row-major, sorted: atoms no farther apart than the sum of their
+// covalent radii (Cordero et al. 2008; carbon's for an unknown element) + 0.4 Å, never two
+// hydrogens, never an atom of a one-atom residue (ions), and within one residue or between
+// consecutive residues (by index) of one chain (same segment and, when the topology has chain IDs,
+// the same chain ID). Elements from core::atomElements. (MDATK: 1.95 Å, H within 1.25 Å, adjacent
+// residue indices across chains.)
+std::vector<std::int64_t> guessBonds(const core::AtomGroup& atoms, const core::Frame& frame);
 
 // structure.guess_element(name): the element the atoms analysis tells hydrogens by: the name
 // stripped of surrounding whitespace and leading digits; "Mg", "Na", "Cl", "Zn", "Ca" for exactly

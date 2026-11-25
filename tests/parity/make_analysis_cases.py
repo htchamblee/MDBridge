@@ -140,6 +140,9 @@ sys.path.insert(0, HERE)
 import independent_tables  # noqa: E402
 
 independent_tables.apply()  # MDAnalysis with MDBridge's independent tables (tests/data/README.md)
+import improvements_analyses  # noqa: E402
+
+improvements_analyses.apply_mdatk()  # MDATK with MDBridge's analysis improvements (docs/DIFFERENCES.md)
 
 from mdatk import cli  # noqa: E402
 from mdatk import spatial as S  # noqa: E402

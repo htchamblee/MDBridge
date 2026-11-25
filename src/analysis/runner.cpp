@@ -1,7 +1,11 @@
 // The single-pass runner (mdatk/analysis/base.py run_analyses), frame-parallel: see analysis.hpp.
 
 #include <algorithm>
+#include <array>
 #include <charconv>
+#include <cmath>
+#include <cstdint>
+#include <optional>
 #include <condition_variable>
 #include <cstdlib>
 #include <deque>
@@ -141,6 +145,80 @@ struct Progress {
     }
 };
 
+// Per-run checks of the analysed frames, in frame order on the calling thread (before the frame's
+// non-concurrent process() calls, so logs are those of the sequential run):
+// AN-19: with use_pbc, the first frame without a usable cell is reported once;
+// AN-20: frames with non-finite coordinates are reported once per run of consecutive analysed
+// frames ("frame k: ..." / "frames k1-k2: up to N atoms ...").
+class FrameChecks {
+public:
+    explicit FrameChecks(const AnalysisContext& context) : m_context(context) {}
+
+    void check(const core::Frame& frame) {
+        if (m_context.usePbc() && !m_pbcWarned && !usableCell(frame.box)) {
+            m_pbcWarned = true;
+            m_context.warn("use_pbc is on but trajectory frame " + std::to_string(frame.index) +
+                           " has no usable periodic cell; distances are not periodic");
+        }
+        std::size_t bad = 0;
+        for (std::size_t i = 0; i + 2 < frame.positions.size(); i += 3) {
+            if (!std::isfinite(frame.positions[i]) || !std::isfinite(frame.positions[i + 1]) ||
+                !std::isfinite(frame.positions[i + 2])) {
+                ++bad;
+            }
+        }
+        if (bad == 0) {
+            flush();
+            return;
+        }
+        if (m_rangeFrames == 0) {
+            m_first = frame.index;
+        }
+        m_last = frame.index;
+        ++m_rangeFrames;
+        m_maxBad = std::max(m_maxBad, bad);
+    }
+
+    void flush() {
+        if (m_rangeFrames == 0) {
+            return;
+        }
+        const std::string atoms = m_maxBad == 1 ? "1 atom has" : std::to_string(m_maxBad) + " atoms have";
+        if (m_rangeFrames == 1) {
+            m_context.warn("frame " + std::to_string(m_first) + ": " + atoms +
+                           " non-finite coordinates; they are left out of distance searches");
+        } else {
+            m_context.warn("frames " + std::to_string(m_first) + "-" + std::to_string(m_last) + ": up to " + atoms +
+                           " non-finite coordinates; they are left out of distance searches");
+        }
+        m_rangeFrames = 0;
+        m_maxBad = 0;
+    }
+
+private:
+    // three positive finite lengths and three finite angles in (0, 180)
+    static bool usableCell(const std::optional<std::array<float, 6>>& box) {
+        if (!box) {
+            return false;
+        }
+        for (std::size_t i = 0; i < 3; ++i) {
+            const float length = (*box)[i];
+            const float angle = (*box)[i + 3];
+            if (!(std::isfinite(length) && length > 0.0f && std::isfinite(angle) && angle > 0.0f && angle < 180.0f)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    const AnalysisContext& m_context;
+    bool m_pbcWarned = false;
+    std::int64_t m_first = 0;
+    std::int64_t m_last = 0;
+    std::size_t m_rangeFrames = 0;
+    std::size_t m_maxBad = 0;
+};
+
 void prepareAll(std::span<Analysis* const> analyses, const core::Frame& first) {
     for (Analysis* a : analyses) {
         a->prepare(first);
@@ -148,7 +226,7 @@ void prepareAll(std::span<Analysis* const> analyses, const core::Frame& first) {
 }
 
 void runSequential(std::span<Analysis* const> analyses, std::span<const std::int64_t> frames,
-                   core::Trajectory& trajectory, const Progress& progress, RunResult& out) {
+                   core::Trajectory& trajectory, const Progress& progress, FrameChecks& checks, RunResult& out) {
     for (std::size_t k = 0; k < frames.size(); ++k) {
         progress.rep.checkCancel();
         const core::Frame& frame = trajectory.seek(frames[k]);
@@ -156,6 +234,7 @@ void runSequential(std::span<Analysis* const> analyses, std::span<const std::int
         if (k == 0) {
             prepareAll(analyses, frame);
         }
+        checks.check(frame);
         for (Analysis* a : analyses) {
             a->process(k, frame);
         }
@@ -164,7 +243,8 @@ void runSequential(std::span<Analysis* const> analyses, std::span<const std::int
 }
 
 void runParallel(std::span<Analysis* const> analyses, std::span<const std::int64_t> frames,
-                 core::Trajectory& trajectory, const Progress& progress, std::size_t threads, RunResult& out) {
+                 core::Trajectory& trajectory, const Progress& progress, std::size_t threads, FrameChecks& checks,
+                 RunResult& out) {
     const core::Reporter& rep = progress.rep;
     std::vector<bool> concurrent;
     std::vector<std::size_t> concurrentIndex;
@@ -205,6 +285,7 @@ void runParallel(std::span<Analysis* const> analyses, std::span<const std::int64
         FrameSlot& slot = *pending.front();
         pool.wait(slot);
         rep.checkCancel();
+        checks.check(slot.frame);
         for (std::size_t i = 0; i < analyses.size(); ++i) {
             if (!concurrent[i]) {
                 analyses[i]->process(slot.k, slot.frame);
@@ -278,6 +359,11 @@ RunResult runAnalyses(AnalysisContext& context, std::span<Analysis* const> analy
     std::string labels;  // ', '.join(a.label for a in analyses)
     for (std::size_t i = 0; i < analyses.size(); ++i) {
         rep.log("Preparing " + analyses[i]->label() + " ...");
+        // SEL-17 / AN-13: every setup starts on the first analysed frame (an earlier setup, e.g.
+        // rmsd's, may have moved the trajectory), so selections do not depend on the setup order
+        if (n > 0 && trajectory->current().index != frames[0]) {
+            trajectory->seek(frames[0]);
+        }
         analyses[i]->setup(frames);
         labels += (i ? ", " : "") + analyses[i]->label();
     }
@@ -288,11 +374,13 @@ RunResult runAnalyses(AnalysisContext& context, std::span<Analysis* const> analy
     const std::size_t threads = std::min(analysisThreads(options.threads), n);
     const bool anyConcurrent =
         std::any_of(analyses.begin(), analyses.end(), [](const Analysis* a) { return a->concurrentProcess(); });
+    FrameChecks checks(context);
     if (threads > 1 && anyConcurrent) {
-        runParallel(analyses, frames, *trajectory, progress, threads, out);
+        runParallel(analyses, frames, *trajectory, progress, threads, checks, out);
     } else {
-        runSequential(analyses, frames, *trajectory, progress, out);
+        runSequential(analyses, frames, *trajectory, progress, checks, out);
     }
+    checks.flush();
     out.results.reserve(analyses.size());
     for (Analysis* a : analyses) {
         out.results.push_back(a->finalize());

@@ -14,11 +14,17 @@ nothing is written into it. Writes OUT_DIR/rmsd_cases.json:
           weighted squared distance of the centred inputs from their centres (see the spec; the
           tolerance of non-degenerate cases is relative to it); "degenerate": true for inputs
           whose optimal rotation is not unique (one or two effective atoms, collinear or coincident
-          atoms), where only a bit-for-bit reproduction matches; "group" names the family.
+          atoms); "group" names the family. Where MDBridge improves on MDAnalysis (AN-16: degenerate
+          sets; AN-17: E0 - lambda lost to cancellation; improvements_analyses.rmsd_expected),
+          "result" is MDBridge's value (the exact superposition RMSD, 0 for identical inputs or one
+          atom), "improved" names the item, "mdanalysis" keeps MDAnalysis' value and "near": true
+          marks an AN-17 decision close to its threshold (either value is acceptable).
   demo    the series of rmsd(frame, reference) over tests/data/io/trajectories/demo_dry.nc with
           topology/demo_dry.parm7 (24 frames), as MDATK computes it: per target the atom indices
           ([first, last] runs), the weights (null or the parm7 masses), the reference frame and the
-          value for every frame.
+          value for every frame (MDBridge's, as for the cases; "improved": the frame positions
+          whose value is the exact one, "near": those close to the AN-17 threshold, "mdanalysis":
+          MDAnalysis' values).
 
 Floats are float.hex() strings ("nan", "inf", "-inf" for non-finite values). Everything recorded
 is deterministic (MDAnalysis' sums are sequential C loops and numpy's pairwise sums are fixed);
@@ -43,6 +49,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 DATA = os.path.join(os.path.dirname(HERE), "data")
 
 sys.path.insert(0, HERE)
+import improvements_analyses as improved  # noqa: E402
 import independent_tables  # noqa: E402
 
 import MDAnalysis as mda  # noqa: E402
@@ -133,6 +140,10 @@ def case(group, a, b, w=None, degenerate=False):
              "scale": fhex(scale_of(a, b, wa)) if a.shape == b.shape and a.ndim == 2 and
              (wa is None or wa.shape == (a.shape[0],)) and error is None else None,
              "degenerate": degenerate}
+    if error is None:
+        value, item, near = improved.rmsd_expected(a, b, wa, result)
+        if item is not None:
+            entry.update({"result": fhex(value), "improved": item, "mdanalysis": fhex(result), "near": near})
     CASES.append(entry)
     if REPORT and result is not None and np.isfinite(result) and a.shape[0] > 0:
         try:
@@ -304,15 +315,23 @@ def demo_cases():
                 w = ag.masses.astype(np.float64) if weighted else None
                 u.trajectory[ref_frame]
                 ref = ag.positions.astype(np.float64).copy()
-                values = []
+                values, mda_values, better, near = [], [], [], []
                 for ts in u.trajectory:
                     x = ag.positions.astype(np.float64)
-                    values.append(fhex(rms.rmsd(x, ref, weights=w, center=True, superposition=True)))
+                    value = rms.rmsd(x, ref, weights=w, center=True, superposition=True)
+                    mda_values.append(fhex(value))
+                    value, item, close = improved.rmsd_expected(x, ref, w, value)
+                    if item is not None:
+                        better.append(ts.frame)
+                    if close:
+                        near.append(ts.frame)
+                    values.append(fhex(value))
                     if REPORT:
                         case_stat("demo_" + label, x, ref, w)
                 targets.append({"label": label, "selection": sel, "atoms": runs(ag.indices),
                                 "weights": None if w is None else flat(w), "reference_frame": ref_frame,
-                                "values": values,
+                                "values": values, "improved": better, "near": near,
+                                "mdanalysis": mda_values,
                                 "degenerate": label in ("two C4'", "one C4'", "one Mg")})
     return {"topology": "topology/demo_dry.parm7", "trajectory": "io/trajectories/demo_dry.nc",
             "n_frames": int(u.trajectory.n_frames), "targets": targets}

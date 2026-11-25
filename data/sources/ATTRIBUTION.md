@@ -13,6 +13,7 @@ fields kept.
 | CIAAW, Radioactive elements (from NUBASE2020), https://www.ciaaw.org/radioactive-elements.htm | masses (mass numbers) of elements without a standard atomic weight | facts | no |
 | Amber 2024 Reference Manual, https://ambermd.org/doc12/Amber24.pdf | Amber residue naming conventions (protonation states, termini, caps, nucleic ends, water models) | facts (manual cited, not copied) | no |
 | GROMACS reference manual, https://manual.gromacs.org/current/ | GROMACS residue naming convention, SOL | facts (manual cited, not copied) | no |
+| Cordero et al., Covalent radii revisited, Dalton Trans. (2008) 2832-2838, doi:10.1039/b801115j | covalent radii of the analyses' bond guess (`src/analysis/covalent_radii.inc`, `tools/gen_covalent_radii.py`) | facts (article cited) | no |
 | OpenMM 8.1.2 force-field XML and pdbNames.xml, https://github.com/openmm/openmm | Amber ff14SB / OL15 / OL3 and CHARMM36 residue names, nucleic heavy-atom names, ion and water atom names with elements, residue and atom-name aliases | MIT | yes: "Portions copyright (c) 2008-2019 Stanford University and the Authors", with the MIT permission notice |
 
 Suggested THIRD_PARTY_NOTICES.md row:

@@ -28,8 +28,10 @@ public:
     // analyses.use_pbc of the project
     bool usePbc() const { return m_usePbc; }
 
-    // select(u, text, project.groups, allow_empty) on the system's current frame: sorted unique
-    // atoms; throws core::SelectionError.
+    // select(u, text, project.groups, allow_empty) on the system's current frame (runAnalyses makes
+    // that the first analysed frame for every setup, SEL-17): sorted unique atoms; distance
+    // keywords use the frame's cell only with analyses.use_pbc (SEL-17; MDATK: always). Throws
+    // core::SelectionError.
     core::AtomGroup select(std::string_view text, bool allowEmpty = false) const;
     // The atoms of group:<name>, heavy atoms only when asked.
     core::AtomGroup groupAtoms(std::string_view name, bool heavyOnly = false) const;

@@ -65,7 +65,47 @@ struct RmsdTarget {
     std::optional<std::vector<double>> wf;  // masses of fit (w without one) when mass weighted
     std::vector<double> ref;  // mob positions in the reference frame (float64, n x 3)
     std::vector<Vec3> refFit;  // fit positions in the reference frame
+    bool translationOnly = false;  // AN-18: fewer than 3 or collinear fit atoms
 };
+
+// AN-18: whether the fit atoms (reference positions, weights or none) are fewer than 3 or
+// collinear: q <= 1e-10 p^2 for the weighted inner-product matrix of the centred set (p its trace,
+// q the sum of its principal 2 x 2 minors), the rule of the superposition RMSD (rmsd_qcp.cpp).
+bool collinearFit(const std::vector<Vec3>& x, const std::optional<std::vector<double>>& w) {
+    const std::size_t n = x.size();
+    if (n < 3) {
+        return true;
+    }
+    double total = 0.0;
+    Vec3 centre{};
+    for (std::size_t i = 0; i < n; ++i) {
+        const double wi = w ? (*w)[i] : 1.0;
+        total += wi;
+        for (std::size_t c = 0; c < 3; ++c) {
+            centre[c] += wi * x[i][c];
+        }
+    }
+    if (!(total > 0.0)) {
+        return false;  // left to kabsch (MDATK's behaviour)
+    }
+    for (double& c : centre) {
+        c /= total;
+    }
+    double m[3][3] = {};
+    for (std::size_t i = 0; i < n; ++i) {
+        const double wi = w ? (*w)[i] : 1.0;
+        const Vec3 d{x[i][0] - centre[0], x[i][1] - centre[1], x[i][2] - centre[2]};
+        for (std::size_t r = 0; r < 3; ++r) {
+            for (std::size_t c = 0; c < 3; ++c) {
+                m[r][c] += wi * (d[r] * d[c]);
+            }
+        }
+    }
+    const double p = m[0][0] + m[1][1] + m[2][2];
+    const double q = (m[0][0] * m[1][1] - m[0][1] * m[1][0]) + (m[0][0] * m[2][2] - m[0][2] * m[2][0]) +
+                     (m[1][1] * m[2][2] - m[1][2] * m[2][1]);
+    return q <= 1e-10 * p * p;
+}
 
 // atoms.positions.astype(np.float64) of `frame`, x, y, z interleaved
 std::vector<double> positionsOf(const core::AtomGroup& atoms, const core::Frame& frame) {
@@ -148,10 +188,19 @@ public:
             throw std::logic_error("RMSD: the system has no trajectory");
         }
         const core::Frame& reference = trajectory->seek(frames[static_cast<std::size_t>(m_refPos)]);
-        for (RmsdTarget& t : m_targets) {
+        for (std::size_t k = 0; k < m_targets.size(); ++k) {
+            RmsdTarget& t = m_targets[k];
             t.ref = positionsOf(t.mob, reference);
             if (t.fit) {
                 t.refFit = vectorsOf(*t.fit, reference);
+                t.translationOnly = m_superposition && collinearFit(t.refFit, t.wf);
+                if (t.translationOnly) {
+                    const std::size_t atoms = t.fit->size();
+                    context().warn("RMSD target " + core::pythonStringRepr(p.targets[k].label) + ": fit selection has " +
+                                   std::to_string(atoms) + (atoms < 3 ? (atoms == 1 ? " atom" : " atoms")
+                                                                      : " collinear atoms") +
+                                   "; superposition is translation only");
+                }
             }
         }
         m_values.assign(m_targets.size() * frameCount(), std::numeric_limits<double>::quiet_NaN());
@@ -181,7 +230,10 @@ public:
                 const std::vector<Vec3> xf = vectorsOf(*t.fit, frame);
                 const KabschResult fit =
                     t.wf ? kabsch(xf, t.refFit, std::span<const double>(*t.wf)) : kabsch(xf, t.refFit);
-                const Mat3& r = fit.rotation;
+                // AN-18: translation only for fewer than 3 or collinear fit atoms (MDATK: an
+                // arbitrary rotation about the line for collinear ones)
+                static constexpr Mat3 kIdentity{{{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}}};
+                const Mat3& r = t.translationOnly ? kIdentity : fit.rotation;
                 // diff = (x - mc) @ r.T + rc - ref
                 for (std::size_t i = 0; i < atoms; ++i) {
                     const double a0 = x[3 * i] - fit.mobileCenter[0];
@@ -238,7 +290,9 @@ private:
 
 class RmsdDescriptor final : public AnalysisDescriptor {
 public:
-    RmsdDescriptor() : AnalysisDescriptor({"rmsd", "RMSD", 1, false, 1, {}}) {}
+    // version 2: exact values for degenerate sets and near 0 (AN-16, AN-17); translation only for
+    // fewer than 3 or collinear fit atoms (AN-18)
+    RmsdDescriptor() : AnalysisDescriptor({"rmsd", "RMSD", 2, false, 1, {}}) {}
 
     void withGroups(core::Project& project, const std::vector<std::string>& groups) const override {
         const std::string& g = groups.at(0);

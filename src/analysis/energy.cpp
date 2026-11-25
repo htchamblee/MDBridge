@@ -11,6 +11,10 @@
 // generic power loop does). The sums over pairs differ from MDATK's in the last bits only because
 // the pairs come in another order (pairsWithin sorts them by (i, j); scipy's tree order is not
 // reproduced).
+//
+// Deliberate differences (docs/DIFFERENCES.md): use_parm7 with a topology that is not a parm7 file
+// is reported (AN-06); without topology bonds the exclusions follow bonds guessed on the first
+// analysed frame, with a warning (AN-07); exclusions follow any bond path (AN-08).
 
 #include <algorithm>
 #include <cmath>
@@ -114,6 +118,11 @@ public:
             m_chargeSource = "none";
         }
         const std::string& path = ctx.topologyPath();
+        if (m_p.use_parm7 && !path.empty() && !io::isParm7(path)) {
+            // AN-06: say so (MDATK falls back to generic parameters silently)
+            ctx.warn("energy: use_parm7 is set but the topology " + path +
+                     " is not a parm7 file; using generic element parameters");
+        }
         if (m_p.use_parm7 && !path.empty() && io::isParm7(path)) {
             try {
                 io::LjTable table = io::LjTable::fromParm7(path);
@@ -133,12 +142,35 @@ public:
             genericParameters(m_a, m_ra, m_ea);
             genericParameters(m_b, m_rb, m_eb);
         }
-        m_excluded = energyBondedExclusions(m_a, m_b, m_p.exclude_bonded);
+        m_excluded.clear();
+        m_guessExclusions = m_p.exclude_bonded > 0 && (!topology.bonds || topology.bonds->empty());
+        if (m_guessExclusions) {
+            // AN-07: MDATK excludes nothing, silently
+            ctx.warn("energy: the topology has no bonds; bonded pairs are excluded along bonds guessed from "
+                     "distances on the first analysed frame");
+        } else {
+            m_excluded = energyBondedExclusions(m_a, m_b, m_p.exclude_bonded);
+        }
         const std::size_t n = frameCount();
         m_elec.assign(n, 0.0);
         m_vdw.assign(n, 0.0);
         m_force.assign(n, 0.0);
         m_pairCount.assign(n, 0);
+    }
+
+    // AN-07: without topology bonds, the exclusions follow the bonds guessed on the first analysed
+    // frame (guessBonds over the whole system, so paths through other atoms count too)
+    void prepare(const core::Frame& first) override {
+        if (!m_guessExclusions) {
+            return;
+        }
+        const std::vector<std::int64_t> guessed = guessBonds(context().system().atoms(), first);
+        std::vector<core::Bond> bonds;
+        bonds.reserve(guessed.size() / 2);
+        for (std::size_t p = 0; p + 1 < guessed.size(); p += 2) {
+            bonds.push_back({static_cast<std::int32_t>(guessed[p]), static_cast<std::int32_t>(guessed[p + 1])});
+        }
+        m_excluded = energyBondedExclusions(m_a, m_b, m_p.exclude_bonded, &bonds);
     }
 
     bool concurrentProcess() const override { return true; }
@@ -271,6 +303,7 @@ private:
     std::optional<io::LjTable> m_lj;
     std::vector<double> m_ra, m_ea, m_rb, m_eb;
     std::vector<std::int64_t> m_excluded;
+    bool m_guessExclusions = false;
     std::vector<double> m_elec, m_vdw, m_force;
     std::vector<std::int64_t> m_pairCount;
 };
@@ -280,7 +313,7 @@ public:
     EnergyDescriptor()
         : AnalysisDescriptor({"energy",
                               "Intermolecular energy",
-                              1,
+                              2,  // v2: exclusions along any bond path, guessed bonds (AN-07, AN-08)
                               false,
                               2,
                               {{"total", "{a}–{b} interaction energy"},
@@ -314,51 +347,41 @@ public:
 }  // namespace
 
 std::vector<std::int64_t> energyBondedExclusions(const core::AtomGroup& a, const core::AtomGroup& b,
-                                                 std::int64_t depth) {
+                                                 std::int64_t depth, const std::vector<core::Bond>* bonds) {
     std::vector<std::int64_t> keys;
     if (depth <= 0 || a.sharedTopology() == nullptr) {
         return keys;
     }
     const core::Topology& topology = a.topology();
-    if (!topology.bonds || topology.bonds->empty()) {  // no bond information: nothing excluded
-        return keys;
-    }
-    const std::vector<core::Bond>& bonds = *topology.bonds;
-    const std::size_t nAtoms = topology.atomCount();
-    std::vector<char> inA(nAtoms, 0), inB(nAtoms, 0);
-    for (const std::int32_t atom : a.indices()) {
-        inA[static_cast<std::size_t>(atom)] = 1;
-    }
-    for (const std::int32_t atom : b.indices()) {
-        inB[static_cast<std::size_t>(atom)] = 1;
-    }
-    const auto ix = [](std::int32_t atom) { return static_cast<std::size_t>(atom); };
-    std::vector<std::int32_t> seeds;
-    for (const core::Bond& bond : bonds) {
-        const bool cross = (inA[ix(bond[0])] && inB[ix(bond[1])]) || (inB[ix(bond[0])] && inA[ix(bond[1])]);
-        if (cross) {
-            for (const std::int32_t atom : bond) {
-                if (inA[ix(atom)]) {
-                    seeds.push_back(atom);
-                }
-            }
+    if (!bonds) {
+        if (!topology.bonds) {
+            return keys;
         }
+        bonds = &*topology.bonds;
     }
-    if (seeds.empty()) {
+    if (bonds->empty()) {  // no bond information: nothing excluded
         return keys;
     }
+    const std::size_t nAtoms = topology.atomCount();
+    const auto ix = [](std::int32_t atom) { return static_cast<std::size_t>(atom); };
     std::vector<std::vector<std::int32_t>> adjacency(nAtoms);
-    for (const core::Bond& bond : bonds) {
+    for (const core::Bond& bond : *bonds) {
         adjacency[ix(bond[0])].push_back(bond[1]);
         adjacency[ix(bond[1])].push_back(bond[0]);
     }
-    // Breadth-first search from `start` up to `maxDepth` bonds, through atoms accepted by `allowed`;
-    // calls found(atom) for every atom first reached (not the start). Shortest distances do not
-    // depend on the order neighbours are visited in, so the sets equal MDATK's.
+    // position in b (the last one for a repeated atom, as MDATK's dicts keep it)
+    std::vector<std::int64_t> bLocal(nAtoms, -1);
+    for (std::size_t n = 0; n < b.size(); ++n) {
+        bLocal[ix(b[n])] = static_cast<std::int64_t>(n);
+    }
+    const auto nb = static_cast<std::int64_t>(b.size());
+    // AN-08: from every A atom, breadth-first through any atoms up to `depth` bonds; every B atom
+    // reached is excluded (MDATK: only paths starting with a direct A-B bond's A side, through A)
     std::vector<std::int64_t> seen(nAtoms, -1);
     std::vector<std::int32_t> visited;
     std::vector<std::int32_t> queue;
-    const auto bfs = [&](std::int32_t start, std::int64_t maxDepth, bool aOnly, auto&& found) {
+    for (std::size_t n = 0; n < a.size(); ++n) {
+        const std::int32_t start = a[n];
         for (const std::int32_t atom : visited) {
             seen[ix(atom)] = -1;
         }
@@ -367,45 +390,21 @@ std::vector<std::int64_t> energyBondedExclusions(const core::AtomGroup& a, const
         queue.assign(1, start);
         for (std::size_t head = 0; head < queue.size(); ++head) {
             const std::int32_t cur = queue[head];
-            if (seen[ix(cur)] >= maxDepth) {
+            if (seen[ix(cur)] >= depth) {
                 continue;
             }
-            for (const std::int32_t nb : adjacency[ix(cur)]) {
-                if (seen[ix(nb)] >= 0 || (aOnly && !inA[ix(nb)])) {
+            for (const std::int32_t next : adjacency[ix(cur)]) {
+                if (seen[ix(next)] >= 0) {
                     continue;
                 }
-                seen[ix(nb)] = seen[ix(cur)] + 1;
-                visited.push_back(nb);
-                queue.push_back(nb);
-                found(nb);
+                seen[ix(next)] = seen[ix(cur)] + 1;
+                visited.push_back(next);
+                queue.push_back(next);
+                if (bLocal[ix(next)] >= 0) {
+                    keys.push_back(static_cast<std::int64_t>(n) * nb + bLocal[ix(next)]);
+                }
             }
         }
-    };
-    // A atoms within depth - 1 bonds (through A) of a crossing bond may reach B within depth bonds
-    std::vector<char> isStart(nAtoms, 0);
-    for (const std::int32_t s : seeds) {
-        isStart[ix(s)] = 1;
-        bfs(s, depth - 1, true, [&](std::int32_t atom) { isStart[ix(atom)] = 1; });
-    }
-    // positions in a and b (the last one for a repeated atom, as MDATK's dicts keep it)
-    std::vector<std::int64_t> aLocal(nAtoms, -1), bLocal(nAtoms, -1);
-    for (std::size_t n = 0; n < a.size(); ++n) {
-        aLocal[ix(a[n])] = static_cast<std::int64_t>(n);
-    }
-    for (std::size_t n = 0; n < b.size(); ++n) {
-        bLocal[ix(b[n])] = static_cast<std::int64_t>(n);
-    }
-    const auto nb = static_cast<std::int64_t>(b.size());
-    for (std::size_t s = 0; s < nAtoms; ++s) {
-        if (!isStart[s]) {
-            continue;
-        }
-        const auto start = static_cast<std::int32_t>(s);
-        bfs(start, depth, false, [&](std::int32_t atom) {
-            if (inB[ix(atom)] && bLocal[ix(atom)] >= 0) {
-                keys.push_back(aLocal[s] * nb + bLocal[ix(atom)]);
-            }
-        });
     }
     std::sort(keys.begin(), keys.end());
     keys.erase(std::unique(keys.begin(), keys.end()), keys.end());

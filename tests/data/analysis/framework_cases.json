@@ -36,7 +36,7 @@
   {
    "name": "energy",
    "label": "Intermolecular energy",
-   "version": 1,
+   "version": 2,
    "internal": false,
    "group_slots": 2,
    "output_labels": [
@@ -61,7 +61,7 @@
   {
    "name": "hbonds",
    "label": "Hydrogen bonds",
-   "version": 1,
+   "version": 2,
    "internal": false,
    "group_slots": 2,
    "output_labels": [
@@ -123,7 +123,7 @@
   {
    "name": "rmsd",
    "label": "RMSD",
-   "version": 1,
+   "version": 2,
    "internal": false,
    "group_slots": 1,
    "output_labels": []
@@ -164,7 +164,7 @@
   {
    "name": "proximity",
    "label": "Proximity to residue set",
-   "version": 1,
+   "version": 2,
    "internal": true,
    "group_slots": 0,
    "output_labels": []
@@ -172,7 +172,7 @@
   {
    "name": "atoms",
    "label": "Atomic coordinates (structure view)",
-   "version": 2,
+   "version": 3,
    "internal": true,
    "group_slots": 0,
    "output_labels": []
@@ -385,8 +385,8 @@
       ]
      ],
      "cache_keys": [
-      "dd767dc2ea8248d1",
-      "61693e47966701a4"
+      "9affd39ab56e5ff5",
+      "5338a2edc7096e75"
      ],
      "referenced_groups": [
       {
@@ -465,8 +465,8 @@
       ]
      ],
      "cache_keys": [
-      "b376d1d378beaa3a",
-      "6ffc0d94e2d8516c"
+      "24197ef61cbd4a42",
+      "6ea48453bcc901b7"
      ],
      "referenced_groups": [
       {
@@ -629,8 +629,8 @@
       ]
      ],
      "cache_keys": [
-      "101d9e28f14136e8",
-      "645babd1c10be8c0"
+      "83a0300f97605d7a",
+      "8bdafb5d4441bac0"
      ],
      "referenced_groups": [
       {
@@ -826,8 +826,8 @@
       ]
      ],
      "cache_keys": [
-      "e9698ae0b46f7dc9",
-      "a7657969e06c1c6c"
+      "887f4407030f5df9",
+      "2001bee3855f3d37"
      ],
      "referenced_groups": [
       {
@@ -881,8 +881,8 @@
       ]
      ],
      "cache_keys": [
-      "6edb80319fffb103",
-      "bd0ef8b9ed78aa31"
+      "691aba5a51b7879d",
+      "6022f578383de18a"
      ],
      "referenced_groups": [
       {
@@ -1733,8 +1733,8 @@
        ]
       ],
       "cache_keys": [
-       "a15e42e0c12fc15c",
-       "3573240cbb96637f"
+       "304bfe373666dd2c",
+       "96fc881371501421"
       ],
       "referenced_groups": [
        {
@@ -2042,8 +2042,8 @@
        ]
       ],
       "cache_keys": [
-       "7e91121b739c4e4e",
-       "b64c529d212a36fc"
+       "8b906c458dd828c8",
+       "512cd4dafcb0684f"
       ],
       "referenced_groups": [
        {
@@ -3438,8 +3438,8 @@
       ]
      ],
      "cache_keys": [
-      "40cec284bed25324",
-      "c4cd64eb7e73d01a"
+      "cb77e662330fa7d0",
+      "407af62e86fa29c5"
      ],
      "referenced_groups": [
       {
@@ -3518,8 +3518,8 @@
       ]
      ],
      "cache_keys": [
-      "5337dab6b00f18ab",
-      "c67575233aa6fee2"
+      "d4565341013f7b5d",
+      "410b4ca70b7f1e50"
      ],
      "referenced_groups": [
       {
@@ -3733,8 +3733,8 @@
       ]
      ],
      "cache_keys": [
-      "aa68582129eac3df",
-      "ef9515340279561d"
+      "5f62b1ecf6a6da82",
+      "5fb7475e4095e9cb"
      ],
      "referenced_groups": [
       {
@@ -3946,8 +3946,8 @@
       ]
      ],
      "cache_keys": [
-      "68027507ee36ce9a",
-      "c4aad571046c8fe6"
+      "bb20ed4ba98647f3",
+      "0d5404c1e7eefb7f"
      ],
      "referenced_groups": [
       {
@@ -4002,8 +4002,8 @@
       ]
      ],
      "cache_keys": [
-      "a0fc5d4b173581cc",
-      "f1014f7c4c377028"
+      "bb4c1bc315151b12",
+      "39d5ea4c35970c49"
      ],
      "referenced_groups": [
       {
@@ -4979,8 +4979,8 @@
        ]
       ],
       "cache_keys": [
-       "59ee9c3a4c74b378",
-       "c08658c64359e6b0"
+       "be15f3af188f1d9d",
+       "4442057a04368e7b"
       ],
       "referenced_groups": [
        {
@@ -5053,8 +5053,8 @@
        ]
       ],
       "cache_keys": [
-       "41addc019b83d754",
-       "c98a1accc7c23b98"
+       "86936290b228b0fd",
+       "1fadf80952c6fde0"
       ],
       "referenced_groups": [
        {
@@ -5122,8 +5122,8 @@
        ]
       ],
       "cache_keys": [
-       "755419bdaf1bc5d0",
-       "2dce937a7e4fd476"
+       "7c1646fae39a1781",
+       "cf81c25e62773b27"
       ],
       "referenced_groups": [
        {
@@ -5390,8 +5390,8 @@
        ]
       ],
       "cache_keys": [
-       "1c8595607bb799ce",
-       "8bbe09d9f8c1dbc5"
+       "ed15f57265f82215",
+       "f81a7257fe36fd2f"
       ],
       "referenced_groups": [
        {
@@ -5772,8 +5772,8 @@
        ]
       ],
       "cache_keys": [
-       "f2baffec5c5e6c32",
-       "b83cbe4ef8d27aaa"
+       "9eb80b280eb540de",
+       "0a9fd779ec0989eb"
       ],
       "referenced_groups": [
        {
@@ -5870,8 +5870,8 @@
        ]
       ],
       "cache_keys": [
-       "3f159983a4cf3186",
-       "e3a8b3ced96d918a"
+       "03d7cc3dea7d7473",
+       "f7117459a76e4adb"
       ],
       "referenced_groups": [
        {
@@ -6977,8 +6977,8 @@
       ]
      ],
      "cache_keys": [
-      "dd767dc2ea8248d1",
-      "61693e47966701a4"
+      "9affd39ab56e5ff5",
+      "5338a2edc7096e75"
      ],
      "referenced_groups": [
       {
@@ -7057,8 +7057,8 @@
       ]
      ],
      "cache_keys": [
-      "b376d1d378beaa3a",
-      "6ffc0d94e2d8516c"
+      "24197ef61cbd4a42",
+      "6ea48453bcc901b7"
      ],
      "referenced_groups": [
       {
@@ -7205,8 +7205,8 @@
       ]
      ],
      "cache_keys": [
-      "7653927aac600c72",
-      "b1c635916f19d129"
+      "15f6e7ab0251cc40",
+      "61fc45e9aec9e702"
      ],
      "referenced_groups": [],
      "new_result": [
@@ -7391,8 +7391,8 @@
       ]
      ],
      "cache_keys": [
-      "e9698ae0b46f7dc9",
-      "a7657969e06c1c6c"
+      "887f4407030f5df9",
+      "2001bee3855f3d37"
      ],
      "referenced_groups": [
       {
@@ -7446,8 +7446,8 @@
       ]
      ],
      "cache_keys": [
-      "6edb80319fffb103",
-      "bd0ef8b9ed78aa31"
+      "691aba5a51b7879d",
+      "6022f578383de18a"
      ],
      "referenced_groups": [
       {
@@ -8277,8 +8277,8 @@
        ]
       ],
       "cache_keys": [
-       "a15e42e0c12fc15c",
-       "3573240cbb96637f"
+       "304bfe373666dd2c",
+       "96fc881371501421"
       ],
       "referenced_groups": [
        {
@@ -8586,8 +8586,8 @@
        ]
       ],
       "cache_keys": [
-       "7e91121b739c4e4e",
-       "b64c529d212a36fc"
+       "8b906c458dd828c8",
+       "512cd4dafcb0684f"
       ],
       "referenced_groups": [
        {
@@ -9823,8 +9823,8 @@
       ]
      ],
      "cache_keys": [
-      "7e91121b739c4e4e",
-      "b64c529d212a36fc"
+      "8b906c458dd828c8",
+      "512cd4dafcb0684f"
      ],
      "referenced_groups": [
       {
@@ -9898,8 +9898,8 @@
       ]
      ],
      "cache_keys": [
-      "23b8bb266d390ef6",
-      "c7e0683b30698056"
+      "df60c9bbf2ed826f",
+      "0e32c3d2f691bfe3"
      ],
      "referenced_groups": [
       {
@@ -10062,8 +10062,8 @@
       ]
      ],
      "cache_keys": [
-      "7038d348823ab7f5",
-      "90c06571b7869102"
+      "9e3c25123f518ab2",
+      "c41522bff4ff5206"
      ],
      "referenced_groups": [
       {
@@ -10261,8 +10261,8 @@
       ]
      ],
      "cache_keys": [
-      "59a9db1fee0339f8",
-      "4315094dfab5bf50"
+      "9d268e73635313a2",
+      "601c80e83d1b1d0e"
      ],
      "referenced_groups": [
       {
@@ -10317,8 +10317,8 @@
       ]
      ],
      "cache_keys": [
-      "b29a303cb7c7db8f",
-      "6e1ff45b7708b72d"
+      "a9eae12a00c2d46e",
+      "e27d57a305da5dfd"
      ],
      "referenced_groups": [
       {
@@ -11173,8 +11173,8 @@
        ]
       ],
       "cache_keys": [
-       "a15e42e0c12fc15c",
-       "3573240cbb96637f"
+       "304bfe373666dd2c",
+       "96fc881371501421"
       ],
       "referenced_groups": [
        {
@@ -11484,8 +11484,8 @@
        ]
       ],
       "cache_keys": [
-       "7e91121b739c4e4e",
-       "b64c529d212a36fc"
+       "8b906c458dd828c8",
+       "512cd4dafcb0684f"
       ],
       "referenced_groups": [
        {
@@ -12725,8 +12725,8 @@
       ]
      ],
      "cache_keys": [
-      "a2d758a783bfd6b2",
-      "5cf2728ea964cb82"
+      "db0df54b90f6e08d",
+      "dc3e390d98ddb2bb"
      ],
      "referenced_groups": [],
      "new_result": [
@@ -12794,8 +12794,8 @@
       ]
      ],
      "cache_keys": [
-      "6592c31c44ae1a0e",
-      "2b119d6cbffe9ba2"
+      "927b5abe2ded45d3",
+      "ed233616b3bed3a9"
      ],
      "referenced_groups": [],
      "new_result": [
@@ -12936,8 +12936,8 @@
       ]
      ],
      "cache_keys": [
-      "8e817994d742ce4c",
-      "2b310323fb36194b"
+      "1db2c20ed5306da0",
+      "e352c87a68bbc24d"
      ],
      "referenced_groups": [],
      "new_result": [
@@ -13096,8 +13096,8 @@
       ]
      ],
      "cache_keys": [
-      "b57242970b8529b3",
-      "02c0ef30f4136957"
+      "d075ee2ffc6e9b4a",
+      "a31b17b72efa22cc"
      ],
      "referenced_groups": [],
      "new_result": [
@@ -13138,8 +13138,8 @@
       ]
      ],
      "cache_keys": [
-      "c4be67ce4cbe0d1d",
-      "f4439342f352f6fb"
+      "d1c7ca65d6748c33",
+      "ab4a9e911132d231"
      ],
      "referenced_groups": [],
      "new_result": [

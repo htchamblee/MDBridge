@@ -69,6 +69,7 @@ add_executable(mdbridge_analysis_tests
     analysis/test_contacts_hbonds.cpp
     analysis/test_energy.cpp
     analysis/test_framework.cpp
+    analysis/test_improvements_analyses.cpp
     analysis/test_mg_stacking.cpp
     analysis/test_parallel.cpp
     analysis/test_periodic.cpp

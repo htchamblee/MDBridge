@@ -2,10 +2,10 @@
 // proximity to a residue set, atomic coordinates; and the helpers they share (structure groups and
 // residues, group membership, trace points, the bonds of the atoms).
 //
-// Deliberate difference: when the topology has no bonds among the atoms, the atoms analysis
-// guesses them from distances like MDATK, but its `bonds` rows come out sorted by (i, j); MDATK's
-// come in the order of scipy's kd-tree traversal (pairs_within without a box), which depends on
-// how the tree was built (see spatial.hpp pairsWithin). The set of rows is the same.
+// Deliberate differences (docs/DIFFERENCES.md): when the topology has no bonds among the atoms, the
+// atoms analysis guesses them from covalent radii on the first analysed frame (guessBonds; AN-13,
+// AN-14), its rows sorted by (i, j); the proximity members are 0 in every case (AN-15); unknown
+// structure groups are named in a warning (AN-21).
 
 #include <algorithm>
 #include <array>
@@ -17,6 +17,7 @@
 #include <set>
 #include <span>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -24,6 +25,7 @@
 #include "builtin.hpp"
 #include "mdbridge/analysis/analyses.hpp"
 #include "mdbridge/analysis/spatial.hpp"
+#include "mdbridge/core/json.hpp"
 #include "mdbridge/core/selections.hpp"
 #include "mdbridge/core/text.hpp"
 
@@ -146,14 +148,6 @@ std::vector<float> positions32(const core::Frame& frame, const core::AtomGroup& 
                    frame.positions.begin() + static_cast<std::ptrdiff_t>(k + 3));
     }
     return out;
-}
-
-const core::Frame& currentFrame(const AnalysisContext& context) {
-    const core::Frame* frame = context.system().currentFrame();
-    if (!frame) {
-        throw core::ValueError("This Universe has no coordinates");
-    }
-    return *frame;
 }
 
 // (x - mc) @ r.T + rc, row by row
@@ -282,12 +276,26 @@ private:
     std::vector<std::vector<std::int32_t>> m_centroidAtoms;
 };
 
-// atom_bonds(atoms, 1.95): bonds among `atoms` as local index pairs [m, 2]; from the topology when
-// it has bonds among them (sorted, unique), else guessed from the current positions: pairs within
-// 1.95 Å in the same or adjacent residues (by residue index), never H-H, and with an H only within
-// 1.25 Å. The guessed rows are sorted by (i, j) (MDATK: kd-tree order; see the file comment).
+constexpr double kCarbonRadius = 0.76;  // Cordero et al. 2008, sp3 carbon
+constexpr double kBondTolerance = 0.4;  // a bond: distance <= r_i + r_j + 0.4 Å
+
+// The covalent radius of an element (upper case; Cordero et al. 2008, data/sources/covalent_radii),
+// carbon's for an unknown element.
+double covalentRadius(std::string_view element) {
+    static constexpr std::pair<std::string_view, double> kRadii[] = {
+#include "covalent_radii.inc"
+    };
+    for (const auto& [symbol, radius] : kRadii) {
+        if (symbol == element) {
+            return radius;
+        }
+    }
+    return kCarbonRadius;
+}
+
+// atom_bonds(atoms): bonds among `atoms` as local index pairs [m, 2]; from the topology when it has
+// bonds among them (sorted, unique), else guessed from distances in `frame` (guessBonds, AN-14).
 std::vector<std::int64_t> atomBonds(const core::AtomGroup& atoms, const core::Frame& frame) {
-    constexpr double maxLen = 1.95;
     const core::Topology& t = atoms.topology();
     std::unordered_map<std::int32_t, std::int64_t> index;
     for (std::size_t k = 0; k < atoms.size(); ++k) {
@@ -311,39 +319,7 @@ std::vector<std::int64_t> atomBonds(const core::AtomGroup& atoms, const core::Fr
             return out;
         }
     }
-    if (atoms.size() < 2) {
-        return {};
-    }
-    std::vector<double> xyz;
-    xyz.reserve(atoms.size() * 3);
-    for (const Vec3& x : positions(frame, atoms)) {
-        xyz.insert(xyz.end(), x.begin(), x.end());
-    }
-    const PairList found = pairsWithin(xyz, xyz, maxLen, std::nullopt);
-    std::vector<bool> h;
-    h.reserve(atoms.size());
-    for (const std::int32_t a : atoms.indices()) {
-        h.push_back(structureGuessElement(t.name(a)) == "H");
-    }
-    std::vector<std::int64_t> out;
-    for (std::size_t p = 0; p < found.size(); ++p) {
-        const std::int64_t i = found.i[p];
-        const std::int64_t j = found.j[p];
-        if (i >= j) {
-            continue;
-        }
-        const auto ui = static_cast<std::size_t>(i);
-        const auto uj = static_cast<std::size_t>(j);
-        const std::int64_t ri = t.atomResidue[static_cast<std::size_t>(atoms[ui])];
-        const std::int64_t rj = t.atomResidue[static_cast<std::size_t>(atoms[uj])];
-        const bool near = std::abs(ri - rj) <= 1;
-        const bool hh = h[ui] && h[uj];
-        if (near && !hh && (found.d[p] <= 1.25 || !(h[ui] || h[uj]))) {
-            out.push_back(i);
-            out.push_back(j);
-        }
-    }
-    return out;
+    return guessBonds(atoms, frame);
 }
 
 std::vector<std::int64_t> residueRowsOf(const std::vector<std::int32_t>& residues, const core::AtomGroup& atoms) {
@@ -380,6 +356,13 @@ public:
     void setup(std::span<const std::int64_t> frames) override {
         Analysis::setup(frames);
         const core::Project& p = project();
+        // AN-21: names of visual.structure_groups that are not groups (MDATK drops them silently)
+        const std::vector<std::string> known = core::groupNames(p);
+        for (const std::string& name : p.visual.structure_groups) {
+            if (std::find(known.begin(), known.end(), name) == known.end()) {
+                context().warn("structural view: unknown residue group " + core::pythonStringRepr(name) + " ignored");
+            }
+        }
         StructureResidues structure = structureResidues(context());
         if (structure.residues.empty()) {
             throw core::SelectionError("structural view: no residues selected");
@@ -518,10 +501,15 @@ public:
     bool concurrentProcess() const override { return true; }
 
     void process(std::size_t k, const core::Frame& frame) override {
+        const std::size_t n = frameCount();
+        for (std::size_t r = 0; r < m_member.size(); ++r) {
+            if (m_member[r]) {
+                m_dist[r * n + k] = 0.0f;  // AN-15: also when no structure atoms remain
+            }
+        }
         if (m_struct.empty()) {
             return;
         }
-        const std::size_t n = frameCount();
         const PairList found = pairsWithin(std::span<const float>(positions32(frame, m_struct)),
                                            std::span<const float>(positions32(frame, m_set)), m_radius,
                                            usableBox(context().box(frame)));
@@ -532,12 +520,9 @@ public:
                 b = std::min(b, found.d[p]);  // np.minimum.at
             }
             for (std::size_t r = 0; r < best.size(); ++r) {
-                m_dist[r * n + k] = static_cast<float>(best[r]);
-            }
-        }
-        for (std::size_t r = 0; r < m_member.size(); ++r) {
-            if (m_member[r]) {
-                m_dist[r * n + k] = 0.0f;
+                if (!m_member[r]) {
+                    m_dist[r * n + k] = static_cast<float>(best[r]);
+                }
             }
         }
     }
@@ -587,11 +572,15 @@ public:
         m_reference.reset();
         m_coords.assign(frameCount() * m_atoms.size() * 3, 0.0f);
         m_row = residueRowsOf(m_residues, m_atoms);
-        m_bonds = atomBonds(m_atoms, currentFrame(context()));  // the frame current at setup
+        m_bonds.clear();
     }
 
-    // The first analysed frame is the alignment reference.
-    void prepare(const core::Frame& first) override { m_reference = m_tracer->positions(first); }
+    // The first analysed frame is the alignment reference and the frame bonds are guessed from
+    // (AN-13; MDATK: the frame current at setup, the rmsd reference frame when rmsd came first).
+    void prepare(const core::Frame& first) override {
+        m_reference = m_tracer->positions(first);
+        m_bonds = atomBonds(m_atoms, first);
+    }
 
     bool concurrentProcess() const override { return true; }
 
@@ -668,7 +657,8 @@ public:
 
 class ProximityDescriptor final : public AnalysisDescriptor {
 public:
-    ProximityDescriptor() : AnalysisDescriptor({"proximity", "Proximity to residue set", 1, true, 0, {}}) {}
+    // version 2: members are 0 also when no structure atoms remain (AN-15)
+    ProximityDescriptor() : AnalysisDescriptor({"proximity", "Proximity to residue set", 2, true, 0, {}}) {}
 
     ExpectedOutputs expectedOutputs(const core::Project&) const override { return {{}, {"min_distance"}, {}}; }
 
@@ -693,8 +683,9 @@ public:
 
 class AtomsDescriptor final : public AnalysisDescriptor {
 public:
-    // version 2: elements guessed per residue (protein CA is carbon, not calcium)
-    AtomsDescriptor() : AnalysisDescriptor({"atoms", "Atomic coordinates (structure view)", 2, true, 0, {}}) {}
+    // version 2: elements guessed per residue (protein CA is carbon, not calcium); version 3: bonds
+    // guessed from covalent radii on the first analysed frame (AN-13, AN-14)
+    AtomsDescriptor() : AnalysisDescriptor({"atoms", "Atomic coordinates (structure view)", 3, true, 0, {}}) {}
 
     core::Table paramsFor(const core::Project& project) const override {
         const core::VisualParams& v = project.visual;
@@ -718,6 +709,67 @@ public:
 };
 
 }  // namespace
+
+std::vector<std::int64_t> guessBonds(const core::AtomGroup& atoms, const core::Frame& frame) {
+    if (atoms.size() < 2) {
+        return {};
+    }
+    const core::Topology& t = atoms.topology();
+    const std::vector<std::string> elements = core::atomElements(atoms);
+    std::vector<double> radius;
+    radius.reserve(atoms.size());
+    double largest = 0.0;
+    for (const std::string& element : elements) {
+        radius.push_back(covalentRadius(element));
+        largest = std::max(largest, radius.back());
+    }
+    // atoms per residue in the whole topology: a one-atom residue (an ion) is never bonded
+    std::vector<std::int32_t> residueSize(t.residueCount(), 0);
+    for (const std::int32_t r : t.atomResidue) {
+        ++residueSize[static_cast<std::size_t>(r)];
+    }
+    std::vector<double> xyz;
+    xyz.reserve(atoms.size() * 3);
+    for (const Vec3& x : positions(frame, atoms)) {
+        xyz.insert(xyz.end(), x.begin(), x.end());
+    }
+    const PairList found = pairsWithin(xyz, xyz, 2.0 * largest + kBondTolerance, std::nullopt);
+    std::vector<std::int64_t> out;
+    for (std::size_t p = 0; p < found.size(); ++p) {
+        const std::int64_t i = found.i[p];
+        const std::int64_t j = found.j[p];
+        if (i >= j) {
+            continue;
+        }
+        const auto ui = static_cast<std::size_t>(i);
+        const auto uj = static_cast<std::size_t>(j);
+        if (elements[ui] == "H" && elements[uj] == "H") {
+            continue;
+        }
+        const std::int32_t ai = atoms[ui];
+        const std::int32_t aj = atoms[uj];
+        const std::int32_t ri = t.atomResidue[static_cast<std::size_t>(ai)];
+        const std::int32_t rj = t.atomResidue[static_cast<std::size_t>(aj)];
+        if (residueSize[static_cast<std::size_t>(ri)] < 2 || residueSize[static_cast<std::size_t>(rj)] < 2) {
+            continue;
+        }
+        if (ri != rj) {
+            // consecutive residues of one chain (segment and, when the file has them, chain ID)
+            const bool sameChain = t.residueSegment[static_cast<std::size_t>(ri)] ==
+                                       t.residueSegment[static_cast<std::size_t>(rj)] &&
+                                   (!t.chainIDs || (*t.chainIDs)[static_cast<std::size_t>(ai)] ==
+                                                       (*t.chainIDs)[static_cast<std::size_t>(aj)]);
+            if (std::abs(ri - rj) != 1 || !sameChain) {
+                continue;
+            }
+        }
+        if (found.d[p] <= radius[ui] + radius[uj] + kBondTolerance) {
+            out.push_back(i);
+            out.push_back(j);
+        }
+    }
+    return out;
+}
 
 const AnalysisDescriptor& traceAnalysis() {
     static const TraceDescriptor descriptor;

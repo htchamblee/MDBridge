@@ -157,11 +157,24 @@ PairList bruteForce(const std::vector<double>& a, const std::vector<double>& b, 
 TEST(PairsWithin, MatchesMdatkExactly) {
     const Array& all = items(cases(), "pairs");
     ASSERT_GT(all.size(), 70u);
+    int nonFinite = 0;
     for (const Value& c : all) {
         const std::string name = text(c, "name");
         const std::vector<double> a = hexValues(c, "a"), b = hexValues(c, "b");
         const double cutoff = hexValue(c, "cutoff");
         if (const Value* error = c.find("error")) {
+            if (text(*error, "message") == "data must be finite, check for nan or inf values") {
+                // AN-20 (docs/DIFFERENCES.md): points with a non-finite coordinate are in no pair
+                ASSERT_TRUE(std::isfinite(cutoff)) << name;
+                const PairList got = pairsWithin(a, b, cutoff);
+                const PairList want = bruteForce(a, b, cutoff);
+                EXPECT_GT(want.size(), 0u) << name;
+                EXPECT_EQ(got.i, want.i) << name;
+                EXPECT_EQ(got.j, want.j) << name;
+                EXPECT_EQ(got.d, want.d) << name;
+                ++nonFinite;
+                continue;
+            }
             try {
                 (void)pairsWithin(a, b, cutoff);
                 ADD_FAILURE() << name << ": no error";
@@ -196,6 +209,7 @@ TEST(PairsWithin, MatchesMdatkExactly) {
             expectSameValues(narrow.d, got.d, name);
         }
     }
+    EXPECT_EQ(nonFinite, 6);
 }
 
 TEST(PairsWithin, BoundaryCasesIncludeSqrtSquareDisagreements) {
@@ -264,7 +278,12 @@ TEST(PairsWithin, SpecialInputs) {
     EXPECT_TRUE(pairsWithin(a, std::vector<double>{}, 2.0).empty());
     // empty input wins over non-finite points, as in MDATK
     EXPECT_TRUE(pairsWithin(std::vector<double>{NAN, 0, 0}, std::vector<double>{}, 2.0).empty());
-    EXPECT_THROW((void)pairsWithin(std::vector<double>{NAN, 0, 0}, b, 2.0), core::ValueError);
+    // AN-20: a point with a non-finite coordinate is in no pair (MDATK: scipy's ValueError)
+    EXPECT_TRUE(pairsWithin(std::vector<double>{NAN, 0, 0}, b, 2.0).empty());
+    const PairList mixed = pairsWithin(std::vector<double>{NAN, 0, 0, 0, 0, 0}, b, 2.0);
+    ASSERT_EQ(mixed.size(), 1u);
+    EXPECT_EQ(mixed.i[0], 1);
+    EXPECT_EQ(mixed.j[0], 0);
     EXPECT_EQ(pairsWithin(a, b, -2.0).size(), 1u);
     EXPECT_EQ(pairsWithin(a, b, INFINITY).size(), 2u);
     EXPECT_TRUE(pairsWithin(a, b, NAN).empty());

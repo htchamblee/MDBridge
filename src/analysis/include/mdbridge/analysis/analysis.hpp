@@ -169,11 +169,16 @@ inline constexpr std::size_t kMaxThreads = 256;
 std::size_t analysisThreads(std::size_t requested = 0);
 
 // run_analyses(ctx, analyses, frame_indices, reporter): logs "Preparing <label> ..." and calls
-// setup() for each analysis, logs "Analysing N frame(s): <labels joined by ', '>", then seeks
+// setup() for each analysis, each starting on the first analysed frame (seeked when an earlier
+// setup moved the trajectory; SEL-17 / AN-13, MDATK: wherever the previous setup left it), logs
+// "Analysing N frame(s): <labels joined by ', '>", then seeks
 // every frame of `frames` in order on the context's trajectory: checkCancel(), the frame's time,
 // on the first frame prepare(frame) of each analysis in order, process(k, frame) of each analysis
 // in order, and progress((k + 1) / n, "Analysing frame k+1/n")
-// when k % max(1, n / 200) == 0 or on the last frame. Then finalize() of each. `reporter`:
+// when k % max(1, n / 200) == 0 or on the last frame. Before a frame's process() calls the frame is
+// checked (through `context`'s warn(), in frame order): with use_pbc, the first frame without a
+// usable cell is reported once (AN-19); runs of consecutive frames with non-finite coordinates are
+// reported once each (AN-20). Then finalize() of each. `reporter`:
 // the context's when null. The trajectory is left on the last analysed frame. Throws
 // std::logic_error when the system has no trajectory, core::Cancelled when cancelled, and
 // whatever the analyses or the reader throw.

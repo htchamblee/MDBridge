@@ -6,6 +6,10 @@
 // distances on the first analysed frame. Topologies without hydrogens fall back to donor-acceptor
 // distances only.
 //
+// Deliberate differences (docs/DIFFERENCES.md): hydrogens assigned from distances go to the donor
+// nearest by the pair search's distance (minimum image with use_pbc; AN-09), and nitrogens that get
+// a hydrogen that way are not acceptors, as with topology bonds (AN-10).
+//
 // Deliberate difference: in the distance assignment of hydrogens, a hydrogen goes to its nearest
 // candidate donor with MDATK's strict "<" (the first pair wins a tie). MDATK's pair order is
 // scipy's tree order; pairsWithin returns pairs sorted by (hydrogen, donor), so an exact distance
@@ -91,9 +95,11 @@ public:
         }
         const std::vector<std::string> el = core::atomElements(m_ab);
         m_isH.resize(n);
+        m_isN.resize(n);
         m_hasH = false;
         for (std::size_t x = 0; x < n; ++x) {
             m_isH[x] = el[x] == "H";
+            m_isN[x] = el[x] == "N";
             m_hasH = m_hasH || m_isH[x];
         }
         const std::set<std::string> donorEl = upperSet(p.donor_elements);
@@ -365,9 +371,8 @@ private:
         for (std::size_t e = 0; e < pairs.size(); ++e) {
             const std::int64_t hi = pairs.i[e];
             const std::int64_t hj = pairs.j[e];
-            // np.linalg.norm(pos[h] - pos[donor]): the plain difference, no minimum image
-            const Vec3 v = difference(pos[hIdx[static_cast<std::size_t>(hi)]], pos[heavyIdx[static_cast<std::size_t>(hj)]]);
-            const double dist = std::sqrt(dot(v, v));
+            // AN-09: the pair search's (minimum-image with use_pbc) distance; MDATK: the plain one
+            const double dist = pairs.d[e];
             const auto found = slot.find(hi);
             if (found == slot.end()) {
                 slot.emplace(hi, best.size());
@@ -377,7 +382,11 @@ private:
             }
         }
         for (const auto& [hi, choice] : best) {
-            hydrogensOf(heavyIdx[static_cast<std::size_t>(choice.first)]).push_back(hIdx[static_cast<std::size_t>(hi)]);
+            const std::size_t donor = heavyIdx[static_cast<std::size_t>(choice.first)];
+            hydrogensOf(donor).push_back(hIdx[static_cast<std::size_t>(hi)]);
+            if (m_isN[donor]) {
+                m_candAcc[donor] = false;  // AN-10: as with topology bonds, an N-H nitrogen is no acceptor
+            }
         }
         buildDonorLists();
     }
@@ -386,6 +395,7 @@ private:
     core::AtomGroup m_ab;
     std::vector<int> m_side;
     std::vector<bool> m_isH;
+    std::vector<bool> m_isN;
     bool m_hasH = false;
     std::vector<std::int32_t> m_resA, m_resB;
     std::vector<std::int64_t> m_row;
@@ -408,7 +418,7 @@ public:
     HBondsDescriptor()
         : AnalysisDescriptor({"hbonds",
                               "Hydrogen bonds",
-                              1,
+                              2,  // v2: guessed hydrogens by the pair distance, N-H not acceptors (AN-09, AN-10)
                               false,
                               2,
                               {{"count", "{a}–{b} H-bonds"},

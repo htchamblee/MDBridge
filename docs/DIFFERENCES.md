@@ -126,10 +126,81 @@ test_structure.cpp, test_energy.cpp (tolerances).
 - Six gzip error texts of `density info` are worded as in mrc.hpp (compared by exit status only).
 - JSON presets: `init` with a `.json` preset reports that MDBridge uses TOML project files.
 
+## Analyses (non-periodic improvements)
+
+Expected data: `tests/parity/improvements_analyses.py` patches MDATK (and the RMSD probes) to the
+behaviour below before `make_analysis_cases.py`, `make_analysis_framework_cases.py`,
+`make_pipeline_cases.py`, `make_rmsd_cases.py` and `cli_parity.py --write` record it; hand-made
+checks are in tests/analysis/test_improvements_analyses.cpp. Version bumps (new cache keys): energy 2,
+hbonds 2, rmsd 2, proximity 2, atoms 3.
+
+- **Setup order (SEL-17, AN-13).** Every analysis' setup starts on the first analysed frame
+  (MDATK: on frame 0 of the trajectory, or on the rmsd reference frame for analyses set up after
+  rmsd), so selections with distance keywords and the `atoms` analysis' guessed bonds no longer
+  depend on the analysis order or the rmsd settings; `atoms` guesses its bonds in prepare() from the
+  first analysed frame. *Tested:* setup_frame of every recorded case (all the first analysed frame),
+  test_rmsd_analysis.cpp `EverySetupStartsOnTheFirstAnalysedFrame`.
+- **Periodicity of selections (SEL-17).** `around`, `sphzone`, ... in the analyses' selections use the
+  cell only with `analyses.use_pbc` (MDATK: whenever the frame has one). *Tested:*
+  `SelectionsHonourUsePbc`.
+- **use_parm7 with another topology (AN-06).** `WARNING: energy: use_parm7 is set but the topology
+  <file> is not a parm7 file; using generic element parameters` (MDATK: silent). *Tested:* systems_cases
+  logs (pdb / gro / noh / aromatic), test_energy.cpp.
+- **Energy exclusions without topology bonds (AN-07).** With `exclude_bonded > 0` and no bonds:
+  `WARNING: energy: the topology has no bonds; bonded pairs are excluded along bonds guessed from
+  distances on the first analysed frame`, and the exclusions follow the bonds the `atoms` guesser
+  (below) finds on the whole system (MDATK: nothing excluded, silently). *Tested:* micro and
+  systems_cases energy logs and values.
+- **Exclusions along any path (AN-08).** Pairs joined by at most `exclude_bonded` bonds through any
+  atoms are excluded (MDATK: only paths that start at a direct A-B bond and run through A). *Tested:*
+  `ExclusionsThroughOtherAtoms`; the recorded chains give the same keys.
+- **Guessed hydrogens (AN-09, AN-10).** Without topology bonds a hydrogen goes to the donor nearest by
+  the pair search's distance (minimum image with use_pbc; MDATK: the plain distance), and a nitrogen
+  that gets a hydrogen is not an acceptor, as with topology bonds (MDATK: kept as acceptor, so PDB
+  and parm7 files of one structure gave different counts). *Tested:* systems_cases pdb_nobonds /
+  gro_nobonds H-bond counts and maps.
+- **Bond guess (AN-14).** The `atoms` analysis (and AN-07) guesses bonds from covalent radii
+  (Cordero et al. 2008, data/sources/covalent_radii; distance <= r_i + r_j + 0.4 Å, carbon's radius
+  for unknown elements), never between two hydrogens, never to an atom of a one-atom residue (ions:
+  covalent radii would bond Mg to its water), and between residues only for consecutive residues of
+  one chain (same segment and chain ID). MDATK: 1.95 Å (a 2.05 Å disulfide missed), hydrogens within
+  1.25 Å, adjacent residue indices across chains. *Tested:* systems_cases `atoms` bonds,
+  `CovalentRadiusBondGuess`.
+- **Proximity members (AN-15).** Residues of the proximity set are at distance 0 also when no other
+  structure atoms remain (MDATK: left at inf). *Tested:* demo_dry_variants structure_target_only.
+- **Degenerate RMSD (AN-16).** For fewer than 3 atoms, collinear or coincident sets (by the weighted
+  inner-product matrix: q <= 1e-10 p^2) or no convergence in 50 Newton steps, the RMSD is the exact
+  superposition RMSD: the optimal rotation from a Jacobi eigen-solution of the 4 x 4 key matrix and
+  the residual summed after rotating; one atom gives 0 (MDAnalysis: NaN, or values off by up to 10 Å
+  that change chaotically with the last input bit). Reached by the default "Backbone" target of a
+  1-2 residue group. *Tested:* rmsd_cases.json (expected: numpy's SVD value, within 1e-10 of the
+  coordinates' size; the nearly collinear float32 sets are that ill-conditioned) and its demo series.
+- **RMSD near 0 (AN-17).** Where E0 - lambda < 4096 eps E0 the residual is recomputed with the
+  optimal rotation; identical structures (the reference frame against itself) give exactly 0
+  (MDAnalysis: up to 5e-6 Å). The register proposed 64 eps; the Newton iteration stops at a relative
+  step of 1e-14, and identical sets were seen at 250 eps, so 4096 eps (about 1e-12 E0) is used. The
+  QCP value is kept bit for bit everywhere else. *Tested:* rmsd_cases.json (identical, translated,
+  rotated, noise <= 1e-6 families), the rmsd series of every recorded case, cli_cases.json.
+- **Fits of fewer than 3 or collinear atoms (AN-18).** Translation only, with `WARNING: RMSD target
+  'X': fit selection has N atoms; superposition is translation only` (or `N collinear atoms`) (MDATK:
+  translation only silently below 3 atoms, an arbitrary LAPACK-dependent rotation about the line for
+  collinear ones). *Tested:* `TranslationOnlyFit`.
+- **use_pbc without a usable cell (AN-19).** One warning per run: `use_pbc is on but trajectory frame
+  K has no usable periodic cell; distances are not periodic` (missing cell, a length or angle not
+  finite or not positive, an angle of 180° or more; MDATK: silent). The trajectory file is not named:
+  the runner sees one concatenated trajectory. *Tested:* `UsePbcWithoutUsableCell`.
+- **Non-finite coordinates (AN-20).** Atoms with a NaN or infinite coordinate are in no pair on the
+  open path too (MDATK: the analysis aborted with scipy's `data must be finite, check for nan or inf
+  values`); one warning per run of consecutive analysed frames: `frame K: N atoms have non-finite
+  coordinates; they are left out of distance searches` (`frames K1-K2: up to N atoms ...`).
+  *Tested:* test_spatial.cpp (the recorded error cases), `NonFiniteCoordinates`.
+- **Unknown structure groups (AN-21).** `WARNING: structural view: unknown residue group 'X' ignored`
+  from the trace analysis' setup (once per run of the structural view; MDATK: silent). *Tested:*
+  demo_dry_variants structure_unknown_group.
+
 ## Planned (from the improvement register; add each entry here when it lands)
 
-Periodic distances and minimum images for every cell (AN-01–AN-04); degenerate RMSD (AN-16); base
-pairs and stacking on wrapped trajectories (AN-11, AN-12); setup-order independence (AN-13, SEL-17);
-`prop` operand reversal (SEL-01, SEL-02); per-atom element fallback (SEL-13); reader fixes (RD-*,
+Periodic distances and minimum images for every cell (AN-01–AN-04); base pairs and stacking on
+wrapped trajectories (AN-11, AN-12); `prop` operand reversal (SEL-01, SEL-02); per-atom element fallback (SEL-13); reader fixes (RD-*,
 LD-*); validation of every cutoff (PRJ-01); readable messages in place of Python's internal texts
 (SEL-03/04/08, RD-*, CLI-01/03/04).

@@ -133,7 +133,11 @@ Outcome runEnergyCase(const Value& c, const Value& file, const std::string& grou
 
     const auto checkLogs = [&] {
         if (energyOnly) {
-            EXPECT_EQ(logs, strings(at(c, "log")));
+            std::vector<std::string> ours;
+            for (const std::string& line : logs) {
+                ours.push_back(withPlaceholders(line));  // AN-06 names the topology file
+            }
+            EXPECT_EQ(ours, strings(at(c, "log")));
         } else {
             std::vector<std::string> expected;
             for (const Value& line : expectedLog) {
@@ -142,8 +146,11 @@ Outcome runEnergyCase(const Value& c, const Value& file, const std::string& grou
                 }
             }
             std::vector<std::string> ours;
-            std::copy_if(logs.begin(), logs.end(), std::back_inserter(ours),
-                         [](const std::string& line) { return line.starts_with("WARNING:"); });
+            for (const std::string& line : logs) {
+                if (line.starts_with("WARNING:")) {
+                    ours.push_back(withPlaceholders(line));  // AN-06 names the topology file
+                }
+            }
             EXPECT_EQ(ours, expected);
         }
     };

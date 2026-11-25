@@ -44,6 +44,7 @@
 #include "mdbridge/core/dataset.hpp"
 #include "mdbridge/core/errors.hpp"
 #include "mdbridge/core/json.hpp"
+#include "mdbridge/core/paths.hpp"
 #include "mdbridge/core/progress.hpp"
 #include "mdbridge/core/project.hpp"
 #include "mdbridge/core/python.hpp"
@@ -194,6 +195,24 @@ inline std::filesystem::path dataPath(std::string_view path) {
         return *p;
     }
     return std::filesystem::path(std::string(path));
+}
+
+// The generator's placeholders put back into a message: "<tests/data/analysis>/x" -> "{out}/x",
+// "<tests/data>/x" -> "{data}/x" (either separator after the folder).
+inline std::string withPlaceholders(std::string text) {
+    const auto put = [&text](const std::filesystem::path& dir, std::string_view placeholder) {
+        for (const std::string& prefix : {core::pathToUtf8(dir), dir.generic_string()}) {
+            for (const char sep : {'/', '\\'}) {
+                const std::string from = prefix + sep;
+                for (std::size_t at = text.find(from); at != std::string::npos; at = text.find(from, at)) {
+                    text.replace(at, from.size(), std::string(placeholder) + "/");
+                }
+            }
+        }
+    };
+    put(kData / "analysis", "{out}");
+    put(kData, "{data}");
+    return text;
 }
 
 // ---- systems ---------------------------------------------------------------------------------------
