@@ -141,6 +141,10 @@ import independent_tables  # noqa: E402
 
 independent_tables.apply()  # MDAnalysis with MDBridge's independent tables (tests/data/README.md)
 
+import improvements_cli  # noqa: E402
+
+improvements_cli.apply_rmsd()  # the RMSD reference-frame warning (PRJ-02, improvements_cli.py)
+
 from mdatk import cli  # noqa: E402
 from mdatk import spatial as S  # noqa: E402
 from mdatk.analysis import ANALYSES, AnalysisContext, run_analyses  # noqa: E402

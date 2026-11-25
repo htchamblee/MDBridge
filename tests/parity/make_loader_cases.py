@@ -50,6 +50,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 DATA = os.path.normpath(os.path.join(HERE, "..", "data"))
 sys.path.insert(0, HERE)
 import dump_topologies  # noqa: E402
+import improvements_cli  # noqa: E402
 import independent_tables  # noqa: E402
 
 independent_tables.apply()  # MDAnalysis with MDBridge's independent tables (tests/data/README.md)
@@ -63,7 +64,8 @@ def placeholders(text):
 
 
 def error(exc):
-    return {"type": type(exc).__name__, "message": placeholders(str(exc))}
+    # MDBridge's wording where it improves MDATK's (stop=end: improvements_cli.py, CLI-03)
+    return {"type": type(exc).__name__, "message": improvements_cli.improve_text(placeholders(str(exc)))}
 
 
 def f32bits(values):

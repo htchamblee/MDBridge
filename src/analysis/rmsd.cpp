@@ -117,6 +117,13 @@ public:
         }
         const auto n = static_cast<std::int64_t>(frameCount());
         m_refPos = std::min<std::int64_t>(std::max<std::int64_t>(0, p.reference_frame), n - 1);
+        if (n > 0 && p.reference_frame >= n) {  // MDATK clamps silently (PRJ-02)
+            context().warn("RMSD: reference frame " + std::to_string(p.reference_frame) + " is beyond the " +
+                           std::to_string(n) + " analysed frames; using the last");
+        } else if (n > 0 && p.reference_frame < 0) {
+            context().warn("RMSD: reference frame " + std::to_string(p.reference_frame) +
+                           " is negative; using the first");
+        }
         m_superposition = p.superposition;
         m_targets.clear();
         for (std::size_t k = 0; k < p.targets.size(); ++k) {

@@ -42,6 +42,11 @@ sys.path.insert(0, MDATK)
 from mdatk import config as C  # noqa: E402
 from mdatk import projectfile as PF  # noqa: E402
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import improvements_cli  # noqa: E402
+
+improvements_cli.apply()  # MDBridge's validation and messages (PRJ-01, PRJ-03, PRJ-07)
+
 os.makedirs(OUT, exist_ok=True)
 
 NAN, INF = float("nan"), float("inf")
@@ -105,9 +110,10 @@ def from_dict(data, base_dir=None):
     """(project or None, error or None, warnings)"""
     CAPTURE.messages = []
     try:
-        return C.Project.from_dict(data, base_dir=base_dir), None, list(CAPTURE.messages)
+        project = C.Project.from_dict(data, base_dir=base_dir)
+        return project, None, improvements_cli.improve_strings(list(CAPTURE.messages))
     except (ValueError, OverflowError) as exc:
-        return None, str(exc), list(CAPTURE.messages)
+        return None, str(exc), improvements_cli.improve_strings(list(CAPTURE.messages))
 
 
 def at(plain, path):
@@ -283,6 +289,8 @@ def whole_cases():
         ("first error wins, reversed", {"analyses": {"contacts": {"cutoff": "far"}}, "output": {"video": {
             "fps": "x"}}}, None, ()),
         ("warnings before the error", {"bogus": 1, "inputs": {"what": 1, "step": "x"}, "late": 2}, None, ()),
+        ("properties as keys", {"out_dir": "o", "cache_dir": "c", "workflow_dir": "w",
+                                "output": {"out_dir": "x"}}, None, ()),
         ("error in a later list item", {"groups": [{"name": "A"}, {"name": "B", "color": None},
                                                    {"name": 3, "residues": [1]}, {"bogus": 1}]}, None, ()),
         ("enabled given 1", {"analyses": {"rmsd": {"enabled": 1}}}, None, ()),
@@ -422,6 +430,25 @@ def validate_inputs():
         ("proximity equal", {"visual": {"proximity_cutoff": 8}}),
         ("proximity nan", {"visual": {"proximity_cutoff": NAN}}),
         ("proximity radius nan", {"analyses": {"proximity_search_radius": NAN}}),
+        # PRJ-01 / PRJ-03 (MDBridge's checks of every cutoff, radius, tolerance, angle and RMSD key)
+        ("hbonds cutoffs", {"analyses": {"hbonds": {"distance_cutoff": NAN, "angle_cutoff": -0.5}}}),
+        ("hbonds bounds", {"analyses": {"hbonds": {"distance_cutoff": 5e-324, "angle_cutoff": 180}}}),
+        ("hbonds angle nan", {"analyses": {"hbonds": {"angle_cutoff": NAN}}}),
+        ("mg outer 0", {"analyses": {"mg": {"inner_cutoff": 2.0, "outer_cutoff": 0}}}),
+        ("mg both bad", {"analyses": {"mg": {"inner_cutoff": -1.0, "outer_cutoff": -2.0, "angle_tolerance": INF}}}),
+        ("mg tolerance 0", {"analyses": {"mg": {"angle_tolerance": 0}}}),
+        ("stacking", {"analyses": {"stacking": {"distance_cutoff": 0, "angle_cutoff": 180.5, "offset_cutoff": INF,
+                                                "planarity_cutoff": NAN}}}),
+        ("stacking angle 0", {"analyses": {"stacking": {"angle_cutoff": 0}}}),
+        ("energy", {"analyses": {"energy": {"cutoff": -INF, "dielectric": 0}}}),
+        ("energy inf", {"analyses": {"energy": {"cutoff": INF, "dielectric": NAN}}}),
+        ("proximity radius 0", {"analyses": {"proximity_search_radius": 0}}),
+        ("proximity radius inf", {"analyses": {"proximity_search_radius": INF}}),
+        ("contacts cutoff inf", {"analyses": {"contacts": {"cutoff": INF}}}),
+        ("rmsd keys", {"analyses": {"rmsd": {"targets": [{"label": "A B"}, {"label": "A_B"}, {"label": "a b"},
+                                                         {"label": "__"}, {"label": "target3"},
+                                                         {"label": "A..B"}, {"label": "A B "}]}}}),
+        ("rmsd keys distinct", {"analyses": {"rmsd": {"targets": [{"label": "A"}, {"label": "a"}, {"label": ""}]}}}),
         ("fps 0", {"output": {"video": {"fps": 0}}}),
         ("fps -1", {"output": {"video": {"fps": -1}}}),
         ("density ok", dens()),

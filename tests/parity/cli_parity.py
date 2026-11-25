@@ -29,6 +29,10 @@ Normalised on both sides before comparing (the only differences allowed):
     not MDATK's output; MDBridge reads NetCDF itself);
   * MDAnalysis' hidden XTC / TRR offset caches (.NAME_offsets.npz / .lock) are not files of the run;
   * MDATK messages that MDBridge words with its own name (NAMING) are adapted;
+  * MDBridge's documented improvements (docs/DIFFERENCES.md, improvements_cli.py) are applied to
+    MDATK: patched in-process (validation, --frames / --set index messages, the RMSD reference-frame
+    warning, external data read before the frame loop, PDB coordinates checked before writing) and
+    in its messages (KeyError quotes, stop=None, the out_dir hint, map errors with the path);
   * the analysis cache (ARCHITECTURE: MDBridge keeps its own cache format, mdbridge/analysis/cache.hpp)
     is compared by meaning: file names MDATK_cache.json / MDBridge_cache.json -> {manifest},
     <name>-<key>.npz / <name>-<key>.mdbridge.npz (and .json) -> <name>-{key}.npz (.json); cache
@@ -79,6 +83,9 @@ import traceback
 import zipfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)  # -I leaves the script's folder out
+import improvements_cli  # noqa: E402
+
 DATA = os.path.normpath(os.path.join(HERE, "..", "data"))
 LIMIT = 16384
 
@@ -87,13 +94,11 @@ DEMO_RUN = ["--top", "demo_dry.parm7", "--traj", "demo_dry.nc"]
 NO_STAMP = ["-s", "output.timestamp_files=false"]
 MAPS = "io/maps/files"
 
-# Maps whose error MDBridge words differently on purpose (src/io/include/mdbridge/io/mrc.hpp: a
-# broken gzip member raises MapError "{path}: <gzip's message>", Python gzip.BadGzipFile without
-# the path): exit status only. (Maps on which MDATK crashes are compared as described above.)
-DEVIATIONS = {
-    "gzip_bad_crc.map.gz", "gzip_bad_isize.map.gz", "gzip_bad_magic.map.gz", "gzip_bad_magic_quote.map.gz",
-    "gzip_bad_method.map.gz", "gzip_one_byte_tail.map.gz",
-}
+# Maps whose error MDBridge words differently on purpose beyond what improvements_cli.py adjusts:
+# exit status only. (Broken gzip members raise MapError "{path}: <gzip's message>" where Python's
+# gzip.BadGzipFile has no path: compared after adding the path, CLI-04. Maps on which MDATK crashes
+# are compared as described above.)
+DEVIATIONS = set()
 
 PROJECT = """format = "mdatk-project"
 notes = "relative paths, resolved against this file's folder"
@@ -166,6 +171,9 @@ CONDA_LAYOUT = {
     "home/.conda/environments.txt": "{work}/other/envs/ambertools\n\n  {work}/standalone  \r\n{work}/missing\n"
                                     "{work}/miniforge/envs/zeta\n",
 }
+ALL_GROUP = ["-s", 'groups=[{"name": "All", "selection": "all"}]', "-s", "analyses.contacts.enabled=false",
+             "-s", "analyses.hbonds.enabled=false", "-s", "analyses.mg.enabled=false", "-s",
+             "analyses.stacking.enabled=false", "-s", "analyses.energy.enabled=false"]
 EXTERNAL = "time_ps,potential,temp K\n0,1.5,300\n100,2.5,301\n200,4.0,299.5\n300,3.0,300.25\n"
 
 
@@ -212,6 +220,14 @@ CASES = [
     case("init_set_method", ["init", "x.mdatk.toml", "-s", "validate.x=5"]),
     case("init_set_section", ["init", "x.mdatk.toml", "-s", 'inputs={"topology": "t.parm7", "bogus": 1}']),
     case("init_frames_bad", ["init", "x.mdatk.toml", "--frames", "1:x"]),
+    case("init_frames_bad_part", ["init", "x.mdatk.toml", "--frames", "1::2x", "-s", "groups.--1.name=x"]),
+    case("init_set_cache_dir", ["init", "x.mdatk.toml", "-s", "cache_dir=c", "-s", "workflow_dir=w"]),
+    # a single-value option given twice: the last value (argparse); --traj: the last list
+    case("init_options_twice", ["init", "x.mdatk.toml", "--top", "a.parm7", "--top", "b.parm7", "--traj", "a.nc",
+                                "b.nc", "--traj", "c.nc", "--frames", "1:2", "--frames", "3:9:2", "-o", "o1", "-o",
+                                "o2", "--cache-dir", "c1", "--cache-dir", "c2", "--cpptraj", "x", "--cpptraj", "y",
+                                "--conda-env", "e1", "--conda-env", "e2", "-p", "missing.mdatk.toml", "--params",
+                                "base.mdatk.toml"], DEMO, {"base.mdatk.toml": PROJECT}),
     case("init_missing_output", ["init"], exit_only=True),
     case("init_unknown_option", ["init", "x.mdatk.toml", "--bogus"], exit_only=True),
 
@@ -231,6 +247,13 @@ CASES = [
     case("info_missing_topology", ["info", "--top", "missing.parm7"]),
     case("info_missing_trajectory", ["info", "--top", "demo_dry.parm7", "--traj", "missing.nc"], DEMO),
     case("info_parm7_alone", ["info", "--top", "demo_dry.parm7"], DEMO),
+    case("info_invalid_parameters", ["info", *DEMO_RUN, "-s", "analyses.hbonds.distance_cutoff=-1", "-s",
+                                     "analyses.hbonds.angle_cutoff=181", "-s", "analyses.mg.outer_cutoff=0", "-s",
+                                     "analyses.mg.inner_cutoff=3", "-s", "analyses.energy.dielectric=0", "-s",
+                                     "analyses.stacking.planarity_cutoff=-0.5", "-s",
+                                     "analyses.proximity_search_radius=0", "-s",
+                                     'analyses.rmsd.targets=[{"label": "A B"}, {"label": "C"}, {"label": "A_B"}, '
+                                     '{"label": "!"}, {"label": "target3"}]'], DEMO),
     case("info_unknown_option", ["info", "--bogus"], exit_only=True),
 
     # ---- export-pdb
@@ -252,6 +275,12 @@ CASES = [
     case("export_empty_selection", ["export-pdb", *DEMO_RUN, "--frame-list", "0", "--selection", "resname ZZZ"],
          DEMO),
     case("export_bad_frames", ["export-pdb", *DEMO_RUN, "--frame-list", "0, 99"], DEMO),
+    case("export_options_twice", ["export-pdb", *DEMO_RUN, "--frame-list", "0", "--frame-list", "2, 4", "--selection",
+                                  "Target", "--selection", "Aptamer", *NO_STAMP], DEMO),
+    # a frame beyond the PDB coordinate limits: nothing is written (CLI-08)
+    case("export_coordinate_limits", ["export-pdb", "--top", "limit_models.pdb", "--traj", "limit_models.pdb",
+                                      "--frame-list", "0, 1, 2, 3", *NO_STAMP, *ALL_GROUP],
+         {"limit_models.pdb": "io/pdb/export/files/limit_models.pdb"}),
     case("export_pdb_trajectory", ["export-pdb", "--top", "chains.pdb", "--traj", "chains.pdb", "--frame-list",
                                    "0", *NO_STAMP, "-s", 'groups=[{"name": "All", "selection": "all"}]',
                                    "-s", "analyses.contacts.enabled=false", "-s", "analyses.hbonds.enabled=false",
@@ -311,6 +340,17 @@ CASES = [
     case("analyze_no_topology", ["analyze"]),
     case("analyze_missing_trajectory", ["analyze", "--top", "demo_dry.parm7", "--traj", "missing.nc"], DEMO),
     case("analyze_no_trajectory", ["analyze", "--top", "demo_dry.parm7", "--only", "rmsd"], DEMO),
+    case("analyze_options_twice", ["analyze", "--top", "missing.parm7", "--top", "demo_dry.parm7", "--traj",
+                                   "missing.nc", "--traj", "demo_dry.nc", "--frames", "0:3", "--frames", "2:8:2",
+                                   "--only", "rmsd", "-o", "o1", "-o", "out", "--cache-dir", "c1", "--cache-dir",
+                                   "cache"], DEMO),
+    case("analyze_reference_beyond", ["analyze", *DEMO_RUN, "--only", "rmsd", "--frames", "::4", "-s",
+                                      "analyses.rmsd.reference_frame=999"], DEMO),
+    case("analyze_reference_negative", ["analyze", *DEMO_RUN, "--only", "rmsd", "--frames", "::6", "-s",
+                                        "analyses.rmsd.reference_frame=-3"], DEMO),
+    case("analyze_invalid_parameters", ["analyze", *DEMO_RUN, "-s", "analyses.stacking.angle_cutoff=-1", "-s",
+                                        "analyses.energy.cutoff=0", "-s", "analyses.mg.angle_tolerance=0", "-s",
+                                        'analyses.rmsd.targets=[{"label": "x"}, {"label": "x"}]'], DEMO),
     case("analyze_unknown_option", ["analyze", "--bogus"], exit_only=True),
 
     # ---- density info
@@ -518,6 +558,9 @@ def child(mdatk, jobs_file, results_file):
     import independent_tables
 
     independent_tables.apply()
+    import improvements_cli
+
+    improvements_cli.apply()  # MDBridge's documented improvements (docs/DIFFERENCES.md)
     from mdatk import cli
 
     def run(argv):
@@ -576,6 +619,8 @@ def run_mdatk(cases, root, mdatk, python):
             raise RuntimeError(f"{c['name']}: a command line run before the case failed in MDATK ({before})")
         for old, new in NAMING:
             stdout, stderr = stdout.replace(old, new), stderr.replace(old, new)
+        stdout, stderr = improvements_cli.improve_text(stdout), improvements_cli.improve_text(stderr)
+        stderr = improved_map_error(c, stderr)
         res = result(c, job[1], code, stdout, stderr, before)
         if TRACEBACK in stderr:
             # MDATK crashed (an exception its main() does not catch: MemoryError, zlib.error,
@@ -585,6 +630,22 @@ def run_mdatk(cases, root, mdatk, python):
             res["mdatk_crash"] = stderr.strip().splitlines()[-1]
         results[c["name"]] = res
     return results
+
+
+def improved_map_error(case_, stderr):
+    """`density info`: MapError texts as mrc.cpp words them (CLI-04: always the path, byte-order
+    problems named as such)."""
+    if case_["argv"][:2] != ["density", "info"] or not stderr.startswith("error: ") or stderr.count("\n") != 1:
+        return stderr
+    path = case_["argv"][2]
+    source = case_["inputs"].get(path)
+    if source is None:
+        return stderr
+    with open(os.path.join(DATA, source), "rb") as fh:
+        message = improvements_cli.improve_map_message(stderr[len("error: "):-1], fh.read(), path)
+    if not message.startswith(path + ": ") and not message.startswith("[Errno"):
+        message = f"{path}: {message}"
+    return f"error: {message}\n"
 
 
 def run_mdbridge(cases, root, exe):

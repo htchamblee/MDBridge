@@ -102,19 +102,24 @@ struct CoreCommands::Arguments {
 
 namespace {
 
+// A single-value option given more than once takes the last value, as argparse does.
+CLI::Option* lastWins(CLI::Option* option) { return option->multi_option_policy(CLI::MultiOptionPolicy::TakeLast); }
+
 void addCommon(CLI::App& command, CommonArguments& a) {
-    command.add_option("--project,-p,--params", a.params,
-                       "project file (.mdatk.toml) or a run's MDATK_params_log.toml");
-    command.add_option("--top", a.top, "topology file (.parm7, .pdb, ...)");
-    command.add_option("--traj", a.traj, "trajectory file(s) (.nc, .dcd, ...)");
-    command.add_option("--frames", a.frames, "frame selection start:stop:step (0-based, stop exclusive)");
+    lastWins(command.add_option("--project,-p,--params", a.params,
+                                "project file (.mdatk.toml) or a run's MDATK_params_log.toml"));
+    lastWins(command.add_option("--top", a.top, "topology file (.parm7, .pdb, ...)"));
+    // nargs="+": a repeated --traj replaces the earlier list (each occurrence starts afresh)
+    command.add_option("--traj", a.traj, "trajectory file(s) (.nc, .dcd, ...)")->trigger_on_parse();
+    lastWins(command.add_option("--frames", a.frames, "frame selection start:stop:step (0-based, stop exclusive)"));
     a.cleanOption = command.add_flag("--clean", a.clean, "enable cpptraj cleaning");
     a.noCleanOption = command.add_flag("--no-clean", a.noClean, "disable cleaning");
-    command.add_option("--cpptraj", a.cpptraj, "path to the cpptraj executable");
-    command.add_option("--conda-env", a.condaEnv,
-                       "conda environment providing cpptraj (e.g. AmberTools26); cpptraj then runs via `conda run`");
-    command.add_option("--out-dir,-o", a.outDir, "output directory");
-    command.add_option("--cache-dir", a.cacheDir, "cache directory (default <out-dir>/MDATK_cache)");
+    lastWins(command.add_option("--cpptraj", a.cpptraj, "path to the cpptraj executable"));
+    lastWins(command.add_option(
+        "--conda-env", a.condaEnv,
+        "conda environment providing cpptraj (e.g. AmberTools26); cpptraj then runs via `conda run`"));
+    lastWins(command.add_option("--out-dir,-o", a.outDir, "output directory"));
+    lastWins(command.add_option("--cache-dir", a.cacheDir, "cache directory (default <out-dir>/MDATK_cache)"));
     command.add_option("--set,-s", a.set, "override a parameter, e.g. analyses.contacts.cutoff=5 (repeatable)")
         ->type_name("KEY=VALUE")
         ->allow_extra_args(false);
@@ -183,10 +188,18 @@ core::Project loadProject(const CLI::App& command, const CommonArguments& a, boo
             start = colon + 1;
         }
         parts.resize(std::max<std::size_t>(parts.size(), 3));
-        project.inputs.start = parts[0].empty() ? 0 : core::pythonInt(parts[0]);
-        project.inputs.stop =
-            parts[1].empty() ? std::nullopt : std::optional<std::int64_t>(core::pythonInt(parts[1]));
-        project.inputs.step = parts[2].empty() ? 1 : core::pythonInt(parts[2]);
+        // MDATK reports int()'s "invalid literal for int() with base 10: 'x'"; MDBridge names the option
+        const auto number = [&a](const std::string& text) {
+            try {
+                return core::pythonInt(text);
+            } catch (const core::ValueError&) {
+                throw core::ValueError("--frames: " + core::pythonStringRepr(a.frames) +
+                                       " is not a frame number or range");
+            }
+        };
+        project.inputs.start = parts[0].empty() ? 0 : number(parts[0]);
+        project.inputs.stop = parts[1].empty() ? std::nullopt : std::optional<std::int64_t>(number(parts[1]));
+        project.inputs.step = parts[2].empty() ? 1 : number(parts[2]);
     }
     for (const std::string& assignment : a.set) {
         applyOverride(project, assignment);
@@ -468,15 +481,16 @@ CoreCommands::CoreCommands(CLI::App& app) : m_args(std::make_unique<Arguments>()
 
     a.analyze = app.add_subcommand("analyze", "compute (or load cached) analyses");
     addCommon(*a.analyze, a.analyzeCommon);
-    a.analyze->add_option("--only", a.only, "comma separated analysis names")
-        ->multi_option_policy(CLI::MultiOptionPolicy::TakeLast);  // argparse: the last one given
+    lastWins(a.analyze->add_option("--only", a.only, "comma separated analysis names"));
     a.analyze->add_flag("--force", a.force, "ignore cached results");
 
     a.exportPdb = app.add_subcommand("export-pdb", "write selected frames as PDB files");
     addCommon(*a.exportPdb, a.exportCommon);
-    a.frameListOption = a.exportPdb->add_option("--frame-list", a.frameList, "frames, e.g. \"0, 10, 20-50:10, last\"");
-    a.timesOption = a.exportPdb->add_option("--times", a.times, "times, e.g. \"1.5ns, 2000ps\"");
-    a.selectionOption = a.exportPdb->add_option("--selection", a.selection, "group names (comma separated) or a selection");
+    a.frameListOption =
+        lastWins(a.exportPdb->add_option("--frame-list", a.frameList, "frames, e.g. \"0, 10, 20-50:10, last\""));
+    a.timesOption = lastWins(a.exportPdb->add_option("--times", a.times, "times, e.g. \"1.5ns, 2000ps\""));
+    a.selectionOption = lastWins(
+        a.exportPdb->add_option("--selection", a.selection, "group names (comma separated) or a selection"));
 
     a.density = app.add_subcommand("density", "density maps (MRC / CCP4): header info");
     a.density->require_subcommand(0, 1);
@@ -616,6 +630,10 @@ std::string pythonErrorText(const std::exception& error) {
         if (what.starts_with("topology not found: ") || what.starts_with("trajectory not found: ")) {
             return what;
         }
+    }
+    if (dynamic_cast<const std::out_of_range*>(&error) != nullptr) {
+        // MDATK prints str(KeyError), the repr of the message ("'...'" / "\"...\""): the message alone
+        return error.what();
     }
     const std::string summary = core::exceptionSummary(error);  // "<Python class>: <str(exc)>"
     const std::size_t colon = summary.find(": ");

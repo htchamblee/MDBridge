@@ -23,8 +23,10 @@ std::string pdbFrameText(const core::AtomGroup& atoms, const core::Frame& frame,
 
 // export_frames: one file <out_dir>/<prefix>_<frame, zero-padded to max(5, digits of the frame
 // count)>[_<stamp>].pdb per frame, in the given order; progress((k + 1) / n, "PDB frame <f>").
-// Throws SelectionError("no frames selected for PDB export"); a coordinate error deletes that file
-// and stops (earlier files stay).
+// Throws SelectionError("no frames selected for PDB export"). Every frame's coordinates are checked
+// before any file is written: ValueError("PDB files must have coordinate values between -1000.000
+// and 9999.999 Angstroem: frame <f> is outside this range; no files were written.") (CLI-08; MDATK
+// stops at that frame and leaves the earlier files). Other errors of a frame stop there.
 std::vector<std::filesystem::path> exportFrames(core::System& system, const std::vector<std::int64_t>& frames,
                                                 const core::AtomGroup& atoms, const std::filesystem::path& outDir,
                                                 const std::string& prefix,

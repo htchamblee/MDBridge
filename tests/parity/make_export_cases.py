@@ -47,6 +47,10 @@ import independent_tables  # noqa: E402
 
 independent_tables.apply()  # MDAnalysis with MDBridge's independent tables (tests/data/README.md)
 
+import improvements_cli  # noqa: E402
+
+improvements_cli.apply()  # export_frames checks every frame's coordinates before writing (CLI-08)
+
 DATA = os.path.normpath(os.path.join(HERE, "..", "data"))
 OUT = os.path.abspath(sys.argv[2])
 FILES = os.path.join(OUT, "files")

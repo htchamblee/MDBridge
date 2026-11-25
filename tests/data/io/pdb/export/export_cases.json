@@ -1676,7 +1676,7 @@
    "stamp": "",
    "error": {
     "type": "ValueError",
-    "message": "PDB files must have coordinate values between -1000.000 and 9999.999 Angstroem: file writing was aborted."
+    "message": "PDB files must have coordinate values between -1000.000 and 9999.999 Angstroem: frame 0 is outside this range; no files were written."
    },
    "progress": [],
    "files": []
@@ -1693,7 +1693,7 @@
    "stamp": "",
    "error": {
     "type": "ValueError",
-    "message": "PDB files must have coordinate values between -1000.000 and 9999.999 Angstroem: file writing was aborted."
+    "message": "PDB files must have coordinate values between -1000.000 and 9999.999 Angstroem: frame 0 is outside this range; no files were written."
    },
    "progress": [],
    "files": []
@@ -1710,7 +1710,7 @@
    "stamp": "",
    "error": {
     "type": "ValueError",
-    "message": "PDB files must have coordinate values between -1000.000 and 9999.999 Angstroem: file writing was aborted."
+    "message": "PDB files must have coordinate values between -1000.000 and 9999.999 Angstroem: frame 0 is outside this range; no files were written."
    },
    "progress": [],
    "files": []
@@ -1730,28 +1730,10 @@
    "stamp": "",
    "error": {
     "type": "ValueError",
-    "message": "PDB files must have coordinate values between -1000.000 and 9999.999 Angstroem: file writing was aborted."
+    "message": "PDB files must have coordinate values between -1000.000 and 9999.999 Angstroem: frame 2 is outside this range; no files were written."
    },
-   "progress": [
-    [
-     "0x1.0000000000000p-2",
-     "PDB frame 0"
-    ],
-    [
-     "0x1.0000000000000p-1",
-     "PDB frame 1"
-    ]
-   ],
-   "files": [
-    {
-     "name": "models_00000.pdb",
-     "text": "HEADER    \nTITLE     MDANALYSIS FRAME 0: Created by PDBWriter\nCRYST1    1.000    1.000    1.000  90.00  90.00  90.00 P 1           1\nREMARK     285 UNITARY VALUES FOR THE UNIT CELL AUTOMATICALLY SET\nREMARK     285 BY MDANALYSIS PDBWRITER BECAUSE UNIT CELL INFORMATION\nREMARK     285 WAS MISSING.\nREMARK     285 PROTEIN DATA BANK CONVENTIONS REQUIRE THAT\nREMARK     285 CRYST1 RECORD IS INCLUDED, BUT THE VALUES ON\nREMARK     285 THIS RECORD ARE MEANINGLESS.\nATOM      1  C   ALA A   1       1.000   0.000   0.000  1.00  0.00      A    C  \nATOM      2  N   ALA A   1       1.000   2.000   3.000  1.00  0.00      A    C  \nEND\n"
-    },
-    {
-     "name": "models_00001.pdb",
-     "text": "HEADER    \nTITLE     MDANALYSIS FRAME 0: Created by PDBWriter\nCRYST1    1.000    1.000    1.000  90.00  90.00  90.00 P 1           1\nREMARK     285 UNITARY VALUES FOR THE UNIT CELL AUTOMATICALLY SET\nREMARK     285 BY MDANALYSIS PDBWRITER BECAUSE UNIT CELL INFORMATION\nREMARK     285 WAS MISSING.\nREMARK     285 PROTEIN DATA BANK CONVENTIONS REQUIRE THAT\nREMARK     285 CRYST1 RECORD IS INCLUDED, BUT THE VALUES ON\nREMARK     285 THIS RECORD ARE MEANINGLESS.\nATOM      1  C   ALA A   1      -1.500   0.000   0.000  1.00  0.00      A    C  \nATOM      2  N   ALA A   1       1.000   2.000   3.000  1.00  0.00      A    C  \nEND\n"
-    }
-   ]
+   "progress": [],
+   "files": []
   },
   {
    "topology": "{data}/io/pdb/export/files/limit_models.pdb",
@@ -1791,7 +1773,7 @@
    "stamp": "",
    "error": {
     "type": "ValueError",
-    "message": "PDB files must have coordinate values between -1000.000 and 9999.999 Angstroem: file writing was aborted."
+    "message": "PDB files must have coordinate values between -1000.000 and 9999.999 Angstroem: frame 0 is outside this range; no files were written."
    },
    "progress": [],
    "files": []
@@ -1860,7 +1842,7 @@
    "stamp": "",
    "error": {
     "type": "ValueError",
-    "message": "PDB files must have coordinate values between -1000.000 and 9999.999 Angstroem: file writing was aborted."
+    "message": "PDB files must have coordinate values between -1000.000 and 9999.999 Angstroem: frame 0 is outside this range; no files were written."
    },
    "progress": [],
    "files": []
@@ -1929,7 +1911,7 @@
    "stamp": "",
    "error": {
     "type": "ValueError",
-    "message": "PDB files must have coordinate values between -1000.000 and 9999.999 Angstroem: file writing was aborted."
+    "message": "PDB files must have coordinate values between -1000.000 and 9999.999 Angstroem: frame 0 is outside this range; no files were written."
    },
    "progress": [],
    "files": []

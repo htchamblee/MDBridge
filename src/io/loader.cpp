@@ -200,7 +200,7 @@ std::vector<std::int64_t> frameIndices(std::int64_t frameCount, std::int64_t sta
     }
     if (out.empty()) {
         throw ValueError("frame selection start=" + std::to_string(start) +
-                         " stop=" + (stop ? std::to_string(*stop) : std::string("None")) +
+                         " stop=" + (stop ? std::to_string(*stop) : std::string("end")) +
                          " step=" + std::to_string(step) + " selects no frames (trajectory has " +
                          std::to_string(frameCount) + ")");
     }

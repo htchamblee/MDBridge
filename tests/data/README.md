@@ -66,6 +66,11 @@ and `residue_rule_pdb_text` (the name column of the files the export generator r
 / H), lone ions named the CCD way and the force-field way, `CD2`/`CD`, `EMC`/`HG`, and `K+`/`K+`,
 which no source names (name rule: K).
 
+Where MDBridge deliberately improves on MDATK (docs/DIFFERENCES.md), the generators apply the
+improvement to MDATK's results: `tests/parity/improvements_cli.py` (project validation, parameter
+and command-line messages, external data, PDB export, map errors; items PRJ-* and CLI-*) is used by
+cli_parity.py and the model, loader, export, maps, analysis and pipeline generators.
+
 `projects/` holds project files; `expected/` holds what MDATK v0.0.4.1 (the reference
 implementation) reads from each of them. `tests/core/test_project_file.cpp` checks that MDBridge
 reads every file in `projects/` the same way, byte for byte in the JSON form of the result.

@@ -616,7 +616,9 @@ TEST(Commands, OverridesFollowMdatk) {
     EXPECT_EQ(message("groups.1.name=x"), "groups.1.name: no list element '1'");
     EXPECT_EQ(message("groups.99999999999999999999999.name=x"),
               "groups.99999999999999999999999.name: no list element '99999999999999999999999'");
-    EXPECT_EQ(message("groups.--1.name=x"), "invalid literal for int() with base 10: '--1'");
+    // MDATK: "invalid literal for int() with base 10: '--1'" (PRJ-04)
+    EXPECT_EQ(message("groups.--1.name=x"), "groups.--1.name: no list element '--1'");
+    EXPECT_EQ(message("groups.-.name=x"), "groups.-.name: no list element '-'");
     EXPECT_EQ(message("analyses.contacts.cutoff=far"),
               "project.analyses.contacts.cutoff: expected a number, got 'far'");
 }
@@ -689,14 +691,15 @@ TEST(Commands, ListPrintsTheTables) {
 }
 
 TEST(Commands, ErrorsAreReportedAsMdatkReportsThem) {
-    // MDATK's main() prints str(exc) of OSError, ValueError, RuntimeError and KeyError
+    // MDATK's main() prints str(exc) of OSError, ValueError, RuntimeError and KeyError (the last with
+    // quotes; MDBridge prints the message: CLI-01)
     EXPECT_EQ(app::pythonErrorText(analysis::PipelineError("Invalid parameters:\n  - x")),
               "Invalid parameters:\n  - x");
     EXPECT_EQ(app::pythonErrorText(core::NamedError("FileNotFoundError", "no MDBridge_cache.json in /x")),
               "no MDBridge_cache.json in /x");
     EXPECT_EQ(app::pythonErrorText(core::NamedError("CpptrajError", "topology not found: a.parm7")),
               "topology not found: a.parm7");
-    EXPECT_EQ(app::pythonErrorText(std::out_of_range("unknown analysis 'x'")), "\"unknown analysis 'x'\"");
+    EXPECT_EQ(app::pythonErrorText(std::out_of_range("unknown analysis 'x'")), "unknown analysis 'x'");
 
     test::TempDir work;  // a cleaning project without cleaned files: the pipeline's error, exit 1
     fs::copy_file(kData / "topology" / "demo_dry.parm7", work.path() / "demo_dry.parm7");

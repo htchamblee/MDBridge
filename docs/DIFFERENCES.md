@@ -117,13 +117,70 @@ test_structure.cpp, test_energy.cpp (tolerances).
   with `/` (`C:\data\..\a.pdb` → `C:/a.pdb`); device paths (`\\?\`, `\\.\`) are kept as written;
   comparison is case-sensitive. On Linux and macOS paths follow posixpath exactly, as MDATK does.
   *Tested:* tests/core/test_ntpath.cpp on every platform.
+- **PRJ-01: every numeric analysis parameter is validated.** MDATK checks only `contacts.cutoff <= 0`
+  and Mg inner > outer, so NaN passes everything, and negative or NaN H-bond, Mg, stacking and
+  energy cutoffs, `energy.dielectric = 0` (infinite energies), angle cutoffs outside 0-180 and
+  `proximity_search_radius <= 0` give silent zero, NaN or inf series. validate() now requires every
+  cutoff, radius and tolerance to be a finite number > 0 ("H-bond distance cutoff must be
+  positive." / "... must be finite."), the H-bond and stacking angle cutoffs to lie in [0, 180]
+  ("... must be between 0 and 180 degrees."), and keeps the Mg inner <= outer check for valid
+  cutoffs; the checks stand where MDATK's two did (core::analysisParameterProblems). *Why:* silent
+  nonsense results. *Tested:* project-model/validate_cases.json (new cases), cli_cases.json
+  (info_invalid_parameters, analyze_invalid_parameters); tests/parity/improvements_cli.py applies
+  the same checks to MDATK's validate().
+- **PRJ-02: a clamped RMSD reference frame is reported.** `analyses.rmsd.reference_frame` beyond
+  the analysed frames (or negative) is still clamped to the last (first) frame, now with
+  `WARNING: RMSD: reference frame 999 is beyond the 24 analysed frames; using the last` (`... -3 is
+  negative; using the first`). Results and cache keys are unchanged. *Tested:*
+  analysis/demo_dry_variants.json (rmsd_reference_999 / -3), cli_cases.json
+  (analyze_reference_beyond / _negative).
+- **PRJ-03: RMSD targets with the same data key are a validation problem.** Labels `A B` and `A_B`
+  both give the key `rmsd/A_B`; MDATK silently overwrites the first series. validate() reports
+  `RMSD targets 1 and 2 give the same data key 'A_B'; rename one.` *Tested:* validate_cases.json
+  (rmsd keys), cli_cases.json.
+- **PRJ-04 / PRJ-05: index and frame texts.** `--set groups.--1.name=x` reports
+  `groups.--1.name: no list element '--1'` and `--frames 1:x` reports
+  `--frames: '1:x' is not a frame number or range` (MDATK: `invalid literal for int() with base
+  10: ...`). *Tested:* cli_cases.json (init_set_index_dashes, init_frames_bad, init_frames_bad_part),
+  test_commands.cpp.
+- **PRJ-07: a Project property given as a key gets a hint.** `--set out_dir=x` (or a top-level
+  `out_dir` / `cache_dir` / `workflow_dir` key in a project file) warns
+  `project: ignoring unknown key 'out_dir' (did you mean output.out_dir?)`
+  (`output.cache_dir`, `workflow.out_dir`). *Tested:* from_dict_cases.json (properties as keys),
+  cli_cases.json (init_set_property, init_set_cache_dir).
 
 ## Command line
 
 - **No tracebacks.** Where MDATK crashes with a Python traceback (`info` with a parm7 file alone,
   corrupt gzip maps, map dimensions too large to allocate), MDBridge prints `error: <message>` and exits
   with 1. *Tested:* cli_cases.json (`mdatk_crash` cases), tests/cli/test_commands.cpp.
-- Six gzip error texts of `density info` are worded as in mrc.hpp (compared by exit status only).
+- **CLI-01: KeyErrors without Python's quotes.** `error: unknown analysis 'nope' (known: ...)` and
+  `WARNING: skipping data source 'bogus@Nope': unknown analysis ...` (MDATK prints str(KeyError),
+  the message's repr in quotes). The step log keeps `KeyError: '...'` (a project-file convention).
+  *Tested:* cli_cases.json (analyze_unknown, analyze_layout), pipeline_cases.json.
+- **CLI-02: external data is read before the frame loop.** A missing or unreadable
+  `inputs.external` file fails before the analyses run (same message, `external data: ...`), so no
+  run time is wasted and nothing is cached for the failed run; MDATK finds it after the pass.
+  *Tested:* cli_cases.json (analyze_external_bad / _missing), pipeline_cases.json (errors).
+- **CLI-03: `stop=end`** in `frame selection start=30 stop=end step=1 selects no frames ...`
+  (MDATK: Python's `None`). *Tested:* cli_cases.json, io/loader/loader_cases.json,
+  pipeline_cases.json.
+- **CLI-04: map errors always name the map.** `density info` prints MapError texts with the path,
+  gzip errors included (MDATK: `Not a gzipped file (b'XY')`, `CRC check failed ...` without it), and
+  `{path}: cannot determine the byte order of the map header`; a MODE or cell angles that only make
+  sense in the other byte order give `... byte order of the map header (mode 33554432)` / `(cell
+  angles [...])` instead of `unsupported MRC mode 33554432` / `non-orthogonal cell angles [6.47e-41,
+  ...]`. *Tested:* io/maps/read_cases.json, cli_cases.json (density_info_* compared in full).
+- **CLI-08: PDB export checks every frame first.** A frame with a coordinate beyond the PDB limits
+  stops the export before any file is written: `PDB files must have coordinate values between
+  -1000.000 and 9999.999 Angstroem: frame 2 is outside this range; no files were written.` (MDATK
+  aborts at that frame and leaves the earlier files.) *Tested:* io/pdb/export/export_cases.json,
+  cli_cases.json (export_coordinate_limits).
+- **A single-value option given twice takes the last value**, as argparse does (`--top`, `-o`,
+  `--cache-dir`, `--frames`, `--project`, `--cpptraj`, `--conda-env`, `--only`, `--frame-list`,
+  `--times`, `--selection`; a repeated `--traj` replaces the earlier list). This is MDATK's
+  behaviour, listed because CLI11 rejects repeats by default. *Tested:* cli_cases.json
+  (init_options_twice, analyze_options_twice, export_options_twice).
 - JSON presets: `init` with a `.json` preset reports that MDBridge uses TOML project files.
 
 ## Planned (from the improvement register; add each entry here when it lands)
@@ -131,5 +188,4 @@ test_structure.cpp, test_energy.cpp (tolerances).
 Periodic distances and minimum images for every cell (AN-01–AN-04); degenerate RMSD (AN-16); base
 pairs and stacking on wrapped trajectories (AN-11, AN-12); setup-order independence (AN-13, SEL-17);
 `prop` operand reversal (SEL-01, SEL-02); per-atom element fallback (SEL-13); reader fixes (RD-*,
-LD-*); validation of every cutoff (PRJ-01); readable messages in place of Python's internal texts
-(SEL-03/04/08, RD-*, CLI-01/03/04).
+LD-*); readable messages in place of Python's internal texts (SEL-03/04/08, RD-*).

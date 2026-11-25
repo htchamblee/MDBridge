@@ -5613,7 +5613,7 @@
     "rmsd"
    ],
    "log": [
-    "WARNING: skipping data source 'bogus': \"unknown analysis 'bogus' (known: contacts, energy, hbonds, mg, rmsd, stacking, trace, proximity, atoms, basepairs)\"",
+    "WARNING: skipping data source 'bogus': unknown analysis 'bogus' (known: contacts, energy, hbonds, mg, rmsd, stacking, trace, proximity, atoms, basepairs)",
     "WARNING: skipping data source 'contacts@Aptamer': 'contacts@Aptamer': contacts takes 2 group(s)",
     "WARNING: skipping data source 'contacts@Nope': 'contacts@Nope': contacts takes 2 group(s)",
     "WARNING: skipping data source 'rmsd@Aptamer+Target': 'rmsd@Aptamer+Target': rmsd takes 1 group(s)",
@@ -21793,7 +21793,7 @@
      },
      "error": {
       "type": "ValueError",
-      "message": "frame selection start=100 stop=None step=1 selects no frames (trajectory has 24)"
+      "message": "frame selection start=100 stop=end step=1 selects no frames (trajectory has 24)"
      },
      "log": [],
      "progress": [
@@ -22112,110 +22112,11 @@
       "type": "PipelineError",
       "message": "external data: column 'zz' not found (available: time_ps, potential, temp K)"
      },
-     "log": [
-      "Preparing RMSD ...",
-      "Analysing 24 frame(s): RMSD"
-     ],
+     "log": [],
      "progress": [
       [
        "0x1.47ae147ae147bp-6",
        "inputs ready"
-      ],
-      [
-       "0x1.f258bf258bf26p-5",
-       "Analysing frame 1/24"
-      ],
-      [
-       "0x1.a06d3a06d3a07p-4",
-       "Analysing frame 2/24"
-      ],
-      [
-       "0x1.23d70a3d70a3dp-3",
-       "Analysing frame 3/24"
-      ],
-      [
-       "0x1.7777777777777p-3",
-       "Analysing frame 4/24"
-      ],
-      [
-       "0x1.cb17e4b17e4b1p-3",
-       "Analysing frame 5/24"
-      ],
-      [
-       "0x1.0f5c28f5c28f6p-2",
-       "Analysing frame 6/24"
-      ],
-      [
-       "0x1.392c5f92c5f93p-2",
-       "Analysing frame 7/24"
-      ],
-      [
-       "0x1.62fc962fc9630p-2",
-       "Analysing frame 8/24"
-      ],
-      [
-       "0x1.8cccccccccccdp-2",
-       "Analysing frame 9/24"
-      ],
-      [
-       "0x1.b69d0369d036ap-2",
-       "Analysing frame 10/24"
-      ],
-      [
-       "0x1.e06d3a06d3a07p-2",
-       "Analysing frame 11/24"
-      ],
-      [
-       "0x1.051eb851eb852p-1",
-       "Analysing frame 12/24"
-      ],
-      [
-       "0x1.1a06d3a06d3a0p-1",
-       "Analysing frame 13/24"
-      ],
-      [
-       "0x1.2eeeeeeeeeeefp-1",
-       "Analysing frame 14/24"
-      ],
-      [
-       "0x1.43d70a3d70a3ep-1",
-       "Analysing frame 15/24"
-      ],
-      [
-       "0x1.58bf258bf258cp-1",
-       "Analysing frame 16/24"
-      ],
-      [
-       "0x1.6da740da740dbp-1",
-       "Analysing frame 17/24"
-      ],
-      [
-       "0x1.828f5c28f5c29p-1",
-       "Analysing frame 18/24"
-      ],
-      [
-       "0x1.9777777777777p-1",
-       "Analysing frame 19/24"
-      ],
-      [
-       "0x1.ac5f92c5f92c6p-1",
-       "Analysing frame 20/24"
-      ],
-      [
-       "0x1.c147ae147ae14p-1",
-       "Analysing frame 21/24"
-      ],
-      [
-       "0x1.d62fc962fc963p-1",
-       "Analysing frame 22/24"
-      ],
-      [
-       "0x1.eb17e4b17e4b2p-1",
-       "Analysing frame 23/24"
-      ],
-      [
-       "0x1.0000000000000p+0",
-       "Analysing frame 24/24"
       ]
      ]
     },
@@ -22525,9 +22426,7 @@
       "type": "PipelineError",
       "message": "external data: [Errno 2] No such file or directory: '{work}/missing.csv'"
      },
-     "log": [
-      "RMSD: loaded from cache (rmsd-438c3796e1094788)"
-     ],
+     "log": [],
      "progress": [
       [
        "0x1.47ae147ae147bp-6",
@@ -22841,9 +22740,7 @@
       "type": "PipelineError",
       "message": "external data: {work}/bad.csv: non-numeric data line '1,x'"
      },
-     "log": [
-      "RMSD: loaded from cache (rmsd-438c3796e1094788)"
-     ],
+     "log": [],
      "progress": [
       [
        "0x1.47ae147ae147bp-6",
@@ -23143,12 +23040,109 @@
       }
      },
      "log": [
-      "RMSD: loaded from cache (rmsd-438c3796e1094788)"
+      "Preparing RMSD ...",
+      "Analysing 24 frame(s): RMSD"
      ],
      "progress": [
       [
        "0x1.47ae147ae147bp-6",
        "inputs ready"
+      ],
+      [
+       "0x1.f258bf258bf26p-5",
+       "Analysing frame 1/24"
+      ],
+      [
+       "0x1.a06d3a06d3a07p-4",
+       "Analysing frame 2/24"
+      ],
+      [
+       "0x1.23d70a3d70a3dp-3",
+       "Analysing frame 3/24"
+      ],
+      [
+       "0x1.7777777777777p-3",
+       "Analysing frame 4/24"
+      ],
+      [
+       "0x1.cb17e4b17e4b1p-3",
+       "Analysing frame 5/24"
+      ],
+      [
+       "0x1.0f5c28f5c28f6p-2",
+       "Analysing frame 6/24"
+      ],
+      [
+       "0x1.392c5f92c5f93p-2",
+       "Analysing frame 7/24"
+      ],
+      [
+       "0x1.62fc962fc9630p-2",
+       "Analysing frame 8/24"
+      ],
+      [
+       "0x1.8cccccccccccdp-2",
+       "Analysing frame 9/24"
+      ],
+      [
+       "0x1.b69d0369d036ap-2",
+       "Analysing frame 10/24"
+      ],
+      [
+       "0x1.e06d3a06d3a07p-2",
+       "Analysing frame 11/24"
+      ],
+      [
+       "0x1.051eb851eb852p-1",
+       "Analysing frame 12/24"
+      ],
+      [
+       "0x1.1a06d3a06d3a0p-1",
+       "Analysing frame 13/24"
+      ],
+      [
+       "0x1.2eeeeeeeeeeefp-1",
+       "Analysing frame 14/24"
+      ],
+      [
+       "0x1.43d70a3d70a3ep-1",
+       "Analysing frame 15/24"
+      ],
+      [
+       "0x1.58bf258bf258cp-1",
+       "Analysing frame 16/24"
+      ],
+      [
+       "0x1.6da740da740dbp-1",
+       "Analysing frame 17/24"
+      ],
+      [
+       "0x1.828f5c28f5c29p-1",
+       "Analysing frame 18/24"
+      ],
+      [
+       "0x1.9777777777777p-1",
+       "Analysing frame 19/24"
+      ],
+      [
+       "0x1.ac5f92c5f92c6p-1",
+       "Analysing frame 20/24"
+      ],
+      [
+       "0x1.c147ae147ae14p-1",
+       "Analysing frame 21/24"
+      ],
+      [
+       "0x1.d62fc962fc963p-1",
+       "Analysing frame 22/24"
+      ],
+      [
+       "0x1.eb17e4b17e4b2p-1",
+       "Analysing frame 23/24"
+      ],
+      [
+       "0x1.0000000000000p+0",
+       "Analysing frame 24/24"
       ],
       [
        "0x1.0000000000000p+0",
