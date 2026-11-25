@@ -674,6 +674,35 @@ indices exact; `tests/render/test_molecule_geometry.cpp` against
   *Tested:* `MoleculeGeometryParity.SurfacesMatchMdatk` (distances where the indices differ),
   `MoleculeGeometry.NearestPointsAgreeWithBruteForce`.
 
+## Rendering: density shadow (src/render/molecule/density_shadow.cpp)
+
+The projected density map of the structure view (MDATK's `project_density`, `_above_level`,
+`shadow_rgba` and `anchored` in `mdatk/density.py`, with scipy's order-1 `affine_transform`) gives
+MDATK's images, extents and placements (images and RGBA within 1e-6, bit-identical on the parity
+cases; placements within 1e-9; `tests/render/test_density_shadow.cpp` against
+`tests/parity/make_density_shadow_cases.py`, which applies the items below test-side and records
+MDATK's own outcome next to them), with these differences:
+
+- **Non-finite voxels (RN-30).** MDATK's `np.maximum(map - level, 0)` keeps NaN, so one NaN voxel
+  made the integrated image NaN where it was sampled and the peak NaN, i.e. the whole shadow NaN
+  (an infinite voxel gave inf / inf = NaN or a blank image). MDBridge counts non-finite voxels (and
+  any non-finite difference to the level) as no density, and a non-finite level (the map level of a
+  map holding NaN is NaN, as in MDATK) gives no shadow. *Tested:*
+  `DensityShadow.AboveLevelMatchesMdatk`, `DensityShadow.ProjectDensityMatchesMdatk` (cases
+  `nan_voxel`, `inf_voxel`, `*_map_level`).
+- **Non-finite inputs (RN-31).** A NaN view, centre or voxel size (a map with NaN cell lengths reads
+  fine) or an infinite placement made MDATK fail in `int(math.ceil(...))` with `cannot convert float
+  NaN to integer` (or an `OverflowError`), which the structure panel logged as `density map not
+  drawn: cannot convert float NaN to integer`. MDBridge raises `ValueError("density map placement,
+  view or grid is not finite")` at the same point. *Tested:* `DensityShadow.ProjectDensityMatchesMdatk`
+  (cases `nan_centre`, `nan_view`, `inf_translation`, `nan_voxel_size`).
+- **Unusable anchors (RN-32).** `anchored` with a ragged stored anchor (a hand-edited project file)
+  raised numpy's `inhomogeneous shape` `ValueError`, and with NaN in the anchor or in the reference
+  frame `LinAlgError: SVD did not converge`; the map was not drawn. MDBridge uses the stored
+  placement as it is (as MDATK does for an anchor of another shape) and returns a note
+  (`density anchor ignored: ...`) for the caller's warning. *Tested:* `DensityShadow.AnchoredMatchesMdatk`
+  (cases `ragged`, `nan_anchor`, `nan_reference`).
+
 ## Video encoding (src/render/video)
 
 MDATK pipes RGBA frames into an `ffmpeg` executable; MDBridge links its own LGPL-only build of

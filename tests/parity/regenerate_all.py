@@ -142,7 +142,9 @@ MACHINE_DEPENDENT = {
 # (3 x 3 matrices), which the generators pin like make_analysis_cases.py; numpy's AVX-512 kernels
 # move them by an ulp (tried with --native). Their .npz files (images, geometry) did not change.
 MACHINE_DEPENDENT_JSON_UNDER = ("tests/data/render/figures/", "tests/data/render/charts/",
-                                "tests/data/render/molecule/")
+                                "tests/data/render/molecule/",
+                                # make_density_shadow_cases.py: placement / view products, kabsch's SVD
+                                "tests/data/render/density_shadow/")
 FLOAT_TOLERANCE = 1e-12
 HEX_FLOAT_RE = re.compile(r"^-?0x[0-9a-f]\.[0-9a-f]+p[+-][0-9]+$")  # float.hex() of a finite float
 
@@ -312,6 +314,8 @@ STEPS = [
          [f"{DATA}/render/cli"]),
     # milestone 4: the 3D representations' geometry (W0-F; the demo files written above)
     case_step("molecule_geometry", "make_molecule_geometry_cases.py", "render/molecule_geometry"),
+    # milestone 4: the density shadow (W0-I; the maps written by the map and figure steps)
+    case_step("density_shadow", "make_density_shadow_cases.py", "render/density_shadow"),
 ]
 
 

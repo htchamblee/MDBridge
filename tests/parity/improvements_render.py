@@ -38,6 +38,11 @@ Status of the items (see the plan for the full text):
   RN-17  video positions with a stride skip the last frame: kept (convention, no patch)
 
 None of them is patched yet (milestone 4, wave 0: the generators and this skeleton).
+
+RN-30 ... RN-32 (the density shadow, W0-I) are applied by make_density_shadow_cases.py itself,
+around MDATK's project_density / _above_level / anchored; no figure case uses a map with non-finite
+voxels or an unusable anchor, so they are not in PATCHES (the structure panel's chunk adds them
+here when its figure cases need them).
 """
 
 from __future__ import annotations

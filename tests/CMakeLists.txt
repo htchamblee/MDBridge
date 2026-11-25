@@ -135,6 +135,16 @@ target_compile_definitions(mdbridge_molecule_tests PRIVATE MDBRIDGE_TEST_DATA="$
 mdbridge_target_warnings(mdbridge_molecule_tests)
 gtest_discover_tests(mdbridge_molecule_tests DISCOVERY_MODE PRE_TEST)
 
+# render/molecule: the density shadow (project_density, shadow_rgba, anchored, scipy's
+# affine_transform) against MDATK (data/render/density_shadow,
+# tests/parity/make_density_shadow_cases.py); no Qt
+add_executable(mdbridge_density_shadow_tests render/test_density_shadow.cpp)
+target_link_libraries(mdbridge_density_shadow_tests PRIVATE mdbridge::render_molecule mdbridge::io mdbridge::core
+                      GTest::gtest_main)
+target_compile_definitions(mdbridge_density_shadow_tests PRIVATE MDBRIDGE_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data")
+mdbridge_target_warnings(mdbridge_density_shadow_tests)
+gtest_discover_tests(mdbridge_density_shadow_tests DISCOVERY_MODE PRE_TEST)
+
 # render/video: MP4 encoding with the LGPL FFmpeg libraries (codec and quality map, LGPL-only check,
 # encoded files checked by demuxing); the encoding tests skip in builds without FFmpeg. No Qt.
 add_executable(mdbridge_video_tests render/test_video_encoder.cpp)
