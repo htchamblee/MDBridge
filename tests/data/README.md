@@ -810,6 +810,26 @@ topology and trajectory generators:
 /opt/mdbridge-venv/bin/python -I -B tests/parity/make_molecule_geometry_cases.py /tmp/mdatk tests/data/render/molecule_geometry
 ```
 
+## render/shading: residue shading, orientation and the example dataset (milestone 4, W0-H)
+
+`tests/parity/make_shading_cases.py` runs MDATK's `mdatk/render/coloring.py`, `residues.py`,
+`orientation.py` and `example.py` in-process (patched by `render_common.setup()`, including
+`improvements_shading.py`: RN-21 ... RN-25) and numpy's `default_rng`, for `src/render/core`
+(`tests/render/test_shading.cpp`, bit for bit; BLAS rotations within 1e-15). No trajectory is read.
+
+| File | Content |
+|---|---|
+| `shading_cases.json` | crc32 of keys; per seed the SeedSequence state, PCG64 raw outputs and a scripted series of `uniform` / `integers` / `normal` calls; `glow_intensity`, `static_colors` and `frame_colors` cases; `one_letter`; orientation (`rx` / `ry` / `rz`, `euler_to_matrix`, `wrap_degrees`, `matrix_to_euler` incl. gimbal lock, `drag`, `project`, `format_angles`); `group_resids`; per example trace `chain_names`, `resnames`, `residue_rows`, `tag_rows` (with their log lines) and `residue_shading` settings; a proximity result with other rows than the trace; the schematic trace and duplex |
+| `examples.json` | per case (default layout, MDATK's test_v002 layout, every data kind, representations, a loaded preview with and without atoms, single strand, large / odd / no groups, one frame): the project, frame count, preview, and the dataset `example_dataset` makes (frames, times, unit, per result its name, key, params, meta and array names) |
+| `arrays.npz` | the arrays (stored members): `<case>.<result>.<array>`, the long random sequences `rng.<seed>.<op>`, the shading arrays `shading.<case>.<visual>.<need>.<what>` and `remap.*` |
+
+Floats are `repr()` (exact); numpy's kernels are pinned (`render_common`), so its sin / cos / exp are
+the C library's. The output is reproducible:
+
+```bash
+/opt/mdbridge-venv/bin/python -I -B tests/parity/make_shading_cases.py /tmp/mdatk tests/data/render/shading
+```
+
 ## Checking that the data is reproducible
 
 `tests/parity/regenerate_all.py` runs every generator above (and `tools/gen_*.py`) in this order

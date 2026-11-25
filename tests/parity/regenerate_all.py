@@ -312,6 +312,8 @@ STEPS = [
          [f"{DATA}/render/cli"]),
     # milestone 4: the 3D representations' geometry (W0-F; the demo files written above)
     case_step("molecule_geometry", "make_molecule_geometry_cases.py", "render/molecule_geometry"),
+    # milestone 4: residue shading, orientation, the example dataset and numpy's PCG64 (W0-H)
+    case_step("shading", "make_shading_cases.py", "render/shading"),
 ]
 
 

@@ -286,6 +286,11 @@ Each lands in DIFFERENCES.md with a test; `improvements_render.py` adjusts the e
 | RN-17 | Video positions with a stride skip the last frame (`0, s, 2s, ...`) | kept (convention: the frame count users expect); documented, not changed |
 | RN-18 | `theme.ordinal(n)` for more than 5 classes keeps the 4 ramp colours: classes share colours under the colour bar's distinct labels | n - 1 evenly spaced ramp steps (`from_list(ramp, N = n - 1)`); MDATK's colours up to 5 classes (W0-B) |
 | RN-19 | A `surf` grid for a blown-up frame (atoms thousands of Å apart) is allocated: `MemoryError` or gigabytes and minutes per frame | grids above 2^26 points refused up front; the surface is left out of that frame with the existing warning (W0-F) |
+| RN-21 | Example dataset of a structure with one strand (one structure group / chain): `_example_basepairs` slices `a[:m - 2]` with `m = 0` → `IndexError`, the GUI's layout preview breaks | no example pairs for a single strand (W0-H) |
+| RN-22 | `wrap_degrees` uses `np.isclose(a, -180)`: every angle within 0.0018° of -180 becomes +180 | only -180 itself (within 1e-9) folds to +180 (W0-H) |
+| RN-23 | Unreadable `visual.label_residues` silently gives no tags | same tags, plus one warning naming the field and the parse error (W0-H) |
+| RN-24 | `visual.label_residues = "B:12"` ignores the chain (residue 12 of every chain tagged) | the chain is honoured, as `residue_rows` does (W0-H) |
+| RN-25 | Example data: `group_resids` expands whole ranges before keeping 400 (gigabytes for `1-1000000000`); the schematic sequence has 120 letters (`IndexError` for larger groups) | stop at 400 residues; the sequence repeats (W0-H) |
 
 Not bugs, kept as conventions: DPI semantics (text size relative to the frame), `MDATK_` file names,
 the example dataset's seeds (crc32 of the key → numpy PCG64: ported exactly so the GUI preview looks

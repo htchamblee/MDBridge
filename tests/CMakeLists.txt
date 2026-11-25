@@ -126,6 +126,14 @@ target_compile_definitions(mdbridge_render_core_tests PRIVATE MDBRIDGE_TEST_DATA
 mdbridge_target_warnings(mdbridge_render_core_tests)
 gtest_discover_tests(mdbridge_render_core_tests DISCOVERY_MODE PRE_TEST)
 
+# render core: residue shading, orientation, the example dataset and numpy's PCG64 against MDATK and
+# numpy (data/render/shading, tests/parity/make_shading_cases.py); no Qt
+add_executable(mdbridge_shading_tests render/test_shading.cpp)
+target_link_libraries(mdbridge_shading_tests PRIVATE mdbridge::render_core mdbridge::analysis mdbridge::core GTest::gtest_main)
+target_compile_definitions(mdbridge_shading_tests PRIVATE MDBRIDGE_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data")
+mdbridge_target_warnings(mdbridge_shading_tests)
+gtest_discover_tests(mdbridge_shading_tests DISCOVERY_MODE PRE_TEST)
+
 # render/molecule: the 3D representations' geometry (topology roles, styles, Gaussian surface,
 # scene colours, the scipy filters) against MDATK (data/render/molecule_geometry,
 # tests/parity/make_molecule_geometry_cases.py); no Qt

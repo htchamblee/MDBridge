@@ -674,6 +674,43 @@ indices exact; `tests/render/test_molecule_geometry.cpp` against
   *Tested:* `MoleculeGeometryParity.SurfacesMatchMdatk` (distances where the indices differ),
   `MoleculeGeometry.NearestPointsAgreeWithBruteForce`.
 
+## Rendering: residue shading, orientation and the example dataset (src/render/core)
+
+The structure view's colours and glow (MDATK's `mdatk/render/coloring.py`, `residues.py`), its
+orientation (`orientation.py`) and the GUI's example dataset (`example.py`, with the demo's
+nucleotide geometry) give MDATK's numbers bit for bit (`tests/render/test_shading.cpp` against
+`tests/parity/make_shading_cases.py`; rotations through numpy's BLAS within 1e-15, sin / cos / exp
+bit for bit with glibc). The example series are seeded as MDATK seeds them: zlib's crc32 of the data
+key into numpy's `default_rng` (SeedSequence, PCG64, `uniform` / `normal` / `integers`, ported from
+numpy 2.5.5 with its notice), so the preview shows the same placeholder curves. The expected data
+is MDATK's with `tests/parity/improvements_shading.py` for the entries below.
+
+- **Example data of a single-strand structure (RN-21).** With one structure group (or one chain in
+  the loaded reference frame), MDATK's example base pairs sliced `a[:m - 2]` with `m = 0` and the
+  example dataset failed with `IndexError: shape mismatch`, so the GUI's layout preview broke.
+  MDBridge gives such a structure no example pairs (a frayed end never goes below zero pairs).
+  *Tested:* `ExampleDataset.SingleStrandAndLargeGroupsRN21RN25`, cases `single_strand`,
+  `single_strand_atoms`.
+- **Angles next to -180 degrees (RN-22).** `wrap_degrees` used `np.isclose(a, -180)`, whose relative
+  tolerance turned every angle between -180 and -179.9982 into +180: a drag or a matrix read back
+  near -180 jumped by up to 0.0018 degrees. MDBridge folds only -180 itself (within 1e-9) to +180.
+  *Tested:* `Orientation.AnglesNextToMinus180StayRN22`, the `wrap` cases.
+- **Unreadable `visual.label_residues` (RN-23).** MDATK ignored a spec it could not parse without a
+  word (no tags from it, `label_every` tags kept). MDBridge keeps that behaviour and warns once:
+  `visual.label_residues: invalid residue range item 'x'; no residue-number tags from it`.
+  *Tested:* `Residues.RowsTagsAndShading` (tags with their log lines).
+- **Chain-qualified `visual.label_residues` (RN-24).** MDATK dropped the chain of `B:12` and tagged
+  residue 12 of every chain; MDBridge tags it on chain B only (chain names as `residue_rows` reads
+  them, which already honoured the chain). *Tested:* `Residues.ChainQualifiedTagsRN24`.
+- **Large residue groups in the example data (RN-25).** `group_resids` listed every number of a
+  group's ranges before keeping the first 400 (a group `1-1000000000` took gigabytes and minutes),
+  and the schematic trace's sequence had 120 letters, so a shown group of more than 120 residues
+  raised `IndexError`. MDBridge stops at 400 residues and repeats the sequence. *Tested:* case
+  `big_groups`, `ExampleDataset.GroupResids`.
+- **Fewer than one example frame.** `exampleDataset` needs at least one frame
+  (`the example dataset needs at least one frame`; MDATK: `IndexError` at `t[-1]`). One frame gives
+  MDATK's NaN placeholders (`t / t[-1]`). *Tested:* case `one_frame`.
+
 ## Video encoding (src/render/video)
 
 MDATK pipes RGBA frames into an `ffmpeg` executable; MDBridge links its own LGPL-only build of
