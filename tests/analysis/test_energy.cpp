@@ -393,8 +393,9 @@ TEST(Energy, AnalyticCoulombAndLennardJones) {
         return runAnalyses(context, analyses, frames).results.at(0);
     };
     const double r = 5.0;
-    const double rmin = 1.369 + 2.513;  // GENERIC_LJ NA, CL
-    const double eps = std::sqrt(0.0874 * 0.0355);
+    // AN-25: the one-atom residues NA and CL are the TIP3P ion templates (Joung-Cheatham 2008)
+    const double rmin = 1.369 + 2.513;
+    const double eps = std::sqrt(0.0874393 * 0.035591);
     const auto lj = [&](double x) { return eps * (std::pow(rmin / x, 12) - 2 * std::pow(rmin / x, 6)); };
     const auto value = [](const core::AnalysisResult& res, const char* name) {
         return res.array(name)->values<double>()[0];
@@ -408,7 +409,7 @@ TEST(Energy, AnalyticCoulombAndLennardJones) {
     const double h = 1e-5;
     const double de = (-kEnergyCoulomb / (r + h) + lj(r + h) - (-kEnergyCoulomb / (r - h) + lj(r - h))) / (2 * h);
     near(value(res, "force"), std::abs(de), 1e-5);
-    EXPECT_EQ(*res.meta[0].second.get<std::string>(), "generic");
+    EXPECT_EQ(*res.meta[0].second.get<std::string>(), "templates");
     project.analyses.energy.dielectric = 4.0;
     project.analyses.energy.distance_dependent = true;
     res = run(project);
@@ -422,8 +423,8 @@ TEST(Energy, NetForceAtClampedDistanceHasFullMagnitude) {
     const std::vector<MicroAtom> atoms = {{"NA", 1, "NA", "NA", 22.99, 1.0}, {"CL", 2, "CL", "CL", 35.45, -1.0}};
     core::Project project;
     project.groups = {{"Aptamer", "1", "", "#2a78d6"}, {"Target", "2", "", "#2a78d6"}};
-    const double rmin = 1.369 + 2.513;  // GENERIC_LJ NA, CL
-    const double eps = std::sqrt(0.0874 * 0.0355);
+    const double rmin = 1.369 + 2.513;  // the TIP3P ion templates NA, CL (AN-25)
+    const double eps = std::sqrt(0.0874393 * 0.035591);
     const double d = 0.5;
     const double dE = kEnergyCoulomb / (d * d) - 12 * eps * std::pow(rmin, 12) / std::pow(d, 13) +
                       12 * eps * std::pow(rmin, 6) / std::pow(d, 7);  // qq = -332.0522
@@ -466,7 +467,7 @@ TEST(Energy, Parm7AtomCountMismatch) {
     const core::AnalysisResult res = runAnalyses(context, analyses, frames).results.at(0);
     EXPECT_EQ(logs.at(1), "WARNING: energy: could not read LJ parameters from parm7 (atom count mismatch); "
                           "using generic element parameters");
-    EXPECT_EQ(*res.meta[0].second.get<std::string>(), "generic");
+    EXPECT_EQ(*res.meta[0].second.get<std::string>(), "templates");
     EXPECT_EQ(*res.meta[1].second.get<std::string>(), "topology");
 }
 
@@ -522,4 +523,208 @@ TEST(Energy, SystemsPeriodic) {
     if (!skipped.empty()) {
         GTEST_SKIP() << "periodic neighbour search not implemented yet: " << joined(skipped);
     }
+}
+
+// ---------------------------------------------------------------- AN-25 - AN-27, CIT-04
+
+namespace {
+
+// A micro system without topology charges (as a PDB or GRO file has none)
+core::System withoutCharges(core::System system) {
+    auto t = std::make_shared<core::Topology>(*system.topology);
+    t->charges.reset();
+    system.topology = t;
+    return system;
+}
+
+std::int64_t metaInt(const core::AnalysisResult& res, std::string_view table, std::string_view key) {
+    for (const auto& [name, value] : res.meta) {
+        if (name == table) {
+            return *value.find(key)->get<std::int64_t>();
+        }
+    }
+    throw std::logic_error("no meta " + std::string(table));
+}
+
+std::string metaString(const core::AnalysisResult& res, std::string_view key) {
+    for (const auto& [name, value] : res.meta) {
+        if (name == key) {
+            return *value.get<std::string>();
+        }
+    }
+    throw std::logic_error("no meta " + std::string(key));
+}
+
+void expectLj(const EnergyParameters& p, std::size_t k, double rstar, double epsilon) {
+    EXPECT_NEAR(p.rstar[k], rstar, 1e-12) << "atom " << k;
+    EXPECT_NEAR(p.epsilon[k], epsilon, 1e-12) << "atom " << k;
+}
+
+}  // namespace
+
+// AN-25: every residue of the demo (OL3 nucleotides with every atom, Mg2+) matches a template; its
+// atoms take the template's Lennard-Jones parameters and charges (Amber's, converted back from
+// OpenMM's sigma / epsilon)
+TEST(EnergyParameters, DemoMatchesTheTemplates) {
+    core::System system = io::loadSystem(test::kData / "topology" / "demo_dry.parm7",
+                                         {test::kData / "io" / "trajectories" / "demo_dry.nc"}, std::nullopt);
+    const core::AtomGroup all = system.atoms();
+    const EnergyParameters p = energyParameters(all, *system.currentFrame());
+    const core::Topology& t = *system.topology;
+    ASSERT_EQ(p.rstar.size(), all.size());
+    for (std::size_t k = 0; k < all.size(); ++k) {
+        EXPECT_EQ(p.layer[k], EnergyParameters::Layer::Template) << k;
+        EXPECT_TRUE(p.templateCharge[k]) << k;
+        const std::string& name = t.name(static_cast<std::int32_t>(k));
+        const std::string& resname = t.resname(t.atomResidue[k]);
+        if (resname == "G" && name == "P") {
+            expectLj(p, k, 2.1, 0.2);  // P
+            EXPECT_DOUBLE_EQ(p.charge[k], 1.1662);
+        } else if (name == "C1'") {
+            expectLj(p, k, 1.908, 0.1094);  // CT
+        } else if (name == "O2'") {
+            expectLj(p, k, 1.721, 0.2104);  // OH
+        } else if (name == "O4'") {
+            expectLj(p, k, 1.6837, 0.17);  // OS
+        } else if (name == "H8") {
+            expectLj(p, k, 1.359, 0.015);  // H5
+        } else if (name == "MG") {
+            expectLj(p, k, 1.36, 0.01020237);  // Li-Merz 2013 12-6 CM, TIP3P
+            EXPECT_EQ(p.charge[k], 2.0);
+        }
+    }
+    EXPECT_EQ(p.forceFields, (std::vector<std::string>{"OL3", "TIP3P"}));
+    EXPECT_EQ(p.references,
+              (std::vector<std::string>{"cornell1995", "wang2000", "perez2007", "zgarbova2011", "banas2010", "li2013"}));
+    EXPECT_EQ(energyShortCitation("li2013"), "Li et al. 2013, doi:10.1021/ct400146w");
+}
+
+// AN-25: residues with missing atoms (no hydrogens) take the Lennard-Jones parameters of the template
+// for their position in the chain (here an N-terminal and a C-terminal alanine, bonded by the
+// topology), but no charges; an ion by its residue name; a residue name of pdbNames.xml (HIS) by the
+// templates it stands for (HID / HIE / HIP agree on every heavy atom)
+TEST(EnergyParameters, IncompleteResiduesAndTermini) {
+    // ALA - HIS - ALA bonded by the topology (heavy atoms only), then a sodium ion
+    const std::vector<std::vector<const char*>> residues{
+        {"N", "CA", "C", "O", "CB"}, {"N", "CA", "C", "O", "CB", "CG", "ND1", "CD2", "CE1", "NE2"}, {"N", "CA", "C", "O", "CB"}};
+    std::vector<MicroAtom> atoms;
+    std::vector<double> xyz;
+    std::vector<std::pair<std::int32_t, std::int32_t>> bonds;
+    std::int32_t previousC = -1;
+    for (std::size_t r = 0; r < residues.size(); ++r) {
+        const auto base = static_cast<std::int32_t>(atoms.size());
+        for (const char* name : residues[r]) {
+            atoms.push_back({name, static_cast<std::int64_t>(r + 1), r == 1 ? "HIS" : "ALA", std::string(1, name[0])});
+            xyz.insert(xyz.end(), {static_cast<double>(atoms.size()) * 3.0, 0.0, 0.0});
+        }
+        bonds.insert(bonds.end(), {{base, base + 1}, {base + 1, base + 2}, {base + 2, base + 3}, {base + 1, base + 4}});
+        if (previousC >= 0) {
+            bonds.emplace_back(previousC, base);  // C(i-1) - N(i)
+        }
+        previousC = base + 2;
+    }
+    atoms.push_back({"Na+", 4, "Na+", "NA"});
+    xyz.insert(xyz.end(), {100.0, 0.0, 0.0});
+    core::System system = withoutCharges(makeMicroSystem(atoms, {xyz}, bonds));
+    const EnergyParameters p = energyParameters(system.atoms(), *system.currentFrame());
+    for (std::size_t k = 0; k < atoms.size(); ++k) {
+        EXPECT_EQ(p.layer[k], EnergyParameters::Layer::Template) << k;
+    }
+    expectLj(p, 1, 1.908, 0.1094);  // CA: CX
+    expectLj(p, 3, 1.6612, 0.21);   // O
+    expectLj(p, 11, 1.824, 0.17);   // ND1 of HIS: NA in HID / HIP, NB in HIE, the same values
+    expectLj(p, 20, 1.369, 0.0874393);  // Na+ (Joung-Cheatham 2008)
+    EXPECT_EQ(p.charge[20], 1.0);
+    for (std::size_t k = 0; k < atoms.size(); ++k) {
+        EXPECT_EQ(p.templateCharge[k], k == 20) << k;
+    }
+    EXPECT_EQ(p.chargelessResidues, 3u);
+    EXPECT_EQ(p.forceFields, (std::vector<std::string>{"ff14SB", "TIP3P"}));
+}
+
+// AN-26: atoms of residues without a template take Amber atom types: CT for a carbon with four
+// neighbours, OH / OS / OW for oxygens by their hydrogens, hydrogens by their bonded atom (here by
+// distance: no topology bonds), ions alone in a residue by element, carbon's for unknown elements
+TEST(EnergyParameters, TypedLayer) {
+    // methanol (C bonded to O and three H; O-H), dimethyl ether's O between two carbons, a water
+    // named LIG, a sodium named SOD, an unknown element
+    const std::vector<MicroAtom> atoms{
+        {"C1", 1, "MOH", "C"},  {"O1", 1, "MOH", "O"},  {"H1", 1, "MOH", "H"}, {"H2", 1, "MOH", "H"},
+        {"H3", 1, "MOH", "H"},  {"HO", 1, "MOH", "H"},  {"CA", 2, "DME", "C"}, {"OE", 2, "DME", "O"},
+        {"CB", 2, "DME", "C"},  {"OW", 3, "LIG", "O"},  {"HW1", 3, "LIG", "H"}, {"HW2", 3, "LIG", "H"},
+        {"SOD", 4, "SOD", "NA"}, {"X1", 5, "UNK", "XX"}, {"NZ", 6, "AMN", "N"}, {"HZ", 6, "AMN", "H"}};
+    const std::vector<double> xyz{
+        0, 0, 0,     1.43, 0, 0,  -0.36, 1.0, 0,  -0.36, -0.5, 0.87, -0.36, -0.5, -0.87, 1.75, 0.9, 0,  // methanol
+        20, 0, 0,    21.41, 0, 0, 22.0, 1.3, 0,                                                        // ether
+        40, 0, 0,    40.96, 0, 0, 39.76, 0.93, 0,                                                      // water
+        60, 0, 0,    80, 0, 0,    100, 0, 0,  101.01, 0, 0};
+    core::System system = withoutCharges(makeMicroSystem(atoms, {xyz}));
+    const EnergyParameters p = energyParameters(system.atoms(), *system.currentFrame());
+    for (std::size_t k = 0; k < atoms.size(); ++k) {
+        EXPECT_EQ(p.layer[k], EnergyParameters::Layer::Typed) << k;
+        EXPECT_FALSE(p.templateCharge[k]) << k;
+    }
+    expectLj(p, 0, 1.908, 0.1094);     // CT
+    expectLj(p, 1, 1.721, 0.2104);     // OH
+    expectLj(p, 2, 1.387, 0.0157);     // H1 (on carbon)
+    expectLj(p, 5, 0.0, 0.0);          // HO (on oxygen)
+    expectLj(p, 6, 1.908, 0.086);      // C (two neighbours)
+    expectLj(p, 7, 1.6837, 0.17);      // OS
+    expectLj(p, 9, 1.7683, 0.152);     // OW
+    expectLj(p, 12, 1.369, 0.0874393);  // Na+ by element
+    expectLj(p, 13, 1.908, 0.086);     // unknown: carbon's
+    expectLj(p, 15, 0.6, 0.0157);      // H (on nitrogen)
+    EXPECT_EQ(p.defaultElements, std::vector<std::string>{"XX"});
+    EXPECT_EQ(p.defaultAtoms, 1u);
+    EXPECT_EQ(p.references, (std::vector<std::string>{"cornell1995", "jorgensen1983", "joung2008"}));
+}
+
+// AN-27 / CIT-04 in the analysis: template charges only for complete residues, a warning naming the
+// rest, the metadata per layer and one log line with the references; topology charges keep
+// precedence
+TEST(EnergyParameters, AnalysisChargesMetadataAndLog) {
+    const test::LogCapture quiet;
+    const std::vector<MicroAtom> atoms{{"O", 1, "WAT", "O"}, {"H1", 1, "WAT", "H"}, {"H2", 1, "WAT", "H"},
+                                       {"O", 2, "HOH", "O"}, {"OW", 3, "SOL", "O"}, {"HW1", 3, "SOL", "H"},
+                                       {"HW2", 3, "SOL", "H"}};
+    const std::vector<double> xyz{0, 0, 0, 0.9572, 0, 0, -0.24, 0.927, 0, 3, 0, 0,
+                                  6, 0, 0, 6.9572, 0, 0, 5.76, 0.927, 0};
+    core::Project project;
+    project.groups = {{"Aptamer", "1-2", "", "#2a78d6"}, {"Target", "3", "", "#2a78d6"}};
+    project.analyses.energy.exclude_bonded = 0;
+    const auto run = [&](core::System& system, std::vector<std::string>& log) {
+        const core::Reporter reporter([&log](const std::string& m) { log.push_back(m); });
+        AnalysisContext context(system, project, "", reporter);
+        std::vector<std::unique_ptr<Analysis>> analyses;
+        analyses.push_back(energyAnalysis().create(context));
+        return runAnalyses(context, analyses, std::vector<std::int64_t>{0}).results.at(0);
+    };
+    core::System bare = withoutCharges(makeMicroSystem(atoms, {xyz}));
+    std::vector<std::string> log;
+    const core::AnalysisResult res = run(bare, log);
+    ASSERT_GE(log.size(), 3u);
+    EXPECT_EQ(log[1], "WARNING: energy: the topology has no partial charges; 6 of 7 atoms take the charges of the "
+                      "force-field residue template they match completely (hydrogens included); the other 1 atom "
+                      "(1 residue) have no charge, so their electrostatic terms are zero");
+    EXPECT_EQ(log[2], "energy: Lennard-Jones parameters without parm7: 7 atoms from Amber force-field residue "
+                      "templates (TIP3P); partial charges of 6 atoms from the templates. Cite: Jorgensen et al. 1983, "
+                      "doi:10.1063/1.445869");
+    EXPECT_EQ(metaString(res, "lj_source"), "templates");
+    EXPECT_EQ(metaString(res, "charge_source"), "partial");
+    EXPECT_EQ(metaInt(res, "lj_atoms", "template"), 7);
+    EXPECT_EQ(metaInt(res, "charge_atoms", "template"), 6);
+    EXPECT_EQ(metaInt(res, "charge_atoms", "none"), 1);
+    // water - water at 3 and 6 Å: TIP3P charges -0.834 / 0.417
+    EXPECT_NE(res.array("elec")->values<double>()[0], 0.0);
+
+    core::System charged = makeMicroSystem(atoms, {xyz});  // topology charges (all 0 here)
+    log.clear();
+    const core::AnalysisResult topo = run(charged, log);
+    EXPECT_EQ(metaString(topo, "charge_source"), "topology");
+    EXPECT_EQ(metaInt(topo, "charge_atoms", "topology"), 7);
+    EXPECT_EQ(metaInt(topo, "charge_atoms", "template"), 0);
+    EXPECT_EQ(topo.array("elec")->values<double>()[0], 0.0);
+    EXPECT_EQ(log[1], "energy: Lennard-Jones parameters without parm7: 7 atoms from Amber force-field residue "
+                      "templates (TIP3P); partial charges from the topology. Cite: Jorgensen et al. 1983, "
+                      "doi:10.1063/1.445869");
 }

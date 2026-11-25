@@ -169,6 +169,41 @@ TEST(AnalysisImprovements, CovalentRadiusBondGuess) {
     EXPECT_TRUE(analysis::guessBonds(chains.atoms(), *chains.currentFrame()).empty());
 }
 
+// CIT-05: the atoms analysis says when it guesses its bonds, citing the covalent radii (once per
+// run, only when the topology has no bonds among the structure atoms).
+TEST(AnalysisImprovements, AtomsBondGuessWarningCitesCovalentRadii) {
+    const test::LogCapture quiet;
+    std::vector<MicroAtom> atoms{
+        {"C1", 1, "LIG", "C"}, {"O1", 1, "LIG", "O"}, {"C2", 2, "LIG", "C"}, {"C3", 2, "LIG", "C"}};
+    const std::vector<std::vector<double>> frames{{0, 0, 0, 1.2, 0, 0, 0, 1.5, 0, 0, 3, 0},
+                                                  {0, 0, 0, 1.3, 0, 0, 0, 1.5, 0, 0, 3, 0}};
+    core::Project project;
+    project.groups = {{"Aptamer", "1-2", "", "#2a78d6"}};
+    project.visual.structure_groups = {"Aptamer"};
+    const auto run = [&](core::System& system) {
+        std::vector<std::string> log;
+        core::Reporter reporter([&log](const std::string& m) { log.push_back(m); });
+        AnalysisContext context(system, project, "", reporter);
+        std::vector<std::unique_ptr<Analysis>> analyses;
+        analyses.push_back(analysis::atomsAnalysis().create(context, "atoms"));
+        const analysis::RunResult result = analysis::runAnalyses(context, analyses, std::vector<std::int64_t>{0, 1});
+        const auto bonds = result.results.at(0).array("bonds")->values<std::int64_t>();
+        return std::pair{warnings(log), std::vector<std::int64_t>(bonds.begin(), bonds.end())};
+    };
+    core::System guessed = makeMicroSystem(atoms, frames);
+    const auto [guessedWarnings, guessedBonds] = run(guessed);
+    EXPECT_EQ(guessedWarnings,
+              (std::vector<std::string>{
+                  "WARNING: structural view: the topology has no bonds among the structure atoms; bonds are guessed "
+                  "from distances on the first analysed frame (covalent radii: Cordero et al., Dalton Trans. 2008, "
+                  "2832-2838, doi:10.1039/b801115j)"}));
+    EXPECT_EQ(guessedBonds, (std::vector<std::int64_t>{0, 1, 0, 2, 2, 3}));
+    core::System bonded = makeMicroSystem(atoms, frames, {{0, 1}});
+    const auto [bondedWarnings, bondedBonds] = run(bonded);
+    EXPECT_TRUE(bondedWarnings.empty());
+    EXPECT_EQ(bondedBonds, (std::vector<std::int64_t>{0, 1}));
+}
+
 // AN-18: a fit selection of fewer than 3 atoms is translation only, with one warning.
 TEST(AnalysisImprovements, TranslationOnlyFit) {
     const test::LogCapture quiet;

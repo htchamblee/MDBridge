@@ -3,8 +3,9 @@
 // E = sum over atom pairs (a in A, b in B, r <= cutoff, not excluded) of
 //     332.0522 q_a q_b / (eps r)   (eps r^2 with a distance-dependent dielectric)
 //   + A_ab / r^12 - B_ab / r^6
-// with Lennard-Jones coefficients from the parm7 topology (use_parm7) or MDATK's approximate
-// element parameters, and the magnitude of the net force of B on A.
+// with Lennard-Jones coefficients from the parm7 topology (use_parm7) or, without them, from Amber
+// residue templates and Amber atom types (energy_parameters.cpp), and the magnitude of the net
+// force of B on A.
 //
 // Compiled without floating-point contraction (see CMakeLists.txt): every term is rounded as numpy
 // rounds it (the same operations in the same order; integer powers through libm's pow as numpy's
@@ -14,9 +15,13 @@
 //
 // Deliberate differences (docs/DIFFERENCES.md): use_parm7 with a topology that is not a parm7 file
 // is reported (AN-06); without topology bonds the exclusions follow bonds guessed on the first
-// analysed frame, with a warning (AN-07); exclusions follow any bond path (AN-08).
+// analysed frame, with a warning (AN-07); exclusions follow any bond path (AN-08); without parm7
+// parameters, Lennard-Jones parameters (and, without topology charges, partial charges) come from
+// Amber force-field residue templates, else Amber atom types, recorded per layer in the metadata
+// and cited in the log (AN-25 - AN-27, CIT-04; MDATK: one ad-hoc value per element).
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -42,43 +47,9 @@ namespace mdbridge::analysis {
 
 namespace {
 
-// Approximate (r*, epsilon) Amber-like parameters per element: (Å, kcal/mol) (GENERIC_LJ)
-// MDATK's own compilation, not a published set, so not cited (CIT-04, data/sources/ATTRIBUTION.md):
-// H, C, N, O, P, S, F, MG, ZN and BR equal the Amber parm99 / parm10 types HP, C, N, O, P, S, F, MG,
-// Zn and Br; NA, K and CL the Joung-Cheatham (2008) TIP3P ions to the digits given; CA, MN and
-// the default match no published set found.
-struct GenericLj {
-    std::string_view element;
-    double rstar;
-    double epsilon;
-};
-constexpr GenericLj kGenericLj[] = {
-    {"H", 1.1, 0.0157},     {"C", 1.908, 0.086},  {"N", 1.824, 0.17},    {"O", 1.6612, 0.21},
-    {"P", 2.1, 0.2},        {"S", 2.0, 0.25},     {"F", 1.75, 0.061},    {"MG", 0.7926, 0.8947},
-    {"NA", 1.369, 0.0874},  {"K", 1.705, 0.1937}, {"CL", 2.513, 0.0355}, {"ZN", 1.10, 0.0125},
-    {"CA", 1.71, 0.12},     {"MN", 1.2, 0.05},    {"BR", 2.22, 0.32},
-};
-constexpr GenericLj kDefaultLj{"", 1.9, 0.1};
+core::Array stringArray(const std::vector<std::string>& items) { return core::Array(items.begin(), items.end()); }
 
-const GenericLj& genericLj(std::string_view element) {
-    for (const GenericLj& entry : kGenericLj) {
-        if (entry.element == element) {
-            return entry;
-        }
-    }
-    return kDefaultLj;
-}
-
-// _generic(atoms): r* and epsilon per atom from its element
-void genericParameters(const core::AtomGroup& atoms, std::vector<double>& rstar, std::vector<double>& epsilon) {
-    rstar.clear();
-    epsilon.clear();
-    for (const std::string& element : core::atomElements(atoms)) {
-        const GenericLj& lj = genericLj(element);
-        rstar.push_back(lj.rstar);
-        epsilon.push_back(lj.epsilon);
-    }
-}
+std::string atomCount(std::int64_t n) { return std::to_string(n) + (n == 1 ? " atom" : " atoms"); }
 
 std::vector<double> widenedPositions(const core::AtomGroup& atoms, const core::Frame& frame) {
     std::vector<double> out;
@@ -107,7 +78,8 @@ public:
                                    " lies entirely inside " + core::pythonRepr(core::Value(m_p.group_a)));
         }
         const core::Topology& topology = ctx.topology();
-        if (topology.charges) {
+        const bool topologyCharges = topology.charges.has_value();
+        if (topologyCharges) {
             for (const std::int32_t atom : m_a.indices()) {
                 m_qa.push_back((*topology.charges)[static_cast<std::size_t>(atom)]);
             }
@@ -115,11 +87,6 @@ public:
                 m_qb.push_back((*topology.charges)[static_cast<std::size_t>(atom)]);
             }
             m_chargeSource = "topology";
-        } else {
-            ctx.warn("energy: topology has no partial charges; electrostatics will be zero");
-            m_qa.assign(m_a.size(), 0.0);
-            m_qb.assign(m_b.size(), 0.0);
-            m_chargeSource = "none";
         }
         const std::string& path = ctx.topologyPath();
         if (m_p.use_parm7 && !path.empty() && !io::isParm7(path)) {
@@ -141,10 +108,97 @@ public:
                 m_lj.reset();
             }
         }
-        if (!m_lj) {
-            m_ljSource = "generic";
-            genericParameters(m_a, m_ra, m_ea);
-            genericParameters(m_b, m_rb, m_eb);
+        const std::size_t na = m_a.size();
+        const std::size_t nb = m_b.size();
+        m_ljAtoms = {0, 0, 0};
+        m_chargeAtoms = {topologyCharges ? static_cast<std::int64_t>(na + nb) : 0, 0, 0};
+        m_ljReferences.clear();
+        m_defaultElements.clear();
+        if (m_lj) {
+            m_ljAtoms[0] = static_cast<std::int64_t>(na + nb);
+        } else {
+            // AN-25 - AN-27: templates, then Amber types; template charges without topology charges
+            std::vector<std::int32_t> both(m_a.indices());
+            both.insert(both.end(), m_b.indices().begin(), m_b.indices().end());
+            const core::Frame* frame = ctx.system().currentFrame();
+            if (frame == nullptr) {
+                throw core::ValueError("energy: no frame to assign parameters on");
+            }
+            const EnergyParameters params = energyParameters(core::AtomGroup(m_a.sharedTopology(), both), *frame);
+            m_ra.assign(params.rstar.begin(), params.rstar.begin() + static_cast<std::ptrdiff_t>(na));
+            m_rb.assign(params.rstar.begin() + static_cast<std::ptrdiff_t>(na), params.rstar.end());
+            m_ea.assign(params.epsilon.begin(), params.epsilon.begin() + static_cast<std::ptrdiff_t>(na));
+            m_eb.assign(params.epsilon.begin() + static_cast<std::ptrdiff_t>(na), params.epsilon.end());
+            for (const EnergyParameters::Layer layer : params.layer) {
+                ++m_ljAtoms[layer == EnergyParameters::Layer::Template ? 1 : 2];
+            }
+            m_ljSource = m_ljAtoms[1] == 0 ? "typed" : m_ljAtoms[2] == 0 ? "templates" : "templates+typed";
+            m_ljReferences = params.references;
+            m_defaultElements = params.defaultElements;
+            std::size_t charged = 0;
+            if (!topologyCharges) {
+                m_qa.assign(params.charge.begin(), params.charge.begin() + static_cast<std::ptrdiff_t>(na));
+                m_qb.assign(params.charge.begin() + static_cast<std::ptrdiff_t>(na), params.charge.end());
+                charged = static_cast<std::size_t>(
+                    std::count(params.templateCharge.begin(), params.templateCharge.end(), true));
+                m_chargeAtoms = {0, static_cast<std::int64_t>(charged), static_cast<std::int64_t>(na + nb - charged)};
+            }
+            if (!topologyCharges && charged == 0) {
+                ctx.warn("energy: topology has no partial charges; electrostatics will be zero");
+            } else if (!topologyCharges && charged < na + nb) {
+                // AN-27: never a partial charge set of a residue; say which atoms have none
+                const std::size_t missing = na + nb - charged;
+                ctx.warn("energy: the topology has no partial charges; " + std::to_string(charged) + " of " +
+                         std::to_string(na + nb) +
+                         " atoms take the charges of the force-field residue template they match completely "
+                         "(hydrogens included); the other " + atomCount(static_cast<std::int64_t>(missing)) + " (" +
+                         std::to_string(params.chargelessResidues) +
+                         (params.chargelessResidues == 1 ? " residue" : " residues") +
+                         ") have no charge, so their electrostatic terms are zero");
+            }
+            if (!params.defaultElements.empty()) {
+                std::string list;
+                for (const std::string& e : params.defaultElements) {
+                    list += (list.empty() ? "" : ", ") + core::pythonRepr(core::Value(e));
+                }
+                ctx.warn("energy: no Lennard-Jones parameters for element(s) " + list + " (" +
+                         std::to_string(params.defaultAtoms) + (params.defaultAtoms == 1 ? " atom" : " atoms") +
+                         "); carbon's (Amber type C) are used");
+            }
+            // CIT-04: one line naming what was used and whom to cite
+            std::string line = "energy: Lennard-Jones parameters without parm7: ";
+            if (m_ljAtoms[1] > 0) {
+                std::string ffs;
+                for (const std::string& f : params.forceFields) {
+                    ffs += (ffs.empty() ? "" : ", ") + f;
+                }
+                line += atomCount(m_ljAtoms[1]) + " from Amber force-field residue templates (" + ffs + ")";
+            }
+            if (m_ljAtoms[2] > 0) {
+                line += std::string(m_ljAtoms[1] > 0 ? ", " : "") + atomCount(m_ljAtoms[2]) +
+                        " from Amber atom types by element";
+            }
+            line += topologyCharges ? "; partial charges from the topology"
+                    : charged > 0   ? "; partial charges of " + atomCount(static_cast<std::int64_t>(charged)) +
+                                        " from the templates"
+                                    : "; no partial charges";
+            line += ". Cite: ";
+            for (std::size_t k = 0; k < params.references.size(); ++k) {
+                line += (k ? "; " : "") + energyShortCitation(params.references[k]);
+            }
+            ctx.reporter().log(line);
+        }
+        if (!topologyCharges) {
+            const bool any = m_chargeAtoms[1] > 0;
+            if (!any) {
+                if (m_lj) {  // parm7 parameters without charges (not written by Amber's tools)
+                    ctx.warn("energy: topology has no partial charges; electrostatics will be zero");
+                }
+                m_qa.assign(na, 0.0);
+                m_qb.assign(nb, 0.0);
+                m_chargeAtoms = {0, 0, static_cast<std::int64_t>(na + nb)};
+            }
+            m_chargeSource = !any ? "none" : m_chargeAtoms[2] == 0 ? "templates" : "partial";
         }
         m_excluded.clear();
         m_guessExclusions = m_p.exclude_bonded > 0 && (!topology.bonds || topology.bonds->empty());
@@ -283,7 +337,15 @@ public:
                                                   {"charge_source", m_chargeSource},
                                                   {"group_a", m_p.group_a},
                                                   {"group_b", m_p.group_b},
-                                                  {"n_excluded_pairs", static_cast<std::int64_t>(m_excluded.size())}});
+                                                  {"n_excluded_pairs", static_cast<std::int64_t>(m_excluded.size())},
+                                                  {"lj_atoms", core::Table{{"parm7", m_ljAtoms[0]},
+                                                                           {"template", m_ljAtoms[1]},
+                                                                           {"typed", m_ljAtoms[2]}}},
+                                                  {"charge_atoms", core::Table{{"topology", m_chargeAtoms[0]},
+                                                                               {"template", m_chargeAtoms[1]},
+                                                                               {"none", m_chargeAtoms[2]}}},
+                                                  {"lj_references", stringArray(m_ljReferences)},
+                                                  {"lj_default_elements", stringArray(m_defaultElements)}});
         std::vector<double> total(m_elec.size());
         for (std::size_t k = 0; k < total.size(); ++k) {
             total[k] = m_elec[k] + m_vdw[k];
@@ -312,6 +374,10 @@ private:
     std::string m_ljSource;
     std::optional<io::LjTable> m_lj;
     std::vector<double> m_ra, m_ea, m_rb, m_eb;
+    std::array<std::int64_t, 3> m_ljAtoms{};      // parm7, template, typed
+    std::array<std::int64_t, 3> m_chargeAtoms{};  // topology, template, none
+    std::vector<std::string> m_ljReferences;
+    std::vector<std::string> m_defaultElements;
     std::vector<std::int64_t> m_excluded;
     bool m_guessExclusions = false;
     std::vector<double> m_elec, m_vdw, m_force;
@@ -325,7 +391,8 @@ public:
                               "Intermolecular energy",
                               2,  // v2: exclusions along any bond path, guessed bonds (AN-07, AN-08);
                                   // float64 parm7 charges (RD-P12); periodic geometry and force
-                                  // direction (AN-01-AN-05); per-atom element fallback (SEL-13)
+                                  // direction (AN-01-AN-05); per-atom element fallback (SEL-13);
+                                  // template / typed parameters and template charges (AN-25-AN-27)
                               false,
                               2,
                               {{"total", "{a}–{b} interaction energy"},

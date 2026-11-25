@@ -10,6 +10,7 @@ add_library(mdbridge_analysis STATIC
     contacts.cpp
     context.cpp
     energy.cpp
+    energy_parameters.cpp
     hbonds.cpp
     keys.cpp
     mg.cpp

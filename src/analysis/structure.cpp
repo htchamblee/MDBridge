@@ -4,8 +4,9 @@
 //
 // Deliberate differences (docs/DIFFERENCES.md): when the topology has no bonds among the atoms, the
 // atoms analysis guesses them from covalent radii on the first analysed frame (guessBonds; AN-13,
-// AN-14), its rows sorted by (i, j); the proximity members are 0 in every case (AN-15); unknown
-// structure groups are named in a warning (AN-21).
+// AN-14), its rows sorted by (i, j), and says so in a warning citing the radii (CIT-05); the
+// proximity members are 0 in every case (AN-15); unknown structure groups are named in a warning
+// (AN-21).
 
 #include <algorithm>
 #include <array>
@@ -293,9 +294,10 @@ double covalentRadius(std::string_view element) {
     return kCarbonRadius;
 }
 
-// atom_bonds(atoms): bonds among `atoms` as local index pairs [m, 2]; from the topology when it has
-// bonds among them (sorted, unique), else guessed from distances in `frame` (guessBonds, AN-14).
-std::vector<std::int64_t> atomBonds(const core::AtomGroup& atoms, const core::Frame& frame) {
+// The topology's bonds among `atoms` as local index pairs [m, 2] (sorted, unique); empty when it has
+// none among them. atom_bonds(atoms) of MDATK is these, or bonds guessed from distances when there
+// are none (guessBonds, AN-14; the atoms analysis decides at setup and guesses in prepare).
+std::vector<std::int64_t> topologyBondsAmong(const core::AtomGroup& atoms) {
     const core::Topology& t = atoms.topology();
     std::unordered_map<std::int32_t, std::int64_t> index;
     for (std::size_t k = 0; k < atoms.size(); ++k) {
@@ -319,7 +321,7 @@ std::vector<std::int64_t> atomBonds(const core::AtomGroup& atoms, const core::Fr
             return out;
         }
     }
-    return guessBonds(atoms, frame);
+    return {};
 }
 
 std::vector<std::int64_t> residueRowsOf(const std::vector<std::int32_t>& residues, const core::AtomGroup& atoms) {
@@ -572,14 +574,24 @@ public:
         m_reference.reset();
         m_coords.assign(frameCount() * m_atoms.size() * 3, 0.0f);
         m_row = residueRowsOf(m_residues, m_atoms);
-        m_bonds.clear();
+        m_bonds = topologyBondsAmong(m_atoms);
+        m_guessBonds = m_bonds.empty();
+        if (m_guessBonds) {
+            // CIT-05: the guess uses Cordero et al.'s covalent radii, cited as in the energy
+            // analysis' warning (CIT-03); MDATK guesses silently
+            context().warn("structural view: the topology has no bonds among the structure atoms; bonds are "
+                           "guessed from distances on the first analysed frame (covalent radii: Cordero et al., "
+                           "Dalton Trans. 2008, 2832-2838, doi:10.1039/b801115j)");
+        }
     }
 
     // The first analysed frame is the alignment reference and the frame bonds are guessed from
     // (AN-13; MDATK: the frame current at setup, the rmsd reference frame when rmsd came first).
     void prepare(const core::Frame& first) override {
         m_reference = m_tracer->positions(first);
-        m_bonds = atomBonds(m_atoms, first);
+        if (m_guessBonds) {
+            m_bonds = guessBonds(m_atoms, first);
+        }
     }
 
     bool concurrentProcess() const override { return true; }
@@ -625,6 +637,7 @@ private:
     std::vector<float> m_coords;
     std::vector<std::int64_t> m_row;
     std::vector<std::int64_t> m_bonds;  // [m, 2] row-major
+    bool m_guessBonds = false;          // no topology bonds among the atoms: guessed in prepare
 };
 
 // ---------------------------------------------------------------- descriptors

@@ -1961,6 +1961,18 @@
        "group_a": "Aptamer",
        "group_b": "Target",
        "n_excluded_pairs": 0,
+       "lj_atoms": {
+        "parm7": 770,
+        "template": 0,
+        "typed": 0
+       },
+       "charge_atoms": {
+        "topology": 770,
+        "template": 0,
+        "none": 0
+       },
+       "lj_references": [],
+       "lj_default_elements": [],
        "label": "Intermolecular energy",
        "analysis": "energy",
        "outputs": {
@@ -6866,6 +6878,18 @@
        "group_a": "Aptamer",
        "group_b": "Target",
        "n_excluded_pairs": 0,
+       "lj_atoms": {
+        "parm7": 770,
+        "template": 0,
+        "typed": 0
+       },
+       "charge_atoms": {
+        "topology": 770,
+        "template": 0,
+        "none": 0
+       },
+       "lj_references": [],
+       "lj_default_elements": [],
        "label": "Intermolecular energy",
        "analysis": "energy",
        "outputs": {
@@ -8174,6 +8198,18 @@
        "group_a": "Aptamer",
        "group_b": "Target",
        "n_excluded_pairs": 0,
+       "lj_atoms": {
+        "parm7": 770,
+        "template": 0,
+        "typed": 0
+       },
+       "charge_atoms": {
+        "topology": 770,
+        "template": 0,
+        "none": 0
+       },
+       "lj_references": [],
+       "lj_default_elements": [],
        "label": "Intermolecular energy",
        "analysis": "energy",
        "outputs": {
@@ -9645,6 +9681,18 @@
        "group_a": "Aptamer",
        "group_b": "Target",
        "n_excluded_pairs": 0,
+       "lj_atoms": {
+        "parm7": 770,
+        "template": 0,
+        "typed": 0
+       },
+       "charge_atoms": {
+        "topology": 770,
+        "template": 0,
+        "none": 0
+       },
+       "lj_references": [],
+       "lj_default_elements": [],
        "label": "Intermolecular energy",
        "analysis": "energy",
        "outputs": {
@@ -21834,6 +21882,18 @@
        "group_a": "Aptamer",
        "group_b": "Target",
        "n_excluded_pairs": 0,
+       "lj_atoms": {
+        "parm7": 770,
+        "template": 0,
+        "typed": 0
+       },
+       "charge_atoms": {
+        "topology": 770,
+        "template": 0,
+        "none": 0
+       },
+       "lj_references": [],
+       "lj_default_elements": [],
        "label": "Intermolecular energy",
        "analysis": "energy",
        "outputs": {
@@ -23086,6 +23146,18 @@
        "group_a": "Aptamer",
        "group_b": "Target",
        "n_excluded_pairs": 0,
+       "lj_atoms": {
+        "parm7": 770,
+        "template": 0,
+        "typed": 0
+       },
+       "charge_atoms": {
+        "topology": 770,
+        "template": 0,
+        "none": 0
+       },
+       "lj_references": [],
+       "lj_default_elements": [],
        "label": "Intermolecular energy",
        "analysis": "energy",
        "outputs": {
@@ -23956,6 +24028,18 @@
        "group_a": "Aptamer",
        "group_b": "Target",
        "n_excluded_pairs": 0,
+       "lj_atoms": {
+        "parm7": 770,
+        "template": 0,
+        "typed": 0
+       },
+       "charge_atoms": {
+        "topology": 770,
+        "template": 0,
+        "none": 0
+       },
+       "lj_references": [],
+       "lj_default_elements": [],
        "label": "Intermolecular energy",
        "analysis": "energy",
        "outputs": {
@@ -25195,6 +25279,18 @@
        "group_a": "Aptamer",
        "group_b": "Target",
        "n_excluded_pairs": 0,
+       "lj_atoms": {
+        "parm7": 770,
+        "template": 0,
+        "typed": 0
+       },
+       "charge_atoms": {
+        "topology": 770,
+        "template": 0,
+        "none": 0
+       },
+       "lj_references": [],
+       "lj_default_elements": [],
        "label": "Intermolecular energy",
        "analysis": "energy",
        "outputs": {
@@ -26414,6 +26510,18 @@
        "group_a": "Aptamer",
        "group_b": "Target",
        "n_excluded_pairs": 0,
+       "lj_atoms": {
+        "parm7": 770,
+        "template": 0,
+        "typed": 0
+       },
+       "charge_atoms": {
+        "topology": 770,
+        "template": 0,
+        "none": 0
+       },
+       "lj_references": [],
+       "lj_default_elements": [],
        "label": "Intermolecular energy",
        "analysis": "energy",
        "outputs": {
@@ -27614,6 +27722,18 @@
        "group_a": "Aptamer",
        "group_b": "Target",
        "n_excluded_pairs": 0,
+       "lj_atoms": {
+        "parm7": 770,
+        "template": 0,
+        "typed": 0
+       },
+       "charge_atoms": {
+        "topology": 770,
+        "template": 0,
+        "none": 0
+       },
+       "lj_references": [],
+       "lj_default_elements": [],
        "label": "Intermolecular energy",
        "analysis": "energy",
        "outputs": {
@@ -28848,6 +28968,18 @@
        "group_a": "Aptamer",
        "group_b": "Target",
        "n_excluded_pairs": 0,
+       "lj_atoms": {
+        "parm7": 770,
+        "template": 0,
+        "typed": 0
+       },
+       "charge_atoms": {
+        "topology": 770,
+        "template": 0,
+        "none": 0
+       },
+       "lj_references": [],
+       "lj_default_elements": [],
        "label": "Intermolecular energy",
        "analysis": "energy",
        "outputs": {
@@ -30078,6 +30210,18 @@
        "group_a": "Aptamer",
        "group_b": "Target",
        "n_excluded_pairs": 0,
+       "lj_atoms": {
+        "parm7": 770,
+        "template": 0,
+        "typed": 0
+       },
+       "charge_atoms": {
+        "topology": 770,
+        "template": 0,
+        "none": 0
+       },
+       "lj_references": [],
+       "lj_default_elements": [],
        "label": "Intermolecular energy",
        "analysis": "energy",
        "outputs": {
@@ -31312,6 +31456,18 @@
        "group_a": "Aptamer",
        "group_b": "Target",
        "n_excluded_pairs": 0,
+       "lj_atoms": {
+        "parm7": 770,
+        "template": 0,
+        "typed": 0
+       },
+       "charge_atoms": {
+        "topology": 770,
+        "template": 0,
+        "none": 0
+       },
+       "lj_references": [],
+       "lj_default_elements": [],
        "label": "Intermolecular energy",
        "analysis": "energy",
        "outputs": {
@@ -32542,6 +32698,18 @@
        "group_a": "Aptamer",
        "group_b": "Target",
        "n_excluded_pairs": 0,
+       "lj_atoms": {
+        "parm7": 770,
+        "template": 0,
+        "typed": 0
+       },
+       "charge_atoms": {
+        "topology": 770,
+        "template": 0,
+        "none": 0
+       },
+       "lj_references": [],
+       "lj_default_elements": [],
        "label": "Intermolecular energy",
        "analysis": "energy",
        "outputs": {
@@ -33772,6 +33940,18 @@
        "group_a": "Aptamer",
        "group_b": "Target",
        "n_excluded_pairs": 0,
+       "lj_atoms": {
+        "parm7": 770,
+        "template": 0,
+        "typed": 0
+       },
+       "charge_atoms": {
+        "topology": 770,
+        "template": 0,
+        "none": 0
+       },
+       "lj_references": [],
+       "lj_default_elements": [],
        "label": "Intermolecular energy",
        "analysis": "energy",
        "outputs": {
@@ -34641,6 +34821,18 @@
        "group_a": "Aptamer",
        "group_b": "Target",
        "n_excluded_pairs": 0,
+       "lj_atoms": {
+        "parm7": 770,
+        "template": 0,
+        "typed": 0
+       },
+       "charge_atoms": {
+        "topology": 770,
+        "template": 0,
+        "none": 0
+       },
+       "lj_references": [],
+       "lj_default_elements": [],
        "label": "Intermolecular energy",
        "analysis": "energy",
        "outputs": {
@@ -35539,6 +35731,18 @@
        "group_a": "Aptamer",
        "group_b": "Target",
        "n_excluded_pairs": 0,
+       "lj_atoms": {
+        "parm7": 770,
+        "template": 0,
+        "typed": 0
+       },
+       "charge_atoms": {
+        "topology": 770,
+        "template": 0,
+        "none": 0
+       },
+       "lj_references": [],
+       "lj_default_elements": [],
        "label": "Intermolecular energy",
        "analysis": "energy",
        "outputs": {
@@ -36747,6 +36951,18 @@
        "group_a": "Aptamer",
        "group_b": "Target",
        "n_excluded_pairs": 0,
+       "lj_atoms": {
+        "parm7": 770,
+        "template": 0,
+        "typed": 0
+       },
+       "charge_atoms": {
+        "topology": 770,
+        "template": 0,
+        "none": 0
+       },
+       "lj_references": [],
+       "lj_default_elements": [],
        "label": "Intermolecular energy",
        "analysis": "energy",
        "outputs": {
@@ -37629,6 +37845,18 @@
        "group_a": "Aptamer",
        "group_b": "Target",
        "n_excluded_pairs": 0,
+       "lj_atoms": {
+        "parm7": 770,
+        "template": 0,
+        "typed": 0
+       },
+       "charge_atoms": {
+        "topology": 770,
+        "template": 0,
+        "none": 0
+       },
+       "lj_references": [],
+       "lj_default_elements": [],
        "label": "Intermolecular energy",
        "analysis": "energy",
        "outputs": {
@@ -38848,6 +39076,18 @@
        "group_a": "Aptamer",
        "group_b": "Target",
        "n_excluded_pairs": 0,
+       "lj_atoms": {
+        "parm7": 770,
+        "template": 0,
+        "typed": 0
+       },
+       "charge_atoms": {
+        "topology": 770,
+        "template": 0,
+        "none": 0
+       },
+       "lj_references": [],
+       "lj_default_elements": [],
        "label": "Intermolecular energy",
        "analysis": "energy",
        "outputs": {
@@ -40093,6 +40333,18 @@
        "group_a": "Aptamer",
        "group_b": "Target",
        "n_excluded_pairs": 0,
+       "lj_atoms": {
+        "parm7": 770,
+        "template": 0,
+        "typed": 0
+       },
+       "charge_atoms": {
+        "topology": 770,
+        "template": 0,
+        "none": 0
+       },
+       "lj_references": [],
+       "lj_default_elements": [],
        "label": "Intermolecular energy",
        "analysis": "energy",
        "outputs": {
@@ -41309,6 +41561,18 @@
        "group_a": "Aptamer",
        "group_b": "Target",
        "n_excluded_pairs": 0,
+       "lj_atoms": {
+        "parm7": 770,
+        "template": 0,
+        "typed": 0
+       },
+       "charge_atoms": {
+        "topology": 770,
+        "template": 0,
+        "none": 0
+       },
+       "lj_references": [],
+       "lj_default_elements": [],
        "label": "Intermolecular energy",
        "analysis": "energy",
        "outputs": {
@@ -42516,6 +42780,18 @@
        "group_a": "Aptamer",
        "group_b": "Target",
        "n_excluded_pairs": 0,
+       "lj_atoms": {
+        "parm7": 770,
+        "template": 0,
+        "typed": 0
+       },
+       "charge_atoms": {
+        "topology": 770,
+        "template": 0,
+        "none": 0
+       },
+       "lj_references": [],
+       "lj_default_elements": [],
        "label": "Intermolecular energy",
        "analysis": "energy",
        "outputs": {
@@ -43735,6 +44011,18 @@
        "group_a": "Aptamer",
        "group_b": "Target",
        "n_excluded_pairs": 0,
+       "lj_atoms": {
+        "parm7": 770,
+        "template": 0,
+        "typed": 0
+       },
+       "charge_atoms": {
+        "topology": 770,
+        "template": 0,
+        "none": 0
+       },
+       "lj_references": [],
+       "lj_default_elements": [],
        "label": "Intermolecular energy",
        "analysis": "energy",
        "outputs": {
@@ -44942,6 +45230,18 @@
        "group_a": "Aptamer",
        "group_b": "Target",
        "n_excluded_pairs": 0,
+       "lj_atoms": {
+        "parm7": 770,
+        "template": 0,
+        "typed": 0
+       },
+       "charge_atoms": {
+        "topology": 770,
+        "template": 0,
+        "none": 0
+       },
+       "lj_references": [],
+       "lj_default_elements": [],
        "label": "Intermolecular energy",
        "analysis": "energy",
        "outputs": {
@@ -46159,6 +46459,18 @@
        "group_a": "Aptamer",
        "group_b": "Target",
        "n_excluded_pairs": 0,
+       "lj_atoms": {
+        "parm7": 770,
+        "template": 0,
+        "typed": 0
+       },
+       "charge_atoms": {
+        "topology": 770,
+        "template": 0,
+        "none": 0
+       },
+       "lj_references": [],
+       "lj_default_elements": [],
        "label": "Intermolecular energy",
        "analysis": "energy",
        "outputs": {
@@ -47359,6 +47671,18 @@
        "group_a": "Aptamer",
        "group_b": "Target",
        "n_excluded_pairs": 0,
+       "lj_atoms": {
+        "parm7": 770,
+        "template": 0,
+        "typed": 0
+       },
+       "charge_atoms": {
+        "topology": 770,
+        "template": 0,
+        "none": 0
+       },
+       "lj_references": [],
+       "lj_default_elements": [],
        "label": "Intermolecular energy",
        "analysis": "energy",
        "outputs": {
@@ -48569,6 +48893,18 @@
        "group_a": "Aptamer",
        "group_b": "Target",
        "n_excluded_pairs": 0,
+       "lj_atoms": {
+        "parm7": 770,
+        "template": 0,
+        "typed": 0
+       },
+       "charge_atoms": {
+        "topology": 770,
+        "template": 0,
+        "none": 0
+       },
+       "lj_references": [],
+       "lj_default_elements": [],
        "label": "Intermolecular energy",
        "analysis": "energy",
        "outputs": {
@@ -49770,6 +50106,18 @@
        "group_a": "Aptamer",
        "group_b": "Target",
        "n_excluded_pairs": 0,
+       "lj_atoms": {
+        "parm7": 770,
+        "template": 0,
+        "typed": 0
+       },
+       "charge_atoms": {
+        "topology": 770,
+        "template": 0,
+        "none": 0
+       },
+       "lj_references": [],
+       "lj_default_elements": [],
        "label": "Intermolecular energy",
        "analysis": "energy",
        "outputs": {

@@ -10,6 +10,14 @@ charmm36_spce.xml, pdbNames.xml. The amber14 files are OpenMM's conversion of Am
 OL15, OL3 and water/ion libraries; the charmm36 files are its conversion of the CHARMM36 toppar
 (c36, Aug 2015). Only residue names (protein), heavy-atom names (nucleic) and every atom name
 (solvent and ions) are kept, each with the element of the atom's type ('' for virtual sites).
+
+openmm_amber14_templates.tsv: every residue template of the four Amber files the energy analysis
+matches residues against (protein.ff14SB, DNA.OL15, RNA.OL3, tip3p: TIP3P water and the ions of
+frcmod.ionsjc_tip3p and frcmod.ions234lm_126_tip3p), one row per atom in the file's order, with its
+atom type, Amber atom class, element, partial charge and its type's NonbondedForce sigma (nm) and
+epsilon (kJ/mol), copied as the file writes them. openmm_pdbnames_residue_atom_aliases.tsv: the
+residue-specific atom-name aliases of pdbNames.xml (the generic Protein / Nucleic / HOH ones are in
+openmm_pdbnames_aliases.tsv). tools/gen_energy_lj.py turns them into src/analysis/energy_lj_tables.inc.
 """
 
 from __future__ import annotations
@@ -40,6 +48,8 @@ FILES = [
     ("charmm36_tip5p.xml", "solvent", None),
     ("charmm36_spce.xml", "solvent", None),
 ]
+# the residue templates of the energy analysis (openmm_amber14_templates.tsv)
+TEMPLATE_FILES = ["amber14_protein.ff14SB.xml", "amber14_DNA.OL15.xml", "amber14_RNA.OL3.xml", "amber14_tip3p.xml"]
 
 
 def main() -> int:
@@ -66,7 +76,7 @@ def main() -> int:
         for r in sorted(rows):
             fh.write("\t".join(r) + "\n")
     aliases = set()
-    root = ET.parse(os.path.join(src, "pdbNames.xml")).getroot()
+    root = root_pdbnames = ET.parse(os.path.join(src, "pdbNames.xml")).getroot()
     for res in root.iter("Residue"):
         rtype = res.get("type", "")
         for key, value in res.attrib.items():
@@ -81,7 +91,34 @@ def main() -> int:
         fh.write("kind\tresidue\tatom\talias\ttype\n")
         for r in sorted(aliases):
             fh.write("\t".join(r) + "\n")
-    print(len(rows), len(aliases))
+    templates = []
+    for name in TEMPLATE_FILES:
+        root = ET.parse(os.path.join(src, name)).getroot()
+        types = {t.get("name"): t for t in root.iter("Type")}
+        nonbonded = {a.get("type"): a for a in root.find("NonbondedForce").findall("Atom")}
+        for res in root.iter("Residue"):
+            for atom in res.findall("Atom"):
+                t = types[atom.get("type")]
+                lj = nonbonded[atom.get("type")]
+                templates.append((name, res.get("name"), atom.get("name"), atom.get("type"), t.get("class"),
+                                  t.get("element") or "", atom.get("charge"), lj.get("sigma"), lj.get("epsilon")))
+    with open(os.path.join(OUT, "openmm_amber14_templates.tsv"), "w", encoding="utf-8") as fh:
+        fh.write("file\tresidue\tatom\ttype\tclass\telement\tcharge\tsigma_nm\tepsilon_kj_per_mol\n")
+        for r in templates:
+            fh.write("\t".join(r) + "\n")
+    specific = set()
+    for res in root_pdbnames.iter("Residue"):
+        if res.get("name") in ("All", "Protein", "Nucleic", "HOH"):
+            continue
+        for atom in res.findall("Atom"):
+            for key, value in atom.attrib.items():
+                if key.startswith("alt") or key == "atl2":
+                    specific.add((res.get("name"), atom.get("name"), value))
+    with open(os.path.join(OUT, "openmm_pdbnames_residue_atom_aliases.tsv"), "w", encoding="utf-8") as fh:
+        fh.write("residue\tatom\talias\n")
+        for r in sorted(specific):
+            fh.write("\t".join(r) + "\n")
+    print(len(rows), len(aliases), len(templates), len(specific))
     return 0
 
 

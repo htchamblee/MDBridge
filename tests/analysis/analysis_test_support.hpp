@@ -601,11 +601,15 @@ inline const Value* recordedResult(const Value& c, const std::string& instance) 
 }
 
 // The log lines of a case that a run with probes reproduces: all but the warnings of the other
-// analyses (warnings whose text does not start with `prefix`).
+// analyses (warnings whose text does not start with `prefix`, and the energy analysis' parameter line).
 inline std::vector<std::string> logWithoutOtherWarnings(const Value& c, std::string_view prefix) {
     std::vector<std::string> out;
     for (const std::string& line : strings(at(c, "log"))) {
         if (line.rfind("WARNING: ", 0) == 0 && line.compare(9, prefix.size(), prefix) != 0) {
+            continue;
+        }
+        // the energy analysis' parameter line (CIT-04), the one log line of an analysis that is no warning
+        if (prefix != "energy" && line.rfind("energy: Lennard-Jones parameters", 0) == 0) {
             continue;
         }
         out.push_back(line);

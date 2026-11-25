@@ -1,7 +1,9 @@
 OpenMM 8.1.2 (https://github.com/openmm/openmm), from docs-source/licenses/Licenses.txt.
-MDBridge uses only residue and atom names (with their elements) from OpenMM's force-field XML
-files and pdbNames.xml (the OpenMM Python application layer, MIT), in
-src/core/include/mdbridge/core/detail/data_tables_independent.inc; see data/sources/ATTRIBUTION.md.
+MDBridge uses only data from OpenMM's force-field XML files and pdbNames.xml (the OpenMM Python
+application layer, MIT): residue and atom names (with their elements), in
+src/core/include/mdbridge/core/detail/data_tables_independent.inc, and the amber14 residue
+templates' atom names, partial charges and Lennard-Jones parameters, in
+src/analysis/energy_lj_tables.inc; see data/sources/ATTRIBUTION.md.
 
 OpenMM was developed by Simbios, the NIH National Center for Physics-Based
 Simulation of Biological Structures at Stanford, funded under the NIH Roadmap

@@ -46,7 +46,7 @@ expected data is adjusted on the test side; generated files are never edited by 
   improvement below can change its results for real inputs, so caches written before the change are
   not reused. MDBridge has not been released, so one bump (MDATK's version + 1) covers every
   improvement of this release: energy 2 (AN-01-AN-05, AN-07, AN-08, RD-P12's float64 charges,
-  SEL-13), hbonds 2 (AN-01-AN-04, AN-09, AN-10, SEL-13), rmsd 2 (AN-16-AN-18), proximity 2 (AN-01-AN-04,
+  SEL-13, AN-25-AN-27), hbonds 2 (AN-01-AN-04, AN-09, AN-10, SEL-13), rmsd 2 (AN-16-AN-18), proximity 2 (AN-01-AN-04,
   AN-15, SEL-13), atoms 3 (AN-13, AN-14, SEL-13), contacts 2 and mg 2 (AN-01-AN-04, SEL-13),
   basepairs 2 (AN-01-AN-04, AN-11, SEL-13), stacking 2 (AN-01-AN-04, AN-12) and trace 5 (SEL-13). The test side gives MDATK's analyses these
   versions from one table, tests/parity/analysis_versions.py, which regenerate_all.py checks against
@@ -585,36 +585,40 @@ SciPy and Matplotlib through MDATK was checked against that rule (the inventory 
   The method (a distance cut-off over summed radii) stays uncited (CIT-01), and the radii are not
   added to the project citation table. *Tested:* micro_cases.json and systems_cases.json energy logs
   (tests/parity/improvements_analyses.py, AN-07, records the message).
-- **CIT-04: the generic Lennard-Jones parameters are not cited.** Without parm7 parameters the
-  energy analysis uses MDATK's per-element table (`kGenericLj` in src/analysis/energy.cpp, MDATK's
-  `GENERIC_LJ`; unchanged). It was compared with the published sets below and is not one of them;
-  it is MDATK's own compilation (MDATK's code calls it "approximate ... Amber-like"; its history has
-  no source), so nothing is cited for it. Values as (r* = Rmin/2 in Å, epsilon in kcal/mol):
-  - H (1.1, 0.0157), C (1.908, 0.086), N (1.824, 0.17), O (1.6612, 0.21), P (2.1, 0.2), S (2.0,
-    0.25), F (1.75, 0.061), MG (0.7926, 0.8947), ZN (1.10, 0.0125) and BR (2.22, 0.32) are exactly
-    the Amber parm99 / parm10 types HP, C (carbonyl), N (amide), O, P, S, F, MG, Zn and Br (from
-    parm94 for HP, C, N, O, P, S); each element gets one type's values for all its atoms (every
-    carbon the carbonyl carbon's epsilon, not CT's 0.1094; every hydrogen HP's r*).
-  - NA (1.369, 0.0874), K (1.705, 0.1937) and CL (2.513, 0.0355) are Joung and Cheatham's (2008)
-    TIP3P-specific ion parameters (1.369 / 0.0874393, 1.705 / 0.1936829, 2.513 / 0.0355910),
-    epsilon cut to four decimals (Cl truncated, Na and K rounded).
-  - CA (1.71, 0.12), MN (1.2, 0.05) and the default for other elements (1.9, 0.1) match no published
-    set compared: Amber parm99 C0 (Ca2+) is (1.7131, 0.459789), CHARMM36 CAL (1.367, 0.12), Li-Merz
-    TIP3P Ca2+ (1.649, 0.1059); no Mn2+ set has (1.2, 0.05) (Li-Merz TIP3P: 1.407, 0.0169), which
-    equals parm91's copper type CU.
-  - Not matched either: UFF (Rappe et al. 1992; C 1.9255 / 0.105, H 1.443 / 0.044), GAFF (Br 2.02 /
-    0.42), CHARMM36 ions (Na 1.4107 / 0.0469, Mg 1.185 / 0.015, Zn 1.09 / 0.25, Cl 2.27 / 0.15).
-
-  Sources compared (read for the numbers only, nothing copied into MDBridge): AmberTools' parm94.dat,
-  parm99.dat, parm10.dat, gaff.dat, frcmod.ionsjc_tip3p, frcmod.ionsff99_tip3p, frcmod.ionslm_* and
-  frcmod.ionslrcm_* (copies in ParmEd's test/files/parm, commit d3140213), OpenMM 8.1.2's
-  amber14/*.xml and charmm36*.xml, Open Babel's UFF.prm (commit 9be528bc). *Why:* the table mixes
-  values from different force fields and two of unknown origin, applied per element rather than
-  per atom type, so no single work describes the energies it gives; citing Cornell et al. or Joung
-  and Cheatham for them would misstate how they were obtained. Whether to replace it with a
-  published set is an open owner question. *Tested:* the numbers are unchanged (energy cases of
-  micro_cases.json, systems_cases.json, pipeline_cases.json); citation_cases.json has no generic-LJ
-  resource.
+- **CIT-04: the energy analysis' parameters without parm7 are cited by what was used.** MDATK's
+  per-element table (`GENERIC_LJ`: Amber parm99 / parm10 types, Joung-Cheatham ions cut to four
+  decimals, and Ca (1.71, 0.12), Mn (1.2, 0.05) and a default (1.9, 0.1) that match no published
+  set) was an uncited ad-hoc mix. MDBridge replaces it by published parameters (AN-25 - AN-27,
+  under "Analyses") and cites their originators when a run uses them, by what it used: the
+  analysis' log line (`energy: Lennard-Jones parameters without parm7: N atoms from Amber
+  force-field residue templates (OL3, TIP3P), M atoms from Amber atom types by element; partial
+  charges ... Cite: Cornell et al. 1995, doi:...; ...`) and its metadata `lj_references` (citation
+  keys in first-use order). Per template force field: ff14SB: Cornell et al. 1995 and Maier et al.
+  2015; OL3: Cornell et al. 1995, Wang et al. 2000, Pérez et al. 2007 (bsc0), Zgarbová et al.
+  2011 and Banáš et al. 2010 (χOL3, as the Amber 2024 Reference Manual lists them for
+  leaprc.RNA.OL3); OL15: the same base with Krepl et al. 2012 (χOL4), Zgarbová et al. 2013 (ε/ζOL1),
+  Zgarbová et al. 2015 (βOL1) and Galindo-Murillo et al. 2016 (OL15); TIP3P water: Jorgensen et al.
+  1983; ions: Joung and Cheatham 2008 (monovalent), Li et al. 2013 (divalent, 12-6 CM set), Li et
+  al. 2015 (3+ / 4+, IOD set). Per Amber type of the typed layer: parm94's types Cornell et al. 1995,
+  Cl and Br (parm99) Wang et al. 2000, the TIP3P water oxygen Jorgensen et al. 1983, the ions Joung
+  and Cheatham 2008 / Li et al. 2013. Cornell et al. 1995 is cited for ff14SB, whose charges and
+  Lennard-Jones parameters are ff94's. The new references (maier2015, banas2010, krepl2012,
+  zgarbova2013, zgarbova2015, galindomurillo2016, li2015) join the citation table
+  (tests/parity/improvements_citations.py, `verified` from Crossref); the others were MDATK's and
+  were checked against Crossref too. No project resource is added: which force fields a run uses
+  depends on the residues it meets, which the settings do not tell, so `pipelineResources` stays as
+  it was and the run names them. *Why:* owner policy, cite the originators of what a result
+  depends on, only when it is used. *Tested:* `EnergyParameters.*` (test_energy.cpp), the energy
+  logs and metadata of micro_cases.json, systems_cases.json, demo_dry_variants.json,
+  pipeline_cases.json and cli_cases.json (improvements_analyses.py), citation_cases.json.
+- **CIT-05: the `atoms` analysis' bond-guess warning cites the covalent radii.** When the topology
+  has no bonds among the structure atoms, the `atoms` analysis (structural view) guesses them
+  (AN-13, AN-14) and now says so, once per run: `WARNING: structural view: the topology has no bonds
+  among the structure atoms; bonds are guessed from distances on the first analysed frame (covalent
+  radii: Cordero et al., Dalton Trans. 2008, 2832-2838, doi:10.1039/b801115j)` (MDATK: silent), as
+  the energy analysis' warning does (CIT-03). *Why:* the radii decide the drawn bonds; they are
+  Cordero et al.'s data. *Tested:* `AnalysisImprovements.AtomsBondGuessWarningCitesCovalentRadii`,
+  the `atoms` logs of systems_cases.json (improvements_analyses.py).
 - VTK is not cited either (RN-16, under "Rendering: the render, charts and preview commands").
 
 ## Analyses (non-periodic improvements)
@@ -646,6 +650,82 @@ hbonds 2, rmsd 2, proximity 2, atoms 3 ("Analysis cache" above has every analysi
 - **Exclusions along any path (AN-08).** Pairs joined by at most `exclude_bonded` bonds through any
   atoms are excluded (MDATK: only paths that start at a direct A-B bond and run through A). *Tested:*
   `ExclusionsThroughOtherAtoms`; the recorded chains give the same keys.
+- **Energy parameters without parm7: residue templates (AN-25).** Without a parm7 topology (or with
+  `use_parm7 = false`, or a parm7 file that cannot be read) MDATK gave every atom one Lennard-Jones
+  (R*, ε) per element (`GENERIC_LJ`, CIT-04): every hydrogen Amber's `HP` (1.1 Å), which made
+  hydrogen-bonded interfaces strongly repulsive (MDATK's demo duplex, strand against strand, first
+  frame: vdW +145.4 kcal/mol with the table against -34.7 with the topology's parameters). MDBridge
+  matches each residue of the analysed atoms against the residue templates of Amber's force fields
+  as OpenMM 8.1.2 converts them (amber14: protein.ff14SB, DNA.OL15, RNA.OL3, tip3p with the
+  Joung-Cheatham and Li-Merz TIP3P ions; MIT; data/sources/forcefields, tools/gen_energy_lj.py ->
+  src/analysis/energy_lj_tables.inc, never typed by hand). Candidates: the template named like the
+  residue (upper case), with its terminal variants when it is the middle form (Amber's N/C-prefixed
+  amino acids, 5/3/N-suffixed nucleotides); a name that is not a template stands for the templates
+  pdbNames.xml makes it an alias of (HIS, HSD -> HID / HIE / HIP; WAT, SOL, TIP3 -> HOH; ADE -> A
+  ...); a one-atom residue is an ion template named like the residue or the atom (as written, upper
+  case, without charge signs and digits: `Na+` -> NA) of the same element. An atom maps to the
+  template atom of its name, else by pdbNames.xml's aliases (residue-specific first, then the
+  Protein / Nucleic / HOH ones: `O1P` -> OP1, `HO5'` <- `H5T`, ...), one template atom per atom, and
+  its element (when known) must be the template atom's. A residue *matches* a template when every
+  atom maps; *completely* when every template atom is mapped too (hydrogens included). Exactly one
+  complete match: that template, whatever the residue's position. Otherwise the templates that
+  contain the residue are narrowed by its position in its chain when it has terminal variants: it
+  starts a chain when it is not bonded to the residue before it, ends one when not bonded to the
+  next (bonds: the topology's where either residue has any, else those AN-14's guess finds on the
+  first analysed frame); start -> N / 5', end -> C / 3', both -> the nucleic N form (no amino-acid
+  template; such a residue falls through), neither -> the middle form. If the remaining templates
+  give every atom the same R* and ε (HID / HIE / HIP without hydrogens do), the residue takes them;
+  else (none left, or they disagree, e.g. a 5'-terminal nucleotide with its phosphate) it falls to
+  AN-26. R* = σ 2^(1/6) / 2 and ε / 4.184 from OpenMM's σ (nm) and ε (kJ/mol): Amber's values to
+  about 1e-15 relative (P: 2.1000000000000005). Lorentz-Berthelot combination, as before. The water
+  model is unknown without a topology that says it: TIP3P's water and ion parameters are used.
+  *Why:* the force field's own parameters per atom type reproduce Amber's energies (demo duplex:
+  -34.62 kcal/mol from the templates with the parm7 file's charges, -34.63 from a PDB of the
+  same frame, against -34.67 with the parm7 file's own parameters, whose base hydrogens and
+  hydroxyl hydrogens use simplified types). *Tested:* `EnergyParameters.DemoMatchesTheTemplates`,
+  `IncompleteResiduesAndTermini`, the energy cases of micro_cases.json, systems_cases.json,
+  demo_dry_variants.json (energy_generic_lj), pipeline_cases.json and cli_cases.json
+  (tests/parity/energy_parameters.py, the same rules on MDATK's side).
+- **Energy parameters without parm7: Amber atom types (AN-26).** An atom of a residue no template
+  matches (ligands, modified nucleotides, other residues, ions with other names) takes the values
+  of one Amber atom type, the design of MDATK's later generic tables (same owner; the values read
+  from parm10.dat, frcmod.ionsjc_tip3p and frcmod.ions234lm_126_tip3p, whose SHA-256 match those
+  that design records; data/sources/forcefields/amber_lj_types.tsv, tools/extract_amber_lj.py): a
+  hydrogen by the element of the atom it is bonded to (topology bond, else the nearest non-hydrogen
+  atom of its residue within 1.45 Å on the first analysed frame; none: as on nitrogen): on N `H`
+  (0.6, 0.0157), on O `HO` (0, 0), on S `HS` (0.6, 0.0157), otherwise `H1` (1.387, 0.0157); an atom
+  alone in its residue whose element has a TIP3P ion set: that ion (Joung-Cheatham Li+ ... I-,
+  Li-Merz 12-6 CM Mg2+, Ca2+, Sr2+, Ba2+, Mn2+, Fe2+, Co2+, Ni2+, Cu2+, Zn2+, Cd2+); C, N, O, P,
+  S, F, Cl, Br, I: `C`, `N`, `O`, `P`, `S`, `F`, `Cl`, `Br`, `I` of parm10.dat; a metal of that ion
+  list inside a larger residue: its ion's; any other element: carbon's, with `WARNING: energy: no
+  Lennard-Jones parameters for element(s) 'X' (N atoms); carbon's (Amber type C) are used`
+  (metadata `lj_default_elements`). Refinements of that design, where the bonded neighbours are
+  known (the topology's bonds where the residue has any, else AN-14's guess on the first analysed
+  frame), all parm10 types: a carbon with four neighbours `CT` (1.908, 0.1094; sp3, as Amber types
+  them) instead of `C` (1.908, 0.086); an oxygen with two neighbours `OS` (1.6837, 0.17; ether,
+  ester, phosphate ester), `OH` (1.721, 0.2104) when one of them is a hydrogen, `OW` (1.7683, 0.152;
+  TIP3P's) when both are. Without hydrogens a carbon rarely has four neighbours, so it stays `C`.
+  No UFF or other generic force field (owner decision). *Why:* MDATK's table gave every hydrogen
+  one radius and two elements values of unknown origin. Measured on the demo duplex (strand against
+  strand, first frame, vdW, kcal/mol): -34.74 from the types alone (every residue renamed),
+  -34.67 parm7, +145.4 MDATK's table. *Tested:* `EnergyParameters.TypedLayer`, the systems cases.
+- **Energy charges without topology charges (AN-27).** MDATK computed no electrostatics without
+  topology charges (PDB, GRO). MDBridge gives the atoms of a residue that matches a template
+  *completely* (AN-25, hydrogens included) the template's partial charges; a residue with a missing
+  or extra atom gets none (never part of a residue's charge set), and the run says so: `WARNING:
+  energy: the topology has no partial charges; K of N atoms take the charges of the force-field
+  residue template they match completely (hydrogens included); the other M atoms (R residues) have
+  no charge, so their electrostatic terms are zero` (all or none matched: no warning, or MDATK's
+  `topology has no partial charges; electrostatics will be zero`). Topology charges (parm7, PSF,
+  ...) take precedence for every atom and are never mixed with template charges: the formats store
+  a charge for every atom or for none (a 0 is a charge), and two charge models in one sum would be
+  inconsistent. Metadata: `charge_source` `topology`, `templates` (every atom), `partial` or
+  `none`; `charge_atoms` {topology, template, none}, `lj_atoms` {parm7, template, typed} (atoms of
+  both groups), `lj_source` `parm7`, `templates`, `typed` or `templates+typed` (MDATK: `generic`).
+  *Why:* a PDB or GRO of a standard system then gives the force field's electrostatics (demo duplex,
+  PDB of the first frame: -48.36 kcal/mol from OL3's charges; the demo's own parm7 has synthetic
+  charges, -43.76). *Tested:* `EnergyParameters.AnalysisChargesMetadataAndLog`, the systems and
+  pipeline cases.
 - **Guessed hydrogens (AN-09, AN-10).** Without topology bonds a hydrogen goes to the donor nearest by
   the pair search's distance (minimum image with use_pbc; MDATK: the plain distance), and a nitrogen
   that gets a hydrogen is not an acceptor, as with topology bonds (MDATK: kept as acceptor, so PDB
@@ -722,7 +802,7 @@ here:
 | RN-40 ... RN-42 | Rendering: sequence and secondary-structure panels |
 | D5, D6, D8, D9, D11, D13 (owner decisions) | charts (D5), colours (D6), the render commands (D8, D9), structure view (D11), interface (D13) |
 | D15, D16 (owner decisions) | the Vulkan 3D renderer (D15), video encoding (D16) |
-| CIT-01 ... CIT-04 | Citations (CIT-03 also: Analyses, AN-07) |
+| CIT-01 ... CIT-05 | Citations (CIT-03 also: Analyses, AN-07; CIT-04 also: Analyses, AN-25 ... AN-27) |
 
 ## Rendering: colours and themes (src/render/core)
 

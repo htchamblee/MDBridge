@@ -43,6 +43,34 @@ inline constexpr double kEnergyCoulomb = 332.0522;
 std::vector<std::int64_t> energyBondedExclusions(const core::AtomGroup& a, const core::AtomGroup& b,
                                                  std::int64_t depth, const std::vector<core::Bond>* bonds = nullptr);
 
+// The energy analysis' Lennard-Jones parameters and partial charges without parm7 parameters
+// (src/analysis/energy_parameters.cpp; docs/DIFFERENCES.md AN-25 - AN-27, CIT-04), per atom of
+// `atoms`, decided on `frame` (the first analysed frame) where bonds must be guessed:
+// * Template: the residue matches a residue template of Amber's ff14SB, OL15, OL3 or TIP3P water /
+//   ion libraries (OpenMM 8.1.2's conversion): R* / epsilon of the template atom; its charge when
+//   the residue has every atom of the template (templateCharge), else none.
+// * Typed: one Amber atom type by element (parm10.dat; Joung-Cheatham / Li-Merz TIP3P ions for
+//   monatomic ions and metals), hydrogens by the element they are bonded to, sp3 carbon and
+//   hydroxyl / ether / water oxygen by their bonded neighbours; elements without a type take
+//   carbon's (defaultElements, defaultAtoms).
+struct EnergyParameters {
+    enum class Layer : std::uint8_t { Template, Typed };
+    std::vector<double> rstar;    // R* = Rmin / 2, Å
+    std::vector<double> epsilon;  // kcal/mol
+    std::vector<double> charge;   // e: the template's where templateCharge, else 0
+    std::vector<Layer> layer;
+    std::vector<bool> templateCharge;
+    std::vector<std::string> forceFields;      // template force fields used (ff14SB, OL15, OL3, TIP3P), first use
+    std::vector<std::string> references;       // citation keys of what was used, first use
+    std::vector<std::string> defaultElements;  // elements that took carbon's parameters, first use
+    std::size_t defaultAtoms = 0;
+    std::size_t chargelessResidues = 0;  // residues of `atoms` with atoms without a template charge
+};
+EnergyParameters energyParameters(const core::AtomGroup& atoms, const core::Frame& frame);
+
+// "Cornell et al. 1995, doi:10.1021/ja00124a002" for a key of EnergyParameters::references.
+std::string energyShortCitation(std::string_view key);
+
 // structure.structure_groups(project): visual.structure_groups (all group names when empty),
 // unknown names left out.
 std::vector<std::string> structureGroups(const core::Project& project);

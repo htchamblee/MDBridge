@@ -14,7 +14,8 @@ fields kept.
 | Amber 2024 Reference Manual, https://ambermd.org/doc12/Amber24.pdf | Amber residue naming conventions (protonation states, termini, caps, nucleic ends, water models) | facts (manual cited, not copied) | no |
 | GROMACS reference manual, https://manual.gromacs.org/current/ | GROMACS residue naming convention, SOL | facts (manual cited, not copied) | no |
 | Cordero et al., Covalent radii revisited, Dalton Trans. (2008) 2832-2838, doi:10.1039/b801115j | covalent radii of the analyses' bond guess (`src/analysis/covalent_radii.inc`, `tools/gen_covalent_radii.py`); cited in the energy analysis' guessed-bonds warning (docs/DIFFERENCES.md CIT-03) | facts (article cited) | no |
-| OpenMM 8.1.2 force-field XML and pdbNames.xml, https://github.com/openmm/openmm | Amber ff14SB / OL15 / OL3 and CHARMM36 residue names, nucleic heavy-atom names, ion and water atom names with elements, residue and atom-name aliases | MIT | yes: "Portions copyright (c) 2008-2019 Stanford University and the Authors", with the MIT permission notice |
+| OpenMM 8.1.2 force-field XML and pdbNames.xml, https://github.com/openmm/openmm | Amber ff14SB / OL15 / OL3 and CHARMM36 residue names, nucleic heavy-atom names, ion and water atom names with elements, residue and atom-name aliases; the energy analysis' residue templates (amber14 ff14SB, OL15, OL3, TIP3P water and ions: atom names, partial charges, Lennard-Jones sigma / epsilon; `src/analysis/energy_lj_tables.inc`, `tools/gen_energy_lj.py`) | MIT | yes: "Portions copyright (c) 2008-2019 Stanford University and the Authors", with the MIT permission notice |
+| AmberTools parameter files parm10.dat, frcmod.ionsjc_tip3p, frcmod.ions234lm_126_tip3p (copies in ParmEd's tests and choderalab/ambermini; `forcefields/README.md`) | R* / epsilon of 37 Amber atom types for the energy analysis' typed layer (`forcefields/amber_lj_types.tsv`) | facts (numbers with file and line; the files are not copied); the publications are cited when used (docs/DIFFERENCES.md CIT-04) | no |
 
 Suggested THIRD_PARTY_NOTICES.md row:
 
@@ -25,13 +26,13 @@ Suggested THIRD_PARTY_NOTICES.md row:
 with a sentence that the wwPDB CCD (CC0) and CIAAW/IUPAC atomic weights are also used, see
 `data/sources/ATTRIBUTION.md`.
 
-## Not from this directory: the energy analysis' generic Lennard-Jones parameters
+## The energy analysis' parameters without parm7
 
-The per-element (r*, epsilon) table the energy analysis uses without parm7 parameters
-(`kGenericLj` in `src/analysis/energy.cpp`) is MDATK's own (`GENERIC_LJ` in
-`mdatk/analysis/energy.py`, same owner, ported unchanged). It has no source in this directory and
-is not a published parameter set: ten of its values equal Amber parm99 / parm10 atom types (HP,
-C, N, O, P, S, F, MG, Zn, Br), three the Joung-Cheatham (2008) TIP3P ions (Na+, K+, Cl-, epsilon
-cut to four decimals), and Ca (1.71, 0.12), Mn (1.2, 0.05) and the default (1.9, 0.1) match no
-published set compared. The comparison, its sources and why the table is not cited are in
-docs/DIFFERENCES.md (CIT-04). No force-field file was copied for it.
+Since AN-25 - AN-27 (docs/DIFFERENCES.md) the energy analysis takes its Lennard-Jones parameters and
+partial charges without a parm7 topology from this directory: Amber's residue templates as OpenMM
+8.1.2 converts them (`forcefields/openmm_amber14_templates.tsv`, MIT) and, for atoms no template
+covers, Amber atom types (`forcefields/amber_lj_types.tsv`, numbers from parm10.dat and the
+Joung-Cheatham / Li-Merz TIP3P ion files). `tools/gen_energy_lj.py` writes
+`src/analysis/energy_lj_tables.inc`. MDATK v0.0.4.1's per-element table (`GENERIC_LJ`, an uncited
+mix of Amber types, Joung-Cheatham ions cut to four decimals and three values of unknown origin) is
+gone. The force fields' papers are cited when a run uses them (CIT-04).

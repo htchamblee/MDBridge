@@ -548,7 +548,10 @@ patch MDATK with it, and `make_rmsd_cases.py` records MDBridge's values for the 
 integer powers through libm's `pow` (`math.pow`, as `energy.cpp` does) and the net force's length as
 `sqrt((x*x + y*y) + z*z)`: numpy's `**` uses SVML's `pow` on AVX-512 CPUs and `np.linalg.norm` of a
 vector BLAS' `ddot`, both of which made `cli/cli_cases.json` depend on the CPU. The covalent radii of the bond guess come from
-`data/sources/covalent_radii` through `tools/gen_covalent_radii.py` (`src/analysis/covalent_radii.inc`).
+`data/sources/covalent_radii` through `tools/gen_covalent_radii.py` (`src/analysis/covalent_radii.inc`);
+the energy analysis' parameters without parm7 (AN-25 - AN-27) from `data/sources/forcefields` through
+`tools/gen_energy_lj.py` (`src/analysis/energy_lj_tables.inc`), whose `load()` `tests/parity/energy_parameters.py`
+uses to apply the same rules on MDATK's side.
 
 The tests share one helper header, `tests/analysis/analysis_test_support.hpp` (case files, micro
 systems, case runs, tagged JSON, array comparison, margins). Every test that goes through the

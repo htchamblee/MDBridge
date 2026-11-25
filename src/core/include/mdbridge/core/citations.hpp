@@ -18,9 +18,11 @@
 //   H-bond / contact / stacking criteria, Gaussian filters, linear interpolation, tick choice) are
 //   not cited, nor are colour maps (styling) or the random numbers of the example data.
 // * Data a result depends on is credited where it is used: the covalent radii of the bond guess
-//   (Cordero et al. 2008) in the energy analysis' guessed-bonds warning (CIT-03). The energy
-//   analysis' generic element Lennard-Jones parameters are MDATK's own compilation and are not
-//   cited (CIT-04).
+//   (Cordero et al. 2008) in the energy and atoms analyses' guessed-bonds warnings (CIT-03,
+//   CIT-05). The energy analysis' parameters without parm7 (Amber force-field residue templates and
+//   atom types) are cited by the run that uses them, in its log and metadata (CIT-04): which force
+//   fields a run uses depends on its residues, not on the settings, so they are no project
+//   resource; their references are in the table.
 
 #include <optional>
 #include <span>

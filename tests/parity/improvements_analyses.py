@@ -18,11 +18,19 @@ Items:
          follow the distance-guessed bonds (AN-14's guesser) of the first analysed frame; the warning
          cites the covalent radii of the guess (CIT-03).
   AN-08  energy: exclusions follow any path of at most exclude_bonded bonds.
+  AN-25  energy without parm7 parameters: Lennard-Jones parameters of Amber's residue templates (OpenMM's
+         amber14 ff14SB / OL15 / OL3 / TIP3P conversion) for residues that match one (energy_parameters.py);
+  AN-26  the other atoms: Amber atom types by element, hydrogens by their bonded atom, CT / OH / OS / OW by
+         neighbours, carbon's for unknown elements (warning);
+  AN-27  without topology charges: the charges of completely matched templates (warning for the rest);
+  CIT-04 one log line naming the parameters' sources and references; metadata lj_atoms, charge_atoms,
+         lj_references, lj_default_elements.
   AN-09  H-bonds: a guessed hydrogen goes to the donor nearest by the pair search's distance.
   AN-10  H-bonds: nitrogens carrying a guessed hydrogen are not acceptors.
   AN-13  atoms: bonds guessed from the first analysed frame.
   AN-14  atoms: bonds guessed from covalent radii (sum + 0.4 A), consecutive residues only within one
          chain, never from a one-atom residue.
+  CIT-05 atoms: when the bonds are guessed, a warning citing the covalent radii (as CIT-03's).
   AN-15  proximity: members are 0 also when no structure atoms remain.
   AN-19  use_pbc without a usable cell: one warning per run.
   AN-20  non-finite coordinates: such atoms are in no pair; one warning per run of frames.
@@ -203,6 +211,7 @@ def _covalent_radii():
 
 CARBON_RADIUS = 0.76
 BOND_TOLERANCE = 0.4
+CORDERO_CITATION = "(covalent radii: Cordero et al., Dalton Trans. 2008, 2832-2838, doi:10.1039/b801115j)"
 
 
 def guess_bonds(atoms):
@@ -404,6 +413,8 @@ def apply_mdatk():
             module.pairs_within = pairs_within_finite
 
     # AN-14 / AN-13 (the setup now runs on the first analysed frame)
+    guessed = {"bonds": False}
+
     def atom_bonds(atoms, max_len=None):
         index = {int(ix): k for k, ix in enumerate(atoms.ix)}
         pairs = []
@@ -416,9 +427,23 @@ def apply_mdatk():
             pairs = []
         if pairs:
             return np.array(sorted({(min(p), max(p)) for p in pairs}), dtype=np.int64).reshape(-1, 2)
+        guessed["bonds"] = True
         return guess_bonds(atoms)
 
     structure.atom_bonds = atom_bonds
+
+    # CIT-05: the atoms analysis says when its bonds are guessed, citing the radii (its last warning
+    # of the setup, after the trace points')
+    atoms_setup = structure.AtomsAnalysis.setup
+
+    def atoms_setup_warning(self, frame_indices):
+        guessed["bonds"] = False
+        atoms_setup(self, frame_indices)
+        if guessed["bonds"]:
+            self.ctx.warn("structural view: the topology has no bonds among the structure atoms; bonds are "
+                          f"guessed from distances on the first analysed frame {CORDERO_CITATION}")
+
+    structure.AtomsAnalysis.setup = atoms_setup_warning
 
     # AN-15
     def proximity_process(self, k, ts):
@@ -447,35 +472,133 @@ def apply_mdatk():
 
     structure.TraceAnalysis.setup = trace_setup_warning
 
-    # AN-06 / AN-07 / AN-08
+    # AN-06 / AN-07 / AN-08; AN-25 - AN-27 and CIT-04 (parameters without parm7)
+    import energy_parameters as eparams
+
     energy._bonded_exclusions = bonded_exclusions
-    energy_setup = energy.EnergyAnalysis.setup
     energy_process = energy.EnergyAnalysis.process
+    energy_finalize = energy.EnergyAnalysis.finalize
+
+    def count(n):
+        return f"{n} atom" if n == 1 else f"{n} atoms"
 
     def energy_setup_improved(self, frame_indices):
+        energy.Analysis.setup(self, frame_indices)
         p = self.project.analyses.energy
+        self.p = p
+        a = self.ctx.group_atoms(p.group_a)
+        b = energy.without(self.ctx.group_atoms(p.group_b), a)
+        if b.n_atoms == 0:
+            raise ValueError(f"energy: group {p.group_b!r} lies entirely inside {p.group_a!r}")
+        self.a, self.b = a, b
+        u = self.ctx.u
+        warn = self.ctx.warn
+        topology_charges = hasattr(u.atoms, "charges")
+        if topology_charges:
+            self.qa = a.charges.astype(np.float64)
+            self.qb = b.charges.astype(np.float64)
+            self.charge_source = "topology"
         path = self.ctx.topology_path
-        real_warn = self.ctx.warn
-        notes = []
-        self.ctx.warn = notes.append  # MDATK's own warnings (charges, parm7) come first
-        try:
-            energy_setup(self, frame_indices)
-        finally:
-            del self.ctx.warn
-        for message in notes:
-            real_warn(message)
         if p.use_parm7 and path and not energy.is_parm7(path):
-            real_warn(f"energy: use_parm7 is set but the topology {path} is not a parm7 file; "
-                      "using generic element parameters")
+            warn(f"energy: use_parm7 is set but the topology {path} is not a parm7 file; "
+                 "using generic element parameters")
+        self.lj = None
+        if p.use_parm7 and path and energy.is_parm7(path):
+            try:
+                self.lj = energy.LJTable.from_parm7(path)
+                if len(self.lj.type_index) != u.atoms.n_atoms:
+                    raise ValueError("atom count mismatch")
+                self.lj_source = "parm7"
+            except Exception as exc:  # noqa: BLE001 - as MDATK
+                warn(f"energy: could not read LJ parameters from parm7 ({exc}); using generic element parameters")
+                self.lj = None
+        na, nb = a.n_atoms, b.n_atoms
+        self.lj_atoms = {"parm7": 0, "template": 0, "typed": 0}
+        self.charge_atoms = {"topology": na + nb if topology_charges else 0, "template": 0, "none": 0}
+        self.lj_references = []
+        self.lj_default_elements = []
+        charged = 0
+        if self.lj is not None:
+            self.lj_atoms["parm7"] = na + nb
+        else:
+            indices = [int(x) for x in a.ix] + [int(x) for x in b.ix]
+            par = eparams.energy_parameters(u, indices, mdatk_selections.atom_elements, guess_bonds)
+            self.ra = np.array(par["rstar"][:na], dtype=np.float64)
+            self.rb = np.array(par["rstar"][na:], dtype=np.float64)
+            self.ea = np.array(par["epsilon"][:na], dtype=np.float64)
+            self.eb = np.array(par["epsilon"][na:], dtype=np.float64)
+            self.lj_atoms["template"] = par["layer"].count("template")
+            self.lj_atoms["typed"] = par["layer"].count("typed")
+            t, y = self.lj_atoms["template"], self.lj_atoms["typed"]
+            self.lj_source = "typed" if t == 0 else "templates" if y == 0 else "templates+typed"
+            self.lj_references = list(par["references"])
+            self.lj_default_elements = list(par["default_elements"])
+            if not topology_charges:
+                self.qa = np.array(par["charge"][:na], dtype=np.float64)
+                self.qb = np.array(par["charge"][na:], dtype=np.float64)
+                charged = sum(1 for c in par["template_charge"] if c)
+                self.charge_atoms = {"topology": 0, "template": charged, "none": na + nb - charged}
+            if not topology_charges and charged == 0:
+                warn("energy: topology has no partial charges; electrostatics will be zero")
+            elif not topology_charges and charged < na + nb:
+                missing = na + nb - charged
+                rc = par["chargeless_residues"]
+                warn(f"energy: the topology has no partial charges; {charged} of {na + nb} atoms take the charges "
+                     "of the force-field residue template they match completely (hydrogens included); the other "
+                     f"{count(missing)} ({rc} {'residue' if rc == 1 else 'residues'}) have no charge, so their "
+                     "electrostatic terms are zero")
+            if par["default_elements"]:
+                listed = ", ".join(repr(e) for e in par["default_elements"])
+                warn(f"energy: no Lennard-Jones parameters for element(s) {listed} ({count(par['default_atoms'])}); "
+                     "carbon's (Amber type C) are used")
+            line = "energy: Lennard-Jones parameters without parm7: "
+            if t > 0:
+                line += f"{count(t)} from Amber force-field residue templates ({', '.join(par['force_fields'])})"
+            if y > 0:
+                line += (", " if t > 0 else "") + f"{count(y)} from Amber atom types by element"
+            if topology_charges:
+                line += "; partial charges from the topology"
+            elif charged > 0:
+                line += f"; partial charges of {count(charged)} from the templates"
+            else:
+                line += "; no partial charges"
+            line += ". Cite: " + "; ".join(eparams.short_citation(k) for k in par["references"])
+            self.ctx.reporter.log(line)
+        if not topology_charges:
+            if charged == 0:
+                if self.lj is not None:
+                    warn("energy: topology has no partial charges; electrostatics will be zero")
+                self.qa = np.zeros(na)
+                self.qb = np.zeros(nb)
+                self.charge_atoms = {"topology": 0, "template": 0, "none": na + nb}
+            self.charge_source = ("none" if charged == 0 else
+                                  "templates" if self.charge_atoms["none"] == 0 else "partial")
+        self.excl = energy._bonded_exclusions(u, a, b, p.exclude_bonded)
+        n = self.n_frames
+        self.e_el = np.zeros(n)
+        self.e_vdw = np.zeros(n)
+        self.force = np.zeros(n)
+        self.n_pairs = np.zeros(n, dtype=np.int64)
         try:
             has_bonds = len(self.ctx.u.bonds) > 0
         except Exception:  # noqa: BLE001
             has_bonds = False
         self._guess_exclusions = p.exclude_bonded > 0 and not has_bonds
         if self._guess_exclusions:
-            real_warn("energy: the topology has no bonds; bonded pairs are excluded along bonds guessed from "
-                      "distances on the first analysed frame (covalent radii: Cordero et al., Dalton Trans. "
-                      "2008, 2832-2838, doi:10.1039/b801115j)")
+            warn("energy: the topology has no bonds; bonded pairs are excluded along bonds guessed from "
+                 f"distances on the first analysed frame {CORDERO_CITATION}")
+
+    def energy_finalize_improved(self):
+        res = energy_finalize(self)
+        meta = {}
+        for key, value in res.meta.items():
+            if key == "label":  # MDBridge's keys before label / analysis, as newResult appends them
+                meta.update(lj_atoms=dict(self.lj_atoms), charge_atoms=dict(self.charge_atoms),
+                            lj_references=list(self.lj_references),
+                            lj_default_elements=list(self.lj_default_elements))
+            meta[key] = value
+        res.meta = meta
+        return res
 
     def energy_process_improved(self, k, ts):
         if getattr(self, "_guess_exclusions", False):
@@ -487,6 +610,7 @@ def apply_mdatk():
 
     energy.EnergyAnalysis.setup = energy_setup_improved
     energy.EnergyAnalysis.process = energy_process_improved
+    energy.EnergyAnalysis.finalize = energy_finalize_improved
 
     # AN-09 / AN-10
     def guess_hydrogens(self, pos, box):
