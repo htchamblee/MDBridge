@@ -189,16 +189,21 @@ def add_lattice(name, group, la, lb, cutoff, box):
     if error is not None:
         case["error"] = error
     else:
+        # hashed in place (no copies: up to 1e8 pairs), then released
         case["count"] = int(len(pairs))
-        case["pairs_sha256"] = hashlib.sha256(pairs.astype("<i8").tobytes()).hexdigest()
-        case["distances_sha256"] = hashlib.sha256(dist.astype("<f8").tobytes()).hexdigest()
+        case["pairs_sha256"] = hashlib.sha256(np.ascontiguousarray(pairs, dtype="<i8")).hexdigest()
+        case["distances_sha256"] = hashlib.sha256(np.ascontiguousarray(dist, dtype="<f8")).hexdigest()
+    del pairs, dist
     if msgs:
         case["warnings"] = msgs
-    ei, ej, ed = improvements_periodic.pairs_within_periodic(a, b, cutoff, box)
-    flat = np.stack([ei, ej], axis=1) if len(ei) else np.zeros((0, 2), dtype=np.int64)
-    case["exact"] = {"count": int(len(ei)),
-                     "pairs_sha256": hashlib.sha256(flat.astype("<i8").tobytes()).hexdigest(),
-                     "distances_sha256": hashlib.sha256(ed.astype("<f8").tobytes()).hexdigest()}
+    # the expected pairs hashed as they come (row blocks in order), never held
+    count, pair_hash, distance_hash = 0, hashlib.sha256(), hashlib.sha256()
+    for ei, ej, ed in improvements_periodic.pairs_within_periodic_rows(a, b, cutoff, box):
+        count += len(ei)
+        pair_hash.update(np.ascontiguousarray(np.stack([ei, ej], axis=1), dtype="<i8"))
+        distance_hash.update(np.ascontiguousarray(ed, dtype="<f8"))
+    case["exact"] = {"count": count, "pairs_sha256": pair_hash.hexdigest(),
+                     "distances_sha256": distance_hash.hexdigest()}
     CASES.append(case)
 
 

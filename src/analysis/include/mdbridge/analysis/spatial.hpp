@@ -9,6 +9,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <span>
 #include <vector>
@@ -110,6 +111,9 @@ private:
     bool m_orthogonal = false;
     std::array<bool, 3> m_periodic{};
     std::array<Vec3, 3> m_vectors{};
+    // m_vectors as plain values (a, b, c in turn) for minimumImage's hot path
+    void flatten();
+    double m_flat[9] = {};
 };
 
 // The periodic search (MDBridge's own; replaces MDATK's call of MDAnalysis' capped_distance, whose
@@ -126,6 +130,17 @@ PairList pairsWithinPeriodic(std::span<const float> a, std::span<const float> b,
                              const Box& box);
 PairList pairsWithinPeriodic(std::span<const double> a, std::span<const double> b, double cutoff,
                              const Box& box);
+
+// The same search streamed: visit(i, j, d) once per point a[i] that has pairs, in increasing i,
+// with that point's pairs (b indices j[k] increasing, distances d[k]); the spans are valid during
+// the call only. pairsWithinPeriodic is these rows concatenated. For searches whose result is too
+// large to hold (the tests check 1e8 pairs by hashing them as they come).
+using PairRowVisitor =
+    std::function<void(std::int64_t i, std::span<const std::int64_t> j, std::span<const double> d)>;
+void visitPairsWithinPeriodic(std::span<const float> a, std::span<const float> b, double cutoff,
+                              const Box& box, const PairRowVisitor& visit);
+void visitPairsWithinPeriodic(std::span<const double> a, std::span<const double> b, double cutoff,
+                              const Box& box, const PairRowVisitor& visit);
 
 // minimum_image_vectors(vectors, box): with a usable box and PeriodicCell geometry, each vector's
 // PeriodicCell::minimumImage (orthogonal and triclinic cells: the same image the pair search

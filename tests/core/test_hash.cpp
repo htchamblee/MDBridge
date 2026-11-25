@@ -7,6 +7,8 @@
 #include <fstream>
 #include <limits>
 #include <sstream>
+#include <string>
+#include <string_view>
 
 #if !defined(_WIN32)
 #include <fcntl.h>
@@ -174,6 +176,23 @@ TEST(Sha256, LikeHashlibAtEveryBlockBoundary) {
         EXPECT_EQ(sha256Hex(fromHex(pair[0].stringOr())), pair[1].stringOr()) << pair[0].stringOr();
     }
     EXPECT_GT(vectors.find("cases")->size(), 200u);
+}
+
+TEST(Sha256, InPiecesLikeAtOnce) {
+    std::string data;
+    for (int k = 0; k < 300; ++k) {
+        data += static_cast<char>((k * 37 + 11) & 0xFF);
+    }
+    for (const std::size_t first : {0u, 1u, 55u, 56u, 63u, 64u, 65u, 127u, 128u, 200u}) {
+        for (const std::size_t second : {0u, 1u, 9u, 64u, 70u}) {
+            const std::string_view whole(data);
+            Sha256 hash;
+            hash.update(whole.substr(0, first));
+            hash.update(whole.substr(first, second));
+            hash.update(whole.substr(first + second));
+            EXPECT_EQ(hash.hexDigest(), sha256Hex(data)) << first << " " << second;
+        }
+    }
 }
 
 TEST(StableHash, LikeMdatkForEveryCase) {

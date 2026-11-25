@@ -205,17 +205,6 @@ double sineOf(double degrees) {
     return degrees == 90.0 ? 1.0 : std::sin(degrees * kRadiansPerDegree);
 }
 
-// v - n * u for n = nearbyint(v[k] / u[k]) (half to even), repeated while |v[k]| > u[k] / 2
-void reduceAlong(Vec3& v, const Vec3& u, std::size_t k) {
-    const double half = u[k] / 2;
-    for (int step = 0; step < kMaxReductions && std::abs(v[k]) > half; ++step) {
-        const double n = std::nearbyint(v[k] / u[k]);
-        for (std::size_t c = 0; c <= k; ++c) {  // components c > k of u are 0
-            v[c] = v[c] - n * u[c];
-        }
-    }
-}
-
 double squaredLength(const Vec3& v) {
     return (v[0] * v[0] + v[1] * v[1]) + v[2] * v[2];
 }
@@ -235,6 +224,7 @@ std::optional<PeriodicCell> PeriodicCell::from(const Box& box) {
             cell.m_periodic[k] = std::isfinite(length[k]) && length[k] > 0;
             cell.m_vectors[k][k] = cell.m_periodic[k] ? length[k] : 0.0;
         }
+        cell.flatten();
         return cell;
     }
     const double a = length[0], b = length[1], c = length[2];
@@ -255,6 +245,7 @@ std::optional<PeriodicCell> PeriodicCell::from(const Box& box) {
     }
     cell.m_vectors = {Vec3{a, 0.0, 0.0}, Vec3{bx, by, 0.0}, Vec3{cx, cy, cz}};
     cell.m_periodic = {true, true, true};
+    cell.flatten();
     return cell;
 }
 
@@ -268,28 +259,60 @@ std::optional<PeriodicCell> PeriodicCell::from(const std::optional<std::array<fl
     return usable ? from(*usable) : std::nullopt;
 }
 
-Vec3 PeriodicCell::minimumImage(const Vec3& d) const {
-    Vec3 v = d;
-    if (m_orthogonal) {
-        for (std::size_t k = 0; k < 3; ++k) {
-            const double length = m_vectors[k][k];
-            const double half = length / 2;
-            for (int step = 0; m_periodic[k] && step < kMaxReductions && std::abs(v[k]) > half; ++step) {
-                v[k] = v[k] - length * std::nearbyint(v[k] / length);
-            }
+void PeriodicCell::flatten() {
+    for (std::size_t r = 0; r < 3; ++r) {
+        for (std::size_t c = 0; c < 3; ++c) {
+            m_flat[3 * r + c] = m_vectors[r][c];
         }
-        return v;
     }
-    reduceAlong(v, m_vectors[2], 2);
-    reduceAlong(v, m_vectors[1], 1);
-    reduceAlong(v, m_vectors[0], 0);
+}
+
+// Written with plain scalars and m_flat (no std::array accessors, no calls): the pair search calls
+// it for every candidate pair (1e8 in the tests), also in unoptimised Debug builds. |v| > h is
+// written v > h || v < -h (the same for every v, NaN included, as h > 0).
+Vec3 PeriodicCell::minimumImage(const Vec3& d) const {
+    const double* v = d.data();
+    double x = v[0], y = v[1], z = v[2];
+    const double* u = m_flat;  // a = u[0..2], b = u[3..5], c = u[6..8]
+    if (m_orthogonal) {
+        // per periodic axis (length > 0; 0 when not periodic): v - L * nearbyint(v / L), repeated
+        // while |v| > L / 2
+        const double lx = u[0], ly = u[4], lz = u[8];
+        const double hx = lx / 2, hy = ly / 2, hz = lz / 2;
+        for (int step = 0; lx > 0 && step < kMaxReductions && (x > hx || x < -hx); ++step) {
+            x = x - lx * std::nearbyint(x / lx);
+        }
+        for (int step = 0; ly > 0 && step < kMaxReductions && (y > hy || y < -hy); ++step) {
+            y = y - ly * std::nearbyint(y / ly);
+        }
+        for (int step = 0; lz > 0 && step < kMaxReductions && (z > hz || z < -hz); ++step) {
+            z = z - lz * std::nearbyint(z / lz);
+        }
+        return {x, y, z};
+    }
+    const double ax = u[0], bx = u[3], by = u[4], cx = u[6], cy = u[7], cz = u[8];
+    // along c, then b, then a: v - n * u for n = nearbyint(v_k / u_k) (half to even), repeated
+    // while |v_k| > u_k / 2 (the components of u after k are 0)
+    const double hz = cz / 2, hy = by / 2, hx = ax / 2;
+    for (int step = 0; step < kMaxReductions && (z > hz || z < -hz); ++step) {
+        const double n = std::nearbyint(z / cz);
+        x = x - n * cx;
+        y = y - n * cy;
+        z = z - n * cz;
+    }
+    for (int step = 0; step < kMaxReductions && (y > hy || y < -hy); ++step) {
+        const double n = std::nearbyint(y / by);
+        x = x - n * bx;
+        y = y - n * by;
+    }
+    for (int step = 0; step < kMaxReductions && (x > hx || x < -hx); ++step) {
+        const double n = std::nearbyint(x / ax);
+        x = x - n * ax;
+    }
     // the shortest of the 27 neighbouring images; the image itself unless another is strictly
     // shorter (a first, b, c innermost)
-    const Vec3& va = m_vectors[0];
-    const Vec3& vb = m_vectors[1];
-    const Vec3& vc = m_vectors[2];
-    Vec3 best = v;
-    double bestSquare = squaredLength(v);
+    double bestX = x, bestY = y, bestZ = z;
+    double bestSquare = (x * x + y * y) + z * z;
     for (int i = -1; i <= 1; ++i) {
         for (int j = -1; j <= 1; ++j) {
             for (int k = -1; k <= 1; ++k) {
@@ -297,17 +320,20 @@ Vec3 PeriodicCell::minimumImage(const Vec3& d) const {
                     continue;
                 }
                 const double fi = i, fj = j, fk = k;
-                const Vec3 w{((v[0] + fi * va[0]) + fj * vb[0]) + fk * vc[0],
-                             (v[1] + fj * vb[1]) + fk * vc[1], v[2] + fk * vc[2]};
-                const double s = squaredLength(w);
+                const double wx = ((x + fi * ax) + fj * bx) + fk * cx;
+                const double wy = (y + fj * by) + fk * cy;
+                const double wz = z + fk * cz;
+                const double s = (wx * wx + wy * wy) + wz * wz;
                 if (s < bestSquare) {
-                    best = w;
+                    bestX = wx;
+                    bestY = wy;
+                    bestZ = wz;
                     bestSquare = s;
                 }
             }
         }
     }
-    return best;
+    return {bestX, bestY, bestZ};
 }
 
 std::array<double, 3> PeriodicCell::widths() const {
@@ -382,18 +408,26 @@ PairList plainPairs(std::span<const double> a, std::span<const double> b, double
 
 }  // namespace
 
-PairList pairsWithinPeriodic(std::span<const double> a, std::span<const double> b, double cutoff,
-                             const Box& box) {
+void visitPairsWithinPeriodic(std::span<const double> a, std::span<const double> b, double cutoff,
+                              const Box& box, const PairRowVisitor& visit) {
     const std::size_t n = pointCount(a.size(), "pairsWithinPeriodic");
     const std::size_t m = pointCount(b.size(), "pairsWithinPeriodic");
-    PairList out;
     const double bound = cutoff * cutoff;
     if (n == 0 || m == 0 || std::isnan(bound)) {
-        return out;
+        return;
     }
     const std::optional<PeriodicCell> cell = PeriodicCell::from(box);
     if (!cell) {
-        return plainPairs(a, b, cutoff);
+        const PairList plain = plainPairs(a, b, cutoff);  // sorted by (i, j): one row at a time
+        for (std::size_t s = 0; s < plain.size();) {
+            std::size_t e = s;
+            while (e < plain.size() && plain.i[e] == plain.i[s]) {
+                ++e;
+            }
+            visit(plain.i[s], std::span(plain.j).subspan(s, e - s), std::span(plain.d).subspan(s, e - s));
+            s = e;
+        }
+        return;
     }
 
     // Candidate pairs from a cell list over the fractional coordinates wrapped into [0, 1): along
@@ -454,23 +488,28 @@ PairList pairsWithinPeriodic(std::span<const double> a, std::span<const double> 
         members.emplace(binned[s].first, std::pair(s, e));
         s = e;
     }
-    std::vector<std::size_t> everyB;
+    std::vector<std::size_t> binnedJ;  // the j of binned: each bin's members, increasing
     for (const auto& entry : binned) {
-        everyB.push_back(entry.second);
+        binnedJ.push_back(entry.second);
     }
+    std::vector<std::size_t> everyB = binnedJ;
     everyB.insert(everyB.end(), farB.begin(), farB.end());
     std::sort(everyB.begin(), everyB.end());
 
     std::vector<std::size_t> candidates;
+    std::vector<std::int64_t> rowJ;
+    std::vector<double> rowD;
     for (std::size_t i = 0; i < n; ++i) {
         if (!finitePoint(a, i)) {
             continue;
         }
         std::int64_t key = 0;
+        std::span<const std::size_t> list;  // the candidates j, increasing
         if (!binOf(a, i, key)) {
-            candidates = everyB;
+            list = everyB;
         } else {
             candidates = farB;
+            int ranges = farB.empty() ? 0 : 1;  // increasing runs appended
             const std::int64_t home[3] = {key / (bins[1] * bins[2]), (key / bins[2]) % bins[1], key % bins[2]};
             const auto offsets = [&](std::size_t k) {
                 return bins[k] == 1 ? std::vector<std::int64_t>{0} : std::vector<std::int64_t>{-1, 0, 1};
@@ -485,27 +524,64 @@ PairList pairsWithinPeriodic(std::span<const double> a, std::span<const double> 
                         if (found == members.end()) {
                             continue;
                         }
-                        for (std::size_t s = found->second.first; s < found->second.second; ++s) {
-                            candidates.push_back(binned[s].second);
-                        }
+                        candidates.insert(candidates.end(),
+                                          binnedJ.begin() + static_cast<std::ptrdiff_t>(found->second.first),
+                                          binnedJ.begin() + static_cast<std::ptrdiff_t>(found->second.second));
+                        ++ranges;
                     }
                 }
             }
-            std::sort(candidates.begin(), candidates.end());
+            if (ranges > 1) {
+                std::sort(candidates.begin(), candidates.end());
+            }
+            list = candidates;
         }
-        const Vec3 p = pointAt(a, i);
-        for (const std::size_t j : candidates) {
-            const Vec3 q = pointAt(b, j);
-            const Vec3 image = cell->minimumImage({p[0] - q[0], p[1] - q[1], p[2] - q[2]});
-            const double s = squaredLength(image);
+        // plain pointers in the loop (it runs for every candidate pair, also in Debug builds)
+        const double* p = a.data() + 3 * i;
+        const double px = p[0], py = p[1], pz = p[2];
+        const double* bxyz = b.data();
+        const std::size_t* candidate = list.data();
+        const std::size_t count = list.size();
+        if (rowJ.size() < count) {
+            rowJ.resize(count);
+            rowD.resize(count);
+        }
+        std::int64_t* keptJ = rowJ.data();
+        double* keptD = rowD.data();
+        std::size_t kept = 0;
+        for (std::size_t c = 0; c < count; ++c) {
+            const std::size_t j = candidate[c];
+            const double* q = bxyz + 3 * j;
+            const Vec3 image = cell->minimumImage({px - q[0], py - q[1], pz - q[2]});
+            const double* w = image.data();
+            const double s = (w[0] * w[0] + w[1] * w[1]) + w[2] * w[2];
             if (s <= bound) {
-                out.i.push_back(static_cast<std::int64_t>(i));
-                out.j.push_back(static_cast<std::int64_t>(j));
-                out.d.push_back(std::sqrt(s));
+                keptJ[kept] = static_cast<std::int64_t>(j);
+                keptD[kept] = std::sqrt(s);
+                ++kept;
             }
         }
+        if (kept > 0) {
+            visit(static_cast<std::int64_t>(i), std::span(rowJ).first(kept), std::span(rowD).first(kept));
+        }
     }
+}
+
+PairList pairsWithinPeriodic(std::span<const double> a, std::span<const double> b, double cutoff,
+                             const Box& box) {
+    PairList out;
+    visitPairsWithinPeriodic(a, b, cutoff, box,
+                             [&](std::int64_t i, std::span<const std::int64_t> j, std::span<const double> d) {
+                                 out.i.insert(out.i.end(), j.size(), i);
+                                 out.j.insert(out.j.end(), j.begin(), j.end());
+                                 out.d.insert(out.d.end(), d.begin(), d.end());
+                             });
     return out;
+}
+
+void visitPairsWithinPeriodic(std::span<const float> a, std::span<const float> b, double cutoff,
+                              const Box& box, const PairRowVisitor& visit) {
+    visitPairsWithinPeriodic(widened(a), widened(b), cutoff, box, visit);
 }
 
 PairList pairsWithinPeriodic(std::span<const float> a, std::span<const float> b, double cutoff,
