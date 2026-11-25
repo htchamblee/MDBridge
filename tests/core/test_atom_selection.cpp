@@ -3,7 +3,9 @@
 // on frames with and without boxes (tests/data/selections,
 // tests/parity/make_atom_selection_cases.py).
 
+#include <array>
 #include <chrono>
+#include <cmath>
 #include <cstdint>
 #include <sstream>
 #include <string>
@@ -134,6 +136,107 @@ TEST(AtomSelection, ErrorsAreSelectionErrors) {
     }
     // distance keywords without coordinates
     EXPECT_THROW(selectAtoms(*dump.topology, nullptr, "around 3 name P"), AtomSelectionError);
+}
+
+// The messages of docs/DIFFERENCES.md (SEL-01 ... SEL-10), on a fixture with coordinates.
+TEST(AtomSelection, ImprovedMessages) {
+    const TopologyDump dump = topologyFixture("fixture_chains.pdb");
+    const Frame* frame = dump.frame ? &*dump.frame : nullptr;
+    ASSERT_NE(frame, nullptr);
+    auto error = [&](const std::string& sel) -> std::string {
+        try {
+            selectAtoms(*dump.topology, frame, sel);
+        } catch (const AtomSelectionError& e) {
+            return e.what();
+        }
+        return "(no error)";
+    };
+    EXPECT_EQ(error("name P and"), "Unexpected end of selection after 'and'");
+    EXPECT_EQ(error("(name P"), "Unexpected end of selection (expected ')')");
+    EXPECT_EQ(error(" \t "), "empty selection");
+    EXPECT_EQ(error("around 3"), "around: expected a distance and a selection, e.g. 'around 3.5 resname MG'");
+    EXPECT_EQ(error("point 1 2 3"), "point: expected x y z radius");
+    EXPECT_EQ(error("atom A 1"), "atom: expected segid resid name");
+    EXPECT_EQ(error("atom A 1 and"), "atom: expected segid resid name");
+    EXPECT_EQ(error("same residue"), "same: expected 'same <property> as <selection>'");
+    EXPECT_EQ(error("prop x <"), "prop: expected 'prop [abs] <property> <op> <value>'");
+    EXPECT_EQ(error("prop x ><5"), "invalid operator '><' in prop (use <, >, <=, >=, ==, !=)");
+    EXPECT_EQ(error("around -1 name P"), "around: distance must not be negative");
+    EXPECT_EQ(error("sphlayer 1 -2 name P"), "sphlayer: radius must not be negative");
+    EXPECT_EQ(error("AND"), "Unknown selection token: 'AND' (keywords are lower case: did you mean 'and'?)");
+    EXPECT_EQ(error("mass :3"), "Selection failed: 'Failed to parse number: :3'");
+    EXPECT_EQ(error("same RESID as name P").substr(0, 52),
+              "Unknown 'same' property 'RESID' (choose one of: frag");
+    // SEL-01: reversed operands mirror the operator
+    EXPECT_EQ(selectAtoms(*dump.topology, frame, "prop 1.2 > x"),
+              selectAtoms(*dump.topology, frame, "prop x < 1.2"));
+    EXPECT_EQ(selectAtoms(*dump.topology, frame, "prop abs 3 <= z"),
+              selectAtoms(*dump.topology, frame, "prop abs z >= 3"));
+    // SEL-09 / SEL-10
+    EXPECT_EQ(selectAtoms(*dump.topology, frame, "mass -inf:+inf").size(), dump.topology->atomCount());
+    EXPECT_TRUE(selectAtoms(*dump.topology, frame, "resid 3:1").empty());
+    EXPECT_EQ(selectAtoms(*dump.topology, frame, "atom \\A 1 P"), selectAtoms(*dump.topology, frame, "atom A 1 P"));
+}
+
+// SEL-06: a cutoff larger than half the cell (here a strongly skewed one, where MDAnalysis' grid
+// search refused it) gets exact minimum-image distances.
+TEST(AtomSelection, CutoffsBeyondTheBox) {
+    auto topology = std::make_shared<Topology>();
+    Topology& t = *topology;
+    constexpr std::size_t kAtoms = 24;
+    for (std::size_t a = 0; a < kAtoms; ++a) {
+        t.names.push_back(t.strings.intern("C"));
+        t.atomResidue.push_back(static_cast<std::int32_t>(a));
+        t.resids.push_back(static_cast<std::int64_t>(a + 1));
+        t.resnames.push_back(t.strings.intern("X"));
+        t.residueSegment.push_back(0);
+    }
+    t.segids = {t.strings.intern("A")};
+    t.finish();
+    Frame frame;
+    for (std::size_t a = 0; a < kAtoms; ++a) {
+        frame.positions.push_back(static_cast<float>((a * 7) % 10));
+        frame.positions.push_back(static_cast<float>(a % 3) * 0.5f);
+        frame.positions.push_back(static_cast<float>((a * 3) % 10));
+    }
+    frame.box = std::array<float, 6>{10, 10, 10, 90, 90, 170};
+    // the cell vectors as the selections build them (b in the xy plane at 170 degrees from a)
+    const double gamma = 170.0 * std::acos(-1.0) / 180.0;
+    const double cell[3][3] = {{10, 0, 0},
+                               {static_cast<float>(10 * std::cos(gamma)), static_cast<float>(10 * std::sin(gamma)), 0},
+                               {0, 0, 10}};
+    auto nearest = [&](std::size_t i, std::size_t j) {
+        double best = 1e300;
+        for (int u = -12; u <= 12; ++u) {
+            for (int v = -12; v <= 12; ++v) {
+                for (int w = -2; w <= 2; ++w) {
+                    double d2 = 0;
+                    for (std::size_t c = 0; c < 3; ++c) {
+                        const double d = static_cast<double>(frame.positions[3 * j + c]) -
+                                         static_cast<double>(frame.positions[3 * i + c]) + u * cell[0][c] +
+                                         v * cell[1][c] + w * cell[2][c];
+                        d2 += d * d;
+                    }
+                    best = std::min(best, d2);
+                }
+            }
+        }
+        return std::sqrt(best);
+    };
+    for (const double cutoff : {0.4, 0.9, 2.5}) {
+        std::vector<std::int32_t> expected;
+        for (std::size_t j = 12; j < kAtoms; ++j) {
+            for (std::size_t i = 0; i < 12; ++i) {
+                if (nearest(i, j) <= cutoff) {
+                    expected.push_back(static_cast<std::int32_t>(j));
+                    break;
+                }
+            }
+        }
+        std::ostringstream sel;
+        sel << "around " << cutoff << " index 0:11";
+        EXPECT_EQ(selectAtoms(t, &frame, sel.str()), expected) << sel.str();
+    }
 }
 
 // A million atoms: string matching runs once per distinct value, boolean logic on masks.

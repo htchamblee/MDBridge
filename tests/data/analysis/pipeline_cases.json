@@ -6312,7 +6312,7 @@
      "keys": [
       [
        "contacts",
-       "2981672d7215396d"
+       "f1e14cb0a2d0ab73"
       ],
       [
        "energy",
@@ -6328,7 +6328,7 @@
       ],
       [
        "trace",
-       "1935ae575cf73545"
+       "244b81d63e4f1c7e"
       ],
       [
        "proximity",
@@ -6432,8 +6432,8 @@
       "entries": [
        {
         "name": "contacts",
-        "key": "2981672d7215396d",
-        "file": "contacts-2981672d7215396d.npz",
+        "key": "f1e14cb0a2d0ab73",
+        "file": "contacts-f1e14cb0a2d0ab73.npz",
         "params": {
          "enabled": null,
          "group_a": "Aptamer",
@@ -6540,8 +6540,8 @@
        },
        {
         "name": "trace",
-        "key": "1935ae575cf73545",
-        "file": "trace-1935ae575cf73545.npz",
+        "key": "244b81d63e4f1c7e",
+        "file": "trace-244b81d63e4f1c7e.npz",
         "params": {
          "groups": [
           "Aptamer",
@@ -6587,8 +6587,8 @@
       "all_entries": [
        {
         "name": "contacts",
-        "key": "2981672d7215396d",
-        "file": "contacts-2981672d7215396d.npz"
+        "key": "f1e14cb0a2d0ab73",
+        "file": "contacts-f1e14cb0a2d0ab73.npz"
        },
        {
         "name": "energy",
@@ -6612,15 +6612,15 @@
        },
        {
         "name": "trace",
-        "key": "1935ae575cf73545",
-        "file": "trace-1935ae575cf73545.npz"
+        "key": "244b81d63e4f1c7e",
+        "file": "trace-244b81d63e4f1c7e.npz"
        }
       ]
      },
      "entries": {
       "contacts": {
        "name": "contacts",
-       "key": "2981672d7215396d",
+       "key": "f1e14cb0a2d0ab73",
        "params": {
         "enabled": null,
         "group_a": "Aptamer",
@@ -6916,7 +6916,7 @@
       },
       "trace": {
        "name": "trace",
-       "key": "1935ae575cf73545",
+       "key": "244b81d63e4f1c7e",
        "params": {
         "groups": [
          "Aptamer",
@@ -7050,12 +7050,12 @@
       }
      },
      "cached": [
-      "contacts-2981672d7215396d",
+      "contacts-f1e14cb0a2d0ab73",
       "energy-041048db05b6e31a",
       "hbonds-05cc72e2991311c6",
       "proximity-4914c402dc842e02",
       "rmsd-a92bf378ac4ef3eb",
-      "trace-1935ae575cf73545"
+      "trace-244b81d63e4f1c7e"
      ],
      "dataset": {
       "frames": [
@@ -7593,11 +7593,11 @@
       }
      },
      "log": [
-      "Pairwise contacts: loaded from cache (contacts-2981672d7215396d)",
+      "Pairwise contacts: loaded from cache (contacts-f1e14cb0a2d0ab73)",
       "Intermolecular energy: loaded from cache (energy-041048db05b6e31a)",
       "Hydrogen bonds: loaded from cache (hbonds-05cc72e2991311c6)",
       "RMSD: loaded from cache (rmsd-a92bf378ac4ef3eb)",
-      "Backbone trace: loaded from cache (trace-1935ae575cf73545)",
+      "Backbone trace: loaded from cache (trace-244b81d63e4f1c7e)",
       "Proximity to residue set: loaded from cache (proximity-4914c402dc842e02)"
      ],
      "progress": [
@@ -7613,7 +7613,7 @@
      "keys": [
       [
        "contacts",
-       "2981672d7215396d"
+       "f1e14cb0a2d0ab73"
       ],
       [
        "energy",
@@ -7629,7 +7629,7 @@
       ],
       [
        "trace",
-       "1935ae575cf73545"
+       "244b81d63e4f1c7e"
       ],
       [
        "proximity",
@@ -7733,8 +7733,8 @@
       "entries": [
        {
         "name": "contacts",
-        "key": "2981672d7215396d",
-        "file": "contacts-2981672d7215396d.npz",
+        "key": "f1e14cb0a2d0ab73",
+        "file": "contacts-f1e14cb0a2d0ab73.npz",
         "params": {
          "enabled": null,
          "group_a": "Aptamer",
@@ -7841,8 +7841,8 @@
        },
        {
         "name": "trace",
-        "key": "1935ae575cf73545",
-        "file": "trace-1935ae575cf73545.npz",
+        "key": "244b81d63e4f1c7e",
+        "file": "trace-244b81d63e4f1c7e.npz",
         "params": {
          "groups": [
           "Aptamer",
@@ -7888,8 +7888,8 @@
       "all_entries": [
        {
         "name": "contacts",
-        "key": "2981672d7215396d",
-        "file": "contacts-2981672d7215396d.npz"
+        "key": "f1e14cb0a2d0ab73",
+        "file": "contacts-f1e14cb0a2d0ab73.npz"
        },
        {
         "name": "energy",
@@ -7913,15 +7913,15 @@
        },
        {
         "name": "trace",
-        "key": "1935ae575cf73545",
-        "file": "trace-1935ae575cf73545.npz"
+        "key": "244b81d63e4f1c7e",
+        "file": "trace-244b81d63e4f1c7e.npz"
        }
       ]
      },
      "entries": {
       "contacts": {
        "name": "contacts",
-       "key": "2981672d7215396d",
+       "key": "f1e14cb0a2d0ab73",
        "params": {
         "enabled": null,
         "group_a": "Aptamer",
@@ -8217,7 +8217,7 @@
       },
       "trace": {
        "name": "trace",
-       "key": "1935ae575cf73545",
+       "key": "244b81d63e4f1c7e",
        "params": {
         "groups": [
          "Aptamer",
@@ -8351,12 +8351,12 @@
       }
      },
      "cached": [
-      "contacts-2981672d7215396d",
+      "contacts-f1e14cb0a2d0ab73",
       "energy-041048db05b6e31a",
       "hbonds-05cc72e2991311c6",
       "proximity-4914c402dc842e02",
       "rmsd-a92bf378ac4ef3eb",
-      "trace-1935ae575cf73545"
+      "trace-244b81d63e4f1c7e"
      ],
      "dataset": {
       "frames": [
@@ -8899,7 +8899,7 @@
       "Intermolecular energy: loaded from cache (energy-041048db05b6e31a)",
       "Hydrogen bonds: loaded from cache (hbonds-05cc72e2991311c6)",
       "RMSD: loaded from cache (rmsd-a92bf378ac4ef3eb)",
-      "Backbone trace: loaded from cache (trace-1935ae575cf73545)",
+      "Backbone trace: loaded from cache (trace-244b81d63e4f1c7e)",
       "Proximity to residue set: loaded from cache (proximity-4914c402dc842e02)",
       "Preparing Pairwise contacts ...",
       "Analysing 24 frame(s): Pairwise contacts"
@@ -9013,7 +9013,7 @@
      "keys": [
       [
        "contacts",
-       "b07e35c095914ef6"
+       "77623aff44f159fd"
       ],
       [
        "energy",
@@ -9029,7 +9029,7 @@
       ],
       [
        "trace",
-       "1935ae575cf73545"
+       "244b81d63e4f1c7e"
       ],
       [
        "proximity",
@@ -9133,8 +9133,8 @@
       "entries": [
        {
         "name": "contacts",
-        "key": "b07e35c095914ef6",
-        "file": "contacts-b07e35c095914ef6.npz",
+        "key": "77623aff44f159fd",
+        "file": "contacts-77623aff44f159fd.npz",
         "params": {
          "enabled": null,
          "group_a": "Aptamer",
@@ -9241,8 +9241,8 @@
        },
        {
         "name": "trace",
-        "key": "1935ae575cf73545",
-        "file": "trace-1935ae575cf73545.npz",
+        "key": "244b81d63e4f1c7e",
+        "file": "trace-244b81d63e4f1c7e.npz",
         "params": {
          "groups": [
           "Aptamer",
@@ -9288,13 +9288,13 @@
       "all_entries": [
        {
         "name": "contacts",
-        "key": "2981672d7215396d",
-        "file": "contacts-2981672d7215396d.npz"
+        "key": "77623aff44f159fd",
+        "file": "contacts-77623aff44f159fd.npz"
        },
        {
         "name": "contacts",
-        "key": "b07e35c095914ef6",
-        "file": "contacts-b07e35c095914ef6.npz"
+        "key": "f1e14cb0a2d0ab73",
+        "file": "contacts-f1e14cb0a2d0ab73.npz"
        },
        {
         "name": "energy",
@@ -9318,15 +9318,15 @@
        },
        {
         "name": "trace",
-        "key": "1935ae575cf73545",
-        "file": "trace-1935ae575cf73545.npz"
+        "key": "244b81d63e4f1c7e",
+        "file": "trace-244b81d63e4f1c7e.npz"
        }
       ]
      },
      "entries": {
       "contacts": {
        "name": "contacts",
-       "key": "b07e35c095914ef6",
+       "key": "77623aff44f159fd",
        "params": {
         "enabled": null,
         "group_a": "Aptamer",
@@ -9622,7 +9622,7 @@
       },
       "trace": {
        "name": "trace",
-       "key": "1935ae575cf73545",
+       "key": "244b81d63e4f1c7e",
        "params": {
         "groups": [
          "Aptamer",
@@ -9756,13 +9756,13 @@
       }
      },
      "cached": [
-      "contacts-2981672d7215396d",
-      "contacts-b07e35c095914ef6",
+      "contacts-77623aff44f159fd",
+      "contacts-f1e14cb0a2d0ab73",
       "energy-041048db05b6e31a",
       "hbonds-05cc72e2991311c6",
       "proximity-4914c402dc842e02",
       "rmsd-a92bf378ac4ef3eb",
-      "trace-1935ae575cf73545"
+      "trace-244b81d63e4f1c7e"
      ],
      "dataset": {
       "frames": [
@@ -10303,11 +10303,11 @@
       }
      },
      "log": [
-      "Pairwise contacts: loaded from cache (contacts-b07e35c095914ef6)",
+      "Pairwise contacts: loaded from cache (contacts-77623aff44f159fd)",
       "Intermolecular energy: loaded from cache (energy-041048db05b6e31a)",
       "Hydrogen bonds: loaded from cache (hbonds-05cc72e2991311c6)",
       "RMSD: loaded from cache (rmsd-a92bf378ac4ef3eb)",
-      "Backbone trace: loaded from cache (trace-1935ae575cf73545)",
+      "Backbone trace: loaded from cache (trace-244b81d63e4f1c7e)",
       "Proximity to residue set: loaded from cache (proximity-4914c402dc842e02)"
      ],
      "progress": [
@@ -10323,7 +10323,7 @@
      "keys": [
       [
        "contacts",
-       "b07e35c095914ef6"
+       "77623aff44f159fd"
       ],
       [
        "energy",
@@ -10339,7 +10339,7 @@
       ],
       [
        "trace",
-       "1935ae575cf73545"
+       "244b81d63e4f1c7e"
       ],
       [
        "proximity",
@@ -10443,8 +10443,8 @@
       "entries": [
        {
         "name": "contacts",
-        "key": "b07e35c095914ef6",
-        "file": "contacts-b07e35c095914ef6.npz",
+        "key": "77623aff44f159fd",
+        "file": "contacts-77623aff44f159fd.npz",
         "params": {
          "enabled": null,
          "group_a": "Aptamer",
@@ -10551,8 +10551,8 @@
        },
        {
         "name": "trace",
-        "key": "1935ae575cf73545",
-        "file": "trace-1935ae575cf73545.npz",
+        "key": "244b81d63e4f1c7e",
+        "file": "trace-244b81d63e4f1c7e.npz",
         "params": {
          "groups": [
           "Aptamer",
@@ -10598,13 +10598,13 @@
       "all_entries": [
        {
         "name": "contacts",
-        "key": "2981672d7215396d",
-        "file": "contacts-2981672d7215396d.npz"
+        "key": "77623aff44f159fd",
+        "file": "contacts-77623aff44f159fd.npz"
        },
        {
         "name": "contacts",
-        "key": "b07e35c095914ef6",
-        "file": "contacts-b07e35c095914ef6.npz"
+        "key": "f1e14cb0a2d0ab73",
+        "file": "contacts-f1e14cb0a2d0ab73.npz"
        },
        {
         "name": "energy",
@@ -10628,15 +10628,15 @@
        },
        {
         "name": "trace",
-        "key": "1935ae575cf73545",
-        "file": "trace-1935ae575cf73545.npz"
+        "key": "244b81d63e4f1c7e",
+        "file": "trace-244b81d63e4f1c7e.npz"
        }
       ]
      },
      "entries": {
       "contacts": {
        "name": "contacts",
-       "key": "b07e35c095914ef6",
+       "key": "77623aff44f159fd",
        "params": {
         "enabled": null,
         "group_a": "Aptamer",
@@ -10932,7 +10932,7 @@
       },
       "trace": {
        "name": "trace",
-       "key": "1935ae575cf73545",
+       "key": "244b81d63e4f1c7e",
        "params": {
         "groups": [
          "Aptamer",
@@ -11066,13 +11066,13 @@
       }
      },
      "cached": [
-      "contacts-2981672d7215396d",
-      "contacts-b07e35c095914ef6",
+      "contacts-77623aff44f159fd",
+      "contacts-f1e14cb0a2d0ab73",
       "energy-041048db05b6e31a",
       "hbonds-05cc72e2991311c6",
       "proximity-4914c402dc842e02",
       "rmsd-a92bf378ac4ef3eb",
-      "trace-1935ae575cf73545"
+      "trace-244b81d63e4f1c7e"
      ],
      "dataset": {
       "frames": [
@@ -11729,7 +11729,7 @@
      "keys": [
       [
        "contacts",
-       "b07e35c095914ef6"
+       "77623aff44f159fd"
       ],
       [
        "energy",
@@ -11745,7 +11745,7 @@
       ],
       [
        "trace",
-       "1935ae575cf73545"
+       "244b81d63e4f1c7e"
       ],
       [
        "proximity",
@@ -11849,8 +11849,8 @@
       "entries": [
        {
         "name": "contacts",
-        "key": "b07e35c095914ef6",
-        "file": "contacts-b07e35c095914ef6.npz",
+        "key": "77623aff44f159fd",
+        "file": "contacts-77623aff44f159fd.npz",
         "params": {
          "enabled": null,
          "group_a": "Aptamer",
@@ -11957,8 +11957,8 @@
        },
        {
         "name": "trace",
-        "key": "1935ae575cf73545",
-        "file": "trace-1935ae575cf73545.npz",
+        "key": "244b81d63e4f1c7e",
+        "file": "trace-244b81d63e4f1c7e.npz",
         "params": {
          "groups": [
           "Aptamer",
@@ -12004,13 +12004,13 @@
       "all_entries": [
        {
         "name": "contacts",
-        "key": "2981672d7215396d",
-        "file": "contacts-2981672d7215396d.npz"
+        "key": "77623aff44f159fd",
+        "file": "contacts-77623aff44f159fd.npz"
        },
        {
         "name": "contacts",
-        "key": "b07e35c095914ef6",
-        "file": "contacts-b07e35c095914ef6.npz"
+        "key": "f1e14cb0a2d0ab73",
+        "file": "contacts-f1e14cb0a2d0ab73.npz"
        },
        {
         "name": "energy",
@@ -12034,15 +12034,15 @@
        },
        {
         "name": "trace",
-        "key": "1935ae575cf73545",
-        "file": "trace-1935ae575cf73545.npz"
+        "key": "244b81d63e4f1c7e",
+        "file": "trace-244b81d63e4f1c7e.npz"
        }
       ]
      },
      "entries": {
       "contacts": {
        "name": "contacts",
-       "key": "b07e35c095914ef6",
+       "key": "77623aff44f159fd",
        "params": {
         "enabled": null,
         "group_a": "Aptamer",
@@ -12338,7 +12338,7 @@
       },
       "trace": {
        "name": "trace",
-       "key": "1935ae575cf73545",
+       "key": "244b81d63e4f1c7e",
        "params": {
         "groups": [
          "Aptamer",
@@ -12472,13 +12472,13 @@
       }
      },
      "cached": [
-      "contacts-2981672d7215396d",
-      "contacts-b07e35c095914ef6",
+      "contacts-77623aff44f159fd",
+      "contacts-f1e14cb0a2d0ab73",
       "energy-041048db05b6e31a",
       "hbonds-05cc72e2991311c6",
       "proximity-4914c402dc842e02",
       "rmsd-a92bf378ac4ef3eb",
-      "trace-1935ae575cf73545"
+      "trace-244b81d63e4f1c7e"
      ],
      "dataset": {
       "frames": [
@@ -13088,7 +13088,7 @@
      "keys": [
       [
        "contacts",
-       "72509b87e4ff7b39"
+       "64a40960a345bed2"
       ],
       [
        "energy",
@@ -13104,7 +13104,7 @@
       ],
       [
        "trace",
-       "5d5e3a06d8ea2f57"
+       "f90d15192ff613e2"
       ],
       [
        "proximity",
@@ -13208,8 +13208,8 @@
       "entries": [
        {
         "name": "contacts",
-        "key": "72509b87e4ff7b39",
-        "file": "contacts-72509b87e4ff7b39.npz",
+        "key": "64a40960a345bed2",
+        "file": "contacts-64a40960a345bed2.npz",
         "params": {
          "enabled": null,
          "group_a": "Aptamer",
@@ -13316,8 +13316,8 @@
        },
        {
         "name": "trace",
-        "key": "5d5e3a06d8ea2f57",
-        "file": "trace-5d5e3a06d8ea2f57.npz",
+        "key": "f90d15192ff613e2",
+        "file": "trace-f90d15192ff613e2.npz",
         "params": {
          "groups": [
           "Aptamer",
@@ -13363,18 +13363,18 @@
       "all_entries": [
        {
         "name": "contacts",
-        "key": "2981672d7215396d",
-        "file": "contacts-2981672d7215396d.npz"
+        "key": "64a40960a345bed2",
+        "file": "contacts-64a40960a345bed2.npz"
        },
        {
         "name": "contacts",
-        "key": "72509b87e4ff7b39",
-        "file": "contacts-72509b87e4ff7b39.npz"
+        "key": "77623aff44f159fd",
+        "file": "contacts-77623aff44f159fd.npz"
        },
        {
         "name": "contacts",
-        "key": "b07e35c095914ef6",
-        "file": "contacts-b07e35c095914ef6.npz"
+        "key": "f1e14cb0a2d0ab73",
+        "file": "contacts-f1e14cb0a2d0ab73.npz"
        },
        {
         "name": "energy",
@@ -13418,20 +13418,20 @@
        },
        {
         "name": "trace",
-        "key": "1935ae575cf73545",
-        "file": "trace-1935ae575cf73545.npz"
+        "key": "244b81d63e4f1c7e",
+        "file": "trace-244b81d63e4f1c7e.npz"
        },
        {
         "name": "trace",
-        "key": "5d5e3a06d8ea2f57",
-        "file": "trace-5d5e3a06d8ea2f57.npz"
+        "key": "f90d15192ff613e2",
+        "file": "trace-f90d15192ff613e2.npz"
        }
       ]
      },
      "entries": {
       "contacts": {
        "name": "contacts",
-       "key": "72509b87e4ff7b39",
+       "key": "64a40960a345bed2",
        "params": {
         "enabled": null,
         "group_a": "Aptamer",
@@ -13727,7 +13727,7 @@
       },
       "trace": {
        "name": "trace",
-       "key": "5d5e3a06d8ea2f57",
+       "key": "f90d15192ff613e2",
        "params": {
         "groups": [
          "Aptamer",
@@ -13861,9 +13861,9 @@
       }
      },
      "cached": [
-      "contacts-2981672d7215396d",
-      "contacts-72509b87e4ff7b39",
-      "contacts-b07e35c095914ef6",
+      "contacts-64a40960a345bed2",
+      "contacts-77623aff44f159fd",
+      "contacts-f1e14cb0a2d0ab73",
       "energy-041048db05b6e31a",
       "energy-1542c4b07153a65c",
       "hbonds-05cc72e2991311c6",
@@ -13872,8 +13872,8 @@
       "proximity-98a1508318f2a103",
       "rmsd-159315ef6d95dfc3",
       "rmsd-a92bf378ac4ef3eb",
-      "trace-1935ae575cf73545",
-      "trace-5d5e3a06d8ea2f57"
+      "trace-244b81d63e4f1c7e",
+      "trace-f90d15192ff613e2"
      ],
      "dataset": {
       "frames": [
@@ -14448,7 +14448,7 @@
      "keys": [
       [
        "contacts@Target+Aptamer",
-       "b71e49256041cca8"
+       "42598f65efdafc3f"
       ],
       [
        "rmsd",
@@ -14548,8 +14548,8 @@
       "entries": [
        {
         "name": "contacts@Target+Aptamer",
-        "key": "b71e49256041cca8",
-        "file": "contacts@Target+Aptamer-b71e49256041cca8.npz",
+        "key": "42598f65efdafc3f",
+        "file": "contacts@Target+Aptamer-42598f65efdafc3f.npz",
         "params": {
          "enabled": null,
          "group_a": "Target",
@@ -14627,23 +14627,23 @@
       "all_entries": [
        {
         "name": "contacts",
-        "key": "2981672d7215396d",
-        "file": "contacts-2981672d7215396d.npz"
+        "key": "64a40960a345bed2",
+        "file": "contacts-64a40960a345bed2.npz"
        },
        {
         "name": "contacts",
-        "key": "72509b87e4ff7b39",
-        "file": "contacts-72509b87e4ff7b39.npz"
+        "key": "77623aff44f159fd",
+        "file": "contacts-77623aff44f159fd.npz"
        },
        {
         "name": "contacts",
-        "key": "b07e35c095914ef6",
-        "file": "contacts-b07e35c095914ef6.npz"
+        "key": "f1e14cb0a2d0ab73",
+        "file": "contacts-f1e14cb0a2d0ab73.npz"
        },
        {
         "name": "contacts@Target+Aptamer",
-        "key": "b71e49256041cca8",
-        "file": "contacts@Target+Aptamer-b71e49256041cca8.npz"
+        "key": "42598f65efdafc3f",
+        "file": "contacts@Target+Aptamer-42598f65efdafc3f.npz"
        },
        {
         "name": "energy",
@@ -14687,20 +14687,20 @@
        },
        {
         "name": "trace",
-        "key": "1935ae575cf73545",
-        "file": "trace-1935ae575cf73545.npz"
+        "key": "244b81d63e4f1c7e",
+        "file": "trace-244b81d63e4f1c7e.npz"
        },
        {
         "name": "trace",
-        "key": "5d5e3a06d8ea2f57",
-        "file": "trace-5d5e3a06d8ea2f57.npz"
+        "key": "f90d15192ff613e2",
+        "file": "trace-f90d15192ff613e2.npz"
        }
       ]
      },
      "entries": {
       "contacts@Target+Aptamer": {
        "name": "contacts@Target+Aptamer",
-       "key": "b71e49256041cca8",
+       "key": "42598f65efdafc3f",
        "params": {
         "enabled": null,
         "group_a": "Target",
@@ -14909,10 +14909,10 @@
       }
      },
      "cached": [
-      "contacts-2981672d7215396d",
-      "contacts-72509b87e4ff7b39",
-      "contacts-b07e35c095914ef6",
-      "contacts@Target+Aptamer-b71e49256041cca8",
+      "contacts-64a40960a345bed2",
+      "contacts-77623aff44f159fd",
+      "contacts-f1e14cb0a2d0ab73",
+      "contacts@Target+Aptamer-42598f65efdafc3f",
       "energy-041048db05b6e31a",
       "energy-1542c4b07153a65c",
       "hbonds-05cc72e2991311c6",
@@ -14921,8 +14921,8 @@
       "proximity-98a1508318f2a103",
       "rmsd-159315ef6d95dfc3",
       "rmsd-a92bf378ac4ef3eb",
-      "trace-1935ae575cf73545",
-      "trace-5d5e3a06d8ea2f57"
+      "trace-244b81d63e4f1c7e",
+      "trace-f90d15192ff613e2"
      ],
      "dataset": {
       "frames": [
@@ -15366,7 +15366,7 @@
      "log": [
       "RMSD: loaded from cache (rmsd-159315ef6d95dfc3)",
       "RMSD: loaded from cache (rmsd-159315ef6d95dfc3)",
-      "Backbone trace: loaded from cache (trace-5d5e3a06d8ea2f57)"
+      "Backbone trace: loaded from cache (trace-f90d15192ff613e2)"
      ],
      "progress": [
       [
@@ -15385,7 +15385,7 @@
       ],
       [
        "trace",
-       "5d5e3a06d8ea2f57"
+       "f90d15192ff613e2"
       ]
      ],
      "manifest_keys": [
@@ -15498,8 +15498,8 @@
        },
        {
         "name": "trace",
-        "key": "5d5e3a06d8ea2f57",
-        "file": "trace-5d5e3a06d8ea2f57.npz",
+        "key": "f90d15192ff613e2",
+        "file": "trace-f90d15192ff613e2.npz",
         "params": {
          "groups": [
           "Aptamer",
@@ -15524,23 +15524,23 @@
       "all_entries": [
        {
         "name": "contacts",
-        "key": "2981672d7215396d",
-        "file": "contacts-2981672d7215396d.npz"
+        "key": "64a40960a345bed2",
+        "file": "contacts-64a40960a345bed2.npz"
        },
        {
         "name": "contacts",
-        "key": "72509b87e4ff7b39",
-        "file": "contacts-72509b87e4ff7b39.npz"
+        "key": "77623aff44f159fd",
+        "file": "contacts-77623aff44f159fd.npz"
        },
        {
         "name": "contacts",
-        "key": "b07e35c095914ef6",
-        "file": "contacts-b07e35c095914ef6.npz"
+        "key": "f1e14cb0a2d0ab73",
+        "file": "contacts-f1e14cb0a2d0ab73.npz"
        },
        {
         "name": "contacts@Target+Aptamer",
-        "key": "b71e49256041cca8",
-        "file": "contacts@Target+Aptamer-b71e49256041cca8.npz"
+        "key": "42598f65efdafc3f",
+        "file": "contacts@Target+Aptamer-42598f65efdafc3f.npz"
        },
        {
         "name": "energy",
@@ -15584,13 +15584,13 @@
        },
        {
         "name": "trace",
-        "key": "1935ae575cf73545",
-        "file": "trace-1935ae575cf73545.npz"
+        "key": "244b81d63e4f1c7e",
+        "file": "trace-244b81d63e4f1c7e.npz"
        },
        {
         "name": "trace",
-        "key": "5d5e3a06d8ea2f57",
-        "file": "trace-5d5e3a06d8ea2f57.npz"
+        "key": "f90d15192ff613e2",
+        "file": "trace-f90d15192ff613e2.npz"
        }
       ]
      },
@@ -15644,7 +15644,7 @@
       },
       "trace": {
        "name": "trace",
-       "key": "5d5e3a06d8ea2f57",
+       "key": "f90d15192ff613e2",
        "params": {
         "groups": [
          "Aptamer",
@@ -15715,10 +15715,10 @@
       }
      },
      "cached": [
-      "contacts-2981672d7215396d",
-      "contacts-72509b87e4ff7b39",
-      "contacts-b07e35c095914ef6",
-      "contacts@Target+Aptamer-b71e49256041cca8",
+      "contacts-64a40960a345bed2",
+      "contacts-77623aff44f159fd",
+      "contacts-f1e14cb0a2d0ab73",
+      "contacts@Target+Aptamer-42598f65efdafc3f",
       "energy-041048db05b6e31a",
       "energy-1542c4b07153a65c",
       "hbonds-05cc72e2991311c6",
@@ -15727,8 +15727,8 @@
       "proximity-98a1508318f2a103",
       "rmsd-159315ef6d95dfc3",
       "rmsd-a92bf378ac4ef3eb",
-      "trace-1935ae575cf73545",
-      "trace-5d5e3a06d8ea2f57"
+      "trace-244b81d63e4f1c7e",
+      "trace-f90d15192ff613e2"
      ],
      "dataset": {
       "frames": [
@@ -16193,23 +16193,23 @@
       "all_entries": [
        {
         "name": "contacts",
-        "key": "2981672d7215396d",
-        "file": "contacts-2981672d7215396d.npz"
+        "key": "64a40960a345bed2",
+        "file": "contacts-64a40960a345bed2.npz"
        },
        {
         "name": "contacts",
-        "key": "72509b87e4ff7b39",
-        "file": "contacts-72509b87e4ff7b39.npz"
+        "key": "77623aff44f159fd",
+        "file": "contacts-77623aff44f159fd.npz"
        },
        {
         "name": "contacts",
-        "key": "b07e35c095914ef6",
-        "file": "contacts-b07e35c095914ef6.npz"
+        "key": "f1e14cb0a2d0ab73",
+        "file": "contacts-f1e14cb0a2d0ab73.npz"
        },
        {
         "name": "contacts@Target+Aptamer",
-        "key": "b71e49256041cca8",
-        "file": "contacts@Target+Aptamer-b71e49256041cca8.npz"
+        "key": "42598f65efdafc3f",
+        "file": "contacts@Target+Aptamer-42598f65efdafc3f.npz"
        },
        {
         "name": "energy",
@@ -16253,22 +16253,22 @@
        },
        {
         "name": "trace",
-        "key": "1935ae575cf73545",
-        "file": "trace-1935ae575cf73545.npz"
+        "key": "244b81d63e4f1c7e",
+        "file": "trace-244b81d63e4f1c7e.npz"
        },
        {
         "name": "trace",
-        "key": "5d5e3a06d8ea2f57",
-        "file": "trace-5d5e3a06d8ea2f57.npz"
+        "key": "f90d15192ff613e2",
+        "file": "trace-f90d15192ff613e2.npz"
        }
       ]
      },
      "entries": {},
      "cached": [
-      "contacts-2981672d7215396d",
-      "contacts-72509b87e4ff7b39",
-      "contacts-b07e35c095914ef6",
-      "contacts@Target+Aptamer-b71e49256041cca8",
+      "contacts-64a40960a345bed2",
+      "contacts-77623aff44f159fd",
+      "contacts-f1e14cb0a2d0ab73",
+      "contacts@Target+Aptamer-42598f65efdafc3f",
       "energy-041048db05b6e31a",
       "energy-1542c4b07153a65c",
       "hbonds-05cc72e2991311c6",
@@ -16277,8 +16277,8 @@
       "proximity-98a1508318f2a103",
       "rmsd-159315ef6d95dfc3",
       "rmsd-a92bf378ac4ef3eb",
-      "trace-1935ae575cf73545",
-      "trace-5d5e3a06d8ea2f57"
+      "trace-244b81d63e4f1c7e",
+      "trace-f90d15192ff613e2"
      ],
      "dataset": {
       "frames": [
@@ -17473,7 +17473,7 @@
      "keys": [
       [
        "contacts",
-       "afe2a73b93066c58"
+       "31a42f1661d376e9"
       ]
      ],
      "manifest_keys": [
@@ -17564,8 +17564,8 @@
       "entries": [
        {
         "name": "contacts",
-        "key": "afe2a73b93066c58",
-        "file": "contacts-afe2a73b93066c58.npz",
+        "key": "31a42f1661d376e9",
+        "file": "contacts-31a42f1661d376e9.npz",
         "params": {
          "enabled": null,
          "group_a": "Aptamer",
@@ -17592,8 +17592,8 @@
       "all_entries": [
        {
         "name": "contacts",
-        "key": "afe2a73b93066c58",
-        "file": "contacts-afe2a73b93066c58.npz"
+        "key": "31a42f1661d376e9",
+        "file": "contacts-31a42f1661d376e9.npz"
        },
        {
         "name": "hbonds",
@@ -17610,7 +17610,7 @@
      "entries": {
       "contacts": {
        "name": "contacts",
-       "key": "afe2a73b93066c58",
+       "key": "31a42f1661d376e9",
        "params": {
         "enabled": null,
         "group_a": "Aptamer",
@@ -17709,7 +17709,7 @@
       }
      },
      "cached": [
-      "contacts-afe2a73b93066c58",
+      "contacts-31a42f1661d376e9",
       "hbonds-b2cea2e5e9e2b6a7",
       "rmsd@Target-07bf0db251599fbd"
      ],
@@ -18216,8 +18216,8 @@
       "all_entries": [
        {
         "name": "contacts",
-        "key": "afe2a73b93066c58",
-        "file": "contacts-afe2a73b93066c58.npz"
+        "key": "31a42f1661d376e9",
+        "file": "contacts-31a42f1661d376e9.npz"
        },
        {
         "name": "hbonds",
@@ -18233,7 +18233,7 @@
      },
      "entries": {},
      "cached": [
-      "contacts-afe2a73b93066c58",
+      "contacts-31a42f1661d376e9",
       "hbonds-b2cea2e5e9e2b6a7",
       "rmsd@Target-07bf0db251599fbd"
      ],
@@ -18799,8 +18799,8 @@
       "all_entries": [
        {
         "name": "contacts",
-        "key": "afe2a73b93066c58",
-        "file": "contacts-afe2a73b93066c58.npz"
+        "key": "31a42f1661d376e9",
+        "file": "contacts-31a42f1661d376e9.npz"
        },
        {
         "name": "hbonds",
@@ -18956,7 +18956,7 @@
       }
      },
      "cached": [
-      "contacts-afe2a73b93066c58",
+      "contacts-31a42f1661d376e9",
       "hbonds-b2cea2e5e9e2b6a7",
       "rmsd@Target-07bf0db251599fbd"
      ],
@@ -23864,7 +23864,7 @@
       ],
       [
        "contacts",
-       "04ac193aa1d70607"
+       "9c2fb3793cc6266f"
       ]
      ],
      "manifest_keys": [
@@ -23985,8 +23985,8 @@
        },
        {
         "name": "contacts",
-        "key": "04ac193aa1d70607",
-        "file": "contacts-04ac193aa1d70607.npz",
+        "key": "9c2fb3793cc6266f",
+        "file": "contacts-9c2fb3793cc6266f.npz",
         "params": {
          "enabled": null,
          "group_a": "Aptamer",
@@ -24013,8 +24013,8 @@
       "all_entries": [
        {
         "name": "contacts",
-        "key": "04ac193aa1d70607",
-        "file": "contacts-04ac193aa1d70607.npz"
+        "key": "9c2fb3793cc6266f",
+        "file": "contacts-9c2fb3793cc6266f.npz"
        },
        {
         "name": "rmsd",
@@ -24073,7 +24073,7 @@
       },
       "contacts": {
        "name": "contacts",
-       "key": "04ac193aa1d70607",
+       "key": "9c2fb3793cc6266f",
        "params": {
         "enabled": null,
         "group_a": "Aptamer",
@@ -24172,7 +24172,7 @@
       }
      },
      "cached": [
-      "contacts-04ac193aa1d70607",
+      "contacts-9c2fb3793cc6266f",
       "rmsd-3db195dca2616c3a"
      ],
      "dataset": {
@@ -24644,7 +24644,7 @@
       "Cleaning trajectory with cpptraj ...",
       "Reusing cleaned trajectory from {work}/cleaned",
       "RMSD: loaded from cache (rmsd-3db195dca2616c3a)",
-      "Pairwise contacts: loaded from cache (contacts-04ac193aa1d70607)"
+      "Pairwise contacts: loaded from cache (contacts-9c2fb3793cc6266f)"
      ],
      "progress": [
       [
@@ -24663,7 +24663,7 @@
       ],
       [
        "contacts",
-       "04ac193aa1d70607"
+       "9c2fb3793cc6266f"
       ]
      ],
      "manifest_keys": [
@@ -24784,8 +24784,8 @@
        },
        {
         "name": "contacts",
-        "key": "04ac193aa1d70607",
-        "file": "contacts-04ac193aa1d70607.npz",
+        "key": "9c2fb3793cc6266f",
+        "file": "contacts-9c2fb3793cc6266f.npz",
         "params": {
          "enabled": null,
          "group_a": "Aptamer",
@@ -24812,8 +24812,8 @@
       "all_entries": [
        {
         "name": "contacts",
-        "key": "04ac193aa1d70607",
-        "file": "contacts-04ac193aa1d70607.npz"
+        "key": "9c2fb3793cc6266f",
+        "file": "contacts-9c2fb3793cc6266f.npz"
        },
        {
         "name": "rmsd",
@@ -24872,7 +24872,7 @@
       },
       "contacts": {
        "name": "contacts",
-       "key": "04ac193aa1d70607",
+       "key": "9c2fb3793cc6266f",
        "params": {
         "enabled": null,
         "group_a": "Aptamer",
@@ -24971,7 +24971,7 @@
       }
      },
      "cached": [
-      "contacts-04ac193aa1d70607",
+      "contacts-9c2fb3793cc6266f",
       "rmsd-3db195dca2616c3a"
      ],
      "dataset": {

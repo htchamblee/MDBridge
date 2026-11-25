@@ -3,7 +3,7 @@
   {
    "name": "contacts",
    "label": "Pairwise contacts",
-   "version": 1,
+   "version": 2,
    "internal": false,
    "group_slots": 2,
    "output_labels": [
@@ -86,7 +86,7 @@
   {
    "name": "mg",
    "label": "Mg coordination",
-   "version": 1,
+   "version": 2,
    "internal": false,
    "group_slots": 2,
    "output_labels": [
@@ -156,7 +156,7 @@
   {
    "name": "trace",
    "label": "Backbone trace",
-   "version": 4,
+   "version": 5,
    "internal": true,
    "group_slots": 0,
    "output_labels": []
@@ -180,7 +180,7 @@
   {
    "name": "basepairs",
    "label": "Base pairs",
-   "version": 1,
+   "version": 2,
    "internal": true,
    "group_slots": 0,
    "output_labels": [
@@ -307,8 +307,8 @@
       ]
      ],
      "cache_keys": [
-      "1feae879d155e01a",
-      "45b5548bcf0e6bd5"
+      "1a8ae43e4c8e696f",
+      "e8259374093762c6"
      ],
      "referenced_groups": [
       {
@@ -562,8 +562,8 @@
       ]
      ],
      "cache_keys": [
-      "354d5fffe13e8f8f",
-      "42b9323d41cd4c64"
+      "871ffe65d4023f9d",
+      "2c789a5e049b3247"
      ],
      "referenced_groups": [
       {
@@ -764,8 +764,8 @@
       ]
      ],
      "cache_keys": [
-      "4e92e217644a180b",
-      "44ec1c6a9df34cab"
+      "1ce61b93d3c75583",
+      "e28c62bcb01cb942"
      ],
      "referenced_groups": [
       {
@@ -948,8 +948,8 @@
       ]
      ],
      "cache_keys": [
-      "30de419f88d26bb3",
-      "b526e706fb03e808"
+      "c55c5bfc75c1be83",
+      "db81516d11d24223"
      ],
      "referenced_groups": [
       {
@@ -1263,8 +1263,8 @@
        ]
       ],
       "cache_keys": [
-       "1feae879d155e01a",
-       "45b5548bcf0e6bd5"
+       "1a8ae43e4c8e696f",
+       "e8259374093762c6"
       ],
       "referenced_groups": [
        {
@@ -1351,8 +1351,8 @@
        ]
       ],
       "cache_keys": [
-       "b4410d706f68961f",
-       "a4d0d2410949a35f"
+       "316b15b594ffc5c7",
+       "5b758f17a11390e9"
       ],
       "referenced_groups": [
        {
@@ -1480,8 +1480,8 @@
        ]
       ],
       "cache_keys": [
-       "1feae879d155e01a",
-       "45b5548bcf0e6bd5"
+       "1a8ae43e4c8e696f",
+       "e8259374093762c6"
       ],
       "referenced_groups": [
        {
@@ -1568,8 +1568,8 @@
        ]
       ],
       "cache_keys": [
-       "b4410d706f68961f",
-       "a4d0d2410949a35f"
+       "316b15b594ffc5c7",
+       "5b758f17a11390e9"
       ],
       "referenced_groups": [
        {
@@ -1653,8 +1653,8 @@
        ]
       ],
       "cache_keys": [
-       "1feae879d155e01a",
-       "45b5548bcf0e6bd5"
+       "1a8ae43e4c8e696f",
+       "e8259374093762c6"
       ],
       "referenced_groups": [
        {
@@ -1835,8 +1835,8 @@
        ]
       ],
       "cache_keys": [
-       "4e92e217644a180b",
-       "44ec1c6a9df34cab"
+       "1ce61b93d3c75583",
+       "e28c62bcb01cb942"
       ],
       "referenced_groups": [
        {
@@ -1885,8 +1885,8 @@
        ]
       ],
       "cache_keys": [
-       "4e92e217644a180b",
-       "44ec1c6a9df34cab"
+       "1ce61b93d3c75583",
+       "e28c62bcb01cb942"
       ],
       "referenced_groups": [
        {
@@ -2225,8 +2225,8 @@
        ]
       ],
       "cache_keys": [
-       "354d5fffe13e8f8f",
-       "42b9323d41cd4c64"
+       "871ffe65d4023f9d",
+       "2c789a5e049b3247"
       ],
       "referenced_groups": [
        {
@@ -3345,8 +3345,8 @@
       ]
      ],
      "cache_keys": [
-      "626c45235531254f",
-      "44ea5b689b7bfd66"
+      "692dae19a41a649a",
+      "1589667725d82a01"
      ],
      "referenced_groups": [
       {
@@ -3615,8 +3615,8 @@
       ]
      ],
      "cache_keys": [
-      "ce8da1a70d0e23d0",
-      "e92da911c5685a43"
+      "eaafc174f6e86eca",
+      "4494345a8c04790d"
      ],
      "referenced_groups": [
       {
@@ -3883,8 +3883,8 @@
       ]
      ],
      "cache_keys": [
-      "4aa8cdcf3680ef50",
-      "f84bed03d26eba3e"
+      "7a253a015dcc4521",
+      "503cb6c1459f1656"
      ],
      "referenced_groups": [
       {
@@ -4070,8 +4070,8 @@
       ]
      ],
      "cache_keys": [
-      "7d787a0fc5881378",
-      "770bd36523365e56"
+      "30f4f8a0a01039e7",
+      "d59f77debe7d7f23"
      ],
      "referenced_groups": [
       {
@@ -4464,8 +4464,8 @@
        ]
       ],
       "cache_keys": [
-       "626c45235531254f",
-       "44ea5b689b7bfd66"
+       "692dae19a41a649a",
+       "1589667725d82a01"
       ],
       "referenced_groups": [
        {
@@ -4567,8 +4567,8 @@
        ]
       ],
       "cache_keys": [
-       "b69380609d018b78",
-       "d463c25a2b9c6eaa"
+       "4fde885bc8ed9832",
+       "4d2704acc61cff85"
       ],
       "referenced_groups": [
        {
@@ -4696,8 +4696,8 @@
        ]
       ],
       "cache_keys": [
-       "626c45235531254f",
-       "44ea5b689b7bfd66"
+       "692dae19a41a649a",
+       "1589667725d82a01"
       ],
       "referenced_groups": [
        {
@@ -4799,8 +4799,8 @@
        ]
       ],
       "cache_keys": [
-       "b69380609d018b78",
-       "d463c25a2b9c6eaa"
+       "4fde885bc8ed9832",
+       "4d2704acc61cff85"
       ],
       "referenced_groups": [
        {
@@ -4884,8 +4884,8 @@
        ]
       ],
       "cache_keys": [
-       "626c45235531254f",
-       "44ea5b689b7bfd66"
+       "692dae19a41a649a",
+       "1589667725d82a01"
       ],
       "referenced_groups": [
        {
@@ -5182,8 +5182,8 @@
        ]
       ],
       "cache_keys": [
-       "4aa8cdcf3680ef50",
-       "f84bed03d26eba3e"
+       "7a253a015dcc4521",
+       "503cb6c1459f1656"
       ],
       "referenced_groups": [
        {
@@ -5233,8 +5233,8 @@
        ]
       ],
       "cache_keys": [
-       "4aa8cdcf3680ef50",
-       "f84bed03d26eba3e"
+       "7a253a015dcc4521",
+       "503cb6c1459f1656"
       ],
       "referenced_groups": [
        {
@@ -5664,8 +5664,8 @@
        ]
       ],
       "cache_keys": [
-       "ce8da1a70d0e23d0",
-       "e92da911c5685a43"
+       "eaafc174f6e86eca",
+       "4494345a8c04790d"
       ],
       "referenced_groups": [
        {
@@ -6899,8 +6899,8 @@
       ]
      ],
      "cache_keys": [
-      "1feae879d155e01a",
-      "45b5548bcf0e6bd5"
+      "1a8ae43e4c8e696f",
+      "e8259374093762c6"
      ],
      "referenced_groups": [
       {
@@ -7154,8 +7154,8 @@
       ]
      ],
      "cache_keys": [
-      "354d5fffe13e8f8f",
-      "42b9323d41cd4c64"
+      "871ffe65d4023f9d",
+      "2c789a5e049b3247"
      ],
      "referenced_groups": [
       {
@@ -7329,8 +7329,8 @@
       ]
      ],
      "cache_keys": [
-      "4e92e217644a180b",
-      "44ec1c6a9df34cab"
+      "1ce61b93d3c75583",
+      "e28c62bcb01cb942"
      ],
      "referenced_groups": [
       {
@@ -7513,8 +7513,8 @@
       ]
      ],
      "cache_keys": [
-      "30de419f88d26bb3",
-      "b526e706fb03e808"
+      "c55c5bfc75c1be83",
+      "db81516d11d24223"
      ],
      "referenced_groups": [
       {
@@ -7807,8 +7807,8 @@
        ]
       ],
       "cache_keys": [
-       "1feae879d155e01a",
-       "45b5548bcf0e6bd5"
+       "1a8ae43e4c8e696f",
+       "e8259374093762c6"
       ],
       "referenced_groups": [
        {
@@ -7895,8 +7895,8 @@
        ]
       ],
       "cache_keys": [
-       "b4410d706f68961f",
-       "a4d0d2410949a35f"
+       "316b15b594ffc5c7",
+       "5b758f17a11390e9"
       ],
       "referenced_groups": [
        {
@@ -8024,8 +8024,8 @@
        ]
       ],
       "cache_keys": [
-       "1feae879d155e01a",
-       "45b5548bcf0e6bd5"
+       "1a8ae43e4c8e696f",
+       "e8259374093762c6"
       ],
       "referenced_groups": [
        {
@@ -8112,8 +8112,8 @@
        ]
       ],
       "cache_keys": [
-       "b4410d706f68961f",
-       "a4d0d2410949a35f"
+       "316b15b594ffc5c7",
+       "5b758f17a11390e9"
       ],
       "referenced_groups": [
        {
@@ -8197,8 +8197,8 @@
        ]
       ],
       "cache_keys": [
-       "1feae879d155e01a",
-       "45b5548bcf0e6bd5"
+       "1a8ae43e4c8e696f",
+       "e8259374093762c6"
       ],
       "referenced_groups": [
        {
@@ -8379,8 +8379,8 @@
        ]
       ],
       "cache_keys": [
-       "4e92e217644a180b",
-       "44ec1c6a9df34cab"
+       "1ce61b93d3c75583",
+       "e28c62bcb01cb942"
       ],
       "referenced_groups": [
        {
@@ -8429,8 +8429,8 @@
        ]
       ],
       "cache_keys": [
-       "4e92e217644a180b",
-       "44ec1c6a9df34cab"
+       "1ce61b93d3c75583",
+       "e28c62bcb01cb942"
       ],
       "referenced_groups": [
        {
@@ -8769,8 +8769,8 @@
        ]
       ],
       "cache_keys": [
-       "354d5fffe13e8f8f",
-       "42b9323d41cd4c64"
+       "871ffe65d4023f9d",
+       "2c789a5e049b3247"
       ],
       "referenced_groups": [
        {
@@ -9745,14 +9745,14 @@
       ]
      ],
      "cache_keys": [
-      "2dc386138890bd2a",
-      "05bb59c502c4ff27"
+      "4b5d0b7904a126a4",
+      "930e0937dd8f2218"
      ],
      "referenced_groups": [
       {
        "name": "Aptamer",
-       "residues": "7-12",
-       "selection": "group:Target"
+       "residues": "1-6",
+       "selection": ""
       },
       {
        "name": "Target",
@@ -9898,14 +9898,14 @@
       ]
      ],
      "cache_keys": [
-      "df60c9bbf2ed826f",
-      "0e32c3d2f691bfe3"
+      "cf9e5a2efffdd6fd",
+      "4026c58d45b784c1"
      ],
      "referenced_groups": [
       {
        "name": "Aptamer",
-       "residues": "7-12",
-       "selection": "group:Target"
+       "residues": "1-6",
+       "selection": ""
       },
       {
        "name": "Target",
@@ -9995,14 +9995,14 @@
       ]
      ],
      "cache_keys": [
-      "3e3be7e238b68737",
-      "1c71200210535911"
+      "92f5845ed710e5f8",
+      "6d37df45ff8ddc1f"
      ],
      "referenced_groups": [
       {
        "name": "Aptamer",
-       "residues": "7-12",
-       "selection": "group:Target"
+       "residues": "1-6",
+       "selection": ""
       },
       {
        "name": "Target",
@@ -10062,14 +10062,14 @@
       ]
      ],
      "cache_keys": [
-      "9e3c25123f518ab2",
-      "c41522bff4ff5206"
+      "44bc2ec3247ee2b1",
+      "6fcb13d6172a5a3f"
      ],
      "referenced_groups": [
       {
        "name": "Aptamer",
-       "residues": "7-12",
-       "selection": "group:Target"
+       "residues": "1-6",
+       "selection": ""
       },
       {
        "name": "Target",
@@ -10142,14 +10142,14 @@
       ]
      ],
      "cache_keys": [
-      "03bc48e3bf088b2f",
-      "0f4b892476fbce48"
+      "f28937444f023c45",
+      "48e133debd27dfb2"
      ],
      "referenced_groups": [
       {
        "name": "Aptamer",
-       "residues": "7-12",
-       "selection": "group:Target"
+       "residues": "1-6",
+       "selection": ""
       },
       {
        "name": "Target",
@@ -10198,14 +10198,14 @@
       ]
      ],
      "cache_keys": [
-      "ef01128179c68b3a",
-      "ea18304263d6cfc0"
+      "67f2781f8225cd18",
+      "3575f9d8d55d382a"
      ],
      "referenced_groups": [
       {
        "name": "Aptamer",
-       "residues": "7-12",
-       "selection": "group:Target"
+       "residues": "1-6",
+       "selection": ""
       },
       {
        "name": "Target",
@@ -10261,14 +10261,14 @@
       ]
      ],
      "cache_keys": [
-      "9d268e73635313a2",
-      "601c80e83d1b1d0e"
+      "87e9319e69a785e5",
+      "033d9854511f5386"
      ],
      "referenced_groups": [
       {
        "name": "Aptamer",
-       "residues": "7-12",
-       "selection": "group:Target"
+       "residues": "1-6",
+       "selection": ""
       },
       {
        "name": "Target",
@@ -10317,14 +10317,14 @@
       ]
      ],
      "cache_keys": [
-      "a9eae12a00c2d46e",
-      "e27d57a305da5dfd"
+      "69c088d645cf73e0",
+      "9d87cb1b1715a6d5"
      ],
      "referenced_groups": [
       {
        "name": "Aptamer",
-       "residues": "7-12",
-       "selection": "group:Target"
+       "residues": "1-6",
+       "selection": ""
       },
       {
        "name": "Target",
@@ -10385,14 +10385,14 @@
       ]
      ],
      "cache_keys": [
-      "7117baf2f55456e8",
-      "5db51fe0b06e900d"
+      "fa86995acc60949f",
+      "c2c493f864f57c41"
      ],
      "referenced_groups": [
       {
        "name": "Aptamer",
-       "residues": "7-12",
-       "selection": "group:Target"
+       "residues": "1-6",
+       "selection": ""
       },
       {
        "name": "Target",
@@ -10498,12 +10498,7 @@
      [
       {
        "name": "Aptamer",
-       "residues": "7-12",
-       "selection": "group:Target"
-      },
-      {
-       "name": "Target",
-       "residues": "13-24",
+       "residues": "1-6",
        "selection": ""
       }
      ]
@@ -10703,14 +10698,14 @@
        ]
       ],
       "cache_keys": [
-       "2dc386138890bd2a",
-       "05bb59c502c4ff27"
+       "4b5d0b7904a126a4",
+       "930e0937dd8f2218"
       ],
       "referenced_groups": [
        {
         "name": "Aptamer",
-        "residues": "7-12",
-        "selection": "group:Target"
+        "residues": "1-6",
+        "selection": ""
        },
        {
         "name": "Target",
@@ -10791,14 +10786,14 @@
        ]
       ],
       "cache_keys": [
-       "d68b88f72cefa495",
-       "7e6a3c91b260f83e"
+       "29cf13e8676c2a0a",
+       "99971f4419f6f04b"
       ],
       "referenced_groups": [
        {
         "name": "Aptamer",
-        "residues": "7-12",
-        "selection": "group:Target"
+        "residues": "1-6",
+        "selection": ""
        },
        {
         "name": "Target",
@@ -10920,14 +10915,14 @@
        ]
       ],
       "cache_keys": [
-       "2dc386138890bd2a",
-       "05bb59c502c4ff27"
+       "4b5d0b7904a126a4",
+       "930e0937dd8f2218"
       ],
       "referenced_groups": [
        {
         "name": "Aptamer",
-        "residues": "7-12",
-        "selection": "group:Target"
+        "residues": "1-6",
+        "selection": ""
        },
        {
         "name": "Target",
@@ -11008,14 +11003,14 @@
        ]
       ],
       "cache_keys": [
-       "d68b88f72cefa495",
-       "7e6a3c91b260f83e"
+       "29cf13e8676c2a0a",
+       "99971f4419f6f04b"
       ],
       "referenced_groups": [
        {
         "name": "Aptamer",
-        "residues": "7-12",
-        "selection": "group:Target"
+        "residues": "1-6",
+        "selection": ""
        },
        {
         "name": "Target",
@@ -11093,14 +11088,14 @@
        ]
       ],
       "cache_keys": [
-       "2dc386138890bd2a",
-       "05bb59c502c4ff27"
+       "4b5d0b7904a126a4",
+       "930e0937dd8f2218"
       ],
       "referenced_groups": [
        {
         "name": "Aptamer",
-        "residues": "7-12",
-        "selection": "group:Target"
+        "residues": "1-6",
+        "selection": ""
        },
        {
         "name": "Target",
@@ -11276,14 +11271,14 @@
        ]
       ],
       "cache_keys": [
-       "ef01128179c68b3a",
-       "ea18304263d6cfc0"
+       "67f2781f8225cd18",
+       "3575f9d8d55d382a"
       ],
       "referenced_groups": [
        {
         "name": "Aptamer",
-        "residues": "7-12",
-        "selection": "group:Target"
+        "residues": "1-6",
+        "selection": ""
        },
        {
         "name": "Target",
@@ -11327,14 +11322,14 @@
        ]
       ],
       "cache_keys": [
-       "ef01128179c68b3a",
-       "ea18304263d6cfc0"
+       "67f2781f8225cd18",
+       "3575f9d8d55d382a"
       ],
       "referenced_groups": [
        {
         "name": "Aptamer",
-        "residues": "7-12",
-        "selection": "group:Target"
+        "residues": "1-6",
+        "selection": ""
        },
        {
         "name": "Target",
@@ -11557,14 +11552,14 @@
        ]
       ],
       "cache_keys": [
-       "27e57f59fc25c314",
-       "67b649606441d426"
+       "d30f34106a9a8782",
+       "ebfc15e4303d79de"
       ],
       "referenced_groups": [
        {
         "name": "Aptamer",
-        "residues": "7-12",
-        "selection": "group:Target"
+        "residues": "1-6",
+        "selection": ""
        },
        {
         "name": "Target",
@@ -11667,14 +11662,14 @@
        ]
       ],
       "cache_keys": [
-       "3e3be7e238b68737",
-       "1c71200210535911"
+       "92f5845ed710e5f8",
+       "6d37df45ff8ddc1f"
       ],
       "referenced_groups": [
        {
         "name": "Aptamer",
-        "residues": "7-12",
-        "selection": "group:Target"
+        "residues": "1-6",
+        "selection": ""
        },
        {
         "name": "Target",
@@ -12658,8 +12653,8 @@
       ]
      ],
      "cache_keys": [
-      "86f1370ead67ddd0",
-      "63dc93c694323c16"
+      "2e339524a22180a6",
+      "fb03e2a3fd35e751"
      ],
      "referenced_groups": [],
      "new_result": [
@@ -12880,8 +12875,8 @@
       ]
      ],
      "cache_keys": [
-      "51c7f7c6edb3a020",
-      "6a3ab874b10242c7"
+      "8004abe2ad0409c1",
+      "55677c20d2a6bbf2"
      ],
      "referenced_groups": [],
      "new_result": [
@@ -13047,8 +13042,8 @@
       ]
      ],
      "cache_keys": [
-      "a788cd037affae6e",
-      "6bdc253f869d6a5c"
+      "36e30c78b9ffdc51",
+      "0971cf6363b0b27a"
      ],
      "referenced_groups": [],
      "new_result": [
@@ -13192,8 +13187,8 @@
       ]
      ],
      "cache_keys": [
-      "e0a56f0d17e351c1",
-      "4c7980b9002c89e2"
+      "a382aee05c00fb80",
+      "a29f4a1aa2ea9fa3"
      ],
      "referenced_groups": [],
      "new_result": [
@@ -13466,8 +13461,8 @@
        ]
       ],
       "cache_keys": [
-       "86f1370ead67ddd0",
-       "63dc93c694323c16"
+       "2e339524a22180a6",
+       "fb03e2a3fd35e751"
       ],
       "referenced_groups": []
      },
@@ -13599,8 +13594,8 @@
        ]
       ],
       "cache_keys": [
-       "86f1370ead67ddd0",
-       "63dc93c694323c16"
+       "2e339524a22180a6",
+       "fb03e2a3fd35e751"
       ],
       "referenced_groups": []
      },
@@ -13688,8 +13683,8 @@
        ]
       ],
       "cache_keys": [
-       "86f1370ead67ddd0",
-       "63dc93c694323c16"
+       "2e339524a22180a6",
+       "fb03e2a3fd35e751"
       ],
       "referenced_groups": []
      },
@@ -13812,8 +13807,8 @@
        ]
       ],
       "cache_keys": [
-       "a788cd037affae6e",
-       "6bdc253f869d6a5c"
+       "36e30c78b9ffdc51",
+       "0971cf6363b0b27a"
       ],
       "referenced_groups": []
      },
@@ -13849,8 +13844,8 @@
        ]
       ],
       "cache_keys": [
-       "a788cd037affae6e",
-       "6bdc253f869d6a5c"
+       "36e30c78b9ffdc51",
+       "0971cf6363b0b27a"
       ],
       "referenced_groups": []
      },

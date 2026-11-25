@@ -151,8 +151,9 @@ private:
 class BasePairsDescriptor final : public AnalysisDescriptor {
 public:
     BasePairsDescriptor()
-        : AnalysisDescriptor(
-              {"basepairs", "Base pairs", 1, true, 0, {{"map", "Base pairs"}, {"count", "Base pairs"}}}) {}
+        : AnalysisDescriptor({"basepairs", "Base pairs",
+                              2,  // v2: per-atom element fallback in the heavy-atom filter (SEL-13)
+                              true, 0, {{"map", "Base pairs"}, {"count", "Base pairs"}}}) {}
 
     core::Table paramsFor(const core::Project& project) const override {
         const core::BasePairParams& bp = project.analyses.basepairs;

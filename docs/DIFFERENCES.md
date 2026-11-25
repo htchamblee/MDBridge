@@ -44,9 +44,12 @@ expected data is adjusted on the test side; generated files are never edited by 
   by meaning.
 - **Analysis versions.** An analysis' version (part of its cache key) is bumped whenever an
   improvement below can change its results for real inputs, so caches written before the change are
-  not reused. One bump covers all improvements of one release: energy 2 (AN-07, AN-08 and RD-P12's
-  float64 charges). The test side gives MDATK's analyses these versions from one table,
-  tests/parity/analysis_versions.py, which the generators check against the C++ descriptors.
+  not reused. MDBridge has not been released, so one bump (MDATK's version + 1) covers every
+  improvement of this release: energy 2 (AN-07, AN-08, RD-P12's float64 charges, SEL-13), hbonds 2
+  (AN-09, AN-10, SEL-13), rmsd 2, proximity 2 (AN-15, SEL-13), atoms 3 (AN-13, AN-14, SEL-13),
+  contacts 2, mg 2, basepairs 2 and trace 5 (SEL-13). The test side gives MDATK's analyses these
+  versions from one table, tests/parity/analysis_versions.py, which regenerate_all.py checks against
+  the C++ descriptors.
 
 ## Frame-parallel runner
 
@@ -305,6 +308,74 @@ Error classes: the new reader errors (NetCDF, mdcrd, rst7, DCD 4-D) are OSErrors
 reports them as they are (a ValueError would be rewrapped as "Unable to read <file> with <class
 ...>"); parm7 errors are ValueErrors.
 
+## Selections (src/core/atom_selection.cpp, src/core/selections.cpp)
+
+The selection language stays MDAnalysis' (keywords, precedence, matching). Where MDAnalysis or MDATK
+selects the wrong atoms, accepts a typo silently or reports an internal Python text, MDBridge does
+the following instead. *Tested* (all items): tests/data/selections/atom_selection_cases.json,
+atom_selection_distance_cases.json and selections_cases.json, whose MDAnalysis / MDATK answers
+tests/parity/improvements_selections.py turns into MDBridge's (its model of the grammar is checked
+against MDAnalysis on every case whose answer is kept); tests/core/test_atom_selection.cpp and
+test_selections.cpp; cli_cases.json (`info_groups`); framework_cases.json (cache keys).
+
+- **SEL-01 Reversed `prop` operands.** `prop 6 > x` means x < 6 (the operator is mirrored).
+  MDAnalysis negates it (x <= 6), so the boundary was included or excluded the wrong way round.
+- **SEL-02 Malformed `prop` operators** are errors: `invalid operator '><' in prop (use <, >, <=,
+  >=, ==, !=)`. MDAnalysis dropped text before the operator (`prop x ><5` meant x < 5) or failed with
+  Python texts (`too many values to unpack`, `could not convert string to float: '>'`). The
+  operator is the run of `<>=!` characters after the property; anything else is reported.
+- **SEL-03 Arguments that run out** name what the keyword expects: `around: expected a distance
+  and a selection, e.g. 'around 3.5 resname MG'` (likewise isolayer, sphzone, sphlayer, cyzone,
+  cylayer), `point: expected x y z radius`, `atom: expected segid resid name`, `same: expected
+  'same <property> as <selection>'`, `prop: expected 'prop [abs] <property> <op> <value>'`.
+  MDAnalysis: `float() argument must be ... not 'NoneType'`, `pop from an empty deque`, `deque
+  index out of range`, `argument of type 'NoneType' is not iterable`, ...
+- **SEL-04 End of the selection.** `Unexpected end of selection after 'and'` (any token: `name`,
+  `not`, `(`, `group`, ...) and `Unexpected end of selection (expected ')')` replace MDAnalysis'
+  `Unknown selection token: 'None'` / `Unexpected token 'None'` / `Unexpected token: 'None'
+  Expected: ')'`. A selection of blanks only is `empty selection` (an empty string still selects
+  nothing).
+- **SEL-05 `atom` arguments** may not be keywords, `and`, `or` or parentheses (`atom A 1 and` is
+  `atom: expected segid resid name`; MDAnalysis read `and` as the atom name and selected nothing). A
+  leading backslash escapes, as for other values (`atom \and 1 P`: segid `and`).
+- **SEL-06 Distance keywords** no longer raise the grid search's errors (`Cutoff ... too large for
+  box (max ...)`, `Cutoff must be positive`, `Any of the box dimensions cannot be 0`), which
+  depended on the atom counts and the box; every cutoff gets exact minimum-image distances. A
+  negative distance or radius is always an error (`around: distance must not be negative`,
+  `sphzone: radius must not be negative`, also isolayer, sphlayer, point); MDAnalysis selected
+  nothing for a negative cutoff on the brute-force route. *Also tested:* AtomSelection.CutoffsBeyondTheBox.
+- **SEL-08 Messages.** `Unknown 'same' property 'RESID' (choose one of: fragment, x, y, ...)`
+  instead of `Unknown same property : RESIDChoose one of : dict_keys([...])`; an unknown token whose
+  lower-case spelling is a keyword gets a hint: `Unknown selection token: 'AND' (keywords are lower
+  case: did you mean 'and'?)`. New messages are not wrapped in `Selection failed: '...'`.
+- **SEL-09 Float ranges** (`mass`, `charge`, ...) accept in each bound what a single value accepts
+  (`mass 12:+13`, `mass -inf:inf`, `charge 1E-1:2`); a piece that is no number and no range of two
+  numbers is `Failed to parse number: <piece>` (`mass :3`, `mass 1:2abc`). MDAnalysis failed with
+  `could not convert string to float: ''` and ignored text after the upper bound.
+- **SEL-10 Reversed `resid` ranges** (lower resid above the upper one) select nothing, with or
+  without insertion codes. With insertion codes MDAnalysis selected both end residues (`resid 3:1`
+  on a PDB file: residues 3 and 1).
+- **SEL-13 Element fallback per atom** (`atomElements`, used by heavy-atom filters, H-bonds, Mg
+  ligands, generic LJ in energy and the structure panel): an atom without an element gets the guess
+  from its own name; atoms with one keep it. MDATK guessed every atom of the group from its name as
+  soon as one atom had no element, so an atom's element depended on the group it was in (one Amber
+  extra point switched a whole system to name guessing; `CL1` became C). No recorded case changes
+  (their topologies have all elements or none), but results can change for topologies with partly
+  missing elements, so the analyses that use elements are bumped (contacts, energy, hbonds, mg,
+  basepairs, trace, proximity, atoms; "Analysis cache" above).
+- **SEL-14 Invalid group names in `group:`.** The name after `group:` runs to the next blank or
+  parenthesis; a name a group may not have (validate()'s `[A-Za-z0-9_.-]+`), or a defined group with
+  such a name, is `group name 'bad name' may only contain letters, digits, '_', '.' and '-'`. MDATK
+  resolved `group:bad name` as the group `bad` ("unknown residue group 'bad'") and left `group:Ünï`
+  to MDAnalysis (`Unknown selection token: 'group:Ünï'`); `group:A+B` and `group:a'b` were names.
+- **SEL-15 Repeated group names:** the first group of a name wins in `group:` expansion and in the
+  groups recorded in cache keys, as in `core::group()` and the GUI (MDATK: the last one in the
+  expansion). validate() still reports the repetition.
+- **SEL-16 (kept)** A residue number in a group's ranges means `resid N`, as the `resid` keyword:
+  `45` excludes `45A` on files with insertion codes; ranges `44-46` include them. **SEL-11 (kept)**
+  `and` and `or` have the same precedence and combine left to right (`A or B and C` is
+  `(A or B) and C`); parenthesise to group otherwise.
+
 ## Density maps (src/io/include/mdbridge/io/mrc.hpp)
 
 - Truncated or corrupt gzip data raises MapError naming the file ("file too short for an MRC header",
@@ -472,6 +543,4 @@ hbonds 2, rmsd 2, proximity 2, atoms 3.
 ## Planned (from the improvement register; add each entry here when it lands)
 
 Periodic distances and minimum images for every cell (AN-01–AN-04); base pairs and stacking on
-wrapped trajectories (AN-11, AN-12); `prop` operand reversal (SEL-01, SEL-02); per-atom element
-fallback (SEL-13); reader fixes (RD-B*, RD-G*, LD-*); readable messages in place of Python's
-internal texts (SEL-03/04/08, RD-*).
+wrapped trajectories (AN-11, AN-12).

@@ -11,13 +11,22 @@ check_cpp() compares the table with the AnalysisDescriptor of each analysis in s
 and raises on any difference (regenerate_all.py and the generators run it): a bump on one side only
 fails the regeneration.
 
+Policy: MDBridge has not been released, so an analysis is bumped once, MDATK's version + 1, for
+all the improvements of this release that can change its results; a later improvement in the same
+release adds its item to the list below instead of bumping again.
+
 Per analysis, the improvements that bumped it (docs/DIFFERENCES.md):
-  energy 2     AN-07, AN-08 (exclusions); RD-P12 (float64 parm7 charges) - one bump, same release
-  hbonds 2     AN-09, AN-10 (guessed hydrogens)
+  energy 2     AN-07, AN-08 (exclusions); RD-P12 (float64 parm7 charges); SEL-13 (generic LJ
+               elements)
+  hbonds 2     AN-09, AN-10 (guessed hydrogens); SEL-13 (donor / acceptor elements)
   rmsd 2       AN-16 .. AN-18
-  proximity 2  AN-15
-  atoms 3      AN-13, AN-14 (MDATK: 2)
-  trace 4      (MDATK's)
+  proximity 2  AN-15; SEL-13 (heavy atoms)
+  atoms 3      AN-13, AN-14; SEL-13 (elements, heavy atoms, bond guess) (MDATK: 2)
+  contacts 2   SEL-13 (heavy_only)
+  mg 2         SEL-13 (ligand / occupancy elements)
+  basepairs 2  SEL-13 (heavy atoms)
+  trace 5      SEL-13 (heavy-atom centroids of residues without a trace atom) (MDATK: 4)
+  stacking 1   (ring atoms by name: SEL-13 does not change it)
 """
 
 import os
@@ -28,14 +37,14 @@ ROOT = os.path.dirname(os.path.dirname(HERE))
 
 # analysis name -> (MDATK module, class, MDBridge version)
 VERSIONS = {
-    "basepairs": ("mdatk.analysis.basepairs", "BasePairAnalysis", 1),
-    "contacts": ("mdatk.analysis.contacts", "ContactAnalysis", 1),
+    "basepairs": ("mdatk.analysis.basepairs", "BasePairAnalysis", 2),
+    "contacts": ("mdatk.analysis.contacts", "ContactAnalysis", 2),
     "energy": ("mdatk.analysis.energy", "EnergyAnalysis", 2),
     "hbonds": ("mdatk.analysis.hbonds", "HBondAnalysis", 2),
-    "mg": ("mdatk.analysis.mg", "MgAnalysis", 1),
+    "mg": ("mdatk.analysis.mg", "MgAnalysis", 2),
     "rmsd": ("mdatk.analysis.rmsd", "RMSDAnalysis", 2),
     "stacking": ("mdatk.analysis.stacking", "StackingAnalysis", 1),
-    "trace": ("mdatk.analysis.structure", "TraceAnalysis", 4),
+    "trace": ("mdatk.analysis.structure", "TraceAnalysis", 5),
     "proximity": ("mdatk.analysis.structure", "ProximityAnalysis", 2),
     "atoms": ("mdatk.analysis.structure", "AtomsAnalysis", 3),
 }

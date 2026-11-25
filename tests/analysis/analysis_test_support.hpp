@@ -304,6 +304,7 @@ inline core::System microSystem(const Value& system) {
 // conftest.micro_project(groups): the default project with residue groups {name: residues}.
 inline core::Project microProject(const std::vector<std::pair<std::string, std::string>>& groups) {
     core::Project p;
+    p.groups.clear();  // conftest replaces the default groups
     for (const auto& [name, residues] : groups) {
         p.groups.push_back({name, residues, "", "#2a78d6"});
     }

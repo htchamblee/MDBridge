@@ -51,6 +51,14 @@ improvements_analyses.apply_mdatk()  # MDATK with MDBridge's analysis improvemen
 
 import numpy as np  # noqa: E402
 
+import improvements_selections  # noqa: E402
+from mdatk import selections as _selections  # noqa: E402
+
+improvements_selections.patch_mdatk(_selections)  # MDBridge's selections (docs/DIFFERENCES.md)
+from mdatk.analysis import base as _base  # noqa: E402
+
+improvements_selections.patch_mdatk_analysis_base(_base)  # SEL-15 in the cache keys
+
 from mdatk.analysis import ANALYSES, AnalysisContext, expected_keys, run_analyses  # noqa: E402
 from mdatk.analysis import common  # noqa: E402
 from mdatk.analysis.base import (Analysis, instance_id, instance_project, key_label,  # noqa: E402

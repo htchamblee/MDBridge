@@ -68,23 +68,6 @@ PyInt pyInt(const std::string& text) {
     }
 }
 
-PyInt pyInt(const Token& token) {
-    if (!token) {
-        throw AtomSelectionError(
-            "int() argument must be a string, a bytes-like object or a real number, not "
-            "'NoneType'");
-    }
-    return pyInt(*token);
-}
-
-double pyFloat(const Token& token) {
-    if (!token) {
-        throw AtomSelectionError(
-            "float() argument must be a string or a real number, not 'NoneType'");
-    }
-    return pythonFloat(*token);
-}
-
 // numpy's cast of a Python float to float32 (overflow to infinity)
 float toFloat32(double x) {
     constexpr double kLimit = 3.4028235677973366e38;  // halfway between FLT_MAX and 2^128
@@ -204,15 +187,6 @@ const Rx& digit() {
 
 const Rx& intPattern() {  // -?\d+
     static const Rx rx = sequence({optional(ch('-')), plus(digit())});
-    return rx;
-}
-
-const Rx& floatPattern() {  // -?\d*\.?\d*(?:e[-+]?\d+)?
-    static const Rx rx =
-        sequence({optional(ch('-')), star(digit()), optional(ch('.')), star(digit()),
-                  optional(sequence(
-                      {ch('e'), optional(charIf([](char32_t c) { return c == '-' || c == '+'; })),
-                       plus(digit())}))});
     return rx;
 }
 
@@ -652,97 +626,6 @@ std::optional<CellGrid> buildCellGrid(const Geometry& g, const std::vector<float
     return CellGrid::build(ref, reach, nullptr);
 }
 
-// Largest minus smallest coordinate along each axis over the points of both sets (float32).
-std::array<float, 3> pointExtent(const std::vector<float>& ref, const std::vector<float>& conf) {
-    std::array<float, 3> lo{}, hi{};
-    lo.fill(std::numeric_limits<float>::infinity());
-    hi.fill(-std::numeric_limits<float>::infinity());
-    for (const std::vector<float>* set : {&ref, &conf}) {
-        for (std::size_t k = 0; k + 2 < set->size(); k += 3) {
-            for (std::size_t i = 0; i < 3; ++i) {
-                lo[i] = std::min(lo[i], (*set)[k + i]);
-                hi[i] = std::max(hi[i], (*set)[k + i]);
-            }
-        }
-    }
-    return {hi[0] - lo[0], hi[1] - lo[1], hi[2] - lo[2]};
-}
-
-// MDAnalysis picks a grid search over brute force for a pair search between n reference and m
-// configuration points when both sets hold at least 10 points and either n * m >= 1e8 or the
-// cutoff is at most 0.3 times the system's size on every axis (float32 arithmetic). Only the grid
-// search validates its input, so its errors appear only on that route. Results stay brute force.
-void checkGridSearch(const Geometry& g, const std::vector<float>& ref,
-                     const std::vector<float>& conf, double cutoff) {
-    const std::size_t n = ref.size() / 3, m = conf.size() / 3;
-    if (n < 10 || m < 10) {
-        return;
-    }
-    const float cutoff32 = toFloat32(cutoff);
-    if (static_cast<double>(n) * static_cast<double>(m) < 1e8) {
-        std::array<float, 3> size{};
-        if (!g.dims) {
-            size = pointExtent(ref, conf);
-        } else if (g.mode == Geometry::Mode::Ortho) {
-            size = {(*g.dims)[0], (*g.dims)[1], (*g.dims)[2]};
-        } else {
-            const std::array<float, 9> v = Geometry::cellVectors(*g.dims);
-            for (std::size_t i = 0; i < 3; ++i) {
-                const float a = v[i], b = v[3 + i], c = v[6 + i];
-                size[i] = std::max({a, b, c}) - std::min({a, b, c});
-            }
-        }
-        const float factor = 0.3f;
-        for (const float s : size) {
-            if (cutoff32 > factor * s) {
-                return;  // brute force
-            }
-        }
-    }
-    constexpr const char* kZeroBox = "Any of the box dimensions cannot be 0";
-    constexpr const char* kNegative = "Cutoff must be positive";
-    if (!g.dims) {
-        // a non-periodic cubic pseudo-box around the points
-        const std::array<float, 3> extent = pointExtent(ref, conf);
-        const float largest = std::max({extent[0], extent[1], extent[2]});
-        const float edge = std::max(largest, 2.0f * cutoff32) + 2.2f * cutoff32;
-        if (edge == 0.0f) {
-            throw AtomSelectionError(kZeroBox);
-        }
-        if (cutoff < 0) {
-            throw AtomSelectionError(kNegative);
-        }
-        return;
-    }
-    const std::array<float, 6>& dims = *g.dims;
-    if (dims[0] == 0.0f || dims[1] == 0.0f || dims[2] == 0.0f) {
-        throw AtomSelectionError(kZeroBox);
-    }
-    if (cutoff < 0) {
-        throw AtomSelectionError(kNegative);
-    }
-    // half the smallest distance between opposite faces as the grid estimates it
-    std::array<float, 3> diagonal{}, sine{};
-    if (g.mode == Geometry::Mode::Ortho) {
-        diagonal = {dims[0], dims[1], dims[2]};
-        sine = {1.0f, 1.0f, 1.0f};
-    } else {
-        const std::array<float, 9> v = Geometry::cellVectors(dims);
-        diagonal = {v[0], v[4], v[8]};
-        const float radiansPerDegree = static_cast<float>(std::acos(-1.0) / 180.0);
-        for (std::size_t i = 0; i < 3; ++i) {
-            sine[i] = std::sin(dims[3 + i] * radiansPerDegree);
-        }
-    }
-    const float ax = diagonal[0], by = diagonal[1], cz = diagonal[2];
-    const float limit = 0.5f * std::min({by * sine[0], cz * sine[0], ax * sine[1], cz * sine[1],
-                                         ax * sine[2], by * sine[2]});
-    if (cutoff > static_cast<double>(limit)) {
-        throw AtomSelectionError("Cutoff " + pythonFloatRepr(cutoff) + " too large for box (max " +
-                                 pythonFloatRepr(static_cast<double>(limit)) + ")");
-    }
-}
-
 // For every configuration point: whether some reference point lies within each cutoff
 // (distance <= cutoff), as capped_distance finds pairs.
 std::vector<std::array<bool, 2>> withinCutoffs(const Geometry& g, const std::vector<float>& ref,
@@ -1126,7 +1009,8 @@ bool below(const PyInt& a, const PyInt& b) {
 // Without an insertion-code attribute: plain integer matching, and no code may be given. With
 // one: a bare number means the empty code; a range between different numbers takes the codes from
 // the lower bound's code on at its number, every residue strictly between, and the codes up to
-// the upper bound's code at its number (applied as such to reversed bounds too).
+// the upper bound's code at its number. A reversed range ((resid, icode) of the lower bound above
+// the upper's) selects nothing either way (MDAnalysis selects both ends' residues with icodes).
 struct ResidNode : Node {
     std::vector<ResidBound> singles;
     std::vector<std::pair<ResidBound, ResidBound>> ranges;
@@ -1171,6 +1055,9 @@ struct ResidNode : Node {
                 }
             }
             for (const auto& [lo, hi] : ranges) {
+                if (below(hi.number, lo.number)) {
+                    continue;  // a reversed range selects nothing
+                }
                 if (sameNumber(lo.number, hi.number)) {
                     if (equal(v, lo.number) && code >= lo.icode && code <= hi.icode) {
                         return true;
@@ -1192,16 +1079,13 @@ struct ResidNode : Node {
 // ---- atom <segid> <resid> <name> -------------------------------------------------------------
 
 struct AtomNode : Node {
-    Token segid;
+    std::string segid;
     PyInt resid;
-    Token name;
+    std::string name;
     Mask apply(const Context& ctx) const override {
         Mask out(ctx.n);
-        if (!segid || !name) {
-            return out;
-        }
-        const auto nameId = ctx.top.strings.find(*name);
-        const auto segId = ctx.top.strings.find(*segid);
+        const auto nameId = ctx.top.strings.find(name);
+        const auto segId = ctx.top.strings.find(segid);
         if (!nameId || !segId) {
             return out;
         }
@@ -1233,8 +1117,6 @@ bool isConnectivity(std::string_view name) {
     return name == "bonds" || name == "angles" || name == "dihedrals" || name == "impropers" ||
            name == "ureybradleys" || name == "cmaps";
 }
-
-bool isPropName(const Token& value) { return propAttribute(value).has_value(); }
 
 // prop [abs] <property> <op> <value>: the per-atom value of an attribute (x, y, z: the current
 // positions) compared with a number. Single-precision positions compare with the number rounded to
@@ -1507,10 +1389,6 @@ struct AroundNode : Node {
         const Geometry g = Geometry::of(*ctx.frame);
         const std::vector<float> ref = gather(xyz, s, true);
         const std::vector<float> conf = gather(xyz, s, false);
-        checkGridSearch(g, ref, conf, outer);
-        if (inner) {
-            checkGridSearch(g, ref, conf, *inner);
-        }
         const auto hits = withinCutoffs(g, ref, conf, outer, inner);
         std::size_t k = 0;
         for (std::size_t a = 0; a < ctx.n; ++a) {
@@ -1742,8 +1620,69 @@ const Keyword* findKeyword(const Token& token) {
     return nullptr;
 }
 
-// prop's operand swap found an operator without a reversed form: reported as an unknown token
-struct KeyError {};
+// What a keyword expects when its arguments run out.
+std::string_view signature(Kind kind) {
+    switch (kind) {
+    case Kind::Around:
+        return "around: expected a distance and a selection, e.g. 'around 3.5 resname MG'";
+    case Kind::IsoLayer:
+        return "isolayer: expected an inner and an outer distance and a selection, "
+               "e.g. 'isolayer 2 3.5 resname MG'";
+    case Kind::SphZone:
+        return "sphzone: expected a radius and a selection, e.g. 'sphzone 6 resname MG'";
+    case Kind::SphLayer:
+        return "sphlayer: expected an inner and an outer radius and a selection, "
+               "e.g. 'sphlayer 3 6 resname MG'";
+    case Kind::Point:
+        return "point: expected x y z radius";
+    case Kind::CyZone:
+        return "cyzone: expected externalRadius zMax zMin and a selection";
+    case Kind::CyLayer:
+        return "cylayer: expected innerRadius externalRadius zMax zMin and a selection";
+    case Kind::Atom:
+        return "atom: expected segid resid name";
+    case Kind::Same:
+        return "same: expected 'same <property> as <selection>'";
+    case Kind::Prop:
+        return "prop: expected 'prop [abs] <property> <op> <value>'";
+    default:
+        break;
+    }
+    return "unexpected end of selection";
+}
+
+// same <property> as: the properties, in the order the error message lists them
+constexpr std::string_view kSameOrder =
+    "fragment, x, y, z, residue, segment, name, type, resname, resid, segid, mass, charge, "
+    "radius, bfactor, resnum, topologyattr, index, resindex, segindex, atomattr, id, element, "
+    "record_type, chainID, tempfactor, formalcharge, occupancy, altLoc, gbscreen, solventradius, "
+    "nbindex, rmin, epsilon, rmin14, epsilon14, aromaticity, chirality, residueattr, icode, "
+    "moltype, molnum, segmentattr, bonds, ureybradleys, angles, dihedrals, impropers, cmaps, "
+    "atomnum, atomiccharge, chargegroup, model, type_index";
+
+bool isOperatorCharacter(char c) { return c == '<' || c == '>' || c == '=' || c == '!'; }
+
+// "lower:upper" / "lower-upper" / "lower to upper" of two Python floats (the first separator
+// that leaves a float on both sides); std::nullopt when the piece is no such range.
+std::optional<std::pair<double, double>> floatRange(const std::string& piece) {
+    for (std::size_t k = 0; k < piece.size(); ++k) {
+        std::size_t width = 0;
+        if (piece[k] == ':' || piece[k] == '-') {
+            width = 1;
+        } else if (piece.compare(k, 4, " to ") == 0) {
+            width = 4;
+        }
+        if (width == 0) {
+            continue;
+        }
+        const auto lower = tryPythonFloat(std::string_view(piece).substr(0, k));
+        const auto upper = tryPythonFloat(std::string_view(piece).substr(k + width));
+        if (lower && upper) {
+            return std::pair(*lower, *upper);
+        }
+    }
+    return std::nullopt;
+}
 
 // ---- parser ----------------------------------------------------------------------------------
 
@@ -1832,30 +1771,47 @@ private:
         return node;
     }
 
+    // The selection ended where something else was needed.
+    AtomSelectionError endOfSelection() const {
+        if (m_tokens.size() == 1) {
+            return AtomSelectionError("empty selection");
+        }
+        return AtomSelectionError("Unexpected end of selection after '" +
+                                  *m_tokens[m_tokens.size() - 2] + "'");
+    }
+
     NodePtr primary() {
         const Deeper deeper(m_depth);
         const Token token = pop();
-        if (token && *token == "(") {
+        if (!token) {
+            throw endOfSelection();
+        }
+        if (*token == "(") {
             NodePtr inner = expression();
             const Token close = front();
-            if (!close || *close != ")") {
-                throw AtomSelectionError("Unexpected token: '" + show(close) + "' Expected: ')'");
+            if (!close) {
+                throw AtomSelectionError("Unexpected end of selection (expected ')')");
+            }
+            if (*close != ")") {
+                throw AtomSelectionError("Unexpected token: '" + *close + "' Expected: ')'");
             }
             pop();
             return inner;
         }
         const Keyword* keyword = findKeyword(token);
         if (!keyword) {
-            throw AtomSelectionError("Unknown selection token: '" + show(token) + "'");
+            std::string message = "Unknown selection token: '" + *token + "'";
+            const std::string lower = pythonLower(*token);
+            if (lower != *token && (lower == "and" || lower == "or" || findKeyword(lower))) {
+                message += " (keywords are lower case: did you mean '" + lower + "'?)";
+            }
+            throw AtomSelectionError(message);
         }
         // a keyword's own arguments: value problems are reported as "Selection failed"
         try {
             return keywordSelection(*keyword);
         } catch (const AtomSelectionError&) {
             throw;
-        } catch (const KeyError&) {
-            throw AtomSelectionError("Unknown selection token: '" + std::string(keyword->word) +
-                                     "'");
         } catch (const ValueError& e) {
             throw AtomSelectionError("Selection failed: '" + std::string(e.what()) + "'");
         }
@@ -1887,58 +1843,71 @@ private:
         case Kind::IsoLayer: {
             auto node = std::make_unique<AroundNode>();
             if (keyword.kind == Kind::IsoLayer) {
-                node->inner = pyFloat(pop());
+                node->inner = number(keyword, true);
             }
-            node->outer = pyFloat(pop());
-            node->sel = expression();
+            node->outer = number(keyword, true);
+            node->sel = selectionOf(keyword);
             return node;
         }
         case Kind::SphZone:
         case Kind::SphLayer: {
             auto node = std::make_unique<SphereNode>();
             if (keyword.kind == Kind::SphLayer) {
-                node->inner = pyFloat(pop());
+                node->inner = number(keyword, true);
             }
-            node->outer = pyFloat(pop());
-            node->sel = expression();
+            node->outer = number(keyword, true);
+            node->sel = selectionOf(keyword);
             return node;
         }
         case Kind::Point: {
             auto node = std::make_unique<SphereNode>();
             for (float& coordinate : node->point) {
-                coordinate = toFloat32(pyFloat(pop()));
+                coordinate = toFloat32(number(keyword, false));
             }
-            node->outer = pyFloat(pop());
+            node->outer = number(keyword, true);
             return node;
         }
         case Kind::CyZone:
         case Kind::CyLayer: {
             const int count = keyword.kind == Kind::CyZone ? 3 : 4;
             for (int k = 0; k < count; ++k) {
-                pyFloat(pop());
+                number(keyword, false);
             }
             auto node = std::make_unique<UnsupportedNode>();
             node->keyword = std::string(keyword.word);
-            node->sel = expression();
+            node->sel = selectionOf(keyword);
             return node;
         }
         case Kind::Smarts:
             return smarts();
         case Kind::Atom: {
+            // keywords are not arguments (a backslash escapes one: \and)
+            auto argument = [&](bool& escaped) {
+                const Token t = pop();
+                if (isKeyword(t)) {
+                    throw AtomSelectionError(std::string(signature(Kind::Atom)));
+                }
+                escaped = !t->empty() && t->front() == '\\';
+                return escaped ? t->substr(1) : *t;
+            };
             auto node = std::make_unique<AtomNode>();
-            node->segid = pop();
-            node->resid = pyInt(pop());
-            node->name = pop();
+            bool escaped = false;
+            node->segid = argument(escaped);
+            node->resid = pyInt(argument(escaped));
+            node->name = argument(escaped);
             return node;
         }
         case Kind::Group: {
             const Token name = pop();
-            if (name && *name == "updating") {
+            if (!name) {
+                throw endOfSelection();
+            }
+            if (*name == "updating") {
                 throw AtomSelectionError(
                     "The 'updating' keyword is reserved and cannot be used as a selection group "
                     "name.");
             }
-            throw ValueError("Failed to find group: " + show(name));  // no groups are passed
+            throw ValueError("Failed to find group: " + *name);  // no groups are passed
         }
         case Kind::Prop:
             return property();
@@ -1971,22 +1940,55 @@ private:
         throw std::logic_error("unhandled selection keyword");
     }
 
+    // A distance keyword's number; the keyword's signature at the end of the selection, an
+    // error for a negative distance or radius.
+    double number(const Keyword& keyword, bool notNegative) {
+        const Token t = pop();
+        if (!t) {
+            throw AtomSelectionError(std::string(signature(keyword.kind)));
+        }
+        const double value = pythonFloat(*t);
+        if (notNegative && value < 0) {
+            const bool distance = keyword.kind == Kind::Around || keyword.kind == Kind::IsoLayer;
+            throw AtomSelectionError(std::string(keyword.word) + ": " +
+                                     (distance ? "distance" : "radius") +
+                                     " must not be negative");
+        }
+        return value;
+    }
+
+    // a keyword's selection argument
+    NodePtr selectionOf(const Keyword& keyword) {
+        if (!front()) {
+            throw AtomSelectionError(std::string(signature(keyword.kind)));
+        }
+        return expression();
+    }
+
     // same <property> as <selection>
     NodePtr sameAs() {
+        const std::string missing(signature(Kind::Same));
         auto node = std::make_unique<SameNode>();
         node->prop = pop();
-        const bool known =
-            !node->prop || std::find(std::begin(kSameNames), std::end(kSameNames),
-                                     *node->prop) != std::end(kSameNames);
-        if (!known) {
-            throw ValueError("Unknown same property : " + *node->prop +
-                             "Choose one of : " + std::string(kSameNamesRepr));
+        if (!node->prop) {
+            throw AtomSelectionError(missing);
+        }
+        if (std::find(std::begin(kSameNames), std::end(kSameNames), *node->prop) ==
+            std::end(kSameNames)) {
+            throw AtomSelectionError("Unknown 'same' property '" + *node->prop +
+                                     "' (choose one of: " + std::string(kSameOrder) + ")");
         }
         const Token as = front();
-        if (!as || *as != "as") {
-            throw AtomSelectionError("Unexpected token: '" + show(as) + "' Expected: 'as'");
+        if (!as) {
+            throw AtomSelectionError(missing);
+        }
+        if (*as != "as") {
+            throw AtomSelectionError("Unexpected token: '" + *as + "' Expected: 'as'");
         }
         pop();
+        if (!front()) {
+            throw AtomSelectionError(missing);
+        }
         node->sel = expression();
         return node;
     }
@@ -2018,7 +2020,10 @@ private:
     std::vector<std::string> requiredValues() {
         std::vector<std::string> values = grabNotKeywords();
         if (values.empty()) {
-            throw ValueError("Unexpected token '" + show(front()) + "'");
+            if (!front()) {
+                throw endOfSelection();
+            }
+            throw ValueError("Unexpected token '" + *front() + "'");
         }
         return values;
     }
@@ -2043,7 +2048,10 @@ private:
     std::vector<std::string> rangeValues() {
         const std::vector<std::string> tokens = grabNotKeywords();
         if (tokens.empty()) {
-            throw ValueError("Unexpected token: '" + show(front()) + "'");
+            if (!front()) {
+                throw endOfSelection();
+            }
+            throw ValueError("Unexpected token: '" + *front() + "'");
         }
         const auto startsWith = [](const std::string& text, std::string_view prefix) {
             return text.compare(0, prefix.size(), prefix) == 0;
@@ -2113,17 +2121,16 @@ private:
         return node;
     }
 
+    // Range bounds take the syntax of single values (sign, exponent, inf); MDAnalysis' range
+    // pattern rejects "+1", "1E3" and "inf" and ignores text after the upper bound.
     NodePtr reals(std::string keyword) {
-        static const Rx range = sequence({group(0, floatPattern()), rangeSeparator(),
-                                          group(1, floatPattern())});
         auto node = std::make_unique<FloatRangeNode>();
         node->keyword = std::move(keyword);
         for (const std::string& piece : rangeValues()) {
             if (const auto single = tryPythonFloat(piece)) {
                 node->singles.push_back(*single);
-            } else if (const auto bounds = reMatch(range, 2, piece)) {
-                const double lower = pythonFloat((*bounds)[0]);
-                node->ranges.emplace_back(lower, pythonFloat((*bounds)[1]));
+            } else if (const auto bounds = floatRange(piece)) {
+                node->ranges.push_back(*bounds);
             } else {
                 throw ValueError("Failed to parse number: " + piece);
             }
@@ -2150,83 +2157,61 @@ private:
         return node;
     }
 
-    // Non-overlapping occurrences of `symbol` in `text`.
-    static std::size_t occurrences(const std::string& text, std::string_view symbol) {
-        std::size_t count = 0;
-        for (std::size_t at = text.find(symbol); at != std::string::npos;
-             at = text.find(symbol, at + symbol.size())) {
-            ++count;
-        }
-        return count;
-    }
-
-    // prop [abs] <property> <op> <value> (or <value> <op> <property>), from raw tokens; the
-    // operator may be written into the property or value token ("x<5", "x <5", "x< 5").
+    // prop [abs] <property> <op> <value>, from raw tokens; the operator may be written into the
+    // property or value token ("x<5", "x <5", "x< 5"). With a property name in the value position
+    // (prop 3 > x) the operands swap and the operator mirrors (x < 3); MDAnalysis negates it.
     NodePtr property() {
-        static constexpr std::array<std::string_view, 6> kSymbols = {"<=", ">=", "==",
-                                                                     "!=", "<",  ">"};
+        static constexpr std::array<std::string_view, 6> kSymbols = {"<", ">", "<=",
+                                                                     ">=", "==", "!="};
+        const std::string missing(signature(Kind::Prop));
         auto node = std::make_unique<PropNode>();
-        Token prop = pop();
-        if (prop && *prop == "abs") {
+        Token token = pop();
+        if (token && *token == "abs") {
             node->absolute = true;
-            prop = pop();
+            token = pop();
         }
-        if (!prop) {
-            throw AtomSelectionError("'NoneType' object has no attribute 'split'");
+        if (!token) {
+            throw AtomSelectionError(missing);
         }
-        // an operator symbol found exactly once in the property token splits it
-        Token opText;
-        for (const std::string_view symbol : kSymbols) {
-            if (occurrences(*prop, symbol) == 1) {
-                const std::size_t at = prop->find(symbol);
-                opText = prop->substr(at);
-                prop = prop->substr(0, at);
-                break;
+        std::string prop, rest;
+        const auto at = static_cast<std::size_t>(
+            std::find_if(token->begin(), token->end(), isOperatorCharacter) - token->begin());
+        if (at < token->size()) {
+            prop = token->substr(0, at);
+            rest = token->substr(at);
+            if (prop.empty()) {
+                throw AtomSelectionError(missing);
             }
-        }
-        if (!opText) {
-            opText = pop();
-        }
-        if (!opText) {
-            throw AtomSelectionError("argument of type 'NoneType' is not iterable");
-        }
-        // the value may follow the first operator symbol inside the operator text
-        Token valueText;
-        std::string op = *opText;
-        for (const std::string_view symbol : kSymbols) {
-            const std::size_t count = occurrences(*opText, symbol);
-            if (count == 0) {
-                continue;
+        } else {
+            prop = *token;
+            const Token next = pop();
+            if (!next) {
+                throw AtomSelectionError(missing);
             }
-            if (count > 1) {
-                throw ValueError("too many values to unpack (expected 2)");
-            }
-            const std::size_t after = opText->find(symbol) + symbol.size();
-            if (after < opText->size()) {
-                op = std::string(symbol);
-                valueText = opText->substr(after);
-            }
-            break;
+            rest = *next;
         }
-        if (!valueText) {
-            valueText = pop();
-        }
-        // a property name in the value position: swap, negating the operator
-        if (isPropName(valueText)) {
-            static const std::map<std::string, std::string, std::less<>> kNegated = {
-                {"<", ">="}, {">", "<="}, {"<=", ">"}, {">=", "<"}, {"==", "=="}, {"!=", "!="}};
-            const auto it = kNegated.find(op);
-            if (it == kNegated.end()) {
-                throw KeyError{};
-            }
-            op = it->second;
-            std::swap(prop, valueText);
-        }
+        const auto run = static_cast<std::size_t>(
+            std::find_if_not(rest.begin(), rest.end(), isOperatorCharacter) - rest.begin());
+        std::string op = run ? rest.substr(0, run) : rest;
         if (std::find(kSymbols.begin(), kSymbols.end(), op) == kSymbols.end()) {
-            throw ValueError("Invalid operator : '" + op +
-                             "' Use one of : 'dict_keys(['>', '<', '>=', '<=', '==', '!='])'");
+            throw AtomSelectionError("invalid operator '" + op +
+                                     "' in prop (use <, >, <=, >=, ==, !=)");
         }
-        node->value = pythonFloat(*valueText);
+        std::string value = rest.substr(run);
+        if (value.empty()) {
+            const Token next = pop();
+            if (!next) {
+                throw AtomSelectionError(missing);
+            }
+            value = *next;
+        }
+        if (propAttribute(value)) {
+            static const std::map<std::string, std::string, std::less<>> kMirrored = {
+                {"<", ">"}, {">", "<"}, {"<=", ">="}, {">=", "<="}, {"==", "=="}, {"!=", "!="}};
+            op = kMirrored.at(op);
+            std::swap(prop, value);
+        }
+        node->value = pythonFloat(value);
         node->property = std::move(prop);
         node->op = std::move(op);
         return node;

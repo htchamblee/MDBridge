@@ -211,6 +211,13 @@ def apply_mdatk():
     """Patch MDATK's analyses (in this process) to the improved behaviour of the items above."""
     from MDAnalysis.analysis import rms as mda_rms
 
+    # the selection improvements first (SEL-01 ... SEL-15, improvements_selections.py): the analyses
+    # select with MDBridge's selections whatever the generator applies
+    import improvements_selections
+    import mdatk.selections as mdatk_selections
+
+    improvements_selections.patch_mdatk(mdatk_selections)
+
     import mdatk.analysis as analysis_pkg
     import mdatk.analysis.base as base
     import mdatk.analysis.energy as energy
@@ -218,15 +225,17 @@ def apply_mdatk():
     import mdatk.analysis.rmsd as rmsd
     import mdatk.analysis.structure as structure
     import mdatk.pipeline as pipeline
-    from mdatk.selections import SelectionError, atom_elements, resolve_selection
+    from mdatk.selections import SelectionError, resolve_selection
     from mdatk.spatial import kabsch as mdatk_kabsch
     from mdatk.spatial import pairs_within
 
-    # SEL-17: distance keywords are periodic only with use_pbc
+    improvements_selections.patch_mdatk_analysis_base(base)
+
+    # SEL-17: distance keywords are periodic only with use_pbc (MDBridge's selections otherwise)
     def select(self, text, allow_empty=False):
         resolved = resolve_selection(text, self.project.groups, self.u)
         try:
-            ag = self.u.select_atoms(resolved, periodic=bool(self.use_pbc))
+            ag = improvements_selections.select_atoms(self.u, resolved, periodic=bool(self.use_pbc))
         except Exception as exc:  # noqa: BLE001 - MDAnalysis raises several exception types
             raise SelectionError(f"invalid selection {text!r} -> {resolved!r}: {exc}") from exc
         if not allow_empty and ag.n_atoms == 0:
@@ -407,7 +416,7 @@ def apply_mdatk():
         for hi, hj, dist in zip(i[order], j[order], d[order]):
             if hi not in best or dist < best[hi][1]:
                 best[hi] = (hj, dist)
-        is_n = atom_elements(self.ab) == "N"
+        is_n = mdatk_selections.atom_elements(self.ab) == "N"  # SEL-13's, whenever patched
         for hi, (hj, _) in best.items():
             donor = int(heavy_idx[hj])
             self.h_of.setdefault(donor, []).append(int(h_idx[hi]))

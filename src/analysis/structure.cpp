@@ -632,7 +632,8 @@ private:
 class TraceDescriptor final : public AnalysisDescriptor {
 public:
     // version 4: v2 residue numbers for tags; v3 group membership; v4 chain and residue names
-    TraceDescriptor() : AnalysisDescriptor({"trace", "Backbone trace", 4, true, 0, {}}) {}
+    // v5: per-atom element fallback in the heavy-atom centroids (SEL-13; MDATK: 4)
+    TraceDescriptor() : AnalysisDescriptor({"trace", "Backbone trace", 5, true, 0, {}}) {}
 
     core::Table paramsFor(const core::Project& project) const override {
         const core::VisualParams& v = project.visual;

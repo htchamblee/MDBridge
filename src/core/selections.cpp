@@ -260,57 +260,85 @@ std::string groupSelection(const ResidueGroup& group, const Topology* topology) 
 
 namespace {
 
-bool isGroupNameCharacter(char c) {
-    return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_' ||
-           c == '.' || c == '+' || c == '-' || c == '\'';
+// [A-Za-z0-9_.-]+: what validate() accepts as a group name
+bool isPlainGroupName(std::u32string_view name) {
+    return !name.empty() && std::all_of(name.begin(), name.end(), [](char32_t c) {
+        return isAsciiLetter(c) || isAsciiDigit(c) || c == U'_' || c == U'.' || c == U'-';
+    });
 }
 
+bool endsGroupWord(char32_t c) { return isPythonSpace(c) || c == U'(' || c == U')'; }
+
+SelectionError invalidGroupName(std::u32string_view name) {
+    return SelectionError("group name " + repr(encodeUtf8(name)) +
+                          " may only contain letters, digits, '_', '.' and '-'");
+}
+
+// Every "group:<name>" replaced by the group's selection. The name runs to the next whitespace
+// or parenthesis; a name a group cannot have, or a group with such a name, is an error. The first
+// group of a name wins (as core::group() and the GUI).
 std::string expand(std::string_view text, const std::vector<ResidueGroup>& groups,
                    const Topology* topology, int depth) {
     if (depth > 8) {
         throw SelectionError("group definitions are nested too deeply (circular reference?)");
     }
-    std::string out;
+    static constexpr std::u32string_view kToken = U"group:";
+    const std::u32string s = decodeUtf8(text);
+    std::u32string out;
     std::size_t pos = 0;
     for (;;) {
-        std::size_t at = text.find("group:", pos);
-        std::size_t end = at;
-        while (at != std::string_view::npos) {
-            end = at + 6;
-            while (end < text.size() && isGroupNameCharacter(text[end])) {
-                ++end;
-            }
-            if (end > at + 6) {
-                break;
-            }
-            at = text.find("group:", at + 1);
+        const std::size_t at = s.find(kToken, pos);
+        if (at == std::u32string::npos) {
+            out += s.substr(pos);
+            return encodeUtf8(out);
         }
-        if (at == std::string_view::npos) {
-            out += text.substr(pos);
-            return out;
-        }
-        out += text.substr(pos, at - pos);
-        const std::string_view name = text.substr(at + 6, end - at - 6);
-        // {g.name: g}: the last group of a name wins, names listed in first-seen order
-        const ResidueGroup* found = nullptr;
-        std::vector<std::string> names;
+        const std::size_t start = at + kToken.size();
+        const std::u32string_view rest = std::u32string_view(s).substr(start);
+        // a defined group whose name is invalid, written out here
+        std::u32string invalid;
         for (const ResidueGroup& g : groups) {
-            if (std::find(names.begin(), names.end(), g.name) == names.end()) {
-                names.push_back(g.name);
-            }
-            if (g.name == name) {
-                found = &g;
+            const std::u32string name = decodeUtf8(g.name);
+            if (!name.empty() && !isPlainGroupName(name) && rest.starts_with(name) &&
+                (rest.size() == name.size() || endsGroupWord(rest[name.size()])) &&
+                name.size() > invalid.size()) {
+                invalid = name;
             }
         }
-        if (!found) {
+        if (!invalid.empty()) {
+            throw invalidGroupName(invalid);
+        }
+        std::size_t end = start;
+        while (end < s.size() && !endsGroupWord(s[end])) {
+            ++end;
+        }
+        if (end == start) {  // "group:" alone stays as written
+            out += s.substr(pos, start - pos);
+            pos = start;
+            continue;
+        }
+        const std::u32string_view name = std::u32string_view(s).substr(start, end - start);
+        if (!isPlainGroupName(name)) {
+            throw invalidGroupName(name);
+        }
+        const std::string utf8 = encodeUtf8(name);
+        const auto found = std::find_if(groups.begin(), groups.end(),
+                                        [&](const ResidueGroup& g) { return g.name == utf8; });
+        if (found == groups.end()) {
+            std::vector<std::string> names;  // first-seen order
+            for (const ResidueGroup& g : groups) {
+                if (std::find(names.begin(), names.end(), g.name) == names.end()) {
+                    names.push_back(g.name);
+                }
+            }
             std::string defined;
             for (const std::string& n : names) {
                 defined += (defined.empty() ? "" : ", ") + n;
             }
-            throw SelectionError("unknown residue group " + repr(name) +
+            throw SelectionError("unknown residue group " + repr(utf8) +
                                  " (defined: " + (defined.empty() ? "none" : defined) + ")");
         }
-        out += expand(groupSelection(*found, topology), groups, topology, depth + 1);
+        out += s.substr(pos, at - pos);
+        out += decodeUtf8(expand(groupSelection(*found, topology), groups, topology, depth + 1));
         pos = end;
     }
 }
@@ -383,26 +411,20 @@ std::string guessElement(std::string_view name, std::string_view resname, bool s
     return "";
 }
 
+// Per atom: the topology's element, or the guess from the atom's own name when it has none
+// (MDATK guesses every atom of the group as soon as one atom lacks an element).
 std::vector<std::string> atomElements(const AtomGroup& atoms) {
     const Topology& t = atoms.topology();
     std::vector<std::string> out;
     out.reserve(atoms.size());
-    if (t.elements && !atoms.empty()) {
-        bool all = true;
-        for (const std::int32_t a : atoms.indices()) {
-            std::string e = pythonStrip(t.strings[(*t.elements)[static_cast<std::size_t>(a)]]);
-            if (e.empty()) {
-                all = false;
-                break;
-            }
-            out.push_back(upper(std::move(e)));
-        }
-        if (all) {
-            return out;
-        }
-        out.clear();
-    }
     for (const std::int32_t a : atoms.indices()) {
+        if (t.elements) {
+            std::string e = pythonStrip(t.strings[(*t.elements)[static_cast<std::size_t>(a)]]);
+            if (!e.empty()) {
+                out.push_back(upper(std::move(e)));
+                continue;
+            }
+        }
         const std::int32_t r = t.atomResidue[static_cast<std::size_t>(a)];
         out.push_back(guessElement(t.name(a), t.resname(r), t.residueAtoms(r).size() == 1));
     }

@@ -7,7 +7,9 @@ mdatk/io/pdb_export.py on edge cases: Unicode whitespace and digits, chains, num
 nested / cyclic / duplicate residue groups, frame and time lists. Results are JSON values; errors
 are {"error": str(exc)}. Python ints beyond 64 bits are written as {"$int": "<digits>"}. Systems
 are the fixtures of tests/data/topology (by file name) with the frame of the dump. Needs MDATK's
-dependencies (numpy, MDAnalysis 2.11.0); nothing is written into the checkout.
+dependencies (numpy, MDAnalysis 2.11.0); nothing is written into the checkout. Where MDBridge
+deliberately differs (SEL-13, SEL-14, SEL-15 and the atom selections of docs/IMPROVEMENTS.md),
+improvements_selections.patch_mdatk replaces MDATK's function with MDBridge's behaviour.
 """
 
 import json
@@ -26,13 +28,19 @@ import MDAnalysis as mda  # noqa: E402
 import numpy as np  # noqa: E402
 from MDAnalysis.coordinates.memory import MemoryReader  # noqa: E402
 
-from mdatk import selections as S  # noqa: E402
-from mdatk.config import ResidueGroup  # noqa: E402
-from mdatk.io.pdb_export import frames_from_specs, resolve_export_selection  # noqa: E402
-
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
+import improvements_selections  # noqa: E402
 import independent_tables  # noqa: E402
+
+from mdatk import selections as S  # noqa: E402
+
+# MDBridge's deliberate differences (improvements_selections.py, docs/DIFFERENCES.md): group
+# expansion, select() and atom_elements as MDBridge has them, before pdb_export binds select
+improvements_selections.patch_mdatk(S)
+
+from mdatk.config import ResidueGroup  # noqa: E402
+from mdatk.io.pdb_export import frames_from_specs, resolve_export_selection  # noqa: E402
 
 independent_tables.apply()  # MDAnalysis with MDBridge's independent tables (tests/data/README.md)
 

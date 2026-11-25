@@ -201,7 +201,7 @@ public:
     ContactsDescriptor()
         : AnalysisDescriptor({"contacts",
                               "Pairwise contacts",
-                              1,
+                              2,  // v2: per-atom element fallback in heavy_only (SEL-13)
                               false,
                               2,
                               {{"atom_pairs", "{a}–{b} heavy-atom contacts"},
