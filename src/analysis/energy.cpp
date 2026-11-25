@@ -43,6 +43,10 @@ namespace mdbridge::analysis {
 namespace {
 
 // Approximate (r*, epsilon) Amber-like parameters per element: (Å, kcal/mol) (GENERIC_LJ)
+// MDATK's own compilation, not a published set, so not cited (CIT-04, data/sources/ATTRIBUTION.md):
+// H, C, N, O, P, S, F, MG, ZN and BR equal the Amber parm99 / parm10 types HP, C, N, O, P, S, F, MG,
+// Zn and Br; NA, K and CL the Joung-Cheatham (2008) TIP3P ions to the digits given; CA, MN and
+// the default match no published set found.
 struct GenericLj {
     std::string_view element;
     double rstar;
@@ -146,8 +150,10 @@ public:
         m_guessExclusions = m_p.exclude_bonded > 0 && (!topology.bonds || topology.bonds->empty());
         if (m_guessExclusions) {
             // AN-07: MDATK excludes nothing, silently
+            // CIT-03: the guess uses Cordero et al.'s covalent radii, cited in the warning
             ctx.warn("energy: the topology has no bonds; bonded pairs are excluded along bonds guessed from "
-                     "distances on the first analysed frame");
+                     "distances on the first analysed frame (covalent radii: Cordero et al., Dalton Trans. "
+                     "2008, 2832-2838, doi:10.1039/b801115j)");
         } else {
             m_excluded = energyBondedExclusions(m_a, m_b, m_p.exclude_bonded);
         }

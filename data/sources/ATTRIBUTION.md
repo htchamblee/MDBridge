@@ -13,7 +13,7 @@ fields kept.
 | CIAAW, Radioactive elements (from NUBASE2020), https://www.ciaaw.org/radioactive-elements.htm | masses (mass numbers) of elements without a standard atomic weight | facts | no |
 | Amber 2024 Reference Manual, https://ambermd.org/doc12/Amber24.pdf | Amber residue naming conventions (protonation states, termini, caps, nucleic ends, water models) | facts (manual cited, not copied) | no |
 | GROMACS reference manual, https://manual.gromacs.org/current/ | GROMACS residue naming convention, SOL | facts (manual cited, not copied) | no |
-| Cordero et al., Covalent radii revisited, Dalton Trans. (2008) 2832-2838, doi:10.1039/b801115j | covalent radii of the analyses' bond guess (`src/analysis/covalent_radii.inc`, `tools/gen_covalent_radii.py`) | facts (article cited) | no |
+| Cordero et al., Covalent radii revisited, Dalton Trans. (2008) 2832-2838, doi:10.1039/b801115j | covalent radii of the analyses' bond guess (`src/analysis/covalent_radii.inc`, `tools/gen_covalent_radii.py`); cited in the energy analysis' guessed-bonds warning (docs/DIFFERENCES.md CIT-03) | facts (article cited) | no |
 | OpenMM 8.1.2 force-field XML and pdbNames.xml, https://github.com/openmm/openmm | Amber ff14SB / OL15 / OL3 and CHARMM36 residue names, nucleic heavy-atom names, ion and water atom names with elements, residue and atom-name aliases | MIT | yes: "Portions copyright (c) 2008-2019 Stanford University and the Authors", with the MIT permission notice |
 
 Suggested THIRD_PARTY_NOTICES.md row:
@@ -24,3 +24,14 @@ Suggested THIRD_PARTY_NOTICES.md row:
 
 with a sentence that the wwPDB CCD (CC0) and CIAAW/IUPAC atomic weights are also used, see
 `data/sources/ATTRIBUTION.md`.
+
+## Not from this directory: the energy analysis' generic Lennard-Jones parameters
+
+The per-element (r*, epsilon) table the energy analysis uses without parm7 parameters
+(`kGenericLj` in `src/analysis/energy.cpp`) is MDATK's own (`GENERIC_LJ` in
+`mdatk/analysis/energy.py`, same owner, ported unchanged). It has no source in this directory and
+is not a published parameter set: ten of its values equal Amber parm99 / parm10 atom types (HP,
+C, N, O, P, S, F, MG, Zn, Br), three the Joung-Cheatham (2008) TIP3P ions (Na+, K+, Cl-, epsilon
+cut to four decimals), and Ca (1.71, 0.12), Mn (1.2, 0.05) and the default (1.9, 0.1) match no
+published set compared. The comparison, its sources and why the table is not cited are in
+docs/DIFFERENCES.md (CIT-04). No force-field file was copied for it.

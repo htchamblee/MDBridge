@@ -17,6 +17,10 @@
 // * Standard algorithms and common knowledge (distance searches, minimum images, geometric
 //   H-bond / contact / stacking criteria, Gaussian filters, linear interpolation, tick choice) are
 //   not cited, nor are colour maps (styling) or the random numbers of the example data.
+// * Data a result depends on is credited where it is used: the covalent radii of the bond guess
+//   (Cordero et al. 2008) in the energy analysis' guessed-bonds warning (CIT-03). The energy
+//   analysis' generic element Lennard-Jones parameters are MDATK's own compilation and are not
+//   cited (CIT-04).
 
 #include <optional>
 #include <span>

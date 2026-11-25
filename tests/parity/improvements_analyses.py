@@ -15,7 +15,8 @@ Items:
   AN-18  rmsd fit selections of fewer than 3 or collinear atoms: translation only, one warning.
   AN-06  energy: use_parm7 with a non-parm7 topology: a warning.
   AN-07  energy: exclude_bonded > 0 and a topology without bonds: a warning, and the exclusions
-         follow the distance-guessed bonds (AN-14's guesser) of the first analysed frame.
+         follow the distance-guessed bonds (AN-14's guesser) of the first analysed frame; the warning
+         cites the covalent radii of the guess (CIT-03).
   AN-08  energy: exclusions follow any path of at most exclude_bonded bonds.
   AN-09  H-bonds: a guessed hydrogen goes to the donor nearest by the pair search's distance.
   AN-10  H-bonds: nitrogens carrying a guessed hydrogen are not acceptors.
@@ -473,7 +474,8 @@ def apply_mdatk():
         self._guess_exclusions = p.exclude_bonded > 0 and not has_bonds
         if self._guess_exclusions:
             real_warn("energy: the topology has no bonds; bonded pairs are excluded along bonds guessed from "
-                      "distances on the first analysed frame")
+                      "distances on the first analysed frame (covalent radii: Cordero et al., Dalton Trans. "
+                      "2008, 2832-2838, doi:10.1039/b801115j)")
 
     def energy_process_improved(self, k, ts):
         if getattr(self, "_guess_exclusions", False):

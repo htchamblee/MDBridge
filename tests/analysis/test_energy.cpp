@@ -470,6 +470,27 @@ TEST(Energy, Parm7AtomCountMismatch) {
     EXPECT_EQ(*res.meta[1].second.get<std::string>(), "topology");
 }
 
+// AN-07 / CIT-03: exclusions along guessed bonds are announced, citing the covalent radii the guess
+// uses (Cordero et al. 2008)
+TEST(Energy, GuessedBondsWarningCitesCovalentRadii) {
+    core::Project project;
+    project.groups = {{"Aptamer", "1", "", "#2a78d6"}, {"Target", "2", "", "#2a78d6"}};
+    core::System system = microSystem(at(at(microCases(), "systems"), "energy_ions"));
+    std::vector<std::string> logs;
+    const core::Reporter reporter([&](const std::string& m) { logs.push_back(m); });
+    AnalysisContext context(system, project, "", reporter);
+    std::vector<std::unique_ptr<Analysis>> analyses;
+    analyses.push_back(energyAnalysis().create(context));
+    const std::vector<std::int64_t> frames{0};
+    runAnalyses(context, analyses, frames);
+    EXPECT_NE(std::find(logs.begin(), logs.end(),
+                        "WARNING: energy: the topology has no bonds; bonded pairs are excluded along bonds guessed "
+                        "from distances on the first analysed frame (covalent radii: Cordero et al., Dalton Trans. "
+                        "2008, 2832-2838, doi:10.1039/b801115j)"),
+              logs.end())
+        << joined(logs);
+}
+
 // ---------------------------------------------------------------- demo project
 
 TEST(Energy, DemoDefault) {

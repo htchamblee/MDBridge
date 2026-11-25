@@ -576,6 +576,45 @@ SciPy and Matplotlib through MDATK was checked against that rule (the inventory 
   MDBridge never runs Barnaba (see "No Barnaba" above: its builtin detector runs instead), so it is
   not cited; the table keeps its entry. *Tested:* citation_cases.json (`pipeline`, base-pair
   engines), `Citations.MethodsByTheirOriginators`.
+- **CIT-03: the bond-guess warning cites the covalent radii.** When the energy analysis excludes
+  bonded pairs along guessed bonds (AN-07), its warning names the source of the radii the guess
+  uses (AN-14): `WARNING: energy: the topology has no bonds; bonded pairs are excluded along bonds
+  guessed from distances on the first analysed frame (covalent radii: Cordero et al., Dalton Trans.
+  2008, 2832-2838, doi:10.1039/b801115j)` (owner decision). *Why:* the radii decide which pairs
+  are excluded and so the reported energies; they are Cordero et al.'s data, not common knowledge.
+  The method (a distance cut-off over summed radii) stays uncited (CIT-01), and the radii are not
+  added to the project citation table. *Tested:* micro_cases.json and systems_cases.json energy logs
+  (tests/parity/improvements_analyses.py, AN-07, records the message).
+- **CIT-04: the generic Lennard-Jones parameters are not cited.** Without parm7 parameters the
+  energy analysis uses MDATK's per-element table (`kGenericLj` in src/analysis/energy.cpp, MDATK's
+  `GENERIC_LJ`; unchanged). It was compared with the published sets below and is not one of them;
+  it is MDATK's own compilation (MDATK's code calls it "approximate ... Amber-like"; its history has
+  no source), so nothing is cited for it. Values as (r* = Rmin/2 in Å, epsilon in kcal/mol):
+  - H (1.1, 0.0157), C (1.908, 0.086), N (1.824, 0.17), O (1.6612, 0.21), P (2.1, 0.2), S (2.0,
+    0.25), F (1.75, 0.061), MG (0.7926, 0.8947), ZN (1.10, 0.0125) and BR (2.22, 0.32) are exactly
+    the Amber parm99 / parm10 types HP, C (carbonyl), N (amide), O, P, S, F, MG, Zn and Br (from
+    parm94 for HP, C, N, O, P, S); each element gets one type's values for all its atoms (every
+    carbon the carbonyl carbon's epsilon, not CT's 0.1094; every hydrogen HP's r*).
+  - NA (1.369, 0.0874), K (1.705, 0.1937) and CL (2.513, 0.0355) are Joung and Cheatham's (2008)
+    TIP3P-specific ion parameters (1.369 / 0.0874393, 1.705 / 0.1936829, 2.513 / 0.0355910),
+    epsilon cut to four decimals (Cl truncated, Na and K rounded).
+  - CA (1.71, 0.12), MN (1.2, 0.05) and the default for other elements (1.9, 0.1) match no published
+    set compared: Amber parm99 C0 (Ca2+) is (1.7131, 0.459789), CHARMM36 CAL (1.367, 0.12), Li-Merz
+    TIP3P Ca2+ (1.649, 0.1059); no Mn2+ set has (1.2, 0.05) (Li-Merz TIP3P: 1.407, 0.0169), which
+    equals parm91's copper type CU.
+  - Not matched either: UFF (Rappe et al. 1992; C 1.9255 / 0.105, H 1.443 / 0.044), GAFF (Br 2.02 /
+    0.42), CHARMM36 ions (Na 1.4107 / 0.0469, Mg 1.185 / 0.015, Zn 1.09 / 0.25, Cl 2.27 / 0.15).
+
+  Sources compared (read for the numbers only, nothing copied into MDBridge): AmberTools' parm94.dat,
+  parm99.dat, parm10.dat, gaff.dat, frcmod.ionsjc_tip3p, frcmod.ionsff99_tip3p, frcmod.ionslm_* and
+  frcmod.ionslrcm_* (copies in ParmEd's test/files/parm, commit d3140213), OpenMM 8.1.2's
+  amber14/*.xml and charmm36*.xml, Open Babel's UFF.prm (commit 9be528bc). *Why:* the table mixes
+  values from different force fields and two of unknown origin, applied per element rather than
+  per atom type, so no single work describes the energies it gives; citing Cornell et al. or Joung
+  and Cheatham for them would misstate how they were obtained. Whether to replace it with a
+  published set is an open owner question. *Tested:* the numbers are unchanged (energy cases of
+  micro_cases.json, systems_cases.json, pipeline_cases.json); citation_cases.json has no generic-LJ
+  resource.
 - VTK is not cited either (RN-16, under "Rendering: the render, charts and preview commands").
 
 ## Analyses (non-periodic improvements)
@@ -600,7 +639,8 @@ hbonds 2, rmsd 2, proximity 2, atoms 3 ("Analysis cache" above has every analysi
   logs (pdb / gro / noh / aromatic), test_energy.cpp.
 - **Energy exclusions without topology bonds (AN-07).** With `exclude_bonded > 0` and no bonds:
   `WARNING: energy: the topology has no bonds; bonded pairs are excluded along bonds guessed from
-  distances on the first analysed frame`, and the exclusions follow the bonds the `atoms` guesser
+  distances on the first analysed frame (covalent radii: Cordero et al., Dalton Trans. 2008,
+  2832-2838, doi:10.1039/b801115j)` (the citation: CIT-03), and the exclusions follow the bonds the `atoms` guesser
   (below) finds on the whole system (MDATK: nothing excluded, silently). *Tested:* micro and
   systems_cases energy logs and values.
 - **Exclusions along any path (AN-08).** Pairs joined by at most `exclude_bonded` bonds through any
@@ -682,7 +722,7 @@ here:
 | RN-40 ... RN-42 | Rendering: sequence and secondary-structure panels |
 | D5, D6, D8, D9, D11, D13 (owner decisions) | charts (D5), colours (D6), the render commands (D8, D9), structure view (D11), interface (D13) |
 | D15, D16 (owner decisions) | the Vulkan 3D renderer (D15), video encoding (D16) |
-| CIT-01, CIT-02 | Citations |
+| CIT-01 ... CIT-04 | Citations (CIT-03 also: Analyses, AN-07) |
 
 ## Rendering: colours and themes (src/render/core)
 
