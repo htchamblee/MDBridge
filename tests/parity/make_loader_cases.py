@@ -50,6 +50,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 DATA = os.path.normpath(os.path.join(HERE, "..", "data"))
 sys.path.insert(0, HERE)
 import dump_topologies  # noqa: E402
+import improvements_readers_amber  # noqa: E402
 import independent_tables  # noqa: E402
 
 independent_tables.apply()  # MDAnalysis with MDBridge's independent tables (tests/data/README.md)
@@ -392,6 +393,7 @@ def loader_cases():
     matrix.append((f("seven.pdb"), [os.path.join(tf, "box.mdcrd")], None))
     matrix.append((f("seven.pdb"), [os.path.join(tf, "time.rst7"), os.path.join(tf, "time.inpcrd")], None))
     summaries = [summary_case(*m) for m in matrix]
+    improvements_readers_amber.adjust_loader_summaries(summaries)  # RD-N02, RD-A02
 
     frames = []
     for n in (0, 1, 5, 24):

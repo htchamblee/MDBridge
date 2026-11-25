@@ -36,7 +36,7 @@
   {
    "name": "energy",
    "label": "Intermolecular energy",
-   "version": 1,
+   "version": 2,
    "internal": false,
    "group_slots": 2,
    "output_labels": [
@@ -385,8 +385,8 @@
       ]
      ],
      "cache_keys": [
-      "dd767dc2ea8248d1",
-      "61693e47966701a4"
+      "9affd39ab56e5ff5",
+      "5338a2edc7096e75"
      ],
      "referenced_groups": [
       {
@@ -2042,8 +2042,8 @@
        ]
       ],
       "cache_keys": [
-       "7e91121b739c4e4e",
-       "b64c529d212a36fc"
+       "8b906c458dd828c8",
+       "512cd4dafcb0684f"
       ],
       "referenced_groups": [
        {
@@ -3438,8 +3438,8 @@
       ]
      ],
      "cache_keys": [
-      "40cec284bed25324",
-      "c4cd64eb7e73d01a"
+      "cb77e662330fa7d0",
+      "407af62e86fa29c5"
      ],
      "referenced_groups": [
       {
@@ -5390,8 +5390,8 @@
        ]
       ],
       "cache_keys": [
-       "1c8595607bb799ce",
-       "8bbe09d9f8c1dbc5"
+       "ed15f57265f82215",
+       "f81a7257fe36fd2f"
       ],
       "referenced_groups": [
        {
@@ -6977,8 +6977,8 @@
       ]
      ],
      "cache_keys": [
-      "dd767dc2ea8248d1",
-      "61693e47966701a4"
+      "9affd39ab56e5ff5",
+      "5338a2edc7096e75"
      ],
      "referenced_groups": [
       {
@@ -8586,8 +8586,8 @@
        ]
       ],
       "cache_keys": [
-       "7e91121b739c4e4e",
-       "b64c529d212a36fc"
+       "8b906c458dd828c8",
+       "512cd4dafcb0684f"
       ],
       "referenced_groups": [
        {
@@ -9823,8 +9823,8 @@
       ]
      ],
      "cache_keys": [
-      "7e91121b739c4e4e",
-      "b64c529d212a36fc"
+      "8b906c458dd828c8",
+      "512cd4dafcb0684f"
      ],
      "referenced_groups": [
       {
@@ -11484,8 +11484,8 @@
        ]
       ],
       "cache_keys": [
-       "7e91121b739c4e4e",
-       "b64c529d212a36fc"
+       "8b906c458dd828c8",
+       "512cd4dafcb0684f"
       ],
       "referenced_groups": [
        {
@@ -12725,8 +12725,8 @@
       ]
      ],
      "cache_keys": [
-      "a2d758a783bfd6b2",
-      "5cf2728ea964cb82"
+      "db0df54b90f6e08d",
+      "dc3e390d98ddb2bb"
      ],
      "referenced_groups": [],
      "new_result": [

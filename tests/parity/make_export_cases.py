@@ -43,6 +43,7 @@ from mdatk.io import loader, pdb_export  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
+import improvements_readers_amber  # noqa: E402
 import independent_tables  # noqa: E402
 
 independent_tables.apply()  # MDAnalysis with MDBridge's independent tables (tests/data/README.md)
@@ -78,7 +79,10 @@ def file_entry(path):
 def export_case(topology, trajectories=(), dt=None, selection="", frames=(0,), prefix="frame", stamp=""):
     case = {"topology": placeholders(topology), "trajectories": [placeholders(t) for t in trajectories],
             "dt": dt, "selection": selection, "frames": list(frames), "prefix": prefix, "stamp": stamp}
-    u = loader.load_universe(topology, list(trajectories), dt)
+    load, fix = improvements_readers_amber.parm7_as_mdbridge_reads(topology)  # RD-P05
+    u = loader.load_universe(load, list(trajectories), dt)
+    if fix is not None:
+        fix(u)
     atoms = u.atoms if not selection else selections.select(u, selection, [])
     calls = []
     with tempfile.TemporaryDirectory(prefix="pdb-export-") as tmp:

@@ -66,6 +66,13 @@ and `residue_rule_pdb_text` (the name column of the files the export generator r
 / H), lone ions named the CCD way and the force-field way, `CD2`/`CD`, `EMC`/`HG`, and `K+`/`K+`,
 which no source names (name rule: K).
 
+Reader improvements (docs/DIFFERENCES.md, "Amber, DCD and GROMACS readers"): the expected data of
+the parm7, NetCDF, mdcrd / rst7, DCD and XTC / TRR readers is MDBridge's improved behaviour.
+`tests/parity/improvements_readers_amber.py` (documented per item id) adjusts what the generators
+record from MDAnalysis: `apply()` (called by `independent_tables.apply()`) gives every parm7
+Universe float64 charges and MDATK's energy analysis version 2; make_parm7_cases.py,
+make_trajectory_cases.py, make_loader_cases.py and make_export_cases.py call its adjust functions.
+
 `projects/` holds project files; `expected/` holds what MDATK v0.0.4.1 (the reference
 implementation) reads from each of them. `tests/core/test_project_file.cpp` checks that MDBridge
 reads every file in `projects/` the same way, byte for byte in the JSON form of the result.

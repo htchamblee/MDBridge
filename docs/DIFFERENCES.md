@@ -76,8 +76,6 @@ test_structure.cpp, test_energy.cpp (tolerances).
 - **Self-bonds** (`CONECT 1 1`, kept by MDAnalysis) are dropped; the topology model has none.
 - **`info` residue-name ranking:** equal counts are ordered by name (MDATK: numpy's argsort order,
   which depends on the CPU's sort kernel).
-- **parm7 end of file:** the StopIteration carries "<file>: the parm7 file ends unexpectedly" instead
-  of an empty message.
 - **Periodic pair search where MDAnalysis is undefined:** a point more than 2^31 cells away is not
   moved along that vector (MDAnalysis overflows a 32-bit integer); a triclinic box vector with an
   infinite component is not periodic; a point with a NaN or infinite coordinate is in no pair for
@@ -90,6 +88,106 @@ test_structure.cpp, test_energy.cpp (tolerances).
   (marked `unsupported` in atom_selection_cases.json).
 - **RMSD:** numpy's RuntimeWarnings for non-finite or empty input are not reproduced (MDATK ignores
   them).
+
+## Amber, DCD and GROMACS readers (docs/IMPROVEMENTS.md 2.1, 2.4-2.6)
+
+Expected data: the generators record MDAnalysis; tests/parity/improvements_readers_amber.py turns
+it into MDBridge's behaviour (per item, below). Error texts follow the reader-message rule: they name
+the file and, where known, the line, columns, section or frame. Warnings marked "(warning pending)"
+are not printed yet: MDBridge has no reader-warning channel until LD-03; the code carries the text
+as `TODO(LD-03)`.
+
+parm7 topologies (src/io/parm7.cpp; tested by io/parm7/topology*, test_parm7.cpp
+`ImprovedTopologyRules`):
+- **RD-P01** An unknown section right after POINTERS is skipped like one anywhere else (MDAnalysis:
+  `UnboundLocalError ... 'numlines'`). unknown_first.parm7 loads.
+- **RD-P02 / RD-P03 / RD-P04** Python texts replaced: `<file>: unexpected end of file in %FLAG MASS
+  (expected 8 data lines, found 1)`; `<file>: required section %FLAG POINTERS is missing` (was an
+  empty StopIteration); `<file>: required section %FLAG ANGLES_WITHOUT_HYDROGEN is missing` (was
+  KeyError `'anga'`); `<file> line L: expected a %FLAG line after the 8 data lines of %FLAG MASS,
+  found '...'`; `<file> line L: expected %FORMAT or %COMMENT after %FLAG MASS, found '...'`;
+  `<file> line L, %FLAG RESIDUE_POINTER field 2: '1x' is not an integer`; a second header line
+  without a second word is the "'TITLE' missing in header" error (was IndexError). POINTERS is read
+  up to the next %FLAG: any count of at least 12 values is accepted (`<file>: %FLAG POINTERS needs
+  at least 12 integers (found N)`, `<file> line L: %FLAG POINTERS value 'x' is not an integer`), so
+  pointer_lines_short.parm7 (30 values in 3 lines) loads.
+- **RD-P05** A blank numeric field before the last non-blank field of a line is an error (`<file>
+  line L: blank field F in %FLAG MASS`) instead of shifting every later value. A blank text field
+  there is the empty string (chain_blank.parm7: residue 3 has chain ID "", MDAnalysis drops it and
+  ignores RESIDUE_CHAINID). Trailing blank fields stay allowed.
+- **RD-P06** Data lines are counted from each section's %FORMAT (fields per line), not from a fixed
+  per-section constant: charge_three_per_line.parm7 (`3E24.16`) loads.
+- **RD-P07** `D` / `d` exponents are accepted in real fields.
+- **RD-P08** RESIDUE_POINTER must start at 1, increase strictly and stay within the atoms
+  (`<file>: %FLAG RESIDUE_POINTER is not increasing at residue 3 (11, then 6)`, `... residue 1 starts
+  at atom 3; the first residue must start at atom 1`); MDAnalysis accepted such files with wrong
+  residue membership (resptr_zero, resptr_unsorted, residue_pointer_offset are now errors).
+- **RD-P09** `<file>: ATOMIC_NUMBER 119 of atom 1 is not an element` (was KeyError `119`).
+- **RD-P10** Bond, angle and dihedral entries are checked: `<file>: %FLAG BONDS_INC_HYDROGEN entry k:
+  atom index 4 is not a multiple of 3` / `refers to atom 41 of 40` / `is negative`, `... entry 5 has 2
+  of 3 values` (negative third and fourth dihedral indices are Amber flags and stay accepted).
+- **RD-P11** (parm7 part) every parm7 topology error names the file; MDBridge never wrapped them in
+  MDAnalysis' parser-class text. The PDB / GRO wrapper (pdb_topology.cpp) belongs to the PDB chunk.
+- **RD-P12** Charges are the field divided by 18.2223 in float64 (MDAnalysis: float32 field divided
+  by float32(18.2223) in float32, ~1e-8 relative error). Every expected value built from a parm7
+  topology (topology dumps, selections, energies, the command line) uses these charges:
+  improvements_readers_amber.apply() (called by independent_tables.apply()) wraps TOPParser.parse.
+- **RD-P14** Count mismatches: `<file>: %FLAG MASS has 39 values for 40 atoms` (was "Length of masses
+  does not match number of atoms.\nExpect: 40 Have: 39").
+
+Amber NetCDF (src/io/netcdf.cpp; io/trajectories/cases.json):
+- **RD-N01** Cell lengths (0, 0, 0) mean no cell for that frame (MDAnalysis: TypeError
+  `'NoneType' object is not subscriptable`). zero_box.nc loads.
+- **RD-N02** Atom-count mismatch: the message of the other readers, `The topology and NCDF trajectory
+  files don't have the same number of atoms!\nTopology number of atoms 8\nTrajectory: <file> Number
+  of atoms 7` (was advice about MDAnalysis' n_atoms argument); in a chain, the chain's checks report
+  it (chain_atoms_differ_nc).
+- **RD-N03** `<file>: variable 'coordinates' has no 'units' attribute (expected 'angstrom')`, `...
+  'units' attribute of variable 'x' is not text ...` (were AttributeErrors).
+- **RD-N04** `<file>: file is empty`, `<file>: unsupported NetCDF variant (CDF-5)`, `<file>: truncated
+  header`, `<file>: corrupt NetCDF header (...)`, `<file>: file ends inside frame 3 (expected N bytes,
+  found M)` (were numpy / mmap texts).
+- **RD-N05** A streaming record count (0xFFFFFFFF) takes the records the file holds (new case
+  streaming.nc); no records: `<file>: trajectory has no frames`.
+- **RD-N06** dt is computed from the scaled times, as the frames' times are (MDAnalysis ignored the
+  time scale_factor for dt): mda_scaled, coords_int_f64scale, coords_float_f64scale,
+  time_short_scaled.
+- **RD-N07** A cell variable without the frame dimension, (cell_spatial) / (cell_angular), is the
+  cell of every frame (new case cell_constant.nc); any other shape is an error (cell_per_frame_scalar).
+- **RD-N08** CDF-1 (32-bit offsets) files are read (warning pending: "uses 32-bit offsets (CDF-1)").
+  cdf1, cdf1_dt and chain_bad_first load (expected data: MDAnalysis on a CDF-2 copy).
+- **RD-N10** The "no time information; dt set to 1.0 ps" warning is to be issued once per file
+  (warning pending).
+
+Amber ASCII (src/io/amber_ascii.cpp):
+- **RD-A01** One frame without a box line is one non-periodic frame (MDAnalysis: empty
+  StopIteration).
+- **RD-A02** The layout is checked against the atom count at open: every coordinate line has 10
+  fields, the frame's last 3N mod 10 (or 10); `<file> line L: expected 10 coordinates for 7 atoms,
+  found 5 (does the topology match?)`; the line after the first frame is a box line (3 values) or the
+  next frame's first line, else `<file> line 5: expected a box line (3 values) or the first 10
+  coordinates of the next frame, found 4 values ...` (MDAnalysis mis-framed the data or gave numpy's
+  reshape text).
+- **RD-A03** One atom: box lines are recognised (every second line, when there is an even number of
+  data lines and all of them hold three positive values); MDAnalysis read 3 periodic frames as 6.
+- **RD-A04** Trailing blank lines are ignored; an incomplete last frame is ignored (warning pending:
+  "the last frame is incomplete"). Frame count = complete frames.
+- **RD-A05** `<file> line 2, columns 1-8: '********' is not a number (Fortran overflow: the value does
+  not fit the field)`; rst7: `<file> line 2: time 'abc' is not a number`, `... atom count 'abc' is
+  not a non-negative integer`, `<file> line 6: expected 6 coordinates, found 3 (the file has 8
+  atoms)`, `<file>: the file ends at line 3; 7 atoms need 6 lines`.
+- **RD-A06** `<file>: file is empty` / `<file>: no frames after the title` (were EOFErrors).
+
+DCD / XTC / TRR (src/io/dcd.cpp, gromacs.cpp):
+- **RD-D01** NSAVC = 0 is read as 1: dt = DELTA, times (frame + ISTART) * DELTA (warning pending)
+  (MDAnalysis: ZeroDivisionError). Expected data: MDAnalysis on a copy with NSAVC 1.
+- **RD-D02** `<file>: 4-dimensional DCD files are not supported` (was numpy's broadcast text).
+- **RD-D03** XDR errors name the file and, while reading a frame, the frame: `<file> frame 4: XTC read
+  error = compression`, `<file>: XDR read error = magic`.
+
+Error classes: the new reader errors (NetCDF, mdcrd, rst7, DCD 4-D) are OSErrors, so a chain of files
+reports them as they are (a ValueError would be rewrapped as "Unable to read <file> with <class
+...>"); parm7 errors are ValueErrors.
 
 ## Density maps (src/io/include/mdbridge/io/mrc.hpp)
 
@@ -130,6 +228,6 @@ test_structure.cpp, test_energy.cpp (tolerances).
 
 Periodic distances and minimum images for every cell (AN-01–AN-04); degenerate RMSD (AN-16); base
 pairs and stacking on wrapped trajectories (AN-11, AN-12); setup-order independence (AN-13, SEL-17);
-`prop` operand reversal (SEL-01, SEL-02); per-atom element fallback (SEL-13); reader fixes (RD-*,
-LD-*); validation of every cutoff (PRJ-01); readable messages in place of Python's internal texts
+`prop` operand reversal (SEL-01, SEL-02); per-atom element fallback (SEL-13); reader fixes (RD-B*,
+RD-G*, LD-*); validation of every cutoff (PRJ-01); readable messages in place of Python's internal texts
 (SEL-03/04/08, RD-*, CLI-01/03/04).

@@ -4,6 +4,7 @@
 
 #include <cmath>
 #include <cstdlib>
+#include <memory>
 #include <set>
 #include <string>
 #include <vector>
@@ -380,4 +381,91 @@ TEST(Parm7, IsParm7) {
         EXPECT_EQ(io::isParm7(*pair[0].get<std::string>()), *pair[1].get<bool>())
             << *pair[0].get<std::string>();
     }
+}
+
+namespace {
+
+// small.parm7 with `from` replaced by `to` (once), read as a topology; the error text without the
+// path, or "" when it loads.
+std::string readVariant(const std::string& from, const std::string& to,
+                        std::shared_ptr<core::Topology>* out = nullptr) {
+    std::string text = readFile(kParm7 / "topology" / "small.parm7");
+    const std::size_t at = text.find(from);
+    EXPECT_NE(at, std::string::npos) << from;
+    text.replace(at, from.size(), to);
+    TempDir dir;
+    const fs::path path = dir / "v.parm7";
+    writeFile(path, text);
+    try {
+        auto topology = io::readParm7Topology(path);
+        if (out) {
+            *out = topology;
+        }
+        return "";
+    } catch (const core::ValueError& e) {
+        std::string message = e.what();
+        const std::u8string p = path.u8string();
+        const std::string ps(p.begin(), p.end());
+        if (message.compare(0, ps.size(), ps) == 0) {
+            message = "{path}" + message.substr(ps.size());
+        }
+        return message;
+    }
+}
+
+}  // namespace
+
+// MDBridge's parm7 rules beyond MDAnalysis (docs/DIFFERENCES.md, RD-P05 ... RD-P10).
+TEST(Parm7, ImprovedTopologyRules) {
+    // RD-P07: Fortran D exponents; RD-P12: charges divided by 18.2223 in float64
+    std::shared_ptr<core::Topology> top;
+    EXPECT_EQ(readVariant("  1.82223000E+01 -1.82223000E+01", "  1.82223000D+01 -1.82223000d+01", &top), "");
+    ASSERT_TRUE(top && top->charges);
+    EXPECT_EQ((*top->charges)[2], 18.2223 / 18.2223);
+    EXPECT_EQ((*top->charges)[3], -1.0);
+    EXPECT_EQ((*top->charges)[4], -3.70815013 / 18.2223);
+    // RD-P10: bond and dihedral indices
+    EXPECT_EQ(readVariant("       0       3       1       6", "       0       4       1       6"),
+              "{path}: %FLAG BONDS_INC_HYDROGEN entry 1: atom index 4 is not a multiple of 3");
+    EXPECT_EQ(readVariant("       0       3       1       6", "       0     120       1       6"),
+              "{path}: %FLAG BONDS_INC_HYDROGEN entry 1: atom index 120 refers to atom 41 of 40");
+    EXPECT_EQ(readVariant("       0       3       1       6", "      -3       3       1       6"),
+              "{path}: %FLAG BONDS_INC_HYDROGEN entry 1: atom index -3 is negative");
+    EXPECT_EQ(readVariant("      21       1      24      27       1\n",
+                          "      21       1      24      27        \n"),
+              "{path}: %FLAG BONDS_INC_HYDROGEN entry 5 has 2 of 3 values");
+    // negative third and fourth dihedral indices are Amber flags, not errors
+    EXPECT_EQ(readVariant("      30      33     -36      39", "      30      33     -36     -39"), "");
+    EXPECT_EQ(readVariant("      30      33     -36      39", "      30     -33      36      39"),
+              "{path}: %FLAG DIHEDRALS_WITHOUT_HYDROGEN entry 2: atom index -33 is negative");
+    // RD-P05: a blank numeric field inside a line
+    EXPECT_EQ(readVariant(" -0.00000000E+00  1.82223000E+01", "                  1.82223000E+01"),
+              "{path} line 17: blank field 2 in %FLAG CHARGE");
+    // RD-P02: the file ends inside a section
+    {
+        std::string text = readFile(kParm7 / "topology" / "small.parm7");
+        text.resize(text.find("%FLAG MASS") + 30);
+        TempDir dir;
+        writeFile(dir / "cut.parm7", text);
+        try {
+            io::readParm7Topology(dir / "cut.parm7");
+            ADD_FAILURE();
+        } catch (const core::ValueError& e) {
+            const std::string message = e.what();
+            EXPECT_NE(message.find(": unexpected end of file in %FLAG MASS (expected 8 data lines, "
+                                   "found 1)"),
+                      std::string::npos)
+                << message;
+        }
+    }
+    // RD-P03: POINTERS
+    {
+        const std::string text = readFile(kParm7 / "topology" / "small.parm7");
+        const std::size_t first = text.find("%FLAG POINTERS\n%FORMAT(10I8)\n") + 29;
+        const std::string block = text.substr(first, text.find("%FLAG", first) - first);
+        EXPECT_EQ(readVariant(block, "      40       3       5      10       2       1       1       3       0       0\n"),
+                  "{path}: %FLAG POINTERS needs at least 12 integers (found 10)");
+    }
+    EXPECT_EQ(readVariant("      40       3       5      10", "      40       x       5      10"),
+              "{path} line 7: %FLAG POINTERS value 'x' is not an integer");
 }

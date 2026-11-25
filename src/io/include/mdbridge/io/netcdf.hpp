@@ -16,12 +16,17 @@
 namespace mdbridge::io {
 
 // The Amber convention checks and messages of MDAnalysis' reader ("NCDF trajectory <path> is
-// missing Conventions", "... does not conform to AMBER specifications ...", atom-count mismatch,
-// units other than angstrom / picosecond) are core::ValueError. Times: the file's time variable
-// (in its own type, or the scale_factor product's, widened) - `dt` never changes them; without a
-// time variable frame * dt (dt default 1.0). dt(): the given dt, else time[1] - time[0] of the
-// unscaled values in the variable's type, 1.0 without a time variable or for one frame. Boxes from cell_lengths / cell_angles (rounded to float32), none without them.
-// `expectedAtoms`: the topology's atom count (0: take the file's).
+// missing Conventions", "... does not conform to AMBER specifications ...", units other than
+// angstrom / picosecond) are core::ValueError; corrupt files, missing units and files without
+// frames are OSErrors naming the file ("<path>: truncated header", "<path>: file ends inside frame
+// 3 ...", "<path>: trajectory has no frames"). CDF-1 and CDF-2 files are read; a streaming record
+// count takes the records the file holds. Times: the file's time variable (in its own type, or the
+// scale_factor product's, widened) - `dt` never changes them; without a time variable frame * dt
+// (dt default 1.0). dt(): the given dt, else time[1] - time[0] of the scaled times, 1.0 without a
+// time variable or for one frame. Boxes from cell_lengths / cell_angles (rounded to float32; a
+// variable without the frame dimension is every frame's cell), none without them or for lengths
+// (0, 0, 0). `expectedAtoms`: the topology's atom count (0: take the file's; another count is the
+// "The topology and NCDF trajectory files don't have the same number of atoms!" ValueError).
 std::unique_ptr<core::Trajectory> openNetcdfTrajectory(const std::filesystem::path& path,
                                                        std::optional<double> dt = std::nullopt,
                                                        std::size_t expectedAtoms = 0);

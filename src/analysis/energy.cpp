@@ -280,7 +280,7 @@ public:
     EnergyDescriptor()
         : AnalysisDescriptor({"energy",
                               "Intermolecular energy",
-                              1,
+                              2,  // 2: float64 parm7 charges (RD-P12)
                               false,
                               2,
                               {{"total", "{a}–{b} interaction energy"},

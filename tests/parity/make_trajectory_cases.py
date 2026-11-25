@@ -49,6 +49,9 @@ import scipy.io  # noqa: E402
 from MDAnalysis.coordinates.memory import MemoryReader  # noqa: E402
 
 from mdatk.demo import build_demo  # noqa: E402
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import improvements_readers_amber  # noqa: E402
 from mdatk.io import loader  # noqa: E402
 
 OUT = os.path.abspath(sys.argv[2])
@@ -560,6 +563,8 @@ def case(name, files, fmt=None, dt=None, atoms=N):
 def main():
     nc = netcdf_files()
     nc.update(corrupt_netcdf())
+    # RD-N05 / RD-N07 (improvements_readers_amber.py)
+    nc.update(improvements_readers_amber.netcdf_extra_files(tmp, raw, nc_crafted, COORDS))
     amber = amber_files()
     dcd = dcd_files()
     xdr = xdr_files()
@@ -674,6 +679,17 @@ def main():
             expected = src
         writer_cases.append({"name": name, "source": src, "frames": frames, "atoms": int(u.atoms.n_atoms),
                              "expected": expected})
+
+    # MDBridge's improved readers (RD-N*, RD-A*, RD-D*; improvements_readers_amber.py)
+    def rerun(paths, fmt, dt, atoms):
+        kw = {} if fmt is None else {"format": fmt}
+        if dt is not None:
+            kw["dt"] = dt
+        u = mda.Universe.empty(atoms)
+        u.load_new(paths[0] if len(paths) == 1 else paths, **kw)
+        return {"result": result_of(u, paths)}
+
+    improvements_readers_amber.adjust_trajectory_cases(CASES, tmp, rerun)
 
     # copy the data files (not MDAnalysis' offset caches)
     used = set()

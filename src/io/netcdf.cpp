@@ -146,6 +146,9 @@ struct Header {
     }
 };
 
+// The header ends before its last field.
+struct TruncatedHeader {};
+
 // The header, read front to back as scipy.io.netcdf_file reads it.
 class HeaderReader {
 public:
@@ -180,7 +183,9 @@ public:
             for (std::int32_t k = 0; k < rank; ++k) {
                 const std::int32_t id = integer();
                 if (id < 0 || static_cast<std::size_t>(id) >= header.dims.size()) {
-                    throw ReaderError("IndexError", "list index out of range");
+                    throw ValueError("variable '" + v.name + "' refers to dimension " +
+                                     std::to_string(id) + " of " +
+                                     std::to_string(header.dims.size()));
                 }
                 v.dims.push_back(static_cast<std::size_t>(id));
                 v.shape.push_back(header.dims[static_cast<std::size_t>(id)].length);
@@ -226,7 +231,7 @@ private:
     std::string take(std::size_t n) {
         std::string out = m_file.read(m_pos, n);
         if (out.size() != n) {
-            throw ReaderError("IndexError", "index 0 is out of bounds for axis 0 with size 0");
+            throw TruncatedHeader();
         }
         m_pos += n;
         return out;
@@ -283,25 +288,6 @@ std::string decodedText(const Attribute& attribute) {
         throw detail::UnicodeDecodeError(*error);
     }
     return bytes;
-}
-
-// type(value) of a numeric attribute as NumPy names it
-std::string numpyTypeName(const Attribute& attribute) {
-    if (attribute.count != 1) {
-        return "numpy.ndarray";
-    }
-    switch (attribute.type) {
-    case NcByte:
-        return "numpy.int8";
-    case NcShort:
-        return "numpy.int16";
-    case NcInt:
-        return "numpy.int32";
-    case NcFloat:
-        return "numpy.float32";
-    default:
-        return "numpy.float64";
-    }
 }
 
 // repr() of a bytes value
@@ -379,14 +365,17 @@ std::string valueText(const Attribute& attribute) {
     return attribute.isText() ? bytesRepr(attribute.text()) : numericText(attribute);
 }
 
-void checkUnits(const Variable& variable, const std::string& expected) {
+void checkUnits(const std::string& file, const Variable& variable, const std::string& expected) {
     const Attribute* units = findAttribute(variable.attributes, "units");
     if (units == nullptr) {
-        throw ReaderError("AttributeError", "'netcdf_variable' object has no attribute 'units'");
+        throw ReaderError("OSError", file + ": variable '" + variable.name +
+                                         "' has no 'units' attribute (expected '" + expected +
+                                         "')");
     }
     if (!units->isText()) {
-        throw ReaderError("AttributeError",
-                          "'" + numpyTypeName(*units) + "' object has no attribute 'decode'");
+        throw ReaderError("OSError", file + ": the 'units' attribute of variable '" +
+                                         variable.name + "' is not text (expected '" + expected +
+                                         "', found " + valueText(*units) + ")");
     }
     const std::string found = decodedText(*units);
     if (found != expected) {
@@ -456,12 +445,9 @@ public:
         const std::string name = detail::pathText(path);
         readContainer(name);
         checkConventions(name);
-        if (m_header.version != 2) {
-            typeError("NCDF trajectory " + name +
-                      " does not conform to AMBER specifications, as detailed in "
-                      "https://ambermd.org/netcdf/nctraj.xhtml (NetCDF file does not use 64 bit "
-                      "offsets [version_byte = 2])");
-        }
+        // CDF-1 (32-bit offsets) is read like CDF-2 (RD-N08).
+        // TODO(LD-03): for version 1, warn "<file>: NetCDF file uses 32-bit offsets (CDF-1); the
+        // Amber convention asks for 64-bit offsets (CDF-2)"
         const Dimension* spatial = m_header.dimension("spatial");
         if (spatial == nullptr) {
             throw ValueError("NCDF trajectory does not contain spatial dimension");
@@ -476,10 +462,10 @@ public:
         }
         m_atoms = static_cast<std::size_t>(atom->length);
         if (expectedAtoms != 0 && expectedAtoms != m_atoms) {
-            throw ValueError("Supplied n_atoms (" + std::to_string(expectedAtoms) +
-                             ") != natom from ncdf (" +
-                             (m_atoms == 0 ? std::string("None") : std::to_string(m_atoms)) +
-                             "). Note: n_atoms can be None and then the ncdf value is used!");
+            throw ValueError("The topology and NCDF trajectory files don't have the same number "
+                             "of atoms!\nTopology number of atoms " +
+                             std::to_string(expectedAtoms) + "\nTrajectory: " + name +
+                             " Number of atoms " + std::to_string(m_atoms));
         }
         const Dimension* frame = m_header.dimension("frame");
         const Variable* coordinates = m_header.variable("coordinates");
@@ -495,32 +481,36 @@ public:
         // (the title attribute is MDAnalysis' remarks, which MDATK does not use)
         m_time = m_header.variable("time");
         if (m_time != nullptr) {
-            checkUnits(*m_time, "picosecond");
+            checkUnits(name, *m_time, "picosecond");
         }
         if (coordinates == nullptr) {
             throw ReaderError("KeyError", "'coordinates'");
         }
         m_coordinates = coordinates;
-        checkUnits(*m_coordinates, "angstrom");
+        checkUnits(name, *m_coordinates, "angstrom");
         readScaleFactors();
         if (const Variable* velocities = m_header.variable("velocities")) {
-            checkUnits(*velocities, "angstrom/picosecond");
+            checkUnits(name, *velocities, "angstrom/picosecond");
         }
         if (const Variable* forces = m_header.variable("forces")) {
-            checkUnits(*forces, "kilocalorie/mole/angstrom");
+            checkUnits(name, *forces, "kilocalorie/mole/angstrom");
         }
         m_lengths = m_header.variable("cell_lengths");
         if (m_lengths != nullptr) {
-            checkUnits(*m_lengths, "angstrom");
+            checkUnits(name, *m_lengths, "angstrom");
             m_angles = m_header.variable("cell_angles");
             if (m_angles == nullptr) {
                 throw ReaderError("KeyError", "'cell_angles'");
             }
-            checkUnits(*m_angles, "degree");
+            checkUnits(name, *m_angles, "degree");
         }
+        checkCellShape(name, m_lengths, "cell_spatial");
+        checkCellShape(name, m_angles, "cell_angular");
+        // TODO(LD-03): without a time variable and a given dt, warn once per file (RD-N10)
+        // "<file>: no time information; dt set to 1.0 ps"
         m_dt = dt ? *dt : fileDt();
         if (m_frameCount == 0) {
-            throw ReaderError("IndexError", "frame index must be 0 <= frame < 0");
+            throw ReaderError("OSError", name + ": trajectory has no frames");
         }
         seek(0);
     }
@@ -557,49 +547,94 @@ protected:
                 box[i] = static_cast<float>(lengths[i]);
                 box[i + 3] = static_cast<float>(angles[i]);
             }
-            if (box[0] == 0.0f && box[1] == 0.0f && box[2] == 0.0f) {
-                // MDAnalysis sees no box and then fails converting its units
-                typeError("'NoneType' object is not subscriptable");
+            if (box[0] != 0.0f || box[1] != 0.0f || box[2] != 0.0f) {  // (0, 0, 0): no cell
+                frame.box = box;
             }
-            frame.box = box;
         }
     }
 
 private:
     void readContainer(const std::string& name) {
-        if (m_file.size() == 0) {
-            throw ValueError("cannot mmap an empty file");
+        const auto fail = [&](const std::string& message) {
+            throw ReaderError("OSError", name + ": " + message);
+        };
+        const std::uint64_t size = m_file.size();
+        if (size == 0) {
+            fail("file is empty");
         }
         const std::string magic = m_file.read(0, 4);
         if (magic.substr(0, 3) != "CDF") {
             typeError("Error: " + name + " is not a valid NetCDF 3 file");
         }
-        if (magic.size() == 4 && (magic[3] == 3 || magic[3] == 5)) {
-            throw ReaderError("IndexError", "list index out of range");
+        if (magic.size() < 4) {
+            fail("truncated header");
         }
-        m_header = HeaderReader(m_file).read();
+        if (magic[3] == 5) {
+            fail("unsupported NetCDF variant (CDF-5)");
+        }
+        if (magic[3] != 1 && magic[3] != 2) {
+            fail("unsupported NetCDF variant (version byte " +
+                 std::to_string(static_cast<int>(static_cast<unsigned char>(magic[3]))) + ")");
+        }
+        try {
+            m_header = HeaderReader(m_file).read();
+        } catch (const TruncatedHeader&) {
+            fail("truncated header");
+        } catch (const ValueError& error) {
+            fail(std::string("corrupt NetCDF header (") + error.what() + ")");
+        }
         if (m_header.records == 0xFFFFFFFFu) {
-            // streaming: no usable records
-            m_header.records = 0;
+            // streaming (RD-N05): as many records as the file holds
+            const std::uint64_t stride = m_header.recordStride;
+            m_header.records = stride == 0 || size < m_header.recordBegin
+                                   ? 0
+                                   : (size - m_header.recordBegin) / stride;
             for (Variable& v : m_header.variables) {
                 if (v.record) {
-                    v.shape[0] = 0;
+                    v.shape[0] = m_header.records;
                 }
             }
         }
-        bool truncated = m_header.records > 0 &&
-                         m_header.recordBegin + m_header.records * m_header.recordStride >
-                             m_file.size();
+        const std::uint64_t needed = m_header.recordBegin + m_header.records * m_header.recordStride;
+        if (m_header.records > 0 && needed > size) {
+            const std::uint64_t complete = size < m_header.recordBegin
+                                               ? 0
+                                               : (size - m_header.recordBegin) / m_header.recordStride;
+            fail("file ends inside frame " + std::to_string(complete) + " (expected " +
+                 std::to_string(needed) + " bytes, found " + std::to_string(size) + ")");
+        }
         for (const Variable& v : m_header.variables) {
             if (!v.record) {
                 const std::uint64_t entries = v.shape.empty() ? 1 : v.shape[0];
-                truncated = truncated || v.begin + entries * v.itemBytes > m_file.size();
+                const std::uint64_t end = v.begin + entries * v.itemBytes;
+                if (end > size) {
+                    fail("file ends inside variable '" + v.name + "' (expected " +
+                         std::to_string(end) + " bytes, found " + std::to_string(size) + ")");
+                }
             }
         }
-        if (truncated) {
-            throw ValueError(
-                "When changing to a larger dtype, its size must be a divisor of the total size "
-                "in bytes of the last axis of the array.");
+    }
+
+    // A cell variable is (frame, <dimension>) or a constant (<dimension>) (RD-N07).
+    void checkCellShape(const std::string& name, const Variable* v, std::string_view dimension) const {
+        if (v == nullptr) {
+            return;
+        }
+        const auto isDim = [&](std::size_t id, std::string_view which) {
+            return m_header.dims[id].name == which;
+        };
+        const bool perFrame =
+            v->dims.size() == 2 && isDim(v->dims[0], "frame") && isDim(v->dims[1], dimension);
+        const bool constant = v->dims.size() == 1 && isDim(v->dims[0], dimension);
+        if (!perFrame && !constant) {
+            std::string shape;
+            for (const std::size_t id : v->dims) {
+                shape += (shape.empty() ? "" : ", ") + m_header.dims[id].name;
+            }
+            throw ReaderError("OSError", name + ": variable '" + v->name + "' has dimensions (" +
+                                             shape + "); expected (frame, " +
+                                             std::string(dimension) + ") or (" +
+                                             std::string(dimension) + ")");
         }
     }
 
@@ -670,12 +705,16 @@ private:
         return out;
     }
 
-    // Three values of a cell variable at `index`; a one-dimensional variable gives one value,
-    // repeated.
+    // The three values of a cell variable for frame `index`; a variable without the frame
+    // dimension holds the cell of every frame.
     std::array<double, 3> triple(const Variable& v, std::uint64_t index) {
-        const std::vector<double> values = row(v, index);
-        if (values.size() == 1) {
-            return {values[0], values[0], values[0]};
+        std::vector<double> values;
+        if (v.dims.size() == 1) {  // one cell for every frame
+            for (std::uint64_t k = 0; k < 3; ++k) {
+                values.push_back(row(v, k).front());
+            }
+        } else {
+            values = row(v, index);
         }
         if (values.size() != 3) {
             throw ValueError("could not broadcast input array from shape (" +
@@ -684,8 +723,8 @@ private:
         return {values[0], values[1], values[2]};
     }
 
-    // time[1] - time[0] of the unscaled values, in the variable's own type; 1.0 without a time
-    // variable or with one frame.
+    // time[1] - time[0] of the scaled times (as the frames' times), in their type; 1.0 without a
+    // time variable or with one frame.
     double fileDt() {
         if (m_time == nullptr || m_frameCount < 2 || m_time->shape.empty() ||
             m_time->shape[0] < 2 || m_time->itemBytes != typeSize(m_time->type)) {
@@ -694,6 +733,14 @@ private:
         const std::size_t size = typeSize(m_time->type);
         const double t0 = loadValue(m_file.read(entryOffset(*m_time, 0), size).data(), m_time->type);
         const double t1 = loadValue(m_file.read(entryOffset(*m_time, 1), size).data(), m_time->type);
+        const Scale scale = scaleFor(*m_time);
+        if (scale.applies) {  // RD-N06
+            const double s0 = scaled(t0, m_time->type, scale);
+            const double s1 = scaled(t1, m_time->type, scale);
+            const bool single = scale.single && m_time->type != NcInt && m_time->type != NcDouble;
+            return single ? static_cast<double>(static_cast<float>(s1) - static_cast<float>(s0))
+                          : s1 - s0;
+        }
         if (m_time->type == NcFloat) {
             return static_cast<double>(static_cast<float>(t1) - static_cast<float>(t0));
         }
