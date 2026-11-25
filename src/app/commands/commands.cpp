@@ -1,5 +1,6 @@
 // MDATK's commands (mdatk/cli.py cmd_init, cmd_info, cmd_list, cmd_analyze, cmd_export_pdb,
-// cmd_density_info and the parts of load_project, make_reporter and Pipeline they use).
+// cmd_render, cmd_charts, cmd_preview, cmd_density_info and the parts of load_project,
+// make_reporter and Pipeline they use; the outputs in render_pipeline.cpp).
 #include "commands.hpp"
 
 #include <algorithm>
@@ -42,6 +43,9 @@
 #include "mdbridge/io/loader.hpp"
 #include "mdbridge/io/mrc.hpp"
 #include "mdbridge/io/pdb_export.hpp"
+#include "mdbridge/render/panels/charts.hpp"
+#include "mdbridge/render/panels/checks.hpp"
+#include "render_pipeline.hpp"
 
 namespace mdbridge::app {
 
@@ -79,6 +83,10 @@ struct CoreCommands::Arguments {
     CLI::App* exportPdb = nullptr;
     CLI::App* density = nullptr;
     CLI::App* densityInfo = nullptr;
+    CLI::App* render = nullptr;
+    CLI::App* charts = nullptr;
+    CLI::App* preview = nullptr;
+    const RenderBackend* backend = nullptr;
 
     CommonArguments initCommon;
     std::string initOutput;
@@ -98,6 +106,20 @@ struct CoreCommands::Arguments {
     CLI::Option* selectionOption = nullptr;
 
     std::string map;
+
+    CommonArguments renderCommon;
+    bool video = false, noVideo = false, chartsOn = false, noCharts = false, pdb = false, noPdb = false;
+    bool renderForce = false, renderFromCache = false;
+
+    CommonArguments chartsCommon;
+    std::string series, formats;
+    std::int64_t dpi = 0;
+    bool chartsFromCache = false;
+
+    CommonArguments previewCommon;
+    std::int64_t frame = 0;
+    std::string output;
+    bool previewFromCache = false;
 };
 
 namespace {
@@ -341,6 +363,9 @@ int commandInfo(CLI::App& command, const CommonArguments& common, Console& conso
     for (const std::string& p : core::validate(project)) {
         problems.emplace_back(p);
     }
+    for (const std::string& p : render::panels::renderProblems(project)) {  // RN-11 ... RN-15
+        problems.emplace_back(p);
+    }
     core::Table& table = *info.get<core::Table>();
     table.emplace_back("groups", std::move(groups));
     table.emplace_back("problems", std::move(problems));
@@ -359,7 +384,7 @@ int commandAnalyze(CLI::App& command, const CoreCommands::Arguments& a, Console&
     core::Project project = loadProject(command, a.analyzeCommon, true);
     ConsoleReporter consoleReporter(console, a.analyzeCommon.quiet, a.analyzeCommon.verbose);
     analysis::Pipeline pipeline(std::move(project), consoleReporter.reporter());
-    pipeline.check();
+    checkProject(pipeline.project(), pipeline.reporter());
     std::optional<std::vector<std::string>> names;  // args.only.split(","), each stripped
     if (!a.only.empty()) {
         names.emplace();
@@ -398,18 +423,7 @@ int commandExportPdb(CLI::App& command, const CoreCommands::Arguments& a, Consol
         pdb.selection = a.selection;
     }
 
-    // Pipeline.check()
-    const std::vector<std::string> problems = core::validate(project);
-    if (!problems.empty()) {
-        std::string text = "Invalid parameters:";
-        for (const std::string& p : problems) {
-            text += "\n  - " + p;
-        }
-        throw PipelineError(text);
-    }
-    for (const std::string& warning : core::layoutWarnings(project)) {
-        reporter.log("WARNING: " + warning);
-    }
+    checkProject(project, reporter);  // Pipeline.check()
     const std::string outDir = core::outDir(project);
     fs::create_directories(core::pathFromUtf8(outDir));
 

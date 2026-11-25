@@ -68592,8 +68592,7 @@
     "mdanalysis",
     "numpy",
     "scipy",
-    "matplotlib",
-    "vtk"
+    "matplotlib"
    ]
   },
   {
@@ -68680,8 +68679,7 @@
     "numpy",
     "scipy",
     "matplotlib",
-    "ffmpeg",
-    "vtk"
+    "ffmpeg"
    ]
   },
   {
@@ -68769,8 +68767,7 @@
     "numpy",
     "scipy",
     "matplotlib",
-    "cpptraj",
-    "vtk"
+    "cpptraj"
    ]
   },
   {
@@ -68861,8 +68858,7 @@
     "scipy",
     "matplotlib",
     "cpptraj",
-    "ffmpeg",
-    "vtk"
+    "ffmpeg"
    ]
   },
   {
@@ -70579,7 +70575,6 @@
     "matplotlib",
     "cpptraj",
     "ffmpeg",
-    "vtk",
     "barnaba"
    ]
   },
@@ -70621,7 +70616,6 @@
     "scipy",
     "matplotlib",
     "cpptraj",
-    "vtk",
     "barnaba"
    ]
   }
@@ -70721,8 +70715,7 @@
     "mdanalysis",
     "numpy",
     "scipy",
-    "matplotlib",
-    "vtk"
+    "matplotlib"
    ]
   },
   {
@@ -71306,8 +71299,7 @@
     "mdanalysis",
     "numpy",
     "scipy",
-    "matplotlib",
-    "vtk"
+    "matplotlib"
    ]
   },
   {
@@ -71532,8 +71524,7 @@
     "numpy",
     "scipy",
     "matplotlib",
-    "cpptraj",
-    "vtk"
+    "cpptraj"
    ]
   },
   {

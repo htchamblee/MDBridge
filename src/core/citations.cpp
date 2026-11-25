@@ -153,9 +153,8 @@ std::vector<std::string> pipelineResources(const Project& project) {
     if (project.output.video.enabled) {
         addUnique(out, "ffmpeg");
     }
-    if (project.visual.renderer == "vtk") {
-        addUnique(out, "vtk");
-    }
+    // RN-16: MDATK cites VTK for visual.renderer "vtk"; MDBridge has no VTK ("vtk" means its GPU
+    // renderer, Vulkan), so it is never cited
     if (project.analyses.basepairs.engine == "barnaba") {
         const bool dynamicSecondary = std::any_of(
             project.layout.panels.begin(), project.layout.panels.end(), [](const PanelSpec& s) {

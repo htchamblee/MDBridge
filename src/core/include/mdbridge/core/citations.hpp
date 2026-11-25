@@ -71,9 +71,10 @@ std::vector<std::string> commentLines(std::span<const std::string> resourceIds,
                                       std::optional<std::string_view> heading = "Please cite");
 
 // Resources of MDATK's own analysis, rendering and video stages: mdanalysis, numpy, scipy,
-// matplotlib; cpptraj (cleaning.enabled), ffmpeg (output.video.enabled), vtk (visual.renderer
-// "vtk"), barnaba (analyses.basepairs.engine "barnaba" and a secondary panel whose "source"
-// option is not "dotbracket").
+// matplotlib; cpptraj (cleaning.enabled), ffmpeg (output.video.enabled), barnaba
+// (analyses.basepairs.engine "barnaba" and a secondary panel whose "source" option is not
+// "dotbracket"). Not vtk: MDATK cites it for visual.renderer "vtk", which in MDBridge means its
+// own GPU renderer (Vulkan; RN-16, docs/DIFFERENCES.md).
 std::vector<std::string> pipelineResources(const Project& project);
 
 // project_resources(project): everything the project uses, its planner steps and the pipeline.

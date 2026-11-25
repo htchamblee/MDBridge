@@ -11,7 +11,9 @@ OUT_DIR/citation_cases.json:
   text_lines, grouped     unknown and empty entries, random subsets)
   comment_lines           comment_lines(ids, prefix, width, heading): the lines or textwrap's
                           ValueError, for many prefixes, widths and headings
-  pipeline                pipeline_resources of projects made with Project.from_dict(plain)
+  pipeline                pipeline_resources of projects made with Project.from_dict(plain), with
+                          MDBridge's improvement RN-16 (docs/DIFFERENCES.md): no "vtk" resource for
+                          visual.renderer "vtk" (MDBridge's GPU renderer is Vulkan, not VTK)
   project                 project_resources(project, plan) with stand-in plans: "steps" lists
                           {generates, resources} in plan order; "generating" the resource lists
                           of the steps whose tool generates a script (what MDBridge's caller
@@ -33,6 +35,16 @@ sys.path.insert(0, os.path.abspath(sys.argv[1]))
 
 from mdatk import citations as C  # noqa: E402
 from mdatk import config  # noqa: E402
+
+_pipeline_resources = C.pipeline_resources
+
+
+def _pipeline_resources_without_vtk(project):
+    """RN-16: MDBridge never uses VTK, so it is never cited."""
+    return [r for r in _pipeline_resources(project) if r != "vtk"]
+
+
+C.pipeline_resources = _pipeline_resources_without_vtk  # project_resources calls it too
 
 RNG = random.Random(20261124)
 IDS = list(C.RESOURCES)
