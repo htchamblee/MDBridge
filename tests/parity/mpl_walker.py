@@ -29,7 +29,8 @@ Artist records (common: kind, zorder, visible, alpha, animated, label when not "
               mec, mew, drawstyle, solid_capstyle
   scatter     offsets, sizes, facecolors, edgecolors, linewidths, marker ("o", "s" or the path)
   segments    segments [[[x, y] ...] ...], colors, linewidths, capstyle
-  image       shape, extent, origin, interpolation, aspect, the array (2-D data: "<id>.data"
+  image       shape, extent, origin, interpolation, aspect, x_edges (MDBridge's column edges of a
+              heatmap, RN-01: improvements_render.py), the array (2-D data: "<id>.data"
               float64 with NaN for masked cells; RGBA data: none) and what it shows
               ("<id>.rgba", uint8, row 0 at the top as stored) in the .npz, cmap name, vmin, vmax
   text        text, xy, coordinates ("data", "axes", "figure"), ha, va, color, size, weight,
@@ -304,6 +305,9 @@ class Walker:
             self.put(f"{out['id']}.data", values)
             out.update({"cmap": a.get_cmap().name, "vmin": num(a.norm.vmin), "vmax": num(a.norm.vmax),
                         "masked": int(mask.sum())})
+        edges = getattr(a, "_mdbridge_x_edges", None)  # columns of their own widths (RN-01)
+        if edges is not None:
+            out["x_edges"] = [num(v) for v in edges]
         self.put(f"{out['id']}.rgba", a.to_rgba(arr, bytes=True))
         return out
 

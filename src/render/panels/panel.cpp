@@ -88,6 +88,9 @@ void Panel::showMessage(Figure& fig, const std::string& text) {
     a.face = toRgba(theme.surface);
     a.setXTicks({});
     a.setYTicks({});
+    // nothing asks the cleared axes to autoscale: Matplotlib's unit view stays
+    a.setXLim(0.0, 1.0);
+    a.setYLim(0.0, 1.0);
     for (Spine& s : a.spines) s.color = toRgba(theme.grid);
     Text t;
     t.text = text;

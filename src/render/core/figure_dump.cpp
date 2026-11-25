@@ -254,6 +254,7 @@ core::Value dumpFigure(const Figure& fig, const FontSet& fonts) {
                 t.insert(t.end(), {{"shape", im->cmap ? Array{im->rows, im->cols} : Array{im->rows, im->cols, 4}},
                                    {"extent", Array{im->extent[0], im->extent[1], im->extent[2], im->extent[3]}},
                                    {"origin", im->originUpper ? "upper" : "lower"}, {"interpolation", im->interpolation}});
+                if (!im->xEdges.empty()) t.emplace_back("x_edges", nums(im->xEdges));
                 if (im->cmap) {
                     t.insert(t.end(), {{"cmap", im->cmap->name()}, {"vmin", im->vmin}, {"vmax", im->vmax}});
                 }

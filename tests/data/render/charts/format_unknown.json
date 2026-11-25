@@ -26,7 +26,7 @@
   "workflow": {"project_name":"project","stamp":"","use_stamp":true,"out_dir":"","step_folders":true,"nodes":[],"edges":[],"scratch":[]}
  },
  "stamp": "",
- "improvements": ["RN-03","RN-08","RN-09","RN-16","RN-33"],
+ "improvements": ["RN-01","RN-03","RN-04","RN-08","RN-09","RN-14","RN-16","RN-33"],
  "error": {"type":"ValueError","message":"Format 'bogus' is not supported (supported formats: avif, eps, gif, jpeg, jpg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff, webp)"},
  "log": [],
  "progress": [],

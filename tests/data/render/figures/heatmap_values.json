@@ -29,7 +29,7 @@
  "dpi": 60,
  "watermark": "",
  "positions": [0,12,23],
- "improvements": ["RN-03","RN-08","RN-09","RN-16","RN-33"],
+ "improvements": ["RN-01","RN-03","RN-04","RN-08","RN-09","RN-14","RN-16","RN-33"],
  "frames": [
   {
    "pos": 0,
@@ -75,7 +75,10 @@
        "locator": {"class":"FixedLocator","locs":[0.0,2.0,4.0,6.0,8.0,10.0,12.0,14.0,16.0,18.0,20.0,22.0],"nbins":null},
        "formatter": {"class":"FuncFormatter"}
       },
-      "artists": [{"id":"ax0/0","kind":"image","zorder":0.0,"visible":true,"alpha":null,"animated":false,"shape":[24,24],"extent":[-0.005,0.23500000000000001,23.5,-0.5],"origin":"upper","interpolation":"nearest","dtype":"float64","cmap":"mdatk_seq_light","vmin":0.0,"vmax":6.845208168029785,"masked":0},{"id":"ax0/1","kind":"line","zorder":2.0,"visible":true,"alpha":0.8,"animated":false,"x":[0.0,0.0],"y":[0.0,1.0],"color":[0.043137254901960784,0.043137254901960784,0.043137254901960784,1.0],"lw":1.2,"ls":"-","dashes":null,"marker":"None","ms":6.0,"mfc":[0.043137254901960784,0.043137254901960784,0.043137254901960784,1.0],"mec":[0.043137254901960784,0.043137254901960784,0.043137254901960784,1.0],"mew":1.0,"drawstyle":"default","solid_capstyle":"projecting","transform":"xaxis"}],
+      "artists": [
+       {"id":"ax0/0","kind":"image","zorder":0.0,"visible":true,"alpha":null,"animated":false,"shape":[24,24],"extent":[-0.005,0.23500000000000001,23.5,-0.5],"origin":"upper","interpolation":"nearest","dtype":"float64","cmap":"mdatk_seq_light","vmin":0.0,"vmax":6.845208168029785,"masked":0,"x_edges":[-0.005,0.005,0.015,0.025,0.035,0.045,0.055,0.065,0.07500000000000001,0.08499999999999999,0.095,0.10500000000000001,0.11499999999999999,0.125,0.135,0.14500000000000002,0.155,0.165,0.175,0.185,0.195,0.20500000000000002,0.215,0.225,0.23500000000000001]},
+       {"id":"ax0/1","kind":"line","zorder":2.0,"visible":true,"alpha":0.8,"animated":false,"x":[0.0,0.0],"y":[0.0,1.0],"color":[0.043137254901960784,0.043137254901960784,0.043137254901960784,1.0],"lw":1.2,"ls":"-","dashes":null,"marker":"None","ms":6.0,"mfc":[0.043137254901960784,0.043137254901960784,0.043137254901960784,1.0],"mec":[0.043137254901960784,0.043137254901960784,0.043137254901960784,1.0],"mew":1.0,"drawstyle":"default","solid_capstyle":"projecting","transform":"xaxis"}
+      ],
       "panel": 0,
       "role": "main"
      },

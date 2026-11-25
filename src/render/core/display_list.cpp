@@ -14,6 +14,40 @@ namespace mdbridge::render {
 
 namespace {
 
+// An image whose columns have their own widths (Image::xEdges): resampled to one source column per
+// device pixel column (nearest neighbour at the pixel centre, as the raster backends draw images)
+ImageItem resampledColumns(const Image& a, ImageItem im) {
+    const double x0 = im.corner0.x, x1 = im.corner1.x;
+    const double e0 = a.xEdges.front(), e1 = a.xEdges.back();
+    const int width = std::max(1, static_cast<int>(std::ceil(std::fabs(x1 - x0))));
+    if (!(e1 != e0) || !std::isfinite(x0) || !std::isfinite(x1) || width > (1 << 16)) return im;
+    std::vector<std::uint8_t> out(static_cast<std::size_t>(width) * static_cast<std::size_t>(a.rows) * 4);
+    std::vector<int> source(static_cast<std::size_t>(width));
+    for (int px = 0; px < width; ++px) {
+        const double x = e0 + (e1 - e0) * (px + 0.5) / width;  // data x at the pixel column's centre
+        // the column whose [edge i, edge i + 1) holds x (edges increasing or decreasing)
+        int c = 0;
+        if (e1 > e0) {
+            c = static_cast<int>(std::upper_bound(a.xEdges.begin(), a.xEdges.end(), x) - a.xEdges.begin()) - 1;
+        } else {
+            c = static_cast<int>(std::upper_bound(a.xEdges.begin(), a.xEdges.end(), x, std::greater<>()) - a.xEdges.begin()) - 1;
+        }
+        source[static_cast<std::size_t>(px)] = std::clamp(c, 0, a.cols - 1);
+    }
+    for (int r = 0; r < a.rows; ++r) {
+        for (int px = 0; px < width; ++px) {
+            const std::size_t from = (static_cast<std::size_t>(r) * static_cast<std::size_t>(a.cols) +
+                                      static_cast<std::size_t>(source[static_cast<std::size_t>(px)])) * 4;
+            const std::size_t to = (static_cast<std::size_t>(r) * static_cast<std::size_t>(width) + static_cast<std::size_t>(px)) * 4;
+            std::copy_n(im.rgba.begin() + static_cast<std::ptrdiff_t>(from), 4, out.begin() + static_cast<std::ptrdiff_t>(to));
+        }
+    }
+    im.width = width;
+    im.rgba = std::move(out);
+    return im;
+}
+
+
 Rgba withAlpha(Rgba c, const std::optional<double>& alpha) {
     if (alpha) c.a = *alpha;
     return c;
@@ -291,6 +325,9 @@ void Builder::axes(std::size_t k) {
                                         const double bottom = a.originUpper ? a.extent[2] : a.extent[3];
                                         im.corner0 = dev(m_fig.toPixels(ax, Coords::Data, {a.extent[0], top}));
                                         im.corner1 = dev(m_fig.toPixels(ax, Coords::Data, {a.extent[1], bottom}));
+                                        if (a.xEdges.size() == static_cast<std::size_t>(a.cols) + 1) {
+                                            im = resampledColumns(a, std::move(im));
+                                        }
                                         emit(std::move(im), a.clipOn ? clip : std::nullopt, a.animated);
                                     } else if constexpr (std::is_same_v<T, Rectangle>) {
                                         if (!a.visible || !wanted(a.animated)) return;

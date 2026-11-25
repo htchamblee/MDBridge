@@ -713,7 +713,7 @@ a display list, and QPainter backends (QImage, QSvgGenerator, QPdfWriter). Diffe
   the figure, inner sizes in the grid's ratios), with Matplotlib's two passes, margins, colour-bar
   pads, submerged-margin matching and collapse warning. Positions differ from Matplotlib's by the
   text metrics only (the unhinted text above): every axes, twin and colour-bar box, tight box, axis
-  label, title, text and legend of the 96 drawn figure cases lies within 1.25 % of the figure size of
+  label, title, text and legend of the 97 drawn figure cases lies within 1.25 % of the figure size of
   Matplotlib's (tolerance 1.5 %, docs/specs/m4-plan.md section 3), and every tick and tick label is
   equal (the automatic bin counts agree on every axis). *Tested:* `tests/render/test_figure.cpp`
   (`FigureCase.LayoutTicksAndTextsAsMatplotlib` on `tests/data/render/figures`).
@@ -729,6 +729,40 @@ a display list, and QPainter backends (QImage, QSvgGenerator, QPdfWriter). Diffe
   bundled faces. Raster images fill the glyph outlines (above). The SVG size is given in mm (the
   same physical size as Matplotlib's pt). *Tested:* `FigureSvg.TextAsTextAndPhysicalSize`,
   `FigurePdf.PageOfTheFigureSize`.
+
+## Rendering: plot panels (src/render/panels plots.cpp)
+
+The time-series, dual-axis, heatmap and contact-map panels are MDATK's (`mdatk/render/panels.py`)
+on MDBridge's figure model; every figure case of these panels has the same contents as MDATK's
+(lines, dots, cursors, targets, legends, images and the RGBA they show, colour bars and their
+tables, ticks, labels, titles, animated artists at the first, middle and last frame; layout within
+the tolerance). Differences:
+
+- **Heatmap cells at the midpoints between frame times (RN-01).** MDATK made every column of a
+  residue heatmap `t[1] - t[0]` wide, so with non-uniform times (concatenated runs with different
+  time steps) the cells sat at the wrong times and the moving cursor left the cell of its frame.
+  MDBridge's column edges are the midpoints between frame times, half a step outward at both
+  ends; uniform times give MDATK's cells, one frame `t0 - 0.5 .. t0 + 0.5` as MDATK. *Tested:*
+  `tests/render/test_plot_panels.cpp` (`PlotArithmetic.ColumnEdgesAtMidpoints`; the case
+  `heatmap_uneven_times`, 12 frames 10 ps apart then 12 frames 2 ps apart, whose expected data
+  `improvements_render.py` makes MDATK's panel record with these edges; `PlotFrameLoop.
+  UnevenColumnsDrawnAtTheirWidths`: the drawn image shows each frame's column at its time).
+- **Heatmap `vmin` above `vmax` (RN-04).** The plan expected MDATK to stop with Matplotlib's
+  `minvalue must be less than or equal to maxvalue`. It does not: the heatmap's colour bar runs
+  `nonsingular()` on the reversed norm through Matplotlib's norm callbacks, which set the new vmin
+  while the old vmax is still in place, so `vmin = 5, vmax = 1` silently became `0.9 .. 5` (an
+  artefact of the callback order; Matplotlib without a colour bar does raise). A negative-valued
+  matrix with the default `vmin = 0` was never an error (vmax is at least 1e-9: everything shows the
+  lowest colour). MDBridge swaps reversed limits (the given ones, or a `vmin` above the largest
+  value) and warns `heatmap <key>: vmin 5 is above vmax 1; using vmin 1, vmax 5`. *Tested:*
+  `PlotArithmetic.HeatmapNormSwapsReversedLimits`, the case `heatmap_vmin_above_vmax` (norm,
+  colour bar, pixels and the warning). Validating the options in `check()` is part of RN-15.
+- **NaN-aware running mean (RN-14).** The time-series panel's `smooth` (and the series charts'
+  smoothing, which use the same function) averaged with a convolution, so one NaN (an empty RMSD
+  target, a NaN frame) blanked every window it fell in. MDBridge averages each window's finite
+  values (MDATK's edge padding and window); a value is NaN only where its whole window is.
+  *Tested:* `PlotArithmetic.RunningMeanNanAware`, the cases `ts_nan_smooth` and `ts_smooth`
+  (and the chart records, regenerated with the same patch).
 
 ## Rendering: molecule geometry (src/render/molecule)
 

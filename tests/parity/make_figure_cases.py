@@ -19,6 +19,9 @@ tests/data/analysis/systems/aromatic.pdb. Writes into OUT_DIR (tests/data/render
                       demo_dry_nan  demo_dry's trace, proximity and rmsd with a non-finite trace
                                     point (frame 3) and RMSD value (frame 2): MDATK's crash and NaN
                                     windows (RN-03, RN-14)
+                      demo_dry_times demo_dry's rmsd and contacts with the times of two
+                                    concatenated runs: 12 frames 10 ps apart, then 12 frames 2 ps
+                                    apart (the heatmap's column edges, RN-01)
                       protein_rna   trace, atoms and proximity of aromatic.pdb (RNA chain A,
                                     protein chain B; 3 models)
                       three_chains  a synthetic trace of three chains (A and B 30 nucleotides, LIG
@@ -138,7 +141,8 @@ def synthetic_base():
     return p
 
 
-BASES = {"demo_dry": demo_base, "demo_dry_1": demo_base, "demo_dry_nan": demo_base, "protein_rna": protein_base,
+BASES = {"demo_dry": demo_base, "demo_dry_1": demo_base, "demo_dry_nan": demo_base, "demo_dry_times": demo_base,
+         "protein_rna": protein_base,
          "three_chains": synthetic_base, "example": demo_base}
 
 
@@ -230,6 +234,16 @@ def with_nan(ds):
     return out
 
 
+def with_uneven_times(ds):
+    """demo_dry's rmsd and contacts results at the times of two concatenated runs: frames 0-11
+    10 ps apart, frames 12-23 2 ps apart from 112 ps."""
+    times = np.concatenate([np.arange(12) * 10.0, 112.0 + np.arange(ds.n_frames - 12) * 2.0])
+    out = Dataset(ds.frames, times, time_unit=ds.time_unit)
+    for name in ("rmsd", "contacts"):
+        out.add(copy.deepcopy(ds.results[name]))
+    return out
+
+
 def write_inputs():
     """Every input dataset (and the map), written and read back."""
     demo = demo_base()
@@ -245,6 +259,8 @@ def write_inputs():
     loaded = {name: rc.load_dataset(os.path.join(INPUTS, name)) for name in datasets}
     rc.save_dataset(with_nan(loaded["demo_dry"]), os.path.join(INPUTS, "demo_dry_nan"))
     loaded["demo_dry_nan"] = rc.load_dataset(os.path.join(INPUTS, "demo_dry_nan"))
+    rc.save_dataset(with_uneven_times(loaded["demo_dry"]), os.path.join(INPUTS, "demo_dry_times"))
+    loaded["demo_dry_times"] = rc.load_dataset(os.path.join(INPUTS, "demo_dry_times"))
 
     from mdatk.density import simulate_map
     from mdatk.io.mrc import write_map
@@ -355,6 +371,8 @@ CASES = [
                                                                vmax=1.0)), {}, "vmin > vmax (RN-04)"),
     ("heatmap_dark", "demo_dry", layout("equal_2", HM, MG) + [s("visual.theme", "dark")], {}, "dark ramps"),
     ("heatmap_one_frame", "demo_dry_1", layout("equal_2", HM, RMSD), {}, "one frame: dt = 1, xlim t0..t0+1"),
+    ("heatmap_uneven_times", "demo_dry_times", layout("equal_2", HM, RMSD), {},
+     "two runs of different time steps: cells between the midpoints of frame times (RN-01)"),
     # contact maps
     ("contact_instant", "demo_dry", layout("single", CM), {}, "instant map (animated)"),
     ("contact_frame", "demo_dry", layout("single", P("contact_map", ["contacts/map"], mode="frame", frame=5)), {},

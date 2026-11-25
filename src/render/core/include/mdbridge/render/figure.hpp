@@ -163,6 +163,10 @@ struct Image : ArtistBase {
     double vmin = 0.0, vmax = 1.0;
     std::vector<std::uint8_t> rgba;  // rows x cols x 4 when there is no colormap
     std::array<double, 4> extent{-0.5, 0.5, 0.5, -0.5};  // left, right, bottom, top (data)
+    // cols + 1 column edges in x data (left to right as the columns are stored), for columns of
+    // different widths (the heatmap's frame cells, RN-01); empty: cols equal columns across the
+    // extent. The extent's left / right are the first / last edge.
+    std::vector<double> xEdges;
     bool originUpper = true;
     std::string interpolation = "nearest";  // "nearest" or "bilinear" (AxesImage.set_interpolation)
     // MDATK's PixelImage (the structure view's 3D layer, mdatk/render/molecule/stage.py): `rgba` is
