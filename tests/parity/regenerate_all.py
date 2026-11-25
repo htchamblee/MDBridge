@@ -318,6 +318,8 @@ STEPS = [
     case_step("molecule_geometry", "make_molecule_geometry_cases.py", "render/molecule_geometry"),
     # milestone 4: the density shadow (W0-I; the maps written by the map and figure steps)
     case_step("density_shadow", "make_density_shadow_cases.py", "render/density_shadow"),
+    # milestone 4: residue shading, orientation, the example dataset and numpy's PCG64 (W0-H)
+    case_step("shading", "make_shading_cases.py", "render/shading"),
 ]
 
 
