@@ -147,9 +147,10 @@ def minimum_image_vectors(vectors, box=None):
     return cell.minimum_image(vectors).reshape(vectors.shape)
 
 
-def pairs_within_periodic(a, b, cutoff, box):
-    """AN-01 / AN-02 / AN-03: (i, j, d) of every pair within the cutoff under the minimum image,
-    sorted by (i, j). a and b are rounded to float32 (as MDATK passes them) and widened."""
+def pairs_within_periodic_rows(a, b, cutoff, box):
+    """pairs_within_periodic in pieces: (i, j, d) for successive blocks of rows of a, in order;
+    concatenated, they are pairs_within_periodic's result. For results too large to hold at once
+    (make_distance_cases.py hashes the 1e8 pairs of its lattice cases as they come)."""
     a = np.asarray(a, dtype=np.float32).astype(np.float64).reshape(-1, 3)
     b = np.asarray(b, dtype=np.float32).astype(np.float64).reshape(-1, 3)
     cutoff = float(cutoff)
@@ -157,7 +158,6 @@ def pairs_within_periodic(a, b, cutoff, box):
     cell = Cell.of(box)
     ok_a = np.isfinite(a).all(axis=1)
     ok_b = np.isfinite(b).all(axis=1)
-    out_i, out_j, out_d = [], [], []
     if len(a) and len(b) and not math.isnan(bound):
         chunk = max(1, 1_000_000 // max(1, len(b)))
         for s in range(0, len(a), chunk):
@@ -167,13 +167,20 @@ def pairs_within_periodic(a, b, cutoff, box):
             sq = _sq(diff).reshape(-1, len(b))
             keep = (sq <= bound) & ok_a[s:s + chunk, None] & ok_b[None, :]
             i, j = np.nonzero(keep)
-            out_i.append(i + s)
-            out_j.append(j)
-            out_d.append(np.sqrt(sq[i, j]))
+            yield ((i + s).astype(np.int64), j.astype(np.int64), np.sqrt(sq[i, j]).astype(np.float64))
+
+
+def pairs_within_periodic(a, b, cutoff, box):
+    """AN-01 / AN-02 / AN-03: (i, j, d) of every pair within the cutoff under the minimum image,
+    sorted by (i, j). a and b are rounded to float32 (as MDATK passes them) and widened."""
+    out_i, out_j, out_d = [], [], []
+    for i, j, d in pairs_within_periodic_rows(a, b, cutoff, box):
+        out_i.append(i)
+        out_j.append(j)
+        out_d.append(d)
     if not out_i:
         return np.empty(0, np.int64), np.empty(0, np.int64), np.empty(0, np.float64)
-    return (np.concatenate(out_i).astype(np.int64), np.concatenate(out_j).astype(np.int64),
-            np.concatenate(out_d).astype(np.float64))
+    return np.concatenate(out_i), np.concatenate(out_j), np.concatenate(out_d)
 
 
 # --- MDATK patches ----------------------------------------------------------------------------------

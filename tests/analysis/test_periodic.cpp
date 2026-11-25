@@ -13,6 +13,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <future>
 #include <map>
 #include <optional>
 #include <span>
@@ -89,55 +90,98 @@ std::vector<float> lattice(const Value& spec) {
     return out;
 }
 
-template <class T>
-std::string sha256Of(const std::vector<T>& values) {
-    std::string bytes(values.size() * sizeof(T), '\0');  // little-endian hosts only (x86, ARM)
-    std::memcpy(bytes.data(), values.data(), bytes.size());
-    return core::sha256Hex(bytes);
+using Pair = std::pair<std::int64_t, std::int64_t>;
+
+// a case's points (a lattice's generated), cell and cutoff
+struct CaseInput {
+    std::vector<float> a, b;
+    Box box{};
+    double cutoff = 0;
+};
+
+CaseInput readInput(const Value& c) {
+    CaseInput in;
+    const bool isLattice = c.find("lattice_a") != nullptr;
+    in.a = isLattice ? lattice(*c.find("lattice_a")) : points(*c.find("a"));
+    in.b = isLattice ? lattice(*c.find("lattice_b")) : points(*c.find("b"));
+    const Array& boxValues = list(*c.find("box"));
+    for (std::size_t k = 0; k < 6; ++k) {
+        in.box[k] = number(boxValues[k]);
+    }
+    in.cutoff = number(*c.find("cutoff"));
+    return in;
 }
 
-using Pair = std::pair<std::int64_t, std::int64_t>;
+// A lattice case's search checked as the pairs come (sorted, counted, hashed), never held: up to
+// 1e8 pairs. The hashes are of the int64 (i, j) pairs and of the float64 distances as arrays.
+struct LatticeDigest {
+    bool threw = false;
+    bool sorted = true;
+    bool orthogonal = false;
+    std::size_t count = 0;
+    std::string pairsSha256, distancesSha256;
+};
+
+LatticeDigest digestPeriodic(const CaseInput& in) {
+    LatticeDigest out;
+    out.orthogonal = static_cast<float>(in.box[3]) == 90.0f && static_cast<float>(in.box[4]) == 90.0f &&
+                     static_cast<float>(in.box[5]) == 90.0f;
+    std::int64_t lastI = -1;
+    core::Sha256 pairHash, distanceHash;
+    std::vector<std::int64_t> flat;
+    try {
+        visitPairsWithinPeriodic(
+            in.a, in.b, in.cutoff, in.box,
+            [&](std::int64_t i, std::span<const std::int64_t> j, std::span<const double> d) {
+                out.sorted = out.sorted && i > lastI && !j.empty() && j.size() == d.size();
+                lastI = i;
+                flat.resize(2 * j.size());
+                const std::int64_t* row = j.data();  // plain pointers: 1e8 pairs, also in Debug
+                std::int64_t* pairs = flat.data();
+                for (std::size_t k = 0; k < j.size(); ++k) {
+                    out.sorted = out.sorted && (k == 0 || row[k - 1] < row[k]);
+                    pairs[2 * k] = i;
+                    pairs[2 * k + 1] = row[k];
+                }
+                // the arrays' bytes: little-endian hosts only (x86, ARM)
+                pairHash.update({reinterpret_cast<const char*>(flat.data()), flat.size() * sizeof(std::int64_t)});
+                distanceHash.update({reinterpret_cast<const char*>(d.data()), d.size() * sizeof(double)});
+                out.count += j.size();
+            });
+    } catch (...) {
+        out.threw = true;
+    }
+    out.pairsSha256 = pairHash.hexDigest();
+    out.distancesSha256 = distanceHash.hexDigest();
+    return out;
+}
 
 }  // namespace
 
 TEST(PairsWithinPeriodic, MatchesExactMinimumImage) {
     const Array& all = list(*distanceCases().find("cases"));
     ASSERT_EQ(all.size(), 495u);
+    // the lattice cases (up to 1e8 pairs each) are searched and digested concurrently, up front
+    std::vector<std::future<LatticeDigest>> lattices(all.size());
+    for (std::size_t n = 0; n < all.size(); ++n) {
+        if (all[n].find("lattice_a") != nullptr) {
+            lattices[n] = std::async(std::launch::async, digestPeriodic, readInput(all[n]));
+        }
+    }
     int exact = 0, nearly = 0, failed = 0, differFromMdanalysis = 0;
-    for (const Value& c : all) {
+    for (std::size_t n = 0; n < all.size(); ++n) {
+        const Value& c = all[n];
         const std::string name = *c.find("name")->get<std::string>();
         SCOPED_TRACE(name);
-        const bool isLattice = c.find("lattice_a") != nullptr;
-        const std::vector<float> a = isLattice ? lattice(*c.find("lattice_a")) : points(*c.find("a"));
-        const std::vector<float> b = isLattice ? lattice(*c.find("lattice_b")) : points(*c.find("b"));
-        Box box{};
-        const Array& boxValues = list(*c.find("box"));
-        for (std::size_t k = 0; k < 6; ++k) {
-            box[k] = number(boxValues[k]);
-        }
-        const double cutoff = number(*c.find("cutoff"));
-        const bool orthogonal = static_cast<float>(box[3]) == 90.0f &&
-                                static_cast<float>(box[4]) == 90.0f &&
-                                static_cast<float>(box[5]) == 90.0f;
         const Value& expected = *c.find("exact");
-
-        PairList got;
-        ASSERT_NO_THROW(got = pairsWithinPeriodic(a, b, cutoff, box));  // never an error (AN-02)
-        ASSERT_EQ(got.i.size(), got.j.size());
-        ASSERT_EQ(got.i.size(), got.d.size());
-        for (std::size_t k = 1; k < got.size(); ++k) {
-            EXPECT_TRUE(std::pair(got.i[k - 1], got.j[k - 1]) < std::pair(got.i[k], got.j[k]));
-        }
-        if (isLattice) {
-            std::vector<std::int64_t> flat;
-            for (std::size_t k = 0; k < got.size(); ++k) {
-                flat.push_back(got.i[k]);
-                flat.push_back(got.j[k]);
-            }
-            EXPECT_EQ(got.size(), static_cast<std::size_t>(*expected.find("count")->get<std::int64_t>()));
-            EXPECT_EQ(sha256Of(flat), *expected.find("pairs_sha256")->get<std::string>());
-            const bool bits = sha256Of(got.d) == *expected.find("distances_sha256")->get<std::string>();
-            if (orthogonal) {
+        if (lattices[n].valid()) {
+            const LatticeDigest got = lattices[n].get();
+            ASSERT_FALSE(got.threw);  // never an error (AN-02)
+            EXPECT_TRUE(got.sorted);
+            EXPECT_EQ(got.count, static_cast<std::size_t>(*expected.find("count")->get<std::int64_t>()));
+            EXPECT_EQ(got.pairsSha256, *expected.find("pairs_sha256")->get<std::string>());
+            const bool bits = got.distancesSha256 == *expected.find("distances_sha256")->get<std::string>();
+            if (got.orthogonal) {
                 EXPECT_TRUE(bits);
             }
             ++(bits ? exact : nearly);
@@ -148,6 +192,22 @@ TEST(PairsWithinPeriodic, MatchesExactMinimumImage) {
                 ++differFromMdanalysis;
             }
             continue;
+        }
+        const CaseInput input = readInput(c);
+        const std::vector<float>& a = input.a;
+        const std::vector<float>& b = input.b;
+        const Box& box = input.box;
+        const double cutoff = input.cutoff;
+        const bool orthogonal = static_cast<float>(box[3]) == 90.0f &&
+                                static_cast<float>(box[4]) == 90.0f &&
+                                static_cast<float>(box[5]) == 90.0f;
+
+        PairList got;
+        ASSERT_NO_THROW(got = pairsWithinPeriodic(a, b, cutoff, box));  // never an error (AN-02)
+        ASSERT_EQ(got.i.size(), got.j.size());
+        ASSERT_EQ(got.i.size(), got.d.size());
+        for (std::size_t k = 1; k < got.size(); ++k) {
+            EXPECT_TRUE(std::pair(got.i[k - 1], got.j[k - 1]) < std::pair(got.i[k], got.j[k]));
         }
 
         std::vector<Pair> expectedPairs, gotPairs;
