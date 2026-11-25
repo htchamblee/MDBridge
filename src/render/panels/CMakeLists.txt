@@ -4,11 +4,12 @@
 add_library(mdbridge_render_panels STATIC
     include/mdbridge/render/panels/build.hpp
     include/mdbridge/render/panels/panel.hpp
-    include/mdbridge/render/panels/seqpanels.hpp
     build.cpp
     panel.cpp
     registry.cpp
+    include/mdbridge/render/panels/plots.hpp
     plots.cpp
+    include/mdbridge/render/panels/seqpanels.hpp
     seqpanels.cpp)
 add_library(mdbridge::render_panels ALIAS mdbridge_render_panels)
 target_include_directories(mdbridge_render_panels PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
