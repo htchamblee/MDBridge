@@ -494,6 +494,13 @@ test_selections.cpp; cli_cases.json (`info_groups`); framework_cases.json (cache
   `project: ignoring unknown key 'out_dir' (did you mean output.out_dir?)`
   (`output.cache_dir`, `workflow.out_dir`). *Tested:* from_dict_cases.json (properties as keys),
   cli_cases.json (init_set_property, init_set_cache_dir).
+- **RN-20: `visual.renderer = "vulkan"` is accepted** (owner decision D7, docs/specs/m4-plan.md).
+  MDATK knows `auto`, `software` and `vtk` (VTK, optional); MDBridge's GPU renderer is Vulkan, so
+  `vulkan` is a valid value besides them (`vtk` keeps meaning "the GPU renderer", RN-16), and the
+  message for an unknown value reads `Unknown renderer 'opengl' (auto, software, vtk or vulkan).`
+  Values stay case-sensitive as in MDATK; project files and their comments are unchanged. *Tested:*
+  project-model/validate_cases.json ("renderer", "renderer vulkan", "renderer case", "everything");
+  tests/parity/improvements_cli.py applies the same rule to MDATK's validate().
 
 ## Command line
 
@@ -651,6 +658,42 @@ Matplotlib 3.11.2's bit for bit (ported with its notice); MDATK's `thin_ticks` l
   An empty `steps` list means Matplotlib's default steps (Matplotlib: `IndexError`). *Tested:*
   test_ticks.cpp `MaxNLocatorRejectsNoBins`, `ScalarFormatter` (the recorded error cases).
 
+## Render: fonts and text (src/render/core/font.cpp, text.cpp; src/render/text_qt.cpp)
+
+MDATK draws text with Matplotlib's Agg backend in the DejaVu fonts Matplotlib ships. MDBridge
+bundles the same five files (DejaVu 2.35 from Matplotlib 3.11.2's wheel, `data/fonts`: Sans, Sans
+Bold, Sans Oblique, Sans Mono, Sans Mono Bold) compiled into the programs, chooses among them with
+Matplotlib's font-manager scoring, and lays text out with its own TrueType reader. Differences:
+
+- **Unhinted text metrics and glyphs.** With its default `text.hinting`, Matplotlib 3.11 measures and
+  draws glyphs hinted by FreeType's TrueType interpreter: advances and heights snap to whole pixels,
+  so a label's width depends on the dpi grid and on the FreeType build (up to 0.66 px per glyph and
+  2 px in height against the unhinted outline at MDATK's sizes; 17 % narrower for small monospace
+  text). MDBridge measures and draws the unhinted outlines, exactly as Matplotlib does with
+  `text.hinting: no_hinting` (width, height, descent and every glyph position equal in 26.6 fixed
+  point, kerning and ligatures included). *Why:* the same layout and text pixels on Linux, Windows
+  and any server, at every dpi, independent of a font engine's version or the system's font
+  settings; the figure layout tolerance (docs/specs/m4-plan.md, section 3) covers the difference.
+  *Tested:* `tests/render/test_text.cpp` (`TextMetrics.AsMatplotlibUnhinted`: exact against
+  `no_hinting`, and within 0.7 px per glyph / 2 px / 1.5 px of the default hinting, for every case of
+  `tests/data/render/text/text_cases.json`).
+- **Figures never use the machine's fonts.** MDATK's text follows the Matplotlib configuration of the
+  machine it runs on (`font.family` of a matplotlibrc, other DejaVu releases or fonts installed
+  there), so the same project renders differently on two machines. MDBridge always uses the bundled
+  faces; font properties choose among them as Matplotlib's `findfont` scores (bold oblique and mono
+  oblique, which MDATK does not use, are not bundled: the closest bundled face by that score).
+  Missing glyphs are the font's `.notdef` box (Matplotlib falls back to other fonts with a warning).
+  *Tested:* `FontChoice.AsMatplotlibsFontManager` (Matplotlib's choice among the bundled faces for
+  792 property sets), `BundledFonts.AreMatplotlibsFiles` (the files' checksums).
+- **Text pixels come from the outlines.** Raster figures fill the glyph outlines as paths with Qt's
+  antialiasing instead of FreeType's glyph bitmaps (Agg); shapes and positions are the unhinted
+  outline's, the antialiasing differs slightly (no gamma). A text image is identical wherever the
+  same build runs: CI draws one on the build machine and on a bare Rocky Linux 9 without fonts,
+  fontconfig or X11 and compares the pixels (`packaging/smoke_test.py --compare-text-report`).
+- **No display needed.** `render`, `charts`, `preview` (and `fonts`) start Qt on its `offscreen`
+  platform on Linux whatever `DISPLAY` or `QT_QPA_PLATFORM` say, like MDATK's Agg backend, which
+  never needed a display. *Tested:* `TextQt.BatchPlatform`, the smoke test's `fonts` check.
+
 ## Rendering: molecule geometry (src/render/molecule)
 
 The 3D representations (MDATK's `mdatk/render/molecule/topology.py`, `geometry.py`, `surface.py`,
@@ -702,6 +745,43 @@ MDATK's own outcome next to them), with these differences:
   placement as it is (as MDATK does for an anchor of another shape) and returns a note
   (`density anchor ignored: ...`) for the caller's warning. *Tested:* `DensityShadow.AnchoredMatchesMdatk`
   (cases `ragged`, `nan_anchor`, `nan_reference`).
+
+## Rendering: residue shading, orientation and the example dataset (src/render/core)
+
+The structure view's colours and glow (MDATK's `mdatk/render/coloring.py`, `residues.py`), its
+orientation (`orientation.py`) and the GUI's example dataset (`example.py`, with the demo's
+nucleotide geometry) give MDATK's numbers bit for bit (`tests/render/test_shading.cpp` against
+`tests/parity/make_shading_cases.py`; rotations through numpy's BLAS within 1e-15, sin / cos / exp
+bit for bit with glibc). The example series are seeded as MDATK seeds them: zlib's crc32 of the data
+key into numpy's `default_rng` (SeedSequence, PCG64, `uniform` / `normal` / `integers`, ported from
+numpy 2.5.5 with its notice), so the preview shows the same placeholder curves. The expected data
+is MDATK's with `tests/parity/improvements_shading.py` for the entries below.
+
+- **Example data of a single-strand structure (RN-21).** With one structure group (or one chain in
+  the loaded reference frame), MDATK's example base pairs sliced `a[:m - 2]` with `m = 0` and the
+  example dataset failed with `IndexError: shape mismatch`, so the GUI's layout preview broke.
+  MDBridge gives such a structure no example pairs (a frayed end never goes below zero pairs).
+  *Tested:* `ExampleDataset.SingleStrandAndLargeGroupsRN21RN25`, cases `single_strand`,
+  `single_strand_atoms`.
+- **Angles next to -180 degrees (RN-22).** `wrap_degrees` used `np.isclose(a, -180)`, whose relative
+  tolerance turned every angle between -180 and -179.9982 into +180: a drag or a matrix read back
+  near -180 jumped by up to 0.0018 degrees. MDBridge folds only -180 itself (within 1e-9) to +180.
+  *Tested:* `Orientation.AnglesNextToMinus180StayRN22`, the `wrap` cases.
+- **Unreadable `visual.label_residues` (RN-23).** MDATK ignored a spec it could not parse without a
+  word (no tags from it, `label_every` tags kept). MDBridge keeps that behaviour and warns once:
+  `visual.label_residues: invalid residue range item 'x'; no residue-number tags from it`.
+  *Tested:* `Residues.RowsTagsAndShading` (tags with their log lines).
+- **Chain-qualified `visual.label_residues` (RN-24).** MDATK dropped the chain of `B:12` and tagged
+  residue 12 of every chain; MDBridge tags it on chain B only (chain names as `residue_rows` reads
+  them, which already honoured the chain). *Tested:* `Residues.ChainQualifiedTagsRN24`.
+- **Large residue groups in the example data (RN-25).** `group_resids` listed every number of a
+  group's ranges before keeping the first 400 (a group `1-1000000000` took gigabytes and minutes),
+  and the schematic trace's sequence had 120 letters, so a shown group of more than 120 residues
+  raised `IndexError`. MDBridge stops at 400 residues and repeats the sequence. *Tested:* case
+  `big_groups`, `ExampleDataset.GroupResids`.
+- **Fewer than one example frame.** `exampleDataset` needs at least one frame
+  (`the example dataset needs at least one frame`; MDATK: `IndexError` at `t[-1]`). One frame gives
+  MDATK's NaN placeholders (`t / t[-1]`). *Tested:* case `one_frame`.
 
 ## Video encoding (src/render/video)
 

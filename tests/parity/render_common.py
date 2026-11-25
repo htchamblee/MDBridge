@@ -140,6 +140,9 @@ def setup(checkout: str, collect: bool = True) -> None:
     import improvements_render
 
     improvements_render.apply_mdatk()  # MDBridge's rendering improvements (RN-xx, docs/DIFFERENCES.md)
+    import improvements_shading
+
+    improvements_shading.apply_mdatk()  # residue shading, orientation, example data (RN-21 ... RN-25)
 
 
 def bundled_fonts_only() -> None:

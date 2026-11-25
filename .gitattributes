@@ -4,3 +4,4 @@
 tests/data/** -text
 *.png binary
 *.ico binary
+*.ttf binary

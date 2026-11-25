@@ -784,6 +784,25 @@ with its notices). To regenerate, with Python 3.13 and Matplotlib 3.11.2 in `/op
 /opt/mdbridge-venv/bin/python -I -B tools/gen_mpl_tables.py                    # src/render/core/mpl_colors.inc
 /opt/mdbridge-venv/bin/python -I -B tests/parity/make_color_cases.py /tmp/mdatk tests/data/render/colors
 
+## render/text: the figure fonts and text metrics (milestone 4, W0-D)
+
+`render/text/text_cases.json` holds what Matplotlib 3.11.2 does with the DejaVu fonts MDBridge
+bundles (`data/fonts`, Matplotlib's own copies), for `src/render/core/font.cpp` and `text.cpp`
+(`tests/render/test_text.cpp`), written by `tests/parity/make_text_cases.py` (no MDATK needed): the
+five files' checksums, names and metrics (the committed `data/fonts` must have the same checksums);
+the face Matplotlib's `findfont` picks among the five for 792 font-property sets (family lists,
+weights, styles); and `get_text_width_height_descent` of 59 strings (MDATK's labels, tick labels,
+superscripts, Greek, ligatures, kerning pairs, blank text) on every face at four of ten (points, dpi)
+sizes, with `text.hinting: no_hinting` (width / height / descent and the glyph x positions in 26.6
+fixed point, which MDBridge reproduces exactly) and with Matplotlib's default hinting (MDATK's
+figures; MDBridge stays within a bound, docs/DIFFERENCES.md "Render: fonts and text"). Matplotlib's
+rcParams are its defaults and the machine's fonts are left out, so the output depends only on the
+Matplotlib wheel (its FreeType 2.14.3 and HarfBuzz) and is the same everywhere:
+
+```bash
+/opt/mdbridge-venv/bin/python -I -B tests/parity/make_text_cases.py tests/data/render/text
+```
+
 ## render/molecule_geometry: the 3D representations' geometry (milestone 4, W0-F)
 
 `tests/parity/make_molecule_geometry_cases.py` runs MDATK's `mdatk/render/molecule/` (topology.py,
@@ -833,6 +852,25 @@ where their bytes differ (3 x 3 products and kabsch's SVD):
 
 ```bash
 /opt/mdbridge-venv/bin/python -I -B tests/parity/make_density_shadow_cases.py /tmp/mdatk tests/data/render/density_shadow
+
+## render/shading: residue shading, orientation and the example dataset (milestone 4, W0-H)
+
+`tests/parity/make_shading_cases.py` runs MDATK's `mdatk/render/coloring.py`, `residues.py`,
+`orientation.py` and `example.py` in-process (patched by `render_common.setup()`, including
+`improvements_shading.py`: RN-21 ... RN-25) and numpy's `default_rng`, for `src/render/core`
+(`tests/render/test_shading.cpp`, bit for bit; BLAS rotations within 1e-15). No trajectory is read.
+
+| File | Content |
+|---|---|
+| `shading_cases.json` | crc32 of keys; per seed the SeedSequence state, PCG64 raw outputs and a scripted series of `uniform` / `integers` / `normal` calls; `glow_intensity`, `static_colors` and `frame_colors` cases; `one_letter`; orientation (`rx` / `ry` / `rz`, `euler_to_matrix`, `wrap_degrees`, `matrix_to_euler` incl. gimbal lock, `drag`, `project`, `format_angles`); `group_resids`; per example trace `chain_names`, `resnames`, `residue_rows`, `tag_rows` (with their log lines) and `residue_shading` settings; a proximity result with other rows than the trace; the schematic trace and duplex |
+| `examples.json` | per case (default layout, MDATK's test_v002 layout, every data kind, representations, a loaded preview with and without atoms, single strand, large / odd / no groups, one frame): the project, frame count, preview, and the dataset `example_dataset` makes (frames, times, unit, per result its name, key, params, meta and array names) |
+| `arrays.npz` | the arrays (stored members): `<case>.<result>.<array>`, the long random sequences `rng.<seed>.<op>`, the shading arrays `shading.<case>.<visual>.<need>.<what>` and `remap.*` |
+
+Floats are `repr()` (exact); numpy's kernels are pinned (`render_common`), so its sin / cos / exp are
+the C library's. The output is reproducible:
+
+```bash
+/opt/mdbridge-venv/bin/python -I -B tests/parity/make_shading_cases.py /tmp/mdatk tests/data/render/shading
 ```
 
 ## Checking that the data is reproducible

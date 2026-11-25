@@ -301,6 +301,8 @@ STEPS = [
     case_step("colors", "make_color_cases.py", "render/colors"),
     # milestone 4: axis limits, ticks and tick labels (Matplotlib as MDATK uses it, thin_ticks)
     case_step("ticks", "make_tick_cases.py", "render/ticks"),
+    # milestone 4: the bundled DejaVu fonts, Matplotlib's font choice and text metrics (no MDATK)
+    Step("text", "tests/parity/make_text_cases.py", lambda ctx: [d(ctx, "render/text")], [f"{DATA}/render/text"]),
     # milestone 4: what MDATK's figures, charts, 3D representations and render commands show and
     # write (contents only, no reference images); the figure step writes the input datasets the
     # chart and molecule steps read; the command step needs ffmpeg / ffprobe
@@ -316,6 +318,8 @@ STEPS = [
     case_step("molecule_geometry", "make_molecule_geometry_cases.py", "render/molecule_geometry"),
     # milestone 4: the density shadow (W0-I; the maps written by the map and figure steps)
     case_step("density_shadow", "make_density_shadow_cases.py", "render/density_shadow"),
+    # milestone 4: residue shading, orientation, the example dataset and numpy's PCG64 (W0-H)
+    case_step("shading", "make_shading_cases.py", "render/shading"),
 ]
 
 

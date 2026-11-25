@@ -8,6 +8,8 @@ expected data is MDATK's output with the improvement applied here, never edited 
 * apply(): patches MDATK's functions in-process (behaviour that changes what else happens):
     PRJ-01 / PRJ-03  Project.validate: the analysis parameter checks of MDBridge's
                      core::analysisParameterProblems take the place of MDATK's contacts / Mg checks
+    RN-20            Project.validate: visual.renderer "vulkan" is accepted (owner decision D7) and
+                     the unknown-renderer message lists it: "(auto, software, vtk or vulkan)."
     PRJ-02           RMSD setup warns when reference_frame is clamped
     PRJ-04           apply_override: "groups.--1.name: no list element '--1'"
     PRJ-05           load_project: "--frames: 'x' is not a frame number or range"
@@ -97,6 +99,21 @@ def improved_validate(original):
         probe.analyses.contacts.cutoff = -1.0
         at = original(probe).index("Contact cutoff must be positive.")
         return problems[:at] + analysis_parameter_problems(self) + problems[at:]
+
+    return validate
+
+
+def renderer_validate(original):
+    """RN-20: MDATK's validate() with "vulkan" a valid visual.renderer and the message naming it."""
+    old_message = "(auto, software or vtk)."
+
+    def validate(self):
+        if self.visual.renderer == "vulkan":
+            clean = copy.deepcopy(self)
+            clean.visual.renderer = "auto"
+            return original(clean)
+        return [p.replace(old_message, "(auto, software, vtk or vulkan).") if p.startswith("Unknown renderer ")
+                else p for p in original(self)]
 
     return validate
 
@@ -224,7 +241,7 @@ def apply():
     _applied = True
     from mdatk import config
 
-    config.Project.validate = improved_validate(config.Project.validate)
+    config.Project.validate = renderer_validate(improved_validate(config.Project.validate))
 
     try:
         from mdatk import cli

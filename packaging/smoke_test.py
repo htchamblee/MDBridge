@@ -1,6 +1,7 @@
 """Smoke test of a finished MDBridge build: AppImage, install tree or Windows mdbridge.exe.
 
     python packaging/smoke_test.py EXE [--gui] [--expect-renderer auto|vulkan|software] [--version X.Y.Z]
+                                       [--text-report OUT.json] [--compare-text-report REF.json]
 
 Runs, in order:
 
@@ -8,6 +9,11 @@ Runs, in order:
 * ``EXE project show`` on the fixtures in tests/data/projects: summaries, rejected files, and the
   JSON of every file against MDATK's reference reading (tests/data/expected)
 * ``EXE graphics --json``
+* ``EXE fonts --json --render PNG``: the bundled figure fonts load from the program, and a text
+  image is drawn without a display (Linux: the "offscreen" platform, also under X);
+  ``--text-report`` writes the report, ``--compare-text-report`` checks that the image's pixels and
+  the text metrics equal those of another machine's report (CI: the bare Rocky Linux system against
+  the build machine)
 * ``EXE info`` (demo system), ``EXE density info`` (a map) and ``EXE init`` (a new project file)
 * ``--gui``: ``EXE gui PROJECT --screenshot`` with the software view and the automatic choice
   (``--expect-renderer``: what the automatic choice must give; ``vulkan`` also forces a Vulkan
@@ -65,6 +71,45 @@ def screenshot(exe, renderer: str, work: str):
     return report
 
 
+BUNDLED_FONTS = {"DejaVuSans.ttf", "DejaVuSans-Bold.ttf", "DejaVuSans-Oblique.ttf", "DejaVuSansMono.ttf",
+                 "DejaVuSansMono-Bold.ttf"}
+
+
+def fonts_check(exe, report_path, reference_path):
+    with tempfile.TemporaryDirectory() as work:
+        png = os.path.join(work, "text.png")
+        r = run(exe, "fonts", "--json", "--render", png)
+        try:
+            report = json.loads(r.stdout)
+        except json.JSONDecodeError:
+            report = {}
+        image = report.get("image", {})
+        files = {f.get("file") for f in report.get("faces", [])}
+        ok = (r.returncode == 0 and files == BUNDLED_FONTS and os.path.isfile(png) and os.path.getsize(png) > 1000
+              and len(image.get("pixels_sha256", "")) == 64)
+        check(f"fonts: {len(files)} bundled faces, text image on the {report.get('platform')} platform "
+              f"({image.get('pixels_sha256', '?')[:16]})", ok, f"exit {r.returncode}; {r.stdout[-600:]} {r.stderr[-600:]}")
+        if os.name != "nt" and sys.platform != "darwin":
+            check("fonts: drawn without a display (offscreen platform)", report.get("platform") == "offscreen",
+                  str(report.get("platform")))
+        if r.stderr.strip():
+            check("fonts: nothing on stderr", False, r.stderr.strip()[-600:])
+    if report_path:
+        os.makedirs(os.path.dirname(os.path.abspath(report_path)), exist_ok=True)
+        with open(report_path, "w", encoding="utf-8") as fh:
+            json.dump(report, fh, indent=1, ensure_ascii=False)
+    if reference_path:
+        with open(reference_path, encoding="utf-8") as fh:
+            reference = json.load(fh)
+        theirs = reference.get("image", {}).get("pixels_sha256")
+        check(f"fonts: the text image has the same pixels as the reference machine's ({str(theirs)[:16]})",
+              image.get("pixels_sha256") == theirs, f"here {image.get('pixels_sha256')}, reference {theirs}")
+        check("fonts: the text metrics equal the reference machine's",
+              report.get("metrics") == reference.get("metrics") and report.get("metrics"),
+              "metrics differ")
+    return report
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("exe")
@@ -72,6 +117,9 @@ def main(argv=None) -> int:
     parser.add_argument("--expect-renderer", choices=["auto", "vulkan", "software"], default="auto",
                         help="renderer the automatic choice must give (auto: either)")
     parser.add_argument("--version", help="version the build must report")
+    parser.add_argument("--text-report", help="write the report of `EXE fonts --json` to this file")
+    parser.add_argument("--compare-text-report", help="a report of --text-report another machine wrote: the text "
+                        "image's pixels and the metrics must be the same")
     args = parser.parse_args(argv)
     exe = os.path.abspath(args.exe)
 
@@ -94,6 +142,8 @@ def main(argv=None) -> int:
         graphics = {}
     check(f"graphics: {graphics.get('renderer')} ({graphics.get('device') or graphics.get('problem')})",
           r.returncode == 0 and graphics.get("renderer") in ("vulkan", "software"), r.stdout + r.stderr)
+
+    fonts_check(exe, args.text_report, args.compare_text_report)
 
     # MDATK's commands (their output is compared with MDATK's by tests/parity/cli_parity.py)
     data = os.path.join(ROOT, "tests", "data")

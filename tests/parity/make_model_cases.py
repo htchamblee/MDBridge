@@ -415,6 +415,8 @@ def validate_inputs():
         ("representations", {"visual": {"representations": reps}}),
         ("renderer", {"visual": {"renderer": "opengl"}}),
         ("renderers ok", {"visual": {"renderer": "vtk"}}),
+        ("renderer vulkan", {"visual": {"renderer": "vulkan"}}),  # RN-20 (improvements_cli)
+        ("renderer case", {"visual": {"renderer": "Vulkan"}}),
         ("zoom low", {"visual": {"zoom": 0.04}}),
         ("zoom bounds", {"visual": {"zoom": 0.05}}),
         ("zoom high", {"visual": {"zoom": 50.0001}}),

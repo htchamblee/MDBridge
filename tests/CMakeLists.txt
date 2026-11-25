@@ -118,13 +118,23 @@ mdbridge_target_warnings(mdbridge_commands_cli)
 
 # render core (no Qt): colours, colormaps, chain palettes and themes (data/render/colors,
 # tests/parity/make_color_cases.py); axis limits, ticks and tick labels (data/render/ticks,
-# tests/parity/make_tick_cases.py), against Matplotlib 3.11.2 and MDATK
-add_executable(mdbridge_render_core_tests render/test_colors.cpp render/test_ticks.cpp)
+# tests/parity/make_tick_cases.py); the bundled fonts and text metrics (data/render/text,
+# tests/parity/make_text_cases.py; the fonts in data/fonts), against Matplotlib 3.11.2 and MDATK
+add_executable(mdbridge_render_core_tests render/test_colors.cpp render/test_text.cpp render/test_ticks.cpp)
 target_include_directories(mdbridge_render_core_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/core")
 target_link_libraries(mdbridge_render_core_tests PRIVATE mdbridge::render_core mdbridge::core GTest::gtest_main)
-target_compile_definitions(mdbridge_render_core_tests PRIVATE MDBRIDGE_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data")
+target_compile_definitions(mdbridge_render_core_tests PRIVATE MDBRIDGE_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data"
+                           MDBRIDGE_FONT_DIR="${PROJECT_SOURCE_DIR}/data/fonts")
 mdbridge_target_warnings(mdbridge_render_core_tests)
 gtest_discover_tests(mdbridge_render_core_tests DISCOVERY_MODE PRE_TEST)
+
+# render core: residue shading, orientation, the example dataset and numpy's PCG64 against MDATK and
+# numpy (data/render/shading, tests/parity/make_shading_cases.py); no Qt
+add_executable(mdbridge_shading_tests render/test_shading.cpp)
+target_link_libraries(mdbridge_shading_tests PRIVATE mdbridge::render_core mdbridge::analysis mdbridge::core GTest::gtest_main)
+target_compile_definitions(mdbridge_shading_tests PRIVATE MDBRIDGE_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data")
+mdbridge_target_warnings(mdbridge_shading_tests)
+gtest_discover_tests(mdbridge_shading_tests DISCOVERY_MODE PRE_TEST)
 
 # render/molecule: the 3D representations' geometry (topology roles, styles, Gaussian surface,
 # scene colours, the scipy filters) against MDATK (data/render/molecule_geometry,
@@ -157,6 +167,15 @@ if(WIN32 AND MDBRIDGE_VIDEO_RUNTIME_FILES)  # the FFmpeg DLLs next to the test p
 endif()
 gtest_discover_tests(mdbridge_video_tests DISCOVERY_MODE PRE_TEST)
 
+# render/vulkan: Vulkan without a window (loader, device, offscreen target and read-back, pipelines,
+# pipeline cache) and the probe; no Qt. The GPU tests run on the machine's Vulkan 1.3 driver
+# (lavapipe in CI) and skip without one, unless MDBRIDGE_REQUIRE_VULKAN=1 (tests/render/vulkan_harness.hpp)
+add_executable(mdbridge_vulkan_tests render/test_vulkan_offscreen.cpp)
+target_include_directories(mdbridge_vulkan_tests PRIVATE "${PROJECT_SOURCE_DIR}/src/render")  # shaders/spirv.hpp
+target_link_libraries(mdbridge_vulkan_tests PRIVATE mdbridge::render_vulkan GTest::gtest_main)
+mdbridge_target_warnings(mdbridge_vulkan_tests)
+gtest_discover_tests(mdbridge_vulkan_tests DISCOVERY_MODE PRE_TEST PROPERTIES LABELS vulkan)
+
 # the committed SPIR-V matches the shader sources (tools/compile_shaders.py)
 add_test(NAME render.shaders_up_to_date
          COMMAND ${CMAKE_COMMAND} -DSHADER_DIR=${PROJECT_SOURCE_DIR}/src/render/shaders
@@ -167,4 +186,11 @@ if(MDBRIDGE_BUILD_APP)
     target_link_libraries(mdbridge_render_tests PRIVATE mdbridge::render Vulkan::Headers GTest::gtest_main)
     mdbridge_target_warnings(mdbridge_render_tests)
     gtest_discover_tests(mdbridge_render_tests DISCOVERY_MODE PRE_TEST)
+
+    # the figure fonts in Qt: resources, registration, text drawn from outlines, the batch
+    # application on the offscreen platform (no display needed)
+    add_executable(mdbridge_text_qt_tests render/test_text_qt.cpp)
+    target_link_libraries(mdbridge_text_qt_tests PRIVATE mdbridge::render GTest::gtest)
+    mdbridge_target_warnings(mdbridge_text_qt_tests)
+    gtest_discover_tests(mdbridge_text_qt_tests DISCOVERY_MODE PRE_TEST)
 endif()

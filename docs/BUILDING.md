@@ -26,9 +26,10 @@ Qt is not fetched (building it per checkout would take an hour). Any of:
   installer's archives without an account and checks their SHA-1):
   ```bash
   python3 -m pip install py7zr
-  python3 tools/get_qt.py --version 6.11.3 --arch linux_gcc_64 --out ~/Qt/6.11.3/gcc_64 --archive qtbase --archive icu
-  python  tools\get_qt.py --version 6.11.3 --arch win64_msvc2022_64 --out C:\Qt\6.11.3\msvc2022_64
+  python3 tools/get_qt.py --version 6.11.3 --arch linux_gcc_64 --out ~/Qt/6.11.3/gcc_64 --archive qtbase --archive icu --archive qtsvg
+  python  tools\get_qt.py --version 6.11.3 --arch win64_msvc2022_64 --out C:\Qt\6.11.3\msvc2022_64 --archive qtbase --archive qtsvg
   ```
+  (Qt SVG is for the figures' SVG output, milestone 4.)
   ([aqtinstall](https://github.com/miurahr/aqtinstall) does the same, but its release 3.3.0 does not
   read the repository layout of Qt 6.11 for Windows);
 - the Qt online installer (Qt 6.11 for GCC 64-bit / MSVC 2022 64-bit);
@@ -163,9 +164,19 @@ The interface has check options for automation: `mdbridge gui PROJECT --renderer
 `--quit-after SECONDS` quits after a while. `QT_QPA_PLATFORM=offscreen` runs without a display
 (software view). `MDBRIDGE_VULKAN_VALIDATION=1` enables the Vulkan validation layer if installed.
 
+Vulkan tests (`ctest -L vulkan`, `tests/render/test_vulkan_offscreen.cpp`): the offscreen renderer
+(no window) on whatever Vulkan 1.3 driver the machine has; without one they are skipped with the
+reason, and with `MDBRIDGE_REQUIRE_VULKAN=1` (set in CI) they fail instead. Linux: Mesa's lavapipe
+(the `mesa-vulkan-drivers` package) runs them on the CPU. Windows:
+`python tools/get_lavapipe.py --out build\lavapipe` fetches a test-only lavapipe (pinned, SHA-256
+checked); then set `PATH=build\lavapipe;%PATH%` and `VK_DRIVER_FILES=build\lavapipe\lvp_icd.x86_64.json`.
+`MDBRIDGE_VULKAN_DEVICE=<part of the name>` picks a device when there are several.
+
 ## Shaders
 
-The 3D view's GLSL shaders (`src/render/shaders`) are compiled to SPIR-V ahead of time into
-`src/render/shaders/spirv.hpp`, which is committed, so builds need no shader compiler. After
-changing a shader run `python tools/compile_shaders.py` (needs `glslangValidator` from the Vulkan
-SDK or the `glslang-tools` / `glslang` package); the test `render.shaders_up_to_date` fails until then.
+The Vulkan renderer's GLSL shaders (`src/render/shaders`: every `*.vert`, `*.frag`, `*.comp`, plus
+shared `*.glsl` includes) are compiled to SPIR-V ahead of time into `src/render/shaders/spirv.hpp`,
+which is committed, so builds need no shader compiler. After adding or changing a shader run
+`python tools/compile_shaders.py` (needs `glslangValidator` from the Vulkan SDK or the
+`glslang-tools` / `glslang` package; `--check` only compares); the test `render.shaders_up_to_date`
+fails until then.

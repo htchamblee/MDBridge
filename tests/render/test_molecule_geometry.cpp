@@ -836,12 +836,20 @@ TEST(MoleculeGeometryParity, ScenesMatchMdatk) {
     }
 }
 
+// The generator's float32 arrays, read from JSON as doubles (exact: they were float32 values).
+// Explicit casts: a vector<float> built from double iterators narrows inside the standard library,
+// which MSVC /W4 /WX rejects (C4244).
+std::vector<float> toFloat32(const std::vector<double>& values) {
+    std::vector<float> out(values.size());
+    std::transform(values.begin(), values.end(), out.begin(), [](double v) { return static_cast<float>(v); });
+    return out;
+}
+
 TEST(MoleculeGeometryParity, NdimageMatchesScipy) {
     const Value& data = loadJson("ndimage.json");
     for (const Value& c : list(at(data, "filter1d"))) {
         const std::vector<double> in = doubles(at(c, "input"));
-        std::vector<float> x(in.size());  // float32 input, as the generator's numpy array
-        std::transform(in.begin(), in.end(), x.begin(), [](double v) { return static_cast<float>(v); });
+        std::vector<float> x = toFloat32(in);
         const double sigma = number(at(c, "sigma"));
         const double truncate = number(at(c, "truncate"));
         const auto radius = static_cast<std::size_t>(truncate * sigma + 0.5);
@@ -852,7 +860,7 @@ TEST(MoleculeGeometryParity, NdimageMatchesScipy) {
     for (const Value& c : list(at(data, "filter3d"))) {
         const std::vector<std::int64_t> s = ints(at(c, "shape"));
         const std::vector<double> in = doubles(at(c, "input"));
-        std::vector<float> x(in.begin(), in.end());
+        std::vector<float> x = toFloat32(in);
         gaussianFilter(x, {static_cast<std::size_t>(s[0]), static_cast<std::size_t>(s[1]), static_cast<std::size_t>(s[2])},
                        number(at(c, "sigma")), 3.0);
         expectDoubles(std::vector<double>(x.begin(), x.end()), at(c, "output"), "filter3d", 0.0);
@@ -860,7 +868,7 @@ TEST(MoleculeGeometryParity, NdimageMatchesScipy) {
     for (const Value& c : list(at(data, "map_coordinates"))) {
         const std::vector<std::int64_t> s = ints(at(c, "shape"));
         const std::vector<double> in = doubles(at(c, "input"));
-        const std::vector<float> x(in.begin(), in.end());
+        const std::vector<float> x = toFloat32(in);
         const std::vector<Vec3> pts = vec3s(at(c, "points"));
         std::vector<double> got;
         const Shape3 shape{static_cast<std::size_t>(s[0]), static_cast<std::size_t>(s[1]), static_cast<std::size_t>(s[2])};

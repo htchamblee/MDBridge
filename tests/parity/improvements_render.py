@@ -36,6 +36,7 @@ Status of the items (see the plan for the full text):
   RN-15  panel option types validated in check()
   RN-16  renderer "vtk" means the GPU renderer (Vulkan), never VTK
   RN-17  video positions with a stride skip the last frame: kept (convention, no patch)
+  RN-21 ... RN-25  residue shading, orientation and the example dataset: improvements_shading.py
 
 None of them is patched yet (milestone 4, wave 0: the generators and this skeleton).
 
