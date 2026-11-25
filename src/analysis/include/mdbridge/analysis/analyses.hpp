@@ -65,6 +65,7 @@ struct EnergyParameters {
     std::vector<std::string> defaultElements;  // elements that took carbon's parameters, first use
     std::size_t defaultAtoms = 0;
     std::size_t chargelessResidues = 0;  // residues of `atoms` with atoms without a template charge
+    bool guessedBonds = false;  // bonds were guessed (AN-14, Cordero et al.'s radii) to decide a type or a chain end
 };
 EnergyParameters energyParameters(const core::AtomGroup& atoms, const core::Frame& frame);
 

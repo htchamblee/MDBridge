@@ -439,11 +439,28 @@ def apply_mdatk():
     def atoms_setup_warning(self, frame_indices):
         guessed["bonds"] = False
         atoms_setup(self, frame_indices)
+        self._bonds_guessed = guessed["bonds"]
         if guessed["bonds"]:
             self.ctx.warn("structural view: the topology has no bonds among the structure atoms; bonds are "
                           f"guessed from distances on the first analysed frame {CORDERO_CITATION}")
 
     structure.AtomsAnalysis.setup = atoms_setup_warning
+
+    # CIT-06: the atoms result records what it cites (Cordero et al.'s radii when bonds were guessed),
+    # after MDATK's meta keys, before label / analysis
+    atoms_finalize = structure.AtomsAnalysis.finalize
+
+    def atoms_finalize_cited(self):
+        res = atoms_finalize(self)
+        meta = {}
+        for key, value in res.meta.items():
+            if key == "label":
+                meta["citation_keys"] = ["cordero2008"] if self._bonds_guessed else []
+            meta[key] = value
+        res.meta = meta
+        return res
+
+    structure.AtomsAnalysis.finalize = atoms_finalize_cited
 
     # AN-15
     def proximity_process(self, k, ts):
@@ -518,6 +535,7 @@ def apply_mdatk():
         self.charge_atoms = {"topology": na + nb if topology_charges else 0, "template": 0, "none": 0}
         self.lj_references = []
         self.lj_default_elements = []
+        self.lj_guessed_bonds = False
         charged = 0
         if self.lj is not None:
             self.lj_atoms["parm7"] = na + nb
@@ -533,6 +551,7 @@ def apply_mdatk():
             t, y = self.lj_atoms["template"], self.lj_atoms["typed"]
             self.lj_source = "typed" if t == 0 else "templates" if y == 0 else "templates+typed"
             self.lj_references = list(par["references"])
+            self.lj_guessed_bonds = bool(par["guessed_bonds"])
             self.lj_default_elements = list(par["default_elements"])
             if not topology_charges:
                 self.qa = np.array(par["charge"][:na], dtype=np.float64)
@@ -585,6 +604,7 @@ def apply_mdatk():
         except Exception:  # noqa: BLE001
             has_bonds = False
         self._guess_exclusions = p.exclude_bonded > 0 and not has_bonds
+        self._guess_exclusions_cited = self._guess_exclusions  # CIT-06 (process() resets the flag)
         if self._guess_exclusions:
             warn("energy: the topology has no bonds; bonded pairs are excluded along bonds guessed from "
                  f"distances on the first analysed frame {CORDERO_CITATION}")
@@ -596,7 +616,9 @@ def apply_mdatk():
             if key == "label":  # MDBridge's keys before label / analysis, as newResult appends them
                 meta.update(lj_atoms=dict(self.lj_atoms), charge_atoms=dict(self.charge_atoms),
                             lj_references=list(self.lj_references),
-                            lj_default_elements=list(self.lj_default_elements))
+                            lj_default_elements=list(self.lj_default_elements),
+                            citation_keys=list(self.lj_references) +
+                            (["cordero2008"] if self._guess_exclusions_cited or self.lj_guessed_bonds else []))
             meta[key] = value
         res.meta = meta
         return res

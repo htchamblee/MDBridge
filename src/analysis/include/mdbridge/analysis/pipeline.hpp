@@ -131,6 +131,13 @@ public:
     // applied). Throws what CacheStore::loadDatasetFromManifest throws.
     core::Dataset loadCachedDataset() const;
 
+    // CIT-06 (docs/DIFFERENCES.md): the citation keys the cached results of the last analyze()
+    // record (meta "citation_keys": what a run used, e.g. the energy analysis' force fields, the
+    // covalent radii of a bond guess), in analysisKeys() order, each result's keys in its order,
+    // without repeats. Entries missing from the cache, or without the key, add nothing; empty
+    // before analyze().
+    std::vector<std::string> runCitationKeys() const;
+
 private:
     core::Project m_project;
     core::Reporter m_reporter;

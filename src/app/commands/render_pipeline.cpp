@@ -239,7 +239,10 @@ std::string RenderPipeline::writeParamsLog(const RunOutputs& outputs) {
     }
     core::Table keys;
     for (const auto& [name, key] : m_analyses.analysisKeys()) keys.emplace_back(name, key);
-    const std::vector<std::string> citationKeys = core::citations::keysFor(core::citations::projectResources(p, {}));
+    // the settings' citations, then those the cached results of this run record (CIT-06)
+    const std::vector<std::string> citationKeys =
+        core::citations::withRunKeys(core::citations::keysFor(core::citations::projectResources(p, {})),
+                                     m_analyses.runCitationKeys());
     const core::Table run{{"project", std::string(kName)},
                           {"environment", std::move(environment)},
                           {"inputs", std::move(inputs)},
@@ -267,6 +270,7 @@ RunOutputs RenderPipeline::run(std::optional<bool> video, std::optional<bool> ch
         core::citations::keysFor(core::citations::pipelineResources(p));
     core::logged(logFile, "render", "Analyses and outputs", citations, [&](core::LogEntry& entry) {
         outputs = runSteps(v, c, d, forceAnalysis);
+        entry.citations = core::citations::withRunKeys(entry.citations, m_analyses.runCitationKeys());  // CIT-06
         entry.files.clear();
         if (outputs.video) entry.files.push_back(*outputs.video);
         for (const std::string& f : outputs.charts) entry.files.push_back(f);

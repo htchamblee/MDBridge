@@ -457,6 +457,28 @@ void Pipeline::applyDisplayOverrides(core::Dataset& dataset) const {
     }
 }
 
+std::vector<std::string> Pipeline::runCitationKeys() const {
+    std::vector<std::string> out;
+    for (const auto& [name, key] : m_keys) {
+        const std::optional<CachedResult> cached = m_cache.loadResult(name, key);
+        if (!cached) {
+            continue;
+        }
+        for (const auto& [entry, value] : cached->result.meta) {
+            if (entry != "citation_keys" || !value.isArray()) {
+                continue;
+            }
+            for (const core::Value& item : *value.get<core::Array>()) {
+                if (const std::string* text = item.get<std::string>();
+                    text && std::find(out.begin(), out.end(), *text) == out.end()) {
+                    out.push_back(*text);
+                }
+            }
+        }
+    }
+    return out;
+}
+
 core::Dataset Pipeline::loadCachedDataset() const {
     core::Dataset dataset = m_cache.loadDatasetFromManifest(m_project.inputs.time_unit);
     applyDisplayOverrides(dataset);

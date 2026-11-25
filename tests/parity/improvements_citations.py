@@ -18,12 +18,18 @@ apply_mdatk() alone.
   CIT-04  The energy analysis' parameters without parm7 (Amber force-field residue templates, Amber
           atom types) cite the originators of the numbers used; the one reference MDATK's table lacks
           (Li et al. 2015) joins it; the analysis cites them in its log line and lj_references.
+  CIT-06  Run-time citations: the references a run's cached results record (meta "citation_keys":
+          the energy analysis' force fields and atom types, Cordero et al.'s radii of a bond guess)
+          follow the settings' ones in the parameter log and the render step's log entry
+          (_patch_run_citations); Cordero et al. 2008 joins the table.
   RN-16   (kept here too) VTK is never cited: "vtk" means MDBridge's Vulkan renderer.
 
 Every function mirrors the C++ rule (src/core/citations.cpp pipelineResources) exactly.
 """
 
 from __future__ import annotations
+
+import os
 
 # CIT-01: resources (and their references) MDBridge does not use
 REMOVED_RESOURCES = ("mdanalysis", "numpy", "scipy", "matplotlib")
@@ -97,6 +103,24 @@ ADDED_REFERENCES = [
     # tip3p.xml), added here. The analysis names those it used in its log and in its metadata
     # (lj_references); they are no project resource, since which ones a run uses depends on the
     # residues it meets.
+    # CIT-06: the covalent radii of the analyses' bond guess (data/sources/covalent_radii), cited by the
+    # runs that guess bonds (the energy and atoms analyses' citation_keys; CIT-03, CIT-05)
+    {
+        "key": "cordero2008",
+        "text": (
+            "Cordero B., Gómez V., Platero-Prats A. E., Revés M., Echeverría J., Cremades E., Barragán F., "
+            "Alvarez S. Dalton Trans. 2008, 2832-2838. doi:10.1039/b801115j"
+        ),
+        "bibtex": (
+            "@article{cordero2008,\n  author = {Cordero, B. and Gómez, V. and Platero-Prats, A. E. and Revés, M. "
+            "and Echeverría, J. and Cremades, E. and Barragán, F. and Alvarez, S.},\n  title = {{Covalent radii "
+            "revisited}},\n  journal = {Dalton Transactions},\n  year = {2008},\n  number = {21},\n  pages = "
+            "{2832--2838},\n  doi = {10.1039/b801115j}\n}"
+        ),
+        "doi": "10.1039/b801115j",
+        "url": "",
+        "verified": "crossref:https://api.crossref.org/works/10.1039/b801115j",
+    },
     {
         "key": "li2015",
         "text": "Li P., Song L. F., Merz K. M. J. Phys. Chem. B 2015, 119, 883-895. doi:10.1021/jp505875v",
@@ -175,3 +199,81 @@ def apply_mdatk():
     from mdatk import pipeline
 
     pipeline.pipeline_resources = pipeline_resources
+    _patch_run_citations(pipeline, C)
+
+
+def with_run_keys(settings_keys, run_keys, references):
+    """CIT-06: core::citations::withRunKeys: the settings' keys, then the run's, without repeats and
+    keys the table lacks."""
+    out = []
+    for key in list(settings_keys) + list(run_keys):
+        if key in references and key not in out:
+            out.append(key)
+    return out
+
+
+def run_citation_keys(pipe):
+    """CIT-06: analysis::Pipeline::runCitationKeys: the "citation_keys" of the cached results of the
+    last analyze() (analysis_keys order), without repeats."""
+    out = []
+    for name, key in pipe.analysis_keys.items():
+        loaded = pipe.cache.load_result(name, key)
+        if loaded is None:
+            continue
+        for k in loaded[0].meta.get("citation_keys", []) or []:
+            if k not in out:
+                out.append(k)
+    return out
+
+
+def _patch_run_citations(pipeline, C):
+    """CIT-06: the parameter log and the render step's log entry cite what the run's cached results
+    record after the settings' citations (MDATK's write_params_log and run with that one change)."""
+    if getattr(pipeline.Pipeline, "_cit06", False):
+        return
+    from mdatk.projectfile import logged
+
+    def write_params_log(self, outputs):
+        from mdatk.projectfile import write_params_log as write
+
+        path = os.path.join(self.project.out_dir, pipeline.PARAMS_LOG_NAME)
+        inputs = self._inputs
+        run = {
+            "project": pipeline.PROJECT_TITLE,
+            "environment": pipeline.environment_info(self.project),
+            "inputs": {
+                "topology": inputs.topology if inputs else None,
+                "trajectories": inputs.trajectories if inputs else None,
+                "cleaning": ({"key": inputs.cleaned.key, "script": inputs.cleaned.script,
+                              "log": inputs.cleaned.log, "reused": inputs.cleaned.reused}
+                             if inputs and inputs.cleaned else None),
+            },
+            "cache_dir": self.project.cache_dir,
+            "analysis_keys": self.analysis_keys,
+            "timestamp": self._stamp,
+            "outputs": outputs.summary(),
+        }
+        keys = with_run_keys(C.keys_for(C.project_resources(self.project)), run_citation_keys(self), C.REFERENCES)
+        run["citation_keys"] = keys
+        run["citations"] = C.text_lines(keys)
+        write(path, self.project, run)
+        return path
+
+    def run(self, video=None, charts=None, pdb=None, force_analysis=False):
+        p = self.project
+        video = p.output.video.enabled if video is None else video
+        charts = p.output.charts.enabled if charts is None else charts
+        pdb = p.output.pdb.enabled if pdb is None else pdb
+        self.check()
+        with logged(self.project_path, "render", "Analyses and outputs",
+                    C.keys_for(pipeline.pipeline_resources(p))) as entry:
+            outputs = self._run(video, charts, pdb, force_analysis)
+            entry.citations = with_run_keys(entry.citations, run_citation_keys(self), C.REFERENCES)
+            entry.files = [f for f in [outputs.video, *outputs.charts, *outputs.pdbs, outputs.params_log] if f]
+            entry.summary = (f"{outputs.dataset.n_frames} frames analysed" if outputs.dataset else "no analyses") + \
+                f"; {len(entry.files)} file(s) written to {p.out_dir}"
+        return outputs
+
+    pipeline.Pipeline.write_params_log = write_params_log
+    pipeline.Pipeline.run = run
+    pipeline.Pipeline._cit06 = True

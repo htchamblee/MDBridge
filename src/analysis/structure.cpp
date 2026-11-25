@@ -617,7 +617,10 @@ public:
         }
         core::AnalysisResult res = newResult({}, {{"atom_names", stringArray(names)},
                                                   {"elements", stringArray(core::atomElements(m_atoms))},
-                                                  {"resnames", stringArray(resnames)}});
+                                                  {"resnames", stringArray(resnames)},
+                                                  // CIT-06: what this run cites (the radii of a bond guess)
+                                                  {"citation_keys", m_guessBonds ? core::Array{"cordero2008"}
+                                                                                 : core::Array{}}});
         res.arrays.emplace_back("coords", NumArray(m_coords, {frameCount(), m_atoms.size(), 3}));
         res.arrays.emplace_back("row", NumArray(m_row));
         res.arrays.emplace_back("bonds", NumArray(m_bonds, {m_bonds.size() / 2, 2}));

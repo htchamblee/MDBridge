@@ -300,6 +300,7 @@ public:
         }
         out.chargelessResidues = static_cast<std::size_t>(
             std::count(chargelessResidue.begin(), chargelessResidue.end(), true));
+        out.guessedBonds = m_guessed;
         return out;
     }
 
@@ -440,15 +441,36 @@ private:
         return std::nullopt;
     }
 
-    // Residues r1 and r2 (= r1 + 1) are bonded: by the topology's bonds when either has any, else by
-    // the bonds guessed on the frame (AN-14's guess).
+    // Residues r1 and r2 (= r1 + 1) continue one chain. A chain breaks between them only when the
+    // evidence agrees: a new chain (another segment, or another chain ID where the topology has
+    // chain IDs), or a gap or reset in the residue numbering (resid(r2) is neither resid(r1) + 1 nor
+    // resid(r1) with another insertion code) without a bond between them (the topology's bonds
+    // when either residue has any, else the bonds guessed on the frame, AN-14). So consecutive
+    // numbering within one chain links residues whatever their geometry, and a bond bridges a
+    // numbering gap.
     bool linked(std::int32_t r1, std::int32_t r2) {
         if (r1 < 0 || r2 < 0 || static_cast<std::size_t>(r2) >= m_t.residueCount() ||
             static_cast<std::size_t>(r1) >= m_t.residueCount()) {
             return false;
         }
-        const bool topology = m_residueHasTopologyBonds[static_cast<std::size_t>(r1)] ||
-                              m_residueHasTopologyBonds[static_cast<std::size_t>(r2)];
+        const auto u1 = static_cast<std::size_t>(r1);
+        const auto u2 = static_cast<std::size_t>(r2);
+        if (m_t.residueSegment[u1] != m_t.residueSegment[u2]) {
+            return false;
+        }
+        if (m_t.chainIDs) {
+            const auto first = [&](std::int32_t r) { return static_cast<std::size_t>(m_t.residueAtoms(r)[0]); };
+            if ((*m_t.chainIDs)[first(r1)] != (*m_t.chainIDs)[first(r2)]) {
+                return false;
+            }
+        }
+        const std::int64_t n1 = m_t.resids[u1];
+        const std::int64_t n2 = m_t.resids[u2];
+        const bool otherInsertion = m_t.icodes && (*m_t.icodes)[u1] != (*m_t.icodes)[u2];
+        if (n2 == n1 + 1 || (n2 == n1 && otherInsertion)) {
+            return true;
+        }
+        const bool topology = m_residueHasTopologyBonds[u1] || m_residueHasTopologyBonds[u2];
         for (const std::int32_t a : m_t.residueAtoms(r1)) {
             for (const std::int32_t b : topology ? m_topologyPartners[static_cast<std::size_t>(a)] : guessedPartners(a)) {
                 if (m_t.atomResidue[static_cast<std::size_t>(b)] == r2) {

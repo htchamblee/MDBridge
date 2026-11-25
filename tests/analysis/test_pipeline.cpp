@@ -22,6 +22,7 @@
 #include <gtest/gtest.h>
 
 #include "analysis_test_support.hpp"
+#include "mdbridge/core/citations.hpp"
 #include "mdbridge/analysis/cache.hpp"
 #include "mdbridge/analysis/pipeline.hpp"
 #include "mdbridge/analysis/registry.hpp"
@@ -633,6 +634,26 @@ TEST(Pipeline, ManifestKeepsEarlierEntries) {
     writeFile(core::pathFromUtf8(second.cache().manifestPath()), "{");
     Pipeline(project).analyze(std::vector<std::string>{"rmsd"});
     EXPECT_EQ(1u, list(at(readJson(core::pathFromUtf8(second.cache().manifestPath())), "all_entries")).size());
+}
+
+// CIT-06: the citation keys the cached results of a run record (the energy analysis' parameters
+// without parm7 cite Cornell et al. 1995), read back from the cache by a later pipeline; none
+// before a run
+TEST(Pipeline, RunCitationKeysFromTheCache) {
+    TempDir work;
+    core::Project project = demoProject(work);
+    project.analyses.energy.use_parm7 = false;
+    const core::Reporter quiet([](const std::string&) {});
+    Pipeline first(project, quiet);
+    EXPECT_TRUE(first.runCitationKeys().empty());
+    first.analyze(std::vector<std::string>{"energy", "contacts"});
+    EXPECT_EQ(first.runCitationKeys(), std::vector<std::string>{"cornell1995"});
+    Pipeline second(project, quiet);
+    second.analyze(std::vector<std::string>{"energy"});  // loaded from the cache
+    EXPECT_EQ(second.runCitationKeys(), std::vector<std::string>{"cornell1995"});
+    EXPECT_EQ(core::citations::withRunKeys(std::vector<std::string>{"roe2013", "cornell1995"},
+                                           std::vector<std::string>{"cornell1995", "cordero2008", "nope"}),
+              (std::vector<std::string>{"roe2013", "cornell1995", "cordero2008"}));
 }
 
 }  // namespace

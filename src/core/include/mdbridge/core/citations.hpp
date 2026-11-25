@@ -22,7 +22,8 @@
 //   CIT-05). The energy analysis' parameters without parm7 (Amber force-field residue templates and
 //   atom types) are cited by the run that uses them, in its log and metadata (CIT-04): which force
 //   fields a run uses depends on its residues, not on the settings, so they are no project
-//   resource; their references are in the table.
+//   resource. The results record such run-time citations (meta "citation_keys"), and the project's
+//   citations add them after the settings' ones (withRunKeys, CIT-06).
 
 #include <optional>
 #include <span>
@@ -94,6 +95,13 @@ std::vector<std::string> commentLines(std::span<const std::string> resourceIds,
 // MDATK: never mdanalysis, numpy, scipy or matplotlib (CIT-01), barnaba (MDBridge never runs it,
 // CIT-02) or vtk (MDBridge's "vtk" is its Vulkan renderer, RN-16).
 std::vector<std::string> pipelineResources(const Project& project);
+
+// CIT-06: citation keys of the settings (`settingsKeys`, e.g. keysFor(projectResources(...)))
+// followed by those cached results record as used at run time (analysis::Pipeline::runCitationKeys),
+// without repeats and keys the reference table lacks. Every place that cites a project (the
+// parameter log, the step log of a run; the About dialog, BibTeX export and generated script
+// headers when they land) uses this, so without cached results only the settings' keys appear.
+std::vector<std::string> withRunKeys(std::span<const std::string> settingsKeys, std::span<const std::string> runKeys);
 
 // project_resources(project): everything the project uses, its planner steps and the pipeline.
 // MDATK resolves the project's plan itself (Plan(workflow, workflow_dir, groups); a plan that

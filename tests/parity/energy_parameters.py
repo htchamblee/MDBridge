@@ -156,9 +156,22 @@ def energy_parameters(u, indices, atom_elements, guess_bonds):
             guessed["partners"] = gp
         return guessed["partners"][atom]
 
+    resids = [int(x) for x in u.residues.resids]
+    segs = [int(x) for x in u.residues.segindices]
+    icodes = [str(x) for x in u.residues.icodes] if hasattr(u.residues, "icodes") else None
+    chain_ids = [str(x) for x in u.atoms.chainIDs] if hasattr(u.atoms, "chainIDs") else None
+
     def linked(r1, r2):
+        """Chain continuity: as linked() in energy_parameters.cpp."""
         if r1 < 0 or r2 < 0 or r1 >= n_res or r2 >= n_res:
             return False
+        if segs[r1] != segs[r2]:
+            return False
+        if chain_ids is not None and chain_ids[res_atoms[r1][0]] != chain_ids[res_atoms[r2][0]]:
+            return False
+        n1, n2 = resids[r1], resids[r2]
+        if n2 == n1 + 1 or (n2 == n1 and icodes is not None and icodes[r1] != icodes[r2]):
+            return True
         topo = res_bonded[r1] or res_bonded[r2]
         for a in res_atoms[r1]:
             for b in (partners[a] if topo else guessed_partners(a)):
@@ -337,4 +350,5 @@ def energy_parameters(u, indices, atom_elements, guess_bonds):
         if not out["template_charge"][-1]:
             chargeless.add(resindex[a])
     out["chargeless_residues"] = len(chargeless)
+    out["guessed_bonds"] = guessed["done"]
     return out

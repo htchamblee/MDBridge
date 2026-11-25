@@ -115,6 +115,7 @@ public:
         m_chargeAtoms = {topologyCharges ? static_cast<std::int64_t>(na + nb) : 0, 0, 0};
         m_ljReferences.clear();
         m_defaultElements.clear();
+        m_parametersGuessedBonds = false;
         if (m_lj) {
             m_ljAtoms[0] = static_cast<std::int64_t>(na + nb);
         } else {
@@ -135,6 +136,7 @@ public:
             }
             m_ljSource = m_ljAtoms[1] == 0 ? "typed" : m_ljAtoms[2] == 0 ? "templates" : "templates+typed";
             m_ljReferences = params.references;
+            m_parametersGuessedBonds = params.guessedBonds;
             m_defaultElements = params.defaultElements;
             std::size_t charged = 0;
             if (!topologyCharges) {
@@ -221,6 +223,16 @@ public:
 
     // AN-07: without topology bonds, the exclusions follow the bonds guessed on the first analysed
     // frame (guessBonds over the whole system, so paths through other atoms count too)
+    // CIT-06: the references this run used: those of its parameters (lj_references), then the
+    // covalent radii (Cordero et al. 2008) when bonds were guessed (exclusions, AN-07; parameters)
+    std::vector<std::string> citationKeys() const {
+        std::vector<std::string> keys = m_ljReferences;
+        if (m_guessExclusions || m_parametersGuessedBonds) {
+            keys.emplace_back("cordero2008");
+        }
+        return keys;
+    }
+
     void prepare(const core::Frame& first) override {
         if (!m_guessExclusions) {
             return;
@@ -346,7 +358,8 @@ public:
                                                                                {"template", m_chargeAtoms[1]},
                                                                                {"none", m_chargeAtoms[2]}}},
                                                   {"lj_references", stringArray(m_ljReferences)},
-                                                  {"lj_default_elements", stringArray(m_defaultElements)}});
+                                                  {"lj_default_elements", stringArray(m_defaultElements)},
+                                                  {"citation_keys", stringArray(citationKeys())}});
         std::vector<double> total(m_elec.size());
         for (std::size_t k = 0; k < total.size(); ++k) {
             total[k] = m_elec[k] + m_vdw[k];
@@ -379,6 +392,7 @@ private:
     std::array<std::int64_t, 3> m_chargeAtoms{};  // topology, template, none
     std::vector<std::string> m_ljReferences;
     std::vector<std::string> m_defaultElements;
+    bool m_parametersGuessedBonds = false;
     std::vector<std::int64_t> m_excluded;
     bool m_guessExclusions = false;
     std::vector<double> m_elec, m_vdw, m_force;

@@ -145,6 +145,18 @@ std::vector<std::string> commentLines(std::span<const std::string> resourceIds,
     return lines;
 }
 
+std::vector<std::string> withRunKeys(std::span<const std::string> settingsKeys, std::span<const std::string> runKeys) {
+    std::vector<std::string> out;
+    for (const std::span<const std::string> part : {settingsKeys, runKeys}) {
+        for (const std::string& key : part) {
+            if (findReference(key) != nullptr && std::find(out.begin(), out.end(), key) == out.end()) {
+                out.push_back(key);
+            }
+        }
+    }
+    return out;
+}
+
 std::vector<std::string> pipelineResources(const Project& project) {
     // CIT-01: MDATK starts with mdanalysis, numpy, scipy and matplotlib, the software it ran on;
     // MDBridge does not use them and cites the originators of the methods it uses instead.

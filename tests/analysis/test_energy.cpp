@@ -760,3 +760,71 @@ TEST(EnergyParameters, ExtraPoints) {
     EXPECT_TRUE(p.defaultElements.empty());
     EXPECT_EQ(p.references, (std::vector<std::string>{"jorgensen1983", "cornell1995"}));
 }
+
+// AN-25: chain ends without hydrogens. A chain breaks between two residues only on a new segment /
+// chain ID, or on a gap in the numbering without a bond; consecutive numbering in one chain links
+// residues even far apart (a synthetic backbone), an insertion code counts as consecutive. Seen on
+// the middle residue's O3': OS (middle form A) when linked to the next residue, OH (3' form A3)
+// when its chain ends there.
+TEST(EnergyParameters, ChainEndsFromChainIdsNumberingAndBonds) {
+    const std::vector<const char*> heavy{"OP1", "OP2", "P", "O5'", "C5'", "C4'", "O4'", "C1'", "N9", "C8", "N7",
+                                         "C5", "C6", "N6", "N1", "C2", "N3", "C4", "C3'", "C2'", "O2'", "O3'"};
+    // three A nucleotides 30 Å apart (no bond guessed between them); the first without its phosphate
+    const auto build = [&](std::array<std::int64_t, 3> resids, std::array<const char*, 3> chains,
+                           std::array<const char*, 3> icodes, bool bond23) {
+        std::vector<MicroAtom> atoms;
+        std::vector<double> xyz;
+        std::vector<std::pair<std::int32_t, std::int32_t>> bonds;
+        std::int32_t o3 = -1;
+        std::int32_t p3 = -1;
+        std::size_t third = 0;  // the first atom of residue 3 (with its phosphate a 5' end has no template)
+        for (std::size_t r = 0; r < 3; ++r) {
+            if (r == 2) {
+                third = atoms.size();
+            }
+            for (std::size_t k = r == 0 ? 3 : 0; k < heavy.size(); ++k) {
+                const std::string name = heavy[k];
+                if (r == 1 && name == "O3'") o3 = static_cast<std::int32_t>(atoms.size());
+                if (r == 2 && name == "P") p3 = static_cast<std::int32_t>(atoms.size());
+                atoms.push_back({name, static_cast<std::int64_t>(r + 1), "A", std::string(1, name[0])});
+                xyz.insert(xyz.end(), {30.0 * static_cast<double>(r), 1.5 * static_cast<double>(k), 0.0});
+            }
+        }
+        if (bond23) {
+            bonds.emplace_back(o3, p3);
+        }
+        core::System system = withoutCharges(makeMicroSystem(atoms, {xyz}, bonds));
+        auto t = std::make_shared<core::Topology>(*system.topology);
+        std::vector<std::uint32_t> chainIds;
+        for (const std::int32_t r : t->atomResidue) {
+            chainIds.push_back(t->strings.intern(chains[static_cast<std::size_t>(r)]));
+        }
+        t->chainIDs = std::move(chainIds);
+        std::vector<std::uint32_t> codes;
+        for (const char* code : icodes) {
+            codes.push_back(t->strings.intern(code));
+        }
+        t->icodes = std::move(codes);
+        for (std::size_t r = 0; r < 3; ++r) {  // the numbering under test (micro systems number 1, 2, 3)
+            t->resids[r] = resids[r];
+            t->resnums[r] = resids[r];
+        }
+        system.topology = t;
+        const EnergyParameters p = energyParameters(system.atoms(), *system.currentFrame());
+        for (std::size_t k = 0; k < third; ++k) {
+            EXPECT_EQ(p.layer[k], EnergyParameters::Layer::Template) << k;
+        }
+        return std::pair{p.rstar[static_cast<std::size_t>(o3)], p.epsilon[static_cast<std::size_t>(o3)]};
+    };
+    const std::pair<double, double> os{1.6837, 0.17};
+    const std::pair<double, double> oh{1.721, 0.2104};
+    const auto expect = [](std::pair<double, double> got, std::pair<double, double> want, const char* what) {
+        EXPECT_NEAR(got.first, want.first, 1e-12) << what;
+        EXPECT_NEAR(got.second, want.second, 1e-12) << what;
+    };
+    expect(build({1, 2, 3}, {"A", "A", "A"}, {"", "", ""}, false), os, "consecutive, one chain: no break");
+    expect(build({1, 2, 2}, {"A", "A", "A"}, {"", "", "A"}, false), os, "insertion code: consecutive");
+    expect(build({1, 2, 3}, {"A", "A", "B"}, {"", "", ""}, false), oh, "new chain ID: a break");
+    expect(build({1, 2, 7}, {"A", "A", "A"}, {"", "", ""}, false), oh, "numbering gap, no bond: a break");
+    expect(build({1, 2, 7}, {"A", "A", "A"}, {"", "", ""}, true), os, "numbering gap with a bond: no break");
+}

@@ -582,8 +582,8 @@ SciPy and Matplotlib through MDATK was checked against that rule (the inventory 
   guessed from distances on the first analysed frame (covalent radii: Cordero et al., Dalton Trans.
   2008, 2832-2838, doi:10.1039/b801115j)` (owner decision). *Why:* the radii decide which pairs
   are excluded and so the reported energies; they are Cordero et al.'s data, not common knowledge.
-  The method (a distance cut-off over summed radii) stays uncited (CIT-01), and the radii are not
-  added to the project citation table. *Tested:* micro_cases.json and systems_cases.json energy logs
+  The method (a distance cut-off over summed radii) stays uncited (CIT-01); since CIT-06 the radii
+  are in the citation table and a run that guessed bonds cites them in the project's citations. *Tested:* micro_cases.json and systems_cases.json energy logs
   (tests/parity/improvements_analyses.py, AN-07, records the message).
 - **CIT-04: the energy analysis' parameters without parm7 are cited by what was used.** MDATK's
   per-element table (`GENERIC_LJ`: Amber parm99 / parm10 types, Joung-Cheatham ions cut to four
@@ -621,6 +621,23 @@ SciPy and Matplotlib through MDATK was checked against that rule (the inventory 
   the energy analysis' warning does (CIT-03). *Why:* the radii decide the drawn bonds; they are
   Cordero et al.'s data. *Tested:* `AnalysisImprovements.AtomsBondGuessWarningCitesCovalentRadii`,
   the `atoms` logs of systems_cases.json (improvements_analyses.py).
+- **CIT-06: run-time citations reach the project's citations.** What a run used that its settings
+  do not tell is recorded in the result's metadata `citation_keys` (citation keys in first-use
+  order): the energy analysis' `lj_references`, then Cordero et al. 2008 when it guessed bonds
+  (exclusions, AN-07, or the parameters' chain ends and neighbours, AN-25 / AN-26); the `atoms`
+  analysis' Cordero et al. 2008 when it guessed its bonds (CIT-05). The parameter log
+  (`citation_keys`, `citations`) and the render step's entry in the project's step log cite the
+  settings' references (as before) followed by those the cached results of the run record
+  (`analysis::Pipeline::runCitationKeys`: the entries of the run's analysis keys, in that order,
+  each entry's keys in its order; `core::citations::withRunKeys`: without repeats and unknown
+  keys). Without cached results (no analysis ran or the entries are gone; results cached before
+  this change have no `citation_keys`) only the settings' citations appear. The About dialog, the
+  BibTeX export and generated script headers are not in MDBridge yet; they are to cite through
+  `withRunKeys` too. Cordero et al. 2008 joins the citation table (Crossref-verified). *Why:*
+  owner decision: cite what a result depends on wherever the project is cited, not only in a log
+  line. *Tested:* `Pipeline.RunCitationKeysFromTheCache`, the energy and atoms metadata of the
+  analysis cases, the parameter and step logs of cli_cases.json (improvements_citations.py
+  `_patch_run_citations`), citation_cases.json.
 - VTK is not cited either (RN-16, under "Rendering: the render, charts and preview commands").
 
 ## Analyses (non-periodic improvements)
@@ -659,7 +676,11 @@ hbonds 2, rmsd 2, proximity 2, atoms 3 ("Analysis cache" above has every analysi
   `use_parm7 = false`, or a parm7 file that cannot be read) MDATK gave every atom one Lennard-Jones
   (R*, ε) per element (`GENERIC_LJ`, CIT-04): every hydrogen Amber's `HP` (1.1 Å), which made
   hydrogen-bonded interfaces strongly repulsive (MDATK's demo duplex, strand against strand, first
-  frame: vdW +145.4 kcal/mol with the table against -34.7 with the topology's parameters). MDBridge
+  frame: vdW +145.4 kcal/mol with the table against -34.7 with the topology's parameters).
+  Measured on the generated `noh` system (the demo's heavy atoms, chain IDs, no bonds): 468 of
+  511 atoms take template parameters and 43 the typed layer (the two 5' residues, which keep their
+  phosphate and so match no Amber template); with chain ends decided by bonds alone it was 221 and
+  290. MDBridge
   matches each residue of the analysed atoms against the residue templates of Amber's force fields
   as OpenMM 8.1.2 converts them (amber14: protein.ff14SB, DNA.OL15, RNA.OL3, tip3p with the
   Joung-Cheatham and Li-Merz TIP3P ions; MIT; data/sources/forcefields, tools/gen_energy_lj.py ->
@@ -675,9 +696,16 @@ hbonds 2, rmsd 2, proximity 2, atoms 3 ("Analysis cache" above has every analysi
   atom maps; *completely* when every template atom is mapped too (hydrogens included). Exactly one
   complete match: that template, whatever the residue's position. Otherwise the templates that
   contain the residue are narrowed by its position in its chain when it has terminal variants: it
-  starts a chain when it is not bonded to the residue before it, ends one when not bonded to the
-  next (bonds: the topology's where either residue has any, else those AN-14's guess finds on the
-  first analysed frame); start -> N / 5', end -> C / 3', both -> the nucleic N form (no amino-acid
+  starts a chain when it does not continue the residue before it (by index), ends one when the
+  next does not continue it. Residue r + 1 continues residue r unless the evidence agrees on a
+  break: a new chain (another segment, or another chain ID where the topology has chain IDs), or a
+  gap or reset in the numbering (resid(r + 1) is neither resid(r) + 1 nor resid(r) with another
+  insertion code) *and* no bond between the two (the topology's bonds where either residue has
+  any, else those AN-14's guess finds on the first analysed frame). So consecutive numbering in
+  one chain is never split by geometry (MDATK's synthetic demo has O3'-P distances of 0.8-3.9 Å),
+  and a bond bridges a numbering gap. Without chain IDs (GRO) and with numbering that runs on
+  across strands, two strands are not told apart this way; their ends still match by their atoms
+  when hydrogens are present. Start -> N / 5', end -> C / 3', both -> the nucleic N form (no amino-acid
   template; such a residue falls through), neither -> the middle form. If the remaining templates
   give every atom the same R* and ε (HID / HIE / HIP without hydrogens do), the residue takes them;
   else (none left, or they disagree, e.g. a 5'-terminal nucleotide with its phosphate) it falls to
@@ -692,7 +720,7 @@ hbonds 2, rmsd 2, proximity 2, atoms 3 ("Analysis cache" above has every analysi
   -34.62 kcal/mol from the templates with the parm7 file's charges, -34.63 from a PDB of the
   same frame, against -34.67 with the parm7 file's own parameters, whose base hydrogens and
   hydroxyl hydrogens use simplified types). *Tested:* `EnergyParameters.DemoMatchesTheTemplates`,
-  `IncompleteResiduesAndTermini`, the energy cases of micro_cases.json, systems_cases.json,
+  `IncompleteResiduesAndTermini`, `ChainEndsFromChainIdsNumberingAndBonds`, the energy cases of micro_cases.json, systems_cases.json,
   demo_dry_variants.json (energy_generic_lj), pipeline_cases.json and cli_cases.json
   (tests/parity/energy_parameters.py, the same rules on MDATK's side).
 - **Energy parameters without parm7: Amber atom types (AN-26).** An atom of a residue no template
@@ -817,7 +845,7 @@ here:
 | RN-40 ... RN-42 | Rendering: sequence and secondary-structure panels |
 | D5, D6, D8, D9, D11, D13 (owner decisions) | charts (D5), colours (D6), the render commands (D8, D9), structure view (D11), interface (D13) |
 | D15, D16 (owner decisions) | the Vulkan 3D renderer (D15), video encoding (D16) |
-| CIT-01 ... CIT-05 | Citations (CIT-03 also: Analyses, AN-07; CIT-04 also: Analyses, AN-25 ... AN-27) |
+| CIT-01 ... CIT-06 | Citations (CIT-03 also: Analyses, AN-07; CIT-04 also: Analyses, AN-25 ... AN-27) |
 
 ## Rendering: colours and themes (src/render/core)
 

@@ -1973,6 +1973,7 @@
        },
        "lj_references": [],
        "lj_default_elements": [],
+       "citation_keys": [],
        "label": "Intermolecular energy",
        "analysis": "energy",
        "outputs": {
@@ -5663,6 +5664,7 @@
         "C",
         "C"
        ],
+       "citation_keys": [],
        "label": "Atomic coordinates (structure view)",
        "analysis": "atoms"
       },
@@ -6890,6 +6892,7 @@
        },
        "lj_references": [],
        "lj_default_elements": [],
+       "citation_keys": [],
        "label": "Intermolecular energy",
        "analysis": "energy",
        "outputs": {
@@ -8210,6 +8213,7 @@
        },
        "lj_references": [],
        "lj_default_elements": [],
+       "citation_keys": [],
        "label": "Intermolecular energy",
        "analysis": "energy",
        "outputs": {
@@ -9693,6 +9697,7 @@
        },
        "lj_references": [],
        "lj_default_elements": [],
+       "citation_keys": [],
        "label": "Intermolecular energy",
        "analysis": "energy",
        "outputs": {
@@ -15375,6 +15380,7 @@
         "C",
         "C"
        ],
+       "citation_keys": [],
        "label": "Atomic coordinates (structure view)",
        "analysis": "atoms"
       },
@@ -21894,6 +21900,7 @@
        },
        "lj_references": [],
        "lj_default_elements": [],
+       "citation_keys": [],
        "label": "Intermolecular energy",
        "analysis": "energy",
        "outputs": {
@@ -23158,6 +23165,7 @@
        },
        "lj_references": [],
        "lj_default_elements": [],
+       "citation_keys": [],
        "label": "Intermolecular energy",
        "analysis": "energy",
        "outputs": {
@@ -24040,6 +24048,7 @@
        },
        "lj_references": [],
        "lj_default_elements": [],
+       "citation_keys": [],
        "label": "Intermolecular energy",
        "analysis": "energy",
        "outputs": {
@@ -25291,6 +25300,7 @@
        },
        "lj_references": [],
        "lj_default_elements": [],
+       "citation_keys": [],
        "label": "Intermolecular energy",
        "analysis": "energy",
        "outputs": {
@@ -26522,6 +26532,7 @@
        },
        "lj_references": [],
        "lj_default_elements": [],
+       "citation_keys": [],
        "label": "Intermolecular energy",
        "analysis": "energy",
        "outputs": {
@@ -27734,6 +27745,7 @@
        },
        "lj_references": [],
        "lj_default_elements": [],
+       "citation_keys": [],
        "label": "Intermolecular energy",
        "analysis": "energy",
        "outputs": {
@@ -28980,6 +28992,7 @@
        },
        "lj_references": [],
        "lj_default_elements": [],
+       "citation_keys": [],
        "label": "Intermolecular energy",
        "analysis": "energy",
        "outputs": {
@@ -30222,6 +30235,7 @@
        },
        "lj_references": [],
        "lj_default_elements": [],
+       "citation_keys": [],
        "label": "Intermolecular energy",
        "analysis": "energy",
        "outputs": {
@@ -31468,6 +31482,7 @@
        },
        "lj_references": [],
        "lj_default_elements": [],
+       "citation_keys": [],
        "label": "Intermolecular energy",
        "analysis": "energy",
        "outputs": {
@@ -32710,6 +32725,7 @@
        },
        "lj_references": [],
        "lj_default_elements": [],
+       "citation_keys": [],
        "label": "Intermolecular energy",
        "analysis": "energy",
        "outputs": {
@@ -33952,6 +33968,7 @@
        },
        "lj_references": [],
        "lj_default_elements": [],
+       "citation_keys": [],
        "label": "Intermolecular energy",
        "analysis": "energy",
        "outputs": {
@@ -34833,6 +34850,7 @@
        },
        "lj_references": [],
        "lj_default_elements": [],
+       "citation_keys": [],
        "label": "Intermolecular energy",
        "analysis": "energy",
        "outputs": {
@@ -35743,6 +35761,7 @@
        },
        "lj_references": [],
        "lj_default_elements": [],
+       "citation_keys": [],
        "label": "Intermolecular energy",
        "analysis": "energy",
        "outputs": {
@@ -36963,6 +36982,7 @@
        },
        "lj_references": [],
        "lj_default_elements": [],
+       "citation_keys": [],
        "label": "Intermolecular energy",
        "analysis": "energy",
        "outputs": {
@@ -37857,6 +37877,7 @@
        },
        "lj_references": [],
        "lj_default_elements": [],
+       "citation_keys": [],
        "label": "Intermolecular energy",
        "analysis": "energy",
        "outputs": {
@@ -39088,6 +39109,7 @@
        },
        "lj_references": [],
        "lj_default_elements": [],
+       "citation_keys": [],
        "label": "Intermolecular energy",
        "analysis": "energy",
        "outputs": {
@@ -40345,6 +40367,7 @@
        },
        "lj_references": [],
        "lj_default_elements": [],
+       "citation_keys": [],
        "label": "Intermolecular energy",
        "analysis": "energy",
        "outputs": {
@@ -41573,6 +41596,7 @@
        },
        "lj_references": [],
        "lj_default_elements": [],
+       "citation_keys": [],
        "label": "Intermolecular energy",
        "analysis": "energy",
        "outputs": {
@@ -42792,6 +42816,7 @@
        },
        "lj_references": [],
        "lj_default_elements": [],
+       "citation_keys": [],
        "label": "Intermolecular energy",
        "analysis": "energy",
        "outputs": {
@@ -44023,6 +44048,7 @@
        },
        "lj_references": [],
        "lj_default_elements": [],
+       "citation_keys": [],
        "label": "Intermolecular energy",
        "analysis": "energy",
        "outputs": {
@@ -45242,6 +45268,7 @@
        },
        "lj_references": [],
        "lj_default_elements": [],
+       "citation_keys": [],
        "label": "Intermolecular energy",
        "analysis": "energy",
        "outputs": {
@@ -46471,6 +46498,7 @@
        },
        "lj_references": [],
        "lj_default_elements": [],
+       "citation_keys": [],
        "label": "Intermolecular energy",
        "analysis": "energy",
        "outputs": {
@@ -47683,6 +47711,7 @@
        },
        "lj_references": [],
        "lj_default_elements": [],
+       "citation_keys": [],
        "label": "Intermolecular energy",
        "analysis": "energy",
        "outputs": {
@@ -48905,6 +48934,7 @@
        },
        "lj_references": [],
        "lj_default_elements": [],
+       "citation_keys": [],
        "label": "Intermolecular energy",
        "analysis": "energy",
        "outputs": {
@@ -50118,6 +50148,7 @@
        },
        "lj_references": [],
        "lj_default_elements": [],
+       "citation_keys": [],
        "label": "Intermolecular energy",
        "analysis": "energy",
        "outputs": {
