@@ -299,6 +299,9 @@ Each lands in DIFFERENCES.md with a test; `improvements_render.py` adjusts the e
 | RN-30 | Density shadow: one NaN voxel makes the whole shadow NaN (`np.maximum` keeps NaN, the peak is NaN); an infinite voxel makes it NaN or blank | non-finite voxels carry no density; a non-finite level gives no shadow (W0-I) |
 | RN-31 | Non-finite placement, view, centre or map grid (NaN voxel size) → `cannot convert float NaN to integer` / `OverflowError` from `int(ceil(...))` | `ValueError("density map placement, view or grid is not finite")` (W0-I) |
 | RN-32 | `anchored` with a ragged anchor (rows not all x, y, z) or non-finite anchor / reference points → numpy's `inhomogeneous shape` `ValueError` / `LinAlgError: SVD did not converge`, the map not drawn | the stored placement used as it is, with a note saying why (for a warning) (W0-I) |
+| RN-40 | Sequence panel `per_row` that `int()` cannot read → `ValueError` out of `build_figure` (render aborted); a negative one → inverted axis, giant boxes | `No data: option 'per_row' must be a whole number ...`; 0 / truncating values as MDATK (W2-C) |
+| RN-41 | Secondary panel: any unknown `source` silently means `dynamic` | `No data: unknown source 'x' (option 'source': dynamic, first or dotbracket)` (W2-C) |
+| RN-42 | Secondary panel's "No data" messages after `_bare_axes` have no frame (other "No data" panels do) | the frame kept in both residue panels (W2-C) |
 
 Not bugs, kept as conventions: DPI semantics (text size relative to the frame), `MDATK_` file names,
 the example dataset's seeds (crc32 of the key → numpy PCG64: ported exactly so the GUI preview looks

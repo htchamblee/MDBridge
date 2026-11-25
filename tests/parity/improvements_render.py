@@ -37,10 +37,15 @@ Status of the items (see the plan for the full text):
   RN-16  renderer "vtk" means the GPU renderer (Vulkan), never VTK
   RN-17  video positions with a stride skip the last frame: kept (convention, no patch)
   RN-21 ... RN-25  residue shading, orientation and the example dataset: improvements_shading.py
+  RN-40  sequence panel: an unusable per_row (negative, not a number) is a "No data" message
+  RN-41  secondary panel: an unknown source is a "No data" message (MDATK: silently "dynamic")
+  RN-42  sequence / secondary panels: "No data" messages keep the frame (MDATK: none once the
+         secondary panel's setup had hidden the spines)
 
   RN-33  the density map's contour level from its finite voxels (W2-B)
 
-Patched so far: RN-01, RN-04, RN-14 (the plot panels, W2-A; src/render/panels/plots.cpp); RN-03,
+Patched so far: RN-01, RN-04, RN-14 (the plot panels, W2-A; src/render/panels/plots.cpp),
+RN-40 ... RN-42 (the sequence / secondary panels, W2-C; src/render/panels/seqpanels.cpp) and RN-03,
 RN-08, RN-09, RN-16, RN-33 (the structure view, W2-B; src/render/panels/structure.cpp). The
 others are MDATK's behaviour until their chunk fills them in.
 
@@ -210,9 +215,75 @@ PATCHES = {
     "RN-15": None,
     "RN-16": "_rn16_gpu_renderer",
     "RN-17": None,  # a documented convention, never patched
+    "RN-40": "_rn40_per_row",
+    "RN-41": "_rn41_unknown_source",
+    "RN-42": "_rn42_no_data_frame",
     "RN-33": "_rn33_finite_map_level",
 }
 
+
+def _rn40_per_row():
+    """SequencePanel.setup: per_row that int() cannot read, or a negative one, is a KeyError (the
+    panel's "No data" message) once the residues and the automatic title are known (MDATK: a
+    ValueError / TypeError out of build_figure, or a reversed axis with huge boxes). 0, empty and
+    values int() truncates to 0 stay "automatic"."""
+    from mdatk.render import seqpanels
+
+    original = seqpanels.SequencePanel.setup
+
+    def setup(self):
+        value = self.options.get("per_row", 0)
+        n = 0
+        if value:
+            try:
+                n = int(value)
+            except (TypeError, ValueError, OverflowError):
+                n = None
+        if n is None or n < 0:
+            self._residues()
+            self._bare_axes()
+            self.auto_title = "Sequence" + (f" ({self.range_text})" if self.range_text else "")
+            raise KeyError("option 'per_row' must be a whole number of residues per row (0: automatic), "
+                           f"not {value!r}")
+        original(self)
+
+    seqpanels.SequencePanel.setup = setup
+
+
+def _rn41_unknown_source():
+    """SecondaryStructurePanel.setup: a source other than dynamic / first / dotbracket is a KeyError
+    once the residues and the automatic title are known (MDATK: treated as "dynamic")."""
+    from mdatk.render import seqpanels
+
+    original = seqpanels.SecondaryStructurePanel.setup
+
+    def setup(self):
+        source = str(self.options.get("source", "dynamic"))
+        if source not in ("dynamic", "first", "dotbracket"):
+            self._residues()
+            self._bare_axes()
+            self.source = source
+            self.auto_title = "Secondary structure" + (f" ({self.range_text})" if self.range_text else "")
+            raise KeyError(f"unknown source {source!r} (option 'source': dynamic, first or dotbracket)")
+        original(self)
+
+    seqpanels.SecondaryStructurePanel.setup = setup
+
+
+def _rn42_no_data_frame():
+    """_ResiduePanel.show_message: the spines style_axes shows (left, bottom) stay visible, also when
+    setup had hidden them (_bare_axes) before its KeyError (MDATK: a "No data" panel without a frame)."""
+    from mdatk.render import panels, seqpanels
+
+    def show_message(self, text):
+        panels.Panel.show_message(self, text)
+        for side in ("left", "bottom"):
+            self.ax.spines[side].set_visible(True)
+        for side in ("top", "right"):
+            self.ax.spines[side].set_visible(False)
+
+    seqpanels._ResiduePanel.show_message = show_message
+    panels.StructurePanel.show_message = show_message  # W2-B: "No data: proximity" / "atoms"
 
 
 def _rn01_heatmap_column_edges():

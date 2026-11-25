@@ -102,6 +102,29 @@ TEST_P(PanelCase, ContentsAsMdatk) {
     panels::BuiltFigure built = test::buildCase(rec, ds, project);
     const Array& frames = *at(rec, "frames").get<Array>();
     ASSERT_FALSE(frames.empty());
+    {
+        // The sequence and secondary panels re-flow to their box after the layout (a box a pixel
+        // narrower than Matplotlib's can change a row count): they get Matplotlib's frozen boxes
+        // and re-flow there (their own test, test_seqpanels.cpp, does the same)
+        const Array& axesRec = *at(at(frames[0], "figure"), "axes").get<Array>();
+        bool moved = false;
+        for (const auto& p : built.panels) {
+            if (p->type() != "sequence" && p->type() != "secondary") continue;
+            const std::size_t k = p->mainAxes();
+            if (k >= axesRec.size()) continue;
+            const std::vector<double> b = test::numbersOf(at(axesRec[k], "position_px"));
+            const double w = built.figure.widthPx(), h = built.figure.heightPx();
+            built.figure.axes[k].position = built.figure.axes[k].active = {b[0] / w, b[1] / h, b[2] / w, b[3] / h};
+            moved = true;
+        }
+        if (moved) {
+            built.figure.draw(test::figureFonts());
+            for (const auto& p : built.panels) {
+                if (p->type() == "sequence" || p->type() == "secondary") p->afterLayout(built.figure, test::figureFonts());
+            }
+            built.update(0, test::figureFonts());
+        }
+    }
     const Value mine = dumpFigure(built.figure, test::figureFonts());
     FigureComparison c;
     c.width = built.figure.widthPx();

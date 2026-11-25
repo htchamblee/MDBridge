@@ -837,6 +837,21 @@ TEST(StructurePanel, MissingResultsShowNoData) {
     Built d = buildFigure(std::move(noAtoms), *c.project, 640, 360, 60.0);
     EXPECT_FALSE(d.structure->ok());
     EXPECT_EQ(std::get<Text>(d.fig->axes[d.structure->mainAxes()].artists.at(0)).text, "No data: atoms");
+    // proximity colours without a proximity result; the frame stays (RN-42), built as build_figure does
+    core::Project q = *c.project;
+    q.visual.representations.clear();
+    q.visual.color_mode = "proximity";
+    core::Dataset noProx(c.dataset->frames(), c.dataset->timePs(), {}, c.dataset->timeUnit());
+    noProx.add(*c.dataset->result("trace"));
+    Context context(noProx, q);
+    Figure fig(640, 360, 60.0);
+    std::unique_ptr<Panel> panel = createPanel(fig, {0, 1, 0, 1}, q.layout.panels.at(0), context);
+    EXPECT_FALSE(panel->ok());
+    const Axes& ax = fig.axes[panel->mainAxes()];
+    EXPECT_EQ(std::get<Text>(ax.artists.at(0)).text, "No data: proximity");
+    EXPECT_TRUE(ax.spines[kLeft].visible);
+    EXPECT_TRUE(ax.spines[kBottom].visible);
+    EXPECT_FALSE(ax.spines[kTop].visible);
 }
 
 TEST(StructurePanel, RegisteredAndBuiltByBuildFigure) {

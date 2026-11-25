@@ -952,6 +952,43 @@ is MDATK's with `tests/parity/improvements_shading.py` for the entries below.
   (`the example dataset needs at least one frame`; MDATK: `IndexError` at `t[-1]`). One frame gives
   MDATK's NaN placeholders (`t / t[-1]`). *Tested:* case `one_frame`.
 
+## Rendering: sequence and secondary-structure panels (src/render/panels/seqpanels.cpp)
+
+The `sequence` and `secondary` panels (MDATK's `mdatk/render/seqpanels.py`) show what MDATK's show:
+with MDATK's frozen axes boxes their records (`dumpFigure`) equal MDATK's at every recorded position
+of every figure case that has one (cells, letters, boxes, tags, chain labels, the re-flow after the
+layout with its cell size and rows, the note and its warning, arcs within and between chains,
+halos, colours, fonts and limits; numbers within 1e-9, text extents within the layout tolerance),
+and MDBridge's own layout places their axes within 1.5 % of the figure size
+(`tests/render/test_seqpanels.cpp` against `tests/parity/make_figure_cases.py`, with the items
+below applied by `tests/parity/improvements_render.py`). A dataset without frames gives
+`No data: no frames` in both panels, as RN-02 asks for every panel (MDATK built them and failed
+later). The differences:
+
+- **Unusable `per_row` (RN-40).** The sequence panel read `int(options.per_row)`: a value `int()`
+  cannot read (`"x"`, `"7.5"`, a list) raised `ValueError` / `TypeError` out of `build_figure`, which
+  stopped the render or the preview with a traceback; a negative value inverted the x axis and gave
+  boxes of tens of thousands of points squared over the whole figure. MDBridge shows
+  `No data: option 'per_row' must be a whole number of residues per row (0: automatic), not -3` and
+  carries on; 0, empty and values `int()` truncates (`7.9`, `"7"`, `0.5` = automatic) are read as
+  MDATK reads them. *Tested:* `SeqPanels.UnusablePerRowIsAMessageRN40`, case
+  `sequence_per_row_invalid`.
+- **Unknown `source` (RN-41).** The secondary panel treated every `source` other than `first` and
+  `dotbracket` as `dynamic`, so a typo (`dynamc`, `dot-bracket`) silently showed the base-pair
+  analysis instead of the intended pairs. MDBridge shows `No data: unknown source 'dynamc' (option
+  'source': dynamic, first or dotbracket)`; the analyses it requires are unchanged (`basepairs` for
+  any source but `dotbracket`). *Tested:* `SeqPanels.UnknownSourceIsAMessageRN41`, case
+  `secondary_source_unknown`.
+- **"No data" frame (RN-42).** A "No data" panel shows its message on the axes' frame (left and
+  bottom spines in the grid colour), but the secondary panel hid its spines before reading the
+  dot-bracket or the base-pair map, so its messages (`no dot-bracket given`, a dot-bracket of the
+  wrong length, no `basepairs/map`) floated without a frame. MDBridge's sequence and secondary
+  panels keep the frame every other "No data" panel has. *Tested:*
+  `SeqPanels.NoDataPanelsKeepTheirFrameRN42`, cases `secondary_dotbracket_empty`,
+  `secondary_dotbracket_length`. The structure view likewise keeps the frame when its proximity
+  (`No data: proximity`) or atoms (`No data: atoms`) result is missing, which it notices after
+  hiding its spines (W2-B; *tested:* `StructurePanel.MissingResultsShowNoData`).
+
 ## Video encoding (src/render/video)
 
 MDATK pipes RGBA frames into an `ffmpeg` executable; MDBridge links its own LGPL-only build of

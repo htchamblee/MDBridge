@@ -1095,8 +1095,28 @@ void StructurePanel::drawFrame(Figure& fig, std::size_t pos) {
 
 // ---- registration ---------------------------------------------------------------------------------
 
+namespace {
+
+// Panel::make, then the frame of a "No data" structure panel: setup hides the spines before its
+// later KeyErrors ("proximity", "atoms"), and the message keeps the frame style_axes shows (RN-42,
+// as the residue panels; MDATK: a "No data" panel without a frame)
+std::unique_ptr<Panel> makeStructurePanel(Figure& fig, SubplotSpec slot, const core::PanelSpec& spec, Context& ctx) {
+    std::unique_ptr<Panel> p = Panel::make<StructurePanel>(fig, slot, spec, ctx);
+    if (!p->ok()) {
+        Axes& a = fig.axes[p->mainAxes()];
+        const AxesStyle style = axesStyle(ctx.theme, true, ctx.fontSize);
+        a.spines[kLeft].visible = style.left.visible;
+        a.spines[kBottom].visible = style.bottom.visible;
+        a.spines[kRight].visible = style.right.visible;
+        a.spines[kTop].visible = style.top.visible;
+    }
+    return p;
+}
+
+}  // namespace
+
 std::span<const PanelRegistration> structurePanels() {
-    static const PanelRegistration table[] = {{"structure", &Panel::make<StructurePanel>}};
+    static const PanelRegistration table[] = {{"structure", &makeStructurePanel}};
     return table;
 }
 
