@@ -7,6 +7,8 @@
 #include <cstdint>
 #include <filesystem>
 #include <string>
+#include <string_view>
+#include <vector>
 
 namespace mdbridge::render::video {
 
@@ -39,5 +41,16 @@ struct VideoProbe {
 };
 
 VideoProbe probeVideo(const std::filesystem::path& path);
+
+// The FFmpeg libraries have a decoder for this codec ("mpeg4": yes; "av1": not in packaging/ffmpeg's
+// build, which only encodes AV1). False without FFmpeg.
+bool hasVideoDecoder(std::string_view codec);
+
+// The decoded frames of the first video stream in order, as straight RGBA (width x height x 4, rows
+// top first, alpha 255), converted from yuv420p with the matrix and range the stream is tagged with
+// (MDBridge's videos: BT.709, limited range) - the inverse of the encoder's conversion. For the
+// tests' PSNR check of encoded frames against the composed ones. Throws VideoError when there is
+// no decoder for the stream's codec (hasVideoDecoder) or the file cannot be decoded.
+std::vector<std::vector<std::uint8_t>> decodeVideoFrames(const std::filesystem::path& path);
 
 }  // namespace mdbridge::render::video

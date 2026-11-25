@@ -1031,6 +1031,45 @@ target folder renamed at the end and removed on failure. Stream metadata (frame 
   and SVT-AV1 print nothing on the console. *Tested:* `VideoFiles.ClearErrors`,
   `VideoFfmpeg.NotAvailableMessage`.
 
+## Rendering: the video frame loop (src/render/video/frame_loop.cpp, src/render/video_qt.cpp)
+
+MDATK's `render_video` builds the figure once, marks the panels' animated artists, draws the
+static rest once (Matplotlib blitting) and per frame updates the panels, restores the background,
+draws the animated artists and pipes the RGBA buffer into ffmpeg. MDBridge does the same steps on
+its own figure (the static and animated display-list layers, QPainter composition) with the same
+positions (`0, s, 2s, ...`; RN-17 kept), log lines (`Rendering N video frame(s) at WxH, F fps ->
+PATH`, `Wrote PATH (N frames)`), progress (`Video frame k/n` every `n // 200` frames and after the
+last), cancellation between frames and temporary file (removed on failure or cancellation, an
+existing file at the target kept; `VideoRender.CancelLeavesNoFile`,
+`VideoRender.ExistingFileKeptOnFailure`). Differences:
+
+- **Frames composed on several threads.** The panels are updated in order on the calling thread
+  (they and the 3D stage renderer they call keep per-frame state), each frame's animated layer is
+  composed over the background on a pool of threads (at most 8; the 3D renderer has its own
+  threads) and the frames are encoded in order. Composition is a pure function of the background
+  and the frame's layer, so the frames are the same bytes for any number of threads. *Tested:*
+  `FrameLoop.FramesInOrderAndIdenticalForAnyThreadCount`,
+  `QtVideo.ComposedFramesIdenticalForAnyThreadCount`,
+  `QtVideo.RepresentationsThroughTheStageRendererFactory`.
+- **No analysed frames (RN-02, the video part).** MDATK started ffmpeg on zero frames (or failed
+  in the panels); MDBridge stops with `VideoError: no analysed frames to render` before anything is
+  written. *Tested:* `VideoRender.NoFramesIsAnError`.
+- **No canvas size errors (RN-06, the video part).** The canvas is exactly `figure_size(w, h)`
+  (even) pixels for any dpi, so MDATK's `canvas size WxH is not even` and `canvas is WxH px but ...
+  choose a DPI that divides the resolution` cannot occur (`render_odd_size`: 333 x 187 at dpi 37
+  gives 332 x 186, as MDATK's). *Tested:* `RenderCliCases/VideoRun.AsMdatksVideo`.
+- **`output.video.ffmpeg_path` is not used (owner decision D8).** The bundled libraries encode;
+  the setting stays in project files. A missing or wrong ffmpeg path is therefore no error (MDATK:
+  `ffmpeg not executable at PATH`).
+- **Quality check.** Decoded mpeg4 frames are within 42 dB (RGB PSNR) of the composed ones at the
+  default 1920 x 1080; at the parity cases' 320 x 180 yuv420p's chroma subsampling alone limits RGB
+  to about 35 dB (thin coloured lines), and the luma is within 42 dB. AV1 videos are checked by
+  their metadata only (the bundled FFmpeg has no AV1 decoder). *Tested:*
+  `QtVideo.DecodedFramesWithin38dB`; metadata (frame count, size, frame rate, pixel format,
+  streams, faststart; not the codec name, RN-07) against `tests/data/render/cli` by
+  `RenderCliCases/VideoRun.AsMdatksVideo` and `QtVideo.FullRun24Frames320x180` (MDATK's
+  `test_full_run` video).
+
 ## Planned (from the improvement register; add each entry here when it lands)
 
 None: every FIX and ASK item of the improvement register (docs/IMPROVEMENTS.md) has landed

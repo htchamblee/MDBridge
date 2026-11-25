@@ -7,6 +7,7 @@ endif()
 add_library(mdbridge_render STATIC
     include/mdbridge/render/figure_qt.hpp
     include/mdbridge/render/text_qt.hpp
+    include/mdbridge/render/video_qt.hpp
     figure_qt.cpp
     include/mdbridge/render/view.hpp
     scene.hpp
@@ -14,6 +15,7 @@ add_library(mdbridge_render STATIC
     software_view.cpp
     software_view.hpp
     text_qt.cpp
+    video_qt.cpp
     view.cpp
     vulkan_view.cpp
     vulkan_view.hpp)
@@ -24,7 +26,8 @@ target_include_directories(mdbridge_render
     PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
 # Vulkan headers only: Qt and the probe (render/vulkan) load the system's Vulkan loader at run time
 # Qt Svg (LGPL, QSvgGenerator) for SVG figures; QPdfWriter is part of Qt Gui
-target_link_libraries(mdbridge_render PUBLIC Qt6::Gui Qt6::Svg mdbridge::render_core mdbridge::render_vulkan)
+target_link_libraries(mdbridge_render PUBLIC Qt6::Gui Qt6::Svg mdbridge::render_core mdbridge::render_vulkan
+    mdbridge::video_loop)  # the video frame loop composed with QPainter (video_qt.hpp)
 mdbridge_target_warnings(mdbridge_render)
 
 # the figure fonts (data/fonts: DejaVu 2.35 as Matplotlib ships it; licence in packaging/licenses)
