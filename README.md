@@ -29,9 +29,9 @@ before its analyses start, checked against MDATK itself in CI:
   DCD, XTC, TRR, Amber NetCDF, Amber ASCII restart / mdcrd), MDAnalysis' selection language and
   MDATK's residue groups, PDB export of frames, MRC / CCP4 density maps (plain or gzip, read,
   written, simulated from a model), mmCIF restraint dictionaries.
-- **Command line**: MDATK's `init` (`init-params`), `info`, `export-pdb` and `density info`, with
-  MDATK's options, output, files, messages and exit codes (`tests/parity/cli_parity.py` runs both
-  on the same inputs in CI).
+- **Command line**: MDATK's `init` (`init-params`), `info`, `list`, `analyze`, `export-pdb` and
+  `density info`, with MDATK's options, output, files, messages and exit codes
+  (`tests/parity/cli_parity.py` runs both on the same inputs in CI; `analyze` keeps its own cache).
 - **Clean room**: MDAnalysis' behaviour (LGPL) is reimplemented from its documented behaviour and
   observed results, never from its source; MDBridge's residue, element and mass tables are rebuilt
   from independent public sources (`data/sources/ATTRIBUTION.md`), so guessed masses and elements,

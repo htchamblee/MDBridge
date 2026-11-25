@@ -8,11 +8,13 @@ include(GoogleTest)
 add_executable(mdbridge_core_tests
     core/test_atom_selection.cpp
     core/test_citations.cpp
+    core/test_conda.cpp
     core/test_dataset.cpp
     core/test_hash.cpp
     core/test_json.cpp
     core/test_naming.cpp
     core/test_ntpath.cpp
+    core/test_panels.cpp
     core/test_project_file.cpp
     core/test_project_io.cpp
     core/test_progress.cpp
@@ -80,8 +82,8 @@ add_subdirectory(analysis_spatial)
 # optimal-superposition RMSD (docs/specs/m3-rmsd.md)
 add_subdirectory(analysis_rmsd)
 
-# app/commands: MDATK's init, info, export-pdb and density info, run in-process against what MDATK
-# printed and wrote (data/cli, tests/parity/cli_parity.py); no Qt needed
+# app/commands: MDATK's init, info, list, analyze, export-pdb and density info, run in-process
+# against what MDATK printed and wrote (data/cli, tests/parity/cli_parity.py); no Qt needed
 add_executable(mdbridge_cli_tests cli/test_commands.cpp)
 target_include_directories(mdbridge_cli_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/core")
 target_link_libraries(mdbridge_cli_tests PRIVATE mdbridge::commands GTest::gtest_main)

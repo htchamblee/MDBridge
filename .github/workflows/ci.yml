@@ -6,8 +6,9 @@
 #                line without X11 / OpenGL, then the interface without a Vulkan driver)
 # - windows:     MSVC 2022 build and tests, zip and installer; smoke test of the installed program
 # - parity:      MDATK v0.0.4.1 writes project files and records what it reads from them;
-#                the AppImage must read them the same way; the commands init, info, export-pdb and
-#                density info must print and write what MDATK's do (tests/parity/cli_parity.py)
+#                the AppImage must read them the same way; the commands init, info, list, analyze,
+#                export-pdb and density info must print and write what MDATK's do
+#                (tests/parity/cli_parity.py)
 # - regenerate:  every generator of tests/data/README.md, run with MDATK v0.0.4.1, MDAnalysis 2.11.0
 #                and the pinned numpy / scipy, writes exactly the committed test data
 # - release:     tags v* only, after every job passed: attaches the builds to the GitHub release
@@ -249,7 +250,7 @@ jobs:
           python -m venv "$RUNNER_TEMP/venv"
           "$RUNNER_TEMP/venv/bin/python" -m pip install --no-deps -r tests/parity/requirements-regenerate.txt
 
-      - name: init, info, export-pdb and density info print and write what MDATK prints and writes
+      - name: init, info, list, analyze, export-pdb and density info print and write what MDATK prints and writes
         run: |
           (cd work && ../dist/MDBridge-*-x86_64.AppImage --appimage-extract > /dev/null)  # once, not per run
           "$RUNNER_TEMP/venv/bin/python" -I -B tests/parity/cli_parity.py --mdatk mdatk \

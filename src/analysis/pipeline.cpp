@@ -19,6 +19,7 @@
 #include "mdbridge/analysis/registry.hpp"
 #include "mdbridge/core/hash.hpp"
 #include "mdbridge/core/json.hpp"
+#include "mdbridge/core/panels.hpp"
 #include "mdbridge/core/paths.hpp"
 #include "mdbridge/core/python.hpp"
 #include "mdbridge/io/external.hpp"
@@ -123,12 +124,6 @@ std::string cleaningKey(const core::CleaningParams& params, const std::string& t
 
 // ---- panels -------------------------------------------------------------------------------------
 
-const std::vector<std::string>& panelTypes() {
-    static const std::vector<std::string> types{"structure", "timeseries", "dual_axis", "heatmap",
-                                                "contact_map", "sequence",   "secondary"};
-    return types;
-}
-
 std::vector<std::string> panelRequiredAnalyses(const core::Project& project) {
     std::set<std::string> need;
     const core::VisualParams& v = project.visual;
@@ -159,7 +154,7 @@ std::vector<std::string> panelRequiredAnalyses(const core::Project& project) {
                     need.insert("basepairs");
                 }
             }
-        } else if (std::find(panelTypes().begin(), panelTypes().end(), type) != panelTypes().end()) {
+        } else if (core::findPanelType(type) != nullptr) {
             for (const std::string& key : spec.series) {
                 if (key.find('/') != std::string::npos) {
                     need.insert(key.substr(0, key.find('/')));
@@ -167,8 +162,8 @@ std::vector<std::string> panelRequiredAnalyses(const core::Project& project) {
             }
         } else {
             std::string choices;
-            for (const std::string& t : panelTypes()) {
-                choices += (choices.empty() ? "" : ", ") + t;
+            for (const core::PanelType& t : core::panelTypes()) {
+                choices += (choices.empty() ? "" : ", ") + std::string(t.name);
             }
             throw core::ValueError("unknown panel type " + core::pythonStringRepr(type) + " (choose from " + choices +
                                    ")");

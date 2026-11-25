@@ -149,7 +149,7 @@ int cliMain(int argc, char** argv) {
     bool graphicsJson = false;
     graphicsCommand->add_flag("--json", graphicsJson, "print the report as JSON");
 
-    CoreCommands mdatkCommands(app);  // init, info, export-pdb, density info
+    CoreCommands mdatkCommands(app);  // init, info, list, analyze, export-pdb, density info
 
     try {
         app.parse(argc, utf8);

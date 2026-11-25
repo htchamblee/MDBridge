@@ -1,9 +1,10 @@
 #pragma once
-// The commands of MDATK's `mdatk` command line that the libraries support so far (milestone 2):
-// init (init-params), info, export-pdb and density info. Names, options, defaults, output, files
-// and exit codes are MDATK v0.0.4.1's (mdatk/cli.py); MDATK's other commands (analyze, render,
-// charts, clean, preview, density fit / simulate, pdb, build, dict, workflow, demo, list) follow
-// with later milestones and are not offered until then.
+// The commands of MDATK's `mdatk` command line that the libraries support so far: init
+// (init-params), info, list, analyze, export-pdb and density info. Names, options, defaults,
+// output, files and exit codes are MDATK v0.0.4.1's (mdatk/cli.py); MDATK's other commands (render,
+// charts, clean, preview, density fit / simulate, pdb, build, dict, workflow, demo) follow with
+// later milestones and are not offered until then. `analyze` keeps MDBridge's own cache
+// (mdbridge/analysis/cache.hpp) and does not clean with cpptraj (mdbridge/analysis/pipeline.hpp).
 //
 // This library needs no Qt: the `mdbridge` program adds these commands to its own (gui, project,
 // graphics), and the tests run them in-process.
@@ -58,6 +59,10 @@ private:
 // checking parity without the Qt front end: parse errors print CLI11's message and give 2, as
 // argparse does; without a command the help is printed and 2 returned (MDATK's `mdatk`).
 int runCoreCommandLine(int argc, const char* const* argv, Console& console);
+
+// What `list` prints (cmd_list): the analyses, the conda environments with cpptraj
+// (core::conda::findCpptrajEnvs), the panel types, the layout presets and a note on data keys.
+void printList(std::ostream& out);
 
 // MDATK's apply_override(project, "dotted.path=value"): the value is read as JSON when it is
 // valid JSON (else it is the text), list elements are addressed by index (groups.0.residues),
