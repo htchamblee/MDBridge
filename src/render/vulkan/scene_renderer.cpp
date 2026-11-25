@@ -1223,7 +1223,7 @@ void SceneRenderer::Impl::record(VkCommandBuffer cmd, Slot& s, const Plan& plan,
 
     const std::uint32_t px = groups(W, 16), py = groups(H, 16);
     const std::uint32_t cx = groups(cw, 8), cy = groups(ch, 8);
-    dispatch(cmd, *bounds, push, px, py);
+    dispatch(cmd, *bounds, push, groups(groups(W, 16), 64), H);
     dispatch(cmd, *coarse, push, cx, cy);
     dispatch(cmd, *blurY, push, cx, cy);
     dispatch(cmd, *blurX, push, cx, cy);

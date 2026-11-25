@@ -10,8 +10,10 @@
 //
 // visual.renderer (MDATK's get_renderer, RN-16):
 //   "software"         the built-in software renderer
-//   "auto"             the Vulkan renderer when this machine can run it, else the software renderer
-//                      (silently: both draw the same picture)
+//   "auto"             the Vulkan renderer when this machine can run it on a GPU, else the software
+//                      renderer (silently: both draw the same picture). A Vulkan driver that runs on
+//                      the CPU (Mesa's lavapipe) is left to the software renderer, which is about
+//                      twice as fast there (VulkanScene.Benchmark)
 //   "vtk", "vulkan"    the Vulkan renderer when it can run, else the software renderer with the note
 //                      kNoGpuRendererNote (logged once per panel as a warning)
 //   anything else      the software renderer (validate() reports unknown names)
@@ -51,6 +53,8 @@ public:
     bool usable() const;
     // Why it cannot ("" when usable() or not tried yet); the device's name when it can.
     std::string problem() const;
+    // usable() on a Vulkan driver that runs on the CPU ("auto" then uses the software renderer)
+    bool cpuDevice() const;
     std::string deviceName() const;
 
 private:

@@ -387,12 +387,13 @@ TEST(VulkanStage, ChoosesTheGpuRendererWhenUsable) {
     const auto factory = gpu.factory();
     for (const char* name : {"auto", "vtk", "vulkan"}) {
         const panels::StageRendererChoice c = factory->choose(name);
-        EXPECT_EQ(c.renderer->name(), "VulkanRenderer") << name;
+        const bool software = std::string(name) == "auto" && gpu.cpuDevice();  // lavapipe: software is faster
+        EXPECT_EQ(c.renderer->name(), software ? "SoftwareRenderer" : "VulkanRenderer") << name;
         EXPECT_TRUE(c.note.empty()) << name;
     }
     EXPECT_EQ(factory->choose("software").renderer->name(), "SoftwareRenderer");
     const RenderCase c = renderCase("demo_cartoon_glow");
-    const auto renderer = factory->choose("auto").renderer;
+    const auto renderer = factory->choose("vulkan").renderer;
     EXPECT_TRUE(renderer->drawsGlow());
     expectSameLook(renderer->render(c.items, c.vp, c.shading, c.quality),
                    SoftwareRenderer().render(c.items, c.vp, c.shading, c.quality), "stage demo_cartoon_glow");
@@ -426,7 +427,7 @@ TEST(VulkanStage, InstallsAndUninstallsTheFactory) {
         auto gpu = panels::installGpuStageRenderers(options);
         EXPECT_EQ(panels::stageRendererFactory(), gpu->factory());
         // a renderer that outlives the installation draws with the software renderer
-        const auto renderer = gpu->factory()->choose("auto").renderer;
+        const auto renderer = gpu->factory()->choose("vulkan").renderer;
         const RenderCase c = renderCase("sphere");
         const RgbaImage before = renderer->render(c.items, c.vp, c.shading, c.quality);
         EXPECT_EQ(before.width, static_cast<std::size_t>(c.vp.width));

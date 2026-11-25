@@ -28,7 +28,7 @@ configure_file(windows/mdbridge.rc.in "${CMAKE_CURRENT_BINARY_DIR}/mdbridge.rc" 
 function(mdbridge_program name)
     cmake_parse_arguments(ARG "GUI" "" "" ${ARGN})
     add_executable(${name} main.cpp)
-    target_link_libraries(${name} PRIVATE mdbridge_app)
+    target_link_libraries(${name} PRIVATE mdbridge_app mdbridge::render_panels_vulkan)
     qt_add_resources(${name} icons PREFIX /mdbridge BASE "${PROJECT_SOURCE_DIR}/data"
                      FILES "${PROJECT_SOURCE_DIR}/data/icons/mdbridge.png")
     if(WIN32)

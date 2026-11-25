@@ -74,6 +74,11 @@ public:
         const std::lock_guard<std::mutex> lock(m_mutex);
         return m_renderer ? std::string() : m_problem;
     }
+    // a Vulkan driver that runs on the CPU (lavapipe / llvmpipe, SwiftShader)
+    bool cpuDevice() const {
+        const std::lock_guard<std::mutex> lock(m_mutex);
+        return m_context && m_context->deviceInfo().type == "CPU";
+    }
     std::string deviceName() const {
         const std::lock_guard<std::mutex> lock(m_mutex);
         return m_context ? m_context->deviceInfo().name : std::string();
@@ -115,7 +120,8 @@ public:
     explicit GpuFactory(std::shared_ptr<GpuStageBackend> backend) : m_backend(std::move(backend)) {}
     StageRendererChoice choose(std::string_view name) const override {
         const bool gpu = name == "auto" || name == "vtk" || name == "vulkan";
-        if (gpu && m_backend->open()) {
+        // "auto" leaves a CPU Vulkan driver to the software renderer: same picture, faster there
+        if (gpu && m_backend->open() && !(name == "auto" && m_backend->cpuDevice())) {
             const std::lock_guard<std::mutex> lock(m_mutex);
             if (!m_vulkan) {
                 m_vulkan = std::make_shared<VulkanStageRenderer>(m_backend);
@@ -147,6 +153,7 @@ GpuStageRenderers::~GpuStageRenderers() {
 }
 
 bool GpuStageRenderers::usable() const { return m_backend->open(); }
+bool GpuStageRenderers::cpuDevice() const { return m_backend->open() && m_backend->cpuDevice(); }
 std::string GpuStageRenderers::problem() const { return m_backend->problem(); }
 std::string GpuStageRenderers::deviceName() const { return m_backend->deviceName(); }
 

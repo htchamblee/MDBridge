@@ -3,7 +3,8 @@
 // the background), a fitted viewport keeps atoms round, and setting no molecule brings the
 // placeholder back. Needs a display whose Qt platform supports Vulkan (X11 / Wayland; Xvfb with
 // lavapipe works: xvfb-run -a ctest -R VulkanWindow); skipped elsewhere (e.g. the "offscreen"
-// platform of CI's test job), also with MDBRIDGE_REQUIRE_VULKAN=1, which concerns the driver.
+// platform of CI's test job), also with MDBRIDGE_REQUIRE_VULKAN=1, which concerns the driver;
+// MDBRIDGE_REQUIRE_VULKAN_WINDOW=1 (CI's Xvfb step) makes a missing Vulkan window a failure.
 
 #include <gtest/gtest.h>
 
@@ -59,6 +60,9 @@ bool waitFrames(View& view, int frames) {
 TEST(VulkanWindow, DrawsTheMoleculeAsTheOffscreenRenderer) {
     std::unique_ptr<View> view = createView(Renderer::Vulkan).view;
     if (!view || view->renderer() != Renderer::Vulkan) {
+        if (std::getenv("MDBRIDGE_REQUIRE_VULKAN_WINDOW")) {  // CI's Xvfb step
+            FAIL() << "no Vulkan window on Qt platform " << QGuiApplication::platformName().toStdString();
+        }
         GTEST_SKIP() << "no Vulkan window on Qt platform " << QGuiApplication::platformName().toStdString();
     }
     QWindow* window = view->window();
@@ -68,7 +72,8 @@ TEST(VulkanWindow, DrawsTheMoleculeAsTheOffscreenRenderer) {
     const std::shared_ptr<MoleculeFrame> frame = spheres();
     ASSERT_TRUE(view->setMoleculeFrame(frame));
     ASSERT_TRUE(waitFrames(*view, 1));
-    ASSERT_TRUE(waitFrames(*view, 1));  // (the frame after the one that may have been in flight)
+    window->requestUpdate();  // a molecule is drawn on demand; one more frame after any in flight
+    ASSERT_TRUE(waitFrames(*view, 1));
     const QImage shot = view->grabFrame().convertToFormat(QImage::Format_RGBA8888);
     ASSERT_FALSE(shot.isNull());
     const int w = shot.width(), h = shot.height();
@@ -104,7 +109,7 @@ TEST(VulkanWindow, DrawsTheMoleculeAsTheOffscreenRenderer) {
     auto fast = std::make_shared<MoleculeFrame>(*frame);
     fast->quality = molecule::RenderQuality::Fast;
     view->setMoleculeFrame(fast);
-    EXPECT_TRUE(waitFrames(*view, 2));
+    EXPECT_TRUE(waitFrames(*view, 1));
     view->setMoleculeFrame(nullptr);
     EXPECT_TRUE(waitFrames(*view, 2));  // the placeholder animates again
 }
