@@ -20,10 +20,12 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <exception>
 #include <limits>
 #include <optional>
 #include <span>
 #include <stdexcept>
+#include <tuple>
 #include <utility>
 #include <variant>
 

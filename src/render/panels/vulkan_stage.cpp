@@ -2,6 +2,7 @@
 
 #include "mdbridge/render/panels/vulkan_stage.hpp"
 
+#include <exception>
 #include <mutex>
 #include <optional>
 #include <shared_mutex>
