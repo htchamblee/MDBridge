@@ -65,6 +65,7 @@ add_executable(mdbridge_analysis_tests
     analysis/test_energy.cpp
     analysis/test_framework.cpp
     analysis/test_mg_stacking.cpp
+    analysis/test_pipeline.cpp
     analysis/test_rmsd_analysis.cpp
     analysis/test_structure.cpp)
 target_include_directories(mdbridge_analysis_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/core")

@@ -1,0 +1,137 @@
+#pragma once
+// The analyze part of MDATK's end-to-end pipeline (mdatk/pipeline.py Pipeline): checking a
+// project, resolving its input files, the analyses a run needs (enabled analyses, the panels'
+// data and the charted series), running the missing ones in one pass and reusing the rest from the
+// cache (cache.hpp), the dataset with display overrides and external data, and the manifest.
+//
+// Cleaning (cpptraj) is not available in MDBridge yet: with cleaning.enabled, the cleaned files
+// MDATK left for the same inputs and settings (<output_dir or cache/cleaned/<key>>, with its
+// marker MDATK_clean.json naming that key) are used; without them the run fails with a
+// PipelineError ("cleaning with cpptraj is not available in MDBridge yet: ...").
+
+#include <cstdint>
+#include <memory>
+#include <optional>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
+
+#include "mdbridge/analysis/cache.hpp"
+#include "mdbridge/core/dataset.hpp"
+#include "mdbridge/core/errors.hpp"
+#include "mdbridge/core/progress.hpp"
+#include "mdbridge/core/project.hpp"
+#include "mdbridge/core/topology.hpp"
+#include "mdbridge/core/value.hpp"
+
+namespace mdbridge::analysis {
+
+// pipeline.PipelineError (a RuntimeError): what the CLI reports as "error: <message>".
+class PipelineError : public core::NamedError {
+public:
+    explicit PipelineError(const std::string& message) : core::NamedError("PipelineError", message) {}
+};
+
+// The files MDATK's cleaning writes (mdatk/cleaning/cpptraj.py).
+inline constexpr std::string_view kCleanedParm7 = "MDATK_cleaned.parm7";
+inline constexpr std::string_view kCleanedTrajectory = "MDATK_cleaned.nc";
+inline constexpr std::string_view kCleanedReference = "MDATK_cleaned_ref.pdb";
+inline constexpr std::string_view kCleaningMarker = "MDATK_clean.json";
+
+// What cleaning_key(params, topology, trajectories) hashes: {"version": 1, "topology":
+// fileFingerprint, "trajectories": [...], "reference": fingerprint of cleaning.reference_file when
+// fit with fit_reference "file" (else null), "params": the cleaning settings without enabled,
+// cpptraj_path, output_dir, conda_env and conda_exe}. Throws std::filesystem::filesystem_error for
+// a missing file.
+core::Value cleaningKeyInputs(const core::CleaningParams& params, const std::string& topology,
+                              const std::vector<std::string>& trajectories);
+// cleaning_key: stableHash(cleaningKeyInputs(...)), 16 hex digits.
+std::string cleaningKey(const core::CleaningParams& params, const std::string& topology,
+                        const std::vector<std::string>& trajectories);
+
+// The panel types of MDATK's figure in registration order: structure, timeseries, dual_axis,
+// heatmap, contact_map, sequence, secondary.
+const std::vector<std::string>& panelTypes();
+// render.panels.required_analyses(project): the analysis instances the layout's panels read.
+// structure: trace (+ atoms with representations, + proximity when visual.color_mode is
+// "proximity" or visual.glow_mode is not "none"); sequence: trace (+ proximity); secondary: trace
+// (+ proximity) + basepairs unless option source is "dotbracket"; the other types: the instance
+// part of their series keys that contain "/". Sorted. Throws core::ValueError("unknown panel type
+// 'x' (choose from structure, ...)").
+std::vector<std::string> panelRequiredAnalyses(const core::Project& project);
+
+struct ResolvedInputs {
+    std::string topology;
+    std::vector<std::string> trajectories;
+    std::string cleaningKey;  // the cleaned files' key; "" without cleaning
+};
+
+class Pipeline {
+public:
+    // The project as loaded (paths resolved); the reporter receives log lines and progress.
+    explicit Pipeline(core::Project project, core::Reporter reporter = core::Reporter());
+
+    const core::Project& project() const { return m_project; }
+    const core::Reporter& reporter() const { return m_reporter; }
+    const CacheStore& cache() const { return m_cache; }
+    // instance -> cache key of the last analyze() (dict order)
+    const std::vector<std::pair<std::string, std::string>>& analysisKeys() const { return m_keys; }
+
+    // check(): PipelineError("Invalid parameters:\n  - a\n  - b") when core::validate finds
+    // problems, then "WARNING: <text>" for every layout warning.
+    void check() const;
+
+    // resolve_inputs: the input files (cleaned ones with cleaning, see above), then
+    // progress(1, "inputs ready"). Kept for later calls. Throws PipelineError (no cleaned files),
+    // core::NamedError("CpptrajError", "topology not found: <path>" / "trajectory not found:
+    // <path>") with cleaning.
+    const ResolvedInputs& resolveInputs(const core::Reporter* reporter = nullptr);
+    // universe(): the loaded system of the resolved inputs (kept). Throws what io::loadSystem
+    // throws, and core::ValueError("No trajectory loaded into Universe") without coordinates.
+    core::System& system();
+
+    // input_fingerprint: {"topology": fileFingerprint, "trajectories": [...], "frames": {"start",
+    // "stop", "step"}, "dt_ps"} (what every cache key covers).
+    core::Value inputFingerprint(const ResolvedInputs& inputs) const;
+
+    // required_analyses(video, charts): the enabled user analyses, the panels' analyses when the
+    // video is on, the instances of charted series ("<instance>/<output>") when charts are on
+    // (video / charts: the project's output settings when not given), without "external";
+    // instances instanceProject rejects are left out with the log line
+    // "WARNING: skipping data source '<instance>': <error>" (in sorted order; MDATK's order is
+    // that of a Python set). Sorted by registry index, then instance id.
+    std::vector<std::string> requiredAnalyses(std::optional<bool> video = std::nullopt,
+                                              std::optional<bool> charts = std::nullopt) const;
+
+    // analyze(names, force, reporter): `names` (requiredAnalyses() when not given) are loaded from
+    // the cache ("<label>: loaded from cache (<instance>-<key>)") unless `force`, the missing ones
+    // run in one pass over the frames of inputs.start / stop / step (runAnalyses; the reporter's
+    // 0.02 - 1 part) and are stored; then the trajectory is back on frame 0, as MDATK's iteration
+    // over a frame list leaves it. Without names, the frame axis alone (times read frame by frame).
+    // Then the dataset (time unit inputs.time_unit), display overrides, external data
+    // (PipelineError("external data: <reason>")), the manifest, progress(1, "analysis done").
+    // Throws std::out_of_range / core::ValueError for unknown analyses and bad instances,
+    // core::ValueError for empty frame selections, core::Cancelled, and what the analyses and the
+    // readers throw.
+    core::Dataset analyze(const std::optional<std::vector<std::string>>& names = std::nullopt, bool force = false,
+                          const core::Reporter* reporter = nullptr);
+
+    // apply_display_overrides: analyses.energy.target_value as the "target" of every energy
+    // instance's "total" series (null when not set).
+    void applyDisplayOverrides(core::Dataset& dataset) const;
+
+    // load_cached_dataset: the dataset of the latest run, from the manifest (display overrides
+    // applied). Throws what CacheStore::loadDatasetFromManifest throws.
+    core::Dataset loadCachedDataset() const;
+
+private:
+    core::Project m_project;
+    core::Reporter m_reporter;
+    CacheStore m_cache;
+    std::optional<ResolvedInputs> m_inputs;
+    std::unique_ptr<core::System> m_system;
+    std::vector<std::pair<std::string, std::string>> m_keys;
+};
+
+}  // namespace mdbridge::analysis
