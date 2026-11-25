@@ -4,9 +4,11 @@
 // os.path functions for resolving project paths (parity is defined on Linux).
 
 #include <cstdint>
+#include <filesystem>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <system_error>
 
 #include "mdbridge/core/value.hpp"
 
@@ -61,6 +63,16 @@ std::string basename(std::string_view path);
 // (root, ext): "a.b.toml" -> ("a.b", ".toml"), ".hidden" -> (".hidden", "")
 std::pair<std::string, std::string> splitext(std::string_view path);
 }  // namespace posixpath
+
+// str() of the OSError Python raises for a failed file operation: "[Errno 2] No such file or
+// directory: 'a.pdb'" (and " -> 'b'" for a second path). The number and text are what Python on
+// Linux prints (parity is defined there) on every platform: the error's portable condition
+// (std::errc) picks them, so Windows' system error codes and its C runtime's wording (MSVC's
+// "no such file or directory", ENAMETOOLONG 38) give the same text. A condition outside the table
+// keeps the error's own value and message.
+std::string pythonOsErrorText(const std::error_code& code, const std::filesystem::path& path1 = {},
+                              const std::filesystem::path& path2 = {});
+std::string pythonOsErrorText(const std::filesystem::filesystem_error& error);
 
 // The process's current directory as a UTF-8 string.
 std::string currentDirectory();
