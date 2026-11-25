@@ -305,6 +305,9 @@ int commandInfo(CLI::App& command, const CommonArguments& common, Console& conso
     }
     const core::System system = io::loadSystem(core::pathFromUtf8(project.inputs.topology),
                                                toPaths(project.inputs.trajectories), project.inputs.dt_ps);
+    for (const std::string& warning : system.warnings) {  // "WARNING: <message>" on stderr
+        core::logWarning(warning);
+    }
     Value info = io::systemSummary(system);
     core::Table groups;
     for (const core::ResidueGroup& g : project.groups) {
@@ -419,6 +422,9 @@ int commandExportPdb(CLI::App& command, const CoreCommands::Arguments& a, Consol
     reporter.progress(1.0, "inputs ready");
     core::System system = io::loadSystem(core::pathFromUtf8(project.inputs.topology),
                                          toPaths(project.inputs.trajectories), project.inputs.dt_ps);
+    for (const std::string& warning : system.warnings) {
+        reporter.log("WARNING: " + warning);
+    }
     if (!system.trajectory) {
         throw core::ValueError("No trajectory loaded into Universe");
     }

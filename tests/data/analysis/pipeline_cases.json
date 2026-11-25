@@ -17436,6 +17436,7 @@
       }
      },
      "log": [
+      "WARNING: inputs.dt_ps (2.5 ps) differs from the time step in {data}/io/trajectories/demo_dry.nc (10.0 ps); the file's times are used",
       "Preparing Pairwise contacts ...",
       "Analysing 5 frame(s): Pairwise contacts"
      ],

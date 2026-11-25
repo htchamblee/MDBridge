@@ -19,6 +19,8 @@ namespace mdbridge::io {
 struct TopologyFile {
     std::shared_ptr<core::Topology> topology;
     std::unique_ptr<core::Trajectory> coordinates;  // nullptr for formats without coordinates (parm7)
+    // Reader warnings issued while the file was read (mdbridge/io/warnings.hpp), in order.
+    std::vector<std::string> warnings;
 };
 TopologyFile readTopologyFile(const std::filesystem::path& path, std::string_view format = {},
                               std::optional<double> dt = std::nullopt);
@@ -26,9 +28,11 @@ TopologyFile readTopologyFile(const std::filesystem::path& path, std::string_vie
 // load_universe(topology, trajectories, dt_ps). Throws core::ValueError("no topology file given"),
 // std::filesystem::filesystem_error for "topology not found: <path>" / "trajectory not found:
 // <path>" (what() starts with that text), core::ValueError for files the readers reject, and for
-// a parm7 topology without trajectories ("No trajectory loaded into Universe"). dtPs: 0 or
-// std::nullopt means unset. Format choice: parm7 extensions -> PARM7; one shared trajectory
-// extension of the MDATK table -> that reader for every file; otherwise per file.
+// a topology without coordinates and no trajectories ("<file> has no coordinates; give a
+// trajectory with --traj"). dtPs: 0 or std::nullopt means unset; NaN, infinite or negative values
+// are rejected ("inputs.dt_ps must be a positive number ..."). Format choice: parm7 extensions ->
+// PARM7; each trajectory by MDATK's extension table, else by its own extension (MDAnalysis' guess).
+// The reader warnings of every file go to System::warnings (each once, in order).
 core::System loadSystem(const std::filesystem::path& topology, const std::vector<std::filesystem::path>& trajectories,
                         std::optional<double> dtPs = std::nullopt);
 

@@ -44,6 +44,7 @@ from mdatk.io import loader, pdb_export  # noqa: E402
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import improvements_readers_amber  # noqa: E402
+import improvements_readers_pdb  # noqa: E402
 import independent_tables  # noqa: E402
 
 independent_tables.apply()  # MDAnalysis with MDBridge's independent tables (tests/data/README.md)
@@ -81,10 +82,22 @@ def file_entry(path):
 
 
 def export_case(topology, trajectories=(), dt=None, selection="", frames=(0,), prefix="frame", stamp=""):
+    with tempfile.TemporaryDirectory(prefix="equivalent-") as eq:
+        # the loader's PDB / GRO files as MDBridge reads them (improvements_readers_pdb.py)
+        same = []
+        for k, p in enumerate([topology, *trajectories]):
+            if os.path.dirname(p) == LOADER:
+                os.makedirs(os.path.join(eq, str(k)))
+                p = improvements_readers_pdb.equivalent_file(p, os.path.join(eq, str(k)))
+            same.append(p)
+        return _export_case(topology, trajectories, same, dt, selection, frames, prefix, stamp)
+
+
+def _export_case(topology, trajectories, same, dt, selection, frames, prefix, stamp):
     case = {"topology": placeholders(topology), "trajectories": [placeholders(t) for t in trajectories],
             "dt": dt, "selection": selection, "frames": list(frames), "prefix": prefix, "stamp": stamp}
-    load, fix = improvements_readers_amber.parm7_as_mdbridge_reads(topology)  # RD-P05
-    u = loader.load_universe(load, list(trajectories), dt)
+    load, fix = improvements_readers_amber.parm7_as_mdbridge_reads(same[0])  # RD-P05
+    u = loader.load_universe(load, same[1:], dt)
     if fix is not None:
         fix(u)
     atoms = u.atoms if not selection else selections.select(u, selection, [])

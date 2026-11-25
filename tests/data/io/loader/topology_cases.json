@@ -881,10 +881,65 @@
  },
  {
   "file": "hy36.pdb",
-  "error": {
-   "type": "ValueError",
-   "message": "Failed to construct topology from file {out}/files/hy36.pdb with parser <class 'MDAnalysis.topology.PDBParser.PDBParser'>.\nError: invalid literal for int() with base 10: 'A0000'"
-  }
+  "dump": "hy36.pdb.topology.json",
+  "readers": [
+   {
+    "dt_given": null,
+    "n_frames": 1,
+    "dt": "0x1.0000000000000p+0",
+    "header": "",
+    "compound": [],
+    "remarks": [],
+    "frames": [
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000000000000000000003f8000000000000000000000400000000000000000000000404000000000000000000000",
+      "dimensions": null
+     },
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000000000000000000003f8000000000000000000000400000000000000000000000404000000000000000000000",
+      "dimensions": null
+     },
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000000000000000000003f8000000000000000000000400000000000000000000000404000000000000000000000",
+      "dimensions": null
+     }
+    ]
+   },
+   {
+    "dt_given": 2.5,
+    "n_frames": 1,
+    "dt": "0x1.4000000000000p+1",
+    "header": "",
+    "compound": [],
+    "remarks": [],
+    "frames": [
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000000000000000000003f8000000000000000000000400000000000000000000000404000000000000000000000",
+      "dimensions": null
+     },
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000000000000000000003f8000000000000000000000400000000000000000000000404000000000000000000000",
+      "dimensions": null
+     },
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000000000000000000003f8000000000000000000000400000000000000000000000404000000000000000000000",
+      "dimensions": null
+     }
+    ]
+   }
+  ]
  },
  {
   "file": "hy36_ok.pdb",
@@ -951,8 +1006,8 @@
  {
   "file": "hy36_bad.pdb",
   "error": {
-   "type": "UnboundLocalError",
-   "message": "cannot access local variable 'serial' where it is not associated with a value"
+   "type": "ValueError",
+   "message": "{out}/files/hy36_bad.pdb line 1: invalid hybrid-36 atom serial 'Aa000'"
   }
  },
  {
@@ -1142,11 +1197,128 @@
   ]
  },
  {
+  "file": "conect_one_bad.pdb",
+  "dump": "conect_one_bad.pdb.topology.json",
+  "readers": [
+   {
+    "dt_given": null,
+    "n_frames": 1,
+    "dt": "0x1.0000000000000p+0",
+    "header": "",
+    "compound": [],
+    "remarks": [],
+    "frames": [
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000000000000800000003fc000003e800000bf000000404000003f000000bf800000409000003f400000bfc0000040c000003f800000c0000000",
+      "dimensions": null
+     },
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000000000000800000003fc000003e800000bf000000404000003f000000bf800000409000003f400000bfc0000040c000003f800000c0000000",
+      "dimensions": null
+     },
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000000000000800000003fc000003e800000bf000000404000003f000000bf800000409000003f400000bfc0000040c000003f800000c0000000",
+      "dimensions": null
+     }
+    ]
+   },
+   {
+    "dt_given": 2.5,
+    "n_frames": 1,
+    "dt": "0x1.4000000000000p+1",
+    "header": "",
+    "compound": [],
+    "remarks": [],
+    "frames": [
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000000000000800000003fc000003e800000bf000000404000003f000000bf800000409000003f400000bfc0000040c000003f800000c0000000",
+      "dimensions": null
+     },
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000000000000800000003fc000003e800000bf000000404000003f000000bf800000409000003f400000bfc0000040c000003f800000c0000000",
+      "dimensions": null
+     },
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000000000000800000003fc000003e800000bf000000404000003f000000bf800000409000003f400000bfc0000040c000003f800000c0000000",
+      "dimensions": null
+     }
+    ]
+   }
+  ]
+ },
+ {
   "file": "conect_bad_int.pdb",
-  "error": {
-   "type": "ValueError",
-   "message": "Failed to construct topology from file {out}/files/conect_bad_int.pdb with parser <class 'MDAnalysis.topology.PDBParser.PDBParser'>.\nError: invalid literal for int() with base 10: '    x'"
-  }
+  "dump": "conect_bad_int.pdb.topology.json",
+  "readers": [
+   {
+    "dt_given": null,
+    "n_frames": 1,
+    "dt": "0x1.0000000000000p+0",
+    "header": "",
+    "compound": [],
+    "remarks": [],
+    "frames": [
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000000000000800000003fc000003e800000bf000000404000003f000000bf800000409000003f400000bfc0000040c000003f800000c0000000",
+      "dimensions": null
+     },
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000000000000800000003fc000003e800000bf000000404000003f000000bf800000409000003f400000bfc0000040c000003f800000c0000000",
+      "dimensions": null
+     },
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000000000000800000003fc000003e800000bf000000404000003f000000bf800000409000003f400000bfc0000040c000003f800000c0000000",
+      "dimensions": null
+     }
+    ]
+   },
+   {
+    "dt_given": 2.5,
+    "n_frames": 1,
+    "dt": "0x1.4000000000000p+1",
+    "header": "",
+    "compound": [],
+    "remarks": [],
+    "frames": [
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000000000000800000003fc000003e800000bf000000404000003f000000bf800000409000003f400000bfc0000040c000003f800000c0000000",
+      "dimensions": null
+     },
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000000000000800000003fc000003e800000bf000000404000003f000000bf800000409000003f400000bfc0000040c000003f800000c0000000",
+      "dimensions": null
+     },
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000000000000800000003fc000003e800000bf000000404000003f000000bf800000409000003f400000bfc0000040c000003f800000c0000000",
+      "dimensions": null
+     }
+    ]
+   }
+  ]
  },
  {
   "file": "conect_after_end.pdb",
@@ -1460,10 +1632,65 @@
  },
  {
   "file": "leading_space.pdb",
-  "error": {
-   "type": "ValueError",
-   "message": "Inconsistency in file '{out}/files/leading_space.pdb': The number of atoms (6) in trajectory frame 0 differs from the number of atoms (7) in the corresponding topology.\nTrajectories with varying numbers of atoms are currently not supported."
-  }
+  "dump": "leading_space.pdb.topology.json",
+  "readers": [
+   {
+    "dt_given": null,
+    "n_frames": 1,
+    "dt": "0x1.0000000000000p+0",
+    "header": "",
+    "compound": [],
+    "remarks": [],
+    "frames": [
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000000000000800000003fc000003e800000bf000000404000003f000000bf80000040c000003f800000c000000040f000003fa00000c0200000411000003fc00000c0400000",
+      "dimensions": null
+     },
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000000000000800000003fc000003e800000bf000000404000003f000000bf80000040c000003f800000c000000040f000003fa00000c0200000411000003fc00000c0400000",
+      "dimensions": null
+     },
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000000000000800000003fc000003e800000bf000000404000003f000000bf80000040c000003f800000c000000040f000003fa00000c0200000411000003fc00000c0400000",
+      "dimensions": null
+     }
+    ]
+   },
+   {
+    "dt_given": 2.5,
+    "n_frames": 1,
+    "dt": "0x1.4000000000000p+1",
+    "header": "",
+    "compound": [],
+    "remarks": [],
+    "frames": [
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000000000000800000003fc000003e800000bf000000404000003f000000bf80000040c000003f800000c000000040f000003fa00000c0200000411000003fc00000c0400000",
+      "dimensions": null
+     },
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000000000000800000003fc000003e800000bf000000404000003f000000bf80000040c000003f800000c000000040f000003fa00000c0200000411000003fc00000c0400000",
+      "dimensions": null
+     },
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000000000000800000003fc000003e800000bf000000404000003f000000bf80000040c000003f800000c000000040f000003fa00000c0200000411000003fc00000c0400000",
+      "dimensions": null
+     }
+    ]
+   }
+  ]
  },
  {
   "file": "unicode.pdb",
@@ -1685,55 +1912,55 @@
       "frame": 0,
       "time": "0x0.0p+0",
       "positions": "0000000000000000800000003fc000003e800000bf000000404000003f000000bf800000409000003f400000bfc0000040c000003f800000c000000040f000003fa00000c0200000411000003fc00000c0400000",
-      "dimensions": null
+      "dimensions": "41700000417000004170000042b4000042b4000042b40000"
      },
      {
       "frame": 1,
       "time": "0x1.0000000000000p+0",
       "positions": "bf00000000000000800000003f8000003e800000bf000000402000003f000000bf800000408000003f400000bfc0000040b000003f800000c000000040e000003fa00000c0200000410800003fc00000c0400000",
-      "dimensions": null
+      "dimensions": "41700000417000004170000042b4000042b4000042b40000"
      },
      {
       "frame": 2,
       "time": "0x1.0000000000000p+1",
       "positions": "bf80000000000000800000003f0000003e800000bf000000400000003f000000bf800000406000003f400000bfc0000040a000003f800000c000000040d000003fa00000c0200000410000003fc00000c0400000",
-      "dimensions": null
+      "dimensions": "41700000417000004170000042b4000042b4000042b40000"
      },
      {
       "frame": 2,
       "time": "0x1.0000000000000p+1",
       "positions": "bf80000000000000800000003f0000003e800000bf000000400000003f000000bf800000406000003f400000bfc0000040a000003f800000c000000040d000003fa00000c0200000410000003fc00000c0400000",
-      "dimensions": null
+      "dimensions": "41700000417000004170000042b4000042b4000042b40000"
      },
      {
       "frame": 0,
       "time": "0x0.0p+0",
       "positions": "0000000000000000800000003fc000003e800000bf000000404000003f000000bf800000409000003f400000bfc0000040c000003f800000c000000040f000003fa00000c0200000411000003fc00000c0400000",
-      "dimensions": null
+      "dimensions": "41700000417000004170000042b4000042b4000042b40000"
      },
      {
       "frame": 0,
       "time": "0x0.0p+0",
       "positions": "0000000000000000800000003fc000003e800000bf000000404000003f000000bf800000409000003f400000bfc0000040c000003f800000c000000040f000003fa00000c0200000411000003fc00000c0400000",
-      "dimensions": null
+      "dimensions": "41700000417000004170000042b4000042b4000042b40000"
      },
      {
       "frame": 2,
       "time": "0x1.0000000000000p+1",
       "positions": "bf80000000000000800000003f0000003e800000bf000000400000003f000000bf800000406000003f400000bfc0000040a000003f800000c000000040d000003fa00000c0200000410000003fc00000c0400000",
-      "dimensions": null
+      "dimensions": "41700000417000004170000042b4000042b4000042b40000"
      },
      {
       "frame": 1,
       "time": "0x1.0000000000000p+0",
       "positions": "bf00000000000000800000003f8000003e800000bf000000402000003f000000bf800000408000003f400000bfc0000040b000003f800000c000000040e000003fa00000c0200000410800003fc00000c0400000",
-      "dimensions": null
+      "dimensions": "41700000417000004170000042b4000042b4000042b40000"
      },
      {
       "frame": 1,
       "time": "0x1.0000000000000p+0",
       "positions": "bf00000000000000800000003f8000003e800000bf000000402000003f000000bf800000408000003f400000bfc0000040b000003f800000c000000040e000003fa00000c0200000410800003fc00000c0400000",
-      "dimensions": null
+      "dimensions": "41700000417000004170000042b4000042b4000042b40000"
      }
     ]
    },
@@ -1749,55 +1976,55 @@
       "frame": 0,
       "time": "0x0.0p+0",
       "positions": "0000000000000000800000003fc000003e800000bf000000404000003f000000bf800000409000003f400000bfc0000040c000003f800000c000000040f000003fa00000c0200000411000003fc00000c0400000",
-      "dimensions": null
+      "dimensions": "41700000417000004170000042b4000042b4000042b40000"
      },
      {
       "frame": 1,
       "time": "0x1.4000000000000p+1",
       "positions": "bf00000000000000800000003f8000003e800000bf000000402000003f000000bf800000408000003f400000bfc0000040b000003f800000c000000040e000003fa00000c0200000410800003fc00000c0400000",
-      "dimensions": null
+      "dimensions": "41700000417000004170000042b4000042b4000042b40000"
      },
      {
       "frame": 2,
       "time": "0x1.4000000000000p+2",
       "positions": "bf80000000000000800000003f0000003e800000bf000000400000003f000000bf800000406000003f400000bfc0000040a000003f800000c000000040d000003fa00000c0200000410000003fc00000c0400000",
-      "dimensions": null
+      "dimensions": "41700000417000004170000042b4000042b4000042b40000"
      },
      {
       "frame": 2,
       "time": "0x1.4000000000000p+2",
       "positions": "bf80000000000000800000003f0000003e800000bf000000400000003f000000bf800000406000003f400000bfc0000040a000003f800000c000000040d000003fa00000c0200000410000003fc00000c0400000",
-      "dimensions": null
+      "dimensions": "41700000417000004170000042b4000042b4000042b40000"
      },
      {
       "frame": 0,
       "time": "0x0.0p+0",
       "positions": "0000000000000000800000003fc000003e800000bf000000404000003f000000bf800000409000003f400000bfc0000040c000003f800000c000000040f000003fa00000c0200000411000003fc00000c0400000",
-      "dimensions": null
+      "dimensions": "41700000417000004170000042b4000042b4000042b40000"
      },
      {
       "frame": 0,
       "time": "0x0.0p+0",
       "positions": "0000000000000000800000003fc000003e800000bf000000404000003f000000bf800000409000003f400000bfc0000040c000003f800000c000000040f000003fa00000c0200000411000003fc00000c0400000",
-      "dimensions": null
+      "dimensions": "41700000417000004170000042b4000042b4000042b40000"
      },
      {
       "frame": 2,
       "time": "0x1.4000000000000p+2",
       "positions": "bf80000000000000800000003f0000003e800000bf000000400000003f000000bf800000406000003f400000bfc0000040a000003f800000c000000040d000003fa00000c0200000410000003fc00000c0400000",
-      "dimensions": null
+      "dimensions": "41700000417000004170000042b4000042b4000042b40000"
      },
      {
       "frame": 1,
       "time": "0x1.4000000000000p+1",
       "positions": "bf00000000000000800000003f8000003e800000bf000000402000003f000000bf800000408000003f400000bfc0000040b000003f800000c000000040e000003fa00000c0200000410800003fc00000c0400000",
-      "dimensions": null
+      "dimensions": "41700000417000004170000042b4000042b4000042b40000"
      },
      {
       "frame": 1,
       "time": "0x1.4000000000000p+1",
       "positions": "bf00000000000000800000003f8000003e800000bf000000402000003f000000bf800000408000003f400000bfc0000040b000003f800000c000000040e000003fa00000c0200000410800003fc00000c0400000",
-      "dimensions": null
+      "dimensions": "41700000417000004170000042b4000042b4000042b40000"
      }
     ]
    }
@@ -1879,13 +2106,13 @@
       "frame": 0,
       "time": "0x0.0p+0",
       "positions": "0000000000000000800000003fc000003e800000bf000000404000003f000000bf800000409000003f400000bfc0000040c000003f800000c000000040f000003fa00000c0200000411000003fc00000c0400000",
-      "dimensions": "41400000415000004160000042a0000042aa000042be0000"
+      "dimensions": null
      },
      {
       "frame": 0,
       "time": "0x0.0p+0",
       "positions": "0000000000000000800000003fc000003e800000bf000000404000003f000000bf800000409000003f400000bfc0000040c000003f800000c000000040f000003fa00000c0200000411000003fc00000c0400000",
-      "dimensions": "41400000415000004160000042a0000042aa000042be0000"
+      "dimensions": null
      }
     ]
    },
@@ -1961,13 +2188,13 @@
       "frame": 0,
       "time": "0x0.0p+0",
       "positions": "0000000000000000800000003fc000003e800000bf000000404000003f000000bf800000409000003f400000bfc0000040c000003f800000c000000040f000003fa00000c0200000411000003fc00000c0400000",
-      "dimensions": "41400000415000004160000042a0000042aa000042be0000"
+      "dimensions": null
      },
      {
       "frame": 0,
       "time": "0x0.0p+0",
       "positions": "0000000000000000800000003fc000003e800000bf000000404000003f000000bf800000409000003f400000bfc0000040c000003f800000c000000040f000003fa00000c0200000411000003fc00000c0400000",
-      "dimensions": "41400000415000004160000042a0000042aa000042be0000"
+      "dimensions": null
      }
     ]
    }
@@ -1975,107 +2202,17 @@
  },
  {
   "file": "models_mismatch.pdb",
-  "dump": "models_mismatch.pdb.topology.json",
-  "readers": [
-   {
-    "dt_given": null,
-    "n_frames": 2,
-    "dt": "0x1.0000000000000p+0",
-    "header": "",
-    "compound": [],
-    "remarks": [],
-    "frames": [
-     {
-      "frame": 0,
-      "time": "0x0.0p+0",
-      "positions": "0000000000000000800000003fc000003e800000bf000000404000003f000000bf800000409000003f400000bfc0000040c000003f800000c000000040f000003fa00000c0200000411000003fc00000c0400000",
-      "dimensions": null
-     },
-     {
-      "frame": 1,
-      "error": {
-       "type": "ValueError",
-       "message": "Inconsistency in file '{out}/files/models_mismatch.pdb': The number of atoms (6) in trajectory frame 1 differs from the number of atoms (7) in the corresponding topology.\nTrajectories with varying numbers of atoms are currently not supported."
-      }
-     }
-    ]
-   },
-   {
-    "dt_given": 2.5,
-    "n_frames": 2,
-    "dt": "0x1.4000000000000p+1",
-    "header": "",
-    "compound": [],
-    "remarks": [],
-    "frames": [
-     {
-      "frame": 0,
-      "time": "0x0.0p+0",
-      "positions": "0000000000000000800000003fc000003e800000bf000000404000003f000000bf800000409000003f400000bfc0000040c000003f800000c000000040f000003fa00000c0200000411000003fc00000c0400000",
-      "dimensions": null
-     },
-     {
-      "frame": 1,
-      "error": {
-       "type": "ValueError",
-       "message": "Inconsistency in file '{out}/files/models_mismatch.pdb': The number of atoms (6) in trajectory frame 1 differs from the number of atoms (7) in the corresponding topology.\nTrajectories with varying numbers of atoms are currently not supported."
-      }
-     }
-    ]
-   }
-  ]
+  "error": {
+   "type": "ValueError",
+   "message": "{out}/files/models_mismatch.pdb: model 2 has 6 atoms, model 1 has 7 (line 11)"
+  }
  },
  {
   "file": "models_more.pdb",
-  "dump": "models_more.pdb.topology.json",
-  "readers": [
-   {
-    "dt_given": null,
-    "n_frames": 2,
-    "dt": "0x1.0000000000000p+0",
-    "header": "",
-    "compound": [],
-    "remarks": [],
-    "frames": [
-     {
-      "frame": 0,
-      "time": "0x0.0p+0",
-      "positions": "0000000000000000800000003fc000003e800000bf000000404000003f000000bf800000409000003f400000bfc0000040c000003f800000c0000000",
-      "dimensions": null
-     },
-     {
-      "frame": 1,
-      "error": {
-       "type": "IndexError",
-       "message": "index 5 is out of bounds for axis 0 with size 5"
-      }
-     }
-    ]
-   },
-   {
-    "dt_given": 2.5,
-    "n_frames": 2,
-    "dt": "0x1.4000000000000p+1",
-    "header": "",
-    "compound": [],
-    "remarks": [],
-    "frames": [
-     {
-      "frame": 0,
-      "time": "0x0.0p+0",
-      "positions": "0000000000000000800000003fc000003e800000bf000000404000003f000000bf800000409000003f400000bfc0000040c000003f800000c0000000",
-      "dimensions": null
-     },
-     {
-      "frame": 1,
-      "error": {
-       "type": "IndexError",
-       "message": "index 5 is out of bounds for axis 0 with size 5"
-      }
-     }
-    ]
-   }
-  ]
+  "error": {
+   "type": "ValueError",
+   "message": "{out}/files/models_more.pdb: model 2 has 6 atoms, model 1 has 5 (line 9)"
+  }
  },
  {
   "file": "cryst_bad.pdb",
@@ -2329,15 +2466,70 @@
   "file": "bad_coordinate.pdb",
   "error": {
    "type": "ValueError",
-   "message": "could not convert string to float: '   1.0x0'"
+   "message": "{out}/files/bad_coordinate.pdb line 3: x coordinate '   1.0x0' is not a number"
   }
  },
  {
   "file": "header_cut_utf8.pdb",
-  "error": {
-   "type": "UnicodeDecodeError",
-   "message": "'utf-8' codec can't decode byte 0xc3 in position 55: unexpected end of data"
-  }
+  "dump": "header_cut_utf8.pdb.topology.json",
+  "readers": [
+   {
+    "dt_given": null,
+    "n_frames": 1,
+    "dt": "0x1.0000000000000p+0",
+    "header": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxé",
+    "compound": [],
+    "remarks": [],
+    "frames": [
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000000000000800000003fc000003e800000bf000000404000003f000000bf800000409000003f400000bfc0000040c000003f800000c000000040f000003fa00000c0200000411000003fc00000c0400000",
+      "dimensions": null
+     },
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000000000000800000003fc000003e800000bf000000404000003f000000bf800000409000003f400000bfc0000040c000003f800000c000000040f000003fa00000c0200000411000003fc00000c0400000",
+      "dimensions": null
+     },
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000000000000800000003fc000003e800000bf000000404000003f000000bf800000409000003f400000bfc0000040c000003f800000c000000040f000003fa00000c0200000411000003fc00000c0400000",
+      "dimensions": null
+     }
+    ]
+   },
+   {
+    "dt_given": 2.5,
+    "n_frames": 1,
+    "dt": "0x1.4000000000000p+1",
+    "header": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxé",
+    "compound": [],
+    "remarks": [],
+    "frames": [
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000000000000800000003fc000003e800000bf000000404000003f000000bf800000409000003f400000bfc0000040c000003f800000c000000040f000003fa00000c0200000411000003fc00000c0400000",
+      "dimensions": null
+     },
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000000000000800000003fc000003e800000bf000000404000003f000000bf800000409000003f400000bfc0000040c000003f800000c000000040f000003fa00000c0200000411000003fc00000c0400000",
+      "dimensions": null
+     },
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000000000000800000003fc000003e800000bf000000404000003f000000bf800000409000003f400000bfc0000040c000003f800000c000000040f000003fa00000c0200000411000003fc00000c0400000",
+      "dimensions": null
+     }
+    ]
+   }
+  ]
  },
  {
   "file": "two_headers.pdb",
@@ -2404,22 +2596,22 @@
  {
   "file": "empty.pdb",
   "error": {
-   "type": "EOFError",
-   "message": "Compressed file ended before the end-of-stream marker was reached"
+   "type": "ValueError",
+   "message": "{out}/files/empty.pdb: file is empty"
   }
  },
  {
   "file": "remarks_only.pdb",
   "error": {
-   "type": "IndexError",
-   "message": "index 0 is out of bounds for axis 0 with size 0"
+   "type": "ValueError",
+   "message": "{out}/files/remarks_only.pdb: no ATOM or HETATM records"
   }
  },
  {
   "file": "endmdl_first.pdb",
   "error": {
-   "type": "IndexError",
-   "message": "index 3 is out of bounds for axis 0 with size 3"
+   "type": "ValueError",
+   "message": "{out}/files/endmdl_first.pdb line 5: ATOM or HETATM record after END (line 4)"
   }
  },
  {
@@ -2486,17 +2678,131 @@
  },
  {
   "file": "invalid_utf8.pdb",
-  "error": {
-   "type": "ValueError",
-   "message": "Failed to construct topology from file {out}/files/invalid_utf8.pdb with parser <class 'MDAnalysis.topology.PDBParser.PDBParser'>.\nError: 'utf-8' codec can't decode byte 0xff in position 169: invalid start byte"
-  }
+  "dump": "invalid_utf8.pdb.topology.json",
+  "readers": [
+   {
+    "dt_given": null,
+    "n_frames": 1,
+    "dt": "0x1.0000000000000p+0",
+    "header": "",
+    "compound": [],
+    "remarks": [
+     "ÿ"
+    ],
+    "frames": [
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000000000000800000003fc000003e800000bf000000404000003f000000bf800000409000003f400000bfc0000040c000003f800000c000000040f000003fa00000c0200000411000003fc00000c0400000",
+      "dimensions": null
+     },
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000000000000800000003fc000003e800000bf000000404000003f000000bf800000409000003f400000bfc0000040c000003f800000c000000040f000003fa00000c0200000411000003fc00000c0400000",
+      "dimensions": null
+     },
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000000000000800000003fc000003e800000bf000000404000003f000000bf800000409000003f400000bfc0000040c000003f800000c000000040f000003fa00000c0200000411000003fc00000c0400000",
+      "dimensions": null
+     }
+    ]
+   },
+   {
+    "dt_given": 2.5,
+    "n_frames": 1,
+    "dt": "0x1.4000000000000p+1",
+    "header": "",
+    "compound": [],
+    "remarks": [
+     "ÿ"
+    ],
+    "frames": [
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000000000000800000003fc000003e800000bf000000404000003f000000bf800000409000003f400000bfc0000040c000003f800000c000000040f000003fa00000c0200000411000003fc00000c0400000",
+      "dimensions": null
+     },
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000000000000800000003fc000003e800000bf000000404000003f000000bf800000409000003f400000bfc0000040c000003f800000c000000040f000003fa00000c0200000411000003fc00000c0400000",
+      "dimensions": null
+     },
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000000000000800000003fc000003e800000bf000000404000003f000000bf800000409000003f400000bfc0000040c000003f800000c000000040f000003fa00000c0200000411000003fc00000c0400000",
+      "dimensions": null
+     }
+    ]
+   }
+  ]
  },
  {
   "file": "latin1_name.pdb",
-  "error": {
-   "type": "ValueError",
-   "message": "Failed to construct topology from file {out}/files/latin1_name.pdb with parser <class 'MDAnalysis.topology.PDBParser.PDBParser'>.\nError: 'utf-8' codec can't decode byte 0xe9 in position 95: invalid continuation byte"
-  }
+  "dump": "latin1_name.pdb.topology.json",
+  "readers": [
+   {
+    "dt_given": null,
+    "n_frames": 1,
+    "dt": "0x1.0000000000000p+0",
+    "header": "",
+    "compound": [],
+    "remarks": [],
+    "frames": [
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000000000000800000003fc000003e800000bf000000404000003f000000bf800000409000003f400000bfc0000040c000003f800000c000000040f000003fa00000c0200000411000003fc00000c0400000",
+      "dimensions": null
+     },
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000000000000800000003fc000003e800000bf000000404000003f000000bf800000409000003f400000bfc0000040c000003f800000c000000040f000003fa00000c0200000411000003fc00000c0400000",
+      "dimensions": null
+     },
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000000000000800000003fc000003e800000bf000000404000003f000000bf800000409000003f400000bfc0000040c000003f800000c000000040f000003fa00000c0200000411000003fc00000c0400000",
+      "dimensions": null
+     }
+    ]
+   },
+   {
+    "dt_given": 2.5,
+    "n_frames": 1,
+    "dt": "0x1.4000000000000p+1",
+    "header": "",
+    "compound": [],
+    "remarks": [],
+    "frames": [
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000000000000800000003fc000003e800000bf000000404000003f000000bf800000409000003f400000bfc0000040c000003f800000c000000040f000003fa00000c0200000411000003fc00000c0400000",
+      "dimensions": null
+     },
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000000000000800000003fc000003e800000bf000000404000003f000000bf800000409000003f400000bfc0000040c000003f800000c000000040f000003fa00000c0200000411000003fc00000c0400000",
+      "dimensions": null
+     },
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000000000000800000003fc000003e800000bf000000404000003f000000bf800000409000003f400000bfc0000040c000003f800000c000000040f000003fa00000c0200000411000003fc00000c0400000",
+      "dimensions": null
+     }
+    ]
+   }
+  ]
  },
  {
   "file": "seven.gro",
@@ -2750,7 +3056,7 @@
   "file": "bad_box.gro",
   "error": {
    "type": "ValueError",
-   "message": "GRO unitcell has neither 3 nor 9 entries."
+   "message": "{out}/files/bad_box.gro line 10: GRO box line '   3.0   4.0' has neither 3 nor 9 values"
   }
  },
  {
@@ -3080,23 +3386,343 @@
  {
   "file": "too_few.gro",
   "error": {
-   "type": "IndexError",
-   "message": "index 0 is out of bounds for axis 0 with size 0"
+   "type": "ValueError",
+   "message": "{out}/files/too_few.gro: the header (line 2) says 7 atoms but the file has 4 atom lines"
   }
  },
  {
   "file": "no_box.gro",
   "error": {
-   "type": "UnboundLocalError",
-   "message": "cannot access local variable 'unitcell' where it is not associated with a value"
+   "type": "ValueError",
+   "message": "{out}/files/no_box.gro: missing box line after atom 7 (line 9)"
   }
  },
  {
   "file": "bad_count.gro",
   "error": {
    "type": "ValueError",
-   "message": "Failed to construct topology from file {out}/files/bad_count.gro with parser <class 'MDAnalysis.topology.GROParser.GROParser'>.\nError: invalid literal for int() with base 10: ' seven\\n'"
+   "message": "{out}/files/bad_count.gro line 2: atom count ' seven' is not an integer"
   }
+ },
+ {
+  "file": "frames.gro",
+  "dump": "frames.gro.topology.json",
+  "readers": [
+   {
+    "dt_given": null,
+    "n_frames": 3,
+    "dt": "0x1.0000000000000p+0",
+    "header": null,
+    "compound": null,
+    "remarks": null,
+    "frames": [
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000040000000404000003f800000400000004020000040000000400000004000000040400000400000003fc0000040800000400000003f80000040a00000400000003f00000040c000004000000080000000",
+      "dimensions": "41f00000422000004248000042b4000042b4000042b40000"
+     },
+     {
+      "frame": 1,
+      "time": "0x1.0000000000000p+0",
+      "positions": "3dcccccc40000000404000003f8ccccd400000004020000040066666400000004000000040466666400000003fc0000040833333400000003f80000040a33333400000003f00000040c333344000000080000000",
+      "dimensions": "41f80000422000004248000042b4000042b4000042b40000"
+     },
+     {
+      "frame": 2,
+      "time": "0x1.0000000000000p+1",
+      "positions": "3e4ccccc40000000404000003f9999994000000040200000400ccccd4000000040000000404ccccc400000003fc0000040866666400000003f80000040a66666400000003f00000040c666664000000080000000",
+      "dimensions": "42000000422000004248000042b4000042b4000042b40000"
+     },
+     {
+      "frame": 2,
+      "time": "0x1.0000000000000p+1",
+      "positions": "3e4ccccc40000000404000003f9999994000000040200000400ccccd4000000040000000404ccccc400000003fc0000040866666400000003f80000040a66666400000003f00000040c666664000000080000000",
+      "dimensions": "42000000422000004248000042b4000042b4000042b40000"
+     },
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000040000000404000003f800000400000004020000040000000400000004000000040400000400000003fc0000040800000400000003f80000040a00000400000003f00000040c000004000000080000000",
+      "dimensions": "41f00000422000004248000042b4000042b4000042b40000"
+     },
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000040000000404000003f800000400000004020000040000000400000004000000040400000400000003fc0000040800000400000003f80000040a00000400000003f00000040c000004000000080000000",
+      "dimensions": "41f00000422000004248000042b4000042b4000042b40000"
+     },
+     {
+      "frame": 2,
+      "time": "0x1.0000000000000p+1",
+      "positions": "3e4ccccc40000000404000003f9999994000000040200000400ccccd4000000040000000404ccccc400000003fc0000040866666400000003f80000040a66666400000003f00000040c666664000000080000000",
+      "dimensions": "42000000422000004248000042b4000042b4000042b40000"
+     },
+     {
+      "frame": 1,
+      "time": "0x1.0000000000000p+0",
+      "positions": "3dcccccc40000000404000003f8ccccd400000004020000040066666400000004000000040466666400000003fc0000040833333400000003f80000040a33333400000003f00000040c333344000000080000000",
+      "dimensions": "41f80000422000004248000042b4000042b4000042b40000"
+     },
+     {
+      "frame": 1,
+      "time": "0x1.0000000000000p+0",
+      "positions": "3dcccccc40000000404000003f8ccccd400000004020000040066666400000004000000040466666400000003fc0000040833333400000003f80000040a33333400000003f00000040c333344000000080000000",
+      "dimensions": "41f80000422000004248000042b4000042b4000042b40000"
+     }
+    ]
+   },
+   {
+    "dt_given": 2.5,
+    "n_frames": 3,
+    "dt": "0x1.4000000000000p+1",
+    "header": null,
+    "compound": null,
+    "remarks": null,
+    "frames": [
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000040000000404000003f800000400000004020000040000000400000004000000040400000400000003fc0000040800000400000003f80000040a00000400000003f00000040c000004000000080000000",
+      "dimensions": "41f00000422000004248000042b4000042b4000042b40000"
+     },
+     {
+      "frame": 1,
+      "time": "0x1.4000000000000p+1",
+      "positions": "3dcccccc40000000404000003f8ccccd400000004020000040066666400000004000000040466666400000003fc0000040833333400000003f80000040a33333400000003f00000040c333344000000080000000",
+      "dimensions": "41f80000422000004248000042b4000042b4000042b40000"
+     },
+     {
+      "frame": 2,
+      "time": "0x1.4000000000000p+2",
+      "positions": "3e4ccccc40000000404000003f9999994000000040200000400ccccd4000000040000000404ccccc400000003fc0000040866666400000003f80000040a66666400000003f00000040c666664000000080000000",
+      "dimensions": "42000000422000004248000042b4000042b4000042b40000"
+     },
+     {
+      "frame": 2,
+      "time": "0x1.4000000000000p+2",
+      "positions": "3e4ccccc40000000404000003f9999994000000040200000400ccccd4000000040000000404ccccc400000003fc0000040866666400000003f80000040a66666400000003f00000040c666664000000080000000",
+      "dimensions": "42000000422000004248000042b4000042b4000042b40000"
+     },
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000040000000404000003f800000400000004020000040000000400000004000000040400000400000003fc0000040800000400000003f80000040a00000400000003f00000040c000004000000080000000",
+      "dimensions": "41f00000422000004248000042b4000042b4000042b40000"
+     },
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000040000000404000003f800000400000004020000040000000400000004000000040400000400000003fc0000040800000400000003f80000040a00000400000003f00000040c000004000000080000000",
+      "dimensions": "41f00000422000004248000042b4000042b4000042b40000"
+     },
+     {
+      "frame": 2,
+      "time": "0x1.4000000000000p+2",
+      "positions": "3e4ccccc40000000404000003f9999994000000040200000400ccccd4000000040000000404ccccc400000003fc0000040866666400000003f80000040a66666400000003f00000040c666664000000080000000",
+      "dimensions": "42000000422000004248000042b4000042b4000042b40000"
+     },
+     {
+      "frame": 1,
+      "time": "0x1.4000000000000p+1",
+      "positions": "3dcccccc40000000404000003f8ccccd400000004020000040066666400000004000000040466666400000003fc0000040833333400000003f80000040a33333400000003f00000040c333344000000080000000",
+      "dimensions": "41f80000422000004248000042b4000042b4000042b40000"
+     },
+     {
+      "frame": 1,
+      "time": "0x1.4000000000000p+1",
+      "positions": "3dcccccc40000000404000003f8ccccd400000004020000040066666400000004000000040466666400000003fc0000040833333400000003f80000040a33333400000003f00000040c333344000000080000000",
+      "dimensions": "41f80000422000004248000042b4000042b4000042b40000"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "file": "wide.gro",
+  "dump": "wide.gro.topology.json",
+  "readers": [
+   {
+    "dt_given": null,
+    "n_frames": 1,
+    "dt": "0x1.0000000000000p+0",
+    "header": null,
+    "compound": null,
+    "remarks": null,
+    "frames": [
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "42fa0000c14800000000000043070000c148000041c8000043110000c148000042480000431b0000c14800004296000043250000c148000042c80000432f0000c148000042fa000043390000c148000043160000",
+      "dimensions": "41f00000422000004248000042b4000042b4000042b40000"
+     },
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "42fa0000c14800000000000043070000c148000041c8000043110000c148000042480000431b0000c14800004296000043250000c148000042c80000432f0000c148000042fa000043390000c148000043160000",
+      "dimensions": "41f00000422000004248000042b4000042b4000042b40000"
+     },
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "42fa0000c14800000000000043070000c148000041c8000043110000c148000042480000431b0000c14800004296000043250000c148000042c80000432f0000c148000042fa000043390000c148000043160000",
+      "dimensions": "41f00000422000004248000042b4000042b4000042b40000"
+     }
+    ]
+   },
+   {
+    "dt_given": 2.5,
+    "n_frames": 1,
+    "dt": "0x1.4000000000000p+1",
+    "header": null,
+    "compound": null,
+    "remarks": null,
+    "frames": [
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "42fa0000c14800000000000043070000c148000041c8000043110000c148000042480000431b0000c14800004296000043250000c148000042c80000432f0000c148000042fa000043390000c148000043160000",
+      "dimensions": "41f00000422000004248000042b4000042b4000042b40000"
+     },
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "42fa0000c14800000000000043070000c148000041c8000043110000c148000042480000431b0000c14800004296000043250000c148000042c80000432f0000c148000042fa000043390000c148000043160000",
+      "dimensions": "41f00000422000004248000042b4000042b4000042b40000"
+     },
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "42fa0000c14800000000000043070000c148000041c8000043110000c148000042480000431b0000c14800004296000043250000c148000042c80000432f0000c148000042fa000043390000c148000043160000",
+      "dimensions": "41f00000422000004248000042b4000042b4000042b40000"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "file": "neg_box.gro",
+  "dump": "neg_box.gro.topology.json",
+  "readers": [
+   {
+    "dt_given": null,
+    "n_frames": 1,
+    "dt": "0x1.0000000000000p+0",
+    "header": null,
+    "compound": null,
+    "remarks": null,
+    "frames": [
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000040000000404000003f800000400000004020000040000000400000004000000040400000400000003fc0000040800000400000003f80000040a00000400000003f00000040c000004000000080000000",
+      "dimensions": "c47a0000c4fa0000c53b800042b4000042b4000042b40000"
+     },
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000040000000404000003f800000400000004020000040000000400000004000000040400000400000003fc0000040800000400000003f80000040a00000400000003f00000040c000004000000080000000",
+      "dimensions": "c47a0000c4fa0000c53b800042b4000042b4000042b40000"
+     },
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000040000000404000003f800000400000004020000040000000400000004000000040400000400000003fc0000040800000400000003f80000040a00000400000003f00000040c000004000000080000000",
+      "dimensions": "c47a0000c4fa0000c53b800042b4000042b4000042b40000"
+     }
+    ]
+   },
+   {
+    "dt_given": 2.5,
+    "n_frames": 1,
+    "dt": "0x1.4000000000000p+1",
+    "header": null,
+    "compound": null,
+    "remarks": null,
+    "frames": [
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000040000000404000003f800000400000004020000040000000400000004000000040400000400000003fc0000040800000400000003f80000040a00000400000003f00000040c000004000000080000000",
+      "dimensions": "c47a0000c4fa0000c53b800042b4000042b4000042b40000"
+     },
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000040000000404000003f800000400000004020000040000000400000004000000040400000400000003fc0000040800000400000003f80000040a00000400000003f00000040c000004000000080000000",
+      "dimensions": "c47a0000c4fa0000c53b800042b4000042b4000042b40000"
+     },
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000040000000404000003f800000400000004020000040000000400000004000000040400000400000003fc0000040800000400000003f80000040a00000400000003f00000040c000004000000080000000",
+      "dimensions": "c47a0000c4fa0000c53b800042b4000042b4000042b40000"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "file": "bad_cell.gro",
+  "dump": "bad_cell.gro.topology.json",
+  "readers": [
+   {
+    "dt_given": null,
+    "n_frames": 1,
+    "dt": "0x1.0000000000000p+0",
+    "header": null,
+    "compound": null,
+    "remarks": null,
+    "frames": [
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000040000000404000003f800000400000004020000040000000400000004000000040400000400000003fc0000040800000400000003f80000040a00000400000003f00000040c000004000000080000000",
+      "dimensions": null
+     },
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000040000000404000003f800000400000004020000040000000400000004000000040400000400000003fc0000040800000400000003f80000040a00000400000003f00000040c000004000000080000000",
+      "dimensions": null
+     },
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000040000000404000003f800000400000004020000040000000400000004000000040400000400000003fc0000040800000400000003f80000040a00000400000003f00000040c000004000000080000000",
+      "dimensions": null
+     }
+    ]
+   },
+   {
+    "dt_given": 2.5,
+    "n_frames": 1,
+    "dt": "0x1.4000000000000p+1",
+    "header": null,
+    "compound": null,
+    "remarks": null,
+    "frames": [
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000040000000404000003f800000400000004020000040000000400000004000000040400000400000003fc0000040800000400000003f80000040a00000400000003f00000040c000004000000080000000",
+      "dimensions": null
+     },
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000040000000404000003f800000400000004020000040000000400000004000000040400000400000003fc0000040800000400000003f80000040a00000400000003f00000040c000004000000080000000",
+      "dimensions": null
+     },
+     {
+      "frame": 0,
+      "time": "0x0.0p+0",
+      "positions": "0000000040000000404000003f800000400000004020000040000000400000004000000040400000400000003fc0000040800000400000003f80000040a00000400000003f00000040c000004000000080000000",
+      "dimensions": null
+     }
+    ]
+   }
+  ]
  },
  {
   "file": "ions.gro",

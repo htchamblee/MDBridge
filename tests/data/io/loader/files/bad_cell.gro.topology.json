@@ -1,0 +1,129 @@
+{
+ "file": "bad_cell.gro",
+ "mdanalysis": "2.11.0",
+ "atoms": {
+  "names": [
+   "OW",
+   "HW1",
+   "HW2",
+   "OW",
+   "HW1",
+   "HW2",
+   "OW"
+  ],
+  "types": [
+   "O",
+   "H",
+   "H",
+   "O",
+   "H",
+   "H",
+   "O"
+  ],
+  "resindex": [
+   0,
+   0,
+   0,
+   1,
+   1,
+   1,
+   2
+  ],
+  "elements": null,
+  "chainIDs": null,
+  "masses": [
+   15.999,
+   1.008,
+   1.008,
+   15.999,
+   1.008,
+   1.008,
+   15.999
+  ],
+  "charges": null,
+  "ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "altLocs": null,
+  "record_types": null,
+  "occupancies": null,
+  "tempfactors": null,
+  "formalcharges": null
+ },
+ "residues": {
+  "resids": [
+   1,
+   2,
+   3
+  ],
+  "resnums": [
+   1,
+   2,
+   3
+  ],
+  "resnames": [
+   "SOL",
+   "SOL",
+   "SOL"
+  ],
+  "icodes": null,
+  "segindex": [
+   0,
+   0,
+   0
+  ]
+ },
+ "segments": {
+  "segids": [
+   "SYSTEM"
+  ]
+ },
+ "bonds": null,
+ "frame": {
+  "positions": [
+   [
+    0.0,
+    2.0,
+    3.0
+   ],
+   [
+    1.0,
+    2.0,
+    2.5
+   ],
+   [
+    2.0,
+    2.0,
+    2.0
+   ],
+   [
+    3.0,
+    2.0,
+    1.5
+   ],
+   [
+    4.0,
+    2.0,
+    1.0
+   ],
+   [
+    5.0,
+    2.0,
+    0.5
+   ],
+   [
+    6.0,
+    2.0,
+    -0.0
+   ]
+  ],
+  "dimensions": null,
+  "time": 0.0
+ }
+}

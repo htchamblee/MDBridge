@@ -638,6 +638,10 @@ std::vector<std::string> validate(const Project& project) {
     if (in.step < 1) {
         problems.push_back("Frame step must be >= 1.");
     }
+    // LD-04 (docs/DIFFERENCES.md): MDATK lets NaN and negative values through to the readers
+    if (in.dt_ps && !(*in.dt_ps >= 0.0 && std::isfinite(*in.dt_ps))) {
+        problems.push_back("inputs.dt_ps must be positive (0: the trajectory's own time step).");
+    }
     const std::vector<std::string> names = groupNames(project);
     std::vector<std::string> sorted = names;
     std::sort(sorted.begin(), sorted.end());

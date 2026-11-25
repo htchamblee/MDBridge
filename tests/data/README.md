@@ -337,6 +337,10 @@ python3 -I -B tests/parity/make_pdb_cases.py /tmp/mdatk tests/data/io/pdb       
 python3 -I tools/gen_pdb_tables.py                       # src/io/pdb_tables.inc (Python 3.13)
 ```
 
+MDBridge's improvements of the PDB / GRO readers and the loader (docs/DIFFERENCES.md) are applied
+to the loader, export, pipeline and command-line expectations by `tests/parity/improvements_readers_pdb.py`
+(MDAnalysis runs on equivalent rewrites of the files; MDBridge's own error and warning texts).
+
 `src/io/pdb_tables.inc` holds data the PDB code needs: Python's `str.upper()` mapping and the
 characters `str.isalpha()` excludes from `\w` (Unicode 15.1). The element, mass and atom-name
 tables of the guessers, PDBParser and the PDB writer are MDBridge's independent tables

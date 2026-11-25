@@ -588,6 +588,23 @@ TEST(ProjectModel, ValidateFlagsProblems) {
     EXPECT_TRUE(any(problems, "glow"));
 }
 
+// LD-04 (docs/DIFFERENCES.md): a NaN, infinite or negative time step is a problem; 0 means "the
+// trajectory's own"
+TEST(ProjectModel, ValidateTimeStep) {
+    const std::string problem = "inputs.dt_ps must be positive (0: the trajectory's own time step).";
+    for (const double dt : {std::nan(""), -1.0, HUGE_VAL}) {
+        Project p;
+        p.inputs.dt_ps = dt;
+        const std::vector<std::string> problems = validate(p);
+        EXPECT_NE(std::find(problems.begin(), problems.end(), problem), problems.end()) << dt;
+    }
+    for (const double dt : {0.0, 2.5}) {
+        Project p;
+        p.inputs.dt_ps = dt;
+        EXPECT_EQ(validate(p).size(), 2u) << dt;  // topology and trajectory missing only
+    }
+}
+
 // test_projectfile.py::test_optional_values_and_round_trip, without the file
 TEST(ProjectModel, OptionalValuesRoundTrip) {
     Project p;

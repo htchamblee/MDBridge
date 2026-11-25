@@ -94,6 +94,104 @@ test_structure.cpp, test_energy.cpp (tolerances).
 - **RMSD:** numpy's RuntimeWarnings for non-finite or empty input are not reproduced (MDATK ignores
   them).
 
+### PDB, GRO and the loader (src/io/pdb_topology.cpp, loader.cpp, trajectory.cpp)
+
+Expected data: tests/parity/improvements_readers_pdb.py, called by make_loader_cases.py,
+make_export_cases.py, make_pipeline_cases.py and cli_parity.py. MDAnalysis runs on *equivalent* rewrites
+of the files (a rewrite MDAnalysis reads the way MDBridge reads the original), and the errors MDBridge
+words itself replace MDAnalysis'. Errors marked RM follow the reader-message rule
+(docs/IMPROVEMENTS.md): they name the file and the line, say what was expected, are ValueErrors and are
+never rewrapped in MDAnalysis' "Failed to construct topology ..." / ChainReader texts.
+
+- **Reader warnings (LD-03).** MDATK loads with every Python warning ignored, so defaulted cells,
+  elements, masses, serials and skipped records went unnoticed. MDBridge's readers report them through
+  `io::readerWarning()` (src/io/include/mdbridge/io/warnings.hpp): one warning per kind and file, with
+  a count and the first line. `loadSystem()` collects them in `core::System::warnings`
+  (`readTopologyFile()`: `TopologyFile::warnings`); `info` prints each as `WARNING: <message>` on
+  stderr, `analyze` (Pipeline::system()) and `export-pdb` log them as `WARNING: <message>` (hidden by
+  `-q`, like their other log lines); a warning issued outside a load goes to `core::logWarning()`.
+  *Tested:* test_loader.cpp (ReaderWarnings, SystemWarnings, WarningScopes); cli_cases.json (`info_pdb`,
+  `export_pdb_trajectory`, the `inputs.dt_ps` cases).
+- **Hybrid-36 CONECT serials (RD-B01).** CONECT serials are decoded like ATOM serials (`A0000` =
+  100000), so files with more than 99,999 atoms keep their bonds (MDAnalysis: `invalid literal for
+  int() ...`). *Tested:* io/loader/files/hy36.pdb.
+- **Malformed CONECT records (RD-B09, RD-B11).** A record MDAnalysis calls corrupt (its length
+  rule), or with a field that is no serial, is skipped alone with a warning (MDAnalysis drops every
+  CONECT bond of the file, or fails); a blank partner field is no partner. The per-pair "CONECT record
+  to TER entry" and the single-entry warnings become one counted warning each. *Tested:*
+  conect_one_bad.pdb, conect_bad_int.pdb, conect_variants.pdb.
+- **Bad hybrid-36 atom serial (RD-B02), RM:** `<file> line 1: invalid hybrid-36 atom serial 'Aa000'`
+  (MDAnalysis: KeyError `'a'` or UnboundLocalError). *Tested:* hy36_bad.pdb.
+- **One atom-line rule (RD-B04).** Both passes take a line as an atom when columns 1-6 are `ATOM  ` or
+  `HETATM` (MDAnalysis' topology pass strips the line first and tests a prefix, its coordinate pass does
+  not, so an indented line gave `Inconsistency in file ...`). Other lines that start with ATOM/HETATM
+  (indented, `ATOMS`, `ATOM 123456`) are ignored with one warning. *Tested:* leading_space.pdb.
+- **Model and record errors (RD-B05), RM:** `<file>: no ATOM or HETATM records`, `<file> line 5: ATOM
+  or HETATM record after END (line 4)`, `<file>: model 2 has 6 atoms, model 1 has 7 (line 11)`
+  (MDAnalysis: numpy IndexErrors, or the Inconsistency error when the model is read). Every model's
+  atom count is checked when the file is opened, so a file with inconsistent models fails at load
+  instead of in the middle of an analysis. *Tested:* remarks_only.pdb, endmdl_first.pdb,
+  models_mismatch.pdb, models_more.pdb.
+- **Empty files (RD-B06), RM:** `<file>: file is empty` for PDB and GRO (MDAnalysis: `Compressed file
+  ended before the end-of-stream marker was reached`). *Tested:* empty.pdb.
+- **Text that is not UTF-8 (RD-B07).** Bytes that are not part of valid UTF-8 are read as Latin-1, with
+  one warning naming the first line (MDAnalysis rejects the file). HEADER / COMPND / REMARK texts are
+  cut by characters of the decoded line (MDAnalysis cuts bytes, so a cut through a character failed).
+  *Tested:* latin1_name.pdb, invalid_utf8.pdb, header_cut_utf8.pdb.
+- **Bad coordinates (RD-B08), RM:** `<file> line 3: x coordinate '   1.0x0' is not a number` (with
+  `(model k)` in multi-model files; GRO likewise with `(frame k)`). *Tested:* bad_coordinate.pdb.
+- **Cells do not depend on the read order (RD-B03).** Every model's cell is fixed when the file is
+  opened: its last CRYST1, else the cell of the nearest earlier model in the file (MDAnalysis: of the
+  model read before, so random access gave other cells). A CRYST1 before the first MODEL counts as
+  earlier, so the common layout "one CRYST1, then MODEL records" (cpptraj) keeps its box (MDAnalysis
+  never reads it). CRYST1 placeholder / unreadable-record warnings come once, with the line.
+  *Tested:* models_some_cryst.pdb and models_one_cryst.pdb (in and out of order), export cases.
+- **Partial element column (RD-B10).** Atoms whose columns 77-78 are blank, in a file where others are
+  filled, get type, element and mass guessed from the name (with the residue rule), as in a file without
+  the column (MDAnalysis: type `""`, mass 0, silently). One warning counts the atoms whose mass stays
+  unknown (types that are no element). *Tested:* elements.pdb, segids.pdb, conect_duplicate_serial.pdb
+  (dumps and export cases).
+- **Per-atom warnings (RD-B11)** (unknown elements, missing resids, made-up serials) are one counted
+  warning each.
+- **No time information (RD-B13).** PDB and multi-frame GRO files keep 1 ps between frames, and warn
+  that the file has no time information (unless inputs.dt_ps is given).
+- **GRO field width (RD-G01).** The width is the distance between the decimal points of y and z, and the
+  x field's point must agree (GROMACS' own rule); otherwise `<file> line 3: cannot determine the
+  coordinate field width ...` (MDAnalysis takes the first point from column 26 and read 11-character
+  fields as 1-character ones, silently). *Tested:* wide.gro.
+- **GRO structure errors (RD-G02, RD-G03, RD-G04), RM:** `<file>: missing box line after atom 7 (line
+  9)`, `<file>: the header (line 2) says 7 atoms but the file has 4 atom lines`, `<file>: no atoms (the
+  atom count on line 2 is 0)`,
+  `<file> line 2: atom count ' seven' is not an integer` (MDAnalysis: UnboundLocalError, IndexError,
+  `invalid literal for int()`). *Tested:* no_box.gro, too_few.gro, bad_count.gro.
+- **GRO box line (RD-G05).** When splitting on blanks fails, the values are read as 10-character fields
+  (GROMACS' %10.5f, which run together beyond 9999 nm), else as run-together numbers with five decimals,
+  **signs kept** (MDAnalysis' fallback pattern dropped them); otherwise `<file> line 10: GRO box line
+  '   3.0   4.0' has neither 3 nor 9 values`. *Tested:* neg_box.gro, packed_box.gro, bad_box.gro.
+- **GRO boxes that are no cell (RD-G06)** warn: `<file>: 1 box is zero; no periodic box (line 10)`,
+  `... box has vectors that do not form a cell ...`. *Tested:* zero_box.gro, bad_cell.gro.
+- **Multi-frame GRO (RD-G07).** Every frame of a GRO file is read (GROMACS trajectories are such frames
+  one after another; MDAnalysis reads the first only). A later frame with another atom count is an
+  error; text after the last frame that is no complete frame is ignored with a warning. *Tested:*
+  frames.gro.
+- **Mixed chains (LD-01).** Each trajectory gets the format of MDATK's extension table for its own
+  extension (MDATK applied the table only when all files shared one extension: `.rst7` + `.inpcrd`
+  failed, `.crd` became CHARMM CRD). *Tested:* loader_cases.json (time.rst7 + time.inpcrd).
+- **GROMACS .top (LD-02).** `.top` stays parm7 (MDATK's mapping), but a file whose first line is not
+  `%VE` gives `<file>: not an Amber parm7 topology (GROMACS .top files are not supported)`. *Tested:*
+  test_loader.cpp GromacsTopFile.
+- **Time step validation (LD-04).** validate() reports `inputs.dt_ps must be positive (0: the
+  trajectory's own time step).` for NaN, infinite and negative values, and loadSystem() rejects them
+  (MDATK passed them on: NaN or decreasing times). *Tested:* test_project_model.cpp ValidateTimeStep,
+  test_loader.cpp InvalidTimeStep, loader_cases.json.
+- **Given vs stored time step (LD-05).** When inputs.dt_ps is given for a file that keeps its own times
+  (NetCDF with a time variable) and the steps differ: `inputs.dt_ps (2.5 ps) differs from the time step
+  in <file> (10.0 ps); the file's times are used`. *Tested:* SystemWarnings, pipeline_cases.json,
+  cli_cases.json.
+- **No coordinates (LD-06):** `<file> has no coordinates; give a trajectory with --traj` (MDATK:
+  AttributeError `No trajectory loaded into Universe`, a traceback in `info`). *Tested:*
+  loader_cases.json, cli_cases.json `info_parm7_alone`.
+
 ## Amber, DCD and GROMACS readers (docs/IMPROVEMENTS.md 2.1, 2.4-2.6)
 
 Expected data: the generators record MDAnalysis; tests/parity/improvements_readers_amber.py turns

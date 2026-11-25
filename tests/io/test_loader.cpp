@@ -16,7 +16,9 @@
 
 #include "mdbridge/core/errors.hpp"
 #include "mdbridge/core/json.hpp"
+#include "mdbridge/core/log.hpp"
 #include "mdbridge/io/loader.hpp"
+#include "mdbridge/io/warnings.hpp"
 #include "topology_dump.hpp"
 
 using namespace mdbridge;
@@ -324,12 +326,17 @@ TEST(Loader, LoadSystemAndSummary) {
     }
 }
 
-TEST(Loader, NaNTimeStep) {
-    // dt_ps = nan is truthy in Python: the readers get it
-    const core::System system =
-        io::loadSystem(kData / "topology" / "demo_dry.parm7",
-                       {kData / "io" / "trajectories" / "demo_dry.nc"}, std::nan(""));
-    EXPECT_EQ(system.trajectory->frameCount(), 24);
+TEST(Loader, InvalidTimeStep) {
+    // LD-04: MDATK passes NaN (truthy) and negative time steps to the readers; MDBridge rejects them
+    for (const double dt : {std::nan(""), -2.0, HUGE_VAL}) {
+        EXPECT_THROW(io::loadSystem(kData / "topology" / "demo_dry.parm7",
+                                    {kData / "io" / "trajectories" / "demo_dry.nc"}, dt),
+                     core::ValueError)
+            << dt;
+    }
+    const core::System system = io::loadSystem(kData / "topology" / "demo_dry.parm7",
+                                               {kData / "io" / "trajectories" / "demo_dry.nc"}, 0.0);
+    EXPECT_EQ(system.trajectory->dt(), 10.0);
 }
 
 TEST(Loader, FrameIndices) {
@@ -395,4 +402,129 @@ TEST(Loader, MissingFiles) {
         EXPECT_EQ(e.path1(), kData / "no-such.parm7");
     }
     EXPECT_THROW(io::loadSystem("", {}), core::ValueError);
+}
+
+// ---- MDBridge's improvements (docs/DIFFERENCES.md "Readers and topologies") ----------------------
+
+namespace {
+
+std::string fileText(const std::string& name) {
+    return withPaths("{out}/files/" + name);
+}
+
+std::vector<std::string> warningsOf(const std::string& name, std::optional<double> dt = std::nullopt) {
+    return io::readTopologyFile(fs::path(fileText(name)), "", dt).warnings;
+}
+
+using Lines = std::vector<std::string>;
+
+}  // namespace
+
+TEST(Loader, ReaderWarnings) {
+    // LD-03: what the readers default, skip or guess is reported, once per kind, with a count and
+    // the first line (RD-B04, RD-B07, RD-B09, RD-B10, RD-B11, RD-B13, RD-G06)
+    const std::string e = fileText("elements.pdb");
+    EXPECT_EQ(warningsOf("elements.pdb"),
+              (Lines{e + ": 2 atoms have no element symbol in columns 77-78; guessed from the atom name (first: "
+                         "line 6)",
+                     e + ": 3 atoms have an unknown element symbol in columns 77-78; the element is left blank "
+                         "(first: 'XX' on line 4)",
+                     e + ": 3 atoms have no known element mass and get mass 0 (first: 'X1' on line 4)"}));
+    EXPECT_EQ(warningsOf("seven.pdb"), Lines{});
+    EXPECT_EQ(warningsOf("conect_bad_int.pdb"),
+              Lines{fileText("conect_bad_int.pdb") + ": 1 CONECT record is malformed and skipped (line 6)"});
+    EXPECT_EQ(warningsOf("conect_one_bad.pdb"),
+              Lines{fileText("conect_one_bad.pdb") + ": 1 CONECT record is malformed and skipped (line 7)"});
+    const std::string c = fileText("conect_variants.pdb");
+    EXPECT_EQ(warningsOf("conect_variants.pdb"),
+              (Lines{c + ": 1 CONECT record names no bonded atom and is ignored (line 10)",
+                     c + ": 1 CONECT bond names a serial of no atom (TER records, missing atoms) and is left out "
+                         "(line 9)"}));
+    EXPECT_EQ(warningsOf("leading_space.pdb"),
+              Lines{fileText("leading_space.pdb") +
+                    ": 1 line starts with ATOM or HETATM but not in columns 1-6 ('ATOM  ' or 'HETATM'); ignored "
+                    "(line 4)"});
+    EXPECT_EQ(warningsOf("latin1_name.pdb"),
+              Lines{fileText("latin1_name.pdb") +
+                    " line 2: the text is not valid UTF-8; bytes that are not UTF-8 are read as Latin-1"});
+    const std::string r = fileText("resid_wrap.pdb");
+    EXPECT_EQ(warningsOf("resid_wrap.pdb"),
+              (Lines{r + ": 2 atoms have no residue number in columns 23-26; resid 1 is used (first: line 7)",
+                     r + ": no element symbols in columns 77-78; atom types and masses are guessed from the atom "
+                         "names"}));
+    EXPECT_EQ(warningsOf("serial_stars.pdb").front(),
+              fileText("serial_stars.pdb") +
+                  ": 2 atom serials are not numbers; serials from 100000 are used and CONECT records are not read "
+                  "(first: line 1)");
+    EXPECT_EQ(warningsOf("text_charges.pdb"),
+              Lines{fileText("text_charges.pdb") +
+                    " line 3: formal charge 'ab' in columns 79-80 is not a charge (such as '2-'); no formal charges "
+                    "are read"});
+    const std::string m = fileText("models_some_cryst.pdb");
+    const std::string noTimes =
+        ": the file has no time information; frames are taken to be 1 ps apart (set inputs.dt_ps for the real "
+        "time step)";
+    EXPECT_EQ(warningsOf("models_some_cryst.pdb"),
+              (Lines{m + ": 1 CRYST1 record is the 1 A^3 placeholder cell; no unit cell is used (line 30)",
+                     m + noTimes}));
+    EXPECT_EQ(warningsOf("models_some_cryst.pdb", 2.0).size(), 1u);  // a time step given: no RD-B13 warning
+    EXPECT_EQ(warningsOf("cryst_bad.pdb"),
+              Lines{fileText("cryst_bad.pdb") +
+                    ": 1 CRYST1 record could not be read (six numbers in columns 7-54 expected); no unit cell is "
+                    "used (line 1)"});
+    EXPECT_EQ(warningsOf("frames.gro"), Lines{fileText("frames.gro") + noTimes});
+    EXPECT_EQ(warningsOf("zero_box.gro"), Lines{fileText("zero_box.gro") + ": 1 box is zero; no periodic box (line 10)"});
+    EXPECT_EQ(warningsOf("bad_cell.gro"),
+              Lines{fileText("bad_cell.gro") + ": 1 box has vectors that do not form a cell; no periodic box (line 10)"});
+}
+
+TEST(Loader, SystemWarnings) {
+    // every file's warnings once, in order: a PDB file as topology and as its own trajectory
+    const fs::path models(fileText("models_some_cryst.pdb"));
+    EXPECT_EQ(io::loadSystem(models, {models}).warnings.size(), 2u);
+    // LD-05: a time step given for a file that keeps its own times
+    const fs::path nc = kData / "io" / "trajectories" / "demo_dry.nc";
+    core::System system = io::loadSystem(kData / "topology" / "demo_dry.parm7", {nc}, 2.5);
+    EXPECT_EQ(system.warnings, Lines{"inputs.dt_ps (2.5 ps) differs from the time step in " + pathText(nc) +
+                                     " (10.0 ps); the file's times are used"});
+    EXPECT_EQ(system.trajectory->seek(1).time, 10.0);
+    EXPECT_TRUE(io::loadSystem(kData / "topology" / "demo_dry.parm7", {nc}, 10.0).warnings.empty());
+}
+
+TEST(Loader, WarningScopes) {
+    std::vector<std::string> logged;
+    const core::LogSink previous = core::setLogSink(
+        [&logged](core::LogLevel, std::string_view message) { logged.emplace_back(message); });
+    io::readerWarning("outside");  // no scope: logged at once
+    {
+        io::ReaderWarningScope outer;
+        io::readerWarning("a");
+        {
+            io::ReaderWarningScope inner;
+            io::readerWarning("b");
+            io::readerWarning("b");  // repeats are dropped
+            EXPECT_EQ(inner.take(), Lines{"b"});
+        }
+        io::readerWarning("c");
+        EXPECT_EQ(outer.take(), (Lines{"a", "c"}));
+        EXPECT_TRUE(outer.take().empty());
+    }
+    core::setLogSink(previous);
+    EXPECT_EQ(logged, Lines{"outside"});
+}
+
+TEST(Loader, GromacsTopFile) {
+    // LD-02: .top means parm7 (MDATK's mapping), but a GROMACS topology gets a clear error
+    const fs::path folder = fs::temp_directory_path() / "mdbridge-loader-top";
+    fs::create_directories(folder);
+    const fs::path top = folder / "system.top";
+    std::ofstream(top) << "; GROMACS topology\n[ defaults ]\n";
+    try {
+        io::loadSystem(top, {kData / "io" / "trajectories" / "demo_dry.nc"});
+        ADD_FAILURE() << "no error";
+    } catch (const core::ValueError& error) {
+        EXPECT_EQ(std::string(error.what()),
+                  pathText(top) + ": not an Amber parm7 topology (GROMACS .top files are not supported)");
+    }
+    fs::remove_all(folder);
 }

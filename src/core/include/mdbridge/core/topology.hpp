@@ -196,6 +196,10 @@ private:
 struct System {
     std::shared_ptr<const Topology> topology;
     std::unique_ptr<Trajectory> trajectory;
+    // What the readers defaulted, skipped or guessed while the files were opened (io::loadSystem:
+    // mdbridge/io/warnings.hpp), in the order found; each names its file. Front ends print each
+    // once as "WARNING: <message>".
+    std::vector<std::string> warnings;
 
     AtomGroup atoms() const { return AtomGroup(topology); }
     // The current frame, or nullptr without coordinates.

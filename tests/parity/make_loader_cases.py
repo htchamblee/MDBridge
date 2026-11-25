@@ -20,6 +20,12 @@ Needs MDAnalysis 2.11.0 (and MDATK's dependencies); nothing is written into the 
                         matrix of the demo system and crafted files, or the error; frame_indices;
                         the JSON `mdatk info --top ... --traj ...` prints
 
+MDBridge's deliberate improvements of these readers (docs/DIFFERENCES.md) are applied on the test
+side by improvements_readers_pdb.py: MDAnalysis runs on equivalent rewrites of the files, and the
+errors MDBridge words itself replace MDAnalysis'. files/frames.gro, wide.gro, neg_box.gro and
+bad_cell.gro exercise those improvements (several GRO frames, the field width, signed run-together
+box values, box vectors that form no cell).
+
 Paths in messages are written with the test data folder as "{data}" and OUT_DIR as "{out}".
 Errors are {"type": class name, "message": str(exc)}.
 """
@@ -32,6 +38,7 @@ import re
 import random
 import struct
 import sys
+import tempfile
 import warnings
 
 warnings.filterwarnings("ignore")
@@ -52,6 +59,7 @@ sys.path.insert(0, HERE)
 import dump_topologies  # noqa: E402
 import improvements_cli  # noqa: E402
 import improvements_readers_amber  # noqa: E402
+import improvements_readers_pdb as improvements  # noqa: E402
 import independent_tables  # noqa: E402
 
 independent_tables.apply()  # MDAnalysis with MDBridge's independent tables (tests/data/README.md)
@@ -186,7 +194,10 @@ def pdb_files():
                                                       "CONECT    5    4    4",
                                                       "conect    1    5", " CONECT    1    4"]) + "\n"
     files["conect_corrupt.pdb"] = "\n".join(base + ["CONECT    1    2", "CONECT    1    2  3"]) + "\n"
-    files["conect_bad_int.pdb"] = "\n".join(base + ["CONECT    1    x"]) + "\n"
+    # one record MDAnalysis calls corrupt (13 characters after the base serial): it drops every bond,
+    # MDBridge only that record (RD-B09)
+    files["conect_one_bad.pdb"] = "\n".join(base + ["CONECT    1    2", "CONECT    3    4    5xxx"]) + "\n"
+    files["conect_bad_int.pdb"] ="\n".join(base + ["CONECT    1    x"]) + "\n"
     files["conect_after_end.pdb"] = "\n".join(base + ["END", "CONECT    1    3"]) + "\n"
     files["conect_duplicate_serial.pdb"] = "\n".join(base + [atom(1, "O", "HOH", "W", 9, (5, 5, 5)),
                                                              "CONECT    1    2"]) + "\n"
@@ -288,6 +299,23 @@ def gro_files():
     files["too_few.gro"] = "\n".join(["Few", "7"] + atoms[:4]) + "\n"
     files["no_box.gro"] = "\n".join(["No box", "7"] + atoms) + "\n"
     files["bad_count.gro"] = "Count\n seven\n" + "\n".join(atoms) + "\n"
+    # MDBridge's improvements (improvements_readers_pdb.py): three frames (RD-G07), 11-character
+    # fields whose x decimal point is in column 26 (RD-G01), signed box values run together in
+    # 10-character fields (RD-G05), box vectors that form no cell (RD-G06)
+    frames = []
+    for m in range(3):
+        frames += [f"Frame {m} t= {10.0 * m:.5f}", "7"]
+        frames += [gro_line(1 + k // 3, "SOL", ["OW", "HW1", "HW2"][k % 3], k + 1,
+                            (0.1 * k + 0.01 * m, 0.2, 0.3 - 0.05 * k)) for k in range(7)]
+        frames.append(f"{3.0 + 0.1 * m:10.5f}{4.0:10.5f}{5.0:10.5f}")
+    files["frames.gro"] = "\n".join(frames) + "\n"
+    files["wide.gro"] = "\n".join(["Wide", "7"] + [
+        f"{1:5d}{'LIG':<5}{'C' + str(k):>5}{k + 1:5d}" + "".join(f"{v:11.5f}" for v in (12.5 + k, -1.25, 2.5 * k))
+        for k in range(7)] + ["   3.00000   4.00000   5.00000"]) + "\n"
+    files["neg_box.gro"] = "\n".join(["Negative box", "7"] + atoms + ["-100.00000-200.00000-300.00000"]) + "\n"
+    files["bad_cell.gro"] = "\n".join(["Bad cell", "7"] + atoms +
+                                       ["   5.00000   5.00000   0.00000   0.00000   0.00000   0.00000   0.00000"
+                                        "   0.00000   0.00000"]) + "\n"
     files["ions.gro"] = "\n".join(["Ions", str(len(ion_atoms()))]
                                    + [gro_line(resid, resname, name, k + 1, (0.15 * k, 0.05, 0.1))
                                       for resname, resid, name, k in ion_atoms()]
@@ -320,23 +348,43 @@ def reader_info(path, dt=None):
     return out
 
 
+def equivalent(path, tmp):
+    """The file MDAnalysis reads as MDBridge reads path (improvements_readers_pdb.py)."""
+    return improvements.equivalent_file(path, tmp)
+
+
 def topology_cases(files):
     cases = []
     for name in files:
         path = os.path.join(FILES, name)
         case = {"file": name}
-        try:
-            data = dump_topologies.dump(path)
-        except Exception as exc:  # noqa: BLE001
-            case["error"] = error(exc)
+        improved = improvements.expected_error(name, path)
+        if improved:
+            case["error"] = {"type": improved["type"], "message": placeholders(improved["message"])}
             cases.append(case)
             continue
+        with tempfile.TemporaryDirectory(prefix="equivalent-") as tmp:
+            same = equivalent(path, tmp)
+            fix = lambda text: text.replace(tmp, FILES)  # noqa: E731
+            try:
+                data = improvements.patch_dump(dump_topologies.dump(same), path)
+            except Exception as exc:  # noqa: BLE001
+                case["error"] = {"type": type(exc).__name__, "message": placeholders(fix(str(exc)))}
+                cases.append(case)
+                continue
+
+            def gro_frames(dt):
+                with tempfile.TemporaryDirectory(prefix="frames-") as sub:
+                    return [reader_info(p, dt)["frames"][0] for p in improvements.gro_frame_files(path, sub)]
+
+            case["readers"] = [improvements.patch_reader(reader_info(same, dt), path, gro_frames)
+                               for dt in (None, 2.5)]
         target = os.path.join(FILES, name + ".topology.json")
         with open(target, "w", encoding="utf-8") as fh:
             json.dump(data, fh, indent=1, ensure_ascii=False)
             fh.write("\n")
         case["dump"] = name + ".topology.json"
-        case["readers"] = [reader_info(path), reader_info(path, 2.5)]
+        case = {"file": name, "dump": case["dump"], "readers": case["readers"]}
         cases.append(case)
     return cases
 
@@ -345,17 +393,41 @@ def topology_cases(files):
 
 def summary_case(topology, trajectories, dt):
     case = {"topology": placeholders(topology), "trajectories": [placeholders(t) for t in trajectories], "dt": dt}
-    try:
-        u = loader.load_universe(topology, trajectories, dt)
-        summary = loader.system_summary(u)
-        names, counts = np.unique(u.residues.resnames, return_counts=True)
-        # numpy's argsort orders equal counts by the CPU's sort kernel: the full counts let the
-        # test check MDBridge's order (equal counts by name)
-        case["resname_counts"] = [[str(n), int(c)] for n, c in zip(names, counts)]
-        case["summary"] = summary
-        case["summary_json"] = json.dumps(summary, indent=2)
-    except Exception as exc:  # noqa: BLE001
-        case["error"] = error(exc)
+    improved = improvements.loader_error(topology, trajectories, dt)
+    name = os.path.basename(topology)
+    if improved is None and topology.startswith(FILES) and not trajectories:
+        improved = improvements.expected_error(name, topology)
+    if improved:
+        case["error"] = {"type": improved["type"], "message": placeholders(improved["message"])}
+        return case
+    with tempfile.TemporaryDirectory(prefix="equivalent-") as tmp:
+        # MDBridge's readers (improvements_readers_pdb.py): equivalent PDB / GRO files, chains of
+        # mixed formats read per file
+        same = lambda p: equivalent(p, os.path.join(tmp, str([topology, *trajectories].index(p)))) \
+            if p.startswith(FILES) and os.path.exists(p) else p  # noqa: E731
+        for p in [topology, *trajectories]:
+            if p.startswith(FILES) and os.path.exists(p):
+                os.makedirs(os.path.join(tmp, str([topology, *trajectories].index(p))), exist_ok=True)
+        top = same(topology)
+        trajs = [same(t) for t in trajectories]
+        chain = improvements.chain_with_formats(trajs)
+        try:
+            if chain:
+                u = mda.Universe(top, chain, **({"dt": dt} if dt else {}))
+            else:
+                u = loader.load_universe(top, trajs, dt)
+            summary = loader.system_summary(u)
+            names, counts = np.unique(u.residues.resnames, return_counts=True)
+            # numpy's argsort orders equal counts by the CPU's sort kernel: the full counts let the
+            # test check MDBridge's order (equal counts by name)
+            case["resname_counts"] = [[str(n), int(c)] for n, c in zip(names, counts)]
+            case["summary"] = summary
+            case["summary_json"] = json.dumps(summary, indent=2)
+        except Exception as exc:  # noqa: BLE001
+            message = str(exc)
+            for p in [topology, *trajectories]:
+                message = message.replace(same(p), p)
+            case["error"] = {"type": type(exc).__name__, "message": placeholders(message)}
     return case
 
 

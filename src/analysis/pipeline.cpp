@@ -258,6 +258,9 @@ core::System& Pipeline::system() {
         }
         auto system = std::make_unique<core::System>(
             io::loadSystem(core::pathFromUtf8(inputs.topology), trajectories, m_project.inputs.dt_ps));
+        for (const std::string& warning : system->warnings) {  // the readers' warnings, once
+            m_reporter.log("WARNING: " + warning);
+        }
         if (!system->trajectory) {
             throw core::ValueError("No trajectory loaded into Universe");
         }
