@@ -767,4 +767,24 @@ other kernels.
 The random rotations of `io/pdb/pdb_cases.json` are written out in `make_pdb_cases.py` for the same
 reason. `--list` shows the steps; `--only STEP ...` reruns some of them.
 
+`render/ticks/tick_cases.json` holds what Matplotlib 3.11.2 (MDATK v0.0.4.1's plotting library,
+rcParams at their defaults as MDATK leaves them) and MDATK's `thin_ticks` compute, for
+`src/render/core/ticks.cpp` (`tests/render/test_ticks.cpp`, compared bit for bit and string for
+string): `_nonsingular`; `MaxNLocator` / `AutoLocator` `tick_values` and `view_limits` over about 230
+intervals (magnitudes 1e-300 to 1e300, widths down to a few ulps, large offsets, non-finite ends)
+with fixed and 'auto' bins, steps, integer, symmetric, prune and min_n_ticks, and the invalid-steps
+messages; `FixedLocator` with nbins; `ScalarFormatter` labels, offset texts and formats (automatic,
+disabled and fixed offsets, offset thresholds, power limits, scientific off, mathtext, ASCII minus)
+and `format_data`; real Axes (figure sizes, dpi, rectangles, tick label sizes 0.5 to 20 pt; limits
+set, autoscaled from plotted data with the 5 % margins, sticky edges or tight; MDATK's
+`integer_axis`) with the axis length in points, `get_tick_space`, view interval, located and drawn
+ticks, labels and offset text; `set_xlim` and imshow extents; MDATK's heatmap colour bar (fraction
+0.04, pad 0.02, labels at 0.75 x font, integer ticks for counts) with its limits and ticks; and
+`thin_ticks`, where `max_ticks` < 1 is MDBridge's improvement (docs/DIFFERENCES.md). The generator
+pins numpy's dispatch to its x86-64 baseline; the output is reproducible:
+
+```bash
+/opt/mdbridge-venv/bin/python -I -B tests/parity/make_tick_cases.py /tmp/mdatk tests/data/render/ticks
+```
+
 Never put research structures or trajectories of real projects here.

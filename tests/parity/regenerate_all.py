@@ -283,6 +283,8 @@ STEPS = [
          [f"{DATA}/analysis/pipeline_cases.json"]),
     # milestone 4: Matplotlib's colours and colormaps, MDATK's chain palettes and themes
     case_step("colors", "make_color_cases.py", "render/colors"),
+    # milestone 4: axis limits, ticks and tick labels (Matplotlib as MDATK uses it, thin_ticks)
+    case_step("ticks", "make_tick_cases.py", "render/ticks"),
 ]
 
 

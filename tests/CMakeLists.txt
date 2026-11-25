@@ -116,10 +116,12 @@ add_executable(mdbridge_commands_cli cli/commands_cli.cpp)
 target_link_libraries(mdbridge_commands_cli PRIVATE mdbridge::commands)
 mdbridge_target_warnings(mdbridge_commands_cli)
 
-# render core (no Qt): colours, colormaps, chain palettes and themes against Matplotlib / MDATK
-# (data/render/colors, tests/parity/make_color_cases.py)
-add_executable(mdbridge_render_core_tests render/test_colors.cpp)
-target_link_libraries(mdbridge_render_core_tests PRIVATE mdbridge::render_core GTest::gtest_main)
+# render core (no Qt): colours, colormaps, chain palettes and themes (data/render/colors,
+# tests/parity/make_color_cases.py); axis limits, ticks and tick labels (data/render/ticks,
+# tests/parity/make_tick_cases.py), against Matplotlib 3.11.2 and MDATK
+add_executable(mdbridge_render_core_tests render/test_colors.cpp render/test_ticks.cpp)
+target_include_directories(mdbridge_render_core_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/core")
+target_link_libraries(mdbridge_render_core_tests PRIVATE mdbridge::render_core mdbridge::core GTest::gtest_main)
 target_compile_definitions(mdbridge_render_core_tests PRIVATE MDBRIDGE_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data")
 mdbridge_target_warnings(mdbridge_render_core_tests)
 gtest_discover_tests(mdbridge_render_core_tests DISCOVERY_MODE PRE_TEST)

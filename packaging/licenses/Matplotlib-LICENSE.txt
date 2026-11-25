@@ -1,5 +1,6 @@
 Matplotlib 3.11.2 licence (from the LICENSE file of its distribution). MDBridge ports Matplotlib's
-colour handling (to_rgba, to_hex, colormaps) and uses its colour data; see THIRD_PARTY_NOTICES.md.
+colour handling (to_rgba, to_hex, colormaps), tick locators and formatters, autoscaling and colour-bar
+limits, and uses its colour data; see THIRD_PARTY_NOTICES.md.
 
 License agreement for matplotlib versions 1.3.0 and later
 =========================================================

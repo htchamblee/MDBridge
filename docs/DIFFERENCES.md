@@ -633,6 +633,24 @@ below. *Tested:* `tests/render/test_colors.cpp` (`render/colors/color_cases.json
   `from_list`) at the first use; MDBridge raises the same message when the map is created, and also
   rejects a map without colours or with fewer than one entry. *Tested:* `Colormap.Errors`.
 
+## Render: axis ticks and numbers (src/render/core/ticks.cpp)
+
+Tick locations, tick labels, offset / scientific-notation texts, autoscaled and colour-bar limits are
+Matplotlib 3.11.2's bit for bit (ported with its notice); MDATK's `thin_ticks` likewise. Differences:
+
+- **`thin_ticks` with `max_ticks` < 1.** MDATK: `max_ticks = 0` (the `max_ticks` option of the
+  heatmap and contact-map panels) crashed the render with `ZeroDivisionError`; negative values
+  labelled every row. MDBridge takes any value below 1 as 1 (one label, the first row).
+  *Tested:* test_ticks.cpp `ThinTicks` (cases marked `improved` in
+  `tests/data/render/ticks/tick_cases.json`, written by `make_tick_cases.py` from MDATK's
+  `thin_ticks(n, 1)`).
+- **Inputs Matplotlib cannot handle, unreachable from MDATK's figures:** `MaxNLocator` with fewer
+  than one bin throws `std::invalid_argument` (Matplotlib divides by zero and returns garbage); a
+  formatter with a fixed offset on an empty view interval uses exponent 0 (Matplotlib: `math domain
+  error`); the offset search stops at 10^-400 instead of looping forever on intervals one ulp wide.
+  An empty `steps` list means Matplotlib's default steps (Matplotlib: `IndexError`). *Tested:*
+  test_ticks.cpp `MaxNLocatorRejectsNoBins`, `ScalarFormatter` (the recorded error cases).
+
 ## Planned (from the improvement register; add each entry here when it lands)
 
 None: every FIX and ASK item of the improvement register (docs/IMPROVEMENTS.md) has landed
