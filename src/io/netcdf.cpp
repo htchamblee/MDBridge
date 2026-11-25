@@ -11,6 +11,7 @@
 #include "binary_file.hpp"
 #include "mdbridge/core/errors.hpp"
 #include "mdbridge/core/json.hpp"
+#include "mdbridge/io/warnings.hpp"
 #include "python_text.hpp"
 #include "readers.hpp"
 #include "text_file.hpp"
@@ -445,9 +446,11 @@ public:
         const std::string name = detail::pathText(path);
         readContainer(name);
         checkConventions(name);
-        // CDF-1 (32-bit offsets) is read like CDF-2 (RD-N08).
-        // TODO(LD-03): for version 1, warn "<file>: NetCDF file uses 32-bit offsets (CDF-1); the
-        // Amber convention asks for 64-bit offsets (CDF-2)"
+        // CDF-1 (32-bit offsets) is read like CDF-2 (RD-N08), with a warning.
+        if (m_header.version == 1) {
+            readerWarning(name + ": NetCDF file uses 32-bit offsets (CDF-1); the Amber convention asks "
+                                 "for 64-bit offsets (CDF-2)");
+        }
         const Dimension* spatial = m_header.dimension("spatial");
         if (spatial == nullptr) {
             throw ValueError("NCDF trajectory does not contain spatial dimension");
@@ -506,9 +509,13 @@ public:
         }
         checkCellShape(name, m_lengths, "cell_spatial");
         checkCellShape(name, m_angles, "cell_angular");
-        // TODO(LD-03): without a time variable and a given dt, warn once per file (RD-N10)
-        // "<file>: no time information; dt set to 1.0 ps"
         m_dt = dt ? *dt : fileDt();
+        // RD-N10: once per file (MDAnalysis: on every dt / time access), worded as the PDB and GRO
+        // readers' warning (RD-B13)
+        if (m_time == nullptr && !dt && m_frameCount > 1) {
+            readerWarning(name + ": the file has no time information; frames are taken to be 1 ps apart "
+                                 "(set inputs.dt_ps for the real time step)");
+        }
         if (m_frameCount == 0) {
             throw ReaderError("OSError", name + ": trajectory has no frames");
         }

@@ -13,6 +13,7 @@
 #include "mdbridge/core/errors.hpp"
 #include "mdbridge/core/json.hpp"
 #include "mdbridge/core/python.hpp"
+#include "mdbridge/io/warnings.hpp"
 #include "python_text.hpp"
 #include "readers.hpp"
 #include "text_file.hpp"
@@ -97,8 +98,10 @@ public:
             }
             first += perFrame;
         }
-        // TODO(LD-03): when first < m_lines.size(), warn "<file>: the last frame is incomplete
-        // (lines <first + 1>-<m_lines.size()>) and is ignored"
+        if (first < m_lines.size()) {  // RD-A04
+            readerWarning(m_file + ": the last frame is incomplete (lines " + std::to_string(first + 1) + "-" +
+                          std::to_string(m_lines.size()) + ") and is ignored");
+        }
         m_frameCount = static_cast<std::int64_t>((m_lines.size() - 1) / perFrame);
         if (m_frameCount == 0) {
             fail("the file ends inside the first frame (" + std::to_string(atoms) + " atoms need " +

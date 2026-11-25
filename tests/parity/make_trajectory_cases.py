@@ -314,6 +314,7 @@ def amber_files():
     out["mdcrd_one_frame_box"] = t("one_frame_box.mdcrd", mdcrd_text(c[:1], box=BOX))
     out["mdcrd_empty"] = t("empty.mdcrd", "")
     out["mdcrd_title_only"] = t("title_only.mdcrd", "title\n")
+    out["rst7_empty"] = t("empty.rst7", "")
     bad = mdcrd_text(c).splitlines()
     bad[2] = bad[2][:20] + "  x.yzw " + bad[2][28:]
     out["mdcrd_bad_value"] = t("bad_value.mdcrd", "\n".join(bad) + "\n")

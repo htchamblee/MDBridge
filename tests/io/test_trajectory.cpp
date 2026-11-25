@@ -17,6 +17,7 @@
 #include "mdbridge/core/errors.hpp"
 #include "mdbridge/core/hash.hpp"
 #include "mdbridge/io/trajectory.hpp"
+#include "mdbridge/io/warnings.hpp"
 #include "test_support.hpp"
 
 using namespace mdbridge;
@@ -133,6 +134,7 @@ TEST(Trajectory, MDAnalysisCases) {
         }
         const auto atoms = static_cast<std::size_t>(*c.find("atoms")->get<std::int64_t>());
         std::unique_ptr<core::Trajectory> trajectory;
+        io::ReaderWarningScope warnings;  // LD-03: the case's "warnings" (none when absent)
         try {
             trajectory = io::openTrajectories(paths, text(c, "format"), dt, atoms);
         } catch (const core::ValueError& error) {
@@ -200,6 +202,17 @@ TEST(Trajectory, MDAnalysisCases) {
                     << context;
             }
         }
+        std::vector<std::string> expectedWarnings;
+        if (const core::Value* w = c.find("warnings")) {
+            for (const core::Value& v : list(*w)) {
+                expectedWarnings.push_back(*v.get<std::string>());
+            }
+        }
+        std::vector<std::string> issued;
+        for (const std::string& w : warnings.take()) {
+            issued.push_back(withPlaceholders(w, paths));
+        }
+        EXPECT_EQ(issued, expectedWarnings) << name;
     }
     EXPECT_GT(checked, 200);
 }

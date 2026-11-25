@@ -11,6 +11,7 @@
 
 #include "binary_file.hpp"
 #include "mdbridge/core/errors.hpp"
+#include "mdbridge/io/warnings.hpp"
 #include "readers.hpp"
 #include "text_file.hpp"
 
@@ -37,9 +38,8 @@ public:
         }
         if (m_nsavc == 0) {
             // RD-D01: a frame interval of 0 steps is read as 1 (dt = DELTA, times (frame + istart)
-            // * DELTA).
-            // TODO(LD-03): warn "<file>: the DCD header's frame interval (NSAVC) is 0; it is
-            // taken as 1 step"
+            // * DELTA), with a warning.
+            readerWarning(pathText(path) + ": the DCD header's frame interval (NSAVC) is 0; it is taken as 1 step");
             m_nsavc = 1;
         }
         const std::uint64_t dims = m_fourDims ? 4 : 3;

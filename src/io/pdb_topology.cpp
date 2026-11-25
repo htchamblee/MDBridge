@@ -28,35 +28,27 @@ namespace {
 
 namespace tables = core::detail::tables;
 
-constexpr const char* kPdbParser = "<class 'MDAnalysis.topology.PDBParser.PDBParser'>";
-constexpr const char* kGroParser = "<class 'MDAnalysis.topology.GROParser.GROParser'>";
 
 // ---------------------------------------------------------------------------------------------
 // Errors
 
-// The Universe's rewrapping of parser errors: ValueError / TypeError (UnicodeDecodeError is a
-// ValueError) become "Failed to construct topology ..." ValueErrors; other errors pass through.
+// RD-P11: a parser error that is not one of MDBridge's own (FormatError: it names the file and
+// line already) is worded "<file>: cannot read PDB topology: <message>" (MDAnalysis: "Failed to
+// construct topology from file ... with parser <class 'MDAnalysis...PDBParser'>.\nError: ...").
+// Errors other than ValueError / TypeError pass through.
 template <class Fn>
-auto wrapParserErrors(const std::string& fileText, const char* parser, Fn&& parse) {
+auto wrapParserErrors(const std::string& fileText, const char* format, Fn&& parse) {
     try {
         return parse();
     } catch (const FormatError&) {
-        throw;  // MDBridge's own messages name the file already
+        throw;
     } catch (const core::ValueError& error) {
         const std::string_view name = error.pythonName();
         if (name != "ValueError" && name != "UnicodeDecodeError" && name != "TypeError") {
             throw;
         }
-        throw core::ValueError("Failed to construct topology from file " + fileText +
-                               " with parser " + parser + ".\nError: " + error.what());
+        throw FormatError(fileText + ": cannot read " + format + " topology: " + error.what());
     }
-}
-
-// An OSError of a parser, as the Universe rewraps it
-ReaderError topologyLoadError(const std::string& fileText, const char* parser,
-                              const std::string& message) {
-    return ReaderError("OSError", "Failed to load from the topology file " + fileText +
-                                      " with parser " + parser + ".\nError: " + message);
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -1273,8 +1265,13 @@ std::shared_ptr<core::Topology> parseGroTopology(const std::vector<U32>& lines, 
         const auto resid = core::tryPythonInt(toUtf8(slice(line, 0, 5)));
         const auto id = core::tryPythonInt(toUtf8(slice(line, 15, 20)));
         if (!resid || !id) {
-            throw topologyLoadError(fileText, kGroParser,
-                                    "Couldn't read the following line of the .gro file:\n" + toUtf8(line));
+            // RD-P11, RM (MDAnalysis: "Failed to load from the topology file ... with parser
+            // <class '...GROParser'>.\nError: Couldn't read the following line of the .gro file: ...")
+            const bool residue = !resid;
+            throw FormatError(fileText + " line " + std::to_string(i + 3) + ": " +
+                              (residue ? "residue number " : "atom number ") +
+                              core::pythonStringRepr(toUtf8(residue ? slice(line, 0, 5) : slice(line, 15, 20))) +
+                              (residue ? " (columns 1-5)" : " (columns 16-20)") + " is not an integer");
         }
         rawResids.push_back(*resid);
         ids.push_back(*id);
@@ -1283,7 +1280,8 @@ std::shared_ptr<core::Topology> parseGroTopology(const std::vector<U32>& lines, 
     }
     for (std::size_t i = 0; i < n; ++i) {
         if (names[i].empty()) {
-            throw topologyLoadError(fileText, kGroParser, "Missing atom name on line: " + std::to_string(i + 3));
+            throw FormatError(fileText + " line " + std::to_string(i + 3) +
+                              ": no atom name in columns 11-15");  // RD-P11, RM
         }
     }
     // a run of resid 0 after the first atom starts the next block of 100000
@@ -1388,7 +1386,7 @@ TopologyFile readPdbTopology(const std::filesystem::path& path, std::optional<do
     }
     warnIfNotUtf8(fileText, bytes);
     TopologyFile out;
-    out.topology = wrapParserErrors(fileText, kPdbParser, [&] { return parsePdbTopology(bytes, fileText); });
+    out.topology = wrapParserErrors(fileText, "PDB", [&] { return parsePdbTopology(bytes, fileText); });
     out.coordinates = openPdbCoordinates(path, dt, out.topology->atomCount());
     return out;
 }

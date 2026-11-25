@@ -99,7 +99,7 @@ PATCH_RE = re.compile(rb"(?<![0-9.])3\.13\.[0-9]+(?![0-9.])")
 DATA_TABLES = "src/core/include/mdbridge/core/detail/data_tables_independent.inc"
 TABLES = ["src/core/unicode_tables.inc", "src/core/case_tables.inc", "src/core/citation_data.inc",
           "src/core/step_types.inc", "src/core/panel_tables.inc", DATA_TABLES, "src/core/selection_tables.inc",
-          "src/io/pdb_tables.inc"]
+          "src/io/pdb_tables.inc", "src/analysis/covalent_radii.inc"]
 SOURCES = "data/sources"  # committed inputs of tools/gen_data_tables.py, copied into the fresh tree
 
 # Outputs that legitimately depend on the CPU: compared byte for byte, and where the bytes differ, as

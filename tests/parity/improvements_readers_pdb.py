@@ -23,7 +23,7 @@ expected data is adjusted here, per item id:
   texts sliced by characters of the decoded line (RD-B07; MDAnalysis slices bytes), the cells of
   frames read out of order (RD-B03: a frame's cell no longer depends on the frame read before),
   every frame of a multi-frame GRO file (RD-G07);
-* errors MDBridge words under the reader-message rule (ERRORS: RD-B02, RD-B05, RD-B06, RD-B08,
+* errors MDBridge words under the reader-message rule (ERRORS: RD-B02, RD-B05, RD-B06, RD-B08, RD-P11,
   RD-G02, RD-G03, RD-G04, RD-G05) and the loader's (LD-04, LD-06), chains of mixed formats read
   per file (LD-01);
 * the command line (cli_cases.json): the reader warnings `info` / `export-pdb` / `analyze` now print
@@ -420,6 +420,8 @@ ERRORS = {
     "too_few.gro": "{p}: the header (line 2) says 7 atoms but the file has 4 atom lines",  # RD-G03
     "bad_count.gro": "{p} line 2: atom count ' seven' is not an integer",                 # RD-G04
     "bad_box.gro": "{p} line 10: GRO box line '   3.0   4.0' has neither 3 nor 9 values",  # RD-G05
+    "bad_line.gro": "{p} line 6: residue number '    x' (columns 1-5) is not an integer",  # RD-P11
+    "missing_name.gro": "{p} line 5: no atom name in columns 11-15",                       # RD-P11
 }
 
 

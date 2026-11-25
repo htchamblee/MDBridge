@@ -18,6 +18,7 @@
 #include "mdbridge/core/paths.hpp"
 #include "mdbridge/core/python.hpp"
 #include "mdbridge/core/text.hpp"
+#include "mdbridge/io/warnings.hpp"
 #include "readers.hpp"
 #include "text_file.hpp"
 
@@ -916,8 +917,10 @@ private:
                 top.residueSegment.push_back(static_cast<std::int32_t>(top.segids.size() - 1));
             }
         } else {
-            // TODO(LD-03): warn "<file>: %FLAG RESIDUE_CHAINID has K values for N residues;
-            // chain IDs are not read"
+            if (chains) {  // LD-03 (MDAnalysis: "... Skipping section", a Python warning MDATK hides)
+                readerWarning(m_file + ": %FLAG RESIDUE_CHAINID has " + std::to_string(chains->texts.size()) +
+                              " values for " + std::to_string(residueCount) + " residues; chain IDs are not read");
+            }
             top.segids.push_back(top.strings.intern("SYSTEM"));
             top.residueSegment.assign(residueCount, 0);
         }

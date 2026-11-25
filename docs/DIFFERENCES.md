@@ -196,9 +196,10 @@ never rewrapped in MDAnalysis' "Failed to construct topology ..." / ChainReader 
 
 Expected data: the generators record MDAnalysis; tests/parity/improvements_readers_amber.py turns
 it into MDBridge's behaviour (per item, below). Error texts follow the reader-message rule: they name
-the file and, where known, the line, columns, section or frame. Warnings marked "(warning pending)"
-are not printed yet: MDBridge has no reader-warning channel until LD-03; the code carries the text
-as `TODO(LD-03)`.
+the file and, where known, the line, columns, section or frame. Warnings go through the reader-warning
+channel (LD-03, `io::readerWarning`); tests/data/io/trajectories/cases.json lists each case's
+warnings (`warnings`, computed by improvements_readers_amber.trajectory_warnings(); test_trajectory.cpp
+expects exactly these, and none for the other cases).
 
 parm7 topologies (src/io/parm7.cpp; tested by io/parm7/topology*, test_parm7.cpp
 `ImprovedTopologyRules`):
@@ -229,8 +230,16 @@ parm7 topologies (src/io/parm7.cpp; tested by io/parm7/topology*, test_parm7.cpp
 - **RD-P10** Bond, angle and dihedral entries are checked: `<file>: %FLAG BONDS_INC_HYDROGEN entry k:
   atom index 4 is not a multiple of 3` / `refers to atom 41 of 40` / `is negative`, `... entry 5 has 2
   of 3 values` (negative third and fourth dihedral indices are Amber flags and stay accepted).
-- **RD-P11** (parm7 part) every parm7 topology error names the file; MDBridge never wrapped them in
-  MDAnalysis' parser-class text. The PDB / GRO wrapper (pdb_topology.cpp) belongs to the PDB chunk.
+- **RD-P11** Topology errors never name MDAnalysis' parser classes. parm7: every error names the
+  file (MDBridge never wrapped them). PDB: an error that is not one of the reader's own RM messages
+  reads `<file>: cannot read PDB topology: <message>`. GRO: `<file> line 6: residue number '    x'
+  (columns 1-5) is not an integer` (or `atom number ... (columns 16-20)`), `<file> line 5: no atom
+  name in columns 11-15` (MDAnalysis: `Failed to load from the topology file ... with parser <class
+  'MDAnalysis.topology.GROParser.GROParser'>.\nError: Couldn't read the following line ...` / `Missing
+  atom name on line: 5`). *Tested:* bad_line.gro, missing_name.gro (loader topology_cases.json).
+- **RESIDUE_CHAINID with the wrong count (LD-03)** is ignored as before (one segment SYSTEM), with
+  `<file>: %FLAG RESIDUE_CHAINID has 7 values for 8 residues; chain IDs are not read`. *Tested:*
+  test_parm7.cpp TopologyVariants (chain_short, chain_long).
 - **RD-P12** Charges are the field divided by 18.2223 in float64 (MDAnalysis: float32 field divided
   by float32(18.2223) in float32, ~1e-8 relative error). Every expected value built from a parm7
   topology (topology dumps, selections, energies, the command line) uses these charges:
@@ -257,10 +266,13 @@ Amber NetCDF (src/io/netcdf.cpp; io/trajectories/cases.json):
   time_short_scaled.
 - **RD-N07** A cell variable without the frame dimension, (cell_spatial) / (cell_angular), is the
   cell of every frame (new case cell_constant.nc); any other shape is an error (cell_per_frame_scalar).
-- **RD-N08** CDF-1 (32-bit offsets) files are read (warning pending: "uses 32-bit offsets (CDF-1)").
-  cdf1, cdf1_dt and chain_bad_first load (expected data: MDAnalysis on a CDF-2 copy).
-- **RD-N10** The "no time information; dt set to 1.0 ps" warning is to be issued once per file
-  (warning pending).
+- **RD-N08** CDF-1 (32-bit offsets) files are read, with `WARNING: <file>: NetCDF file uses 32-bit
+  offsets (CDF-1); the Amber convention asks for 64-bit offsets (CDF-2)`. cdf1, cdf1_dt and
+  chain_bad_first load (expected data: MDAnalysis on a CDF-2 copy).
+- **RD-N10** A file of more than one frame without a time variable (and no inputs.dt_ps) warns once,
+  when it is opened, in the PDB / GRO readers' words (RD-B13): `<file>: the file has no time
+  information; frames are taken to be 1 ps apart (set inputs.dt_ps for the real time step)`
+  (MDAnalysis: `Reader has no dt information, set to 1.0 ps` on every dt / time access).
 
 Amber ASCII (src/io/amber_ascii.cpp):
 - **RD-A01** One frame without a box line is one non-periodic frame (MDAnalysis: empty
@@ -273,17 +285,18 @@ Amber ASCII (src/io/amber_ascii.cpp):
   reshape text).
 - **RD-A03** One atom: box lines are recognised (every second line, when there is an even number of
   data lines and all of them hold three positive values); MDAnalysis read 3 periodic frames as 6.
-- **RD-A04** Trailing blank lines are ignored; an incomplete last frame is ignored (warning pending:
-  "the last frame is incomplete"). Frame count = complete frames.
+- **RD-A04** Trailing blank lines are ignored; an incomplete last frame is ignored with `<file>: the
+  last frame is incomplete (lines 18-18) and is ignored` (partial.mdcrd). Frame count = complete frames.
 - **RD-A05** `<file> line 2, columns 1-8: '********' is not a number (Fortran overflow: the value does
   not fit the field)`; rst7: `<file> line 2: time 'abc' is not a number`, `... atom count 'abc' is
   not a non-negative integer`, `<file> line 6: expected 6 coordinates, found 3 (the file has 8
   atoms)`, `<file>: the file ends at line 3; 7 atoms need 6 lines`.
-- **RD-A06** `<file>: file is empty` / `<file>: no frames after the title` (were EOFErrors).
+- **RD-A06, RD-B06** `<file>: file is empty` (mdcrd and rst7: cases mdcrd_empty, rst7_empty) /
+  `<file>: no frames after the title` (were EOFErrors).
 
 DCD / XTC / TRR (src/io/dcd.cpp, gromacs.cpp):
-- **RD-D01** NSAVC = 0 is read as 1: dt = DELTA, times (frame + ISTART) * DELTA (warning pending)
-  (MDAnalysis: ZeroDivisionError). Expected data: MDAnalysis on a copy with NSAVC 1.
+- **RD-D01** NSAVC = 0 is read as 1: dt = DELTA, times (frame + ISTART) * DELTA, with `<file>: the
+  DCD header's frame interval (NSAVC) is 0; it is taken as 1 step` (MDAnalysis: ZeroDivisionError). Expected data: MDAnalysis on a copy with NSAVC 1.
 - **RD-D02** `<file>: 4-dimensional DCD files are not supported` (was numpy's broadcast text).
 - **RD-D03** XDR errors name the file and, while reading a frame, the frame: `<file> frame 4: XTC read
   error = compression`, `<file>: XDR read error = magic`.

@@ -19,7 +19,8 @@ copy of a file). Never MDAnalysis code: only behaviour.
 * adjust_parm7_topologies(...): make_parm7_cases.py's topology variants (RD-P01 ... RD-P14):
   the error texts MDBridge gives, and the topologies of the files MDBridge now reads (dumped by
   MDAnalysis from a repaired copy).
-* adjust_trajectory_cases(...): make_trajectory_cases.py's cases (RD-N*, RD-A*, RD-D*).
+* adjust_trajectory_cases(...): make_trajectory_cases.py's cases (RD-N*, RD-A*, RD-D*), with the
+  reader warnings MDBridge issues for each ("warnings", LD-03; trajectory_warnings()).
 * netcdf_extra_files(...): the crafted NetCDF files of RD-N05 (streaming record count) and RD-N07
   (cell variables without the frame dimension), which MDAnalysis cannot read correctly.
 """
@@ -431,6 +432,83 @@ def adjust_trajectory_cases(cases, tmp, rerun):
                 frame["error"]["message"] = f"{{path0}} frame {k}: " + frame["error"]["message"]
     for name in ("xtc_bad_magic", "xtc_empty", "trr_empty"):
         by_name[name]["error"]["message"] = "{path0}: " + by_name[name]["error"]["message"]
+    set_error("rst7_empty", "OSError", "{path0}: file is empty")  # RD-B06
+
+    # LD-03: the warnings of the cases MDBridge reads (RD-N08, RD-N10, RD-A04, RD-D01, LD-05)
+    single = {(c["files"][0], c["dt"]): c["result"] for c in cases if len(c["files"]) == 1 and "result" in c}
+    for c in cases:
+        if "result" in c:
+            found = trajectory_warnings(c, tmp, single)
+            if found:
+                c["warnings"] = found
+
+
+NO_TIMES = ": the file has no time information; frames are taken to be 1 ps apart (set inputs.dt_ps for the " \
+           "real time step)"
+
+
+def _time_step_warning(c, k, f, stored, single):
+    """LD-05 (I3, src/io/trajectory.cpp): inputs.dt_ps given and file k's own step (frame 1 - frame
+    0 as read) differs from it. single: (file, dt) -> result of the one-file cases."""
+    if c["dt"] is None:
+        return None
+    dt = float.fromhex(c["dt"])
+    result = c["result"] if len(c["files"]) == 1 else single.get((f, c["dt"]))
+    if result is None and stored:  # times stored in the file do not depend on dt
+        result = single.get((f, None))
+    if result is None or len(result["frames"]) < 2 or "time" not in result["frames"][1]:
+        return None
+    step = float.fromhex(result["frames"][1]["time"]) - float.fromhex(result["frames"][0]["time"])
+    if abs(step - dt) > 1e-4 * max(abs(dt), abs(step)):
+        return (f"inputs.dt_ps ({dt!r} ps) differs from the time step in {{path{k}}} ({step!r} ps); the file's "
+                "times are used")
+    return None
+
+
+def trajectory_warnings(c, tmp, single):
+    """The reader warnings (in order, "{pathK}" for the files) of a trajectory case MDBridge reads."""
+    import scipy.io
+    out = []
+    for k, f in enumerate(c["files"]):
+        path = tmp(f)
+        p = "{path%d}" % k
+        stored = False
+        with open(path, "rb") as fh:
+            head = fh.read(96)
+        if head[:3] == b"CDF":
+            if head[3] == 1:  # RD-N08
+                out.append(p + ": NetCDF file uses 32-bit offsets (CDF-1); the Amber convention asks for "
+                               "64-bit offsets (CDF-2)")
+            try:
+                with scipy.io.netcdf_file(path, "r", mmap=False) as nc:
+                    frames = nc.variables["coordinates"].shape[0]
+                    has_time = "time" in nc.variables
+            except ValueError:  # a record count scipy cannot read (streaming.nc, RD-N05): the header's names
+                with open(path, "rb") as fh:
+                    has_time = b"\0\0\0\x04time" in fh.read(1 << 16)
+                frames = None
+            if len(c["files"]) == 1:
+                frames = c["result"]["n_frames"]
+            if not has_time and c["dt"] is None and frames > 1:  # RD-N10
+                out.append(p + NO_TIMES)
+            stored = has_time
+        elif head[:4] in (b"\x54\0\0\0", b"\0\0\0\x54") and head[4:8] == b"CORD":
+            nsavc = int.from_bytes(head[16:20], "little" if head[0] == 0x54 else "big", signed=True)
+            if nsavc == 0:  # RD-D01
+                out.append(p + ": the DCD header's frame interval (NSAVC) is 0; it is taken as 1 step")
+        elif (c["format"] == "TRJ" or f.endswith((".mdcrd", ".trj"))) and len(c["files"]) == 1:  # RD-A04
+            lines = open(path, encoding="utf-8", errors="replace").read().splitlines()
+            while len(lines) > 1 and not lines[-1].strip():
+                lines.pop()
+            frames = c["result"]["frames"]
+            per_frame = math.ceil(3 * c["atoms"] / 10) + (frames[0]["box"] is not None)
+            first = 1 + len(frames) * per_frame
+            if first < len(lines):
+                out.append(f"{p}: the last frame is incomplete (lines {first + 1}-{len(lines)}) and is ignored")
+        step = _time_step_warning(c, k, f, stored, single)
+        if step:
+            out.append(step)
+    return out
 
 
 

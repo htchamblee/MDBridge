@@ -3372,15 +3372,15 @@
  {
   "file": "bad_line.gro",
   "error": {
-   "type": "OSError",
-   "message": "Failed to load from the topology file {out}/files/bad_line.gro with parser <class 'MDAnalysis.topology.GROParser.GROParser'>.\nError: Couldn't read the following line of the .gro file:\n    xSOL     OW    4   0.400   0.200   0.100\n"
+   "type": "ValueError",
+   "message": "{out}/files/bad_line.gro line 6: residue number '    x' (columns 1-5) is not an integer"
   }
  },
  {
   "file": "missing_name.gro",
   "error": {
-   "type": "OSError",
-   "message": "Failed to load from the topology file {out}/files/missing_name.gro with parser <class 'MDAnalysis.topology.GROParser.GROParser'>.\nError: Missing atom name on line: 5"
+   "type": "ValueError",
+   "message": "{out}/files/missing_name.gro line 5: no atom name in columns 11-15"
   }
  },
  {

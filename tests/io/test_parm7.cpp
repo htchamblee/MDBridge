@@ -4,6 +4,7 @@
 
 #include <cmath>
 #include <cstdlib>
+#include <map>
 #include <memory>
 #include <set>
 #include <string>
@@ -13,6 +14,7 @@
 
 #include "mdbridge/core/errors.hpp"
 #include "mdbridge/io/parm7.hpp"
+#include "mdbridge/io/warnings.hpp"
 #include "topology_dump.hpp"
 
 using namespace mdbridge;
@@ -341,6 +343,14 @@ TEST(Parm7, TopologyOfDemo) {
 }
 
 TEST(Parm7, TopologyVariants) {
+    // LD-03: the reader warnings of each variant (none for the others). chain_short / chain_long:
+    // RESIDUE_CHAINID with 7 / 9 values for the 8 residues of make_parm7_cases.py's system.
+    const auto chainCount = [](const fs::path& file, int values) {
+        const std::u8string text = file.u8string();  // the path as given (UTF-8)
+        return std::string(text.begin(), text.end()) + ": %FLAG RESIDUE_CHAINID has " + std::to_string(values) +
+               " values for 8 residues; chain IDs are not read";
+    };
+    const std::map<std::string, int> chainValues = {{"chain_short.parm7", 7}, {"chain_long.parm7", 9}};
     int compared = 0;
     for (const auto& entry : fs::directory_iterator(kParm7 / "topology")) {
         const fs::path dump = entry.path();
@@ -350,8 +360,14 @@ TEST(Parm7, TopologyVariants) {
         const fs::path file = dump.parent_path() / dump.stem().stem();  // x.parm7.topology.json
         const auto expected = readTopologyDump(dump);
         try {
+            io::ReaderWarningScope warnings;
             const auto got = io::readParm7Topology(file);
             expectSameTopology(*got, *expected.topology, file.filename().string());
+            const auto values = chainValues.find(file.filename().string());
+            EXPECT_EQ(warnings.take(), values == chainValues.end()
+                                           ? std::vector<std::string>{}
+                                           : std::vector<std::string>{chainCount(file, values->second)})
+                << file.filename().string();
         } catch (const std::exception& e) {
             ADD_FAILURE() << file.filename().string() << ": " << e.what();
         }
