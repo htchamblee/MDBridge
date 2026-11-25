@@ -16,10 +16,10 @@ expected data is MDATK's output with the improvement applied here, never edited 
     CLI-02           Pipeline.analyze reads the external data once before the frame loop
     CLI-08           export_frames checks every frame's coordinates before writing any file
 * improve_text() / improve_strings(): messages reworded in place:
-    PRJ-07           "WARNING: project: ignoring unknown key 'out_dir'" + " (did you mean output.out_dir?)"
     CLI-01           a KeyError printed without the quotes of str(KeyError)
     CLI-03           "frame selection start=30 stop=None ..." -> "stop=end"
   and improve_map_message() (CLI-04) for the MRC reader's errors.
+(PRJ-07's hint is part of the unknown-keys warning of improvements_core_io.py, PRJ-09.)
 
 Each function mirrors the C++ rule exactly (messages, order); see the item ids in the C++ sources.
 """
@@ -119,10 +119,8 @@ def renderer_validate(original):
 
 
 # ---------------------------------------------------------------------------------------------
-# messages (PRJ-07, CLI-01, CLI-03)
+# messages (CLI-01, CLI-03)
 
-HINTS = {"out_dir": "output.out_dir", "cache_dir": "output.cache_dir", "workflow_dir": "workflow.out_dir"}
-UNKNOWN_KEY_RE = re.compile(r"(?<![\w.])(project: ignoring unknown key '(out_dir|cache_dir|workflow_dir)')(?=\n|$)")
 FRAMES_RE = re.compile(r"(frame selection start=-?\d+ stop=)None( step=)")
 QUOTED_RE = re.compile(r"^(error: |WARNING: skipping data source '[^'\n]*': )(['\"].*['\"])$", re.M)
 
@@ -136,10 +134,9 @@ def _unquote(match):
 
 
 def improve_text(text):
-    """MDATK's console / log text with the reworded messages of PRJ-07, CLI-01 and CLI-03."""
+    """MDATK's console / log text with the reworded messages of CLI-01 and CLI-03."""
     if not isinstance(text, str):
         return text
-    text = UNKNOWN_KEY_RE.sub(lambda m: f"{m.group(1)} (did you mean {HINTS[m.group(2)]}?)", text)
     text = FRAMES_RE.sub(r"\1end\2", text)
     return QUOTED_RE.sub(_unquote, text)
 
@@ -239,6 +236,9 @@ def apply():
     if _applied:
         return
     _applied = True
+    import improvements_core_io  # project files, external data, export subset, chains (fix wave B)
+
+    improvements_core_io.apply()
     from mdatk import config
 
     config.Project.validate = renderer_validate(improved_validate(config.Project.validate))

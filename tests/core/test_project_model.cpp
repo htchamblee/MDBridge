@@ -349,7 +349,7 @@ TEST(ProjectModel, ResolvePathsCases) {
         }
 #if defined(_WIN32)
         if (path.rfind("~", 0) == 0 && path.rfind("~/", 0) != 0 && path != "~") {
-            continue;  // "~user": no reference behaviour on Windows
+            continue;  // "~user": ntpath's guess from %USERPROFILE% / %USERNAME% (test_ntpath.cpp)
         }
 #endif
         EXPECT_EQ(resolvePath(path, base), platformResolved(c.find("after")->stringOr())) << path;
@@ -452,12 +452,16 @@ TEST(ProjectModel, ResolveNodePaths) {
 }
 
 TEST(ProjectModel, UnknownKeysAreLoggedWithoutAList) {
+    // PRJ-09 (D9): kept, and one warning for all of them
     const LogCapture log;
     const Project p = projectFromPlain(Table{{"zzz", 1}, {"inputs", Table{{"q", 2}}}});
-    EXPECT_EQ(p, Project{});
+    Project expected;
+    expected.unknownKeys = Table{{"zzz", 1}};
+    expected.inputs.unknownKeys = Table{{"q", 2}};
+    EXPECT_EQ(p, expected);
     EXPECT_EQ(log.lines(), (std::vector<std::string>{
-                               "WARNING: project: ignoring unknown key 'zzz'",
-                               "WARNING: project.inputs: ignoring unknown key 'q'"}));
+                               "WARNING: project: 2 unknown keys kept and saved back unchanged (from a newer "
+                               "MDATK, or misspelt?): project.zzz, project.inputs.q"}));
 }
 
 TEST(ProjectModel, ToPlainDropsNullsOfFreeFormTables) {

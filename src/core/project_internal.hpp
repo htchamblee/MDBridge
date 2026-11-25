@@ -31,6 +31,18 @@ std::string readFileBytes(const std::filesystem::path& path);
 // first undecodable byte otherwise) and universal newlines (CR LF and CR become LF).
 std::string readTextFile(const std::filesystem::path& path);
 
+// The whole file read as Python's text mode with errors="replace" reads it: bytes that are not
+// UTF-8 become U+FFFD, universal newlines. Throws std::filesystem::filesystem_error.
+std::string readTextFileReplacing(const std::filesystem::path& path);
+
+// projectfile._log_start of MDATK 0.1.0: where the step log starts in the text of a project file,
+// the position of the line break before the marker line that ends the settings (npos: no log).
+// The marker's text may also be part of the settings (pasted into the notes or a custom script):
+// there it stands inside a string, so the text before it is no complete TOML and it does not
+// start the log. When no marker ends complete settings and the whole text is valid TOML, there is
+// no log; when the whole text is not valid TOML either, the first marker (as MDATK 0.0.4.1).
+std::size_t logStart(std::string_view text);
+
 // Writes (or appends) text as Python's text mode does: LF becomes the platform's line end.
 // Throws std::filesystem::filesystem_error.
 void writeTextFile(const std::filesystem::path& path, std::string_view text, bool append = false);

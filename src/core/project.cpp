@@ -19,6 +19,7 @@
 #include "mdbridge/core/rigid_transform.hpp"
 #include "mdbridge/core/step_types.hpp"
 #include "mdbridge/core/text.hpp"
+#include "mdbridge/core/toml_writer.hpp"
 
 namespace mdbridge::core {
 
@@ -29,12 +30,18 @@ namespace {
 template <class T>
 concept Model = requires(const T* p) { fieldsOf(p); };
 
+// Calls f(name, member, onlyWhenSet) for every field, in declaration order.
 template <class S, class F>
 void forEachField(S& s, F&& f) {
     using T = std::remove_const_t<S>;
-    std::apply([&](const auto&... fd) { (f(fd.name, s.*(fd.member)), ...); },
+    std::apply([&](const auto&... fd) { (f(fd.name, s.*(fd.member), fd.onlyWhenSet), ...); },
                fieldsOf(static_cast<const T*>(nullptr)));
 }
+
+template <class T>
+struct IsOptional : std::false_type {};
+template <class T>
+struct IsOptional<std::optional<T>> : std::true_type {};
 
 // Calls f(member) for the field named `key`; false when there is none.
 template <class S, class F>
@@ -95,18 +102,69 @@ struct Writer {
     template <Model T>
     static Value plain(const T& s) {
         Table out;
-        forEachField(s, [&](std::string_view name, const auto& member) {
+        forEachField(s, [&](std::string_view name, const auto& member, [[maybe_unused]] bool onlyWhenSet) {
+            if constexpr (IsOptional<std::remove_cvref_t<decltype(member)>>::value) {
+                if (onlyWhenSet && !member) {
+                    return;
+                }
+            }
             out.emplace_back(std::string(name), plain(member));
         });
+        // the keys the model does not know, after its own, as they were read (D9)
+        for (const auto& [key, value] : s.unknownKeys) {
+            out.emplace_back(key, value);
+        }
         return out;
     }
 };
 
+// Where an unknown key was found, for the warning: "project.inputs.nope" (list items as
+// "project.groups[0]"; a key that is not a bare TOML key quoted as TOML quotes it, "project.\"a b\"").
+std::string keyPath(const std::string& where, std::string_view key) {
+    return where + "." + tomlKey(key);
+}
+
+// The folders of Project that are properties, not fields (PRJ-07): name the field to set.
+std::string unknownKeyHint(std::string_view path) {
+    if (path == "project.out_dir" || path == "project.cache_dir") {
+        return " (did you mean output." + std::string(path.substr(8)) + "?)";
+    }
+    if (path == "project.workflow_dir") {
+        return " (did you mean workflow.out_dir?)";
+    }
+    return {};
+}
+
+template <class S>
+void collectUnknownKeys(const S& s, const std::string& where, std::vector<std::string>& out);
+
+template <class T>
+void collectUnknownKeysOf(const T& member, const std::string& where, std::vector<std::string>& out) {
+    if constexpr (Model<T>) {
+        collectUnknownKeys(member, where, out);
+    } else if constexpr (requires { member.begin(); typename T::value_type; }) {
+        if constexpr (Model<typename T::value_type>) {
+            for (std::size_t i = 0; i < member.size(); ++i) {
+                collectUnknownKeys(member[i], where + "[" + std::to_string(i) + "]", out);
+            }
+        }
+    }
+}
+
+// This table's own unknown keys, then those inside each field (in declaration order), depth first.
+template <class S>
+void collectUnknownKeys(const S& s, const std::string& where, std::vector<std::string>& out) {
+    for (const auto& entry : s.unknownKeys) {
+        out.push_back(keyPath(where, entry.first));
+    }
+    forEachField(s, [&](std::string_view name, const auto& member, bool) {
+        collectUnknownKeysOf(member, where + "." + std::string(name), out);
+    });
+}
+
 // _from_plain: the type checks and messages of config.py.
 class Reader {
 public:
-    explicit Reader(std::vector<std::string>* warnings) : m_warnings(warnings) {}
-
     void read(const Value& v, const std::string& /*where*/, std::string& out) {
         out = v.isNull() ? std::string() : pythonStr(v);
     }
@@ -204,28 +262,20 @@ public:
             const bool known = withField(result, key, [&](auto& member) {
                 read(oneTrajectory ? Value(Array{value}) : value, at, member);
             });
-            if (!known) {
-                warn(where + ": ignoring unknown key " + repr(key) + unknownKeyHint<T>(key));
+            if (!known) {  // kept as it is and written back (D9); one warning for all of them
+                auto it = std::find_if(result.unknownKeys.begin(), result.unknownKeys.end(),
+                                       [&](const auto& entry) { return entry.first == given; });
+                if (it != result.unknownKeys.end()) {
+                    it->second = value;
+                } else {
+                    result.unknownKeys.emplace_back(given, value);
+                }
             }
         }
         out = std::move(result);
     }
 
 private:
-    // The folders of Project that are properties, not fields (PRJ-07): name the field to set.
-    template <class T>
-    static std::string unknownKeyHint([[maybe_unused]] std::string_view key) {
-        if constexpr (std::is_same_v<T, Project>) {
-            if (key == "out_dir" || key == "cache_dir") {
-                return " (did you mean output." + std::string(key) + "?)";
-            }
-            if (key == "workflow_dir") {
-                return " (did you mean workflow.out_dir?)";
-            }
-        }
-        return {};
-    }
-
     template <class T>
     static std::string_view alias(std::string_view key) {
         if constexpr (std::is_same_v<T, InputParams>) {
@@ -238,16 +288,6 @@ private:
     }
 
     [[noreturn]] static void fail(const std::string& message) { throw ProjectError(message); }
-
-    void warn(const std::string& message) const {
-        if (m_warnings) {
-            m_warnings->push_back(message);
-        } else {
-            logWarning(message);
-        }
-    }
-
-    std::vector<std::string>* m_warnings;
 };
 
 constexpr std::array<std::string_view, 6> kMetaKeys{"format", "format_version", "mdatk_version",
@@ -333,11 +373,35 @@ Project projectFromPlain(const Value& data, std::string_view baseDir,
         std::erase_if(*table, [](const auto& entry) { return oneOf(entry.first, kMetaKeys); });
     }
     Project project;
-    Reader(warnings).read(input, "project", project);
+    Reader().read(input, "project", project);
+    if (const std::vector<std::string> unknown = unknownKeyPaths(project); !unknown.empty()) {
+        const std::string message = unknownKeysWarning(unknown);
+        if (warnings) {
+            warnings->push_back(message);
+        } else {
+            logWarning(message);
+        }
+    }
     if (!baseDir.empty()) {
         resolvePaths(project, baseDir);
     }
     return project;
+}
+
+std::vector<std::string> unknownKeyPaths(const Project& project) {
+    std::vector<std::string> out;
+    collectUnknownKeys(project, "project", out);
+    return out;
+}
+
+std::string unknownKeysWarning(const std::vector<std::string>& paths) {
+    std::string out = "project: " + std::to_string(paths.size()) +
+                      (paths.size() == 1 ? " unknown key" : " unknown keys") +
+                      " kept and saved back unchanged (from a newer MDATK, or misspelt?): ";
+    for (std::size_t i = 0; i < paths.size(); ++i) {
+        out += (i ? ", " : "") + paths[i] + unknownKeyHint(paths[i]);
+    }
+    return out;
 }
 
 std::optional<std::string_view> modelComment(std::string_view path) {

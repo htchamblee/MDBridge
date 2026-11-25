@@ -671,16 +671,25 @@ AtomGroup resolveExportSelection(const System& system, std::string_view text,
         return system.atoms();
     }
     const std::vector<std::string> names = splitCsv(selection);
-    const bool allGroups =
-        !names.empty() && std::all_of(names.begin(), names.end(), [&](const std::string& n) {
-            return std::any_of(groups.begin(), groups.end(),
-                               [&](const ResidueGroup& g) { return g.name == n; });
-        });
-    if (allGroups) {
+    if (names.empty()) {  // MDATK 0.0.10 (io/pdb_export.py): "," or " , , " is no list of groups
+        throw SelectionError(repr(selection) +
+                             " names no residue group (leave the atom subset empty to export every atom)");
+    }
+    const auto isGroup = [&](const std::string& n) {
+        return std::any_of(groups.begin(), groups.end(), [&](const ResidueGroup& g) { return g.name == n; });
+    };
+    if (std::all_of(names.begin(), names.end(), isGroup)) {
         selection.clear();
         for (const std::string& n : names) {
             selection += (selection.empty() ? "group:" : " or group:") + n;
         }
+    } else if (selection.find(',') != std::string::npos &&
+               std::all_of(names.begin(), names.end(),
+                           [](const std::string& n) { return isPlainGroupName(decodeUtf8(n)); })) {
+        // MDATK 0.0.10: a list of group names (a selection has no commas) with one that does not
+        // exist is reported as that unknown group, with the message of "group:<name>"
+        const std::string missing = *std::find_if_not(names.begin(), names.end(), isGroup);
+        return select(system, "group:" + missing, groups);
     }
     return select(system, selection, groups);
 }

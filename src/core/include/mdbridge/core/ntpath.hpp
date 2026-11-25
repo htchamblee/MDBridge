@@ -1,8 +1,13 @@
 #pragma once
-// Windows path rules for the paths stored in project files, on UTF-8 strings. MDATK never ran on
-// Windows, so there is no reference behaviour: these are MDBridge's own rules, modelled on
-// Python's ntpath. Pure string functions: the same results on every host (the project code uses
-// them on Windows only; Linux and macOS keep posixpath, as MDATK).
+// Windows path rules for the paths stored in project files, on UTF-8 strings: MDBridge's own rules,
+// modelled on Python's ntpath. MDATK 0.0.4.1 has a Windows build too (a beta, packaging/windows:
+// MSYS2's Python in a PyInstaller bundle), where Project.resolve_paths uses ntpath as it is:
+// expanduser, then the path itself when isabs, else normpath(join(folder, path)), with '\' in the
+// result and absolute paths left unnormalised. CI cannot run it; MDBridge's rules point at the same
+// file as Python 3.13's ntpath except where docs/DIFFERENCES.md ("Windows paths") lists otherwise
+// (separators and normalisation, a drive-relative path on another drive, Python 3.12's "\x",
+// cleaning.cpptraj_path with '/', abspath of the output folders). Pure string functions: the same results on every host (the project code uses them on
+// Windows only; Linux and macOS keep posixpath, as MDATK).
 //
 // The rules:
 // - '/' and '\' both separate.
@@ -13,14 +18,17 @@
 // - Drive-relative ("C:x"): against the base directory when that is on the same drive (drive
 //   letters compared without case), otherwise against that drive's root ("C:/x").
 // - "~" and "~\x" (or "~/x"): the profile folder, %USERPROFILE%, else %HOMEDRIVE%%HOMEPATH%, as
-//   Python's ntpath; unchanged when neither is set. "~user" stays as it is.
+//   Python's ntpath; unchanged when neither is set. "~user" as Python's ntpath.expanduser guesses
+//   it: the profile folder itself when user is %USERNAME%, else a sibling folder named user when
+//   the profile folder is named %USERNAME% ("C:\Users\me" -> "C:\Users\user"), else unchanged.
 // - Results are normalised and in generic form: '/' separators, no "." and no ".." components
 //   (a ".." never goes above the drive or UNC root), no doubled or trailing separator except the
 //   root itself ("C:/").
 // - Device paths ("\\?\C:\x", "\\.\pipe\x", either separator) are absolute and left exactly as
 //   given: Windows does not normalise them, so neither does MDBridge.
-// - Comparisons of stored text stay case-sensitive; only the "same drive?" test of a
-//   drive-relative path ignores the case of the letter.
+// - Comparisons of stored text stay case-sensitive, as in MDATK 0.0.4.1 (it never calls normcase);
+//   only the "same drive?" test of a drive-relative path ignores the case of the letter, as
+//   ntpath.join does.
 
 #include <optional>
 #include <string>
@@ -76,15 +84,19 @@ std::optional<std::string> profileHome(const std::optional<std::string>& userPro
 // profileHome of this process's environment.
 std::optional<std::string> environmentHome();
 
-// "~" or "~" followed by a separator: `home` in place of "~" (path unchanged when home is none);
-// anything else, "~user" included, unchanged.
-std::string expanduser(std::string_view path, const std::optional<std::string>& home);
-// With the home of the environment.
+// ntpath.expanduser: "~" up to the first separator replaced by `home` (path unchanged when home is
+// none); "~user" by home when user is `userName`, else by join(dirname(home), user) when
+// basename(home) is `userName`, else unchanged (as Python, which only guesses that profile folders
+// are siblings named by user). Anything not starting with "~" is unchanged.
+std::string expanduser(std::string_view path, const std::optional<std::string>& home,
+                       const std::optional<std::string>& userName = std::nullopt);
+// With the home and %USERNAME% of the environment.
 std::string expanduser(std::string_view path);
 
 // A stored project path made absolute against the project's folder: "" stays "", "~" expanded
-// with `home`, then abspath(path, baseDir).
-std::string resolve(std::string_view path, std::string_view baseDir, const std::optional<std::string>& home);
+// with `home` and `userName`, then abspath(path, baseDir).
+std::string resolve(std::string_view path, std::string_view baseDir, const std::optional<std::string>& home,
+                    const std::optional<std::string>& userName = std::nullopt);
 // With the home of the environment.
 std::string resolve(std::string_view path, std::string_view baseDir);
 

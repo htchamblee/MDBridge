@@ -421,8 +421,28 @@ core::AnalysisResult loadExternal(const std::vector<core::ExternalSeries>& specs
             }
             const std::string& name = header[static_cast<std::size_t>(ci < 0 ? ci + width : ci)];
             const std::string array = "s" + std::to_string(n) + "_" + std::to_string(ci);
+            const std::string base = sanitizeKey(label + "." + name);
+            std::string key = base;
+            std::string text = label + ": " + name;
+            // MDATK 0.1.0 (io/external.py): two files of one name (run1/rmsd.dat, run2/rmsd.dat) or two
+            // columns whose names read alike: the later series gets a key of its own ("-2", "-3" ...)
+            // instead of replacing the earlier one (the same column named twice still replaces)
+            const auto takenByAnother = [&](const std::string& out) {
+                for (const auto& [kind, entries] : result.outputs()) {
+                    const core::Value* descriptor = kind == "series" ? entries.find(out) : nullptr;
+                    const core::Value* other = descriptor ? descriptor->find("array") : nullptr;
+                    if (other && *other != core::Value(array)) {
+                        return true;
+                    }
+                }
+                return false;
+            };
+            for (int k = 2; takenByAnother(key); ++k) {
+                key = base + "-" + std::to_string(k);
+                text = label + ": " + name + " (" + std::to_string(k) + ")";
+            }
             result.setArray(array, core::NumArray(numpyInterp(target, xs, y, nan, nan)));
-            result.addSeries(sanitizeKey(label + "." + name), array, label + ": " + name, "");
+            result.addSeries(key, array, text, "");
         }
     }
     return result;

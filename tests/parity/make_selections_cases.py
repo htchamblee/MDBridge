@@ -38,6 +38,9 @@ from mdatk import selections as S  # noqa: E402
 # MDBridge's deliberate differences (improvements_selections.py, docs/DIFFERENCES.md): group
 # expansion, select() and atom_elements as MDBridge has them, before pdb_export binds select
 improvements_selections.patch_mdatk(S)
+import improvements_core_io  # noqa: E402
+
+improvements_core_io.apply_export()  # the export subset of commas or unknown groups (EXP-01, MDATK 0.0.10)
 
 from mdatk.config import ResidueGroup  # noqa: E402
 from mdatk.io.pdb_export import frames_from_specs, resolve_export_selection  # noqa: E402

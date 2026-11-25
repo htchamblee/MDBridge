@@ -24,12 +24,14 @@ Per analysis, the improvements that bumped it (docs/DIFFERENCES.md; "periodic": 
   rmsd 2       AN-16 .. AN-18
   proximity 2  AN-15; periodic; SEL-13 (heavy atoms)
   atoms 3      AN-13, AN-14; SEL-13 (elements, heavy atoms, bond guess) (MDATK: 2)
-  contacts 2   periodic; SEL-13 (heavy_only); a group against itself (MDATK 0.1.0)
+  contacts 2   periodic; SEL-13 (heavy_only); a group against itself (MDATK 0.1.0), whose strand
+               ends follow TOP-01's chains
   mg 2         periodic; SEL-13 (ligand / occupancy elements)
   basepairs 2  periodic, AN-11; SEL-13 (heavy atoms)
   stacking 2   periodic, AN-12 (ring atoms by name: SEL-13 does not change it)
-  trace 5      SEL-13 (heavy-atom centroids of residues without a trace atom) (MDATK: 4); its key
-               covers every group (MDATK 0.1.0; no new results)
+  trace 5      SEL-13 (heavy-atom centroids of residues without a trace atom); TOP-01 (chains from
+               bonds only when they hold the residues together) (MDATK: 4); its key covers every
+               group (MDATK 0.1.0; no new results)
 """
 
 import os

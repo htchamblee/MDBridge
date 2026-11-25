@@ -3,6 +3,7 @@
 // replayed step by step with the same clocks, and the tests of MDATK's test_projectfile.py and
 // test_config_selections.py that save or load files are ported.
 
+#include <algorithm>
 #include <cstdlib>
 #include <stdexcept>
 #include <string>
@@ -16,6 +17,7 @@
 #include "mdbridge/core/settings.hpp"
 #include "mdbridge/core/step_log.hpp"
 #include "mdbridge/core/step_types.hpp"
+#include "mdbridge/core/toml_writer.hpp"
 #include "test_support.hpp"
 
 using namespace mdbridge::core;
@@ -210,6 +212,7 @@ TEST(ProjectFileGolden, ReplaysMdatkSequence) {
 
     // 6. recent projects
     const ScopedEnvironment config("XDG_CONFIG_HOME", (dir / "config").string());
+    const ScopedEnvironment appData("APPDATA", (dir / "config").string());  // Windows (D16)
     std::vector<fs::path> paths;
     for (std::size_t k = 0; k < kRecentMax + 2; ++k) {
         const fs::path project = dir / ("recent/p" + std::to_string(k) + ".mdatk.toml");
@@ -362,7 +365,10 @@ TEST(ProjectIo, RelativePathsAndAliases) {
     EXPECT_EQ(p.inputs.trajectories, std::vector<std::string>{base + "/traj.nc"});
     EXPECT_EQ(p.output.out_dir, base + "/out");
     ASSERT_EQ(warnings.size(), 1u);
-    EXPECT_EQ(warnings[0], "project: ignoring unknown key 'not_a_key'");
+    // PRJ-09 (D9): kept and saved back, one warning (MDATK: "project: ignoring unknown key 'not_a_key'")
+    EXPECT_EQ(warnings[0], "project: 1 unknown key kept and saved back unchanged (from a newer MDATK, or "
+                           "misspelt?): project.not_a_key");
+    EXPECT_EQ(p.unknownKeys, (Table{{"not_a_key", 1}}));
 }
 
 // tests/test_config_selections.py::test_params_log_can_be_replayed
@@ -434,7 +440,12 @@ TEST(ProjectIo, InvalidUtf8InAnExistingProjectIsAnError) {
 TEST(ProjectIo, RecentProjects) {
     TempDir dir;
     const ScopedEnvironment config("XDG_CONFIG_HOME", (dir / "config").string());
-    EXPECT_EQ(userSettingsPath(), dir / "config" / "mdatk" / "settings.toml");
+    const ScopedEnvironment appData("APPDATA", (dir / "config").string());
+#ifdef _WIN32
+    EXPECT_EQ(userSettingsPath(), dir / "config" / "MDBridge" / "settings.toml");  // D16: not shared
+#else
+    EXPECT_EQ(userSettingsPath(), dir / "config" / "mdatk" / "settings.toml");  // shared with MDATK
+#endif
     EXPECT_TRUE(recentProjects().empty());
     std::vector<fs::path> paths;
     for (int k = 0; k < 12; ++k) {
@@ -449,4 +460,220 @@ TEST(ProjectIo, RecentProjects) {
     fs::remove(paths[11]);
     recent = recentProjects();
     EXPECT_EQ(recent[0], paths[10]);
+}
+
+// PRJ-12 (AP-17, MDATK 0.0.14): the recent list keeps every other setting of the shared file
+// (RNAdo's cat_proof and whatever else MDATK keeps there) and is written atomically. The text is
+// MDATK 0.1.1's add_recent for the same file.
+TEST(ProjectIo, RecentListKeepsOtherSettings) {
+    TempDir dir;
+    const ScopedEnvironment config("XDG_CONFIG_HOME", (dir / "config").string());
+    const ScopedEnvironment appData("APPDATA", (dir / "config").string());
+    const fs::path settings = userSettingsPath();
+    fs::create_directories(settings.parent_path());
+    writeFile(settings, "# x\ncat_proof = true\nrecent = [\"/gone.mdatk.toml\"]\n[window]\nwidth = 3\n");
+    const fs::path project = dir / "p.mdatk.toml";
+    saveProject(project, Project{});
+    addRecent(project);
+    const std::string written = replaceAll(readFile(settings), "\r\n", "\n");
+    EXPECT_EQ(written, "# Molecular Dynamic Analysis Tool Kit (MDATK) user settings.\n\n"
+                       "# RNAdo's Cat-proof mode: the keyboard is ignored (untick it with the mouse).\n"
+                       "cat_proof = true\n"
+                       "# Recently used project files, newest first.\n"
+                       "recent = " + tomlValue(Array{Value(pathToUtf8(recentProjects().at(0)))}) + "\n\n"
+                       "[window]\nwidth = 3\n");
+    EXPECT_EQ(recentProjects(), std::vector<fs::path>{project});
+    EXPECT_FALSE(fs::exists(settings.string() + ".tmp"));
+
+    // a file that is no TOML is replaced, as MDATK does
+    writeFile(settings, "recent = [\n");
+    addRecent(project);
+    EXPECT_EQ(recentProjects(), std::vector<fs::path>{project});
+}
+
+// D16: Linux keeps the recent list in MDATK's shared file and MDBridge's own settings in its own
+// folder; Windows keeps both in %APPDATA%\MDBridge.
+TEST(ProjectIo, ConfigFolders) {
+    TempDir dir;
+    const ScopedEnvironment config("XDG_CONFIG_HOME", (dir / "xdg").string());
+    const ScopedEnvironment appData("APPDATA", (dir / "roaming").string());
+#ifdef _WIN32
+    EXPECT_EQ(mdbridgeConfigDir(), dir / "roaming" / "MDBridge");
+    EXPECT_EQ(userSettingsPath(), dir / "roaming" / "MDBridge" / "settings.toml");
+#else
+    EXPECT_EQ(mdbridgeConfigDir(), dir / "xdg" / "mdbridge");
+    EXPECT_EQ(userSettingsPath(), dir / "xdg" / "mdatk" / "settings.toml");
+    const ScopedEnvironment noXdg("XDG_CONFIG_HOME", "");
+    const ScopedEnvironment home("HOME", (dir / "home").string());
+    EXPECT_EQ(mdbridgeConfigDir(), dir / "home" / ".config" / "mdbridge");
+    EXPECT_EQ(userSettingsPath(), dir / "home" / ".config" / "mdatk" / "settings.toml");
+#endif
+}
+
+// ---- project files of a later MDATK (D9; tests/parity/make_mdatk_latest_projects.py) ---------
+
+namespace {
+
+const fs::path kLatest = kData / "project-file" / "mdatk-0.1.1";
+
+std::string unixLines(const std::string& text) { return replaceAll(text, "\r\n", "\n"); }
+
+}  // namespace
+
+// PRJ-09: MDBridge reads what MDATK 0.1.1 reads from its own files: the settings, the step log
+// (statuses waiting and stopped, the step "workflow supersede") and the separate log file; every key
+// 0.1.x added to the plan is modelled, so there is no warning.
+TEST(ProjectCompat, ReadsWhatMdatkLatestReads) {
+    const Value expected = readJson(kLatest / "read.json");
+    for (const auto& [name, c] : *expected.find("files")->get<Table>()) {
+        const fs::path path = kLatest / name;
+        const Value settings = readProject(path).settings;
+        EXPECT_EQ(settings, tagged(*c.find("settings"))) << name;
+        std::string warning;
+        EXPECT_EQ(Value(readLog(path, &warning)), tagged(*c.find("log"))) << name;
+        EXPECT_EQ(warning, "") << name;
+        EXPECT_EQ(logFileName(path), c.find("log_file")->stringOr()) << name;
+        std::vector<std::string> warnings;
+        const Project p = projectFromPlain(settings, {}, &warnings);
+        EXPECT_EQ(warnings, std::vector<std::string>{}) << name;
+        EXPECT_EQ(p.workflow.supersede_runs, false);
+        EXPECT_EQ(p.workflow.parallel, 3);
+        EXPECT_EQ(p.workflow.cpu_cores, 8);
+        EXPECT_EQ(p.workflow.gpus, 1);
+        EXPECT_EQ(p.workflow.last_node, 7);
+        ASSERT_EQ(p.workflow.nodes.size(), 4u);
+        EXPECT_EQ(p.workflow.nodes[1].adopted, "20261101-0900");
+        EXPECT_EQ(p.workflow.nodes[1].folder_tag, "model12");
+        EXPECT_EQ(p.workflow.nodes[0].adopted, "");  // 0.1.1 writes adopted always, folder_tag when set
+        EXPECT_EQ(p.workflow.nodes[0].folder_tag, std::nullopt);
+    }
+}
+
+// PRJ-09: saving a project MDATK 0.1.1 wrote keeps every key and value in the order of the file (the
+// plan's budgets, adopted runs and folder tags, the options of step types 0.0.4.1 does not know) and
+// the step log byte for byte, so MDATK 0.1.1 reads the saved file as it read its own.
+TEST(ProjectCompat, MdatkLatestProjectsSurviveASave) {
+    TempDir dir;
+    for (const char* name : {"plan.mdatk.toml", "sidecar.mdatk.toml", "sidecar.log.toml"}) {
+        fs::copy_file(kLatest / name, dir / name);
+    }
+    for (const char* name : {"plan.mdatk.toml", "sidecar.mdatk.toml"}) {
+        const fs::path path = dir / name;
+        const std::string before = unixLines(readFile(path));
+        const Value settings = readProject(path).settings;
+        const Array log = readLog(path);
+        std::vector<std::string> warnings;
+        Project project = projectFromPlain(settings, {}, &warnings);  // as `init -p` and a GUI save
+        project.mdatkVersion = "0.1.1";  // what loadProject sets from the file
+        saveProject(path, project);
+        EXPECT_EQ(warnings, std::vector<std::string>{}) << name;
+        EXPECT_EQ(*readProject(path).header.find("mdatk_version"), Value("0.1.1")) << name;
+        EXPECT_EQ(readProject(path).settings, settings) << name;
+        EXPECT_EQ(readLog(path), log) << name;
+        EXPECT_EQ(logFileName(path), logFileName(kLatest / name)) << name;
+        const std::string after = unixLines(readFile(path));
+        const std::string marker = "\n" + std::string(kLogMarker);
+        if (std::string(name) == "plan.mdatk.toml") {  // the notes and a script hold the marker too
+            const std::string logPart = before.substr(before.rfind(marker));
+            EXPECT_EQ(after.substr(after.size() - logPart.size()), logPart);
+        }
+    }
+    EXPECT_EQ(readFile(dir / "sidecar.log.toml"), readFile(kLatest / "sidecar.log.toml"));
+}
+
+// An unknown key of any table, at any depth, is kept with its value and written back; one warning
+// names them all (D9).
+TEST(ProjectCompat, UnknownKeysAreKeptAtEveryDepth) {
+    TempDir dir;
+    const fs::path path = dir / "p.mdatk.toml";
+    writeFile(path, "format = \"mdatk-project\"\nfuture = { a = 1, b = [1.5, \"x\"] }\n"
+                    "[inputs]\ntopology = \"t.parm7\"\nnew_option = 2026-11-25\n"
+                    "[[groups]]\nname = \"A\"\nresidues = \"1-3\"\nshade = \"light\"\n"
+                    "[analyses.contacts]\ncutoff = 5.0\nmode = \"atoms\"\n"
+                    "[[workflow.nodes]]\nid = \"n1\"\ntool = \"note\"\nnew_flag = true\n"
+                    "[[workflow.nodes.lanes]]\nname = \"x\"\n");
+    std::vector<std::string> warnings;
+    const Project p = projectFromPlain(readProject(path).settings, {}, &warnings);
+    EXPECT_EQ(warnings, (std::vector<std::string>{
+                            "project: 6 unknown keys kept and saved back unchanged (from a newer MDATK, or "
+                            "misspelt?): project.future, project.inputs.new_option, project.groups[0].shade, "
+                            "project.analyses.contacts.mode, project.workflow.nodes[0].new_flag, "
+                            "project.workflow.nodes[0].lanes"}));
+    EXPECT_EQ(unknownKeyPaths(p).size(), 6u);
+    saveProject(path, p);
+    const Value saved = readProject(path).settings;
+    EXPECT_EQ(*saved.path({"future"}), (Table{{"a", 1}, {"b", Array{1.5, "x"}}}));
+    EXPECT_EQ(saved.path({"inputs", "new_option"})->type(), Value::Type::DateTime);
+    EXPECT_EQ(*saved.path({"analyses", "contacts", "mode"}), Value("atoms"));
+    EXPECT_EQ(*(*saved.find("groups")->get<Array>())[0].find("shade"), Value("light"));
+    const Value& node = (*saved.path({"workflow", "nodes"})->get<Array>())[0];
+    EXPECT_EQ(*node.find("new_flag"), Value(true));
+    EXPECT_EQ(*node.find("lanes"), (Array{Table{{"name", "x"}}}));
+    std::vector<std::string> again;
+    EXPECT_EQ(projectFromPlain(saved, {}, &again), p);  // nothing lost or added on the second round
+}
+
+// PRJ-10 (MDATK 0.1.0): the step-log marker pasted into the notes or a script does not start the
+// log. MDATK 0.0.4.1 took it for the log: the next entry was appended without a marker of its own and
+// the next save cut the settings at the notes, leaving a file that was no TOML.
+TEST(ProjectCompat, LogMarkerInsideTheSettingsIsNoLog) {
+    TempDir dir;
+    const fs::path path = dir / "p.mdatk.toml";
+    Project p;
+    p.notes = "pasted:\n" + std::string(kLogMarker) + "\n[[log]]\nstep = \"x\"\n";
+    saveProject(path, p);
+    EXPECT_TRUE(readLog(path).empty());
+    appendLog(path, LogEntry("render", "first"));
+    ASSERT_EQ(readLog(path).size(), 1u);
+    p.analyses.contacts.cutoff = 5.0;
+    saveProject(path, p);
+    EXPECT_EQ(fromFile(path).notes, p.notes);
+    EXPECT_EQ(fromFile(path).analyses.contacts.cutoff, 5.0);
+    ASSERT_EQ(readLog(path).size(), 1u);
+    appendLog(path, LogEntry("render", "second"));
+    EXPECT_EQ(readLog(path).size(), 2u);
+    const fs::path sidecar = splitLog(path);
+    EXPECT_EQ(sidecar, dir / "p.log.toml");
+    EXPECT_EQ(fromFile(path).notes, p.notes);
+    EXPECT_EQ(readLog(path).size(), 2u);
+}
+
+// PRJ-10 (MDATK 0.1.0): a separate log file that is gone (deleted, or the project copied without it)
+// starts again with the next entry instead of failing the step's log.
+TEST(ProjectCompat, MissingSeparateLogStartsAgain) {
+    TempDir dir;
+    const fs::path path = dir / "sidecar.mdatk.toml";
+    fs::copy_file(kLatest / "sidecar.mdatk.toml", path);
+    EXPECT_EQ(appendLog(path, LogEntry("render", "after the copy")), dir / "sidecar.log.toml");
+    const Array log = readLog(path);
+    ASSERT_EQ(log.size(), 1u);
+    EXPECT_EQ(*log[0].find("title"), Value("after the copy"));
+    EXPECT_EQ(unixLines(readFile(dir / "sidecar.log.toml")).rfind("\n" + std::string(kLogMarker) + "\n\n# One entry", 0),
+              0u);
+}
+
+// PRJ-09: the mdatk_version of a later MDATK's file is kept on save; files without one, or of
+// 0.0.4.1 and older, are written as 0.0.4.1.
+TEST(ProjectCompat, MdatkVersionOfALaterMdatkIsKept) {
+    TempDir dir;
+    const fs::path path = dir / "plan.mdatk.toml";
+    fs::copy_file(kLatest / "plan.mdatk.toml", path);
+    Project p = loadProject(path);
+    EXPECT_EQ(p.mdatkVersion, "0.1.1");
+    saveProject(dir / "copy.mdatk.toml", p);
+    EXPECT_EQ(*readProject(dir / "copy.mdatk.toml").header.find("mdatk_version"), Value("0.1.1"));
+    const auto written = [](const std::string& version) {
+        Project q;
+        q.mdatkVersion = version;
+        return writtenMdatkVersion(q);
+    };
+    for (const char* older : {"", "0.0.4.1", "0.0.4", "0.0.3d", "0.0.1", "x", ".1", "abc.0.2"}) {
+        EXPECT_EQ(written(older), "0.0.4.1") << older;
+    }
+    for (const char* newer : {"0.1.1", "0.0.10", "0.0.4.2", "0.0.4.1a", "1", "0.1.1.dev3"}) {
+        EXPECT_EQ(written(newer), newer) << newer;
+    }
+    p.mdatkVersion.clear();
+    saveProject(path, p);
+    EXPECT_EQ(*readProject(path).header.find("mdatk_version"), Value("0.0.4.1"));
 }

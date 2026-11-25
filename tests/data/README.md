@@ -154,6 +154,7 @@ python3 -I -B tests/parity/python_cases.py /tmp/mdatk tests/data/python
 | `golden/` | a default and a rich project, its step log (every failure kind), a truncated output, the log moving to a side file (`split*`), a parameter log, the recent-projects list (`settings.toml`, work folder shown as `/home/user/projects`) and MDATK's messages | `python3 -I -B tests/parity/make_project_file_golden.py <MDATK checkout> tests/data/project-file/golden` (then delete `manifest.txt`, which lists sizes that depend on the temporary folder) |
 | `vectors/` | `tomlio` / `textwrap` / `_entry_text` input-output pairs; tagged values explained at the top of the generator | `python3 -I -B tests/parity/make_writer_vectors.py <MDATK checkout> tests/data/project-file/vectors` (keep the six `*_vectors.json` files the tests use) |
 | `workflow/` | projects with planner steps of every step type, edge cases and the projects of two MDATK tests, saved with `saved = 2026-10-15T14:32:00` | `python3 -I -B tests/parity/make_workflow_goldens.py <MDATK checkout> tests/data/project-file/workflow` (MDATK's dependencies importable) |
+| `mdatk-0.1.1/` | project files a later MDATK writes (D9; DIFFERENCES PRJ-09, PRJ-10): a plan with every key 0.1.x added (`workflow.parallel` ..., per step `adopted`, `folder_tag`), step types and options 0.0.4.1 lacks, the log marker in the notes and a script, a step log with `waiting`, `stopped` and `workflow supersede`; the same project with its log in a side file; `read.json`, what MDATK 0.1.1's `read()` / `read_log()` return for them | `python3 -I -B tests/parity/make_mdatk_latest_projects.py <MDATK 0.1.1 checkout> tests/data/project-file/mdatk-0.1.1` (MDATK at the commit `regenerate_all.py` names, `--mdatk-latest`; standard library only) |
 
 The generators fix the clocks (`saved`, entry times, durations), so their output is reproducible
 and equal to the committed files.
@@ -165,7 +166,7 @@ and equal to the committed files.
 
 | File | Content |
 |---|---|
-| `from_dict_cases.json` | `Project.from_dict(input, base_dir)`: hand-made inputs (aliases, unknown keys, error order, lists of objects replacing the defaults, free-form tables, path resolution), every field given a value of every TOML type (with None, NaN, infinity, 64-bit limits), integral floats in integer fields; `repr()` of the result or the error message, and the warnings logged |
+| `from_dict_cases.json` | `Project.from_dict(input, base_dir)` with MDBridge's unknown keys kept (PRJ-09, `tests/parity/improvements_core_io.py`): hand-made inputs (aliases, unknown keys, error order, lists of objects replacing the defaults, free-form tables, path resolution), every field given a value of every TOML type (with None, NaN, infinity, 64-bit limits), integral floats in integer fields; `repr()` of the result or the error message, and the warnings logged |
 | `validate_cases.json` | `validate()`, `density_problems()`, `density_active()`, `layout_warnings()`, `group_names()` of 103 projects (every check, NaN values, stored placements, fit frames), run in a folder holding the empty files listed in it |
 | `config_doc.json` | `projectfile.config_doc` of every path of the model |
 | `default_project.json` | `repr(Project().to_dict())` |

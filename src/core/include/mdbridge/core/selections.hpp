@@ -83,7 +83,12 @@ std::vector<double> parseTimeSpec(std::string_view text, std::string_view defaul
 double timeUnitFactor(std::string_view unit);
 
 // The atoms the PDB export writes (mdatk/io/pdb_export.py resolve_export_selection): "" -> all
-// atoms, "Aptamer, Target" (only group names) -> the union of the groups, else select().
+// atoms, "Aptamer, Target" (only group names) -> the union of the groups, else select(). As MDATK
+// 0.0.10 (DIFFERENCES, PDB export subset): a subset of commas only (",", " , , ") is a
+// SelectionError("',' names no residue group (leave the atom subset empty to export every
+// atom)"), and a comma list of plain names that are not all groups is reported as the first name
+// that is no group, with select()'s message for "group:<name>" (MDATK 0.0.4.1 parsed the list as
+// a selection and failed with a syntax error).
 AtomGroup resolveExportSelection(const System& system, std::string_view text,
                                  const std::vector<ResidueGroup>& groups);
 

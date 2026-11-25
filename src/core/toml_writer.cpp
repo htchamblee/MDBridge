@@ -1,5 +1,6 @@
 #include "mdbridge/core/toml_writer.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 
@@ -32,6 +33,22 @@ void appendUnicodeEscape(std::string& out, char32_t code) {
 }
 
 bool isControl(char32_t c) { return c < 0x20 || c == 0x7F; }
+
+// tomlio._comment_text of MDATK 0.0.13: one line of a comment as TOML allows it, the control
+// characters other than tab replaced by spaces (MDATK 0.0.4.1 wrote them, and the file was no
+// valid TOML); text without them is unchanged.
+std::string commentText(std::string_view line) {
+    if (std::none_of(line.begin(), line.end(), [](char c) {
+            return c != '\t' && isControl(static_cast<unsigned char>(c));
+        })) {
+        return std::string(line);
+    }
+    std::string out;
+    for (const char c : line) {
+        out += c != '\t' && isControl(static_cast<unsigned char>(c)) ? ' ' : c;
+    }
+    return out;
+}
 
 // tomlio._multiline: a multi-line basic string; the newline after the opening quotes is not part of it
 std::string multiline(std::string_view text) {
@@ -190,7 +207,7 @@ void TomlWriter::comment(const std::optional<std::string>& text, std::string_vie
         paragraphs.emplace_back();
     }
     for (const std::string& paragraph : paragraphs) {
-        std::vector<std::string> wrapped = pythonTextwrap(paragraph, width);
+        std::vector<std::string> wrapped = pythonTextwrap(commentText(paragraph), width);
         if (wrapped.empty()) {
             wrapped.emplace_back();
         }
@@ -207,8 +224,16 @@ void TomlWriter::blank() {
 }
 
 std::string TomlWriter::document(const Value& data, const std::vector<std::string>& header) {
-    for (const std::string& line : header) {
-        m_lines.push_back(line.empty() ? "#" : pythonRstrip("# " + line));
+    for (const std::string& item : header) {
+        // MDATK 0.0.13: an item with line breaks (e.g. a title in it) is one comment line per line
+        std::vector<std::string> lines = pythonSplitlines(item);
+        if (lines.empty()) {
+            lines.emplace_back();
+        }
+        for (const std::string& raw : lines) {
+            const std::string line = commentText(raw);
+            m_lines.push_back(line.empty() ? "#" : pythonRstrip("# " + line));
+        }
     }
     if (!header.empty()) {
         m_lines.emplace_back();

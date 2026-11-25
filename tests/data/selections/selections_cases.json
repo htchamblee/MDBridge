@@ -20337,7 +20337,7 @@ null,
 "groups": "chains",
 "text": "Aptamer, Nope",
 "export": true,
-"error": "invalid selection 'Aptamer, Nope' -> 'Aptamer, Nope': Unknown selection token: 'Aptamer,'",
+"error": "unknown residue group 'Nope' (defined: Aptamer, Target, Prot, Both)",
 "type": "SelectionError"
 },
 {
@@ -20468,7 +20468,7 @@ null,
 "groups": "chains",
 "text": ",",
 "export": true,
-"error": "invalid selection ',' -> ',': Unknown selection token: ','",
+"error": "',' names no residue group (leave the atom subset empty to export every atom)",
 "type": "SelectionError"
 },
 {
@@ -26480,7 +26480,7 @@ null,
 "groups": "chains",
 "text": "Aptamer, Nope",
 "export": true,
-"error": "invalid selection 'Aptamer, Nope' -> 'Aptamer, Nope': Unknown selection token: 'Aptamer,'",
+"error": "unknown residue group 'Nope' (defined: Aptamer, Target, Prot, Both)",
 "type": "SelectionError"
 },
 {
@@ -26611,7 +26611,7 @@ null,
 "groups": "chains",
 "text": ",",
 "export": true,
-"error": "invalid selection ',' -> ',': Unknown selection token: ','",
+"error": "',' names no residue group (leave the atom subset empty to export every atom)",
 "type": "SelectionError"
 },
 {
@@ -32623,7 +32623,7 @@ null,
 "groups": "chains",
 "text": "Aptamer, Nope",
 "export": true,
-"error": "invalid selection 'Aptamer, Nope' -> 'Aptamer, Nope': Unknown selection token: 'Aptamer,'",
+"error": "unknown residue group 'Nope' (defined: Aptamer, Target, Prot, Both)",
 "type": "SelectionError"
 },
 {
@@ -32754,7 +32754,7 @@ null,
 "groups": "chains",
 "text": ",",
 "export": true,
-"error": "invalid selection ',' -> ',': Unknown selection token: ','",
+"error": "',' names no residue group (leave the atom subset empty to export every atom)",
 "type": "SelectionError"
 },
 {
@@ -38412,7 +38412,7 @@ null,
 "groups": "chains",
 "text": "Aptamer, Nope",
 "export": true,
-"error": "invalid selection 'Aptamer, Nope' -> 'Aptamer, Nope': Unknown selection token: 'Aptamer,'",
+"error": "unknown residue group 'Nope' (defined: Aptamer, Target, Prot, Both)",
 "type": "SelectionError"
 },
 {
@@ -38527,7 +38527,7 @@ null,
 "groups": "chains",
 "text": ",",
 "export": true,
-"error": "invalid selection ',' -> ',': Unknown selection token: ','",
+"error": "',' names no residue group (leave the atom subset empty to export every atom)",
 "type": "SelectionError"
 },
 {
@@ -48013,7 +48013,7 @@ null,
 "groups": "chains",
 "text": "Aptamer, Nope",
 "export": true,
-"error": "invalid selection 'Aptamer, Nope' -> 'Aptamer, Nope': Unknown selection token: 'Aptamer,'",
+"error": "unknown residue group 'Nope' (defined: Aptamer, Target, Prot, Both)",
 "type": "SelectionError"
 },
 {
@@ -48077,7 +48077,7 @@ null,
 "groups": "chains",
 "text": ",",
 "export": true,
-"error": "invalid selection ',' -> ',': Unknown selection token: ','",
+"error": "',' names no residue group (leave the atom subset empty to export every atom)",
 "type": "SelectionError"
 },
 {

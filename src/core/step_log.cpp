@@ -70,7 +70,7 @@ fs::path splitLogUnlocked(const fs::path& project) {
     const fs::path sidecar = pathFromUtf8(detail::absoluteDirectory(project)) / pathFromUtf8(name);
 
     const std::string text = detail::readTextFile(project);
-    const std::size_t at = text.find("\n" + std::string(kLogMarker));
+    const std::size_t at = detail::logStart(text);
     std::string head = at == std::string::npos ? text : text.substr(0, at + 1);
     const std::string logPart = at == std::string::npos ? std::string(kLogMarker) + "\n" : text.substr(at + 1);
 
@@ -92,9 +92,18 @@ fs::path splitLogUnlocked(const fs::path& project) {
     return sidecar;
 }
 
+// Whether the log file (the project, or its separate log file) has its marker line already (MDATK
+// 0.1.0 append_log): a marker inside the settings' strings does not count, and a separate log file
+// that is gone (deleted, or the project copied without it) starts again.
 bool containsMarker(const fs::path& target) {
-    // MDATK decodes with errors="replace"; the marker is ASCII, which that decoding never alters
-    return detail::readFileBytes(target).find(kLogMarker) != std::string::npos;
+    try {
+        return detail::logStart(detail::readTextFileReplacing(target)) != std::string::npos;
+    } catch (const fs::filesystem_error& error) {
+        if (error.code() == std::errc::no_such_file_or_directory) {
+            return false;
+        }
+        throw;
+    }
 }
 
 }  // namespace

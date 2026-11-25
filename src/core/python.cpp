@@ -280,8 +280,8 @@ std::string roundToTens(double x, int digits) {
 }
 
 #if defined(_WIN32)
-// No reference behaviour: MDATK never ran on Windows. "~" is the profile folder, as in Python's
-// ntpath; "~user" stays as it is.
+// posixpath on Windows (project paths use ntpath.hpp there): "~" is the profile folder; "~user"
+// stays as it is.
 std::optional<std::string> currentUserHome() {
     if (const wchar_t* profile = _wgetenv(L"USERPROFILE")) {
         return pathToUtf8(std::filesystem::path(profile));

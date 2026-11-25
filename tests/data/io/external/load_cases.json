@@ -305,7 +305,7 @@
      ]
     ]
    ],
-   "meta_repr": "{'outputs': {'series': {'dupes.v': {'array': 's0_1', 'label': 'dupes: v', 'unit': ''}, 'dupes.w': {'array': 's0_3', 'label': 'dupes: w', 'unit': ''}, 'd2.v': {'array': 's1_2', 'label': 'd2: v', 'unit': ''}, 'd2.w': {'array': 's1_3', 'label': 'd2: w', 'unit': ''}}, 'matrices': {}, 'pairmaps': {}}}"
+   "meta_repr": "{'outputs': {'series': {'dupes.v': {'array': 's0_1', 'label': 'dupes: v', 'unit': ''}, 'dupes.w': {'array': 's0_3', 'label': 'dupes: w', 'unit': ''}, 'd2.v': {'array': 's1_1', 'label': 'd2: v', 'unit': ''}, 'd2.v-2': {'array': 's1_2', 'label': 'd2: v (2)', 'unit': ''}, 'd2.w': {'array': 's1_3', 'label': 'd2: w', 'unit': ''}}, 'matrices': {}, 'pairmaps': {}}}"
   },
   {
    "name": "fallback_header",
@@ -755,7 +755,7 @@
      ]
     ]
    ],
-   "meta_repr": "{'outputs': {'series': {'x.rmsd': {'array': 's1_1', 'label': 'x: rmsd', 'unit': ''}, 'x.other': {'array': 's1_2', 'label': 'x: other', 'unit': ''}}, 'matrices': {}, 'pairmaps': {}}}"
+   "meta_repr": "{'outputs': {'series': {'x.rmsd': {'array': 's0_1', 'label': 'x: rmsd', 'unit': ''}, 'x.other': {'array': 's0_2', 'label': 'x: other', 'unit': ''}, 'x.rmsd-2': {'array': 's1_1', 'label': 'x: rmsd (2)', 'unit': ''}, 'x.other-2': {'array': 's1_2', 'label': 'x: other (2)', 'unit': ''}}, 'matrices': {}, 'pairmaps': {}}}"
   },
   {
    "name": "spaces_header",

@@ -346,6 +346,18 @@ std::vector<std::int64_t> chainIds(const Topology& topology, std::span<const std
     for (const std::int32_t atom : first) {
         frag.push_back(fragments[static_cast<std::size_t>(atom)]);
     }
+    // MDATK 0.1.0 (analysis/structure.py chain_ids): when the bonds do not even hold each residue
+    // together (a PDB file with CONECT records for its ligand only: every other atom is a fragment
+    // of its own), they say nothing about chains, and every residue is in chain 0. MDATK 0.0.4.1
+    // made each residue its own chain there.
+    for (const std::int32_t r : residues) {
+        const auto members = topology.residueAtoms(r);
+        for (const std::int32_t atom : members) {
+            if (fragments[static_cast<std::size_t>(atom)] != fragments[static_cast<std::size_t>(members.front())]) {
+                return std::vector<std::int64_t>(n, 0);
+            }
+        }
+    }
     return ranks(frag);
 }
 

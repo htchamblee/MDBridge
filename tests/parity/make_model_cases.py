@@ -45,7 +45,7 @@ from mdatk import projectfile as PF  # noqa: E402
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import improvements_cli  # noqa: E402
 
-improvements_cli.apply()  # MDBridge's validation and messages (PRJ-01, PRJ-03, PRJ-07)
+improvements_cli.apply()  # MDBridge's validation and messages (PRJ-01, PRJ-03; PRJ-07 / PRJ-09)
 
 os.makedirs(OUT, exist_ok=True)
 

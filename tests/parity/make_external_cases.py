@@ -37,6 +37,11 @@ from mdatk.config import ExternalSeries  # noqa: E402
 from mdatk.data import Dataset  # noqa: E402
 from mdatk.io import external  # noqa: E402
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import improvements_core_io  # noqa: E402
+
+improvements_core_io.apply_external()  # two series of one key keep both (EXT-01, MDATK 0.1.0)
+
 TMP = tempfile.mkdtemp(prefix="external-cases-")
 
 

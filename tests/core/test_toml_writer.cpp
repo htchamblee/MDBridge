@@ -84,3 +84,21 @@ TEST(TomlWriterVectors, Dumps) {
             << text(c, "name");
     }
 }
+
+// PRJ-11 (MDATK 0.0.13, tomlio.py _comment_text): control characters other than tab become spaces
+// in comments, and a header item with line breaks is one comment line per line, so the file stays
+// valid TOML (MDATK 0.0.4.1 wrote them as they were). The texts are MDATK 0.1.1's.
+TEST(TomlWriter, CommentsHoldNoControlCharacters) {
+    TomlWriter writer;
+    writer.comment("a\x01" "b\x1b[0m\x7f.");
+    EXPECT_EQ(writer.lines(), std::vector<std::string>{"# a b [0m ."});
+    EXPECT_EQ(dumpToml(Table{{"a", 1}}, {}, {"Title\nwith\x02 two lines", ""}),
+              "# Title\n# with  two lines\n#\n\na = 1\n");
+    // a free-form key with a control character is named in its comment
+    const std::string text = dumpToml(
+        Table{{"t", Table{{std::string("k\x01"), 1}}}},
+        [](const std::vector<std::string>& path, const std::vector<const Value*>&) -> std::optional<std::string> {
+            return "Option '" + path.back() + "'.";
+        });
+    EXPECT_EQ(text, "# Option 't'.\n[t]\n# Option 'k '.\n\"k\\u0001\" = 1\n");
+}
