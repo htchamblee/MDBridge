@@ -749,9 +749,8 @@ void StructurePanel::setupStage(Figure& fig) {
     m_covered.assign(m_res, true);  // the scene draws every residue (or hides it): no 2D trace
 }
 
-void StructurePanel::renderStage(Figure& fig) {
+void StructurePanel::stageItems(std::size_t pos) {
     Stage& st = *m_stage;
-    const std::size_t pos = *m_pos;
     if (st.pos != pos || st.items.empty()) {  // rotations reuse the frame's geometry
         try {
             const std::vector<molecule::Vec3> rgb = residueRgb(pos);
@@ -776,6 +775,27 @@ void StructurePanel::renderStage(Figure& fig) {
         }
     }
     st.pos = pos;
+}
+
+std::optional<StructurePanel::StageFrame> StructurePanel::stageFrame(std::size_t pos) {
+    if (!ok() || !m_stage || pos >= m_frames) {
+        return std::nullopt;
+    }
+    stageItems(pos);
+    StageFrame out;
+    out.items = m_stage->items;
+    for (std::size_t i = 0; i < 3; ++i) out.viewport.rotation[i] = m_viewMatrix[i];
+    out.viewport.xlim = {m_dataLo[0], m_dataHi[0]};
+    out.viewport.ylim = {m_dataLo[1], m_dataHi[1]};
+    out.viewport.zrange = {m_zmin, m_zmax};
+    out.shading = stageShading(pos);
+    return out;
+}
+
+void StructurePanel::renderStage(Figure& fig) {
+    Stage& st = *m_stage;
+    const std::size_t pos = *m_pos;
+    stageItems(pos);
     Image& im = artist<Image>(fig, st.image);
     im.rows = im.cols = 0;
     im.rgba.clear();

@@ -3,8 +3,10 @@
 // (render/vulkan/scene_renderer.hpp) on Qt's device, straight into the swapchain image (no
 // read-back); milestone 1's placeholder without a molecule.
 
+#include <atomic>
 #include <memory>
 #include <mutex>
+#include <utility>
 
 #include <QVulkanInstance>
 #include <QVulkanWindow>
@@ -24,9 +26,14 @@ public:
     QVulkanWindowRenderer* createRenderer() override;
     void frameDone() { emit frameRendered(); }
 
-    // Shows `frame` from the next frame on (nullptr: the placeholder). Thread-safe.
-    void setMoleculeFrame(std::shared_ptr<const MoleculeFrame> frame);
+    // Shows `frame` through `camera` from the next frame on (nullptr: the placeholder).
+    // Thread-safe.
+    void setMoleculeFrame(std::shared_ptr<const MoleculeFrame> frame, const ViewCamera& camera = {});
     std::shared_ptr<const MoleculeFrame> moleculeFrame() const;
+    std::pair<std::shared_ptr<const MoleculeFrame>, ViewCamera> moleculeAndCamera() const;
+    // Whether the last frame drew the molecule set then (set by the renderer).
+    void setMoleculeDrawn(const MoleculeFrame* frame) { m_drawn = frame; }
+    bool moleculeDrawn() const;
 
 signals:
     void frameRendered();
@@ -40,6 +47,8 @@ private:
     bool m_checkScheduled = false;
     mutable std::mutex m_frameMutex;
     std::shared_ptr<const MoleculeFrame> m_frame;
+    ViewCamera m_camera;
+    std::atomic<const MoleculeFrame*> m_drawn{nullptr};
 };
 
 class VulkanView : public View {
@@ -48,7 +57,10 @@ class VulkanView : public View {
 public:
     VulkanView(VulkanWindow* window, const QString& description);
     QImage grabFrame() override;
-    bool setMoleculeFrame(std::shared_ptr<const MoleculeFrame> frame) override;
+    bool moleculeShown() const override;
+
+protected:
+    bool showMolecule(std::shared_ptr<const MoleculeFrame> frame, const ViewCamera& camera) override;
 };
 
 // The Vulkan view on the preferred device with Vulkan 1.3, or nullptr with the reason.

@@ -17,7 +17,9 @@ The plan (modules, libraries, migration order, definition of done) is in
   Windows installer with MSVC 2022, and tests both as users get them (`.github/workflows/ci.yml`).
 - **3D view**: a Vulkan 1.3 window inside the Qt interface, with a software view (QPainter) as
   the fallback on machines without Vulkan 1.3 (older GPUs, virtual machines, remote displays), or
-  when Vulkan fails to start. It shows a placeholder scene until the `render` milestone.
+  when Vulkan fails to start. It showed a placeholder scene until milestone 4, which draws an
+  opened project's reference-frame structure there (mouse rotation and zoom) above a read-only
+  preview of its figure.
 
 **Milestone 2, `core` and `io`**, reads and writes everything MDATK v0.0.4.1 reads and writes
 before its analyses start, checked against MDATK itself in CI:
