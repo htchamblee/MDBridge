@@ -186,7 +186,7 @@ def main():
                 for allow_empty in (False, True):
                     r = call(lambda: S.select(u, t, groups, allow_empty).indices)
                     out["select"].append({"fixture": fixture, "groups": name, "text": t, "allow_empty": allow_empty, **r})
-        for t in ["", "  ", "Aptamer, Target", "Aptamer,Target,", "Aptamer, Nope", "Aptamer", " Prot ,Both ",
+        for t in ["", "  ", "Aptamer, Target", "Aptamer,Target,", "Aptamer, Nope", "Aptamer, Tagret", "Aptamer", " Prot ,Both ",
                   "name P", "group:Target", ",", "Aptamer,,Target"]:
             r = call(lambda: resolve_export_selection(u, t, group_sets["chains"]).indices)
             out["select"].append({"fixture": fixture, "groups": "chains", "text": t, "export": True, **r})

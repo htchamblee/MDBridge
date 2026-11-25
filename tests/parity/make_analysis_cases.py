@@ -26,7 +26,8 @@ copies (written by earlier generators). Writes into OUT_DIR:
                         (a 4-bp duplex and its Mg ions wrapped into a 25 A cubic and a triclinic
                         cell, 6 frames), pdb_nobonds.pdb / .gro / .dcd (the demo without CONECT and
                         element columns, chain IDs A / B / C, 8 frames), noh.pdb / .dcd (the demo's
-                        heavy atoms, 4 frames), aromatic.pdb (PHE / TYR / TRP / HIE / HSD / HIS next
+                        heavy atoms, 4 frames), noh_conect.pdb (noh.pdb without chain IDs, CONECT
+                        records for one bond of residue 24 only: TOP-01), aromatic.pdb (PHE / TYR / TRP / HIE / HSD / HIS next
                         to bases, 3 models)
   systems_cases.json    the analyses on those systems
   spatial_cases.json    mdatk.spatial: _usable_box, pairs_within (no box, orthorhombic, triclinic,
@@ -987,8 +988,9 @@ def pdb_atom_line(serial, name, resname, chain, resid, xyz, element="", hetatm=F
     return line + (f"{element:>2s}" if element else "")
 
 
-def write_pdb(path, models, atoms, box=None):
-    """atoms: [(name, resname, chain, resid, element, hetatm)]; models: [n_atoms x 3] per model."""
+def write_pdb(path, models, atoms, box=None, conect=()):
+    """atoms: [(name, resname, chain, resid, element, hetatm)]; models: [n_atoms x 3] per model;
+    conect: (serial, serial) pairs written as CONECT records."""
     lines = ["REMARK   1 MDBRIDGE TEST SYSTEM (tests/parity/make_analysis_cases.py)"]
     if box is not None:
         lines.append(f"CRYST1{box[0]:9.3f}{box[1]:9.3f}{box[2]:9.3f}{box[3]:7.2f}{box[4]:7.2f}{box[5]:7.2f}"
@@ -1001,6 +1003,9 @@ def write_pdb(path, models, atoms, box=None):
         lines.append("TER")
         if len(models) > 1:
             lines.append("ENDMDL")
+    for a, b in conect:
+        lines.append(f"CONECT{a:5d}{b:5d}")
+        lines.append(f"CONECT{b:5d}{a:5d}")
     lines.append("END")
     with open(path, "w", encoding="ascii", newline="\n") as fh:
         fh.write("\n".join(lines) + "\n")
@@ -1071,6 +1076,14 @@ def pdb_systems():
     noh_dcd = os.path.join(SYSTEMS, "noh.dcd")
     write_mda(noh_dcd, noh, coords[::6, keep], box, fmt="DCD")
     out["noh"] = (noh, noh_dcd)
+    # noh_conect: noh without chain IDs, with CONECT records for one bond of residue 24 only (C4'-C3'),
+    # so the bonds do not hold the residues together: one chain (TOP-01), and a group against itself
+    # leaves out the sequence neighbours of both strands (MDATK 0.0.4.1: every residue a chain of its own)
+    serial = {(int(atoms[k].resid), str(atoms[k].name)): n + 1 for n, k in enumerate(keep)}
+    rows = [(r[0], r[1], "", r[3], r[4], r[5]) for r in rows]
+    noh_conect = os.path.join(SYSTEMS, "noh_conect.pdb")
+    write_pdb(noh_conect, [coords[0, keep]], rows, box, conect=[(serial[(24, "C4'")], serial[(24, "C3'")])])
+    out["noh_conect"] = (noh_conect, noh_dcd)
     return out
 
 
@@ -1218,6 +1231,10 @@ def systems_cases():
     s = sys_("noh", noh, [noh_dcd])
     cases.append(run_case("noh", s, demo, [], ALL))
     cases.append(run_case("noh_no_angle", s, demo, ["analyses.hbonds.use_angle=false"], ["hbonds"]))
+    noh_conect, _ = pdbs["noh_conect"]
+    s = sys_("noh_conect", noh_conect, [noh_dcd])
+    cases.append(run_case("noh_conect_self", s, demo, ["groups.0.residues=1-24", "analyses.contacts.group_b=Aptamer"],
+                          ["contacts", "trace"]))
     s = sys_("aromatic", aromatic)
     arom = micro_base({"Aptamer": "1-4", "Target": "5-10"})
     cases.append(run_case("aromatic", s, arom, [], ALL))
@@ -1231,7 +1248,7 @@ def systems_cases():
             "base_projects": {
                 "periodic_*": "mdatk.demo.demo_project('periodic.parm7', 'periodic.nc', 'MDATK_output', 4, "
                               "cleaning=False)",
-                "pdb_nobonds*, gro_nobonds*, noh": "the demo project (demo_dry_cases.json)",
+                "pdb_nobonds*, gro_nobonds*, noh*": "the demo project (demo_dry_cases.json)",
                 "aromatic": "tests/conftest.micro_project({'Aptamer': '1-4', 'Target': '5-10'})"},
             "cases": cases}
 

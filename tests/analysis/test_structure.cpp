@@ -395,7 +395,10 @@ TEST(StructureAnalyses, PdbWithoutBondsPbc) {
 }
 
 TEST(StructureAnalyses, HeavyAtomsAndAromatic) {
-    report(runCases("systems_cases.json", [](std::string_view n) { return n == "noh" || n == "aromatic"; }), 6, 0);
+    // noh_conect_self: one chain from bonds that do not hold the residues together (TOP-01)
+    report(runCases("systems_cases.json",
+                    [](std::string_view n) { return n == "noh" || n == "aromatic" || n == "noh_conect_self"; }),
+           7, 0);
 }
 
 // ---------------------------------------------------------------- helpers

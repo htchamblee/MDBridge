@@ -158,8 +158,12 @@ against comparing every pair.
   ligand's leaves every other atom a fragment of its own, and MDATK 0.0.4.1 made every residue its own
   chain (no backbone links in the structure view, wrong chain colours and legend). When some residue's
   atoms lie in more than one fragment, every residue is in chain 0. Part of the trace analysis'
-  version 5. *Tested:* test_topology.cpp (ChainsFromBondsOnlyWhenTheyHoldTheResidues); the generators'
-  chain_ids is 0.1.0's (tests/parity/improvements_core_io.py).
+  version 5; the contacts of a group with itself take their strand ends from these chains ("Contacts
+  of a group with itself"). *Tested:* test_topology.cpp (ChainsFromBondsOnlyWhenTheyHoldTheResidues);
+  systems_cases.json `noh_conect_self` (the heavy-atom demo without chain IDs, CONECT for one bond of
+  residue 24 only: one chain, so the contacts of residues 1-24 against themselves leave out every
+  sequence neighbour, 12-13 included, and the trace has one chain); the generators' chain_ids is 0.1.0's
+  (tests/parity/improvements_core_io.py).
 - **`info` residue-name ranking:** equal counts are ordered by name (MDATK: numpy's argsort order,
   which depends on the CPU's sort kernel).
 - **Distance selections** (`around`, `sphzone`, ...) compute distances directly. The grid-search
@@ -688,9 +692,11 @@ test_selections.cpp; cli_cases.json (`info_groups`); framework_cases.json (cache
 - **EXP-01: the PDB export's atom subset** (MDATK 0.0.10, io/pdb_export.py lines 19-40). A subset
   of commas only (`,`, ` , , `) is `',' names no residue group (leave the atom subset empty to export
   every atom)`, and a comma list of plain names that are not all groups names the first unknown one
-  with the message `group:<name>` gets (`unknown residue group 'Nope' (defined: Aptamer, Target)`);
+  with the message `group:<name>` gets (`unknown residue group 'Nope' (defined: Aptamer, Target)`,
+  with SEL-20's suggestion for a typo: `...; did you mean 'Target'?`);
   MDATK 0.0.4.1 parsed both as a selection (`Unknown selection token: 'Aptamer,'`).
-  *Tested:* selections_cases.json (export cases), with tests/parity/improvements_core_io.py.
+  *Tested:* selections_cases.json (export cases, `Aptamer, Tagret` among them), with
+  tests/parity/improvements_core_io.py.
 - **EXT-01: two external series of one key keep both** (MDATK 0.1.0, io/external.py lines 111-121).
   Two files of one name (`run1/rmsd.dat`, `run2/rmsd.dat`) or two columns whose names read alike gave
   the same series key, and the later series replaced the earlier one. The later one now gets a key of
@@ -1004,14 +1010,16 @@ bump ("Analysis cache" above).
   residue pair once (i < j), and `per_res_a` / `per_res_b` counted it on one residue only, so a residue's
   count depended on index order; now both arrays are each residue's row plus its column (equal). (2)
   Residues next to each other in sequence (`|resindex difference| <= 1`) are left out only within one
-  chain (`core::chainIds`: chain ID, segment, then bonded fragments): the last residue of a strand and
+  chain (`core::chainIds`: chain ID, segment, then bonded fragments when they hold every residue
+  together, TOP-01): the last residue of a strand and
   the first of the next (a duplex's closing base pair) are no neighbours and count. (3) The `atom_pairs`
   series is labelled `A–B atom contacts`, not `heavy-atom contacts`, when hydrogens count
   (`heavy_only = false`); the output label (`outputLabel`, chart and panel titles) says the same. *Why:*
   bugs: order-dependent counts, missing contacts of the closing pair, a wrong label. *Tested:*
   demo_dry_variants.json `contacts_self_duplex` (the demo duplex against itself: per_res_a equals
   per_res_b; the closing pair 12-13, 14 atom contacts on the first frame, was left out before), the contacts_same_group / contacts_all_atoms cases of
-  micro_cases.json and demo_dry_variants.json; `AnalysisFramework.InstanceKeysAndLabels`.
+  micro_cases.json and demo_dry_variants.json; systems_cases.json `noh_conect_self` (chains from
+  TOP-01); `AnalysisFramework.InstanceKeysAndLabels`.
 - **Structure trace cache key covers every group.** The trace result records every residue group's
   residues (`group_member`, `group_index`), which colour the view and choose the residues of the 3D
   representations, but its cache key covered only the groups shown (`visual.structure_groups`) and the
