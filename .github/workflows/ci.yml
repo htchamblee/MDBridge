@@ -76,7 +76,7 @@ jobs:
       # video encoding: rebuilt only when packaging/ffmpeg changes (pins, scripts)
       - name: FFmpeg (LGPL) and SVT-AV1 from the cache
         id: ffmpeg-cache
-        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25  # v5.1.0
+        uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25  # v5.1.0
         with:
           path: |
             build/ffmpeg/prefix
@@ -88,6 +88,16 @@ jobs:
         run: |
           dnf install -y --setopt=install_weak_deps=False nasm make pkgconf-pkg-config diffutils gawk
           packaging/ffmpeg/build_ffmpeg.sh --prefix build/ffmpeg/prefix --work build/ffmpeg/work
+
+      # saved right away, so a later failing step does not cost the next run the FFmpeg build
+      - name: FFmpeg (LGPL) and SVT-AV1 into the cache
+        if: steps.ffmpeg-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25  # v5.1.0
+        with:
+          path: |
+            build/ffmpeg/prefix
+            build/ffmpeg/ffmpeg-*-source.tar.xz
+          key: ${{ steps.ffmpeg-cache.outputs.cache-primary-key }}
 
       - name: Configure and build
         run: |
@@ -224,7 +234,7 @@ jobs:
       # video encoding: rebuilt only when packaging/ffmpeg changes (pins, scripts)
       - name: FFmpeg (LGPL) and SVT-AV1 from the cache
         id: ffmpeg-cache
-        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25  # v5.1.0
+        uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25  # v5.1.0
         with:
           path: |
             build/ffmpeg/prefix
@@ -234,6 +244,16 @@ jobs:
       - name: FFmpeg (LGPL) and SVT-AV1 with vcpkg (packaging/ffmpeg/windows/build_ffmpeg.ps1)
         if: steps.ffmpeg-cache.outputs.cache-hit != 'true'
         run: packaging\ffmpeg\windows\build_ffmpeg.ps1 -Prefix build\ffmpeg\prefix -Work C:\mdbff  # short path: vcpkg's build trees
+
+      # saved right away, so a later failing step does not cost the next run the vcpkg build
+      - name: FFmpeg (LGPL) and SVT-AV1 into the cache
+        if: steps.ffmpeg-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25  # v5.1.0
+        with:
+          path: |
+            build/ffmpeg/prefix
+            build/ffmpeg/ffmpeg-*-vcpkg-source.zip
+          key: ${{ steps.ffmpeg-cache.outputs.cache-primary-key }}
 
       - name: Build, tests, zip and installer
         run: packaging\windows\build_windows.ps1 -QtDir "C:\Qt\$env:QT_VERSION\msvc2022_64" -Out dist -FFmpegRoot build\ffmpeg\prefix
