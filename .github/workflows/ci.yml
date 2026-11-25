@@ -449,6 +449,15 @@ jobs:
           ref: v0.0.4.1
           path: mdatk
 
+      # project files of a later MDATK for the round-trip tests (D9): 0.1.1, main after its version
+      # commit (no tag); tests/parity/regenerate_all.py LATEST_COMMIT
+      - name: MDATK 0.1.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          repository: htchamblee/MDATK
+          ref: 1efa0ef44e9cb0d04b9c04a409919f7913f59fdb
+          path: mdatk-latest
+
       # Python 3.13: textwrap, json's messages and the Unicode tables depend on the version
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
         with:
@@ -471,9 +480,10 @@ jobs:
 
       - name: Regenerate every data set and compare with the committed files
         run: |
-          python tests/parity/regenerate_all.py --mdatk mdatk --out "$RUNNER_TEMP/fresh" \
-            --python "$RUNNER_TEMP/venv/bin/python"
-          test -z "$(git -C mdatk status --porcelain)"  # nothing was written into the checkout
+          python tests/parity/regenerate_all.py --mdatk mdatk --mdatk-latest mdatk-latest \
+            --out "$RUNNER_TEMP/fresh" --python "$RUNNER_TEMP/venv/bin/python"
+          test -z "$(git -C mdatk status --porcelain)"  # nothing was written into the checkouts
+          test -z "$(git -C mdatk-latest status --porcelain)"
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         if: failure()

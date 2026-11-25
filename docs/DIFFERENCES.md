@@ -48,7 +48,7 @@ expected data is adjusted on the test side; generated files are never edited by 
   improvement of this release: energy 2 (AN-01-AN-05, AN-07, AN-08, RD-P12's float64 charges,
   SEL-13, AN-25-AN-27), hbonds 2 (AN-01-AN-04, AN-09, AN-10, SEL-13), rmsd 2 (AN-16-AN-18), proximity 2 (AN-01-AN-04,
   AN-15, SEL-13), atoms 3 (AN-13, AN-14, SEL-13), contacts 2 and mg 2 (AN-01-AN-04, SEL-13),
-  basepairs 2 (AN-01-AN-04, AN-11, SEL-13), stacking 2 (AN-01-AN-04, AN-12) and trace 5 (SEL-13). The test side gives MDATK's analyses these
+  basepairs 2 (AN-01-AN-04, AN-11, SEL-13), stacking 2 (AN-01-AN-04, AN-12) and trace 5 (SEL-13, TOP-01). The test side gives MDATK's analyses these
   versions from one table, tests/parity/analysis_versions.py, which regenerate_all.py checks against
   the C++ descriptors.
 
@@ -147,6 +147,14 @@ against comparing every pair.
 ## Readers and topologies
 
 - **Self-bonds** (`CONECT 1 1`, kept by MDAnalysis) are dropped; the topology model has none.
+- **TOP-01: chains from bonds only when the bonds hold the residues together** (MDATK 0.1.0,
+  analysis/structure.py `chain_ids`, lines 75-84; core::chainIds). Without chain IDs or segments that
+  tell chains apart, the bonded fragments do; but a PDB file whose only CONECT records are its
+  ligand's leaves every other atom a fragment of its own, and MDATK 0.0.4.1 made every residue its own
+  chain (no backbone links in the structure view, wrong chain colours and legend). When some residue's
+  atoms lie in more than one fragment, every residue is in chain 0. Part of the trace analysis'
+  version 5. *Tested:* test_topology.cpp (ChainsFromBondsOnlyWhenTheyHoldTheResidues); the generators'
+  chain_ids is 0.1.0's (tests/parity/improvements_core_io.py).
 - **`info` residue-name ranking:** equal counts are ordered by name (MDATK: numpy's argsort order,
   which depends on the CPU's sort kernel).
 - **Distance selections** (`around`, `sphzone`, ...) compute distances directly. The grid-search
@@ -456,13 +464,38 @@ test_selections.cpp; cli_cases.json (`info_groups`); framework_cases.json (cache
   / "cannot convert float infinity to integer" as a ProjectError.
 - A planner node's `files` value that is not a string gives "<where>.files.<port>: expected a file
   path, got <repr>" (MDATK crashes).
-- **Windows paths** (MDATK never ran on Windows; src/core/include/mdbridge/core/ntpath.hpp): `/` and `\`
-  both separate; drive, UNC and root-relative paths are absolute (root-relative takes the project
-  folder's drive); `C:x` resolves against the project folder when that is on drive C, otherwise against
-  `C:/`; `~` expands to %USERPROFILE% (else %HOMEDRIVE%%HOMEPATH%); results are normalised and written
-  with `/` (`C:\data\..\a.pdb` → `C:/a.pdb`); device paths (`\\?\`, `\\.\`) are kept as written;
-  comparison is case-sensitive. On Linux and macOS paths follow posixpath exactly, as MDATK does.
-  *Tested:* tests/core/test_ntpath.cpp on every platform.
+- **Windows paths** (src/core/include/mdbridge/core/ntpath.hpp). MDATK 0.0.4.1 has a Windows build
+  (a beta: `packaging/windows`, MSYS2's Python bundled with PyInstaller); there `resolve_paths` uses
+  Python's `ntpath` as it is: `expanduser`, the path itself when `isabs`, else
+  `normpath(join(folder, path))`. MDBridge's rules, modelled on it: `/` and `\` both separate; drive,
+  UNC and root-relative paths are absolute (root-relative takes the project folder's drive); `C:x`
+  resolves against the project folder when that is on drive C, otherwise against `C:/`; `~` expands
+  to %USERPROFILE% (else %HOMEDRIVE%%HOMEPATH%); results are normalised and written with `/`
+  (`C:\data\..\a.pdb` → `C:/a.pdb`); device paths (`\\?\`, `\\.\`) are kept as written;
+  comparison is case-sensitive (MDATK never calls `normcase`; the same-drive test of `C:x` ignores
+  the letter's case, as `ntpath.join` does). On Linux and macOS paths follow posixpath exactly, as
+  MDATK does. Where this differs from MDATK on Windows (Python 3.13's `ntpath`, checked with the
+  standard library's `ntpath` module):
+  - Text: MDATK writes `\` in resolved relative paths (`C:\projects\p\sub\a.pdb`) and keeps absolute
+    ones exactly as given (`C:\data\..\a.pdb`, `C:\Users\me/a.pdb` from `~/a.pdb`,
+    `\\server\share\x\..\a.pdb`); MDBridge normalises every result to `/` (same file).
+  - `D:a.pdb` with the project on another drive: MDATK keeps `D:a.pdb`, which Windows resolves
+    against the process's current folder on drive D when the file is opened; MDBridge uses `D:/a.pdb`.
+    `D:` alone likewise (`D:/`).
+  - `~user\a.pdb`: MDATK's `expanduser` makes it a sibling of the profile folder
+    (`C:\Users\user\a.pdb`); MDBridge leaves it relative (`<project>/~user/a.pdb`).
+  - `\data\a.pdb` (root-relative): Python 3.13 (and MDBridge) put it on the project folder's drive;
+    Python 3.12 and older count it as absolute and keep `\data\a.pdb` (the current drive when
+    opened). Which Python MDATK's Windows bundle has depends on MSYS2 at build time.
+  - `cleaning.cpptraj_path` counts as a path when it holds `/` or `\` (MDATK: `os.sep`, `\` only), so
+    `bin/cpptraj` is resolved against the project folder.
+  - Output folders against the current directory (`output.out_dir` relative or empty): MDATK's
+    `abspath` asks Windows (`GetFullPathNameW`: per-drive current folders, trailing dots and spaces of
+    names removed); MDBridge's is the string rule above against the current directory.
+  - The recent-projects list is in `%APPDATA%\MDBridge\settings.toml` (owner decision D16; MDATK's
+    Windows build: `%USERPROFILE%\.config\mdatk\settings.toml`, not shared).
+  *Why:* one generic form whatever the user typed, and no dependence on per-drive current folders,
+  which a GUI program does not control. *Tested:* tests/core/test_ntpath.cpp on every platform.
 - **PRJ-01: every numeric analysis parameter is validated.** MDATK checks only `contacts.cutoff <= 0`
   and Mg inner > outer, so NaN passes everything, and negative or NaN H-bond, Mg, stacking and
   energy cutoffs, `energy.dielectric = 0` (infinite energies), angle cutoffs outside 0-180 and
@@ -490,10 +523,56 @@ test_selections.cpp; cli_cases.json (`info_groups`); framework_cases.json (cache
   10: ...`). *Tested:* cli_cases.json (init_set_index_dashes, init_frames_bad, init_frames_bad_part),
   test_commands.cpp.
 - **PRJ-07: a Project property given as a key gets a hint.** `--set out_dir=x` (or a top-level
-  `out_dir` / `cache_dir` / `workflow_dir` key in a project file) warns
-  `project: ignoring unknown key 'out_dir' (did you mean output.out_dir?)`
+  `out_dir` / `cache_dir` / `workflow_dir` key in a project file) names the field meant in the
+  unknown-key warning (PRJ-09): `project.out_dir (did you mean output.out_dir?)`
   (`output.cache_dir`, `workflow.out_dir`). *Tested:* from_dict_cases.json (properties as keys),
   cli_cases.json (init_set_property, init_set_cache_dir).
+- **PRJ-09: unknown keys are kept (owner decision D9 of milestone 5).** MDATK warns about every key
+  its model does not know (`project.workflow: ignoring unknown key 'parallel'`, one line each) and
+  drops it, so saving a project of a later MDATK lost its settings (0.1.x's plan budgets, adopted
+  runs, folder tags). MDBridge keeps every unknown key of every table, at any depth (lists of tables
+  included), with its value and type as read, and writes it back after the table's own fields; one
+  warning names them all: `project: 2 unknown keys kept and saved back unchanged (from a newer
+  MDATK, or misspelt?): project.bogus, project.inputs.nope` (`core::unknownKeysWarning`; none when
+  the file cannot be read). `--set` warns only about the keys it adds and, as MDATK, cannot set a
+  key the model does not know (`unknown parameter`). Unknown keys inside an analysis section are part
+  of that analysis' cache key, as everything in the section is. The keys MDATK 0.1.x added to the
+  plan are modelled with 0.1.1's comments (config.py `WorkflowParams`, `PlanNode`):
+  `workflow.supersede_runs`, `parallel`, `cpu_cores`, `gpus`, `last_node` and per step `adopted`,
+  `folder_tag`; they are written only when the file had them, so files of MDATK 0.0.4.1 come out as
+  before (unset means what 0.1.x reads for a file without them: `parallel` 1). Step logs of 0.1.x
+  (statuses `waiting` and `stopped`, the step `workflow supersede`) are read and kept as they are.
+  MDBridge still writes its own comments (0.0.4.1's, so options of step types 0.0.4.1 lacks have none)
+  and `mdatk_version = "0.0.4.1"`. *Tested:* project-file/mdatk-0.1.1 (files MDATK 0.1.1 writes,
+  tests/parity/make_mdatk_latest_projects.py run by regenerate_all.py with `--mdatk-latest`): what
+  MDBridge reads equals what 0.1.1 reads, and a save keeps every key, value and order and the step
+  log byte for byte (test_project_io.cpp `ProjectCompat`); from_dict_cases.json and cli_cases.json
+  with tests/parity/improvements_core_io.py applying the same rule to MDATK.
+- **PRJ-10: the step-log marker inside the settings is no log** (MDATK 0.1.0, projectfile.py
+  `_log_start`, lines 399-418, and `append_log`, 488-492). MDATK 0.0.4.1 took the first marker line
+  anywhere in a project file for the start of its log, so the marker pasted into the notes or a
+  custom script (with a piece of another project file) made the next entry go without a marker of its
+  own and the next save cut the settings at the notes: the file was no TOML. A marker starts the log
+  only where the text before it is complete TOML (else the first one, for a damaged file), for saving,
+  appending and moving the log out. A separate log file (`log_file`) that is gone starts again with the
+  next entry instead of failing it. *Tested:* test_project_io.cpp (LogMarkerInsideTheSettingsIsNoLog,
+  MissingSeparateLogStartsAgain, MdatkLatestProjectsSurviveASave: 0.1.1's file holds the marker in
+  its notes and a script).
+- **PRJ-11: comments stay valid TOML** (MDATK 0.0.13, tomlio.py `_comment_text`, lines 59-65 and
+  171-174). Control characters other than tab in a comment (a free-form key such as a panel option
+  named with one, which its comment quotes) become spaces, and a header item with line breaks is one
+  comment line per line; MDATK 0.0.4.1 wrote them as they were, and the file did not load. Text
+  without them is unchanged. *Tested:* test_toml_writer.cpp (CommentsHoldNoControlCharacters,
+  MDATK 0.1.1's texts).
+- **PRJ-12: the user settings file keeps its other entries** (AP-17; MDATK 0.0.14, projectfile.py
+  `_user_settings` / `add_recent`). Updating the recent list rewrote the settings file MDATK and
+  MDBridge share with `recent` alone, deleting what MDATK keeps there (RNAdo's `cat_proof`). Every
+  other entry now stays in its place, with 0.0.14's comments, and the file is written to `.tmp` and
+  renamed (MDATK writes it in place). Locations per owner decision D16: Linux keeps the shared
+  `$XDG_CONFIG_HOME/mdatk/settings.toml` (else `~/.config/mdatk`) for the list, MDBridge's own
+  settings go to `$XDG_CONFIG_HOME/mdbridge/` (`core::mdbridgeConfigDir`); Windows keeps both in
+  `%APPDATA%\MDBridge\`. *Tested:* test_project_io.cpp (RecentListKeepsOtherSettings: MDATK 0.1.1's
+  text for the same file; ConfigFolders).
 - **RN-20: `visual.renderer = "vulkan"` is accepted** (owner decision D7, docs/specs/m4-plan.md).
   MDATK knows `auto`, `software` and `vtk` (VTK, optional); MDBridge's GPU renderer is Vulkan, so
   `vulkan` is a valid value besides them (`vtk` keeps meaning "the GPU renderer", RN-16), and the
@@ -529,6 +608,18 @@ test_selections.cpp; cli_cases.json (`info_groups`); framework_cases.json (cache
   -1000.000 and 9999.999 Angstroem: frame 2 is outside this range; no files were written.` (MDATK
   aborts at that frame and leaves the earlier files.) *Tested:* io/pdb/export/export_cases.json,
   cli_cases.json (export_coordinate_limits).
+- **EXP-01: the PDB export's atom subset** (MDATK 0.0.10, io/pdb_export.py lines 19-40). A subset
+  of commas only (`,`, ` , , `) is `',' names no residue group (leave the atom subset empty to export
+  every atom)`, and a comma list of plain names that are not all groups names the first unknown one
+  with the message `group:<name>` gets (`unknown residue group 'Nope' (defined: Aptamer, Target)`);
+  MDATK 0.0.4.1 parsed both as a selection (`Unknown selection token: 'Aptamer,'`).
+  *Tested:* selections_cases.json (export cases), with tests/parity/improvements_core_io.py.
+- **EXT-01: two external series of one key keep both** (MDATK 0.1.0, io/external.py lines 111-121).
+  Two files of one name (`run1/rmsd.dat`, `run2/rmsd.dat`) or two columns whose names read alike gave
+  the same series key, and the later series replaced the earlier one. The later one now gets a key of
+  its own, `rmsd.rmsd-2`, `-3` ..., labelled `rmsd: rmsd (2)` (the same column named twice still
+  replaces). *Tested:* io/external/load_cases.json (duplicate_names, same_key_twice), with
+  tests/parity/improvements_core_io.py.
 - **A single-value option given twice takes the last value**, as argparse does (`--top`, `-o`,
   `--cache-dir`, `--frames`, `--project`, `--cpptraj`, `--conda-env`, `--only`, `--frame-list`,
   `--times`, `--selection`; a repeated `--traj` replaces the earlier list). This is MDATK's

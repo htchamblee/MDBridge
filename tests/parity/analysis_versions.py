@@ -27,7 +27,8 @@ Per analysis, the improvements that bumped it (docs/DIFFERENCES.md; "periodic": 
   mg 2         periodic; SEL-13 (ligand / occupancy elements)
   basepairs 2  periodic, AN-11; SEL-13 (heavy atoms)
   stacking 2   periodic, AN-12 (ring atoms by name: SEL-13 does not change it)
-  trace 5      SEL-13 (heavy-atom centroids of residues without a trace atom) (MDATK: 4)
+  trace 5      SEL-13 (heavy-atom centroids of residues without a trace atom); TOP-01 (chains from
+               bonds only when they hold the residues together) (MDATK: 4)
 """
 
 import os

@@ -521,14 +521,14 @@
    "executable": [],
    "exit": 0,
    "stdout": "Wrote a project file with default settings to x.mdatk.toml\n",
-   "stderr": "WARNING: project: ignoring unknown key 'out_dir' (did you mean output.out_dir?)\n",
+   "stderr": "WARNING: project: 1 unknown key kept and saved back unchanged (from a newer MDATK, or misspelt?): project.out_dir (did you mean output.out_dir?)\n",
    "written": {
     ".x.mdatk.toml.lock": {
      "text": ""
     },
     "x.mdatk.toml": {
-     "sha256": "c61be037669bae25f593246f4c1a93101114603a27963fefc119f31bec637a67",
-     "size": 16925
+     "sha256": "29cb6fefde82fb3dadcb545cfc75414963f1e9e6734f63bf1d88b876a720c540",
+     "size": 16939
     }
    },
    "before_exits": [],
@@ -571,14 +571,14 @@
    "executable": [],
    "exit": 0,
    "stdout": "Wrote a project file with default settings to x.mdatk.toml\n",
-   "stderr": "WARNING: project.inputs: ignoring unknown key 'bogus'\n",
+   "stderr": "WARNING: project: 1 unknown key kept and saved back unchanged (from a newer MDATK, or misspelt?): project.inputs.bogus\n",
    "written": {
     ".x.mdatk.toml.lock": {
      "text": ""
     },
     "x.mdatk.toml": {
-     "sha256": "cd99ab1e47faa696f07379340d11000bdbac8d3b991b06b92c9e7fbb7ed8f69c",
-     "size": 16932
+     "sha256": "dc5aaa8c836157eda526a92d917dc79b3a055f8c0722ac7bf2319cae22ff4911",
+     "size": 16942
     }
    },
    "before_exits": [],
@@ -646,14 +646,14 @@
    "executable": [],
    "exit": 0,
    "stdout": "Wrote a project file with default settings to x.mdatk.toml\n",
-   "stderr": "WARNING: project: ignoring unknown key 'cache_dir' (did you mean output.cache_dir?)\nWARNING: project: ignoring unknown key 'workflow_dir' (did you mean workflow.out_dir?)\n",
+   "stderr": "WARNING: project: 1 unknown key kept and saved back unchanged (from a newer MDATK, or misspelt?): project.cache_dir (did you mean output.cache_dir?)\nWARNING: project: 1 unknown key kept and saved back unchanged (from a newer MDATK, or misspelt?): project.workflow_dir (did you mean workflow.out_dir?)\n",
    "written": {
     ".x.mdatk.toml.lock": {
      "text": ""
     },
     "x.mdatk.toml": {
-     "sha256": "c61be037669bae25f593246f4c1a93101114603a27963fefc119f31bec637a67",
-     "size": 16925
+     "sha256": "e87b7122a818e38fe401fb57ed140c421b25792a01db76de84b4fb2bbc5c74fa",
+     "size": 16960
     }
    },
    "before_exits": [],

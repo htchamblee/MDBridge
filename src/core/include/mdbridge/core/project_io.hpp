@@ -3,7 +3,8 @@
 // mdatk/projectfile.py.
 //
 // A saved project file is the commented settings text (projectText) followed, when the old file
-// had one, by its step log copied byte for byte. Saves are atomic (<path>.tmp, then rename) and
+// had one, by its step log copied byte for byte. The log starts at the marker line that ends complete
+// TOML settings, so the marker pasted into the notes is no log (MDATK 0.1.0; DIFFERENCES PRJ-10). Saves are atomic (<path>.tmp, then rename) and
 // exclude each other, and appends to the step log, across threads and processes: a global mutex
 // and, on Linux, flock() on the lock file .<name>.lock next to the project (the lock MDATK takes,
 // so MDATK and MDBridge can work on the same project).

@@ -82,13 +82,19 @@ publishable. MDBridge writes and (on request) runs their scripts.
 ## Compatibility
 
 - MDATK's `.mdatk.toml` project files open in MDBridge, and the CLI commands keep their names
-  and options.
+  and options. Files of a later MDATK (0.1.x) open too: keys MDBridge does not know, in any table,
+  are kept and saved back unchanged, with one warning (owner decision D9 of milestone 5;
+  `docs/DIFFERENCES.md` PRJ-09).
 - The analysis cache is not compatible (recomputed).
 - Generated scripts must match the Python generators' output for the same settings.
 - Paths stored in project files: relative ones resolve against the project file's folder. On
-  Linux and macOS this is exactly MDATK's Python (posixpath; CI compares). MDATK never ran on
-  Windows, so MDBridge sets its own Windows rules there (`src/core/include/mdbridge/core/ntpath.hpp`,
-  pure string functions tested on every platform):
+  Linux and macOS this is exactly MDATK's Python (posixpath; CI compares). MDATK 0.0.4.1 also has a
+  Windows build (a beta: `packaging/windows`, MSYS2's Python bundled with PyInstaller), where these
+  paths follow Python's `ntpath` (`expanduser`, `isabs`, `normpath(join(folder, path))`), which CI
+  cannot run and which leaves absolute paths unnormalised and writes `\`. MDBridge sets its own
+  Windows rules there (`src/core/include/mdbridge/core/ntpath.hpp`, pure string functions tested on
+  every platform); they point at the same file as Python 3.13's `ntpath` except for drive-relative
+  paths on another drive and `~user` (`docs/DIFFERENCES.md`, "Windows paths"):
   - `/` and `\` both separate.
   - Absolute: drive paths (`C:\x`, `C:/x`), UNC paths (`\\server\share\x`, `//server/share/x`) and
     root-relative paths (`\x`, `/x`), which take the drive of the project's folder.
@@ -101,7 +107,9 @@ publishable. MDBridge writes and (on request) runs their scripts.
     (`C:\data\..\a.pdb` becomes `C:/a.pdb`). The project's folder is in the same form
     (`C:/projects/p`), and so are the default output folders against the current directory.
   - Device paths (`\\?\C:\x`, `\\.\pipe\x`) are kept exactly as written.
-  - Stored text is compared case-sensitively; nothing is case-folded.
+  - Stored text is compared case-sensitively; nothing is case-folded (MDATK 0.0.4.1 never calls
+    `normcase` either; only the "same drive?" test of a drive-relative path ignores case, as
+    `ntpath.join` does).
 
 ## Migration order (speed first)
 

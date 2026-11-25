@@ -146,6 +146,50 @@ std::string readTextFile(const fs::path& path) {
     return text;
 }
 
+std::string readTextFileReplacing(const fs::path& path) {
+    const std::string bytes = readFileBytes(path);
+    std::string text;
+    text.reserve(bytes.size());
+    for (const char32_t c : decodeUtf8(bytes)) {
+        appendUtf8(text, c);
+    }
+    std::string out;
+    out.reserve(text.size());
+    for (std::size_t i = 0; i < text.size(); ++i) {
+        if (text[i] == '\r') {
+            out += '\n';
+            if (i + 1 < text.size() && text[i + 1] == '\n') {
+                ++i;
+            }
+        } else {
+            out += text[i];
+        }
+    }
+    return out;
+}
+
+std::size_t logStart(std::string_view text) {
+    const std::string marker = "\n" + std::string(kLogMarker);
+    const std::size_t first = text.find(marker);
+    const auto completeToml = [](std::string_view part) {
+        try {
+            parseToml(part, "<project>");
+            return true;
+        } catch (const ProjectError&) {
+            return false;
+        }
+    };
+    for (std::size_t at = first; at != std::string_view::npos; at = text.find(marker, at + 1)) {
+        if (completeToml(text.substr(0, at + 1))) {
+            return at;
+        }
+    }
+    if (first == std::string_view::npos || completeToml(text)) {
+        return std::string_view::npos;  // no marker, or every marker inside a string of the settings
+    }
+    return first;  // a damaged file: as written, the settings end at the first marker
+}
+
 void writeTextFile(const fs::path& path, std::string_view text, bool append) {
 #ifdef _WIN32
     std::string data;
@@ -344,7 +388,7 @@ std::pair<std::string, std::string> existingLog(const fs::path& path) {
             break;
         }
     }
-    const std::size_t at = text.find("\n" + std::string(kLogMarker));
+    const std::size_t at = detail::logStart(text);  // MDATK 0.1.0: not a marker pasted into the notes
     return {at == std::string::npos ? std::string() : text.substr(at + 1), logFile};
 }
 

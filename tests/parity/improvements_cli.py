@@ -239,6 +239,9 @@ def apply():
     if _applied:
         return
     _applied = True
+    import improvements_core_io  # project files, external data, export subset, chains (fix wave B)
+
+    improvements_core_io.apply()
     from mdatk import config
 
     config.Project.validate = renderer_validate(improved_validate(config.Project.validate))

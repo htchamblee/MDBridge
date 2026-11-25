@@ -29,9 +29,13 @@ std::uintmax_t logSplitBytes();
 void setLogSplitBytes(std::uintmax_t bytes);
 
 struct LogEntry {
-    std::string step;  // "render", "workflow write", "pdb clean", or a planner step number ("03")
+    // "render", "workflow write", "pdb clean", or a planner step number ("03"); MDATK 0.1.x also
+    // writes "workflow supersede"
+    std::string step;
     std::string title;
-    std::string status = "ok";  // ok, failed or cancelled
+    // ok, failed or cancelled; MDATK 0.1.x also writes waiting and stopped (its planner's runs). Logs
+    // are read and kept whatever they hold.
+    std::string status = "ok";
     DateTime time;  // when the step started
     double duration_s = 0.0;
     std::string command;
@@ -54,8 +58,11 @@ struct LogEntry {
 std::string logEntryText(const LogEntry& entry, bool withDoc);
 
 // append_log: appends the entry to the project's log (moving the log out first when the project
-// file is too large) and returns the file written to. Throws ProjectError when `project` is not a
-// file, std::filesystem::filesystem_error when the log cannot be written.
+// file is too large) and returns the file written to. The log's marker line is written first when
+// the log has none: a marker inside the settings (pasted into the notes) does not count, and a
+// separate log file that is gone starts again (MDATK 0.1.0; DIFFERENCES PRJ-10). Throws
+// ProjectError when `project` is not a file, std::filesystem::filesystem_error when the log cannot
+// be written.
 std::filesystem::path appendLog(const std::filesystem::path& project, const LogEntry& entry);
 
 // _split_log: moves the log of `project` to <stem>.log.toml, sets log_file, returns the side file.

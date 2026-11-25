@@ -1,0 +1,44 @@
+# Step log of the MDATK project sidecar.mdatk.toml (moved here when the project file grew too large).
+
+# ---- step log (entries are appended; newest last) ----
+
+# One entry per step run in this project: analyses, renders, generated scripts that MDATK ran, PDB
+# clean-ups, density fits.
+[[log]]
+# What ran: 'render', 'workflow write', 'workflow supersede' (a step's completed run moved aside
+# before the step was written again), 'pdb clean', or the planner step number of a generated script
+# that MDATK ran (e.g. '03').
+step = "workflow write"
+# Short human-readable description.
+title = "Plan files written"
+# ok, failed, cancelled, waiting (for a script the step leaves to be run separately) or stopped (the
+# step's script alone, by the user).
+status = "ok"
+# When the step started.
+time = 2026-11-25T10:00:00
+# Wall time in seconds.
+duration_s = 0.42
+# Files written by the step.
+files = ["apt1_workflow/02_amber-build_model12/apt1_02_amber-md_20261120-1015.sh"]
+
+[[log]]
+step = "02"
+title = "Amber MD (n2)"
+status = "waiting"
+time = 2026-11-25T10:05:00
+duration_s = 1.5
+command = "bash apt1_02_amber-md.sh"
+folder = "apt1_workflow/02_amber-build_model12"
+summary = "waiting for the separately run script (exit status 75)"
+
+[[log]]
+step = "03"
+title = "NAMD MDFF (n7)"
+status = "stopped"
+time = 2026-11-25T10:09:00
+duration_s = 12.0
+summary = "stopped by the user"
+output = """
+line 1
+line 2
+"""

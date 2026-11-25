@@ -4,8 +4,8 @@
 // Every user-adjustable setting (GUI, CLI, project file, per-run parameter log) is a field of the
 // tree rooted at Project. A project file is toPlain(project) plus a few meta entries, every entry
 // preceded by its field's comment (the comments above the fields below are those texts).
-// Reading goes TOML -> plain data -> projectFromPlain (type-checked; unknown keys are warned about
-// and ignored, missing keys keep their defaults) -> optional path resolution.
+// Reading goes TOML -> plain data -> projectFromPlain (type-checked; unknown keys are kept and
+// written back, with one warning; missing keys keep their defaults) -> optional path resolution.
 //
 // Field names are the project-file keys, hence snake_case. Defaults that contain "MDATK"
 // (MDATK_output, MDATK_video.mp4, ...) are kept so that MDBridge writes the same files as MDATK.
@@ -41,6 +41,9 @@ struct ResidueGroup {
     // Colour of the group in the structure view, legends and charts (#rrggbb)
     std::string color = "#2a78d6";
 
+    // Keys of this table the model does not know, as read (kept and saved back; see projectFromPlain)
+    Table unknownKeys{};
+
     bool operator==(const ResidueGroup&) const = default;
 };
 
@@ -58,6 +61,9 @@ struct ExternalSeries {
     std::vector<std::string> columns;
     // Column separator ("": detect comma, tab or whitespace)
     std::string delimiter;
+
+    // Keys of this table the model does not know, as read (kept and saved back; see projectFromPlain)
+    Table unknownKeys{};
 
     bool operator==(const ExternalSeries&) const = default;
 };
@@ -80,6 +86,9 @@ struct InputParams {
     std::string time_unit = "ns";
     // External data files shown as extra traces (interpolated onto the analysed frames)
     std::vector<ExternalSeries> external;
+
+    // Keys of this table the model does not know, as read (kept and saved back; see projectFromPlain)
+    Table unknownKeys{};
 
     bool operator==(const InputParams&) const = default;
 };
@@ -128,6 +137,9 @@ struct CleaningParams {
     // Folder for the cleaned files ("": <cache_dir>/cleaned)
     std::string output_dir;
 
+    // Keys of this table the model does not know, as read (kept and saved back; see projectFromPlain)
+    Table unknownKeys{};
+
     bool operator==(const CleaningParams&) const = default;
 };
 
@@ -139,6 +151,9 @@ struct RMSDTarget {
     std::string selection = "(group:Aptamer or group:Target) and not name H*";
     // Atoms superposed before computing the RMSD ("": the same atoms)
     std::string fit_selection;
+
+    // Keys of this table the model does not know, as read (kept and saved back; see projectFromPlain)
+    Table unknownKeys{};
 
     bool operator==(const RMSDTarget&) const = default;
 };
@@ -156,6 +171,9 @@ struct RMSDParams {
     // Mass-weighted superposition and RMSD
     bool mass_weighted = false;
 
+    // Keys of this table the model does not know, as read (kept and saved back; see projectFromPlain)
+    Table unknownKeys{};
+
     bool operator==(const RMSDParams&) const = default;
 };
 
@@ -171,6 +189,9 @@ struct ContactParams {
     double cutoff = 4.5;
     // Ignore hydrogens
     bool heavy_only = true;
+
+    // Keys of this table the model does not know, as read (kept and saved back; see projectFromPlain)
+    Table unknownKeys{};
 
     bool operator==(const ContactParams&) const = default;
 };
@@ -193,6 +214,9 @@ struct HBondParams {
     std::string donor_elements = "N,O";
     // Elements that can accept (comma separated)
     std::string acceptor_elements = "N,O";
+
+    // Keys of this table the model does not know, as read (kept and saved back; see projectFromPlain)
+    Table unknownKeys{};
 
     bool operator==(const HBondParams&) const = default;
 };
@@ -226,6 +250,9 @@ struct MgParams {
     // Elements counted for the occupancy (comma separated)
     std::string occupancy_elements = "N,O";
 
+    // Keys of this table the model does not know, as read (kept and saved back; see projectFromPlain)
+    Table unknownKeys{};
+
     bool operator==(const MgParams&) const = default;
 };
 
@@ -250,6 +277,9 @@ struct StackingParams {
     // Maximum RMS deviation of ring atoms from their plane (Å)
     double planarity_cutoff = 0.25;
 
+    // Keys of this table the model does not know, as read (kept and saved back; see projectFromPlain)
+    Table unknownKeys{};
+
     bool operator==(const StackingParams&) const = default;
 };
 
@@ -267,6 +297,9 @@ struct BasePairParams {
     bool wobble = true;
     // Barnaba: also keep non-canonical (non Watson-Crick) pairs
     bool noncanonical = false;
+
+    // Keys of this table the model does not know, as read (kept and saved back; see projectFromPlain)
+    Table unknownKeys{};
 
     bool operator==(const BasePairParams&) const = default;
 };
@@ -292,6 +325,9 @@ struct EnergyParams {
     // Exclude pairs within n bonds (0: exclude none)
     std::int64_t exclude_bonded = 3;
 
+    // Keys of this table the model does not know, as read (kept and saved back; see projectFromPlain)
+    Table unknownKeys{};
+
     bool operator==(const EnergyParams&) const = default;
 };
 
@@ -316,6 +352,9 @@ struct AnalysisParams {
     // Largest proximity cutoff usable later without re-analysing (Å)
     double proximity_search_radius = 8.0;
 
+    // Keys of this table the model does not know, as read (kept and saved back; see projectFromPlain)
+    Table unknownKeys{};
+
     bool operator==(const AnalysisParams&) const = default;
 };
 
@@ -333,6 +372,9 @@ struct RepSpec {
     double opacity = 1.0;
     // Cartoon only: draw the ribose rings (shows the pucker)
     bool sugars = false;
+
+    // Keys of this table the model does not know, as read (kept and saved back; see projectFromPlain)
+    Table unknownKeys{};
 
     bool operator==(const RepSpec&) const = default;
 };
@@ -408,6 +450,9 @@ struct VisualParams {
     // Figure title ("": none)
     std::string title;
 
+    // Keys of this table the model does not know, as read (kept and saved back; see projectFromPlain)
+    Table unknownKeys{};
+
     bool operator==(const VisualParams&) const = default;
 };
 
@@ -445,6 +490,9 @@ struct DensityParams {
     // Summary of the last fit
     std::string fit_info;
 
+    // Keys of this table the model does not know, as read (kept and saved back; see projectFromPlain)
+    Table unknownKeys{};
+
     bool operator==(const DensityParams&) const = default;
 };
 
@@ -459,6 +507,9 @@ struct PanelSpec {
     // Panel-specific options, e.g. axis limits or the contact-map mode
     Table options;
 
+    // Keys of this table the model does not know, as read (kept and saved back; see projectFromPlain)
+    Table unknownKeys{};
+
     bool operator==(const PanelSpec&) const = default;
 };
 
@@ -468,6 +519,9 @@ struct LayoutParams {
     std::string preset = "large_plus_3";
     // Panels in slot order
     std::vector<PanelSpec> panels{{"structure", {}, "Structure", {}}, {"timeseries", {"rmsd/Complex"}, "RMSD", {}}, {"timeseries", {"hbonds/count"}, "Inter-strand H-bonds", {}}, {"contact_map", {"contacts/map"}, "", Table{{"mode", "instant"}, {"transpose", true}}}};
+
+    // Keys of this table the model does not know, as read (kept and saved back; see projectFromPlain)
+    Table unknownKeys{};
 
     bool operator==(const LayoutParams&) const = default;
 };
@@ -494,6 +548,9 @@ struct VideoParams {
     std::int64_t frame_stride = 1;
     // FFmpeg executable
     std::string ffmpeg_path = "ffmpeg";
+
+    // Keys of this table the model does not know, as read (kept and saved back; see projectFromPlain)
+    Table unknownKeys{};
 
     bool operator==(const VideoParams&) const = default;
 };
@@ -533,6 +590,9 @@ struct ChartParams {
     // File name prefix
     std::string prefix = "MDATK_chart";
 
+    // Keys of this table the model does not know, as read (kept and saved back; see projectFromPlain)
+    Table unknownKeys{};
+
     bool operator==(const ChartParams&) const = default;
 };
 
@@ -548,6 +608,9 @@ struct PDBParams {
     std::string selection;
     // File name prefix
     std::string prefix = "MDATK_frame";
+
+    // Keys of this table the model does not know, as read (kept and saved back; see projectFromPlain)
+    Table unknownKeys{};
 
     bool operator==(const PDBParams&) const = default;
 };
@@ -570,6 +633,9 @@ struct OutputParams {
     // names)
     bool timestamp_files = true;
 
+    // Keys of this table the model does not know, as read (kept and saved back; see projectFromPlain)
+    Table unknownKeys{};
+
     bool operator==(const OutputParams&) const = default;
 };
 
@@ -591,6 +657,18 @@ struct PlanNode {
     Table settings;
     // Hand-picked input files for ports that no connection feeds ({port = path})
     Table files;
+    // Keys of MDATK 0.1.x (config.py PlanNode), kept for its planner (milestone 7 uses them):
+    // written only when the file had them, which MDATK 0.1.x does only when they are set.
+    // Time stamp of an earlier run whose output files the plan uses for this step, which is then neither
+    // written nor run again ("": none; set by 'Check previous runs' or 'mdatk workflow status --adopt')
+    std::optional<std::string> adopted;
+    // Added to the step's folder name, e.g. "model12": 02_amber-build_model12 instead of 02_amber-build, so the
+    // folder says which branch or model it belongs to (ASCII letters and digits, '-' between them; file names
+    // do not change)
+    std::optional<std::string> folder_tag;
+
+    // Keys of this table the model does not know, as read (kept and saved back; see projectFromPlain)
+    Table unknownKeys{};
 
     bool operator==(const PlanNode&) const = default;
 };
@@ -605,6 +683,9 @@ struct PlanEdge {
     std::string target;
     // Input port of the receiving step
     std::string input;
+
+    // Keys of this table the model does not know, as read (kept and saved back; see projectFromPlain)
+    Table unknownKeys{};
 
     bool operator==(const PlanEdge&) const = default;
 };
@@ -621,12 +702,32 @@ struct WorkflowParams {
     std::string out_dir;
     // One sub-folder per step, e.g. 03_amber-build/
     bool step_folders = true;
+    // Keys of MDATK 0.1.x (config.py WorkflowParams), kept for its planner (milestone 7 uses them):
+    // written only when the file had them (MDATK 0.1.x writes the first four always, last_node when
+    // set). Unset means what MDATK 0.1.x reads for a file without them: supersede_runs true,
+    // parallel 1, cpu_cores 0, gpus -1, last_node 0.
+    // Before a step's files are written again, move its completed run of the plan's stamp (outputs, the
+    // scripts and inputs that made them, logs) into <step folder>/superseded/<stamp>_<time>/
+    std::optional<bool> supersede_runs;
+    // The most scripts MDATK runs at the same time (Run all / Run selected), within the CPU and GPU budgets
+    // below; steps wait for their inputs (0: no limit; a project file without it: 1, as before 0.0.12)
+    std::optional<std::int64_t> parallel;
+    // CPU cores the scripts MDATK runs at the same time may use together (0: half of them)
+    std::optional<std::int64_t> cpu_cores;
+    // GPUs they may use, each script its own (-1: the GPUs found; 0: none)
+    std::optional<std::int64_t> gpus;
+    // The highest step id number given out so far (n1, n2, ...): a new step gets the next one, never the id
+    // of a deleted step (0: none recorded yet; ids then follow the highest one in the plan)
+    std::optional<std::int64_t> last_node;
     // Planner steps
     std::vector<PlanNode> nodes;
     // Planner connections
     std::vector<PlanEdge> edges;
     // Stand-alone script wizard settings, one entry per step type
     std::vector<PlanNode> scratch;
+
+    // Keys of this table the model does not know, as read (kept and saved back; see projectFromPlain)
+    Table unknownKeys{};
 
     bool operator==(const WorkflowParams&) const = default;
 };
@@ -654,13 +755,18 @@ struct Project {
     // Project Planner and script wizard
     WorkflowParams workflow;
 
+    // Keys of this table the model does not know, as read (kept and saved back; see projectFromPlain)
+    Table unknownKeys{};
+
     bool operator==(const Project&) const = default;
 };
 
 // ---- plain data ------------------------------------------------------------------------------
 
 // to_dict(): fields in declaration order, unset optionals as Null; Null entries of the free-form
-// tables (options, settings, files) dropped at every depth.
+// tables (options, settings, files) dropped at every depth. The keys MDATK 0.1.x added
+// (WorkflowParams.supersede_runs ... last_node, PlanNode.adopted and folder_tag) are left out
+// while unset. Each table's unknown keys follow its fields, as they were read.
 Value toPlain(const Project& project);
 
 // Project.from_dict(data, base_dir): the meta entries (format, format_version, mdatk_version,
@@ -669,10 +775,15 @@ Value toPlain(const Project& project);
 //
 // Throws ProjectError with MDATK's message for the first entry (in the order of `data`) that has
 // the wrong type, e.g. "project.analyses.contacts.cutoff: expected a number, got 'far'".
-// Unknown keys are reported to `warnings` (or, when it is null, logged as warnings), e.g.
-// "project.inputs: ignoring unknown key 'bogus'"; the Project properties out_dir, cache_dir and
-// workflow_dir at the top add a hint, "(did you mean output.out_dir?)" (PRJ-07). Aliases: [input] for [inputs], and
-// inputs.trajectory (a string or a list) for inputs.trajectories.
+// Aliases: [input] for [inputs], and inputs.trajectory (a string or a list) for
+// inputs.trajectories.
+//
+// Keys the model does not know (written by a newer MDATK, by hand, or misspelt) are kept in the
+// unknownKeys of their table, at any depth, with their values as read, and toPlain writes them
+// back (owner decision D9; MDATK drops them with one warning each, so saving a newer MDATK's
+// project lost its settings). A successful conversion with such keys gives one warning (to
+// `warnings`, or logged when it is null), unknownKeysWarning(unknownKeyPaths(project)); none
+// when the conversion throws.
 //
 // Deviations, where MDATK has no usable behaviour: an integer field given an integral number
 // beyond the 64-bit range is an "expected an integer" error (Python keeps a big integer);
@@ -680,6 +791,17 @@ Value toPlain(const Project& project);
 // ("cannot convert float infinity to integer") (Python raises ValueError / OverflowError).
 Project projectFromPlain(const Value& data, std::string_view baseDir = {},
                          std::vector<std::string>* warnings = nullptr);
+
+// The unknown keys of a project as paths, depth first (a table's own, then those inside each of its
+// fields in declaration order): "project.bogus", "project.inputs.nope", "project.groups[0].extra";
+// a key that is not a bare TOML key is quoted as in TOML ("project.\"a b\"").
+std::vector<std::string> unknownKeyPaths(const Project& project);
+
+// The warning about unknown keys: "project: 2 unknown keys kept and saved back unchanged (from a
+// newer MDATK, or misspelt?): project.inputs.nope, project.out_dir (did you mean
+// output.out_dir?)". The Project properties out_dir, cache_dir and workflow_dir at the top get the
+// hint of PRJ-07.
+std::string unknownKeysWarning(const std::vector<std::string>& paths);
 
 // The comment of a model entry in project files: `path` is the dot-joined path from the root
 // with list indices left out ("analyses.contacts.cutoff", "groups.name", "layout.panels").
@@ -694,8 +816,9 @@ std::optional<std::string_view> modelComment(std::string_view path);
 // "/"), output.out_dir, output.cache_dir, density.map_path, workflow.out_dir, then the files and
 // path settings of every planner node and scratch node (resolveNodePaths). "~" is expanded;
 // absolute paths are left as they are; relative ones become normpath(join(baseDir, path)).
-// POSIX path rules (posixpath), as MDATK on Linux and macOS. On Windows, where MDATK has no
-// reference behaviour, MDBridge's Windows rules (ntpath.hpp): '/' and '\' both separate; drive
+// POSIX path rules (posixpath), as MDATK on Linux and macOS. On Windows MDBridge's Windows rules
+// (ntpath.hpp; MDATK's Windows build uses Python's ntpath unnormalised, docs/DIFFERENCES.md "Windows
+// paths"): '/' and '\' both separate; drive
 // ("C:\x", "C:/x"), UNC ("\\srv\share\x") and root-relative ("\x", on the base's drive) paths
 // are absolute; "C:x" is against baseDir when that is on drive C, else against "C:/"; "~" is
 // %USERPROFILE%; every result, absolute ones included, is normalised and written with '/'

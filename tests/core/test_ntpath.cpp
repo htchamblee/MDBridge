@@ -1,6 +1,7 @@
-// MDBridge's Windows rules for project paths (ntpath.hpp). MDATK never ran on Windows, so there are
-// no reference vectors: the expectations below are the rules written out. Pure string functions,
-// so these run on every platform.
+// MDBridge's Windows rules for project paths (ntpath.hpp). MDATK's Windows build (a beta) follows
+// Python's ntpath, which CI cannot run there; MDBridge's rules differ from it on purpose
+// (docs/DIFFERENCES.md, "Windows paths"), so the expectations below are the rules written out.
+// Pure string functions, so these run on every platform.
 
 #include <optional>
 #include <ostream>

@@ -10,11 +10,19 @@ template <class S, class M>
 struct Field {
     std::string_view name;
     M S::*member;
+    // written only when set (an optional with a value): the keys MDATK 0.1.x added, which a file
+    // of MDATK 0.0.4.1 does not have and MDBridge does not write unless the file had them (D9)
+    bool onlyWhenSet = false;
 };
 
 template <class S, class M>
 constexpr Field<S, M> field(std::string_view name, M S::*member) {
     return {name, member};
+}
+
+template <class S, class M>
+constexpr Field<S, std::optional<M>> fieldWhenSet(std::string_view name, std::optional<M> S::*member) {
+    return {name, member, true};
 }
 
 constexpr auto fieldsOf(const ResidueGroup*) {
@@ -224,7 +232,8 @@ constexpr auto fieldsOf(const PlanNode*) {
     using S = PlanNode;
     return std::make_tuple(field("id", &S::id), field("tool", &S::tool), field("step", &S::step),
                            field("title", &S::title), field("x", &S::x), field("y", &S::y),
-                           field("settings", &S::settings), field("files", &S::files));
+                           field("settings", &S::settings), field("files", &S::files),
+                           fieldWhenSet("adopted", &S::adopted), fieldWhenSet("folder_tag", &S::folder_tag));
 }
 
 constexpr auto fieldsOf(const PlanEdge*) {
@@ -237,7 +246,11 @@ constexpr auto fieldsOf(const WorkflowParams*) {
     using S = WorkflowParams;
     return std::make_tuple(field("project_name", &S::project_name), field("stamp", &S::stamp),
                            field("use_stamp", &S::use_stamp), field("out_dir", &S::out_dir),
-                           field("step_folders", &S::step_folders), field("nodes", &S::nodes),
+                           field("step_folders", &S::step_folders),
+                           fieldWhenSet("supersede_runs", &S::supersede_runs),
+                           fieldWhenSet("parallel", &S::parallel), fieldWhenSet("cpu_cores", &S::cpu_cores),
+                           fieldWhenSet("gpus", &S::gpus), fieldWhenSet("last_node", &S::last_node),
+                           field("nodes", &S::nodes),
                            field("edges", &S::edges), field("scratch", &S::scratch));
 }
 
@@ -528,6 +541,19 @@ inline constexpr std::pair<std::string_view, std::string_view> kModelComments[] 
     {"workflow.out_dir",
      "Folder of the generated files (\"\": <output.out_dir>/<project_name>_workflow)"},
     {"workflow.step_folders", "One sub-folder per step, e.g. 03_amber-build/"},
+    // the keys MDATK 0.1.x added (its config.py; config_doc.json, of v0.0.4.1, does not list them)
+    {"workflow.supersede_runs",
+     "Before a step's files are written again, move its completed run of the plan's stamp (outputs, the "
+     "scripts and inputs that made them, logs) into <step folder>/superseded/<stamp>_<time>/"},
+    {"workflow.parallel",
+     "The most scripts MDATK runs at the same time (Run all / Run selected), within the CPU and GPU budgets "
+     "below; steps wait for their inputs (0: no limit; a project file without it: 1, as before 0.0.12)"},
+    {"workflow.cpu_cores",
+     "CPU cores the scripts MDATK runs at the same time may use together (0: half of them)"},
+    {"workflow.gpus", "GPUs they may use, each script its own (-1: the GPUs found; 0: none)"},
+    {"workflow.last_node",
+     "The highest step id number given out so far (n1, n2, ...): a new step gets the next one, never the id "
+     "of a deleted step (0: none recorded yet; ids then follow the highest one in the plan)"},
     {"workflow.nodes", "Planner steps"},
     {"workflow.nodes.id", "Unique id of the step"},
     {"workflow.nodes.tool", "Step type: the script generator (see 'mdatk workflow tools')"},
@@ -538,6 +564,13 @@ inline constexpr std::pair<std::string_view, std::string_view> kModelComments[] 
     {"workflow.nodes.settings", "The step's options (each one is explained by its comment)"},
     {"workflow.nodes.files",
      "Hand-picked input files for ports that no connection feeds ({port = path})"},
+    {"workflow.nodes.adopted",
+     "Time stamp of an earlier run whose output files the plan uses for this step, which is then neither "
+     "written nor run again (\"\": none; set by 'Check previous runs' or 'mdatk workflow status --adopt')"},
+    {"workflow.nodes.folder_tag",
+     "Added to the step's folder name, e.g. \"model12\": 02_amber-build_model12 instead of 02_amber-build, "
+     "so the folder says which branch or model it belongs to (ASCII letters and digits, '-' between them; "
+     "file names do not change)"},
     {"workflow.edges", "Planner connections"},
     {"workflow.edges.source", "Id of the producing step"},
     {"workflow.edges.output", "Output port of the producing step"},
@@ -553,4 +586,11 @@ inline constexpr std::pair<std::string_view, std::string_view> kModelComments[] 
     {"workflow.scratch.settings", "The step's options (each one is explained by its comment)"},
     {"workflow.scratch.files",
      "Hand-picked input files for ports that no connection feeds ({port = path})"},
+    {"workflow.scratch.adopted",
+     "Time stamp of an earlier run whose output files the plan uses for this step, which is then neither "
+     "written nor run again (\"\": none; set by 'Check previous runs' or 'mdatk workflow status --adopt')"},
+    {"workflow.scratch.folder_tag",
+     "Added to the step's folder name, e.g. \"model12\": 02_amber-build_model12 instead of 02_amber-build, "
+     "so the folder says which branch or model it belongs to (ASCII letters and digits, '-' between them; "
+     "file names do not change)"},
 };

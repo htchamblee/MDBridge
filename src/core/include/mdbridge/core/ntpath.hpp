@@ -1,8 +1,13 @@
 #pragma once
-// Windows path rules for the paths stored in project files, on UTF-8 strings. MDATK never ran on
-// Windows, so there is no reference behaviour: these are MDBridge's own rules, modelled on
-// Python's ntpath. Pure string functions: the same results on every host (the project code uses
-// them on Windows only; Linux and macOS keep posixpath, as MDATK).
+// Windows path rules for the paths stored in project files, on UTF-8 strings: MDBridge's own rules,
+// modelled on Python's ntpath. MDATK 0.0.4.1 has a Windows build too (a beta, packaging/windows:
+// MSYS2's Python in a PyInstaller bundle), where Project.resolve_paths uses ntpath as it is:
+// expanduser, then the path itself when isabs, else normpath(join(folder, path)), with '\' in the
+// result and absolute paths left unnormalised. CI cannot run it; MDBridge's rules point at the same
+// file as Python 3.13's ntpath except where docs/DIFFERENCES.md ("Windows paths") lists otherwise
+// (a drive-relative path on another drive, "~user"; Python 3.12 and older keep "\x" without a
+// drive). Pure string functions: the same results on every host (the project code uses them on
+// Windows only; Linux and macOS keep posixpath, as MDATK).
 //
 // The rules:
 // - '/' and '\' both separate.
@@ -19,8 +24,9 @@
 //   root itself ("C:/").
 // - Device paths ("\\?\C:\x", "\\.\pipe\x", either separator) are absolute and left exactly as
 //   given: Windows does not normalise them, so neither does MDBridge.
-// - Comparisons of stored text stay case-sensitive; only the "same drive?" test of a
-//   drive-relative path ignores the case of the letter.
+// - Comparisons of stored text stay case-sensitive, as in MDATK 0.0.4.1 (it never calls normcase);
+//   only the "same drive?" test of a drive-relative path ignores the case of the letter, as
+//   ntpath.join does.
 
 #include <optional>
 #include <string>

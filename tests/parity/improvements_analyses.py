@@ -307,6 +307,9 @@ def apply_mdatk():
 
     improvements_selections.patch_mdatk(mdatk_selections)
     improvements_periodic.apply_mdatk()
+    import improvements_core_io  # chains from bonds only when they hold the residues together (TOP-01)
+
+    improvements_core_io.apply_chains()
 
     import mdatk.analysis as analysis_pkg
     import mdatk.analysis.base as base

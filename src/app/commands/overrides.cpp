@@ -1,4 +1,5 @@
 // --set KEY=VALUE: MDATK's apply_override (mdatk/cli.py).
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <stdexcept>
@@ -8,6 +9,7 @@
 
 #include "commands.hpp"
 #include "mdbridge/core/json.hpp"
+#include "mdbridge/core/log.hpp"
 #include "mdbridge/core/project_file.hpp"
 #include "mdbridge/core/python.hpp"
 #include "mdbridge/core/text.hpp"
@@ -110,6 +112,7 @@ void applyOverride(core::Project& project, std::string_view assignment) {
     bool currentIsText = false;  // a str attribute that is no field
     bool currentIsAttribute = false;  // a method or property of Project: not in the plain data
     std::size_t index = 0;  // the list element of `current` when `parent` is a list
+    std::string modelPath;  // the model path of `parent` (keys, list indices left out)
     for (std::size_t n = 0; n < parts.size(); ++n) {
         const std::string& part = parts[n];
         if (n > 0 && currentIsAttribute) {
@@ -138,8 +141,11 @@ void applyOverride(core::Project& project, std::string_view assignment) {
             currentIsText = false;
             currentIsAttribute = false;
         } else {
-            Value* field = parentIsModel ? parent->find(part) : nullptr;
+            // a field of the model, not a key the project keeps without knowing it (D9): hasattr()
+            const std::string fieldPath = modelPath.empty() ? part : modelPath + "." + part;
+            Value* field = parentIsModel && core::modelComment(fieldPath) ? parent->find(part) : nullptr;
             if (field != nullptr) {
+                modelPath = fieldPath;
                 current = field;
                 currentIsModel = field->isTable() && !contains(kFreeFormFields, part);
                 currentIsText = false;
@@ -179,7 +185,19 @@ void applyOverride(core::Project& project, std::string_view assignment) {
     } else {
         parent->get<core::Table>()->emplace_back(parts.back(), std::move(value));  // a new key, reported by from_dict
     }
-    project = core::projectFromPlain(data);
+    // the unknown keys of the project were reported when it was read: warn about new ones only
+    const std::vector<std::string> before = core::unknownKeyPaths(project);
+    std::vector<std::string> ignored;
+    project = core::projectFromPlain(data, {}, &ignored);
+    std::vector<std::string> added;
+    for (const std::string& key : core::unknownKeyPaths(project)) {
+        if (std::find(before.begin(), before.end(), key) == before.end()) {
+            added.push_back(key);
+        }
+    }
+    if (!added.empty()) {
+        core::logWarning(core::unknownKeysWarning(added));
+    }
 }
 
 }  // namespace mdbridge::app

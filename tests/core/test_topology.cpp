@@ -141,6 +141,35 @@ TEST(Topology, FragmentsAreNumberedByLowestAtom) {
     EXPECT_EQ(group.bonds(), (std::vector<Bond>{{1, 3}}));
 }
 
+// TOP-01 (MDATK 0.1.0, analysis/structure.py chain_ids): chains come from the bonded fragments
+// only when the bonds hold every residue together. A PDB file whose only CONECT records are its
+// ligand's left every other atom a fragment of its own, and MDATK 0.0.4.1 made each residue its
+// own chain (no backbone links, wrong chain colours and legend).
+TEST(Topology, ChainsFromBondsOnlyWhenTheyHoldTheResidues) {
+    const auto twoAtomResidues = [](std::vector<Bond> bonds) {
+        auto t = std::make_shared<Topology>();
+        for (std::int32_t i = 0; i < 8; ++i) {
+            t->names.push_back(0);
+            t->atomResidue.push_back(i / 2);
+        }
+        for (std::int64_t r = 0; r < 4; ++r) {
+            t->resids.push_back(r + 1);
+            t->resnames.push_back(0);
+            t->residueSegment.push_back(0);
+        }
+        t->segids.push_back(t->strings.intern("SYSTEM"));
+        t->bonds = std::move(bonds);
+        t->finish();
+        return t;
+    };
+    const std::vector<std::int32_t> residues{0, 1, 2, 3};
+    // the ligand's CONECT only: one chain (MDATK 0.0.4.1: 0, 1, 2, 3)
+    EXPECT_EQ(chainIds(*twoAtomResidues({{6, 7}}), residues), (std::vector<std::int64_t>{0, 0, 0, 0}));
+    // a bonded strand and a ligand: two chains, as before
+    EXPECT_EQ(chainIds(*twoAtomResidues({{0, 1}, {1, 2}, {2, 3}, {3, 4}, {4, 5}, {6, 7}}), residues),
+              (std::vector<std::int64_t>{0, 0, 0, 1}));
+}
+
 TEST(Topology, FinishRejectsInconsistentData) {
     auto t = emptyUniverse(2, "S");
     t->atomResidue[1] = 5;

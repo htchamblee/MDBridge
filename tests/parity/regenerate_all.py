@@ -2,7 +2,7 @@
 """Regenerate every committed reference file and compare it with the committed one, byte for byte.
 
     python3 tests/parity/regenerate_all.py --mdatk MDATK_CHECKOUT --out FRESH_DIR \\
-        [--python PY] [--pytest-python PY] [--only STEP ...] [--list]
+        [--mdatk-latest MDATK_LATEST] [--python PY] [--pytest-python PY] [--only STEP ...] [--list]
 
 Runs every generator of tests/data/README.md (tests/parity/*.py and tools/gen_*.py) in the
 documented order into FRESH_DIR, a new folder tree that mirrors the repository: FRESH_DIR/tests/data
@@ -22,7 +22,9 @@ PY (default: this interpreter) runs the generators; it needs Python 3.13 (textwr
 and the Unicode tables depend on the version), MDAnalysis 2.11.0, numpy and scipy (MDATK's
 dependencies, at the versions of the reference environment). --pytest-python (default: PY) runs
 the two generators that import MDATK's tests (make_pdb_cases.py, make_cif_cases.py) and needs pytest
-too. MDATK_CHECKOUT is a checkout of MDATK v0.0.4.1; nothing is written into it. FRESH_DIR must not
+too. MDATK_CHECKOUT is a checkout of MDATK v0.0.4.1; nothing is written into it. MDATK_LATEST is MDATK
+0.1.1 (commit LATEST_COMMIT, read only), for the one step that records project files of a later MDATK
+(make_mdatk_latest_projects.py); without it that step is skipped and its files are not compared. FRESH_DIR must not
 exist or be empty. Standard library only.
 
 --only runs the named steps alone (see --list), on a tree seeded with the committed files the
@@ -79,6 +81,8 @@ import time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DATA = "tests/data"
+# MDATK 0.1.1 (main after the version commit; not tagged): --mdatk-latest, the CI checkout
+LATEST_COMMIT = "1efa0ef44e9cb0d04b9c04a409919f7913f59fdb"
 
 # committed files no generator writes (inputs and hand-made goldens); copied where a step reads them
 HANDMADE_PROJECTS = ["handwritten.mdatk.toml", "datetimes.mdatk.toml", "empty_params_log.toml",
@@ -159,7 +163,7 @@ OFFSETS_RE = re.compile(r"^\..+_offsets\.(npz|lock)$")  # MDAnalysis' hidden XTC
 
 class Step:
     def __init__(self, name, script, args, outputs, *, flags=("-I", "-B"), pytest=False, cwd=None,
-                 mdatk_path=False, before=None, after=None):
+                 mdatk_path=False, before=None, after=None, latest=False):
         self.name = name
         self.script = script          # relative to the root of the tree
         self.args = args              # function(ctx) -> list of arguments
@@ -170,6 +174,7 @@ class Step:
         self.mdatk_path = mdatk_path  # MDATK importable through PYTHONPATH (scripts without -I)
         self.before = before
         self.after = after
+        self.latest = latest          # runs on MDATK_LATEST (--mdatk-latest), not on v0.0.4.1
 
 
 def d(ctx, rel=""):
@@ -250,6 +255,10 @@ STEPS = [
                            f"{DATA}/project-file/vectors/unicode_classes.json")),
     case_step("workflow_goldens", "make_workflow_goldens.py", "project-file/workflow"),
     case_step("model", "make_model_cases.py", "project-model"),
+    # project files a later MDATK (0.1.1) writes: keys 0.0.4.1 does not know, its step log (D9)
+    Step("mdatk_latest", "tests/parity/make_mdatk_latest_projects.py",
+         lambda ctx: [ctx["mdatk_latest"], d(ctx, "project-file/mdatk-0.1.1")], [f"{DATA}/project-file/mdatk-0.1.1"],
+         latest=True),
     Step("step_type_cases", "tests/parity/make_step_type_cases.py", lambda ctx: [M(ctx), d(ctx, "step-types")],
          [f"{DATA}/step-types/{n}" for n in ("coerce_cases.json", "digit_cases.json", "normalise_cases.json",
                                              "requirements_cases.json", "setting_comments.json",
@@ -537,6 +546,8 @@ def run_step(step: Step, ctx: dict, logs: str) -> tuple[bool, float]:
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--mdatk", help="MDATK checkout at v0.0.4.1 (read only)")
+    parser.add_argument("--mdatk-latest", help=f"MDATK checkout at 0.1.1, commit {LATEST_COMMIT} (read only); "
+                                               "without it the step mdatk_latest is skipped")
     parser.add_argument("--out", help="new folder for the fresh tree (must not exist or be empty)")
     parser.add_argument("--python", default=sys.executable,
                         help="interpreter of the generators: Python 3.13 with MDAnalysis 2.11.0, numpy, scipy")
@@ -560,6 +571,9 @@ def main(argv=None) -> int:
     root = os.path.abspath(args.out)
     if os.path.exists(root) and os.listdir(root):
         parser.error(f"{root} is not empty")
+    mdatk_latest = os.path.abspath(args.mdatk_latest) if args.mdatk_latest else None
+    if mdatk_latest and not os.path.isfile(os.path.join(mdatk_latest, "mdatk", "projectfile.py")):
+        parser.error(f"{mdatk_latest} is not an MDATK checkout")
     steps = STEPS
     if args.only:
         names = {s.name for s in STEPS}
@@ -567,6 +581,11 @@ def main(argv=None) -> int:
         if unknown:
             parser.error(f"unknown steps {unknown}; --list shows them")
         steps = [s for s in STEPS if s.name in args.only]
+    if not mdatk_latest:
+        skipped = [s.name for s in steps if s.latest]
+        steps = [s for s in steps if not s.latest]
+        if skipped:
+            print(f"(no --mdatk-latest: {', '.join(skipped)} skipped, its files not compared)")
 
     analysis_versions = _parity_module("analysis_versions")
     try:  # the test side's analysis versions are the C++ ones (cache keys in the expected data)
@@ -578,12 +597,13 @@ def main(argv=None) -> int:
     logs = os.path.join(root, "logs")
     os.makedirs(logs)
     prepare(root, steps, bool(args.only))
-    ctx = {"root": root, "mdatk": mdatk, "python": args.python, "pytest_python": args.pytest_python or args.python}
+    ctx = {"root": root, "mdatk": mdatk, "mdatk_latest": mdatk_latest, "python": args.python,
+           "pytest_python": args.pytest_python or args.python}
     for key in ("python", "pytest_python"):
         version = subprocess.run([ctx[key], "-I", "-c", "import sys; print(sys.version.split()[0])"],
                                  capture_output=True, text=True)
         print(f"{key.replace('_', ' ')}: {ctx[key]} (Python {version.stdout.strip() or '?'})")
-    print(f"MDATK: {mdatk}\nfresh tree: {root}\n")
+    print(f"MDATK: {mdatk}" + (f"\nMDATK latest: {mdatk_latest}" if mdatk_latest else "") + f"\nfresh tree: {root}\n")
 
     total = time.monotonic()
     failed = []
