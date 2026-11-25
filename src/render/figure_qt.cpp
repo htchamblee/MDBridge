@@ -16,6 +16,7 @@
 #include <QSvgGenerator>
 #include <QTransform>
 
+#include "mdbridge/render/figure_formats.hpp"
 #include "mdbridge/render/text_qt.hpp"
 
 namespace mdbridge::render {
@@ -221,28 +222,48 @@ std::string lowerExtension(const std::filesystem::path& path) {
 }  // namespace
 
 bool canWriteFigureFormat(const std::string& format) {
-    if (format == "png" || format == "svg" || format == "pdf") return true;
+    if (format == "png" || format == "svg" || format == "pdf" || format == "eps" || format == "ps" || format == "tif" ||
+        format == "tiff") {
+        return true;
+    }
     for (const QByteArray& f : QImageWriter::supportedImageFormats()) {
         if (f.toStdString() == format) return true;
     }
     return false;
 }
 
-void writeFigure(const DisplayList& list, const std::filesystem::path& path) {
-    const std::string ext = lowerExtension(path);
-    const QString file = QString::fromStdWString(path.wstring());
+namespace {
+void writeBytes(const std::filesystem::path& path, const char* data, qsizetype size) {
+    QFile out(QString::fromStdWString(path.wstring()));
+    if (!out.open(QIODevice::WriteOnly) || out.write(data, size) != size) {
+        throw std::runtime_error("cannot write " + path.string());
+    }
+}
+}  // namespace
+
+void writeFigure(const DisplayList& list, const std::filesystem::path& path, const std::string& format) {
+    const std::string ext = format.empty() ? lowerExtension(path) : format;
     if (ext == "svg" || ext == "pdf") {
         const QByteArray bytes = ext == "svg" ? renderSvg(list) : renderPdf(list);
-        QFile out(file);
-        if (!out.open(QIODevice::WriteOnly) || out.write(bytes) != bytes.size()) {
-            throw std::runtime_error("cannot write " + path.string());
-        }
+        writeBytes(path, bytes.constData(), bytes.size());
+        return;
+    }
+    if (ext == "eps" || ext == "ps") {
+        const std::string ps = renderPostScript(list, bundledFontSet(), ext == "eps");
+        writeBytes(path, ps.data(), static_cast<qsizetype>(ps.size()));
         return;
     }
     if (!canWriteFigureFormat(ext)) {
         throw std::runtime_error("cannot write " + path.string() + ": unknown image format '" + ext + "'");
     }
     QImage img = renderImage(list);
+    if (ext == "tif" || ext == "tiff") {
+        const std::string tiff = encodeTiff(img.width(), img.height(),
+                                            std::span<const std::uint8_t>(img.constBits(), static_cast<std::size_t>(img.sizeInBytes())),
+                                            list.dpi);
+        writeBytes(path, tiff.data(), static_cast<qsizetype>(tiff.size()));
+        return;
+    }
     if (ext == "jpg" || ext == "jpeg") {
         // no alpha in JPEG: the figure over white, as Matplotlib's savefig does
         QImage flat(img.size(), QImage::Format_RGB32);
@@ -250,10 +271,17 @@ void writeFigure(const DisplayList& list, const std::filesystem::path& path) {
         QPainter(&flat).drawImage(0, 0, img);
         img = flat;
     }
-    QImageWriter writer(file, QByteArray::fromStdString(ext));
+    const int dotsPerMeter = static_cast<int>(std::lround(list.dpi / 0.0254));
+    img.setDotsPerMeterX(dotsPerMeter);
+    img.setDotsPerMeterY(dotsPerMeter);
+    QImageWriter writer(QString::fromStdWString(path.wstring()), QByteArray::fromStdString(ext));
     if (!writer.write(img)) {
         throw std::runtime_error("cannot write " + path.string() + ": " + writer.errorString().toStdString());
     }
+}
+
+void writeFigure(const Figure& figure, const std::filesystem::path& path, const std::string& format) {
+    writeFigure(buildDisplayList(figure, bundledFontSet()), path, format);
 }
 
 }  // namespace mdbridge::render

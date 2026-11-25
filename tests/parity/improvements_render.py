@@ -28,8 +28,8 @@ Status of the items (see the plan for the full text):
   RN-07  codec names mapped to the bundled encoders (video metadata, make_render_cli_cases.py)
   RN-08  ion legend label from the ions' elements
   RN-09  chain legend with chain letters (owner decision D11)
-  RN-10  chart series naming a matrix key: charted as a heatmap or a warning
-  RN-11  chart / preview formats validated in check()
+  RN-10  chart series naming a matrix key: charted as a matrix chart (a pair map: a warning)
+  RN-11  chart formats checked before anything is drawn (and in check(), W3-B)
   RN-12  colour strings validated in check()
   RN-13  chain_palette validated in check()
   RN-14  NaN-aware running mean
@@ -43,11 +43,16 @@ Status of the items (see the plan for the full text):
          secondary panel's setup had hidden the spines)
 
   RN-33  the density map's contour level from its finite voxels (W2-B)
+  RN-50  charts' title and colour bar in the theme's colours (MDATK styled the centre title, not
+         the left one it draws, and left the colour bar black: unreadable on the dark theme)
+  D5     output.charts.style: "mdatk" (or "") and "default" (Matplotlib's default look); other
+         names warn and draw MDATK's chrome (owner decision D5; MDATK applied any Matplotlib style)
 
 Patched so far: RN-01, RN-04, RN-14 (the plot panels, W2-A; src/render/panels/plots.cpp),
-RN-40 ... RN-42 (the sequence / secondary panels, W2-C; src/render/panels/seqpanels.cpp) and RN-03,
-RN-08, RN-09, RN-16, RN-33 (the structure view, W2-B; src/render/panels/structure.cpp). The
-others are MDATK's behaviour until their chunk fills them in.
+RN-40 ... RN-42 (the sequence / secondary panels, W2-C; src/render/panels/seqpanels.cpp), RN-03,
+RN-08, RN-09, RN-16, RN-33 (the structure view, W2-B; src/render/panels/structure.cpp) and RN-01 (for
+the matrix charts too), RN-05, RN-10, RN-11, RN-50, D5 (the standalone charts, W2-D;
+src/render/panels/charts.cpp). The others are MDATK's behaviour until their chunk fills them in.
 
 RN-26 ... RN-29 (the software 3D renderer, W1-B; src/render/molecule/software.cpp) change only the
 renderer's own images, which make_molecule_cases.py alone records: it calls
@@ -202,13 +207,13 @@ PATCHES = {
     "RN-02": None,
     "RN-03": "_rn03_finite_structure_extent",
     "RN-04": "_rn04_heatmap_vmin_above_vmax",
-    "RN-05": None,
+    "RN-05": "_rn05_matrix_chart_height_cap",
     "RN-06": None,
     "RN-07": None,
     "RN-08": "_rn08_rn09_legend",
     "RN-09": "_rn09_with_rn08",
-    "RN-10": None,
-    "RN-11": None,
+    "RN-10": "_rn10_chart_matrix_series",
+    "RN-11": "_rn11_chart_formats",
     "RN-12": None,
     "RN-13": None,
     "RN-14": "_rn14_nan_aware_running_mean",
@@ -219,6 +224,9 @@ PATCHES = {
     "RN-41": "_rn41_unknown_source",
     "RN-42": "_rn42_no_data_frame",
     "RN-33": "_rn33_finite_map_level",
+    # the standalone charts (W2-D; src/render/panels/charts.cpp)
+    "RN-50": "_rn50_chart_chrome_in_theme_colours",
+    "D5": "_d5_chart_styles",  # owner decision D5: the styles mdatk and default
 }
 
 
@@ -319,6 +327,50 @@ def _rn01_heatmap_column_edges():
         im._mdbridge_x_edges = [float(e) for e in edges]
 
     panels.HeatmapPanel.setup = setup
+    _rn01_matrix_chart_column_edges()
+
+
+def _frame_edges(t):
+    import numpy as np
+
+    if len(t) == 1:
+        return np.array([t[0] - 0.5, t[0] + 0.5])
+    edges = np.empty(len(t) + 1)
+    edges[0] = t[0] - (t[1] - t[0]) / 2
+    edges[1:-1] = (t[:-1] + t[1:]) / 2
+    edges[-1] = t[-1] + (t[-1] - t[-2]) / 2
+    return edges
+
+
+def _rn01_matrix_chart_column_edges():
+    """render_matrix_chart: the same frame cells as the heatmap panel (RN-01): the image's extent
+    spans the first to the last edge and carries the edges as ``_mdbridge_x_edges``."""
+    import numpy as np
+    from matplotlib.axes import Axes
+    from mdatk.render import charts
+
+    original = charts.render_matrix_chart
+
+    def render_matrix_chart(dataset, project, key, out_dir, stamp=""):
+        t = np.asarray(dataset.time(project.inputs.time_unit), dtype=np.float64)
+        imshow = Axes.imshow
+
+        def patched(self, X, *a, **kw):
+            im = imshow(self, X, *a, **kw)
+            if len(t) and np.shape(X)[1] == len(t):
+                edges = _frame_edges(t)
+                left, right, bottom, top = im.get_extent()
+                im.set_extent((float(edges[0]), float(edges[-1]), bottom, top))
+                im._mdbridge_x_edges = [float(e) for e in edges]
+            return im
+
+        Axes.imshow = patched
+        try:
+            return original(dataset, project, key, out_dir, stamp)
+        finally:
+            Axes.imshow = imshow
+
+    charts.render_matrix_chart = render_matrix_chart
 
 
 def _rn04_heatmap_vmin_above_vmax():
@@ -379,6 +431,175 @@ def _rn14_nan_aware_running_mean():
 
     panels._running_mean = running_mean
     charts._running_mean = running_mean
+
+
+MAX_CHART_PIXELS = 32768  # RN-05: 2^15
+
+
+def _rn05_matrix_chart_height_cap():
+    """render_matrix_chart: a figure height of more than 2^15 pixels (0.18 in per row) is capped
+    there, with a warning (MDATK: ever taller images, beyond Agg's 2^16 px limit a crash). The
+    row labels are thinned to 40 already."""
+    import math
+
+    from mdatk.render import charts
+
+    original = charts.render_matrix_chart
+    figure_class = charts.Figure
+
+    def render_matrix_chart(dataset, project, key, out_dir, stamp=""):
+        rows = len(dataset.matrix(key).row_labels)
+
+        def capped(*a, figsize=None, dpi=None, **kw):
+            w, h = figsize
+            if int(h * dpi) > MAX_CHART_PIXELS:
+                charts.log.warning("chart %s: %d rows need %d px at %s dpi; height capped at %d px", key, rows,
+                                   int(h * dpi), f"{dpi:g}", MAX_CHART_PIXELS)
+                h = MAX_CHART_PIXELS / dpi
+                while int(h * dpi) < MAX_CHART_PIXELS:
+                    h = math.nextafter(h, math.inf)
+            return figure_class(*a, figsize=(w, h), dpi=dpi, **kw)
+
+        charts.Figure = capped
+        try:
+            return original(dataset, project, key, out_dir, stamp)
+        finally:
+            charts.Figure = figure_class
+
+    charts.render_matrix_chart = render_matrix_chart
+
+
+def _rn10_chart_matrix_series():
+    """render_charts: a matrix key in output.charts.series is charted as a matrix chart (after the
+    series, before the include_heatmaps matrices, each matrix once); a pair-map key is skipped with
+    a warning (MDATK dropped both silently)."""
+    import os
+
+    from mdatk.progress import Reporter
+    from mdatk.render import charts
+
+    def render_charts(dataset, project, out_dir, reporter=None, stamp=""):
+        reporter = reporter or Reporter()
+        os.makedirs(out_dir, exist_ok=True)
+        keys = charts.chart_keys(dataset, project)
+        mats = []
+        for k in project.output.charts.series:
+            if not dataset.has(k):
+                continue
+            kind = dataset.kind_of(k)
+            if kind == "matrices":
+                if k not in mats:
+                    mats.append(k)
+            elif kind != "series":
+                charts.log.warning("chart series %s is a pair map; charts draw series and matrices "
+                                   "(a contact_map panel shows it)", k)
+        if project.output.charts.include_heatmaps:
+            mats += [k for k in dataset.matrix_keys() if not k.startswith(charts._INTERNAL) and k not in mats]
+        jobs = [("series", k) for k in keys] + [("matrix", k) for k in mats]
+        paths = []
+        for n, (kind, key) in enumerate(jobs):
+            reporter.check_cancel()
+            if kind == "series":
+                paths += charts.render_series_chart(dataset, project, key, out_dir, stamp)
+            else:
+                paths += charts.render_matrix_chart(dataset, project, key, out_dir, stamp)
+            reporter.progress((n + 1) / max(1, len(jobs)), f"Chart {key}")
+        reporter.log(f"Wrote {len(paths)} chart file(s) to {out_dir}")
+        return paths
+
+    charts.render_charts = render_charts
+
+
+# RN-11: the chart formats MDBridge writes (src/render/panels/charts.cpp chartFormats())
+CHART_FORMATS = ("png", "svg", "pdf", "jpg", "jpeg", "tif", "tiff", "eps", "ps")
+
+
+def _rn11_chart_formats():
+    """render_charts: output.charts.formats checked before anything is drawn or written: a format
+    MDBridge does not write is a ValueError listing them (MDATK: Matplotlib's ValueError after the
+    files of the formats before it were written, and after the analyses ran)."""
+    from mdatk.render import charts
+
+    original = charts.render_charts
+
+    def render_charts(dataset, project, out_dir, reporter=None, stamp=""):
+        bad = [f for f in (project.output.charts.formats or ["png"]) if f.lower().lstrip(".") not in CHART_FORMATS]
+        if bad:
+            names = ", ".join(repr(f) for f in bad)
+            raise ValueError(f"chart format{'s' if len(bad) > 1 else ''} {names} "
+                             f"{'are' if len(bad) > 1 else 'is'} not supported (choose from {', '.join(CHART_FORMATS)})")
+        return original(dataset, project, out_dir, reporter, stamp)
+
+    charts.render_charts = render_charts
+
+
+def _rn50_chart_chrome_in_theme_colours():
+    """Charts with MDATK's chrome: the title (left) in the theme's ink at 11 pt, as style_axes meant
+    (it styled the centre title, which charts leave empty: the left title stayed black, 12 pt); the
+    matrix charts' colour bar outline in the grid colour, its ticks muted, tick labels and label in
+    ink2 (MDATK: Matplotlib's black, unreadable on the dark theme)."""
+    import matplotlib.axes
+    import matplotlib.figure
+    from mdatk.render import charts
+
+    style_axes = charts.style_axes
+
+    def styled(ax, theme, grid=True, font_size=10.0):
+        style_axes(ax, theme, grid=grid, font_size=font_size)
+        ax._mdbridge_chart_theme = (theme, font_size)
+
+    charts.style_axes = styled
+    set_title = matplotlib.axes.Axes.set_title
+
+    def title(self, label, *a, **kw):
+        t = set_title(self, label, *a, **kw)
+        th = getattr(self, "_mdbridge_chart_theme", None)
+        if th is not None:
+            t.set_color(th[0].ink)
+            t.set_fontsize(th[1])
+        return t
+
+    matplotlib.axes.Axes.set_title = title
+    colorbar = matplotlib.figure.FigureBase.colorbar
+
+    def bar(self, mappable, cax=None, ax=None, **kw):
+        cb = colorbar(self, mappable, cax=cax, ax=ax, **kw)
+        th = getattr(ax, "_mdbridge_chart_theme", None)
+        if th is not None:
+            theme = th[0]
+            cb.outline.set_edgecolor(theme.grid)
+            cb.ax.tick_params(colors=theme.muted, labelcolor=theme.ink2)
+            cb.ax.yaxis.label.set_color(theme.ink2)
+        return cb
+
+    matplotlib.figure.FigureBase.colorbar = bar
+
+
+def _d5_chart_styles():
+    """output.charts.style (owner decision D5): "mdatk" or "" is MDATK's chrome, "default" is
+    Matplotlib's default look; any other name (a Matplotlib style such as ggplot, a style file, a
+    typo) warns and draws MDATK's chrome (MDATK applied any Matplotlib style and warned only for
+    unknown ones, with Matplotlib's message)."""
+    import contextlib
+
+    from mdatk.render import charts
+
+    original = charts._style
+
+    @contextlib.contextmanager
+    def _style(name):
+        if not name or name == "mdatk":
+            yield True
+            return
+        if name == "default":
+            with original(name) as mdatk_chrome:
+                yield mdatk_chrome
+            return
+        charts.log.warning("unknown matplotlib style %r (MDBridge draws the styles 'mdatk' and 'default'); "
+                           "using MDATK chrome", name)
+        yield True
+
+    charts._style = _style
 
 
 def _rn26_antialias_with_neighbours():

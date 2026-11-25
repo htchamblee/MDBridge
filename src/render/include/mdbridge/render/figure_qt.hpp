@@ -8,6 +8,7 @@
 //           pixels; text kept as text (<text> elements in the bundled DejaVu families)
 //   PDF     QPdfWriter, one page of the figure's size in points, no margins; text kept as text
 //           (the bundled faces embedded by Qt)
+//   EPS, PS, TIFF  render core's writers (figure_formats.hpp)
 //
 // SVG and PDF need a QGuiApplication (fonts); the batch commands start one on the offscreen
 // platform (startBatchApplication). No Qt Charts / Qt Graphs (GPL): plain QPainter.
@@ -19,6 +20,7 @@
 #include <QImage>
 
 #include "mdbridge/render/display_list.hpp"
+#include "mdbridge/render/figure.hpp"
 
 class QPainter;
 
@@ -41,11 +43,17 @@ QImage composeLayers(const QImage& background, const DisplayList& layer);
 QByteArray renderSvg(const DisplayList& list, const QString& title = {});
 QByteArray renderPdf(const DisplayList& list, const QString& title = {});
 
-// The image formats a figure can be written as: png, svg, pdf, and the raster formats Qt's image
-// plugins write here (jpg, tif, webp ...), lower-case.
+// The image formats a figure can be written as: png, svg, pdf, eps, ps, tif / tiff (render core's
+// writers, figure_formats.hpp), and the raster formats Qt's image plugins write here (jpg / jpeg
+// with the qjpeg plugin, bmp ...), lower-case.
 bool canWriteFigureFormat(const std::string& format);
-// Writes the list to `path` in the format of its extension (png, svg, pdf, jpg ...); throws
-// std::runtime_error naming the file when the format is unknown or the file cannot be written.
-void writeFigure(const DisplayList& list, const std::filesystem::path& path);
+// Writes the list to `path` in the format of its extension (png, svg, pdf, jpg ...), or in
+// `format` when one is given; throws std::runtime_error naming the file when the format is unknown
+// or the file cannot be written. Raster files record the figure's dpi; JPEG has no alpha (the
+// figure over white, as Matplotlib's savefig).
+void writeFigure(const DisplayList& list, const std::filesystem::path& path, const std::string& format = {});
+// A drawn figure (Figure::draw) written as writeFigure writes its display list, text from the
+// bundled fonts: the charts' writer (render/panels charts.hpp FigureWriter).
+void writeFigure(const Figure& figure, const std::filesystem::path& path, const std::string& format = {});
 
 }  // namespace mdbridge::render

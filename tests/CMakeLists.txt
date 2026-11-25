@@ -158,6 +158,16 @@ target_compile_definitions(mdbridge_seqpanel_tests PRIVATE MDBRIDGE_TEST_DATA="$
 mdbridge_target_warnings(mdbridge_seqpanel_tests)
 gtest_discover_tests(mdbridge_seqpanel_tests DISCOVERY_MODE PRE_TEST)
 
+# render/panels: the standalone charts against MDATK's render_charts (data/render/charts,
+# tests/parity/make_chart_cases.py): paths, files, log, progress, warnings, figures; no Qt
+add_executable(mdbridge_chart_tests render/test_charts.cpp)
+target_include_directories(mdbridge_chart_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/core")
+target_link_libraries(mdbridge_chart_tests PRIVATE mdbridge::render_panels mdbridge::analysis mdbridge::core GTest::gtest_main)
+target_compile_definitions(mdbridge_chart_tests PRIVATE MDBRIDGE_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data"
+                           MDBRIDGE_FONT_DIR="${PROJECT_SOURCE_DIR}/data/fonts")
+mdbridge_target_warnings(mdbridge_chart_tests)
+gtest_discover_tests(mdbridge_chart_tests DISCOVERY_MODE PRE_TEST)
+
 # render core: residue shading, orientation, the example dataset and numpy's PCG64 against MDATK and
 # numpy (data/render/shading, tests/parity/make_shading_cases.py); no Qt
 add_executable(mdbridge_shading_tests render/test_shading.cpp)
@@ -218,6 +228,23 @@ if(WIN32 AND MDBRIDGE_VIDEO_RUNTIME_FILES)  # the FFmpeg DLLs next to the test p
 endif()
 gtest_discover_tests(mdbridge_video_tests DISCOVERY_MODE PRE_TEST)
 
+# render/video: the frame loop (MDATK's render_video) with a test compositor: positions, order,
+# threads, progress, cancellation, whole runs of data/render/cli's video cases through the encoder
+# (tests/parity/make_render_cli_cases.py). No Qt.
+add_executable(mdbridge_video_loop_tests render/test_video_loop.cpp)
+target_include_directories(mdbridge_video_loop_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/core")
+target_link_libraries(mdbridge_video_loop_tests PRIVATE mdbridge::video_loop mdbridge::commands mdbridge::analysis
+                      mdbridge::core GTest::gtest_main)
+target_compile_definitions(mdbridge_video_loop_tests PRIVATE MDBRIDGE_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data"
+                           MDBRIDGE_FONT_DIR="${PROJECT_SOURCE_DIR}/data/fonts")
+mdbridge_target_warnings(mdbridge_video_loop_tests)
+if(WIN32 AND MDBRIDGE_VIDEO_RUNTIME_FILES)  # the FFmpeg DLLs next to the test program
+    add_custom_command(TARGET mdbridge_video_loop_tests POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${MDBRIDGE_VIDEO_RUNTIME_FILES} $<TARGET_FILE_DIR:mdbridge_video_loop_tests>
+        VERBATIM)
+endif()
+gtest_discover_tests(mdbridge_video_loop_tests DISCOVERY_MODE PRE_TEST)
+
 # render/vulkan: Vulkan without a window (loader, device, offscreen target and read-back, pipelines,
 # pipeline cache) and the probe; no Qt. The GPU tests run on the machine's Vulkan 1.3 driver
 # (lavapipe in CI) and skip without one, unless MDBRIDGE_REQUIRE_VULKAN=1 (tests/render/vulkan_harness.hpp)
@@ -269,4 +296,29 @@ if(MDBRIDGE_BUILD_APP)
     target_compile_definitions(mdbridge_figure_qt_tests PRIVATE MDBRIDGE_FONT_DIR="${PROJECT_SOURCE_DIR}/data/fonts")
     mdbridge_target_warnings(mdbridge_figure_qt_tests)
     gtest_discover_tests(mdbridge_figure_qt_tests DISCOVERY_MODE PRE_TEST)
+
+    # the standalone charts' files from the Qt backend: every format MDATK's charts write, their
+    # first bytes and sizes as MDATK's (data/render/charts), PostScript and TIFF (offscreen platform)
+    add_executable(mdbridge_charts_qt_tests render/test_charts_qt.cpp)
+    target_include_directories(mdbridge_charts_qt_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/core")
+    target_link_libraries(mdbridge_charts_qt_tests PRIVATE mdbridge::render mdbridge::render_panels mdbridge::analysis GTest::gtest)
+    target_compile_definitions(mdbridge_charts_qt_tests PRIVATE MDBRIDGE_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data"
+                               MDBRIDGE_FONT_DIR="${PROJECT_SOURCE_DIR}/data/fonts")
+    mdbridge_target_warnings(mdbridge_charts_qt_tests)
+    gtest_discover_tests(mdbridge_charts_qt_tests DISCOVERY_MODE PRE_TEST)
+
+    # the video frame loop with the QPainter compositor: MDATK's full-run video (24 frames at
+    # 320 x 180), frames identical for any thread count, decoded frames vs composed (PSNR)
+    add_executable(mdbridge_video_qt_tests render/test_video_qt.cpp)
+    target_include_directories(mdbridge_video_qt_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/core")
+    target_link_libraries(mdbridge_video_qt_tests PRIVATE mdbridge::render mdbridge::commands mdbridge::analysis GTest::gtest)
+    target_compile_definitions(mdbridge_video_qt_tests PRIVATE MDBRIDGE_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data"
+                               MDBRIDGE_FONT_DIR="${PROJECT_SOURCE_DIR}/data/fonts")
+    mdbridge_target_warnings(mdbridge_video_qt_tests)
+    if(WIN32 AND MDBRIDGE_VIDEO_RUNTIME_FILES)
+        add_custom_command(TARGET mdbridge_video_qt_tests POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different ${MDBRIDGE_VIDEO_RUNTIME_FILES} $<TARGET_FILE_DIR:mdbridge_video_qt_tests>
+            VERBATIM)
+    endif()
+    gtest_discover_tests(mdbridge_video_qt_tests DISCOVERY_MODE PRE_TEST)
 endif()

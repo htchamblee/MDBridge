@@ -277,7 +277,7 @@ Each lands in DIFFERENCES.md with a test; `improvements_render.py` adjusts the e
 | RN-08 | Structure legend always says `Mg²⁺`, whatever `analyses.mg.mg_selection` / `show_ions` selects (Na+, K+, Ca2+) | label from the ions' element(s): `Mg²⁺`, `K⁺`, `Na⁺`, `Ions` for mixtures |
 | RN-09 | Chain legend `Chain 1, 2, ...` from the chain index although chain letters are known (sequence panel shows `A, B`) — misleading next to `B:12` ranges | `Chain A` (the trace's chain names; index only when a chain has no name) — ASK (D11) |
 | RN-10 | `charts.series` naming a matrix key is dropped silently | charted as a heatmap (or warning `chart series K is a matrix; enable include_heatmaps`) |
-| RN-11 | Unknown chart / preview format (`jpg`, `eps`, typo) → Matplotlib `ValueError` traceback after the analyses ran | formats validated in `check()`: png, svg, pdf (+ jpg, tif, webp via QImageWriter); others listed in the error |
+| RN-11 | Unknown chart / preview format (typo, gif, webp ...) → Matplotlib `ValueError` traceback after the analyses ran and the earlier formats' files were written (jpg and eps do work in MDATK, W0-A) | formats checked before anything is drawn (charts, W2-D) and in `check()` (W3-B): png, svg, pdf, jpg / jpeg (Qt), tif / tiff, eps, ps (own writers); others listed in the error |
 | RN-12 | Invalid colour strings (group colours, `glow_color`, chart `color`) raise in the middle of a video | `check()` validates every colour with Matplotlib's grammar and names the field |
 | RN-13 | `chain_palette` unknown → `ValueError` from Matplotlib's registry mid-render | validated in `check()`; error lists the bundled palettes |
 | RN-14 | `_running_mean` with NaN (an empty RMSD target, NaN frames) blanks whole windows | NaN-aware window mean (NaN only where the whole window is NaN) |
@@ -302,6 +302,7 @@ Each lands in DIFFERENCES.md with a test; `improvements_render.py` adjusts the e
 | RN-40 | Sequence panel `per_row` that `int()` cannot read → `ValueError` out of `build_figure` (render aborted); a negative one → inverted axis, giant boxes | `No data: option 'per_row' must be a whole number ...`; 0 / truncating values as MDATK (W2-C) |
 | RN-41 | Secondary panel: any unknown `source` silently means `dynamic` | `No data: unknown source 'x' (option 'source': dynamic, first or dotbracket)` (W2-C) |
 | RN-42 | Secondary panel's "No data" messages after `_bare_axes` have no frame (other "No data" panels do) | the frame kept in both residue panels (W2-C) |
+| RN-50 | Charts with MDATK's chrome: `style_axes` styles the centre title, the chart's left title stays black 12 pt; the matrix charts' colour bar stays black: unreadable on the dark theme | title in the theme's ink at 11 pt, colour bar outline / ticks / labels in the theme's colours (W2-D) |
 
 Not bugs, kept as conventions: DPI semantics (text size relative to the frame), `MDATK_` file names,
 the example dataset's seeds (crc32 of the key → numpy PCG64: ported exactly so the GUI preview looks

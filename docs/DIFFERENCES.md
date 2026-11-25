@@ -764,6 +764,56 @@ the tolerance). Differences:
   *Tested:* `PlotArithmetic.RunningMeanNanAware`, the cases `ts_nan_smooth` and `ts_smooth`
   (and the chart records, regenerated with the same patch).
 
+## Rendering: charts (src/render/panels/charts.cpp; src/render/core/figure_formats.cpp)
+
+The standalone charts are MDATK's (`mdatk/render/charts.py`): the same charts (every series, or
+`output.charts.series`; the matrices with `include_heatmaps`), sizes, chrome, smoothing, targets,
+labels, title templates, file names, log (`Wrote N chart file(s) to D`), progress (`Chart <key>`)
+and warnings. Every chart case has MDATK's paths, files, messages and figure contents
+(`tests/render/test_charts.cpp` against `tests/data/render/charts`; the files' first bytes and
+sizes from the Qt backend in `tests/render/test_charts_qt.cpp`). Differences:
+
+- **Matrix-chart cells at the midpoints between frame times (RN-01), NaN-aware smoothing (RN-14).**
+  The heatmap panel's improvements (above) apply to the charts, which share the code. *Tested:*
+  the cases `uneven_times` (two runs with different time steps) and `nan_smoothing`.
+- **Matrix-chart height capped (RN-05).** A matrix chart is 0.18 in per residue row tall, so a
+  system of thousands of residues gave images beyond Agg's 2^16 px limit (a crash after the
+  analyses ran) and, below it, images of hundreds of megabytes. MDBridge caps the height at 2^15 px
+  (the row labels are thinned to 40 anyway) and warns `chart K: N rows need H px at D dpi; height
+  capped at 32768 px`. *Tested:* `ChartHeight.CappedAtTwoToTheFifteen`, the case `matrix_tall`
+  (700 rows at 300 dpi).
+- **Matrix keys in `output.charts.series` (RN-10).** MDATK dropped them silently (only series were
+  charted from that list). MDBridge charts a requested matrix as a matrix chart: after the series,
+  each matrix once, before the other `include_heatmaps` matrices. A pair-map key (no chart type)
+  warns `chart series K is a pair map; charts draw series and matrices (a contact_map panel shows
+  it)`. *Tested:* `ChartRun.MatrixSeriesAndPairMaps`, the cases `missing_and_matrix`,
+  `matrix_series`, `matrix_series_heatmaps`.
+- **Formats checked first (RN-11).** MDATK wrote every format Matplotlib and pillow know and failed
+  with Matplotlib's `ValueError` traceback at the first unknown one, after the analyses ran and
+  after the files before it were written. MDBridge writes png, svg, pdf, jpg / jpeg (Qt's JPEG
+  plugin), tif / tiff, eps and ps (its own writers: an uncompressed RGBA TIFF; PostScript Level 2
+  with text as glyph outlines and, as Matplotlib's PS backend, no transparency) and checks the list
+  before anything is drawn: `chart format 'bogus' is not supported (choose from png, svg, pdf, jpg,
+  jpeg, tif, tiff, eps, ps)` (`check()` reports the same, W3-B). Matplotlib's gif, webp, avif,
+  svgz, pgf, raw and rgba are no longer offered. The plan assumed jpg and eps failed in MDATK; they
+  did not, and they still work. *Tested:* `ChartFormats.CheckedBeforeAnythingIsWritten`, the cases
+  `formats`, `format_jpg_eps`, `format_tif_ps`, `format_unknown`, `format_unknown_two`;
+  `ChartFiles.*` and `ChartPostScript.VectorsTextAndImage` (Qt).
+- **Title and colour bar in the theme's colours (RN-50).** `style_axes` styled the axes' centre
+  title, but charts set the left one, which stayed Matplotlib's black at 12 pt; the matrix charts'
+  colour bar (outline, ticks, labels) stayed black too: black on the dark theme's near-black
+  surface, unreadable. MDBridge draws the title in the theme's ink at 11 pt (as `style_axes`
+  meant) and the colour bar's outline in the grid colour, its ticks muted and its tick labels and
+  label in ink2 (sizes unchanged). Matplotlib's `default` style is unchanged. *Tested:* every chart
+  case with MDATK's chrome; `dark_heatmaps`.
+- **Styles (owner decision D5).** MDATK applied any Matplotlib style sheet (`ggplot`,
+  `seaborn-v0_8`, a style file or URL) and warned only for unknown names, with Matplotlib's
+  message. MDBridge draws MDATK's chrome (`mdatk`, or empty) and Matplotlib's `default` look; any
+  other name warns, for each chart as MDATK warned, `unknown matplotlib style 'ggplot' (MDBridge
+  draws the styles 'mdatk' and 'default'); using MDATK chrome` and draws MDATK's chrome. *Tested:*
+  `style_default`, `style_default_smoothing`, `style_default_color`, `style_ggplot`,
+  `style_unknown`, `heatmaps_dark_style`.
+
 ## Rendering: molecule geometry (src/render/molecule)
 
 The 3D representations (MDATK's `mdatk/render/molecule/topology.py`, `geometry.py`, `surface.py`,
@@ -1030,6 +1080,45 @@ target folder renamed at the end and removed on failure. Stream metadata (frame 
   addresses. Without FFmpeg in the build: `video encoding is not available in this build`. FFmpeg
   and SVT-AV1 print nothing on the console. *Tested:* `VideoFiles.ClearErrors`,
   `VideoFfmpeg.NotAvailableMessage`.
+
+## Rendering: the video frame loop (src/render/video/frame_loop.cpp, src/render/video_qt.cpp)
+
+MDATK's `render_video` builds the figure once, marks the panels' animated artists, draws the
+static rest once (Matplotlib blitting) and per frame updates the panels, restores the background,
+draws the animated artists and pipes the RGBA buffer into ffmpeg. MDBridge does the same steps on
+its own figure (the static and animated display-list layers, QPainter composition) with the same
+positions (`0, s, 2s, ...`; RN-17 kept), log lines (`Rendering N video frame(s) at WxH, F fps ->
+PATH`, `Wrote PATH (N frames)`), progress (`Video frame k/n` every `n // 200` frames and after the
+last), cancellation between frames and temporary file (removed on failure or cancellation, an
+existing file at the target kept; `VideoRender.CancelLeavesNoFile`,
+`VideoRender.ExistingFileKeptOnFailure`). Differences:
+
+- **Frames composed on several threads.** The panels are updated in order on the calling thread
+  (they and the 3D stage renderer they call keep per-frame state), each frame's animated layer is
+  composed over the background on a pool of threads (at most 8; the 3D renderer has its own
+  threads) and the frames are encoded in order. Composition is a pure function of the background
+  and the frame's layer, so the frames are the same bytes for any number of threads. *Tested:*
+  `FrameLoop.FramesInOrderAndIdenticalForAnyThreadCount`,
+  `QtVideo.ComposedFramesIdenticalForAnyThreadCount`,
+  `QtVideo.RepresentationsThroughTheStageRendererFactory`.
+- **No analysed frames (RN-02, the video part).** MDATK started ffmpeg on zero frames (or failed
+  in the panels); MDBridge stops with `VideoError: no analysed frames to render` before anything is
+  written. *Tested:* `VideoRender.NoFramesIsAnError`.
+- **No canvas size errors (RN-06, the video part).** The canvas is exactly `figure_size(w, h)`
+  (even) pixels for any dpi, so MDATK's `canvas size WxH is not even` and `canvas is WxH px but ...
+  choose a DPI that divides the resolution` cannot occur (`render_odd_size`: 333 x 187 at dpi 37
+  gives 332 x 186, as MDATK's). *Tested:* `RenderCliCases/VideoRun.AsMdatksVideo`.
+- **`output.video.ffmpeg_path` is not used (owner decision D8).** The bundled libraries encode;
+  the setting stays in project files. A missing or wrong ffmpeg path is therefore no error (MDATK:
+  `ffmpeg not executable at PATH`).
+- **Quality check.** Decoded mpeg4 frames are within 42 dB (RGB PSNR) of the composed ones at the
+  default 1920 x 1080; at the parity cases' 320 x 180 yuv420p's chroma subsampling alone limits RGB
+  to about 35 dB (thin coloured lines), and the luma is within 42 dB. AV1 videos are checked by
+  their metadata only (the bundled FFmpeg has no AV1 decoder). *Tested:*
+  `QtVideo.DecodedFramesWithin38dB`; metadata (frame count, size, frame rate, pixel format,
+  streams, faststart; not the codec name, RN-07) against `tests/data/render/cli` by
+  `RenderCliCases/VideoRun.AsMdatksVideo` and `QtVideo.FullRun24Frames320x180` (MDATK's
+  `test_full_run` video).
 
 ## Planned (from the improvement register; add each entry here when it lands)
 

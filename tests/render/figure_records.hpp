@@ -4,6 +4,7 @@
 //
 //   untag(v)            the generators' tagged JSON ({"$float": "nan"}) as plain values
 //   loadRenderInput     tests/data/render/inputs/<name>: dataset.json + <result>.npz -> core::Dataset
+//                       (loadRenderInputFolder: any such folder)
 //   caseProject         a case record's "project" (Project.to_dict(), paths {data}) -> core::Project
 //   buildCase           build_figure of a case: its input, project, size, dpi, watermark
 //
@@ -64,8 +65,8 @@ inline core::Value untag(const core::Value& v) {
     return v;
 }
 
-inline core::Dataset loadRenderInput(const std::string& name) {
-    const std::filesystem::path folder = kRenderData / "inputs" / name;
+// a dataset folder written by render_common.save_dataset (dataset.json + <result>.npz)
+inline core::Dataset loadRenderInputFolder(const std::filesystem::path& folder) {
     const core::Value doc = untag(readJson(folder / "dataset.json"));
     std::vector<std::int64_t> frames;
     for (const core::Value& f : *doc.find("frames")->get<core::Array>()) frames.push_back(*f.get<std::int64_t>());
@@ -90,6 +91,8 @@ inline core::Dataset loadRenderInput(const std::string& name) {
     }
     return ds;
 }
+
+inline core::Dataset loadRenderInput(const std::string& name) { return loadRenderInputFolder(kRenderData / "inputs" / name); }
 
 inline core::Project caseProject(const core::Value& record) {
     return core::projectFromPlain(untag(*record.find("project")));

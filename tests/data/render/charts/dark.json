@@ -26,7 +26,7 @@
   "workflow": {"project_name":"project","stamp":"","use_stamp":true,"out_dir":"","step_folders":true,"nodes":[],"edges":[],"scratch":[]}
  },
  "stamp": "",
- "improvements": ["RN-01","RN-03","RN-04","RN-08","RN-09","RN-14","RN-16","RN-33","RN-40","RN-41","RN-42"],
+ "improvements": ["D5","RN-01","RN-03","RN-04","RN-05","RN-08","RN-09","RN-10","RN-11","RN-14","RN-16","RN-33","RN-40","RN-41","RN-42","RN-50"],
  "paths": ["{out}/out/MDATK_chart_rmsd_Complex.png","{out}/out/MDATK_chart_hbonds_count.png","{out}/out/MDATK_chart_energy_total.png"],
  "log": ["Wrote 3 chart file(s) to {out}/out"],
  "progress": [["0x1.5555555555555p-2","Chart rmsd/Complex"],["0x1.5555555555555p-1","Chart hbonds/count"],["0x1.0000000000000p+0","Chart energy/total"]],
@@ -45,7 +45,7 @@
     "axes": [
      {
       "id": "ax0",
-      "position_px": [42.64284479166666,37.031733680555554,636.6664,338.99973333333327],
+      "position_px": [42.64284479166666,37.031733680555554,636.6664,339.99973333333327],
       "tight_px": [3.3335999999999917,3.333599999999999,636.6664,356.66639999999995],
       "facecolor": [0.10196078431372549,0.10196078431372549,0.09803921568627451,1.0],
       "visible": true,
@@ -54,7 +54,7 @@
       "ylim": [-0.0799163088,1.6782424848000002],
       "aspect": "auto",
       "zorder": 0.0,
-      "titles": {"left":{"id":"ax0/title_left","kind":"text","zorder":3.0,"visible":true,"alpha":null,"animated":false,"text":"RMSD Complex","xy":[0.0,1.0],"coords":"other","ha":"left","va":"baseline","color":[0.0,0.0,0.0,1.0],"size":12.0,"weight":"normal","style":"normal","family":["sans-serif"],"rotation":0.0,"clip_on":true,"wrap":false,"extent_px":[42.64284479166666,342.46327499999995,142.40846979166668,356.66639999999995]}},
+      "titles": {"left":{"id":"ax0/title_left","kind":"text","zorder":3.0,"visible":true,"alpha":null,"animated":false,"text":"RMSD Complex","xy":[0.0,1.0],"coords":"other","ha":"left","va":"baseline","color":[0.9411764705882353,0.9372549019607843,0.9254901960784314,1.0],"size":11.0,"weight":"normal","style":"normal","family":["sans-serif"],"rotation":0.0,"clip_on":true,"wrap":false,"extent_px":[42.64284479166666,343.66639999999995,133.42409479166668,356.66639999999995]}},
       "spines": {"left":{"visible":true,"color":[0.2196078431372549,0.2196078431372549,0.20784313725490197,1.0],"lw":0.8},"right":{"visible":false,"color":[0.0,0.0,0.0,1.0],"lw":0.8},"bottom":{"visible":true,"color":[0.2196078431372549,0.2196078431372549,0.20784313725490197,1.0],"lw":0.8},"top":{"visible":false,"color":[0.0,0.0,0.0,1.0],"lw":0.8}},
       "xaxis": {
        "label": {"text":"Time (ns)","color":[0.7647058823529411,0.7607843137254902,0.7176470588235294,1.0],"size":9.9,"extent_px":[313.3264973958333,3.333599999999999,365.9827473958333,14.976178124999999]},
@@ -68,7 +68,7 @@
        "formatter": {"class":"ScalarFormatter","offset":0.0,"orderOfMagnitude":0,"format":"%1.2f","useMathText":false,"useOffset":true}
       },
       "yaxis": {
-       "label": {"text":"RMSD Complex (Å)","color":[0.7647058823529411,0.7607843137254902,0.7176470588235294,1.0],"size":9.9,"extent_px":[3.3335999999999917,135.10948350694443,15.976178124999999,240.92198350694443]},
+       "label": {"text":"RMSD Complex (Å)","color":[0.7647058823529411,0.7607843137254902,0.7176470588235294,1.0],"size":9.9,"extent_px":[3.3335999999999917,135.60948350694443,15.976178124999999,241.42198350694443]},
        "scale": "linear",
        "inverted": false,
        "visible": true,
@@ -111,7 +111,7 @@
         "alpha": null,
         "animated": false,
         "loc": 0,
-        "extent_px": [465.5483444444444,298.3018166666666,631.1108444444444,333.4441777777777],
+        "extent_px": [465.5483444444444,299.30181666666664,631.1108444444444,334.4441777777778],
         "frame": {"on":true,"facecolor":[0.10196078431372549,0.10196078431372549,0.09803921568627451,0.8],"edgecolor":[0.17254901960784313,0.17254901960784313,0.16470588235294117,0.8],"lw":0.6},
         "entries": [
          {"text":"Per frame","color":[0.7647058823529411,0.7607843137254902,0.7176470588235294,1.0],"size":8.8,"handle":{"id":"?Line2D","kind":"line","zorder":2.0,"visible":true,"alpha":0.35,"animated":false,"label":"Per frame","color":[0.2235294117647059,0.5294117647058824,0.8980392156862745,1.0],"lw":0.8999999999999999,"ls":"-","dashes":null,"marker":"None","ms":6.0,"mfc":[0.2235294117647059,0.5294117647058824,0.8980392156862745,1.0],"mec":[0.2235294117647059,0.5294117647058824,0.8980392156862745,1.0],"mew":1.0,"drawstyle":"default","solid_capstyle":"projecting"}},
@@ -136,7 +136,7 @@
     "axes": [
      {
       "id": "ax0",
-      "position_px": [38.64284479166667,37.031733680555554,636.6664,338.99973333333327],
+      "position_px": [38.64284479166667,37.031733680555554,636.6664,339.99973333333327],
       "tight_px": [3.333599999999999,3.333599999999999,636.6664,356.66639999999995],
       "facecolor": [0.10196078431372549,0.10196078431372549,0.09803921568627451,1.0],
       "visible": true,
@@ -145,7 +145,7 @@
       "ylim": [19.4,32.6],
       "aspect": "auto",
       "zorder": 0.0,
-      "titles": {"left":{"id":"ax0/title_left","kind":"text","zorder":3.0,"visible":true,"alpha":null,"animated":false,"text":"Aptamer–Target H-bonds","xy":[0.0,1.0],"coords":"other","ha":"left","va":"baseline","color":[0.0,0.0,0.0,1.0],"size":12.0,"weight":"normal","style":"normal","family":["sans-serif"],"rotation":0.0,"clip_on":true,"wrap":false,"extent_px":[38.64284479166667,342.46327499999995,199.20534479166668,356.66639999999995]}},
+      "titles": {"left":{"id":"ax0/title_left","kind":"text","zorder":3.0,"visible":true,"alpha":null,"animated":false,"text":"Aptamer–Target H-bonds","xy":[0.0,1.0],"coords":"other","ha":"left","va":"baseline","color":[0.9411764705882353,0.9372549019607843,0.9254901960784314,1.0],"size":11.0,"weight":"normal","style":"normal","family":["sans-serif"],"rotation":0.0,"clip_on":true,"wrap":false,"extent_px":[38.64284479166667,343.66639999999995,187.40846979166668,356.66639999999995]}},
       "spines": {"left":{"visible":true,"color":[0.2196078431372549,0.2196078431372549,0.20784313725490197,1.0],"lw":0.8},"right":{"visible":false,"color":[0.0,0.0,0.0,1.0],"lw":0.8},"bottom":{"visible":true,"color":[0.2196078431372549,0.2196078431372549,0.20784313725490197,1.0],"lw":0.8},"top":{"visible":false,"color":[0.0,0.0,0.0,1.0],"lw":0.8}},
       "xaxis": {
        "label": {"text":"Time (ns)","color":[0.7647058823529411,0.7607843137254902,0.7176470588235294,1.0],"size":9.9,"extent_px":[311.3264973958333,3.333599999999999,363.9827473958333,14.976178124999999]},
@@ -159,7 +159,7 @@
        "formatter": {"class":"ScalarFormatter","offset":0.0,"orderOfMagnitude":0,"format":"%1.2f","useMathText":false,"useOffset":true}
       },
       "yaxis": {
-       "label": {"text":"Aptamer–Target H-bonds","color":[0.7647058823529411,0.7607843137254902,0.7176470588235294,1.0],"size":9.9,"extent_px":[3.333599999999999,118.01573350694443,14.976178125000008,258.01573350694446]},
+       "label": {"text":"Aptamer–Target H-bonds","color":[0.7647058823529411,0.7607843137254902,0.7176470588235294,1.0],"size":9.9,"extent_px":[3.333599999999999,118.51573350694443,14.976178125000008,258.51573350694446]},
        "scale": "linear",
        "inverted": false,
        "visible": true,
@@ -205,8 +205,8 @@
     "axes": [
      {
       "id": "ax0",
-      "position_px": [52.642844791666676,37.031733680555554,636.6664,339.86952500000007],
-      "tight_px": [3.3336000000000023,3.333599999999999,636.6664,356.66640000000007],
+      "position_px": [52.642844791666676,37.031733680555554,636.6664,340.7137090277777],
+      "tight_px": [3.3336000000000023,3.333599999999999,636.6664,356.66639999999995],
       "facecolor": [0.10196078431372549,0.10196078431372549,0.09803921568627451,1.0],
       "visible": true,
       "axison": true,
@@ -214,7 +214,7 @@
       "ylim": [-104.0961174565,30.7335323665],
       "aspect": "auto",
       "zorder": 0.0,
-      "titles": {"left":{"id":"ax0/title_left","kind":"text","zorder":3.0,"visible":true,"alpha":null,"animated":false,"text":"Aptamer–Target interaction energy","xy":[0.0,1.0],"coords":"other","ha":"left","va":"baseline","color":[0.0,0.0,0.0,1.0],"size":12.0,"weight":"normal","style":"normal","family":["sans-serif"],"rotation":0.0,"clip_on":true,"wrap":false,"extent_px":[52.642844791666676,343.33306666666675,277.9709697916667,356.66640000000007]}},
+      "titles": {"left":{"id":"ax0/title_left","kind":"text","zorder":3.0,"visible":true,"alpha":null,"animated":false,"text":"Aptamer–Target interaction energy","xy":[0.0,1.0],"coords":"other","ha":"left","va":"baseline","color":[0.9411764705882353,0.9372549019607843,0.9254901960784314,1.0],"size":11.0,"weight":"normal","style":"normal","family":["sans-serif"],"rotation":0.0,"clip_on":true,"wrap":false,"extent_px":[52.642844791666676,344.3803756944444,262.1897197916667,356.66639999999995]}},
       "spines": {"left":{"visible":true,"color":[0.2196078431372549,0.2196078431372549,0.20784313725490197,1.0],"lw":0.8},"right":{"visible":false,"color":[0.0,0.0,0.0,1.0],"lw":0.8},"bottom":{"visible":true,"color":[0.2196078431372549,0.2196078431372549,0.20784313725490197,1.0],"lw":0.8},"top":{"visible":false,"color":[0.0,0.0,0.0,1.0],"lw":0.8}},
       "xaxis": {
        "label": {"text":"Time (ns)","color":[0.7647058823529411,0.7607843137254902,0.7176470588235294,1.0],"size":9.9,"extent_px":[318.3264973958333,3.333599999999999,370.9827473958333,14.976178124999999]},
@@ -228,7 +228,7 @@
        "formatter": {"class":"ScalarFormatter","offset":0.0,"orderOfMagnitude":0,"format":"%1.2f","useMathText":false,"useOffset":true}
       },
       "yaxis": {
-       "label": {"text":"Aptamer–Target interaction energy (kcal/mol)","color":[0.7647058823529411,0.7607843137254902,0.7176470588235294,1.0],"size":9.9,"extent_px":[3.3336000000000023,60.04437934027783,14.976178125000018,316.8568793402778]},
+       "label": {"text":"Aptamer–Target interaction energy (kcal/mol)","color":[0.7647058823529411,0.7607843137254902,0.7176470588235294,1.0],"size":9.9,"extent_px":[3.3336000000000023,60.46647135416666,14.976178125000018,317.27897135416663]},
        "scale": "linear",
        "inverted": false,
        "visible": true,
@@ -250,7 +250,7 @@
         "alpha": null,
         "animated": false,
         "loc": 0,
-        "extent_px": [465.5483444444444,283.2670944444445,631.1108444444444,334.3139694444445],
+        "extent_px": [465.5483444444444,284.1112784722222,631.1108444444444,335.1581534722222],
         "frame": {"on":true,"facecolor":[0.10196078431372549,0.10196078431372549,0.09803921568627451,0.8],"edgecolor":[0.17254901960784313,0.17254901960784313,0.16470588235294117,0.8],"lw":0.6},
         "entries": [
          {"text":"Per frame","color":[0.7647058823529411,0.7607843137254902,0.7176470588235294,1.0],"size":8.8,"handle":{"id":"?Line2D","kind":"line","zorder":2.0,"visible":true,"alpha":0.35,"animated":false,"label":"Per frame","color":[0.2235294117647059,0.5294117647058824,0.8980392156862745,1.0],"lw":0.8999999999999999,"ls":"-","dashes":null,"marker":"None","ms":6.0,"mfc":[0.2235294117647059,0.5294117647058824,0.8980392156862745,1.0],"mec":[0.2235294117647059,0.5294117647058824,0.8980392156862745,1.0],"mew":1.0,"drawstyle":"default","solid_capstyle":"projecting"}},

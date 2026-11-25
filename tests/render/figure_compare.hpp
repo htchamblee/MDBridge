@@ -35,6 +35,10 @@ namespace mdbridge::test {
 
 struct FigureComparison {
     double width = 1, height = 1;
+    // boxes may also be off by this many pixels (0: 1.5 % only): Matplotlib's hinted glyph advances
+    // differ from the unhinted ones by up to 0.7 px per glyph (docs/DIFFERENCES.md), which is more
+    // than 1.5 % of a figure only a few hundred pixels wide (the charts' "small" case)
+    double minBoxPixels = 0.0;
     double worstBox = 0.0;
     std::string worstWhat;
     int ticksCompared = 0, ticksSkipped = 0;
@@ -146,7 +150,10 @@ struct FigureComparison {
             worstBox = d;
             worstWhat = what;
         }
-        EXPECT_LE(d, 0.015) << what << ": MDBridge [" << m[0] << ", " << m[1] << ", " << m[2] << ", " << m[3]
+        const double dx = std::max(std::fabs(m[0] - t[0]), std::fabs(m[2] - t[2]));
+        const double dy = std::max(std::fabs(m[1] - t[1]), std::fabs(m[3] - t[3]));
+        EXPECT_TRUE(dx <= std::max(0.015 * width, minBoxPixels) && dy <= std::max(0.015 * height, minBoxPixels))
+            << "box off by " << dx << " / " << dy << " px (" << d << " of the figure) " << what << ": MDBridge [" << m[0] << ", " << m[1] << ", " << m[2] << ", " << m[3]
                             << "] Matplotlib [" << t[0] << ", " << t[1] << ", " << t[2] << ", " << t[3] << "]";
     }
 
@@ -371,9 +378,9 @@ inline std::map<std::string, NpyArray> readStoredNpz(const std::filesystem::path
 
 // The .npz arrays of position `pos` that the walker wrote for images and colour bars, compared with
 // the figure's own: "p<pos>/ax<k>/<n>.data" (float64, NaN masked), ".rgba" (uint8), "p0/ax<k>.lut".
-inline int compareArrays(const render::Figure& fig, const std::map<std::string, NpyArray>& npz, std::size_t pos) {
+// (The charts' records name them "c<chart>/ax<k>/<n>.data" ...: the prefix overload.)
+inline int compareArrays(const render::Figure& fig, const std::map<std::string, NpyArray>& npz, const std::string& prefix) {
     int compared = 0;
-    const std::string prefix = "p" + std::to_string(pos) + "/";
     for (const auto& [name, array] : npz) {
         if (name.rfind(prefix, 0) != 0) continue;
         const std::string rest = name.substr(prefix.size());
@@ -442,6 +449,10 @@ inline int compareArrays(const render::Figure& fig, const std::map<std::string, 
         ++compared;
     }
     return compared;
+}
+
+inline int compareArrays(const render::Figure& fig, const std::map<std::string, NpyArray>& npz, std::size_t pos) {
+    return compareArrays(fig, npz, "p" + std::to_string(pos) + "/");
 }
 
 }  // namespace mdbridge::test
