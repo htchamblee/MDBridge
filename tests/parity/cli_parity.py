@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
-"""The milestone-2 commands of the command line, MDATK v0.0.4.1 against MDBridge.
+"""The commands of the command line, MDATK v0.0.4.1 against MDBridge.
 
     python3 -I -B tests/parity/cli_parity.py --mdatk MDATK_CHECKOUT --mdbridge EXE [--only NAME ...]
     python3 -I -B tests/parity/cli_parity.py --mdatk MDATK_CHECKOUT --write tests/data/cli/cli_cases.json
     python3 -I -B tests/parity/cli_parity.py --list
 
 Every case (CASES below) runs `mdatk ARGS` and `EXE ARGS` in two fresh work folders holding the
-same inputs (copies of files of tests/data, and project files written by the case), then compares
-the exit status, stdout, stderr and every file the command left in the folder (byte for byte).
-`init` / `init-params`, `info`, `export-pdb` and `density info` are covered: their results, files
-(project files, PDB files), messages and errors.
+same inputs (copies of files of tests/data, and files written by the case), then compares the exit
+status, stdout, stderr and every file the command left in the folder (byte for byte, except the
+analysis cache: see below). `init` / `init-params`, `info`, `list`, `analyze`, `export-pdb` and
+`density info` are covered: their results, files (project files, PDB files, the analysis cache),
+messages and errors. A case may first run other command lines in the same folder (`before`: an
+earlier `analyze` whose cache the case reuses; they must succeed), set environment variables
+(`env`: a fake conda installation for `list`) and make files executable (`executable`).
 
 MDATK runs in-process in one child interpreter (this script with --child), from MDATK_CHECKOUT
 (nothing is written into it), with MDBridge's independent data tables patched into MDAnalysis
@@ -25,7 +28,18 @@ Normalised on both sides before comparing (the only differences allowed):
   * MDATK's stderr loses the line MDAnalysis logs when netCDF4 is missing (an environment notice,
     not MDATK's output; MDBridge reads NetCDF itself);
   * MDAnalysis' hidden XTC / TRR offset caches (.NAME_offsets.npz / .lock) are not files of the run;
-  * MDATK messages that MDBridge words with its own name (NAMING) are adapted.
+  * MDATK messages that MDBridge words with its own name (NAMING) are adapted;
+  * the analysis cache (ARCHITECTURE: MDBridge keeps its own cache format, mdbridge/analysis/cache.hpp)
+    is compared by meaning: file names MDATK_cache.json / MDBridge_cache.json -> {manifest},
+    <name>-<key>.npz / <name>-<key>.mdbridge.npz (and .json) -> <name>-{key}.npz (.json); cache
+    keys -> {key} in names and messages ("loaded from cache (rmsd-{key})"), since keys hash the
+    inputs' mtimes, which differ between the two folders; the manifest and the entries' .json files
+    as JSON values with project, version, time stamps, keys and mtime_ns masked ({project},
+    "version": {version}, {time}, {key}, 0) and all_entries in a fixed order; the .npz archives as
+    their arrays (names in order, dtypes, shapes, values: integers, booleans and strings exactly,
+    floats within FLOAT_TOLERANCE relative, at least that much absolute; pair maps <p>_offsets /
+    _i / _j / _v per frame as sorted entries - MDBridge lists a frame's stacking pairs sorted, MDATK
+    in cKDTree order: tests/analysis/test_mg_stacking.cpp).
 Cases marked `exit_only` compare the exit status alone: usage errors (argparse and CLI11 word them
 differently; both exit with 2) and documented deviations (DEVIATIONS: map errors that
 src/io/include/mdbridge/io/mrc.hpp words differently on purpose). Where MDATK crashes (an exception
@@ -37,24 +51,32 @@ only the commands it has).
 
 --write runs MDATK alone and writes the normalised results as the expected data of
 tests/cli/test_commands.cpp (tests/data/cli/cli_cases.json); tests/parity/regenerate_all.py runs it.
-Files up to 16 KiB are stored as text, larger ones as their SHA-256 and size. Standard library only
-(the child imports MDATK). Exit status 1 on any difference.
+Files up to 16 KiB are stored as text, larger ones as their SHA-256 and size; cache files as
+{"json": masked value} and {"npz": [[name, dtype, shape, flat values as one line of JSON text], ...]}
+(floats as numbers, non-finite ones as "nan" / "inf" / "-inf"); several entries of one analysis
+with different keys as {"several": [...]}, matched in any order. Standard library only (the child
+imports MDATK; .npz archives are read with zipfile). Exit status 1 on any difference.
 """
 
 from __future__ import annotations
 
 import argparse
+import ast
 import difflib
 import hashlib
 import io
 import json
+import math
 import os
 import re
 import shutil
+import stat
+import struct
 import subprocess
 import sys
 import tempfile
 import traceback
+import zipfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DATA = os.path.normpath(os.path.join(HERE, "..", "data"))
@@ -114,10 +136,37 @@ GROUPS = json.dumps([
 ])
 
 
-def case(name, argv, inputs=None, setup=None, exit_only=False):
-    """inputs: work-folder path -> file of tests/data copied there; setup: path -> text written there."""
+def case(name, argv, inputs=None, setup=None, exit_only=False, before=None, env=None, executable=None):
+    """inputs: work-folder path -> file of tests/data copied there; setup: path -> text written there
+    ({work}: the folder); before: command lines run first in the folder; env: environment variables
+    of the runs ({work}: the folder; "" counts as unset for MDATK); executable: setup files made
+    executable."""
     return {"name": name, "argv": argv, "inputs": dict(inputs or {}), "setup": dict(setup or {}),
-            "exit_only": exit_only}
+            "exit_only": exit_only, "before": list(before or []), "env": dict(env or {}),
+            "executable": list(executable or [])}
+
+
+# `list` without conda installations, and with a fake one: an installation whose base and three
+# environments provide cpptraj, one environment without it and one whose cpptraj is not executable,
+# a mamba root with a non-ASCII environment name, and environments registered in
+# ~/.conda/environments.txt (one also found under its root, one missing). Every variable MDATK reads
+# is set, so the machine's own installations stay out (except any in COMMON_ROOTS' absolute folders).
+NO_CONDA = {"HOME": "{work}/home", "CONDA_EXE": "", "CONDA_PREFIX": "", "MAMBA_ROOT_PREFIX": "", "CONDA_ROOT": ""}
+FAKE_CONDA = {**NO_CONDA, "CONDA_EXE": "{work}/miniforge/condabin/conda",
+              "CONDA_PREFIX": "{work}/miniforge/envs/py312", "MAMBA_ROOT_PREFIX": "{work}/mamba"}
+CONDA_EXECUTABLES = ["miniforge/bin/cpptraj", "miniforge/envs/AmberTools26/bin/cpptraj",
+                     "miniforge/envs/amber24/bin/cpptraj", "miniforge/envs/zeta/bin/cpptraj",
+                     "mamba/envs/Ünï/bin/cpptraj", "other/envs/ambertools/bin/cpptraj",
+                     "standalone/bin/cpptraj"]
+CONDA_LAYOUT = {
+    **{path: "#!/bin/sh\n" for path in CONDA_EXECUTABLES},
+    "miniforge/condabin/conda": "#!/bin/sh\n",
+    "miniforge/envs/py312/conda-meta/history": "",
+    "miniforge/envs/noexec/bin/cpptraj": "not executable\n",
+    "home/.conda/environments.txt": "{work}/other/envs/ambertools\n\n  {work}/standalone  \r\n{work}/missing\n"
+                                    "{work}/miniforge/envs/zeta\n",
+}
+EXTERNAL = "time_ps,potential,temp K\n0,1.5,300\n100,2.5,301\n200,4.0,299.5\n300,3.0,300.25\n"
 
 
 def map_cases():
@@ -210,6 +259,60 @@ CASES = [
                                    "-s", "analyses.energy.enabled=false"],
          {"chains.pdb": "io/pdb/export/files/chains.pdb"}),
 
+    # ---- list
+    case("list", ["list"], env=NO_CONDA),
+    case("list_conda", ["list"], setup=CONDA_LAYOUT, env=FAKE_CONDA, executable=CONDA_EXECUTABLES),
+    case("list_extra_argument", ["list", "x"], exit_only=True),
+
+    # ---- analyze
+    case("analyze_demo", ["analyze", *DEMO_RUN], DEMO),
+    case("analyze_only", ["analyze", *DEMO_RUN, "--only",
+                          " rmsd, contacts@Target+Aptamer,rmsd ,stacking@Target+Aptamer "], DEMO),
+    case("analyze_only_internal", ["analyze", *DEMO_RUN, "--only", "trace,proximity,atoms,basepairs", "-q",
+                                   "--frames", "5:6"], DEMO),
+    case("analyze_only_twice", ["analyze", *DEMO_RUN, "--only", "mg", "--force", "--only", "rmsd", "--force"], DEMO),
+    case("analyze_only_empty", ["analyze", *DEMO_RUN, "--only", "", "-s", "output.video.enabled=false"], DEMO),
+    case("analyze_reuse", ["analyze", *DEMO_RUN, "--frames", "::3"], DEMO,
+         before=[["analyze", *DEMO_RUN, "--frames", "::3", "-q"]]),
+    case("analyze_reuse_partial", ["analyze", *DEMO_RUN, "--only", "rmsd,hbonds,energy"], DEMO,
+         before=[["analyze", *DEMO_RUN, "--only", "rmsd,mg", "-q"]]),
+    case("analyze_reuse_changed", ["analyze", *DEMO_RUN, "--only", "contacts,rmsd", "-s",
+                                   "analyses.rmsd.enabled=false"], DEMO,
+         before=[["analyze", *DEMO_RUN, "--only", "rmsd,contacts", "-s", "analyses.contacts.cutoff=4", "-q"]]),
+    case("analyze_force", ["analyze", *DEMO_RUN, "--force", "--only", "rmsd,stacking"], DEMO,
+         before=[["analyze", *DEMO_RUN, "--only", "rmsd,stacking", "-q"]]),
+    case("analyze_frames", ["analyze", *DEMO_RUN, "--frames", "2:20:3", "--only", "rmsd,contacts,trace"], DEMO),
+    case("analyze_frames_negative", ["analyze", *DEMO_RUN, "--frames=-5::2", "-s", "inputs.dt_ps=2.5",
+                                     "--only", "hbonds"], DEMO),
+    case("analyze_frames_empty", ["analyze", *DEMO_RUN, "--frames", "30:"], DEMO),
+    case("analyze_dirs", ["analyze", *DEMO_RUN, "-o", "out", "--cache-dir", "cache", "--only", "mg"], DEMO),
+    case("analyze_use_pbc", ["analyze", *DEMO_RUN, "-s", "analyses.use_pbc=true", "--only", "contacts,mg,stacking"],
+         DEMO),
+    case("analyze_layout", ["analyze", *DEMO_RUN, "-v", "--frames", "3:4", "-s", "layout.panels.1.type=structure",
+                            "-s", 'visual.representations=[{"style": "licorice", "groups": ["Aptamer"]}]', "-s",
+                            'output.charts.series=["rmsd@Aptamer/Backbone", "external/x", "bogus@Nope/x"]',
+                            "-s", "analyses.contacts.enabled=false", "-s", "analyses.energy.enabled=false"], DEMO),
+    case("analyze_nothing", ["analyze", *DEMO_RUN, "-s", "output.video.enabled=false", "-s",
+                             "output.charts.enabled=false",
+                             *(arg for a in ("contacts", "energy", "hbonds", "mg", "rmsd", "stacking")
+                               for arg in ("-s", f"analyses.{a}.enabled=false"))], DEMO),
+    case("analyze_external", ["analyze", *DEMO_RUN, "--only", "rmsd", "-s",
+                              'inputs.external=[{"path": "ext.csv", "label": "MD"}]'], DEMO, {"ext.csv": EXTERNAL}),
+    case("analyze_external_bad", ["analyze", *DEMO_RUN, "--only", "rmsd", "-s",
+                                  'inputs.external=[{"path": "bad.csv"}]'], DEMO, {"bad.csv": "a,b\n1,x\n"}),
+    case("analyze_external_missing", ["analyze", *DEMO_RUN, "--only", "rmsd", "-s",
+                                      'inputs.external=[{"path": "missing.csv"}]'], DEMO),
+    case("analyze_project", ["analyze", "-p", "base.mdatk.toml", "--only", "rmsd@Aptamer,hbonds"], DEMO,
+         {"base.mdatk.toml": PROJECT}),
+    case("analyze_unknown", ["analyze", *DEMO_RUN, "--only", "rmsd,nope"], DEMO),
+    case("analyze_unknown_group", ["analyze", *DEMO_RUN, "--only", "contacts@Nope"], DEMO),
+    case("analyze_invalid", ["analyze", *DEMO_RUN, "-s", "analyses.contacts.cutoff=-1", "-s",
+                             "layout.preset=bogus"], DEMO),
+    case("analyze_no_topology", ["analyze"]),
+    case("analyze_missing_trajectory", ["analyze", "--top", "demo_dry.parm7", "--traj", "missing.nc"], DEMO),
+    case("analyze_no_trajectory", ["analyze", "--top", "demo_dry.parm7", "--only", "rmsd"], DEMO),
+    case("analyze_unknown_option", ["analyze", "--bogus"], exit_only=True),
+
     # ---- density info
     *map_cases(),
     case("density_missing", ["density", "info", "missing.mrc"]),
@@ -224,11 +327,22 @@ NETCDF_NOTICE = "WARNING: netCDF4 is not available. Writing AMBER ncdf files wil
 TRACEBACK = "Traceback (most recent call last):"
 # MDATK's words that MDBridge's libraries replace by its own name (applied to MDATK's output)
 NAMING = [("JSON presets are no longer supported; MDATK 0.0.4.1 uses TOML project files",
-           "JSON presets are no longer supported; MDBridge uses TOML project files")]
+           "JSON presets are no longer supported; MDBridge uses TOML project files"),
+          ("Run 'mdatk analyze' to list the keys of a system.", "Run 'mdbridge analyze' to list the keys of a system.")]
+# the analysis cache: keys in names and messages, file names, the float tolerance of .npz arrays
+CACHE_KEY_RE = re.compile(r"-[0-9a-f]{16}(?=\)|(\.mdbridge)?\.(npz|json)\b)")
+MANIFEST_RE = re.compile(r"\b(MDATK|MDBridge)_cache\.json\b")
+CACHE_ENTRY_RE = re.compile(r"-\{key\}\.mdbridge\.(npz|json)$")
+FLOAT_TOLERANCE = 1e-9
+NPY_TYPES = {"<f8": "d", "<f4": "f", "<i8": "q", "<i4": "i", "|i1": "b", "|b1": "?"}
 
 
 # ---------------------------------------------------------------------------------------------
 # work folders
+
+def with_work(text, folder):
+    return text.replace("{work}", os.path.abspath(folder))
+
 
 def prepare(case_, folder):
     os.makedirs(folder)
@@ -237,18 +351,34 @@ def prepare(case_, folder):
         os.makedirs(os.path.dirname(target), exist_ok=True)
         shutil.copyfile(os.path.join(DATA, source), target)
     for dest, text in case_["setup"].items():
-        with open(os.path.join(folder, dest), "w", encoding="utf-8", newline="\n") as fh:
-            fh.write(text)
+        target = os.path.join(folder, dest)
+        os.makedirs(os.path.dirname(target), exist_ok=True)
+        with open(target, "w", encoding="utf-8", newline="\n") as fh:
+            fh.write(with_work(text, folder))
+    for dest in case_["executable"]:
+        target = os.path.join(folder, dest)
+        os.chmod(target, os.stat(target).st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+
+
+def case_env(case_, folder):
+    return {k: with_work(v, folder) for k, v in case_["env"].items()}
 
 
 def normalise(text, folder):
     for path in {os.path.realpath(folder), os.path.abspath(folder)}:
         text = text.replace(path, "{work}")
-    return STAMP_RE.sub("{stamp}", text)
+    return MANIFEST_RE.sub("{manifest}", CACHE_KEY_RE.sub("-{key}", STAMP_RE.sub("{stamp}", text)))
+
+
+def normalise_name(rel, folder):
+    """A file's relative path as compared: {work}, {stamp}, the cache's names."""
+    rel = normalise(rel, folder)
+    return CACHE_ENTRY_RE.sub(r"-{key}.\1", rel)
 
 
 def collect(case_, folder):
-    """Files left in the folder (inputs included when the run changed them): relative path -> bytes."""
+    """Files left in the folder (inputs included when the run changed them): compared path -> [bytes]
+    (several for the cache entries of one analysis with different keys)."""
     out = {}
     for here, _dirs, names in os.walk(folder):
         for name in names:
@@ -260,13 +390,88 @@ def collect(case_, folder):
                 data = fh.read()
             if rel in case_["inputs"]:
                 continue  # copies of test data: never written by these commands
-            if rel in case_["setup"] and data == case_["setup"][rel].encode("utf-8"):
+            if rel in case_["setup"] and data == with_work(case_["setup"][rel], folder).encode("utf-8"):
                 continue
-            out[normalise(rel, folder)] = data
+            key = normalise_name(rel, folder)
+            if key in out and not is_cache_file(key):
+                raise RuntimeError(f"{case_['name']}: {rel} and another file are both compared as {key}")
+            out.setdefault(key, []).append(data)  # cache entries of one analysis with several keys
     return dict(sorted(out.items()))
 
 
-def file_entry(data, folder):
+def is_cache_file(rel):
+    return rel.endswith("{manifest}") or rel.endswith("-{key}.npz") or rel.endswith("-{key}.json")
+
+
+def masked_cache_json(value, folder, top=True):
+    """A cache manifest or entry description with what legitimately differs masked."""
+    if isinstance(value, dict):
+        out = {}
+        for k, v in value.items():
+            if top and k in ("mdatk_version", "mdbridge_version"):
+                out["version"] = "{version}"
+            elif top and k == "project":
+                out[k] = "{project}"
+            elif top and k in ("updated", "created"):
+                out[k] = "{time}"
+            elif k == "key" and isinstance(v, str):
+                out[k] = "{key}"
+            elif k == "mtime_ns":
+                out[k] = 0
+            elif k == "file" and isinstance(v, str):
+                out[k] = normalise_name(v, folder)
+            else:
+                out[k] = masked_cache_json(v, folder, False)
+        if "all_entries" in out and isinstance(out["all_entries"], list):
+            out["all_entries"] = sorted(out["all_entries"], key=lambda e: json.dumps(e, sort_keys=True))
+        return out
+    if isinstance(value, list):
+        return [masked_cache_json(v, folder, False) for v in value]
+    if isinstance(value, str):
+        return normalise(value, folder)
+    return value
+
+
+def json_float(x):
+    return x if math.isfinite(x) else ("nan" if math.isnan(x) else ("inf" if x > 0 else "-inf"))
+
+
+def read_npz(data):
+    """[[name, dtype, shape, flat values], ...] of a .npz archive (C order arrays of NPY_TYPES / <U)."""
+    out = []
+    with zipfile.ZipFile(io.BytesIO(data)) as archive:
+        for member in archive.namelist():
+            raw = archive.read(member)
+            assert raw[:6] == b"\x93NUMPY", member
+            if raw[6] == 1:
+                (length,), start = struct.unpack("<H", raw[8:10]), 10
+            else:
+                (length,), start = struct.unpack("<I", raw[8:12]), 12
+            header = ast.literal_eval(raw[start:start + length].decode("latin1"))
+            assert not header["fortran_order"], member
+            body = raw[start + length:]
+            dtype, shape = header["descr"], list(header["shape"])
+            count = math.prod(shape)
+            if dtype.startswith("<U"):
+                width = int(dtype[2:])
+                values = [body[i * 4 * width:(i + 1) * 4 * width].decode("utf-32-le").rstrip("\0")
+                          for i in range(count)]
+            else:
+                values = list(struct.unpack(f"<{count}{NPY_TYPES[dtype]}", body[:count * struct.calcsize(
+                    NPY_TYPES[dtype])]))
+                if dtype in ("<f8", "<f4"):
+                    values = [json_float(v) for v in values]
+            out.append([member[:-4] if member.endswith(".npy") else member, dtype, shape, values])
+    return out
+
+
+def file_entry(rel, data, folder):
+    if is_cache_file(rel):
+        if rel.endswith(".npz"):
+            # the flat values as one line of JSON text (compact; the C++ test parses it)
+            return {"npz": [[name, dtype, shape, json.dumps(values, ensure_ascii=False, separators=(",", ":"))]
+                            for name, dtype, shape, values in read_npz(data)]}
+        return {"json": masked_cache_json(json.loads(data.decode("utf-8")), folder)}
     try:
         text = data.decode("utf-8")
     except UnicodeDecodeError:
@@ -278,15 +483,26 @@ def file_entry(data, folder):
     return {"sha256": hashlib.sha256(raw).hexdigest(), "size": len(raw)}
 
 
-def result(case_, folder, code, stdout, stderr):
+def written_entry(rel, datas, folder):
+    """file_entry, or {"several": [file_entry, ...]} (in a fixed order) for several cache entries."""
+    if len(datas) == 1:
+        return file_entry(rel, datas[0], folder)
+    return {"several": sorted((file_entry(rel, d, folder) for d in datas), key=lambda e: json.dumps(e, sort_keys=True))}
+
+
+def result(case_, folder, code, stdout, stderr, before):
     files = collect(case_, folder)
-    texts = [stdout, stderr, *(data.decode("utf-8", "replace") for data in files.values())]
+    # results that hold absolute paths or OS error texts, or read a project file's paths: defined on
+    # Linux only (the C++ test skips them on Windows). The cache manifest's path that analyze prints
+    # and the paths in cache files are compared on Windows too (the C++ test normalises their form).
+    texts = [stderr, *(data[0].decode("utf-8", "replace") for rel, data in files.items() if not is_cache_file(rel))]
+    if case_["argv"][:1] != ["analyze"]:
+        texts.append(stdout)
     return {"exit": code, "stdout": normalise(stdout, folder), "stderr": normalise(stderr, folder),
-            "written": {rel: file_entry(data, folder) for rel, data in files.items()},
-            # results that hold absolute paths or OS error texts, or read a project file's paths:
-            # defined on Linux only (the C++ test skips them on Windows)
+            "written": {rel: written_entry(rel, data, folder) for rel, data in files.items()},
+            "before_exits": before,
             "posix_only": any("{work}" in normalise(t, folder) for t in texts) or "[Errno" in stderr
-            or any(a in ("-p", "--project", "--params") for a in case_["argv"])}
+            or any(a in ("-p", "--project", "--params") for a in case_["argv"]) or bool(case_["env"])}
 
 
 # ---------------------------------------------------------------------------------------------
@@ -304,16 +520,11 @@ def child(mdatk, jobs_file, results_file):
     independent_tables.apply()
     from mdatk import cli
 
-    with open(jobs_file, encoding="utf-8") as fh:
-        jobs = json.load(fh)
-    results = []
-    start = os.getcwd()
-    for argv, folder in jobs:
+    def run(argv):
         out, err = io.StringIO(), io.StringIO()
         root = logging.getLogger()
         for handler in list(root.handlers):  # basicConfig() in cli.main binds the current sys.stderr
             root.removeHandler(handler)
-        os.chdir(folder)
         old = sys.stdout, sys.stderr
         sys.stdout, sys.stderr = out, err
         try:
@@ -325,8 +536,23 @@ def child(mdatk, jobs_file, results_file):
             code = 1
         finally:
             sys.stdout, sys.stderr = old
+        return [code, out.getvalue(), err.getvalue().replace(NETCDF_NOTICE, "")]
+
+    with open(jobs_file, encoding="utf-8") as fh:
+        jobs = json.load(fh)
+    results = []
+    start = os.getcwd()
+    for argv, folder, before, env in jobs:
+        saved = dict(os.environ)
+        os.environ.update(env)
+        os.chdir(folder)
+        try:
+            exits = [run(b)[0] for b in before]
+            results.append([*run(argv), exits])
+        finally:
             os.chdir(start)
-        results.append([code, out.getvalue(), err.getvalue().replace(NETCDF_NOTICE, "")])
+            os.environ.clear()
+            os.environ.update(saved)
     with open(results_file, "w", encoding="utf-8") as fh:
         json.dump(results, fh)
 
@@ -336,7 +562,7 @@ def run_mdatk(cases, root, mdatk, python):
     for c in cases:
         folder = os.path.join(root, "mdatk", c["name"])
         prepare(c, folder)
-        jobs.append([c["argv"], folder])
+        jobs.append([c["argv"], folder, c["before"], case_env(c, folder)])
     jobs_file, results_file = os.path.join(root, "jobs.json"), os.path.join(root, "results.json")
     with open(jobs_file, "w", encoding="utf-8") as fh:
         json.dump(jobs, fh)
@@ -345,10 +571,12 @@ def run_mdatk(cases, root, mdatk, python):
     with open(results_file, encoding="utf-8") as fh:
         outputs = json.load(fh)
     results = {}
-    for c, (_argv, folder), (code, stdout, stderr) in zip(cases, jobs, outputs):
+    for c, job, (code, stdout, stderr, before) in zip(cases, jobs, outputs):
+        if any(before):
+            raise RuntimeError(f"{c['name']}: a command line run before the case failed in MDATK ({before})")
         for old, new in NAMING:
             stdout, stderr = stdout.replace(old, new), stderr.replace(old, new)
-        res = result(c, folder, code, stdout, stderr)
+        res = result(c, job[1], code, stdout, stderr, before)
         if TRACEBACK in stderr:
             # MDATK crashed (an exception its main() does not catch: MemoryError, zlib.error,
             # AttributeError ...): Python prints the traceback and exits with 1, MDBridge reports
@@ -360,18 +588,65 @@ def run_mdatk(cases, root, mdatk, python):
 
 
 def run_mdbridge(cases, root, exe):
-    env = dict(os.environ, APPIMAGE_EXTRACT_AND_RUN="1")
     out = {}
     for c in cases:
         folder = os.path.join(root, "mdbridge", c["name"])
         prepare(c, folder)
+        env = dict(os.environ, APPIMAGE_EXTRACT_AND_RUN="1", **case_env(c, folder))
+        before = [subprocess.run([*exe, *b], cwd=folder, capture_output=True, env=env, timeout=300).returncode
+                  for b in c["before"]]
         run = subprocess.run([*exe, *c["argv"]], cwd=folder, capture_output=True, env=env, timeout=300)
         decode = lambda b: b.decode("utf-8", "surrogateescape")  # noqa: E731
-        out[c["name"]] = result(c, folder, run.returncode, decode(run.stdout), decode(run.stderr))
+        out[c["name"]] = result(c, folder, run.returncode, decode(run.stdout), decode(run.stderr), before)
     return out
 
 
 # ---------------------------------------------------------------------------------------------
+
+def close(a, b):
+    if isinstance(a, str) or isinstance(b, str):  # non-finite values
+        return a == b
+    return abs(a - b) <= FLOAT_TOLERANCE * max(1.0, abs(a), abs(b))
+
+
+def npz_differences(rel, expected, actual):
+    """Arrays compared as described above; [] when they agree."""
+    names = [a[0] for a in expected]
+    if names != [a[0] for a in actual]:
+        return [f"{rel}: arrays {names} / {[a[0] for a in actual]}"]
+    e_arrays = {n: (n, t, s, json.loads(v)) for n, t, s, v in expected}
+    a_arrays = {n: (n, t, s, json.loads(v)) for n, t, s, v in actual}
+    problems = []
+    pairmaps = {n[:-len("_offsets")] for n in names if n.endswith("_offsets")
+                and all(n[:-len("_offsets")] + s in e_arrays for s in ("_i", "_j", "_v"))}
+    for name in names:
+        (_n, e_type, e_shape, e_values), (_m, a_type, a_shape, a_values) = e_arrays[name], a_arrays[name]
+        if (e_type, e_shape) != (a_type, a_shape):
+            problems.append(f"{rel}: {name} is {e_type} {e_shape} / {a_type} {a_shape}")
+        elif any(name == p + s for p in pairmaps for s in ("_i", "_j", "_v")):
+            continue  # compared with the offsets
+        elif name[:-len("_offsets")] in pairmaps and name.endswith("_offsets"):
+            p = name[:-len("_offsets")]
+            if e_values != a_values:
+                problems.append(f"{rel}: {name} differs")
+                continue
+            for f in range(len(e_values) - 1):
+                lo, hi = e_values[f], e_values[f + 1]
+                rows = [sorted(zip(*(arrays[p + s][3][lo:hi] for s in ("_i", "_j", "_v"))))
+                        for arrays in (e_arrays, a_arrays)]
+                if any(x[:2] != y[:2] or not close(x[2], y[2]) for x, y in zip(*rows)):
+                    problems.append(f"{rel}: pair map {p}, frame {f}: {rows[0][:6]}... / {rows[1][:6]}...")
+                    break
+        elif e_type in ("<f8", "<f4"):
+            bad = [i for i, (x, y) in enumerate(zip(e_values, a_values)) if not close(x, y)]
+            if bad:
+                problems.append(f"{rel}: {name}[{bad[0]}] {e_values[bad[0]]} / {a_values[bad[0]]} "
+                                f"({len(bad)} values beyond the tolerance)")
+        elif e_values != a_values:
+            bad = next(i for i, (x, y) in enumerate(zip(e_values, a_values)) if x != y)
+            problems.append(f"{rel}: {name}[{bad}] {e_values[bad]!r} / {a_values[bad]!r}")
+    return problems
+
 
 def differences(c, expected, actual):
     if expected["exit"] != actual["exit"]:
@@ -382,6 +657,9 @@ def differences(c, expected, actual):
         problems = []
     if c["exit_only"]:
         return []
+    if expected["before_exits"] != actual["before_exits"]:
+        problems.append(f"command lines run first: exit statuses {expected['before_exits']} / "
+                        f"{actual['before_exits']}")
     if expected["stderr"] is None and not actual["stderr"].startswith("error: "):
         problems.append(f"MDATK crashed ({expected['mdatk_crash']}), MDBridge printed no error: "
                         f"{actual['stderr']!r}")
@@ -392,12 +670,35 @@ def differences(c, expected, actual):
         e, a = expected["written"].get(rel), actual["written"].get(rel)
         if e is None or a is None:
             problems.append(f"{rel}: written by {'MDBridge' if e is None else 'MDATK'} only")
-        elif e != a:
-            if "text" in e and "text" in a:
-                problems.append(f"{rel} differs\n{diff(e['text'], a['text'])}")
-            else:
-                problems.append(f"{rel} differs: {e} / {a}")
+            continue
+        if "several" in e or "several" in a:
+            es, unused = e.get("several", [e]), list(a.get("several", [a]))
+            for entry in es:  # each matched with one of MDBridge's, in any order
+                match = next((x for x in unused if not entry_differences(rel, entry, x)), None)
+                if match is None:
+                    problems.append(f"{rel}: MDATK's entry has no counterpart in MDBridge's {len(unused)}")
+                else:
+                    unused.remove(match)
+            if len(es) != len(a.get("several", [a])):
+                problems.append(f"{rel}: {len(es)} files in MDATK, {len(a.get('several', [a]))} in MDBridge")
+        else:
+            problems.extend(entry_differences(rel, e, a))
     return problems
+
+
+def entry_differences(rel, e, a):
+    if "npz" in e and "npz" in a:
+        return npz_differences(rel, e["npz"], a["npz"])
+    if "json" in e and "json" in a:
+        if e["json"] == a["json"]:
+            return []
+        return [f"{rel} differs\n" + diff(json.dumps(e["json"], indent=1, ensure_ascii=False),
+                                          json.dumps(a["json"], indent=1, ensure_ascii=False))]
+    if e == a:
+        return []
+    if "text" in e and "text" in a:
+        return [f"{rel} differs\n{diff(e['text'], a['text'])}"]
+    return [f"{rel} differs: {e} / {a}"]
 
 
 def diff(expected, actual):

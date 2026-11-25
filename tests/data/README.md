@@ -451,27 +451,53 @@ python3 -I -B tests/parity/make_cif_cases.py /tmp/mdatk tests/data/io/cif
 ```
 
 `cli/cli_cases.json` holds what MDATK's command line (`mdatk/cli.py`) prints and writes for the
-milestone-2 commands, for `src/app/commands/` (`tests/cli/test_commands.cpp`, which runs the same
+commands MDBridge has, for `src/app/commands/` (`tests/cli/test_commands.cpp`, which runs the same
 command lines in-process): `init` / `init-params` (defaults, every common option, `--set` with list
 indices, JSON values, free-form tables, Project properties and every error, projects and a parameter
 log as `--project`, existing files, JSON presets), `info` (the demo system with NetCDF / XTC / DCD
-trajectories, PDB and GRO topologies, residue groups that fail in every way, missing files),
+trajectories, PDB and GRO topologies, residue groups that fail in every way, missing files), `list`
+(without conda, and with a fake conda installation: environments with and without an executable
+cpptraj, roots from `CONDA_EXE` / `CONDA_PREFIX` / `MAMBA_ROOT_PREFIX`, `~/.conda/environments.txt`),
+`analyze` (the demo system with the default project, `--only` with instances, duplicates, spaces,
+internal analyses and an empty list, cache reuse after an earlier run, partial reuse, a changed
+parameter, `--force`, frame selections, output and cache folders, `use_pbc`, layout warnings and the
+panels' and charts' analyses, no analyses at all, external data, a project file, every error),
 `export-pdb` (frame lists, times, groups and selections, time stamps, `--quiet` / `--verbose`,
 layout warnings, a project's `[output.pdb]`, every error) and `density info` of every map of
 `io/maps/files`. Each case names the command line, the inputs (files of `tests/data` copied into an
-empty work folder, project files written there) and MDATK's exit status, stdout, stderr and the files
-it left (text, or SHA-256 and size beyond 16 KiB). MDATK runs in-process with the independent
-tables applied (first section). Normalised: the work folder is `{work}`, `saved` time stamps
-`{time}`, file-name time stamps `{stamp}`; `posix_only` marks cases with absolute paths, OS error
-texts or project paths (skipped on Windows); `exit_only` cases compare the exit status alone (usage
-errors, and the six gzip errors `src/io/include/mdbridge/io/mrc.hpp` words differently); where MDATK
-crashes with a traceback (`stderr` null, `mdatk_crash` the exception), MDBridge must print
-`error: ...` and exit with 1. The same script compares a build with MDATK directly (CI's `parity`
-job, against the AppImage):
+empty work folder, files written there: `setup`, with `{work}` for the folder; `executable` ones
+made executable), command lines run first in the same folder (`before`, with their exit statuses
+`before_exits`), environment variables (`env`) and MDATK's exit status, stdout, stderr and the files
+it left (text, or SHA-256 and size beyond 16 KiB). The analysis cache is MDBridge's own
+(`src/analysis/include/mdbridge/analysis/cache.hpp`), so its files are compared by meaning: names
+with `{manifest}` for `MDATK_cache.json` / `MDBridge_cache.json` and `<name>-{key}.npz` / `.json`
+for the entries (`.mdbridge` dropped), the manifest and the entries' descriptions as `json` (project,
+version, time stamps, keys and `mtime_ns` masked; `all_entries` in any order), the archives as `npz`
+(per array name, dtype, shape and the flat values as one line of JSON text; floats compared within
+1e-9 relative, pair maps per frame as sorted entries) and several entries of one analysis as
+`several` (matched in any order). MDATK runs in-process with the independent tables applied (first
+section). Normalised: the work folder is `{work}`, `saved` time stamps `{time}`, file-name time
+stamps `{stamp}`, cache keys `{key}` (they hash the inputs' mtimes); `posix_only` marks cases with
+absolute paths, OS error texts, project paths or environment variables (skipped on Windows; the
+cache manifest's path printed by `analyze` and the paths in cache files are compared there in
+generic form); `exit_only` cases compare the exit status alone (usage errors, and the six gzip
+errors `src/io/include/mdbridge/io/mrc.hpp` words differently); where MDATK crashes with a
+traceback (`stderr` null, `mdatk_crash` the exception), MDBridge must print `error: ...` and exit
+with 1. The same script compares a build with MDATK directly (CI's `parity` job, against the
+AppImage):
 
 ```bash
 /opt/mdbridge-venv/bin/python -I -B tests/parity/cli_parity.py --mdatk /tmp/mdatk --write tests/data/cli/cli_cases.json
 /opt/mdbridge-venv/bin/python -I -B tests/parity/cli_parity.py --mdatk /tmp/mdatk --mdbridge build/tests/mdbridge_commands_cli
+```
+
+`list` prints the panel types and layout presets of MDATK's figure from `src/core/panel_tables.inc`
+(also the pipeline's panel types, later the renderer's grid), which `tools/gen_panel_tables.py`
+writes from `mdatk.render.panels.PANEL_TYPES` and `mdatk.render.layout` (`PRESETS`, `PRESET_LABELS`,
+`HEIGHT_RATIOS`); it imports MDATK, so it needs MDATK's dependencies (matplotlib):
+
+```bash
+/opt/mdbridge-venv/bin/python -I -B tools/gen_panel_tables.py /tmp/mdatk   # src/core/panel_tables.inc
 ```
 
 `chem/secstruct_cases.json` holds what MDATK's secondary-structure code (`mdatk/secstruct.py`)

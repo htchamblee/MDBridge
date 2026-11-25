@@ -1,7 +1,8 @@
 #pragma once
 // The command line front end: `mdbridge COMMAND ...`. Command names and options follow MDATK's
 // `mdatk` command as they are ported: gui, project and graphics (milestone 1); init, info,
-// export-pdb and density info (milestone 2, commands/commands.hpp); the rest with later milestones.
+// export-pdb and density info (milestone 2), list and analyze (milestone 3; commands/commands.hpp);
+// the rest with later milestones.
 
 namespace mdbridge::app {
 

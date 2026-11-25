@@ -1,5 +1,5 @@
-// MDATK's milestone-2 commands (mdatk/cli.py cmd_init, cmd_info, cmd_export_pdb, cmd_density_info
-// and the parts of load_project, make_reporter and Pipeline they use).
+// MDATK's commands (mdatk/cli.py cmd_init, cmd_info, cmd_list, cmd_analyze, cmd_export_pdb,
+// cmd_density_info and the parts of load_project, make_reporter and Pipeline they use).
 #include "commands.hpp"
 
 #include <algorithm>
@@ -12,6 +12,7 @@
 #include <stdexcept>
 #include <string>
 #include <system_error>
+#include <utility>
 #include <vector>
 
 #include <CLI/CLI.hpp>
@@ -22,10 +23,14 @@
 #include <unistd.h>
 #endif
 
+#include "mdbridge/analysis/pipeline.hpp"
+#include "mdbridge/analysis/registry.hpp"
 #include "mdbridge/core/clock.hpp"
+#include "mdbridge/core/conda.hpp"
 #include "mdbridge/core/errors.hpp"
 #include "mdbridge/core/json.hpp"
 #include "mdbridge/core/log.hpp"
+#include "mdbridge/core/panels.hpp"
 #include "mdbridge/core/paths.hpp"
 #include "mdbridge/core/progress.hpp"
 #include "mdbridge/core/project.hpp"
@@ -69,6 +74,8 @@ struct CommonArguments {
 struct CoreCommands::Arguments {
     CLI::App* init = nullptr;
     CLI::App* info = nullptr;
+    CLI::App* list = nullptr;
+    CLI::App* analyze = nullptr;
     CLI::App* exportPdb = nullptr;
     CLI::App* density = nullptr;
     CLI::App* densityInfo = nullptr;
@@ -78,6 +85,10 @@ struct CoreCommands::Arguments {
     bool overwrite = false;
 
     CommonArguments infoCommon;
+
+    CommonArguments analyzeCommon;
+    std::string only;
+    bool force = false;
 
     CommonArguments exportCommon;
     // given (even as "") or not: CLI11 leaves an optional unset for an empty value
@@ -237,11 +248,7 @@ private:
     double m_lastTime = 0.0;
 };
 
-// pipeline.PipelineError (a RuntimeError)
-class PipelineError : public std::runtime_error {
-public:
-    using std::runtime_error::runtime_error;
-};
+using analysis::PipelineError;
 
 std::vector<fs::path> toPaths(const std::vector<std::string>& texts) {
     std::vector<fs::path> out;
@@ -325,6 +332,40 @@ int commandInfo(CLI::App& command, const CommonArguments& common, Console& conso
     return 0;
 }
 
+// format(text, "<width>s"): left-aligned, padded with spaces to `width` characters (code points)
+std::string padded(const std::string& text, std::size_t width) {
+    const std::size_t length = core::decodeUtf8Surrogateescape(text).size();
+    return length >= width ? text : text + std::string(width - length, ' ');
+}
+
+int commandAnalyze(CLI::App& command, const CoreCommands::Arguments& a, Console& console) {
+    // _pipeline(args)
+    core::Project project = loadProject(command, a.analyzeCommon, true);
+    ConsoleReporter consoleReporter(console, a.analyzeCommon.quiet, a.analyzeCommon.verbose);
+    analysis::Pipeline pipeline(std::move(project), consoleReporter.reporter());
+    pipeline.check();
+    std::optional<std::vector<std::string>> names;  // args.only.split(","), each stripped
+    if (!a.only.empty()) {
+        names.emplace();
+        std::size_t start = 0;
+        while (true) {
+            const std::size_t comma = a.only.find(',', start);
+            const std::size_t length = comma == std::string::npos ? std::string::npos : comma - start;
+            names->push_back(core::pythonStrip(std::string_view(a.only).substr(start, length)));
+            if (comma == std::string::npos) {
+                break;
+            }
+            start = comma + 1;
+        }
+    }
+    const core::Dataset dataset = pipeline.analyze(names, a.force);
+    console.out << jsonForConsole(core::Table{{"cache_manifest", pipeline.cache().manifestPath()},
+                                              {"n_frames", static_cast<std::int64_t>(dataset.frameCount())},
+                                              {"data_keys", dataset.describe()}})
+                << '\n';
+    return 0;
+}
+
 int commandExportPdb(CLI::App& command, const CoreCommands::Arguments& a, Console& console) {
     const CommonArguments& common = a.exportCommon;
     core::Project project = loadProject(command, common, true);
@@ -388,6 +429,11 @@ int commandExportPdb(CLI::App& command, const CoreCommands::Arguments& a, Consol
     return 0;
 }
 
+int commandList(Console& console) {
+    printList(console.out);
+    return 0;
+}
+
 int commandDensityInfo(const std::string& map, Console& console) {
     console.out << jsonForConsole(io::densityInfo(core::pathFromUtf8(map))) << '\n';
     return 0;
@@ -418,6 +464,14 @@ CoreCommands::CoreCommands(CLI::App& app) : m_args(std::make_unique<Arguments>()
     a.info = app.add_subcommand("info", "summarise a system and check residue groups");
     addCommon(*a.info, a.infoCommon);
 
+    a.list = app.add_subcommand("list", "list analyses, panel types and layout presets");
+
+    a.analyze = app.add_subcommand("analyze", "compute (or load cached) analyses");
+    addCommon(*a.analyze, a.analyzeCommon);
+    a.analyze->add_option("--only", a.only, "comma separated analysis names")
+        ->multi_option_policy(CLI::MultiOptionPolicy::TakeLast);  // argparse: the last one given
+    a.analyze->add_flag("--force", a.force, "ignore cached results");
+
     a.exportPdb = app.add_subcommand("export-pdb", "write selected frames as PDB files");
     addCommon(*a.exportPdb, a.exportCommon);
     a.frameListOption = a.exportPdb->add_option("--frame-list", a.frameList, "frames, e.g. \"0, 10, 20-50:10, last\"");
@@ -434,7 +488,8 @@ CoreCommands::~CoreCommands() = default;
 
 std::optional<int> CoreCommands::run(Console& console) {
     Arguments& a = *m_args;
-    const bool any = a.init->parsed() || a.info->parsed() || a.exportPdb->parsed() || a.density->parsed();
+    const bool any = a.init->parsed() || a.info->parsed() || a.list->parsed() || a.analyze->parsed() ||
+                     a.exportPdb->parsed() || a.density->parsed();
     if (!any) {
         return std::nullopt;
     }
@@ -459,6 +514,12 @@ std::optional<int> CoreCommands::run(Console& console) {
         }
         if (a.info->parsed()) {
             return commandInfo(*a.info, a.infoCommon, console);
+        }
+        if (a.list->parsed()) {
+            return commandList(console);
+        }
+        if (a.analyze->parsed()) {
+            return commandAnalyze(*a.analyze, a, console);
         }
         if (a.exportPdb->parsed()) {
             return commandExportPdb(*a.exportPdb, a, console);
@@ -490,6 +551,37 @@ int runCoreCommandLine(int argc, const char* const* argv, Console& console) {
     }
     console.out << app.help();
     return 2;
+}
+
+// ---- list -------------------------------------------------------------------------------------
+
+void printList(std::ostream& out) {
+    out << "Analyses:\n";
+    for (const analysis::AnalysisDescriptor* d : analysis::registeredAnalyses()) {
+        out << "  " << padded(d->name(), 10) << ' ' << d->label()
+            << (d->internal() ? " (internal, used by the structure panel)" : "") << '\n';
+    }
+    out << "\nConda environments with cpptraj:\n";
+    const std::vector<core::conda::CondaEnv> envs = core::conda::findCpptrajEnvs();
+    for (const core::conda::CondaEnv& env : envs) {
+        out << "  " << padded(env.name, 14) << ' ' << env.prefix << '\n';
+    }
+    if (envs.empty()) {
+        out << "  (none found)\n";
+    }
+    out << "\nPanel types:\n";
+    for (const core::PanelType& type : core::panelTypes()) {
+        out << "  " << padded(std::string(type.name), 12) << ' ' << type.label << " - " << type.description << '\n';
+    }
+    out << "\nLayout presets:\n";
+    for (const core::LayoutPreset& preset : core::layoutPresets()) {
+        out << "  " << padded(std::string(preset.name), 14) << ' ' << preset.label << '\n';
+    }
+    out << "\nData keys for panels/charts look like '<analysis>/<output>', e.g. rmsd/Complex, contacts/atom_pairs,\n"
+           "contacts/per_residue_a (matrix), contacts/map (contact map). Add residue groups after '@' to\n"
+           "run an analysis on other groups: contacts@Target+Mg/atom_pairs, rmsd@Aptamer/Backbone.\n"
+           "Run 'mdbridge analyze' to list the keys of a system.\n";
+    out.flush();
 }
 
 // ---- Python's texts --------------------------------------------------------------------------
@@ -524,9 +616,6 @@ std::string pythonErrorText(const std::exception& error) {
         if (what.starts_with("topology not found: ") || what.starts_with("trajectory not found: ")) {
             return what;
         }
-    }
-    if (dynamic_cast<const PipelineError*>(&error) != nullptr) {
-        return error.what();
     }
     const std::string summary = core::exceptionSummary(error);  // "<Python class>: <str(exc)>"
     const std::size_t colon = summary.find(": ");

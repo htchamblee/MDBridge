@@ -51,15 +51,12 @@ core::Value cleaningKeyInputs(const core::CleaningParams& params, const std::str
 std::string cleaningKey(const core::CleaningParams& params, const std::string& topology,
                         const std::vector<std::string>& trajectories);
 
-// The panel types of MDATK's figure in registration order: structure, timeseries, dual_axis,
-// heatmap, contact_map, sequence, secondary.
-const std::vector<std::string>& panelTypes();
 // render.panels.required_analyses(project): the analysis instances the layout's panels read.
 // structure: trace (+ atoms with representations, + proximity when visual.color_mode is
 // "proximity" or visual.glow_mode is not "none"); sequence: trace (+ proximity); secondary: trace
 // (+ proximity) + basepairs unless option source is "dotbracket"; the other types: the instance
 // part of their series keys that contain "/". Sorted. Throws core::ValueError("unknown panel type
-// 'x' (choose from structure, ...)").
+// 'x' (choose from structure, ...)") for a type core::panelTypes() lacks.
 std::vector<std::string> panelRequiredAnalyses(const core::Project& project);
 
 struct ResolvedInputs {

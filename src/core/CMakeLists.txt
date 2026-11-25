@@ -9,12 +9,15 @@ add_library(mdbridge_core STATIC
     citation_data.inc
     citations.cpp
     clock.cpp
+    conda.cpp
     dataset.cpp
     hash.cpp
     json.cpp
     linalg.cpp
     log.cpp
     naming.cpp
+    panel_tables.inc
+    panels.cpp
     ntpath.cpp
     paths.cpp
     progress.cpp

@@ -26,6 +26,7 @@
 #include "mdbridge/analysis/pipeline.hpp"
 #include "mdbridge/analysis/registry.hpp"
 #include "mdbridge/core/hash.hpp"
+#include "mdbridge/core/panels.hpp"
 #include "mdbridge/core/paths.hpp"
 #include "mdbridge/core/python.hpp"
 #include "mdbridge/version.hpp"
@@ -254,9 +255,13 @@ TEST(Pipeline, RequiredAnalysesAsMdatk) {
 }
 
 TEST(Pipeline, PanelTypes) {
+    std::vector<std::string> names;
+    for (const core::PanelType& t : core::panelTypes()) {
+        names.emplace_back(t.name);
+    }
     EXPECT_EQ((std::vector<std::string>{"structure", "timeseries", "dual_axis", "heatmap", "contact_map", "sequence",
                                         "secondary"}),
-              analysis::panelTypes());
+              names);
 }
 
 // ---- analyze sequences ---------------------------------------------------------------------------
