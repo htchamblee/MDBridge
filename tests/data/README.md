@@ -28,8 +28,10 @@ replaced, no MDAnalysis function. The generators that depend on these tables app
 `dump_topologies.py` (every dump, also when imported), `make_atom_selection_cases.py`,
 `make_selections_cases.py`, `make_parm7_cases.py`, `make_loader_cases.py`, `make_export_cases.py`,
 `make_rmsd_cases.py`, `make_universe_cases.py`, `make_analysis_cases.py`,
-`make_analysis_framework_cases.py`, `make_pipeline_cases.py`, `make_secstruct_cases.py` and
-`cli_parity.py` (its MDATK side); the others do not touch them. `tools/gen_selection_tables.py` and
+`make_analysis_framework_cases.py`, `make_pipeline_cases.py`, `make_secstruct_cases.py`, the
+render generators (`render_common.py`: `make_figure_cases.py`, `make_chart_cases.py`,
+`make_molecule_cases.py`, `make_render_cli_cases.py`) and `cli_parity.py` (its MDATK side); the
+others do not touch them. `tools/gen_selection_tables.py` and
 `tools/gen_pdb_tables.py` no longer write any of these tables, only the property names of the
 selection language and Python's Unicode data.
 
@@ -711,6 +713,55 @@ cases read `io/loader/files` and `io/trajectories`, so run those generators firs
 /opt/mdbridge-venv/bin/python -I -B tests/parity/make_universe_cases.py /tmp/mdatk tests/data/analysis
 ```
 
+## Rendering (milestone 4)
+
+`render/` holds what MDATK's presentation layer (`mdatk/render/`) shows and writes, for MDBridge's
+`src/render` and the `render`, `charts` and `preview` commands (docs/specs/m4-plan.md section 3).
+Image parity is **contents only** (owner decision D10): figures are compared with MDATK's by what
+they contain - the data shown, colours, ticks and their labels, legends, texts and the layout
+boxes - never by pixels, and there are no reference images. The 3D layer of the structure view is
+the exception: MDATK's numpy software renderer is compared pixel by pixel in fixed small
+viewports, within the plan's tolerance (99.5 % of pixels equal, all within 2/255).
+
+The four generators run MDATK in-process through `tests/parity/render_common.py`, which pins
+numpy's and OpenBLAS' kernels (as `make_analysis_cases.py` does), makes Matplotlib use only the
+DejaVu fonts of its own wheel (never a machine's fonts), and patches MDATK like the pipeline
+generator (independent tables, analysis / selection / CLI improvements) and with MDBridge's
+rendering improvements, `tests/parity/improvements_render.py` (items RN-01 to RN-17 of the plan;
+a skeleton so far: no item is patched yet, so the data is MDATK's own behaviour, including the
+cases that show its bugs; each item's chunk fills in its patch with its C++ code and
+docs/DIFFERENCES.md entry and regenerates). Every record lists the active items under
+`improvements`. The Matplotlib artist walker `tests/parity/mpl_walker.py` turns a drawn figure into
+data (its docstring describes the records). JSON is written by `render_common.dumps`: floats as
+Python's repr, non-finite ones as `{"$float": "nan"}`, short objects on one line. Arrays are in
+`.npz` archives with stored (not deflated) members and fixed time stamps.
+
+| Folder | Generator | Content |
+|---|---|---|
+| `inputs/` | `make_figure_cases.py` | the datasets every figure and chart is built from, so the C++ tests read exactly what MDATK drew: `<name>/dataset.json` (frames, time_ps, time_unit, per result name, params, meta, array names; cache keys as `{key}`) and `<name>/<result>.npz`; float64 arrays rounded to 10 significant digits. `demo_dry` (the demo project's analyses on the demo files: every analysis plus trace, atoms, proximity, base pairs; 24 frames, 3 Mg ions), `demo_dry_1` (first frame only), `demo_dry_nan` (non-finite trace point and RMSD value), `protein_rna` (`analysis/systems/aromatic.pdb`: RNA and protein chains), `three_chains` (synthetic: chains A, B and LIG, changing base pairs), `example_<case>` (MDATK's example dataset of a case's project, the GUI preview); `demo_dry_map.mrc`, a map simulated from the demo's first frame |
+| `figures/` | `make_figure_cases.py` | 97 figures (`<case>.json` + `<case>.npz`): every panel type and option, every layout preset, themes, title and watermark, sizes and DPIs, missing data ("No data: ..."), the structure view's colour, glow, centre, zoom, tags, 3D representations and density shadow, sequence wrapping, arcs within and between chains, protein and RNA, MDATK's errors (RN-03); `build_figure` and `update(pos)` at the first, middle and last frame, the figure walked after drawing (later positions: the animated artists' changes only) |
+| `charts/` | `make_chart_cases.py` | `render_charts` cases (`<case>.json` + `.npz`): series and matrix charts, smoothing, targets, themes, Matplotlib styles, labels and title templates, formats (with the files' sizes), missing / matrix series, stamps, time units, one frame; per chart the walked figure, the paths returned, log, progress and warnings |
+| `molecule/` | `make_molecule_cases.py` | `molecule_cases.json`: topologies (backbone control atoms, rings, letters, segments, element radii and colours) of the demo, protein / RNA and schematic systems; scenes (`build_scene` + `frame()` per style and colour scheme: specs, residue masks, per item kind / count) with their geometry in `scenes.npz` (float32 coordinates, int32 indices); software-renderer images (`renders.npz`, uint8 RGBA) of scenes and of the synthetic items of MDATK's `tests/test_molecule_render.py`, with viewport, shading and the items rendered |
+| `cli/` | `make_render_cli_cases.py` | `render_cli_cases.json`: `render` (full run, `--from-cache`, `--no-video`, stride, codecs, odd sizes, missing ffmpeg, PDBs), `charts` and `preview` (formats, frames out of range) on the demo files: exit status, stdout, stderr, the files written (PNG / SVG / PDF sizes, ffprobe's metadata and faststart of the videos, the params log's outputs), the step log; normalised like `cli_parity.py` |
+
+`make_figure_cases.py` runs first (it writes `inputs/`); the cases are listed, with what each
+shows, in each generator. The command cases need `ffmpeg` and `ffprobe` (CI's regenerate job
+installs Ubuntu 24.04's package); MDATK's video bytes are not kept, only their metadata (the codec
+is MDATK's, libx264: MDBridge encodes with its own, RN-07). To regenerate (MDATK's checkout as the
+first argument; the output is reproducible):
+
+```bash
+for g in figure chart molecule render_cli; do
+    /opt/mdbridge-venv/bin/python -I -B tests/parity/make_${g}_cases.py /tmp/mdatk tests/data/render
+done
+```
+
+The JSON records of `figures/`, `charts/` and `molecule/` hold view rotations and projected
+coordinates that go through BLAS products of 3 x 3 matrices; with numpy's AVX-512 kernels
+(`--native`) they move by an ulp, so `regenerate_all.py` compares them, where their bytes differ,
+like the machine-dependent analysis files below (numbers within a relative 1e-12). Their `.npz`
+files did not change.
+
 ## Checking that the data is reproducible
 
 `tests/parity/regenerate_all.py` runs every generator above (and `tools/gen_*.py`) in this order
@@ -740,7 +791,8 @@ The same holds for `analysis/demo_dry_cases.json`, `demo_dry_variants.json`, `mi
 `systems_cases.json` despite the generator's pinning (CI run 56 moved RMSDs with a fit selection
 by 12 to 33 ulps), where an array's `sha256` is ignored when its values agree within the tolerance;
 not `analysis/spatial_cases.json`, whose degenerate `kabsch` inputs get a different rotation from
-other kernels.
+other kernels. The JSON files under `render/figures/`, `render/charts/` and `render/molecule/` are
+compared the same way (section "Rendering").
 The random rotations of `io/pdb/pdb_cases.json` are written out in `make_pdb_cases.py` for the same
 reason. `--list` shows the steps; `--only STEP ...` reruns some of them.
 
