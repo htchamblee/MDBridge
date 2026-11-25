@@ -61,3 +61,14 @@ else()
     target_compile_definitions(mdbridge_video PRIVATE MDBRIDGE_HAVE_FFMPEG=0)
     set(MDBRIDGE_VIDEO_RUNTIME_FILES "" CACHE INTERNAL "")
 endif()
+
+# the frame loop (frame_loop.hpp: MDATK's render_video) on the figure's panels and the encoder; no
+# Qt (frames are composed through FrameCompositor, whose QPainter implementation is in mdbridge::render)
+add_library(mdbridge_video_loop STATIC
+    frame_loop.cpp
+    frame_loop.hpp)
+add_library(mdbridge::video_loop ALIAS mdbridge_video_loop)
+find_package(Threads REQUIRED)  # the composing threads (std::thread)
+target_link_libraries(mdbridge_video_loop PUBLIC mdbridge::video mdbridge::render_panels mdbridge::core PRIVATE Threads::Threads)
+target_compile_features(mdbridge_video_loop PUBLIC cxx_std_20)
+mdbridge_target_warnings(mdbridge_video_loop)

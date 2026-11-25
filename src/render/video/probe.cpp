@@ -6,6 +6,7 @@
 #include <fstream>
 #include <limits>
 #include <string>
+#include <vector>
 
 #include "mdbridge/core/paths.hpp"
 #include "video/encoder.hpp"
@@ -16,6 +17,7 @@ extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 #include <libavutil/pixdesc.h>
+#include <libswscale/swscale.h>
 }
 #endif
 
@@ -190,9 +192,106 @@ VideoProbe probeVideo(const fs::path& path) {
     return probe;
 }
 
+bool hasVideoDecoder(std::string_view codec) {
+    const AVCodecDescriptor* desc = avcodec_descriptor_get_by_name(std::string(codec).c_str());
+    return desc != nullptr && avcodec_find_decoder(desc->id) != nullptr;
+}
+
+namespace {
+
+struct DecoderCloser {
+    AVCodecContext* decoder = nullptr;
+    AVFrame* frame = nullptr;
+    SwsContext* scaler = nullptr;
+    ~DecoderCloser() {
+        sws_freeContext(scaler);
+        av_frame_free(&frame);
+        avcodec_free_context(&decoder);
+    }
+};
+
+}  // namespace
+
+std::vector<std::vector<std::uint8_t>> decodeVideoFrames(const fs::path& path) {
+    detail::initFfmpeg();
+    const std::string pathUtf8 = core::pathToUtf8(path);
+    InputCloser input;
+    int err = avformat_open_input(&input.format, pathUtf8.c_str(), nullptr, nullptr);
+    if (err < 0) {
+        throw VideoError("video: cannot open " + pathUtf8 + ": " + detail::ffmpegError(err));
+    }
+    err = avformat_find_stream_info(input.format, nullptr);
+    if (err < 0) {
+        throw VideoError("video: cannot read " + pathUtf8 + ": " + detail::ffmpegError(err));
+    }
+    const int index = av_find_best_stream(input.format, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
+    if (index < 0) {
+        throw VideoError("video: " + pathUtf8 + " has no video stream");
+    }
+    const AVCodecParameters* par = input.format->streams[index]->codecpar;
+    const AVCodec* codec = avcodec_find_decoder(par->codec_id);
+    if (codec == nullptr) {
+        throw VideoError("video: no decoder for " + nameOr(avcodec_get_name(par->codec_id)) + " in this build");
+    }
+    DecoderCloser dec;
+    dec.decoder = avcodec_alloc_context3(codec);
+    dec.frame = av_frame_alloc();
+    input.packet = av_packet_alloc();
+    if (dec.decoder == nullptr || dec.frame == nullptr || input.packet == nullptr) {
+        throw VideoError("video: out of memory");
+    }
+    avcodec_parameters_to_context(dec.decoder, par);
+    dec.decoder->thread_count = 1;
+    err = avcodec_open2(dec.decoder, codec, nullptr);
+    if (err < 0) {
+        throw VideoError("video: cannot open the decoder: " + detail::ffmpegError(err));
+    }
+    std::vector<std::vector<std::uint8_t>> frames;
+    const auto receive = [&]() {
+        for (;;) {
+            const int r = avcodec_receive_frame(dec.decoder, dec.frame);
+            if (r == AVERROR(EAGAIN) || r == AVERROR_EOF) return;
+            if (r < 0) throw VideoError("video: cannot decode " + pathUtf8 + ": " + detail::ffmpegError(r));
+            const int w = dec.frame->width, h = dec.frame->height;
+            dec.scaler = sws_getCachedContext(dec.scaler, w, h, static_cast<AVPixelFormat>(dec.frame->format), w, h,
+                                              AV_PIX_FMT_RGBA, SWS_BICUBIC | SWS_ACCURATE_RND | SWS_FULL_CHR_H_INT,
+                                              nullptr, nullptr, nullptr);
+            if (dec.scaler == nullptr) throw VideoError("video: cannot convert the decoded frames to RGBA");
+            const int space = dec.frame->colorspace == AVCOL_SPC_BT709 ? SWS_CS_ITU709 : SWS_CS_ITU601;
+            const int fullRange = dec.frame->color_range == AVCOL_RANGE_JPEG ? 1 : 0;
+            sws_setColorspaceDetails(dec.scaler, sws_getCoefficients(space), fullRange, sws_getCoefficients(space), 1,
+                                     0, 1 << 16, 1 << 16);
+            std::vector<std::uint8_t> rgba(static_cast<std::size_t>(w) * static_cast<std::size_t>(h) * 4);
+            std::uint8_t* dst[4] = {rgba.data(), nullptr, nullptr, nullptr};
+            const int dstStride[4] = {w * 4, 0, 0, 0};
+            sws_scale(dec.scaler, dec.frame->data, dec.frame->linesize, 0, h, dst, dstStride);
+            frames.push_back(std::move(rgba));
+            av_frame_unref(dec.frame);
+        }
+    };
+    while ((err = av_read_frame(input.format, input.packet)) >= 0) {
+        if (input.packet->stream_index == index) {
+            const int s = avcodec_send_packet(dec.decoder, input.packet);
+            if (s < 0) {
+                av_packet_unref(input.packet);
+                throw VideoError("video: cannot decode " + pathUtf8 + ": " + detail::ffmpegError(s));
+            }
+            receive();
+        }
+        av_packet_unref(input.packet);
+    }
+    avcodec_send_packet(dec.decoder, nullptr);
+    receive();
+    return frames;
+}
+
 #else
 
 VideoProbe probeVideo(const fs::path&) { throw VideoError("video encoding is not available in this build"); }
+bool hasVideoDecoder(std::string_view) { return false; }
+std::vector<std::vector<std::uint8_t>> decodeVideoFrames(const fs::path&) {
+    throw VideoError("video encoding is not available in this build");
+}
 
 #endif
 
