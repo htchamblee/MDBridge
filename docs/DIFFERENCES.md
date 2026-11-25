@@ -494,6 +494,13 @@ test_selections.cpp; cli_cases.json (`info_groups`); framework_cases.json (cache
   `project: ignoring unknown key 'out_dir' (did you mean output.out_dir?)`
   (`output.cache_dir`, `workflow.out_dir`). *Tested:* from_dict_cases.json (properties as keys),
   cli_cases.json (init_set_property, init_set_cache_dir).
+- **RN-20: `visual.renderer = "vulkan"` is accepted** (owner decision D7, docs/specs/m4-plan.md).
+  MDATK knows `auto`, `software` and `vtk` (VTK, optional); MDBridge's GPU renderer is Vulkan, so
+  `vulkan` is a valid value besides them (`vtk` keeps meaning "the GPU renderer", RN-16), and the
+  message for an unknown value reads `Unknown renderer 'opengl' (auto, software, vtk or vulkan).`
+  Values stay case-sensitive as in MDATK; project files and their comments are unchanged. *Tested:*
+  project-model/validate_cases.json ("renderer", "renderer vulkan", "renderer case", "everything");
+  tests/parity/improvements_cli.py applies the same rule to MDATK's validate().
 
 ## Command line
 

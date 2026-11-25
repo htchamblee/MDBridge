@@ -2,12 +2,7 @@
 
 #include <algorithm>
 
-#include <QLibrary>
-
-#ifndef VK_NO_PROTOTYPES
-#define VK_NO_PROTOTYPES
-#endif
-#include <vulkan/vulkan.h>
+#include "mdbridge/render/vulkan/loader.hpp"
 
 namespace mdbridge::render {
 
@@ -59,24 +54,13 @@ int chooseDevice(const std::vector<VulkanDevice>& devices) {
 
 VulkanReport probeVulkan() {
     VulkanReport report;
-#ifdef Q_OS_WIN
-    QLibrary loader(QStringLiteral("vulkan-1"));
-#else
-    QLibrary loader(QStringLiteral("vulkan"), 1);
-#endif
-    auto getInstanceProcAddr = reinterpret_cast<PFN_vkGetInstanceProcAddr>(loader.resolve("vkGetInstanceProcAddr"));
-    if (!getInstanceProcAddr) {
-        report.problem = "no Vulkan loader (" + loader.errorString().toStdString() + ")";
+    const std::unique_ptr<vulkan::Loader> loader = vulkan::Loader::open({}, &report.problem);
+    if (!loader) {
         return report;
     }
+    const PFN_vkGetInstanceProcAddr getInstanceProcAddr = loader->getInstanceProcAddr();
     report.loaderFound = true;
-
-    auto enumerateInstanceVersion = reinterpret_cast<PFN_vkEnumerateInstanceVersion>(
-        getInstanceProcAddr(nullptr, "vkEnumerateInstanceVersion"));
-    report.loaderVersion = VK_API_VERSION_1_0;  // a 1.0 loader has no vkEnumerateInstanceVersion
-    if (enumerateInstanceVersion) {
-        enumerateInstanceVersion(&report.loaderVersion);
-    }
+    report.loaderVersion = loader->instanceVersion();
 
     auto createInstance = reinterpret_cast<PFN_vkCreateInstance>(getInstanceProcAddr(nullptr, "vkCreateInstance"));
     VkApplicationInfo app{};

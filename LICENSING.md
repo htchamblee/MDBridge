@@ -65,6 +65,8 @@ Not adopted yet; it takes effect only after legal review and a formal change of 
    element and mass tables are built from independent public sources (`data/sources/`), so
    MDBridge deliberately differs from MDAnalysis where those tables differ.
 
-   Test-only tools (GoogleTest, BSD-3) are not bundled. External programs MDBridge writes scripts
+   Test-only tools (GoogleTest, BSD-3; on Windows CI Mesa's lavapipe Vulkan driver, MIT, with the
+   Khronos Vulkan loader, Apache 2.0, and the MSYS2 runtime libraries it needs, fetched by
+   `tools/get_lavapipe.py`) are not bundled. External programs MDBridge writes scripts
    for (cpptraj, Amber, GROMACS, Rosetta, Phenix, Coot, ...) are not distributed with it and keep
    their own licences.

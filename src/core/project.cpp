@@ -706,8 +706,9 @@ std::vector<std::string> validate(const Project& project) {
             problems.push_back(head + "size must be positive and opacity in (0, 1].");
         }
     }
-    if (!oneOf(v.renderer, {"auto", "software", "vtk"})) {
-        problems.push_back("Unknown renderer " + repr(v.renderer) + " (auto, software or vtk).");
+    // RN-20 (owner decision D7): "vulkan" is accepted besides MDATK's three ("vtk" means the GPU renderer)
+    if (!oneOf(v.renderer, {"auto", "software", "vtk", "vulkan"})) {
+        problems.push_back("Unknown renderer " + repr(v.renderer) + " (auto, software, vtk or vulkan).");
     }
     if (!(0.05 <= v.zoom && v.zoom <= 50)) {
         problems.push_back("Structure zoom must be between 0.05 and 50.");

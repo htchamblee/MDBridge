@@ -159,6 +159,15 @@ if(WIN32 AND MDBRIDGE_VIDEO_RUNTIME_FILES)  # the FFmpeg DLLs next to the test p
 endif()
 gtest_discover_tests(mdbridge_video_tests DISCOVERY_MODE PRE_TEST)
 
+# render/vulkan: Vulkan without a window (loader, device, offscreen target and read-back, pipelines,
+# pipeline cache) and the probe; no Qt. The GPU tests run on the machine's Vulkan 1.3 driver
+# (lavapipe in CI) and skip without one, unless MDBRIDGE_REQUIRE_VULKAN=1 (tests/render/vulkan_harness.hpp)
+add_executable(mdbridge_vulkan_tests render/test_vulkan_offscreen.cpp)
+target_include_directories(mdbridge_vulkan_tests PRIVATE "${PROJECT_SOURCE_DIR}/src/render")  # shaders/spirv.hpp
+target_link_libraries(mdbridge_vulkan_tests PRIVATE mdbridge::render_vulkan GTest::gtest_main)
+mdbridge_target_warnings(mdbridge_vulkan_tests)
+gtest_discover_tests(mdbridge_vulkan_tests DISCOVERY_MODE PRE_TEST PROPERTIES LABELS vulkan)
+
 # the committed SPIR-V matches the shader sources (tools/compile_shaders.py)
 add_test(NAME render.shaders_up_to_date
          COMMAND ${CMAKE_COMMAND} -DSHADER_DIR=${PROJECT_SOURCE_DIR}/src/render/shaders
