@@ -37,17 +37,22 @@ Status of the items (see the plan for the full text):
   RN-16  renderer "vtk" means the GPU renderer (Vulkan), never VTK
   RN-17  video positions with a stride skip the last frame: kept (convention, no patch)
   RN-21 ... RN-25  residue shading, orientation and the example dataset: improvements_shading.py
+  RN-40  sequence panel: an unusable per_row (negative, not a number) is a "No data" message
+  RN-41  secondary panel: an unknown source is a "No data" message (MDATK: silently "dynamic")
+  RN-42  sequence / secondary panels: "No data" messages keep the frame (MDATK: none once the
+         secondary panel's setup had hidden the spines)
 
-Patched so far: RN-01, RN-04, RN-14 (the plot panels, W2-A; src/render/panels/plots.cpp); RN-01 also
-for the matrix charts, RN-05, RN-10, RN-11, RN-50 and D5 (the standalone charts, W2-D;
-src/render/panels/charts.cpp):
-
+  RN-33  the density map's contour level from its finite voxels (W2-B)
   RN-50  charts' title and colour bar in the theme's colours (MDATK styled the centre title, not
          the left one it draws, and left the colour bar black: unreadable on the dark theme)
   D5     output.charts.style: "mdatk" (or "") and "default" (Matplotlib's default look); other
          names warn and draw MDATK's chrome (owner decision D5; MDATK applied any Matplotlib style)
 
-The others are MDATK's behaviour until their chunk fills them in.
+Patched so far: RN-01, RN-04, RN-14 (the plot panels, W2-A; src/render/panels/plots.cpp),
+RN-40 ... RN-42 (the sequence / secondary panels, W2-C; src/render/panels/seqpanels.cpp), RN-03,
+RN-08, RN-09, RN-16, RN-33 (the structure view, W2-B; src/render/panels/structure.cpp) and RN-01 (for
+the matrix charts too), RN-05, RN-10, RN-11, RN-50, D5 (the standalone charts, W2-D;
+src/render/panels/charts.cpp). The others are MDATK's behaviour until their chunk fills them in.
 
 RN-26 ... RN-29 (the software 3D renderer, W1-B; src/render/molecule/software.cpp) change only the
 renderer's own images, which make_molecule_cases.py alone records: it calls
@@ -66,31 +71,227 @@ here when its figure cases need them).
 
 from __future__ import annotations
 
+# --- the structure view (W2-B; src/render/panels/structure.cpp) ------------------------------------
+
+# MDBridge's legend label of the ions (structure.cpp ionLegendLabel): residue name of the ion labels
+# ("MG25" -> "MG"), charges and trailing digits dropped, upper case
+_ION_NAMES = {"MG": "Mg²⁺", "NA": "Na⁺", "SOD": "Na⁺", "K": "K⁺", "POT": "K⁺", "CA": "Ca²⁺", "CAL": "Ca²⁺",
+              "ZN": "Zn²⁺", "MN": "Mn²⁺", "CL": "Cl⁻", "CLA": "Cl⁻", "LI": "Li⁺", "RB": "Rb⁺", "CS": "Cs⁺"}
+
+
+def ion_legend_label(labels) -> str:
+    found = set()
+    for label in labels:
+        key = "".join(c for c in str(label).rstrip("0123456789") if c not in "+- ").upper().rstrip("0123456789")
+        found.add(_ION_NAMES.get(key, "Ions"))
+    return found.pop() if len(found) == 1 else "Ions"
+
+
+def _rn03_finite_structure_extent():
+    """StructurePanel.setup: the bounding sphere of the finite trace / ion points (MDATK: one NaN
+    point made the radius NaN, "Axis limits cannot be NaN or Inf"), and one warning naming the
+    frames with non-finite points."""
+    import numpy as np
+    from mdatk.render import panels
+    from mdatk.render.residues import warn_once
+
+    class _Linalg:
+        def __getattr__(self, name):
+            return getattr(np.linalg, name)
+
+        @staticmethod
+        def norm(x, *args, **kwargs):
+            r = np.linalg.norm(x, *args, **kwargs)
+            return np.where(np.isfinite(r), r, -np.inf)
+
+    class _Numpy:
+        linalg = _Linalg()
+
+        def __getattr__(self, name):
+            return getattr(np, name)
+
+    original = panels.StructurePanel.setup
+
+    def setup(self):
+        tr = self.ctx.dataset.results.get("trace")
+        bad, text = set(), ""
+        if tr is not None:
+            bad = set()
+            for key in ("coords", "ion_coords"):
+                a = np.asarray(tr.arrays[key], dtype=np.float64)
+                if a.size:
+                    bad |= set(np.flatnonzero(~np.isfinite(a).all(axis=(1, 2))).tolist())
+            if bad:
+                frames = [int(self.ctx.dataset.frames[f]) for f in sorted(bad)]
+                text = ", ".join(map(str, frames[:10])) + (f" and {len(frames) - 10} more" if len(frames) > 10 else "")
+        saved = panels.np
+        panels.np = _Numpy()
+        try:
+            original(self)
+        finally:
+            panels.np = saved
+        if bad:
+            warn_once(f"structure view: non-finite coordinates in frame(s) {text}; left out of the view "
+                      "(those residues are not drawn there)")
+
+    panels.StructurePanel.setup = setup
+
+
+def _rn08_rn09_legend():
+    """StructurePanel._legend: chains named as the trace names them ("Chain A"; the number only for
+    a chain without a name; RN-09, owner decision D11) and the ions by their element (RN-08)."""
+    import numpy as np
+    from mdatk.render import panels
+    from mdatk.render.residues import chain_names
+
+    original = panels.StructurePanel._legend
+
+    def _legend(self, v, tr):
+        original(self, v, tr)
+        if self.legend is None:
+            return
+        names = chain_names(tr)
+        chain = np.asarray(tr.arrays["chain"])
+        for text, handle in zip(self.legend.get_texts(), self.legend.legend_handles):
+            label = text.get_text()
+            new = label
+            if v.color_mode == "chain" and label.startswith("Chain "):
+                c = int(label.split()[1]) - 1
+                k = int(np.flatnonzero(chain == c)[0])
+                new = f"Chain {names[k] or c + 1}"
+            elif label == "Mg²⁺":
+                new = ion_legend_label(tr.meta.get("ion_labels") or [])
+            if new != label:
+                text.set_text(new)
+                handle.set_label(new)
+
+    panels.StructurePanel._legend = _legend
+
+
+def _rn09_with_rn08():
+    """RN-09 is applied by _rn08_rn09_legend (the same legend texts)."""
+
+
+def _rn16_gpu_renderer():
+    """renderer "vtk" means the GPU renderer (Vulkan); the figure cases have none: the built-in
+    renderer with MDBridge's note (MDATK: "VTK is not installed (pip install vtk)")."""
+    from mdatk.render.molecule import vtk_backend
+
+    vtk_backend.available = lambda: (False, "the GPU renderer (Vulkan) is not available")
+
+
+def _rn33_finite_map_level():
+    """map_level from the finite voxels (MDATK: NaN for a map with one NaN voxel, so no shadow)."""
+    import numpy as np
+    from mdatk import density
+
+    original = density.map_level
+
+    def map_level(dmap, sigmas):
+        d = np.asarray(dmap.data)
+        finite = np.isfinite(d)
+        if finite.all():
+            return original(dmap, sigmas)
+        if not finite.any():
+            return float("nan")
+        v = d[finite].astype(np.float64)
+        return float(v.mean() + sigmas * v.std())
+
+    density.map_level = map_level
+
+
 # item -> function(mdatk modules are importable) that patches MDATK in this process, or None while
 # the item is not implemented in MDBridge (the expected data is then MDATK's behaviour)
 PATCHES = {
     "RN-01": "_rn01_heatmap_column_edges",
     "RN-02": None,
-    "RN-03": None,
+    "RN-03": "_rn03_finite_structure_extent",
     "RN-04": "_rn04_heatmap_vmin_above_vmax",
     "RN-05": "_rn05_matrix_chart_height_cap",
     "RN-06": None,
     "RN-07": None,
-    "RN-08": None,
-    "RN-09": None,
+    "RN-08": "_rn08_rn09_legend",
+    "RN-09": "_rn09_with_rn08",
     "RN-10": "_rn10_chart_matrix_series",
     "RN-11": "_rn11_chart_formats",
     "RN-12": None,
     "RN-13": None,
     "RN-14": "_rn14_nan_aware_running_mean",
     "RN-15": None,
-    "RN-16": None,
+    "RN-16": "_rn16_gpu_renderer",
     "RN-17": None,  # a documented convention, never patched
+    "RN-40": "_rn40_per_row",
+    "RN-41": "_rn41_unknown_source",
+    "RN-42": "_rn42_no_data_frame",
+    "RN-33": "_rn33_finite_map_level",
     # the standalone charts (W2-D; src/render/panels/charts.cpp)
     "RN-50": "_rn50_chart_chrome_in_theme_colours",
     "D5": "_d5_chart_styles",  # owner decision D5: the styles mdatk and default
 }
 
+
+def _rn40_per_row():
+    """SequencePanel.setup: per_row that int() cannot read, or a negative one, is a KeyError (the
+    panel's "No data" message) once the residues and the automatic title are known (MDATK: a
+    ValueError / TypeError out of build_figure, or a reversed axis with huge boxes). 0, empty and
+    values int() truncates to 0 stay "automatic"."""
+    from mdatk.render import seqpanels
+
+    original = seqpanels.SequencePanel.setup
+
+    def setup(self):
+        value = self.options.get("per_row", 0)
+        n = 0
+        if value:
+            try:
+                n = int(value)
+            except (TypeError, ValueError, OverflowError):
+                n = None
+        if n is None or n < 0:
+            self._residues()
+            self._bare_axes()
+            self.auto_title = "Sequence" + (f" ({self.range_text})" if self.range_text else "")
+            raise KeyError("option 'per_row' must be a whole number of residues per row (0: automatic), "
+                           f"not {value!r}")
+        original(self)
+
+    seqpanels.SequencePanel.setup = setup
+
+
+def _rn41_unknown_source():
+    """SecondaryStructurePanel.setup: a source other than dynamic / first / dotbracket is a KeyError
+    once the residues and the automatic title are known (MDATK: treated as "dynamic")."""
+    from mdatk.render import seqpanels
+
+    original = seqpanels.SecondaryStructurePanel.setup
+
+    def setup(self):
+        source = str(self.options.get("source", "dynamic"))
+        if source not in ("dynamic", "first", "dotbracket"):
+            self._residues()
+            self._bare_axes()
+            self.source = source
+            self.auto_title = "Secondary structure" + (f" ({self.range_text})" if self.range_text else "")
+            raise KeyError(f"unknown source {source!r} (option 'source': dynamic, first or dotbracket)")
+        original(self)
+
+    seqpanels.SecondaryStructurePanel.setup = setup
+
+
+def _rn42_no_data_frame():
+    """_ResiduePanel.show_message: the spines style_axes shows (left, bottom) stay visible, also when
+    setup had hidden them (_bare_axes) before its KeyError (MDATK: a "No data" panel without a frame)."""
+    from mdatk.render import panels, seqpanels
+
+    def show_message(self, text):
+        panels.Panel.show_message(self, text)
+        for side in ("left", "bottom"):
+            self.ax.spines[side].set_visible(True)
+        for side in ("top", "right"):
+            self.ax.spines[side].set_visible(False)
+
+    seqpanels._ResiduePanel.show_message = show_message
+    panels.StructurePanel.show_message = show_message  # W2-B: "No data: proximity" / "atoms"
 
 
 def _rn01_heatmap_column_edges():

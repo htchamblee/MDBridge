@@ -918,6 +918,53 @@ MDATK's own outcome next to them), with these differences:
   (`density anchor ignored: ...`) for the caller's warning. *Tested:* `DensityShadow.AnchoredMatchesMdatk`
   (cases `ragged`, `nan_anchor`, `nan_reference`).
 
+## Rendering: structure view (src/render/panels/structure.cpp)
+
+The structure panel (MDATK's `StructurePanel` in `mdatk/render/panels.py`, with `stage.py` and
+`renderers.py`) draws what MDATK draws: the projected trace (points, links, the two glow halos,
+ions), residue tags, the time label, the legend, the bare equal-aspect window, the density shadow
+behind or in front (following a followed centre) and the 3D layer of the representations (the
+molecule library's scene, the built-in software renderer), with the 2D trace as the fallback for a
+frame whose 3D render fails. `tests/render/test_structure_panel.cpp` compares every figure case
+whose first panel is a structure view with MDATK's record (`tests/parity/make_figure_cases.py`;
+positions, sizes, colours, widths, texts, legend, limits, the shadow's extent and RGBA, the 3D
+layer's size and coverage, the panel's notes and animated artists, its warnings) at the first,
+middle and last frame. The generator applies the items below to MDATK test-side
+(`tests/parity/improvements_render.py`); differences:
+
+- **Non-finite coordinates (RN-03, the structure part).** One NaN trace point (a blown-up frame)
+  made MDATK's bounding-sphere radius NaN and the figure failed with Matplotlib's `Axis limits
+  cannot be NaN or Inf`. MDBridge frames the view by the finite points (the model centre too),
+  warns once (`structure view: non-finite coordinates in frame(s) 3; left out of the view (those
+  residues are not drawn there)`, at most ten frame numbers then `and N more`) and leaves those
+  points, their links, halos and tags out of the frames concerned. *Tested:* case `structure_nan`
+  (was MDATK's error), `StructurePanel.NonFiniteFrameIsLeftOut`.
+- **Ion legend (RN-08).** MDATK's legend always said `Mg²⁺`, whatever `analyses.mg.mg_selection`
+  and `show_ions` selected. MDBridge names the element of the trace's ions (`meta.ion_labels`:
+  residue name, charge signs and digits dropped): `Mg²⁺`, `Na⁺` (NA, SOD), `K⁺` (K, POT),
+  `Ca²⁺` (CA, CAL), `Zn²⁺`, `Mn²⁺`, `Cl⁻` (CL, CLA), `Li⁺`, `Rb⁺`, `Cs⁺`, and `Ions` for a
+  mixture, unknown names or no labels. *Tested:* `StructurePanel.IonAndChainLegend`; the demo's
+  `Mg²⁺` in every case.
+- **Chain legend (RN-09, owner decision D11).** MDATK's chain-colour legend numbered the chains
+  (`Chain 1`, `Chain 2`) while the sequence panel and residue ranges use the chain names. MDBridge
+  writes `Chain A` (the trace's chain names, letters from the chain index when the trace has none,
+  as the sequence panel does; the number only for a chain without a name). *Tested:* cases
+  `structure_chain`, `structure_chain_palette`, `protein_trace`, `chains_sequence`,
+  `StructurePanel.IonAndChainLegend`.
+- **`renderer = "vtk"` (RN-16, the panel part).** MDATK probed for VTK and, without it, noted `VTK
+  is not installed (pip install vtk); using the built-in renderer`. In MDBridge `vtk` (like
+  `vulkan`) means the GPU renderer: the frame loop and the GUI install the Vulkan renderer
+  (`setStageRendererFactory`); where there is none the panel uses the built-in renderer with the
+  note `the GPU renderer (Vulkan) is not available; using the built-in renderer` (logged as a
+  `3D representations:` warning). *Tested:* case `rep_trace_vtk`, `StructurePanel.GpuRendererNote`.
+- **Density level of maps with non-finite voxels (RN-33).** The shadow's contour level is `mean +
+  level x rms` of the map; with one NaN voxel MDATK's level was NaN, and with RN-30 such a map
+  showed no shadow at all. MDBridge computes the level from the finite voxels (the same value as
+  MDATK's when all voxels are finite), so the map's shadow shows. *Tested:*
+  `StructurePanel.DensityLevelFromFiniteVoxels`.
+- **No analysed frames (RN-02, the panel part).** A trace without frames made MDATK fail with an
+  `IndexError`; the panel shows `No data: no frames`.
+
 ## Rendering: residue shading, orientation and the example dataset (src/render/core)
 
 The structure view's colours and glow (MDATK's `mdatk/render/coloring.py`, `residues.py`), its
@@ -954,6 +1001,43 @@ is MDATK's with `tests/parity/improvements_shading.py` for the entries below.
 - **Fewer than one example frame.** `exampleDataset` needs at least one frame
   (`the example dataset needs at least one frame`; MDATK: `IndexError` at `t[-1]`). One frame gives
   MDATK's NaN placeholders (`t / t[-1]`). *Tested:* case `one_frame`.
+
+## Rendering: sequence and secondary-structure panels (src/render/panels/seqpanels.cpp)
+
+The `sequence` and `secondary` panels (MDATK's `mdatk/render/seqpanels.py`) show what MDATK's show:
+with MDATK's frozen axes boxes their records (`dumpFigure`) equal MDATK's at every recorded position
+of every figure case that has one (cells, letters, boxes, tags, chain labels, the re-flow after the
+layout with its cell size and rows, the note and its warning, arcs within and between chains,
+halos, colours, fonts and limits; numbers within 1e-9, text extents within the layout tolerance),
+and MDBridge's own layout places their axes within 1.5 % of the figure size
+(`tests/render/test_seqpanels.cpp` against `tests/parity/make_figure_cases.py`, with the items
+below applied by `tests/parity/improvements_render.py`). A dataset without frames gives
+`No data: no frames` in both panels, as RN-02 asks for every panel (MDATK built them and failed
+later). The differences:
+
+- **Unusable `per_row` (RN-40).** The sequence panel read `int(options.per_row)`: a value `int()`
+  cannot read (`"x"`, `"7.5"`, a list) raised `ValueError` / `TypeError` out of `build_figure`, which
+  stopped the render or the preview with a traceback; a negative value inverted the x axis and gave
+  boxes of tens of thousands of points squared over the whole figure. MDBridge shows
+  `No data: option 'per_row' must be a whole number of residues per row (0: automatic), not -3` and
+  carries on; 0, empty and values `int()` truncates (`7.9`, `"7"`, `0.5` = automatic) are read as
+  MDATK reads them. *Tested:* `SeqPanels.UnusablePerRowIsAMessageRN40`, case
+  `sequence_per_row_invalid`.
+- **Unknown `source` (RN-41).** The secondary panel treated every `source` other than `first` and
+  `dotbracket` as `dynamic`, so a typo (`dynamc`, `dot-bracket`) silently showed the base-pair
+  analysis instead of the intended pairs. MDBridge shows `No data: unknown source 'dynamc' (option
+  'source': dynamic, first or dotbracket)`; the analyses it requires are unchanged (`basepairs` for
+  any source but `dotbracket`). *Tested:* `SeqPanels.UnknownSourceIsAMessageRN41`, case
+  `secondary_source_unknown`.
+- **"No data" frame (RN-42).** A "No data" panel shows its message on the axes' frame (left and
+  bottom spines in the grid colour), but the secondary panel hid its spines before reading the
+  dot-bracket or the base-pair map, so its messages (`no dot-bracket given`, a dot-bracket of the
+  wrong length, no `basepairs/map`) floated without a frame. MDBridge's sequence and secondary
+  panels keep the frame every other "No data" panel has. *Tested:*
+  `SeqPanels.NoDataPanelsKeepTheirFrameRN42`, cases `secondary_dotbracket_empty`,
+  `secondary_dotbracket_length`. The structure view likewise keeps the frame when its proximity
+  (`No data: proximity`) or atoms (`No data: atoms`) result is missing, which it notices after
+  hiding its spines (W2-B; *tested:* `StructurePanel.MissingResultsShowNoData`).
 
 ## Video encoding (src/render/video)
 

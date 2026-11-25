@@ -29,7 +29,7 @@
  "dpi": 60,
  "watermark": "",
  "positions": [0,1,2],
- "improvements": ["D5","RN-01","RN-04","RN-05","RN-10","RN-11","RN-14","RN-50"],
+ "improvements": ["D5","RN-01","RN-03","RN-04","RN-05","RN-08","RN-09","RN-10","RN-11","RN-14","RN-16","RN-33","RN-40","RN-41","RN-42","RN-50"],
  "frames": [
   {
    "pos": 0,
@@ -86,8 +86,8 @@
         "extent_px": [882.0333333333334,125.56338797814192,951.0333333333334,163.84854422814192],
         "frame": {"on":true,"facecolor":[0.9882352941176471,0.9882352941176471,0.984313725490196,0.8],"edgecolor":[0.8823529411764706,0.8784313725490196,0.8509803921568627,0.8],"lw":0.6},
         "entries": [
-         {"text":"Chain 1","color":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"size":8.8,"handle":{"id":"?Line2D","kind":"line","zorder":2.0,"visible":true,"alpha":null,"animated":false,"label":"Chain 1","color":[0.12156862745098039,0.4666666666666667,0.7058823529411765,1.0],"lw":1.5,"ls":"None","dashes":null,"marker":"o","ms":7.0,"mfc":[0.12156862745098039,0.4666666666666667,0.7058823529411765,1.0],"mec":[0.12156862745098039,0.4666666666666667,0.7058823529411765,1.0],"mew":1.0,"drawstyle":"default","solid_capstyle":"projecting"}},
-         {"text":"Chain 2","color":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"size":8.8,"handle":{"id":"?Line2D","kind":"line","zorder":2.0,"visible":true,"alpha":null,"animated":false,"label":"Chain 2","color":[1.0,0.4980392156862745,0.054901960784313725,1.0],"lw":1.5,"ls":"None","dashes":null,"marker":"o","ms":7.0,"mfc":[1.0,0.4980392156862745,0.054901960784313725,1.0],"mec":[1.0,0.4980392156862745,0.054901960784313725,1.0],"mew":1.0,"drawstyle":"default","solid_capstyle":"projecting"}},
+         {"text":"Chain A","color":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"size":8.8,"handle":{"id":"?Line2D","kind":"line","zorder":2.0,"visible":true,"alpha":null,"animated":false,"label":"Chain A","color":[0.12156862745098039,0.4666666666666667,0.7058823529411765,1.0],"lw":1.5,"ls":"None","dashes":null,"marker":"o","ms":7.0,"mfc":[0.12156862745098039,0.4666666666666667,0.7058823529411765,1.0],"mec":[0.12156862745098039,0.4666666666666667,0.7058823529411765,1.0],"mew":1.0,"drawstyle":"default","solid_capstyle":"projecting"}},
+         {"text":"Chain B","color":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"size":8.8,"handle":{"id":"?Line2D","kind":"line","zorder":2.0,"visible":true,"alpha":null,"animated":false,"label":"Chain B","color":[1.0,0.4980392156862745,0.054901960784313725,1.0],"lw":1.5,"ls":"None","dashes":null,"marker":"o","ms":7.0,"mfc":[1.0,0.4980392156862745,0.054901960784313725,1.0],"mec":[1.0,0.4980392156862745,0.054901960784313725,1.0],"mew":1.0,"drawstyle":"default","solid_capstyle":"projecting"}},
          {"text":"Glow (fade)","color":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"size":8.8,"handle":{"id":"?Line2D","kind":"line","zorder":2.0,"visible":true,"alpha":0.5,"animated":false,"label":"Glow (fade)","color":[1.0,0.6901960784313725,0.0,1.0],"lw":1.5,"ls":"None","dashes":null,"marker":"o","ms":11.200000000000001,"mfc":[1.0,0.6901960784313725,0.0,1.0],"mec":[1.0,0.6901960784313725,0.0,1.0],"mew":1.0,"drawstyle":"default","solid_capstyle":"projecting"}}
         ]
        }

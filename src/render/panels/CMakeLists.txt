@@ -10,10 +10,22 @@ add_library(mdbridge_render_panels STATIC
     registry.cpp
     include/mdbridge/render/panels/plots.hpp
     plots.cpp
+    include/mdbridge/render/panels/seqpanels.hpp
+    seqpanels.cpp
+    include/mdbridge/render/panels/structure.hpp
+    structure.cpp
     include/mdbridge/render/panels/charts.hpp
     charts.cpp)
 add_library(mdbridge::render_panels ALIAS mdbridge_render_panels)
 target_include_directories(mdbridge_render_panels PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
-target_link_libraries(mdbridge_render_panels PUBLIC mdbridge::render_core mdbridge::render_molecule mdbridge::core)
+target_link_libraries(mdbridge_render_panels PUBLIC mdbridge::render_core mdbridge::render_molecule mdbridge::io mdbridge::core
+    PRIVATE mdbridge::chem)  # chem: dot-bracket (secondary panel); io: density maps (structure view)
 target_compile_features(mdbridge_render_panels PUBLIC cxx_std_20)
 mdbridge_target_warnings(mdbridge_render_panels)
+# the residue panels' and the structure view's arithmetic rounds as numpy rounds it: no contraction
+# into fused multiply-adds
+if(MSVC)
+    set_source_files_properties(seqpanels.cpp structure.cpp PROPERTIES COMPILE_OPTIONS /fp:precise)
+else()
+    set_source_files_properties(seqpanels.cpp structure.cpp PROPERTIES COMPILE_OPTIONS -ffp-contract=off)
+endif()

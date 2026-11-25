@@ -26,7 +26,7 @@
   "workflow": {"project_name":"project","stamp":"","use_stamp":true,"out_dir":"","step_folders":true,"nodes":[],"edges":[],"scratch":[]}
  },
  "stamp": "",
- "improvements": ["D5","RN-01","RN-04","RN-05","RN-10","RN-11","RN-14","RN-50"],
+ "improvements": ["D5","RN-01","RN-03","RN-04","RN-05","RN-08","RN-09","RN-10","RN-11","RN-14","RN-16","RN-33","RN-40","RN-41","RN-42","RN-50"],
  "paths": ["{out}/out/MDATK_chart_rmsd_Complex.png","{out}/out/MDATK_chart_hbonds_count.png","{out}/out/MDATK_chart_energy_total.png"],
  "log": ["Wrote 3 chart file(s) to {out}/out"],
  "progress": [["0x1.5555555555555p-2","Chart rmsd/Complex"],["0x1.5555555555555p-1","Chart hbonds/count"],["0x1.0000000000000p+0","Chart energy/total"]],

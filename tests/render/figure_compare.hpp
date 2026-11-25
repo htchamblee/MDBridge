@@ -43,6 +43,11 @@ struct FigureComparison {
     std::string worstWhat;
     int ticksCompared = 0, ticksSkipped = 0;
     int numbers = 0;  // values compared
+    // axes ("ax<k>") whose limits follow their laid-out box (the structure view's equal aspect):
+    // their limits are compared within the layout tolerance, twice 1.5 % relative (their exact
+    // values at Matplotlib's box: tests/render/test_structure_panel.cpp)
+    std::set<std::string> boxLimitAxes;
+    bool boxSized = false;  // some axes in boxLimitAxes: 3D-layer coverage within 5 %
 
     static const core::Value* opt(const core::Value& v, std::string_view key) { return v.find(key); }
     static const core::Value& at(const core::Value& v, std::string_view key) {
@@ -111,6 +116,11 @@ struct FigureComparison {
                 const core::Value* m = mine.find(k);
                 if (!m) {
                     ADD_FAILURE() << what << "." << k << " missing in MDBridge's record";
+                    continue;
+                }
+                if (k == "coverage" && boxSized) {  // the 3D layer's pixels: as many as its (laid-out) box has
+                    const double a = num(*m), b = num(v);
+                    EXPECT_NEAR(a, b, 0.05 * b + 20) << what << ".coverage";
                     continue;
                 }
                 value(*m, v, what + "." + k, colour || k.find("color") != std::string::npos || k == "mfc" || k == "mec");
@@ -241,9 +251,16 @@ struct FigureComparison {
             EXPECT_TRUE(at(mine, "suptitle").isNull());
         }
         const core::Array& mt = *at(mine, "texts").get<core::Array>();
-        const core::Array& tt = *at(theirs, "texts").get<core::Array>();
+        // Matplotlib keeps the suptitle in fig.texts too (compared above): left out here
+        core::Array tt;
+        for (const core::Value& t : *at(theirs, "texts").get<core::Array>()) {
+            if (str(at(t, "id")) != "fig/suptitle") tt.push_back(t);
+        }
         ASSERT_EQ(mt.size(), tt.size());
-        for (std::size_t i = 0; i < tt.size(); ++i) artist(mt[i], tt[i], "fig/text" + std::to_string(i));
+        for (std::size_t i = 0; i < tt.size(); ++i) {
+            fields(mt[i], tt[i], {"kind", "text", "xy", "coords", "ha", "va", "color", "size"}, "fig text " + std::to_string(i));
+            box(at(mt[i], "extent_px"), at(tt[i], "extent_px"), "fig text " + std::to_string(i));
+        }
         const core::Array& ma = *at(mine, "axes").get<core::Array>();
         const core::Array& ta = *at(theirs, "axes").get<core::Array>();
         ASSERT_EQ(ma.size(), ta.size()) << "axes";
@@ -251,7 +268,19 @@ struct FigureComparison {
             const core::Value& m = ma[k];
             const core::Value& t = ta[k];
             const std::string id = "ax" + std::to_string(k) + " (" + str(at(t, "role")) + ")";
-            fields(m, t, {"panel", "role", "facecolor", "visible", "axison", "xlim", "ylim", "zorder"}, id);
+            if (boxLimitAxes.count("ax" + std::to_string(k))) {
+                fields(m, t, {"panel", "role", "facecolor", "visible", "axison", "zorder"}, id);
+                for (const char* lim : {"xlim", "ylim"}) {
+                    const std::vector<double> a = numbersOf(at(m, lim)), b = numbersOf(at(t, lim));
+                    ASSERT_EQ(a.size(), b.size()) << id << "." << lim;
+                    const double span = std::fabs(b.back() - b.front());
+                    for (std::size_t i = 0; i < b.size(); ++i) {
+                        EXPECT_NEAR(a[i], b[i], 0.03 * span) << id << "." << lim << " (follows the box)";
+                    }
+                }
+            } else {
+                fields(m, t, {"panel", "role", "facecolor", "visible", "axison", "xlim", "ylim", "zorder"}, id);
+            }
             box(at(m, "position_px"), at(t, "position_px"), id + " position");
             box(at(m, "tight_px"), at(t, "tight_px"), id + " tight box");
             for (const auto& [side, sp] : *at(t, "spines").get<core::Table>()) {

@@ -148,6 +148,16 @@ target_compile_definitions(mdbridge_panel_tests PRIVATE MDBRIDGE_TEST_DATA="${CM
 mdbridge_target_warnings(mdbridge_panel_tests)
 gtest_discover_tests(mdbridge_panel_tests DISCOVERY_MODE PRE_TEST)
 
+# render/panels: the sequence and secondary-structure panels (counterparts of MDATK's
+# tests/test_seqpanels.py; contents against data/render/figures, tests/parity/make_figure_cases.py); no Qt
+add_executable(mdbridge_seqpanel_tests render/test_seqpanels.cpp)
+target_include_directories(mdbridge_seqpanel_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/core")
+target_link_libraries(mdbridge_seqpanel_tests PRIVATE mdbridge::render_panels mdbridge::analysis mdbridge::core GTest::gtest_main)
+target_compile_definitions(mdbridge_seqpanel_tests PRIVATE MDBRIDGE_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data"
+                           MDBRIDGE_FONT_DIR="${PROJECT_SOURCE_DIR}/data/fonts")
+mdbridge_target_warnings(mdbridge_seqpanel_tests)
+gtest_discover_tests(mdbridge_seqpanel_tests DISCOVERY_MODE PRE_TEST)
+
 # render/panels: the standalone charts against MDATK's render_charts (data/render/charts,
 # tests/parity/make_chart_cases.py): paths, files, log, progress, warnings, figures; no Qt
 add_executable(mdbridge_chart_tests render/test_charts.cpp)
@@ -183,6 +193,18 @@ target_link_libraries(mdbridge_molecule_render_tests PRIVATE mdbridge::render_mo
 target_compile_definitions(mdbridge_molecule_render_tests PRIVATE MDBRIDGE_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data")
 mdbridge_target_warnings(mdbridge_molecule_render_tests)
 gtest_discover_tests(mdbridge_molecule_render_tests DISCOVERY_MODE PRE_TEST)
+
+# render/panels: the structure view on the figure framework against MDATK's figures
+# (data/render/figures, tests/parity/make_figure_cases.py): 2D trace, tags, legend, density shadow,
+# 3D layer (software renderer); no Qt
+add_executable(mdbridge_structure_panel_tests render/test_structure_panel.cpp)
+target_include_directories(mdbridge_structure_panel_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/core")
+target_link_libraries(mdbridge_structure_panel_tests PRIVATE mdbridge::render_panels mdbridge::analysis mdbridge::core
+                      GTest::gtest_main)
+target_compile_definitions(mdbridge_structure_panel_tests PRIVATE MDBRIDGE_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data"
+                           MDBRIDGE_FONT_DIR="${PROJECT_SOURCE_DIR}/data/fonts")
+mdbridge_target_warnings(mdbridge_structure_panel_tests)
+gtest_discover_tests(mdbridge_structure_panel_tests DISCOVERY_MODE PRE_TEST)
 
 # render/molecule: the density shadow (project_density, shadow_rgba, anchored, scipy's
 # affine_transform) against MDATK (data/render/density_shadow,

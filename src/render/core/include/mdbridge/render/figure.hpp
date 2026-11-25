@@ -168,6 +168,11 @@ struct Image : ArtistBase {
     // extent. The extent's left / right are the first / last edge.
     std::vector<double> xEdges;
     bool originUpper = true;
+    std::string interpolation = "nearest";  // "nearest" or "bilinear" (AxesImage.set_interpolation)
+    // MDATK's PixelImage (the structure view's 3D layer, mdatk/render/molecule/stage.py): `rgba` is
+    // drawn 1:1 into the axes box (its corner at the box' rounded pixel position; extent unused),
+    // does not change the data limits and is recorded as a "pixel_image" (shape and coverage)
+    bool fillsAxes = false;
     Image() { zorder = 0.0; }
     // The RGBA bytes shown (cmap(norm(values), bytes=True) or rgba), rows x cols x 4, row 0 first.
     std::vector<std::uint8_t> pixels() const;
