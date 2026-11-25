@@ -845,9 +845,7 @@ bump ("Analysis cache" above).
   src/analysis/hbonds.cpp process()). Distance-only runs with an angle are unchanged. Measured: the
   `noh` system (the demo's heavy atoms, no hydrogens; systems_cases.json) 114, 114, 72, 108 -> 57, 57, 36,
   54 H-bonds over its four frames (every N / O there both donates and accepts, so every pair was counted
-  twice). *Tested:* the
-  `*_distance_only` / `hbonds_no_angle` / `noh*` H-bond cases of micro_cases.json,
-  demo_dry_variants.json and systems_cases.json, pipeline_cases.json, cli_cases.json.
+  twice). *Tested:* systems_cases.json `noh` and `noh_no_angle`, the only cases whose results changed.
 - **Contacts of a group with itself.** (MDATK 0.1.0, `mdatk/analysis/contacts.py` version 2; MDBridge
   src/analysis/contacts.cpp; register AN-23, which kept these as conventions.) (1) The map holds each
   residue pair once (i < j), and `per_res_a` / `per_res_b` counted it on one residue only, so a residue's
