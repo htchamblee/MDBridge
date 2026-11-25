@@ -138,6 +138,16 @@ target_compile_definitions(mdbridge_figure_tests PRIVATE MDBRIDGE_TEST_DATA="${C
 mdbridge_target_warnings(mdbridge_figure_tests)
 gtest_discover_tests(mdbridge_figure_tests DISCOVERY_MODE PRE_TEST)
 
+# render/panels: the figure's panels and build_figure against MDATK's figures (data/render/figures,
+# tests/parity/make_figure_cases.py; figure_records.hpp reads the cases and their inputs); no Qt
+add_executable(mdbridge_panel_tests render/test_plot_panels.cpp)
+target_include_directories(mdbridge_panel_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/core")
+target_link_libraries(mdbridge_panel_tests PRIVATE mdbridge::render_panels mdbridge::analysis mdbridge::core GTest::gtest_main)
+target_compile_definitions(mdbridge_panel_tests PRIVATE MDBRIDGE_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data"
+                           MDBRIDGE_FONT_DIR="${PROJECT_SOURCE_DIR}/data/fonts")
+mdbridge_target_warnings(mdbridge_panel_tests)
+gtest_discover_tests(mdbridge_panel_tests DISCOVERY_MODE PRE_TEST)
+
 # render core: residue shading, orientation, the example dataset and numpy's PCG64 against MDATK and
 # numpy (data/render/shading, tests/parity/make_shading_cases.py); no Qt
 add_executable(mdbridge_shading_tests render/test_shading.cpp)
