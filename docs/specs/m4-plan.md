@@ -286,6 +286,7 @@ Each lands in DIFFERENCES.md with a test; `improvements_render.py` adjusts the e
 | RN-17 | Video positions with a stride skip the last frame (`0, s, 2s, ...`) | kept (convention: the frame count users expect); documented, not changed |
 | RN-18 | `theme.ordinal(n)` for more than 5 classes keeps the 4 ramp colours: classes share colours under the colour bar's distinct labels | n - 1 evenly spaced ramp steps (`from_list(ramp, N = n - 1)`); MDATK's colours up to 5 classes (W0-B) |
 | RN-19 | A `surf` grid for a blown-up frame (atoms thousands of Å apart) is allocated: `MemoryError` or gigabytes and minutes per frame | grids above 2^26 points refused up front; the surface is left out of that frame with the existing warning (W0-F) |
+| RN-20 | `visual.renderer = "vulkan"` is rejected by `validate()` (MDATK knows auto / software / vtk) | accepted (D7); the unknown-renderer message lists it (W0-G) |
 
 Not bugs, kept as conventions: DPI semantics (text size relative to the frame), `MDATK_` file names,
 the example dataset's seeds (crc32 of the key → numpy PCG64: ported exactly so the GUI preview looks

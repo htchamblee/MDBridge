@@ -345,7 +345,8 @@ struct VisualParams {
     std::string trace_atoms = "C4',CA";
     // 3D representations (empty: the 2D backbone trace)
     std::vector<RepSpec> representations;
-    // 3D renderer: "auto" / "software" (built-in) or "vtk" (optional)
+    // 3D renderer: "auto" / "software" (built-in) or "vtk" (optional); MDBridge: "vtk" and the new
+    // "vulkan" both mean the Vulkan renderer (RN-16, RN-20)
     std::string renderer = "auto";
     // Residues no representation draws: "trace" (3D trace) or "hide"
     std::string rep_rest = "trace";
