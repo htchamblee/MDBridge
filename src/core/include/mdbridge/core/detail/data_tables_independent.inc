@@ -2493,3 +2493,46 @@ inline constexpr std::string_view kIndChlorineClResidues[] = {
     "ZT6", "ZTG", "ZU4", "ZUE", "ZUI", "ZUQ", "ZVT", "ZXH", "ZXK", "ZXL",
     "ZXP",
 };
+
+// ---- Nucleotide components of the CCD ----
+
+struct IndResidueBase {
+    std::string_view residue;
+    char base;  // A C G T
+};
+
+// The CCD's L-deoxyribonucleotides: the L-DNA linking components whose atoms and bonds are those of
+// DA, DC, DG or DT (their mirror images), sorted.
+inline constexpr IndResidueBase kIndLDeoxyribonucleotides[] = {
+    {"0DA", 'A'},
+    {"0DC", 'C'},
+    {"0DG", 'G'},
+    {"0DT", 'T'},
+};
+
+struct IndComponentAtomName {
+    std::string_view residue;
+    std::string_view name;      // the component's own name
+    std::string_view standard;  // the name of the same atom in the standard residue
+};
+
+// Atoms of those components named otherwise than the same atom of the standard residue (0DA's
+// N9A is DA's N9), sorted by residue then name.
+inline constexpr IndComponentAtomName kIndComponentAtomNames[] = {
+    {"0DA", "C2A", "C2"},
+    {"0DA", "C4A", "C4"},
+    {"0DA", "C5A", "C5"},
+    {"0DA", "C6A", "C6"},
+    {"0DA", "C8A", "C8"},
+    {"0DA", "H2A", "H2"},
+    {"0DA", "H2P", "HOP2"},
+    {"0DA", "H8A", "H8"},
+    {"0DA", "HN61", "H61"},
+    {"0DA", "HN62", "H62"},
+    {"0DA", "N1A", "N1"},
+    {"0DA", "N3A", "N3"},
+    {"0DA", "N6A", "N6"},
+    {"0DA", "N7A", "N7"},
+    {"0DA", "N9A", "N9"},
+    {"0DT", "C5M", "C7"},
+};

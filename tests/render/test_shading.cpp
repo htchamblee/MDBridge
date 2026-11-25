@@ -383,6 +383,18 @@ TEST(Shading, OneLetterCodes) {  // test_seqpanels.test_one_letter_codes and mor
     }
 }
 
+TEST(Shading, OneLetterNeedsABackbone) {  // NA-01 (MDATK 0.1.x one_letter's backbone flag)
+    EXPECT_EQ(oneLetter("LDA", true), "A");
+    EXPECT_EQ(oneLetter("LDA", false), "X");  // the detergent
+    EXPECT_EQ(oneLetter("LA", false), "X");   // a lanthanum ion
+    EXPECT_EQ(oneLetter("0DT", std::nullopt), "T");
+    EXPECT_EQ(oneLetter("HIS", false), "H");  // amino acids keep their code
+    mdbridge::core::AnalysisResult trace;
+    EXPECT_FALSE(backboneFlags(trace).has_value());
+    trace.arrays.emplace_back("backbone", NumArray(std::vector<bool>{true, false}));
+    EXPECT_EQ(backboneFlags(trace), (std::optional<std::vector<bool>>(std::vector<bool>{true, false})));
+}
+
 // --- orientation.py -------------------------------------------------------------------------------
 
 void expectMatrix(const Mat3& got, const Value& want, const std::string& what, double tol = 0.0) {

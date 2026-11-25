@@ -27,11 +27,11 @@ Per analysis, the improvements that bumped it (docs/DIFFERENCES.md; "periodic": 
   contacts 2   periodic; SEL-13 (heavy_only); a group against itself (MDATK 0.1.0), whose strand
                ends follow TOP-01's chains
   mg 2         periodic; SEL-13 (ligand / occupancy elements)
-  basepairs 2  periodic, AN-11; SEL-13 (heavy atoms)
-  stacking 2   periodic, AN-12 (ring atoms by name: SEL-13 does not change it)
+  basepairs 2  periodic, AN-11; SEL-13 (heavy atoms); NA-01 (L-DNA names, CCD atom names, backbone)
+  stacking 2   periodic, AN-12 (ring atoms by name: SEL-13 does not change it); NA-01 (CCD atom names)
   trace 5      SEL-13 (heavy-atom centroids of residues without a trace atom); TOP-01 (chains from
                bonds only when they hold the residues together) (MDATK: 4); its key covers every
-               group (MDATK 0.1.0; no new results)
+               group (MDATK 0.1.0; no new results); NA-01 (the per-row array backbone)
 """
 
 import os

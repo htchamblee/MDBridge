@@ -826,7 +826,7 @@
    "env": {},
    "executable": [],
    "exit": 0,
-   "stdout": "{\n  \"n_atoms\": 773,\n  \"n_residues\": 27,\n  \"n_segments\": 1,\n  \"n_frames\": 24,\n  \"dt_ps\": 10.0,\n  \"has_box\": true,\n  \"top_resnames\": {\n    \"C\": 7,\n    \"G\": 7,\n    \"A\": 5,\n    \"U\": 5,\n    \"MG\": 3\n  },\n  \"groups\": {\n    \"A\": {\n      \"atoms\": 98,\n      \"residues\": 3,\n      \"first\": \"G1\",\n      \"last\": \"A3\"\n    },\n    \"bad name\": {\n      \"error\": \"group name 'bad name' may only contain letters, digits, '_', '.' and '-'\"\n    },\n    \"Ions\": {\n      \"atoms\": 3,\n      \"residues\": 3,\n      \"first\": \"MG25\",\n      \"last\": \"MG27\"\n    },\n    \"Broken\": {\n      \"error\": \"invalid selection 'group:Broken' -> '(name ()': Selection failed: 'Unexpected token '(''\"\n    },\n    \"Chain\": {\n      \"error\": \"selection 'group:Chain' matched no atoms\"\n    },\n    \"Empty\": {\n      \"error\": \"group 'Empty' has neither residues nor a selection\"\n    },\n    \"\\u00dcn\\u00ef\": {\n      \"error\": \"group name '\\u00dcn\\u00ef' may only contain letters, digits, '_', '.' and '-'\"\n    }\n  },\n  \"problems\": [\n    \"Residue group names must be unique.\",\n    \"Group name 'bad name' may only contain letters, digits, '_', '.' and '-' (no spaces).\",\n    \"Group 'Empty' has neither residues nor a selection.\",\n    \"Group name '\\u00dcn\\u00ef' may only contain letters, digits, '_', '.' and '-' (no spaces).\",\n    \"contacts: unknown residue group 'Aptamer'.\",\n    \"contacts: unknown residue group 'Target'.\",\n    \"H-bonds: unknown residue group 'Aptamer'.\",\n    \"H-bonds: unknown residue group 'Target'.\",\n    \"Mg: unknown residue group 'Aptamer'.\",\n    \"Mg: unknown residue group 'Target'.\",\n    \"stacking: unknown residue group 'Aptamer'.\",\n    \"stacking: unknown residue group 'Target'.\",\n    \"energy: unknown residue group 'Aptamer'.\",\n    \"energy: unknown residue group 'Target'.\"\n  ]\n}\n",
+   "stdout": "{\n  \"n_atoms\": 773,\n  \"n_residues\": 27,\n  \"n_segments\": 1,\n  \"n_frames\": 24,\n  \"dt_ps\": 10.0,\n  \"has_box\": true,\n  \"top_resnames\": {\n    \"C\": 7,\n    \"G\": 7,\n    \"A\": 5,\n    \"U\": 5,\n    \"MG\": 3\n  },\n  \"groups\": {\n    \"A\": {\n      \"atoms\": 98,\n      \"residues\": 3,\n      \"first\": \"G1\",\n      \"last\": \"A3\"\n    },\n    \"bad name\": {\n      \"error\": \"group name 'bad name' may only contain letters, digits, '_', '.' and '-'\"\n    },\n    \"Ions\": {\n      \"atoms\": 3,\n      \"residues\": 3,\n      \"first\": \"MG25\",\n      \"last\": \"MG27\"\n    },\n    \"Broken\": {\n      \"error\": \"invalid selection 'group:Broken' (expanded: '(name ()'): Selection failed: 'Unexpected token '(''\"\n    },\n    \"Chain\": {\n      \"error\": \"selection 'group:Chain' matched no atoms: group 'Chain' (residues 'X:5-6') matches no atoms - the structure's residues are numbered 1-27\"\n    },\n    \"Empty\": {\n      \"error\": \"group 'Empty' has neither residues nor a selection\"\n    },\n    \"\\u00dcn\\u00ef\": {\n      \"error\": \"group name '\\u00dcn\\u00ef' may only contain letters, digits, '_', '.' and '-'\"\n    }\n  },\n  \"problems\": [\n    \"Residue group names must be unique.\",\n    \"Group name 'bad name' may only contain letters, digits, '_', '.' and '-' (no spaces).\",\n    \"Group 'Empty' has neither residues nor a selection.\",\n    \"Group name '\\u00dcn\\u00ef' may only contain letters, digits, '_', '.' and '-' (no spaces).\",\n    \"contacts: unknown residue group 'Aptamer'.\",\n    \"contacts: unknown residue group 'Target'.\",\n    \"H-bonds: unknown residue group 'Aptamer'.\",\n    \"H-bonds: unknown residue group 'Target'.\",\n    \"Mg: unknown residue group 'Aptamer'.\",\n    \"Mg: unknown residue group 'Target'.\",\n    \"stacking: unknown residue group 'Aptamer'.\",\n    \"stacking: unknown residue group 'Target'.\",\n    \"energy: unknown residue group 'Aptamer'.\",\n    \"energy: unknown residue group 'Target'.\"\n  ]\n}\n",
    "stderr": "",
    "written": {},
    "before_exits": [],
@@ -954,7 +954,7 @@
    "env": {},
    "executable": [],
    "exit": 0,
-   "stdout": "{\n  \"n_atoms\": 7,\n  \"n_residues\": 1,\n  \"n_segments\": 1,\n  \"n_frames\": 1,\n  \"dt_ps\": null,\n  \"has_box\": true,\n  \"top_resnames\": {\n    \"LIG\": 1\n  },\n  \"groups\": {\n    \"Aptamer\": {\n      \"atoms\": 7,\n      \"residues\": 1,\n      \"first\": \"LIG1\",\n      \"last\": \"LIG1\"\n    },\n    \"Target\": {\n      \"error\": \"selection 'group:Target' matched no atoms\"\n    }\n  },\n  \"problems\": [\n    \"No trajectory file selected.\"\n  ]\n}\n",
+   "stdout": "{\n  \"n_atoms\": 7,\n  \"n_residues\": 1,\n  \"n_segments\": 1,\n  \"n_frames\": 1,\n  \"dt_ps\": null,\n  \"has_box\": true,\n  \"top_resnames\": {\n    \"LIG\": 1\n  },\n  \"groups\": {\n    \"Aptamer\": {\n      \"atoms\": 7,\n      \"residues\": 1,\n      \"first\": \"LIG1\",\n      \"last\": \"LIG1\"\n    },\n    \"Target\": {\n      \"error\": \"selection 'group:Target' matched no atoms: group 'Target' (residues '13-24') matches no atoms - the structure's residues are numbered 1-1\"\n    }\n  },\n  \"problems\": [\n    \"No trajectory file selected.\"\n  ]\n}\n",
    "stderr": "",
    "written": {},
    "before_exits": [],
@@ -1442,7 +1442,7 @@
    "executable": [],
    "exit": 1,
    "stdout": "",
-   "stderr": "[100.0%] inputs ready\nerror: invalid selection 'name (' -> 'name (': Selection failed: 'Unexpected token '(''\n",
+   "stderr": "[100.0%] inputs ready\nerror: invalid selection 'name (': Selection failed: 'Unexpected token '(''\n",
    "written": {},
    "before_exits": [],
    "posix_only": false
@@ -2895,6 +2895,7 @@
        "analysis": "trace"
       },
       "arrays": [
+       "backbone",
        "chain",
        "chain_name",
        "coords",
@@ -3005,6 +3006,14 @@
         24
        ],
        "[\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\"]"
+      ],
+      [
+       "backbone",
+       "|b1",
+       [
+        24
+       ],
+       "[true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true]"
       ],
       [
        "_frames",
@@ -6077,6 +6086,7 @@
        "analysis": "trace"
       },
       "arrays": [
+       "backbone",
        "chain",
        "chain_name",
        "coords",
@@ -6187,6 +6197,14 @@
         24
        ],
        "[\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\"]"
+      ],
+      [
+       "backbone",
+       "|b1",
+       [
+        24
+       ],
+       "[true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true]"
       ],
       [
        "_frames",
@@ -9135,6 +9153,7 @@
        "analysis": "trace"
       },
       "arrays": [
+       "backbone",
        "chain",
        "chain_name",
        "coords",
@@ -9245,6 +9264,14 @@
         24
        ],
        "[\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\"]"
+      ],
+      [
+       "backbone",
+       "|b1",
+       [
+        24
+       ],
+       "[true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true]"
       ],
       [
        "_frames",
@@ -11979,6 +12006,7 @@
        "analysis": "trace"
       },
       "arrays": [
+       "backbone",
        "chain",
        "chain_name",
        "coords",
@@ -12089,6 +12117,14 @@
         24
        ],
        "[\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\"]"
+      ],
+      [
+       "backbone",
+       "|b1",
+       [
+        24
+       ],
+       "[true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true]"
       ],
       [
        "_frames",
@@ -16574,6 +16610,7 @@
        "analysis": "trace"
       },
       "arrays": [
+       "backbone",
        "chain",
        "chain_name",
        "coords",
@@ -16684,6 +16721,14 @@
         24
        ],
        "[\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\"]"
+      ],
+      [
+       "backbone",
+       "|b1",
+       [
+        24
+       ],
+       "[true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true]"
       ],
       [
        "_frames",
@@ -22440,6 +22485,7 @@
        "analysis": "trace"
       },
       "arrays": [
+       "backbone",
        "chain",
        "chain_name",
        "coords",
@@ -22550,6 +22596,14 @@
         24
        ],
        "[\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\"]"
+      ],
+      [
+       "backbone",
+       "|b1",
+       [
+        24
+       ],
+       "[true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true]"
       ],
       [
        "_frames",
@@ -24588,6 +24642,7 @@
        "analysis": "trace"
       },
       "arrays": [
+       "backbone",
        "chain",
        "chain_name",
        "coords",
@@ -24698,6 +24753,14 @@
         24
        ],
        "[\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\"]"
+      ],
+      [
+       "backbone",
+       "|b1",
+       [
+        24
+       ],
+       "[true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true]"
       ],
       [
        "_frames",
@@ -25840,6 +25903,7 @@
        "analysis": "trace"
       },
       "arrays": [
+       "backbone",
        "chain",
        "chain_name",
        "coords",
@@ -25950,6 +26014,14 @@
         24
        ],
        "[\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\"]"
+      ],
+      [
+       "backbone",
+       "|b1",
+       [
+        24
+       ],
+       "[true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true]"
       ],
       [
        "_frames",
@@ -27072,6 +27144,7 @@
        "analysis": "trace"
       },
       "arrays": [
+       "backbone",
        "chain",
        "chain_name",
        "coords",
@@ -27182,6 +27255,14 @@
         24
        ],
        "[\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\"]"
+      ],
+      [
+       "backbone",
+       "|b1",
+       [
+        24
+       ],
+       "[true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true]"
       ],
       [
        "_frames",
@@ -28285,6 +28366,7 @@
        "analysis": "trace"
       },
       "arrays": [
+       "backbone",
        "chain",
        "chain_name",
        "coords",
@@ -28395,6 +28477,14 @@
         24
        ],
        "[\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\"]"
+      ],
+      [
+       "backbone",
+       "|b1",
+       [
+        24
+       ],
+       "[true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true]"
       ],
       [
        "_frames",
@@ -29532,6 +29622,7 @@
        "analysis": "trace"
       },
       "arrays": [
+       "backbone",
        "chain",
        "chain_name",
        "coords",
@@ -29642,6 +29733,14 @@
         24
        ],
        "[\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\"]"
+      ],
+      [
+       "backbone",
+       "|b1",
+       [
+        24
+       ],
+       "[true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true]"
       ],
       [
        "_frames",
@@ -30775,6 +30874,7 @@
        "analysis": "trace"
       },
       "arrays": [
+       "backbone",
        "chain",
        "chain_name",
        "coords",
@@ -30885,6 +30985,14 @@
         24
        ],
        "[\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\"]"
+      ],
+      [
+       "backbone",
+       "|b1",
+       [
+        24
+       ],
+       "[true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true]"
       ],
       [
        "_frames",
@@ -32022,6 +32130,7 @@
        "analysis": "trace"
       },
       "arrays": [
+       "backbone",
        "chain",
        "chain_name",
        "coords",
@@ -32132,6 +32241,14 @@
         24
        ],
        "[\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\"]"
+      ],
+      [
+       "backbone",
+       "|b1",
+       [
+        24
+       ],
+       "[true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true]"
       ],
       [
        "_frames",
@@ -33265,6 +33382,7 @@
        "analysis": "trace"
       },
       "arrays": [
+       "backbone",
        "chain",
        "chain_name",
        "coords",
@@ -33375,6 +33493,14 @@
         24
        ],
        "[\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\"]"
+      ],
+      [
+       "backbone",
+       "|b1",
+       [
+        24
+       ],
+       "[true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true]"
       ],
       [
        "_frames",
@@ -36301,6 +36427,7 @@
        "analysis": "trace"
       },
       "arrays": [
+       "backbone",
        "chain",
        "chain_name",
        "coords",
@@ -36411,6 +36538,14 @@
         24
        ],
        "[\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\"]"
+      ],
+      [
+       "backbone",
+       "|b1",
+       [
+        24
+       ],
+       "[true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true]"
       ],
       [
        "_frames",
@@ -38417,6 +38552,7 @@
        "analysis": "trace"
       },
       "arrays": [
+       "backbone",
        "chain",
        "chain_name",
        "coords",
@@ -38527,6 +38663,14 @@
         24
        ],
        "[\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\"]"
+      ],
+      [
+       "backbone",
+       "|b1",
+       [
+        24
+       ],
+       "[true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true]"
       ],
       [
        "_frames",
@@ -39649,6 +39793,7 @@
        "analysis": "trace"
       },
       "arrays": [
+       "backbone",
        "chain",
        "chain_name",
        "coords",
@@ -39759,6 +39904,14 @@
         24
        ],
        "[\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\"]"
+      ],
+      [
+       "backbone",
+       "|b1",
+       [
+        24
+       ],
+       "[true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true]"
       ],
       [
        "_frames",
@@ -40907,6 +41060,7 @@
        "analysis": "trace"
       },
       "arrays": [
+       "backbone",
        "chain",
        "chain_name",
        "coords",
@@ -41017,6 +41171,14 @@
         24
        ],
        "[\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\"]"
+      ],
+      [
+       "backbone",
+       "|b1",
+       [
+        24
+       ],
+       "[true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true]"
       ],
       [
        "_frames",
@@ -42136,6 +42298,7 @@
        "analysis": "trace"
       },
       "arrays": [
+       "backbone",
        "chain",
        "chain_name",
        "coords",
@@ -42246,6 +42409,14 @@
         24
        ],
        "[\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\"]"
+      ],
+      [
+       "backbone",
+       "|b1",
+       [
+        24
+       ],
+       "[true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true]"
       ],
       [
        "_frames",
@@ -43356,6 +43527,7 @@
        "analysis": "trace"
       },
       "arrays": [
+       "backbone",
        "chain",
        "chain_name",
        "coords",
@@ -43466,6 +43638,14 @@
         24
        ],
        "[\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\"]"
+      ],
+      [
+       "backbone",
+       "|b1",
+       [
+        24
+       ],
+       "[true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true]"
       ],
       [
        "_frames",
@@ -44588,6 +44768,7 @@
        "analysis": "trace"
       },
       "arrays": [
+       "backbone",
        "chain",
        "chain_name",
        "coords",
@@ -44698,6 +44879,14 @@
         24
        ],
        "[\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\"]"
+      ],
+      [
+       "backbone",
+       "|b1",
+       [
+        24
+       ],
+       "[true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true]"
       ],
       [
        "_frames",
@@ -45808,6 +45997,7 @@
        "analysis": "trace"
       },
       "arrays": [
+       "backbone",
        "chain",
        "chain_name",
        "coords",
@@ -45918,6 +46108,14 @@
         24
        ],
        "[\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\"]"
+      ],
+      [
+       "backbone",
+       "|b1",
+       [
+        24
+       ],
+       "[true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true]"
       ],
       [
        "_frames",
@@ -47038,6 +47236,7 @@
        "analysis": "trace"
       },
       "arrays": [
+       "backbone",
        "chain",
        "chain_name",
        "coords",
@@ -47148,6 +47347,14 @@
         24
        ],
        "[\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\"]"
+      ],
+      [
+       "backbone",
+       "|b1",
+       [
+        24
+       ],
+       "[true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true]"
       ],
       [
        "_frames",
@@ -48251,6 +48458,7 @@
        "analysis": "trace"
       },
       "arrays": [
+       "backbone",
        "chain",
        "chain_name",
        "coords",
@@ -48361,6 +48569,14 @@
         24
        ],
        "[\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\"]"
+      ],
+      [
+       "backbone",
+       "|b1",
+       [
+        24
+       ],
+       "[true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true]"
       ],
       [
        "_frames",
@@ -49474,6 +49690,7 @@
        "analysis": "trace"
       },
       "arrays": [
+       "backbone",
        "chain",
        "chain_name",
        "coords",
@@ -49584,6 +49801,14 @@
         24
        ],
        "[\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\"]"
+      ],
+      [
+       "backbone",
+       "|b1",
+       [
+        24
+       ],
+       "[true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true]"
       ],
       [
        "_frames",
@@ -50688,6 +50913,7 @@
        "analysis": "trace"
       },
       "arrays": [
+       "backbone",
        "chain",
        "chain_name",
        "coords",
@@ -50798,6 +51024,14 @@
         24
        ],
        "[\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\"]"
+      ],
+      [
+       "backbone",
+       "|b1",
+       [
+        24
+       ],
+       "[true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true]"
       ],
       [
        "_frames",

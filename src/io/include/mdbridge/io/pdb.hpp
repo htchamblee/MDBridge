@@ -94,7 +94,11 @@ std::string writePdb(const PdbStructure& structure, bool stripConect = true,
                      const std::optional<std::vector<SeqresChain>>& seqres = std::nullopt);
 std::vector<std::string> seqresLines(const std::vector<SeqresChain>& chains);
 
-// pdbtools.parse_residue_name: nucleotide residue names (A, rG, LG5, DT, ADE ...).
+// pdbtools.parse_residue_name: nucleotide residue names (A, rG, LG5, DT, ADE ...) and, as MDATK
+// 0.1.x, L-DNA: the CCD's L-deoxyribonucleotides 0DA 0DC 0DG 0DT (data/sources/ccd) and MDATK's
+// own LDA LDC LDG LDT (LDA5 / LDA3 / LDAN at chain ends in older files). A name alone can be
+// something else (in the CCD, LA and RA are the lanthanum and radium ions, LDA a detergent): readers
+// that see the atoms take a name for a nucleotide only with hasBackboneAtoms.
 struct ResidueName {
     char base = 'A';  // A C G T U
     std::string sugar;  // "rna" / "dna"
@@ -103,6 +107,24 @@ struct ResidueName {
     bool operator==(const ResidueName&) const = default;
 };
 std::optional<ResidueName> parseResidueName(std::string_view name);
+
+// has_backbone_atoms (MDATK 0.1.x): whether a residue with these atom names has a sugar-phosphate
+// atom (a primed name, an old-style '*' or P), the guard of parseResidueName's names.
+bool isBackboneAtomName(std::string_view atomName);
+template <class Names>
+bool hasBackboneAtoms(const Names& atomNames) {
+    for (const auto& name : atomNames) {
+        if (isBackboneAtomName(name)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// standard_atom_name (MDATK 0.1.x): the standard (PDB v3) name of atom `name` of residue `resname`.
+// The CCD names some atoms of 0DA and 0DT its own way (0DA's N9A ... HN61, H2P; 0DT's C5M:
+// data/sources/ccd); those give the standard name (N9, H61, HOP2, C7), every other atom its own.
+std::string standardAtomName(std::string_view resname, std::string_view name);
 
 // annotate._insert_records: REMARK 950 and MASTER lines removed, `records` inserted before the
 // first MODEL / ATOM / HETATM line, everything else verbatim.

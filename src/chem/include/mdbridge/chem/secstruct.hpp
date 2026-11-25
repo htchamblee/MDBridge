@@ -130,7 +130,9 @@ class PairDetector {
 public:
     // resnames: residue name per residue; atomIndex: per residue, atom name -> row of the
     // coordinates later passed to candidates / detect (negative rows count as missing). Residues
-    // that are no nucleotide, or lack the atoms of a rule, never pair by that rule.
+    // that are no nucleotide (by name, with a backbone atom: io::hasBackboneAtoms), or lack the
+    // atoms of a rule, never pair by that rule. The atoms of a CCD component with names of its own
+    // (0DA's N1A ...) are read by their standard names (io::standardAtomName).
     PairDetector(std::span<const std::string> resnames, std::span<const AtomIndex> atomIndex,
                  double cutoff = 3.5, bool wobble = true);
 

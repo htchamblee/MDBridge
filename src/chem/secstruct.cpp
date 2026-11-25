@@ -335,10 +335,27 @@ PairDetector::PairDetector(std::span<const std::string> resnames, std::span<cons
     if (atomIndex.size() < resnames.size()) {
         throw std::invalid_argument("PairDetector: one atom index per residue needed");
     }
+    // MDATK 0.1.x: a CCD component's own atom names read as the standard ones (0DA's N1A is N1; an
+    // atom of the standard name wins over a renamed one), and a name taken for a nucleotide only with
+    // a backbone atom (the detergent LDA, a lanthanum ion LA are none)
+    std::vector<AtomIndex> standardIndex(resnames.size());
     std::vector<std::optional<char>> bases;
     bases.reserve(resnames.size());
-    for (const std::string& name : resnames) {
-        bases.push_back(baseLetter(name));
+    for (std::size_t res = 0; res < resnames.size(); ++res) {
+        AtomIndex& index = standardIndex[res];
+        for (const auto& [name, row] : atomIndex[res]) {
+            if (io::standardAtomName(resnames[res], name) == name) {
+                index.emplace(name, row);
+            }
+        }
+        for (const auto& [name, row] : atomIndex[res]) {
+            index.emplace(io::standardAtomName(resnames[res], name), row);
+        }
+        std::vector<std::string_view> names;
+        for (const auto& entry : index) {
+            names.push_back(entry.first);
+        }
+        bases.push_back(io::hasBackboneAtoms(names) ? baseLetter(resnames[res]) : std::nullopt);
     }
     for (const PairRule& rule : pairRules()) {
         if (rule.kind == kWobble && !wobble) {
@@ -359,7 +376,7 @@ PairDetector::PairDetector(std::span<const std::string> resnames, std::span<cons
                 std::vector<std::int64_t> idx;
                 int present = 0;
                 for (const auto& [pa, qa] : rule.atoms) {
-                    idx.push_back(lookup(atomIndex[res], first ? pa : qa));
+                    idx.push_back(lookup(standardIndex[res], first ? pa : qa));
                     present += idx.back() >= 0 ? 1 : 0;
                 }
                 if (present < rule.required) {  // can no longer reach `required` bonds
@@ -367,7 +384,7 @@ PairDetector::PairDetector(std::span<const std::string> resnames, std::span<cons
                 }
                 rows.push_back(static_cast<std::int64_t>(res));
                 atoms.insert(atoms.end(), idx.begin(), idx.end());
-                c1.push_back(c1Row(atomIndex[res]));
+                c1.push_back(c1Row(standardIndex[res]));
             }
         };
         collect(true, r.rowsP, r.atomsP, r.c1P);

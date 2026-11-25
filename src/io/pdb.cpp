@@ -7,6 +7,7 @@
 #include <map>
 #include <utility>
 
+#include "mdbridge/core/detail/data_tables.hpp"
 #include "mdbridge/core/json.hpp"
 #include "mdbridge/core/python.hpp"
 #include "mdbridge/core/text.hpp"
@@ -997,6 +998,26 @@ std::string writePdb(const PdbStructure& structure, bool stripConect,
 
 // --- residue names
 
+namespace {
+
+// L-DNA (MDATK 0.1.x _LDNA_RE): the CCD's L-deoxyribonucleotides and LD[ACGT][53N]?
+std::optional<ResidueName> parseLDnaName(const U32& n) {
+    const std::string name = toUtf8(n);
+    for (const auto& component : core::detail::tables::kIndLDeoxyribonucleotides) {
+        if (name == component.residue) {
+            return ResidueName{component.base, "dna", 'L', ""};
+        }
+    }
+    if (n.size() >= 3 && n.size() <= 4 && n[0] == U'L' && n[1] == U'D' &&
+        std::u32string_view(U"ACGT").find(n[2]) != std::u32string_view::npos &&
+        (n.size() == 3 || std::u32string_view(U"53N").find(n[3]) != std::u32string_view::npos)) {
+        return ResidueName{static_cast<char>(n[2]), "dna", 'L', n.size() == 4 ? std::string(1, static_cast<char>(n[3])) : ""};
+    }
+    return std::nullopt;
+}
+
+}  // namespace
+
 std::optional<ResidueName> parseResidueName(std::string_view name) {
     const U32 n = upper(strip(toU32(name)));
     static const std::array<std::pair<std::u32string_view, std::pair<char, const char*>>, 6>
@@ -1024,7 +1045,7 @@ std::optional<ResidueName> parseResidueName(std::string_view name) {
         ++i;
     }
     if (i >= n.size() || !in(n[i], U"ACGTU")) {
-        return std::nullopt;
+        return parseLDnaName(n);
     }
     const char base = static_cast<char>(n[i]);
     ++i;
@@ -1043,6 +1064,21 @@ std::optional<ResidueName> parseResidueName(std::string_view name) {
         return std::nullopt;
     }
     return ResidueName{base, "rna", (pre == 'L' || pre == '0') ? 'L' : 'D', term};
+}
+
+bool isBackboneAtomName(std::string_view atomName) {
+    return atomName.find('\'') != std::string_view::npos || atomName.find('*') != std::string_view::npos ||
+           core::pythonStrip(atomName) == "P";
+}
+
+std::string standardAtomName(std::string_view resname, std::string_view name) {
+    const std::string residue = toUtf8(upper(strip(toU32(resname))));
+    for (const auto& atom : core::detail::tables::kIndComponentAtomNames) {
+        if (atom.residue == residue && atom.name == name) {
+            return std::string(atom.standard);
+        }
+    }
+    return std::string(name);
 }
 
 // --- annotation and builder text utilities

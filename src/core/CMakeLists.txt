@@ -33,6 +33,7 @@ add_library(mdbridge_core STATIC
     step_log.cpp
     step_types.cpp
     step_types.inc
+    suggest.cpp
     text.cpp
     toml_writer.cpp
     topology.cpp

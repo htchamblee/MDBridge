@@ -22,6 +22,16 @@ SEL-13  atom_elements falls back to the name guess per atom, not per group.
 SEL-14  group: tokens with characters a group name cannot hold, and groups with invalid names, give
         "group name 'x y' may only contain letters, digits, '_', '.' and '-'".
 SEL-15  the first group of a name wins in group: expansion (as everywhere else).
+SEL-19  select() errors in MDATK 0.1.x's frame, "invalid selection 'x' (expanded: 'y'): <message>
+        (<hint>)", with MDBridge's parser messages; a misspelt keyword gets "did you mean
+        'resname'?", a group name written without "group:" "to use the residue group write
+        group:Target" (MDATK 0.1.x selections.py syntax_error / _syntax_hint / suggest).
+SEL-20  an unknown group lists the defined ones and suggests one ("... (defined: A, B); did you mean
+        'A'?"), naming the group whose selection used it (MDATK 0.1.x unknown_group_error).
+SEL-21  a group that contains itself names the circle ("group definitions are nested in a circle:
+        group:A → group:B → group:A"; MDATK 0.1.x expand_groups).
+SEL-22  "matched no atoms" says why: the empty group with its definition (and the structure's
+        residue numbers for residue ranges), or the empty and / or part (MDATK 0.1.x explain_empty).
 
 How the atom selections are modelled: `Model` parses a selection string with MDBridge's grammar
 (src/core/atom_selection.cpp) to find its first parse error, if any. Errors whose text MDBridge
@@ -31,6 +41,7 @@ evaluates the same way MDBridge does (prop in canonical order, explicit index li
 MDAnalysis evaluates the result.
 """
 
+import difflib
 import re
 
 import numpy as np
@@ -103,12 +114,44 @@ RESID_SINGLE = re.compile(r"(-?\d+)(\w?)\Z")
 RESID_RANGE = re.compile(r"(-?\d+)(\w?)\s*(?:[:-]| to )\s*(-?\d+)(\w?)")
 
 
-class SelError(Exception):
-    """A selection error with MDBridge's text; `new`: the text differs from MDAnalysis'."""
+KEYWORD_LIST = list(KEYWORDS) + ["and", "or"]  # the order of MDBridge's table (selectionKeywords)
 
-    def __init__(self, text, new=False):
+
+def suggest(name, candidates):
+    """The candidate `name` was probably meant to be (other case, typo), or None: MDATK 0.1.x
+    selections.suggest, without suggestions for names of 200 characters or more (difflib treats
+    frequent characters of such a word as junk; MDBridge's core::suggestName does not reproduce that)."""
+    candidates = [c for c in candidates if c]
+    for c in candidates:
+        if c.lower() == name.lower():
+            return c
+    if len(name.lower()) >= 200:
+        return None
+    lower = {c.lower(): c for c in candidates}
+    close = difflib.get_close_matches(name.lower(), list(lower), n=1, cutoff=0.6)
+    return lower[close[0]] if close else None
+
+
+def keyword_hint(token):
+    """SEL-08 / SEL-19: the hint of an unknown token (atom_selection.cpp keywordHint)."""
+    if token in KEYWORD_LIST:
+        return ""  # "and" where a selection should start
+    lower = token.lower()
+    if lower != token and lower in KEYWORD_LIST:
+        return f"keywords are lower case: did you mean '{lower}'?"
+    close = suggest(token, KEYWORD_LIST)
+    return f"did you mean {close!r}?" if close else ""
+
+
+class SelError(Exception):
+    """A selection error with MDBridge's text; `new`: the text differs from MDAnalysis'. `problem`
+    ("unknown_token", "unknown_group", "unclosed" or ""), `token` and `plain` (the text without the
+    parser's own hint) are what select() frames it with (SEL-19)."""
+
+    def __init__(self, text, new=False, problem="", token="", plain=""):
         super().__init__(text)
         self.text, self.new = text, new
+        self.problem, self.token, self.plain = problem, token, plain or text
 
 
 class _ValueErr(Exception):
@@ -227,16 +270,14 @@ class Model:
             if close is None:
                 raise SelError("Unexpected end of selection (expected ')')", True)
             if close != ")":
-                raise SelError(f"Unexpected token: '{close}' Expected: ')'")
+                raise SelError(f"Unexpected token: '{close}' Expected: ')'", problem="unclosed", token=close)
             self.pop()
             return
         kind = KEYWORDS.get(token)
         if kind is None:
             message = f"Unknown selection token: '{token}'"
-            lower = token.lower()
-            if lower != token and (lower in KEYWORDS or lower in ("and", "or")):
-                raise SelError(f"{message} (keywords are lower case: did you mean '{lower}'?)", True)
-            raise SelError(message)
+            hint = keyword_hint(token)
+            raise SelError(f"{message} ({hint})" if hint else message, bool(hint), "unknown_token", token, message)
         try:
             self.keyword(token, kind, self.pos - 1)
         except _ValueErr as exc:
@@ -329,7 +370,7 @@ class Model:
             if name == "updating":
                 raise SelError("The 'updating' keyword is reserved and cannot be used as a "
                                "selection group name.")
-            raise _ValueErr(f"Failed to find group: {name}")
+            raise SelError(f"Selection failed: 'Failed to find group: {name}'", problem="unknown_group", token=name)
         elif kind == "prop":
             self.prop(start)
         elif kind in ("text", "chirality"):
@@ -477,12 +518,12 @@ def index_list(indices):
 
 
 def model(universe, sel):
-    """('error', text, new) or ('ok', rewritten string or None)."""
+    """('error', text, new, the SelError) or ('ok', rewritten string or None)."""
     m = Model(sel, universe)
     try:
         m.parse()
     except SelError as exc:
-        return "error", exc.text, exc.new
+        return "error", exc.text, exc.new, exc
     return "ok", m.rewritten()
 
 
@@ -497,7 +538,7 @@ def select_atoms(universe, sel, periodic=True):
         return universe.atoms[[]]
     verdict = model(universe, sel)
     if verdict[0] == "error":
-        raise SelError(verdict[1], verdict[2])
+        raise verdict[3]
     return universe.select_atoms(verdict[1] if verdict[1] is not None else sel, periodic=periodic)
 
 
@@ -509,7 +550,7 @@ def improve_case(universe, sel, case):
         return case
     verdict = model(universe, sel)
     if verdict[0] == "error":
-        _, text, new = verdict
+        _, text, new, _exc = verdict
         if not new and case.get("error") != text:
             raise AssertionError(f"selection model disagrees with MDAnalysis on {sel!r}: "
                                  f"{text!r} vs {case.get('error', case.get('atoms'))!r}")
@@ -549,51 +590,186 @@ def invalid_group_name(name):
     return f"group name {name!r} may only contain letters, digits, '_', '.' and '-'"
 
 
+def group_tokens(text, groups):
+    """The group: tokens of `text`, in order: (position of "group:", end of the name, name); raises
+    the SEL-14 error at an invalid name (only once the tokens before it have been taken)."""
+    pos = 0
+    while True:
+        at = text.find("group:", pos)
+        if at < 0:
+            return
+        rest = text[at + 6:]
+        bad = [g.name for g in groups
+               if g.name and not PLAIN_NAME.fullmatch(g.name) and rest.startswith(g.name)
+               and (len(rest) == len(g.name) or rest[len(g.name)].isspace() or rest[len(g.name)] in "()")]
+        if bad:
+            raise ValueError(invalid_group_name(max(bad, key=len)))
+        name = GROUP_WORD.match(rest).group(0)
+        if not name:
+            pos = at + 6
+            continue
+        if not PLAIN_NAME.fullmatch(name):
+            raise ValueError(invalid_group_name(name))
+        yield at, at + 6 + len(name), name
+        pos = at + 6 + len(name)
+
+
+def unknown_group_message(name, groups, within=""):
+    """SEL-20 (MDATK 0.1.x unknown_group_error)."""
+    names = list(dict.fromkeys(g.name for g in groups))
+    guess = suggest(name, names)
+    where = f" in the selection of group {within!r}" if within else ""
+    message = f"unknown residue group {name!r}{where} (defined: {', '.join(names) or 'none'})"
+    return message + (f"; did you mean {guess!r}?" if guess else "")
+
+
+def syntax_message(text, expanded, exc, groups):
+    """SEL-19: MDATK 0.1.x syntax_error's frame around MDBridge's message."""
+    shown = (text or "").strip()
+    detail, hint = str(exc), ""
+    if isinstance(exc, SelError):
+        detail = exc.text
+        names = [g.name for g in groups]
+        group = suggest(exc.token, names) if exc.problem in ("unknown_token", "unknown_group") else None
+        if exc.problem == "unknown_token" and group:
+            detail, hint = exc.plain, f"to use the residue group write group:{group}"
+        elif exc.problem == "unknown_group":
+            hint = (f"write group:{group}, with a colon, to use the residue group" if group
+                    else "residue groups are written group:<Name>")
+        elif exc.problem == "unclosed":
+            hint = "a parenthesis is not closed"
+    message = f"invalid selection {shown!r}"
+    if expanded.strip() not in (shown, shown[4:].strip()):
+        message += f" (expanded: {expanded!r})"
+    message += f": {detail}"
+    return message + (f" ({hint})" if hint else "")
+
+
+def clauses(text):
+    """Top-level parts of a selection joined by and / or (MDATK 0.1.x _clauses)."""
+    parts, depth, start = [], 0, 0
+    for m in re.finditer(r"[()]|\b(?:and|or)\b", text):
+        if m.group(0) == "(":
+            depth += 1
+        elif m.group(0) == ")":
+            depth -= 1
+        elif depth == 0:
+            parts.append(text[start:m.start()].strip())
+            start = m.end()
+    parts.append(text[start:].strip())
+    return [p for p in parts if p]
+
+
+def first_groups(groups):
+    by_name = {}
+    for g in groups:
+        by_name.setdefault(g.name, g)  # SEL-15: the first group of a name
+    return by_name
+
+
+def explain_empty(S, universe, text, groups, periodic=True):
+    """SEL-22: (token, why) of a selection that matched no atoms (MDATK 0.1.x explain_empty, with
+    MDBridge's selections)."""
+    shown = (text or "").strip()
+    body = shown[4:].strip() if shown.startswith("sel:") else shown
+    by_name = first_groups(groups)
+
+    def nothing(selection):
+        try:
+            return select_atoms(universe, selection, periodic=periodic).n_atoms == 0
+        except Exception:  # noqa: BLE001 - diagnostics only
+            return False
+
+    if body in by_name:
+        names = [body]
+    else:
+        names = []
+        try:
+            for _at, _end, name in group_tokens(body, groups):
+                if name not in names:
+                    names.append(name)
+        except ValueError:
+            pass
+    empty = []
+    for name in names:
+        if name not in by_name:
+            continue
+        try:
+            if nothing(S.expand_groups(f"group:{name}", groups, universe)):
+                empty.append(name)
+        except Exception:  # noqa: BLE001
+            continue
+
+    def definition(g):
+        if g.selection.strip():
+            return f"selection {g.selection.strip()!r}"
+        return f"residues {g.residues.strip()!r}"
+
+    if empty:
+        why = "; ".join(f"group {n!r} ({definition(by_name[n])}) matches no atoms" for n in empty)
+        resids = universe.residues.resids
+        if len(resids) and any(not by_name[n].selection.strip() for n in empty):
+            why += f" - the structure's residues are numbered {resids.min()}-{resids.max()}"
+        return empty[0], why
+    parts = [] if body in by_name else clauses(body)
+    if len(parts) < 2:
+        return body, ""
+    none = []
+    for part in parts:
+        try:
+            if nothing(S.resolve_selection(part, groups, universe)):
+                none.append(part)
+        except Exception:  # noqa: BLE001 - a part may not stand alone ('around 5 ...')
+            continue
+    if none:
+        return none[0], "; ".join(f"the part {c!r} matches no atoms" for c in none)
+    return "", "each part matches atoms, but not in this combination (check 'and' / 'or')"
+
+
+def select_mdbridge(S, universe, text, groups=(), allow_empty=False, periodic=True):
+    """mdatk.selections.select as MDBridge has it (SEL-19, SEL-22; `periodic`: SEL-17)."""
+    resolved = S.resolve_selection(text, groups, universe)
+    try:
+        ag = select_atoms(universe, resolved, periodic=periodic)
+    except Exception as exc:  # noqa: BLE001
+        raise S.SelectionError(syntax_message(text, resolved, exc, groups)) from exc
+    if not allow_empty and ag.n_atoms == 0:
+        _token, why = explain_empty(S, universe, text, groups, periodic)
+        raise S.SelectionError(f"selection {text.strip()!r} matched no atoms" + (f": {why}" if why else ""))
+    return ag
+
+
 def patch_mdatk(S):
     """Replaces the functions of mdatk.selections (module S) whose behaviour MDBridge improves:
-    expand_groups (SEL-14, SEL-15), select (the atom selections above) and atom_elements (SEL-13).
-    Call before importing MDATK modules that import these names."""
+    expand_groups (SEL-14, SEL-15, SEL-20, SEL-21), select (the atom selections above, SEL-19,
+    SEL-22) and atom_elements (SEL-13). Call before importing MDATK modules that import these
+    names."""
 
-    def expand_groups(text, groups, universe=None, _depth=0):
+    def expand_groups(text, groups, universe=None, _depth=0, _chain=()):
         if _depth > 8:
             raise S.SelectionError("group definitions are nested too deeply (circular reference?)")
-        names = list(dict.fromkeys(g.name for g in groups))
         out, pos = [], 0
-        while True:
-            at = text.find("group:", pos)
-            if at < 0:
-                out.append(text[pos:])
-                return "".join(out)
-            rest = text[at + 6:]
-            bad = [g.name for g in groups
-                   if g.name and not PLAIN_NAME.fullmatch(g.name) and rest.startswith(g.name)
-                   and (len(rest) == len(g.name) or rest[len(g.name)].isspace() or rest[len(g.name)] in "()")]
-            if bad:
-                raise S.SelectionError(invalid_group_name(max(bad, key=len)))
-            name = GROUP_WORD.match(rest).group(0)
-            if not name:
-                out.append(text[pos:at + 6])
-                pos = at + 6
-                continue
-            if not PLAIN_NAME.fullmatch(name):
-                raise S.SelectionError(invalid_group_name(name))
-            group = next((g for g in groups if g.name == name), None)  # the first one wins
-            if group is None:
-                raise S.SelectionError(
-                    f"unknown residue group {name!r} (defined: {', '.join(names) or 'none'})")
-            out.append(text[pos:at])
-            out.append(expand_groups(S.group_selection(group, universe), groups, universe, _depth + 1))
-            pos = at + 6 + len(name)
+        try:
+            for at, end, name in group_tokens(text, groups):
+                group = next((g for g in groups if g.name == name), None)  # the first one wins
+                if group is None:
+                    raise S.SelectionError(unknown_group_message(name, groups, _chain[-1] if _chain else ""))
+                if name in _chain:
+                    loop = " → ".join(f"group:{n}" for n in _chain[_chain.index(name):] + (name,))
+                    raise S.SelectionError(f"group definitions are nested in a circle: {loop}")
+                out.append(text[pos:at])
+                out.append(expand_groups(S.group_selection(group, universe), groups, universe, _depth + 1,
+                                         _chain + (name,)))
+                pos = end
+        except S.SelectionError:
+            raise
+        except ValueError as exc:  # SEL-14
+            raise S.SelectionError(str(exc)) from None
+        out.append(text[pos:])
+        return "".join(out)
 
     def select(universe, text, groups=(), allow_empty=False):
-        resolved = S.resolve_selection(text, groups, universe)
-        try:
-            ag = select_atoms(universe, resolved)
-        except Exception as exc:  # noqa: BLE001
-            raise S.SelectionError(f"invalid selection {text!r} -> {resolved!r}: {exc}") from exc
-        if not allow_empty and ag.n_atoms == 0:
-            raise S.SelectionError(f"selection {text!r} matched no atoms")
-        return ag
+        return select_mdbridge(S, universe, text, groups, allow_empty)
 
     def atom_elements(atoms):
         elements = None

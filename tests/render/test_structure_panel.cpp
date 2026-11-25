@@ -545,7 +545,8 @@ TEST(StructurePanel, ZoomAndCentre) {
     EXPECT_TRUE(e.structure->ok());
     EXPECT_NE(e.structure->viewNote().find("centre"), std::string::npos);
     ASSERT_EQ(log.lines.size(), 1u);
-    EXPECT_EQ(log.lines[0], "WARNING structure view centre: no residue of the structure view matches 'Z:99'; using the model centre");
+    EXPECT_EQ(log.lines[0], "WARNING Structure view \xe2\x80\xba Orientation \xe2\x80\xba Centre on: no residue of the "
+                            "structure view matches 'Z:99'; using the model centre");
 }
 
 TEST(StructurePanel, FollowedCentreMovesTheModelWithTheResidue) {

@@ -68,6 +68,10 @@ import numpy as np  # noqa: E402
 
 from mdatk import secstruct as S  # noqa: E402
 
+import improvements_nucleotides  # noqa: E402
+
+improvements_nucleotides.apply_mdatk()  # NA-01 (docs/DIFFERENCES.md): L-DNA names, CCD atom names, backbone guard
+
 
 def _pytest_stand_in():
     """Enough of pytest for importing MDATK's test modules (decorators only)."""
@@ -392,6 +396,17 @@ def detector_cases():
         first = nucleotide(p)
         out.append(detector_case(f"canonical {names}", [[(names[0], first), (names[1], partner(first, p, q))]],
                                  full=True))
+    # NA-01: L-DNA names, the CCD's own atom names of 0DA (N1A, N6A ...), the backbone guard
+    own = {std: name for name, std in improvements_nucleotides.STANDARD_NAMES["0DA"].items()}
+    a0 = nucleotide("A")
+    t0 = partner(a0, "A", "U")
+    out.append(detector_case("L-DNA 0DA with CCD atom names", [[("0DA", {own.get(k, k): v for k, v in a0.items()}),
+                                                                ("0DT", t0)]], full=True))
+    out.append(detector_case("L-DNA LDA with a backbone", [[("LDA", a0), ("LDT", t0)]]))
+    out.append(detector_case("LDA without a backbone (a detergent)",
+                             [[("LDA", {k: v for k, v in a0.items() if "'" not in k and k != "P"}), ("U", t0)]]))
+    out.append(detector_case("LA without a backbone (a lanthanum ion)",
+                             [[("LA", {k: v for k, v in a0.items() if "'" not in k and k != "P"}), ("U", t0)]]))
     # test_wobble_optional_and_cutoff
     g = nucleotide("G")
     u = partner(g, "G", "U")

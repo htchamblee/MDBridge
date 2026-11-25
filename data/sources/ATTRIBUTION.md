@@ -6,7 +6,7 @@ fields kept.
 
 | Source | Used for | Licence | Notice required |
 |---|---|---|---|
-| wwPDB Chemical Component Dictionary (components.cif, 2026-11-14), https://www.wwpdb.org/data/ccd | standard-residue atom names and their v2.3 spellings (also the reference names of the collision rule that keeps them from being guessed as metals), protein backbone, nucleic atom sets, monatomic ion names, residues whose `HG`/`CL` atoms are Hg/Cl, guessable elements | CC0 1.0 | no (courtesy attribution) |
+| wwPDB Chemical Component Dictionary (components.cif, 2026-11-14), https://www.wwpdb.org/data/ccd | standard-residue atom names and their v2.3 spellings (also the reference names of the collision rule that keeps them from being guessed as metals), protein backbone, nucleic atom sets, monatomic ion names, residues whose `HG`/`CL` atoms are Hg/Cl, guessable elements, the L-deoxyribonucleotides (0DA ...) and their own atom names | CC0 1.0 | no (courtesy attribution) |
 | wwPDB Atomic Coordinate Entry Format v3.3, https://www.wwpdb.org/documentation/file-format-content/format33/v3.3.html | standard nucleotide and water residue names; atom-name column rule | facts (guide © wwPDB, cited) | no |
 | IUPAC-IUB JCBN, Nomenclature and Symbolism for Amino Acids and Peptides (1983), https://iupac.qmul.ac.uk/AminoAcid/ | the 20 amino-acid three-letter names, Sec, Pyl | facts | no |
 | CIAAW (IUPAC), Abridged Standard Atomic Weights 2024, https://www.ciaaw.org/abridged-atomic-weights.htm | element symbols Z 1-118 and masses | facts | no |

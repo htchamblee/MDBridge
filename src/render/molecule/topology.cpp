@@ -8,6 +8,7 @@
 #include <utility>
 
 #include "mdbridge/core/text.hpp"
+#include "mdbridge/io/pdb.hpp"
 
 namespace mdbridge::render::molecule {
 namespace {
@@ -164,8 +165,10 @@ Topology::Topology(const TopologyInput& input)
     : n_res(input.n_res), row(input.row), bonds(input.bonds), chain(input.chain), resindex(input.resindex) {
     const std::size_t n_atoms = row.size();
     names.reserve(n_atoms);
-    for (const std::string& n : input.names) {
-        names.push_back(normaliseName(n));
+    // a CCD component's own atom names (0DA's N9A ...) read as the standard ones (MDATK 0.1.x)
+    for (std::size_t i = 0; i < input.names.size(); ++i) {
+        const std::string& n = input.names[i];
+        names.push_back(normaliseName(i < input.resnames.size() ? io::standardAtomName(input.resnames[i], n) : n));
     }
     elements.reserve(n_atoms);
     for (const std::string& e : input.elements) {

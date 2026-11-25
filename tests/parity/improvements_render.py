@@ -47,6 +47,8 @@ Status of the items (see the plan for the full text):
   RN-33  the density map's contour level from its finite voxels (W2-B)
   RN-50  charts' title and colour bar in the theme's colours (MDATK styled the centre title, not
          the left one it draws, and left the colour bar black: unreadable on the dark theme)
+  RN-51  the structure view's centre warning names its setting: "Structure view › Orientation ›
+         Centre on: ..." (MDATK 0.1.x render/panels.py _view_centre)
   D5     output.charts.style: "mdatk" (or "") and "default" (Matplotlib's default look); other
          names warn and draw MDATK's chrome (owner decision D5; MDATK applied any Matplotlib style)
 
@@ -234,7 +236,26 @@ PATCHES = {
     # the render, charts and preview commands (W3-B; src/app/commands/render_pipeline.cpp)
     "D8": "_d8_ffmpeg_path_not_used",  # owner decision D8: the bundled FFmpeg libraries
     "D9": "_d9_no_density_fit",  # owner decision D9: no density fit in milestone 4
+    # the structure view's centre warning names its setting (MDATK 0.1.x render/panels.py)
+    "RN-51": "_rn51_centre_warning_names_its_setting",
 }
+
+
+def _rn51_centre_warning_names_its_setting():
+    """StructurePanel._view_centre: "Structure view › Orientation › Centre on: <error>; using the model
+    centre" (MDATK 0.1.x's readable location of visual.center_on) instead of "structure view centre:
+    ..."."""
+    from mdatk.render import panels
+
+    original = panels.warn_once
+
+    def warn_once(message):
+        prefix = "structure view centre: "
+        if message.startswith(prefix):
+            message = "Structure view › Orientation › Centre on: " + message[len(prefix):]
+        return original(message)
+
+    panels.warn_once = warn_once
 
 
 def _rn40_per_row():

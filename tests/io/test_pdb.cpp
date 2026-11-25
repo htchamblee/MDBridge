@@ -182,6 +182,22 @@ TEST(Pdb, ParseResidueName) {
     }
 }
 
+// NA-01 (MDATK 0.1.x pdbtools.has_backbone_atoms / standard_atom_name; data/sources/ccd)
+TEST(Pdb, BackboneAtomsAndComponentAtomNames) {
+    EXPECT_TRUE(io::hasBackboneAtoms(std::vector<std::string>{"N1", "C1'"}));
+    EXPECT_TRUE(io::hasBackboneAtoms(std::vector<std::string>{"C1*"}));
+    EXPECT_TRUE(io::hasBackboneAtoms(std::vector<std::string>{" P "}));
+    EXPECT_FALSE(io::hasBackboneAtoms(std::vector<std::string>{"LA"}));
+    EXPECT_FALSE(io::hasBackboneAtoms(std::vector<std::string>{"N1", "C2", "PA"}));
+    EXPECT_EQ(io::standardAtomName("0DA", "N9A"), "N9");
+    EXPECT_EQ(io::standardAtomName(" 0da ", "HN61"), "H61");
+    EXPECT_EQ(io::standardAtomName("0DA", "H2P"), "HOP2");
+    EXPECT_EQ(io::standardAtomName("0DT", "C5M"), "C7");
+    EXPECT_EQ(io::standardAtomName("0DA", "N9"), "N9");
+    EXPECT_EQ(io::standardAtomName("DA", "N9A"), "N9A");
+    EXPECT_EQ(io::standardAtomName("0DC", "N1"), "N1");
+}
+
 TEST(Pdb, InsertHeaderRecords) {
     for (const core::Value& c : items(cases(), "insert")) {
         EXPECT_EQ(io::insertHeaderRecords(text(c, "text"), strings(*c.find("records"))),

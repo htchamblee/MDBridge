@@ -3,7 +3,7 @@
  "time_ps": [0.0,2.0,4.0],
  "time_unit": "ps",
  "results": [
-  {"name":"trace","key":"{key}","params":{"groups":["RNA","Protein"],"trace_atoms":"C4',CA","align":true,"show_ions":true,"ions":"resname MG Mg MG2 or name MG Mg","group_order":["RNA","Protein"]},"meta":{"residue_labels":["A:G1","A:C2","A:A3","A:U4","B:HSD5","B:PHE6","B:TYR7","B:TRP8","B:HIE9","B:HIS10"],"ion_labels":[],"group_names":["RNA","Protein"],"label":"Backbone trace","analysis":"trace","outputs":{"series":{},"matrices":{},"pairmaps":{}}},"arrays":["coords","ion_coords","chain","group_index","group_member","is_point","links","resindex","resid","resname","chain_name"]},
+  {"name":"trace","key":"{key}","params":{"groups":["RNA","Protein"],"trace_atoms":"C4',CA","align":true,"show_ions":true,"ions":"resname MG Mg MG2 or name MG Mg","group_order":["RNA","Protein"]},"meta":{"residue_labels":["A:G1","A:C2","A:A3","A:U4","B:HSD5","B:PHE6","B:TYR7","B:TRP8","B:HIE9","B:HIS10"],"ion_labels":[],"group_names":["RNA","Protein"],"label":"Backbone trace","analysis":"trace","outputs":{"series":{},"matrices":{},"pairmaps":{}}},"arrays":["coords","ion_coords","chain","group_index","group_member","is_point","links","resindex","resid","resname","chain_name","backbone"]},
   {
    "name": "atoms",
    "key": "{key}",

@@ -36,6 +36,7 @@
 #include "mdbridge/analysis/spatial.hpp"
 #include "mdbridge/core/linalg.hpp"
 #include "mdbridge/core/selections.hpp"
+#include "mdbridge/io/pdb.hpp"
 
 namespace mdbridge::analysis {
 
@@ -354,10 +355,12 @@ public:
 }  // namespace
 
 std::optional<std::vector<std::int32_t>> stackingRingAtoms(const core::Topology& topology, std::int32_t residue) {
-    // {a.name: a.ix for a in residue.atoms}: the last atom of a repeated name wins
+    // {standard_atom_name(resname, a.name): a.ix for a in residue.atoms}: the last atom of a repeated
+    // name wins; a CCD component's own names (0DA's N9A ...) by the standard ones (MDATK 0.1.x)
     std::unordered_map<std::string, std::int32_t> byName;
+    const std::string resname = topology.resname(residue);
     for (const std::int32_t atom : topology.residueAtoms(residue)) {
-        byName[topology.name(atom)] = atom;
+        byName[io::standardAtomName(resname, topology.name(atom))] = atom;
     }
     const auto take = [&byName](const RingNames& ring) -> std::optional<std::vector<std::int32_t>> {
         std::vector<std::int32_t> out;

@@ -50,7 +50,7 @@ expected data is adjusted on the test side; generated files are never edited by 
   rmsd 2 (AN-16-AN-18), proximity 2 (AN-01-AN-04,
   AN-15, SEL-13), atoms 3 (AN-13, AN-14, SEL-13), contacts 2 (AN-01-AN-04, SEL-13, a group with itself, TOP-01)
   and mg 2 (AN-01-AN-04, SEL-13),
-  basepairs 2 (AN-01-AN-04, AN-11, SEL-13), stacking 2 (AN-01-AN-04, AN-12) and trace 5 (SEL-13, TOP-01; its key
+  basepairs 2 (AN-01-AN-04, AN-11, SEL-13, NA-01), stacking 2 (AN-01-AN-04, AN-12, NA-01) and trace 5 (SEL-13, TOP-01, NA-01; its key
   now covers every group). The fixes taken from MDATK 0.1.x ("Fixes adopted from MDATK 0.1.x" below) are
   in this release's bump; MDATK 0.1.1 numbers its own versions independently (energy 2, hbonds 2,
   contacts 2, trace 5 mean other results there), which matters only when the parity reference moves. The test side gives MDATK's analyses these
@@ -431,7 +431,8 @@ test_selections.cpp; cli_cases.json (`info_groups`); framework_cases.json (cache
 - **SEL-08 Messages.** `Unknown 'same' property 'RESID' (choose one of: fragment, x, y, ...)`
   instead of `Unknown same property : RESIDChoose one of : dict_keys([...])`; an unknown token whose
   lower-case spelling is a keyword gets a hint: `Unknown selection token: 'AND' (keywords are lower
-  case: did you mean 'and'?)`. New messages are not wrapped in `Selection failed: '...'`.
+  case: did you mean 'and'?)`, and since SEL-19 a misspelt one too: `Unknown selection token:
+  'resnam' (did you mean 'resname'?)`. New messages are not wrapped in `Selection failed: '...'`.
 - **SEL-09 Float ranges** (`mass`, `charge`, ...) accept in each bound what a single value accepts
   (`mass 12:+13`, `mass -inf:inf`, `charge 1E-1:2`); a piece that is no number and no range of two
   numbers is `Failed to parse number: <piece>` (`mass :3`, `mass 1:2abc`). MDAnalysis failed with
@@ -455,6 +456,56 @@ test_selections.cpp; cli_cases.json (`info_groups`); framework_cases.json (cache
 - **SEL-15 Repeated group names:** the first group of a name wins in `group:` expansion and in the
   groups recorded in cache keys, as in `core::group()` and the GUI (MDATK: the last one in the
   expansion). validate() still reports the repetition.
+- **SEL-19 Selection errors: MDATK 0.1.x's frame, MDBridge's messages, hints** (follows MDATK
+  0.1.1 `mdatk/selections.py` `syntax_error`, `_syntax_hint`, `suggest`; also covers SEL-04,
+  SEL-08 and CLI-07). `select()` reports `invalid selection 'X' (expanded: 'Y'): <message>
+  (<hint>)`: the text as written (stripped), its expansion only when it differs (also from the text
+  after `sel:`), the parser's own message (SEL-03, SEL-04, SEL-08 ...; MDATK 0.1.x shows
+  `MDAnalysis says: <MDAnalysis' message>`, which MDBridge has no use for) and a hint where one
+  helps. MDATK 0.0.4.1 printed `invalid selection 'X' -> 'Y': ...`, the expansion even when it was
+  the text itself (`invalid selection 'name (' -> 'name (': ...`). The hints, as 0.1.x's:
+  - a token that is (by case or a typo) a group's name: `Unknown selection token: 'Target' (to use
+    the residue group write group:Target)`, in place of a keyword hint;
+  - a misspelt keyword: `(did you mean 'resname'?)` (`keywords are lower case: did you mean 'and'?`
+    when only the case differs, as SEL-08); no hint for `and` / `or` themselves where a selection
+    should start, or when nothing is close (0.1.x: `'foo' is not a selection keyword`, which repeats
+    the message);
+  - `group Target` (MDAnalysis' own group keyword): `Selection failed: 'Failed to find group:
+    Target' (write group:Target, with a colon, to use the residue group)`, or `(residue groups are
+    written group:<Name>)` when no group is close;
+  - `Unexpected token: 'x' Expected: ')'`: `(a parenthesis is not closed)`. The end of the selection
+    needs no hint: SEL-04's `Unexpected end of selection (expected ')')` says it (0.1.x hints at
+    MDAnalysis' `'None'` token instead).
+
+  "Close" is 0.1.x's `suggest`: a candidate equal ignoring case, else Python difflib's
+  `get_close_matches(..., n=1, cutoff=0.6)` on the lower-case spellings, reimplemented in
+  `core::suggestName` / `core::similarity` (src/core/suggest.cpp; no suggestion for a name of 200 or
+  more characters, where difflib's junk heuristic would start). The errors carry their kind and
+  offending token (`SelectionError::kind()`, `token()`), as 0.1.x's do, so that a later change can
+  put the setting's location in front of the message. *Also tested:* `Selections.SuggestLikeDifflib`
+  (ratios and suggestions against difflib, selections_cases.json `similarity` / `suggest`),
+  `Selections.MessagesNameTheProblem`; cli_cases.json (`info_groups`, `export_bad_selection`).
+- **SEL-20 Unknown groups suggest the group meant** (follows MDATK 0.1.1 `selections.py`
+  `unknown_group_error`). `unknown residue group 'Tagret' (defined: Aptamer, Target); did you mean
+  'Target'?`, and when a group's own selection names it, `unknown residue group 'Tagret' in the
+  selection of group 'Uses' (defined: ...)` (MDATK 0.0.4.1 named neither). The defined groups are
+  listed once each, in order. *Tested:* selections_cases.json (groups set `typos`).
+- **SEL-21 Circular group definitions named** (follows MDATK 0.1.1 `selections.py`
+  `expand_groups`). A group whose expansion reaches itself is `group definitions are nested in a
+  circle: group:Circle1 → group:Circle2 → group:Circle3 → group:Circle1`, from the group where the
+  expansion started; MDATK 0.0.4.1 expanded until the depth limit and reported `group definitions
+  are nested too deeply (circular reference?)`, which now only nine nested distinct groups give.
+  *Tested:* selections_cases.json (`Loop1` / `Loop2`, `Circle1` ...).
+- **SEL-22 Why a selection matched nothing** (follows MDATK 0.1.1 `selections.py`
+  `explain_empty`). `selection 'group:Far' matched no atoms: group 'Far' (residues '900-910')
+  matches no atoms - the structure's residues are numbered 1-302`: each group the text uses is tried
+  on its own, the empty ones are named with their definition (residue ranges add the structure's
+  residue numbers); otherwise each top-level and / or part is tried: `selection 'name P and resid
+  999' matched no atoms: the part 'resid 999' matches no atoms`, or `each part matches atoms, but
+  not in this combination (check 'and' / 'or')`. Parts that do not stand alone (`around 3 ...`) are
+  skipped. The tries use the same structure and frame as the selection (with `use_pbc` off, an open
+  box, SEL-17). The text is shown stripped. MDATK 0.0.4.1: `selection 'X' matched no atoms`.
+  *Tested:* selections_cases.json, cli_cases.json (`info_groups`), analysis micro / variant cases.
 - **SEL-16 (kept)** A residue number in a group's ranges means `resid N`, as the `resid` keyword:
   `45` excludes `45A` on files with insertion codes; ranges `44-46` include them. **SEL-11 (kept)**
   `and` and `or` have the same precedence and combine left to right (`A or B and C` is
@@ -625,6 +676,10 @@ test_selections.cpp; cli_cases.json (`info_groups`); framework_cases.json (cache
   sense in the other byte order give `... byte order of the map header (mode 33554432)` / `(cell
   angles [...])` instead of `unsupported MRC mode 33554432` / `non-orthogonal cell angles [6.47e-41,
   ...]`. *Tested:* io/maps/read_cases.json, cli_cases.json (density_info_* compared in full).
+- **CLI-07: selection errors** (`info`'s group entries, `analyze`, `export-pdb`) are SEL-19 ...
+  SEL-22's: `invalid selection 'group:Broken' (expanded: '(name ()'): Selection failed: 'Unexpected
+  token '(''`, `selection 'group:Target' matched no atoms: group 'Target' (residues '13-24') matches
+  no atoms - the structure's residues are numbered 1-1`. *Tested:* cli_cases.json.
 - **CLI-08: PDB export checks every frame first.** A frame with a coordinate beyond the PDB limits
   stops the export before any file is written: `PDB files must have coordinate values between
   -1000.000 and 9999.999 Angstroem: frame 2 is outside this range; no files were written.` (MDATK
@@ -994,6 +1049,42 @@ bump ("Analysis cache" above).
   parm7 (demo duplex, strand against strand: -34.62 kcal/mol from the templates, MDATK 0.1.1 -34.1,
   parm7 -34.67). *Tested:* `EnergyParameters.AnalysisChargesMetadataAndLog`, the energy metadata of the
   analysis, pipeline and cli cases, citation_cases.json, `Citations.MethodsByTheirOriginators`.
+
+## Nucleotide names: DNA, L-DNA and CCD components (src/io/pdb.cpp, src/chem/secstruct.cpp)
+
+- **NA-01 L-DNA names, the CCD's own atom names and the backbone guard** (follows MDATK 0.1.1
+  `mdatk/pdbtools.py` `parse_residue_name`, `has_backbone_atoms`, `standard_atom_name`, and their
+  readers `secstruct.PairDetector`, `analysis/basepairs.py`, `analysis/stacking.py` `ring_atoms`,
+  `analysis/structure.py`'s trace flag `backbone`, `render/molecule/topology.py`,
+  `render/residues.py` `one_letter` and the sequence panel; MDATK 0.0.13 - 0.0.17). MDATK 0.0.4.1
+  read D-DNA (DA, DA5, DA3, DAN, THY ...) but no L-DNA, took any residue named like a nucleotide for
+  one, and looked for the standard atom names only. MDBridge:
+  - reads the L-DNA names: the CCD's L-deoxyribonucleotides 0DA 0DC 0DG 0DT, and MDATK's own LDA LDC
+    LDG LDT (LDA5 / LDA3 / LDAN in older files) as L-DNA A C G T (`io::parseResidueName`; the
+    sequence panel, base pairs and the molecule view's base colours). MDATK 0.0.4.1: `X` / no base;
+  - takes a residue for a nucleotide by its name only when it has a backbone atom (a primed name,
+    an old-style `*` or P; `io::hasBackboneAtoms`): in the CCD, LA and RA are the lanthanum and
+    radium ions and LDA a detergent, which neither pair (the base-pair detector) nor show as `A` in
+    the sequence panel (through the trace's new per-row array `backbone`; a trace cached without it
+    reads the names alone, as 0.1.x does);
+  - reads the atoms that the CCD names its own way in 0DA (adenine N9A, C8A, N7A, C5A, C6A, N6A, N1A,
+    C2A, N3A, C4A; H8A, H2A, HN61, HN62; H2P on a protonated OP2) and 0DT (C5M, the methyl carbon) by
+    their standard names (N9 ... C7; `io::standardAtomName`) in the base-pair detector, the stacking
+    rings and the molecule topology, so their pairs, rings and bonds are found. An atom of the
+    standard name wins over a renamed one in the detector.
+
+  The tables come from the CCD (data/sources/ccd/l_deoxyribonucleotide_atoms.tsv, cut by
+  `tools/extract_ccd.py`: the released L-DNA linking components whose atoms and bonds match DA, DC,
+  DG or DT, each atom with the matching standard atom by a graph match that keeps names where the
+  bonds allow), not from MDATK's or MDAnalysis' tables; the result is the same as 0.1.x's
+  `CCD_ATOM_NAMES`. Not adopted here: 0.1.x's PDB reading and writing of the components' names
+  (`read_pdb` / `write_pdb`), its naming schemes and the `pdb clean` changes (the PDB tools). The
+  cache versions of base pairs (2), stacking (2) and the trace (5) already differ from MDATK's
+  ("Analysis cache"). *Tested:* chem/secstruct_cases.json (`residue_names`; detector cases `L-DNA
+  0DA with CCD atom names`, `LDA without a backbone`, `LA without a backbone`), io/pdb/pdb_cases.json
+  (`residue_names`), render/shading one_letter, `Pdb.BackboneAtomsAndComponentAtomNames`,
+  `Shading.OneLetterNeedsABackbone`; the trace's `backbone` array in every analysis case. Expected
+  data: tests/parity/improvements_nucleotides.py.
 
 ## Rendering (milestone 4): overview
 
@@ -1385,6 +1476,11 @@ middle and last frame. The generator applies the items below to MDATK test-side
   `StructurePanel.DensityLevelFromFiniteVoxels`.
 - **No analysed frames (RN-02, the panel part).** A trace without frames made MDATK fail with an
   `IndexError`; the panel shows `No data: no frames`.
+- **The centre warning names its setting (RN-51; follows MDATK 0.1.1 `render/panels.py`
+  `_view_centre`).** A `visual.center_on` that matches no residue warns `Structure view ›
+  Orientation › Centre on: no residue of the structure view matches 'Z:99'; using the model centre`
+  (MDATK 0.0.4.1: `structure view centre: ...`), the readable location MDATK 0.1.x gives that
+  setting. *Tested:* case `structure_centre_unknown`, `StructurePanel` zoom-and-centre test.
 
 ## Rendering: residue shading, orientation and the example dataset (src/render/core)
 

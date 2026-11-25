@@ -152,7 +152,7 @@ def color_cases():
 
 ONE_LETTER = ["G5", "RA", "LG3", "0C", "U", "DT", "HIS", "XYZ", "ala", " gly ", "HIE", "HIP", "CYX", "A", "rG",
               "ADE", "GUA", "CYT", "URA", "THY", "DA5", "C3", "MG", "WAT", "", "  ", "Na+", "hıs", "LYS",
-              "DG3", "RU5", "A3", "N", "PSU", "ÅLA"]
+              "DG3", "RU5", "A3", "N", "PSU", "ÅLA", "0DA", "0DT", "LDG", "LDC5", "LA", "LDU"]
 
 # --- orientation.py -------------------------------------------------------------------------------
 

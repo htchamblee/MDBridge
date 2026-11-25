@@ -6984,6 +6984,7 @@
         "analysis": "trace"
        },
        "arrays": [
+        "backbone",
         "chain",
         "chain_name",
         "coords",
@@ -8298,6 +8299,7 @@
         "analysis": "trace"
        },
        "arrays": [
+        "backbone",
         "chain",
         "chain_name",
         "coords",
@@ -9716,6 +9718,7 @@
         "analysis": "trace"
        },
        "arrays": [
+        "backbone",
         "chain",
         "chain_name",
         "coords",
@@ -11039,6 +11042,7 @@
         "analysis": "trace"
        },
        "arrays": [
+        "backbone",
         "chain",
         "chain_name",
         "coords",
@@ -12458,6 +12462,7 @@
         "analysis": "trace"
        },
        "arrays": [
+        "backbone",
         "chain",
         "chain_name",
         "coords",
@@ -13860,6 +13865,7 @@
         "analysis": "trace"
        },
        "arrays": [
+        "backbone",
         "chain",
         "chain_name",
         "coords",
@@ -15777,6 +15783,7 @@
         "analysis": "trace"
        },
        "arrays": [
+        "backbone",
         "chain",
         "chain_name",
         "coords",

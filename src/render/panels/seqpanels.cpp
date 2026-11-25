@@ -180,12 +180,14 @@ void ResiduePanel::loadResidues() {
     const core::NumArray* resid = tr->array("resid");
     if (resid == nullptr) throw std::out_of_range("resid");
     const std::vector<double> rv = resid->toDouble();
+    // no nucleotide without a backbone atom (the detergent LDA; MDATK 0.1.x)
+    const std::optional<std::vector<bool>> flags = backboneFlags(*tr);
     m_letters.clear();
     m_chains.clear();
     m_resid.clear();
     for (std::int64_t r : m_rows) {
         const auto k = static_cast<std::size_t>(r);
-        m_letters.push_back(oneLetter(names.at(k)));
+        m_letters.push_back(oneLetter(names.at(k), flags ? std::optional<bool>(flags->at(k)) : std::nullopt));
         m_chains.push_back(chains.at(k));
         m_resid.push_back(static_cast<std::int64_t>(rv.at(k)));
     }

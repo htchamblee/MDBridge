@@ -433,7 +433,9 @@ void StructurePanel::viewCentre(const std::vector<Vec3d>& coords, std::size_t nF
         row = static_cast<std::size_t>(rows[0]);
     } catch (const std::exception& exc) {  // SelectionError, IndexError
         m_viewNote = std::string("centre: ") + exc.what();
-        warnOnce(std::string("structure view centre: ") + exc.what() + "; using the model centre");
+        // RN-51: the warning names its setting (MDATK 0.1.x render/panels.py _view_centre)
+        warnOnce(std::string("Structure view \xe2\x80\xba Orientation \xe2\x80\xba Centre on: ") + exc.what() +
+                 "; using the model centre");
         m_center = modelCentre();
         return;
     }

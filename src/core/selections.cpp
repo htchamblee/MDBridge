@@ -11,6 +11,7 @@
 #include "mdbridge/core/atom_selection.hpp"
 #include "mdbridge/core/log.hpp"
 #include "mdbridge/core/python.hpp"
+#include "mdbridge/core/suggest.hpp"
 #include "mdbridge/core/text.hpp"
 
 namespace mdbridge::core {
@@ -274,23 +275,57 @@ SelectionError invalidGroupName(std::u32string_view name) {
                           " may only contain letters, digits, '_', '.' and '-'");
 }
 
-// Every "group:<name>" replaced by the group's selection. The name runs to the next whitespace
-// or parenthesis; a name a group cannot have, or a group with such a name, is an error. The first
-// group of a name wins (as core::group() and the GUI).
-std::string expand(std::string_view text, const std::vector<ResidueGroup>& groups,
-                   const Topology* topology, int depth) {
-    if (depth > 8) {
-        throw SelectionError("group definitions are nested too deeply (circular reference?)");
+// The names of the defined groups, first-seen order.
+std::vector<std::string> groupNames(const std::vector<ResidueGroup>& groups) {
+    std::vector<std::string> names;
+    for (const ResidueGroup& g : groups) {
+        if (std::find(names.begin(), names.end(), g.name) == names.end()) {
+            names.push_back(g.name);
+        }
     }
+    return names;
+}
+
+const ResidueGroup* findGroup(const std::vector<ResidueGroup>& groups, std::string_view name) {
+    const auto found = std::find_if(groups.begin(), groups.end(),
+                                    [&](const ResidueGroup& g) { return g.name == name; });
+    return found == groups.end() ? nullptr : &*found;
+}
+
+// "unknown residue group 'Tagret' (defined: Aptamer, Target); did you mean 'Target'?", with " in the
+// selection of group 'B'" when group B's definition names it (MDATK 0.1.x unknown_group_error)
+SelectionError unknownGroup(const std::string& name, const std::vector<ResidueGroup>& groups,
+                            const std::vector<std::string>& chain) {
+    const std::vector<std::string> names = groupNames(groups);
+    std::string defined;
+    for (const std::string& n : names) {
+        defined += (defined.empty() ? "" : ", ") + n;
+    }
+    std::string message = "unknown residue group " + repr(name);
+    if (!chain.empty()) {
+        message += " in the selection of group " + repr(chain.back());
+    }
+    message += " (defined: " + (defined.empty() ? std::string("none") : defined) + ")";
+    if (const auto guess = suggestName(name, names)) {
+        message += "; did you mean " + repr(*guess) + "?";
+    }
+    return SelectionError(message, SelectionError::Kind::UnknownGroup, name);
+}
+
+// The next "group:<name>" token of a selection at or after `pos`: (position of "group:", start and
+// end of the name). The name runs to the next whitespace or parenthesis; a name a group cannot
+// have, or a defined group with such a name written out, is an error. "group:" alone is no token.
+struct GroupToken {
+    std::size_t at, start, end;
+};
+
+std::optional<GroupToken> nextGroupToken(const std::u32string& s, std::size_t pos,
+                                         const std::vector<ResidueGroup>& groups) {
     static constexpr std::u32string_view kToken = U"group:";
-    const std::u32string s = decodeUtf8(text);
-    std::u32string out;
-    std::size_t pos = 0;
     for (;;) {
         const std::size_t at = s.find(kToken, pos);
         if (at == std::u32string::npos) {
-            out += s.substr(pos);
-            return encodeUtf8(out);
+            return std::nullopt;
         }
         const std::size_t start = at + kToken.size();
         const std::u32string_view rest = std::u32string_view(s).substr(start);
@@ -312,7 +347,6 @@ std::string expand(std::string_view text, const std::vector<ResidueGroup>& group
             ++end;
         }
         if (end == start) {  // "group:" alone stays as written
-            out += s.substr(pos, start - pos);
             pos = start;
             continue;
         }
@@ -320,34 +354,52 @@ std::string expand(std::string_view text, const std::vector<ResidueGroup>& group
         if (!isPlainGroupName(name)) {
             throw invalidGroupName(name);
         }
-        const std::string utf8 = encodeUtf8(name);
-        const auto found = std::find_if(groups.begin(), groups.end(),
-                                        [&](const ResidueGroup& g) { return g.name == utf8; });
-        if (found == groups.end()) {
-            std::vector<std::string> names;  // first-seen order
-            for (const ResidueGroup& g : groups) {
-                if (std::find(names.begin(), names.end(), g.name) == names.end()) {
-                    names.push_back(g.name);
-                }
-            }
-            std::string defined;
-            for (const std::string& n : names) {
-                defined += (defined.empty() ? "" : ", ") + n;
-            }
-            throw SelectionError("unknown residue group " + repr(utf8) +
-                                 " (defined: " + (defined.empty() ? "none" : defined) + ")");
-        }
-        out += s.substr(pos, at - pos);
-        out += decodeUtf8(expand(groupSelection(*found, topology), groups, topology, depth + 1));
-        pos = end;
+        return GroupToken{at, start, end};
     }
+}
+
+// Every "group:<name>" replaced by the group's selection. The first group of a name wins (as
+// core::group() and the GUI). `chain`: the groups being expanded, outermost first.
+std::string expand(std::string_view text, const std::vector<ResidueGroup>& groups,
+                   const Topology* topology, std::vector<std::string>& chain) {
+    if (chain.size() > 8) {
+        throw SelectionError("group definitions are nested too deeply (circular reference?)",
+                             SelectionError::Kind::Nesting);
+    }
+    const std::u32string s = decodeUtf8(text);
+    std::u32string out;
+    std::size_t pos = 0;
+    while (const std::optional<GroupToken> found = nextGroupToken(s, pos, groups)) {
+        const GroupToken& token = *found;
+        const std::string name = encodeUtf8(std::u32string_view(s).substr(token.start, token.end - token.start));
+        const ResidueGroup* group = findGroup(groups, name);
+        if (!group) {
+            throw unknownGroup(name, groups, chain);
+        }
+        if (const auto inChain = std::find(chain.begin(), chain.end(), name); inChain != chain.end()) {
+            std::string loop;
+            for (auto it = inChain; it != chain.end(); ++it) {
+                loop += "group:" + *it + " \xe2\x86\x92 ";  // " → "
+            }
+            throw SelectionError("group definitions are nested in a circle: " + loop + "group:" + name,
+                                 SelectionError::Kind::Nesting, name);
+        }
+        out += s.substr(pos, token.at - pos);
+        chain.push_back(name);
+        out += decodeUtf8(expand(groupSelection(*group, topology), groups, topology, chain));
+        chain.pop_back();
+        pos = token.end;
+    }
+    out += s.substr(pos);
+    return encodeUtf8(out);
 }
 
 }  // namespace
 
 std::string expandGroups(std::string_view text, const std::vector<ResidueGroup>& groups,
                          const Topology* topology) {
-    return expand(text, groups, topology, 0);
+    std::vector<std::string> chain;
+    return expand(text, groups, topology, chain);
 }
 
 std::string resolveSelection(std::string_view text, const std::vector<ResidueGroup>& groups,
@@ -365,6 +417,202 @@ std::string resolveSelection(std::string_view text, const std::vector<ResidueGro
     return expandGroups(resolved, groups, topology);
 }
 
+namespace {
+
+// "invalid selection 'x' (expanded: 'y'): <message> (<hint>)" (MDATK 0.1.x syntax_error, with the
+// parser's own message in place of "MDAnalysis says: ...")
+SelectionError syntaxError(std::string_view text, const std::string& expanded, const std::exception& error,
+                           const std::vector<ResidueGroup>& groups) {
+    const std::string shown = pythonStrip(text);
+    std::string detail = error.what();
+    std::string hint;
+    std::string token;
+    if (const auto* e = dynamic_cast<const AtomSelectionError*>(&error)) {
+        token = e->token();
+        std::vector<std::string> names;
+        for (const ResidueGroup& g : groups) {
+            names.push_back(g.name);
+        }
+        switch (e->problem()) {
+        case AtomSelectionError::Problem::UnknownToken:
+            if (const auto group = suggestName(token, names)) {  // in place of a keyword hint
+                detail = e->plainMessage();
+                hint = "to use the residue group write group:" + *group;
+            }
+            break;
+        case AtomSelectionError::Problem::UnknownGroup:
+            if (const auto group = suggestName(token, names)) {
+                hint = "write group:" + *group + ", with a colon, to use the residue group";
+            } else {
+                hint = "residue groups are written group:<Name>";
+            }
+            break;
+        case AtomSelectionError::Problem::UnclosedParenthesis:
+            hint = "a parenthesis is not closed";
+            break;
+        case AtomSelectionError::Problem::Other:
+            break;
+        }
+    }
+    std::string message = "invalid selection " + repr(shown);
+    const std::u32string shown32 = decodeUtf8(shown);
+    const std::string afterPrefix =
+        pythonStrip(encodeUtf8(std::u32string_view(shown32).substr(std::min<std::size_t>(4, shown32.size()))));
+    if (const std::string e = pythonStrip(expanded); e != shown && e != afterPrefix) {
+        message += " (expanded: " + repr(expanded) + ")";
+    }
+    message += ": " + detail;
+    if (!hint.empty()) {
+        message += " (" + hint + ")";
+    }
+    return SelectionError(message, SelectionError::Kind::Syntax, token);
+}
+
+bool isWordCharacter(char32_t c) { return isPythonWordCharacter(c); }
+
+// The top-level parts of a selection joined by and / or (outside parentheses), stripped, empty
+// ones left out (MDATK 0.1.x _clauses: [()]|\b(?:and|or)\b).
+std::vector<std::string> clauses(std::string_view text) {
+    const std::u32string s = decodeUtf8(text);
+    std::vector<std::string> parts;
+    int depth = 0;
+    std::size_t start = 0;
+    const auto split = [&](std::size_t at, std::size_t next) {
+        parts.push_back(pythonStrip(encodeUtf8(std::u32string_view(s).substr(start, at - start))));
+        start = next;
+    };
+    for (std::size_t p = 0; p < s.size();) {
+        if (s[p] == U'(') {
+            ++depth;
+            ++p;
+            continue;
+        }
+        if (s[p] == U')') {
+            --depth;
+            ++p;
+            continue;
+        }
+        std::size_t width = 0;
+        if (p == 0 || !isWordCharacter(s[p - 1])) {
+            for (const std::u32string_view word : {std::u32string_view(U"and"), std::u32string_view(U"or")}) {
+                if (s.compare(p, word.size(), word) == 0 &&
+                    (p + word.size() == s.size() || !isWordCharacter(s[p + word.size()]))) {
+                    width = word.size();
+                    break;
+                }
+            }
+        }
+        if (width == 0) {
+            ++p;
+            continue;
+        }
+        if (depth == 0) {
+            split(p, p + width);
+        }
+        p += width;
+    }
+    split(s.size(), s.size());
+    std::vector<std::string> out;
+    for (std::string& part : parts) {
+        if (!part.empty()) {
+            out.push_back(std::move(part));
+        }
+    }
+    return out;
+}
+
+std::string definition(const ResidueGroup& group) {
+    if (const std::string selection = pythonStrip(group.selection); !selection.empty()) {
+        return "selection " + repr(selection);
+    }
+    return "residues " + repr(pythonStrip(group.residues));
+}
+
+// Why `text` selects no atoms: (the empty group or part, explanation). Each group the text uses is
+// tried on its own, then each top-level and / or part (MDATK 0.1.x explain_empty).
+std::pair<std::string, std::string> explainEmpty(const Topology& topology, const Frame* current,
+                                                 std::string_view text, const std::vector<ResidueGroup>& groups) {
+    const std::string shown = pythonStrip(text);
+    const std::string body = shown.starts_with("sel:") ? pythonStrip(std::string_view(shown).substr(4)) : shown;
+    const bool bare = findGroup(groups, body) != nullptr;
+    const auto matchesNothing = [&](const std::string& selection) {
+        try {
+            return selectAtoms(topology, current, selection).empty();
+        } catch (const std::exception&) {  // diagnostics only; a part may not stand alone
+            return false;
+        }
+    };
+    std::vector<std::string> names;
+    if (bare) {
+        names.push_back(body);
+    } else {
+        const std::u32string s = decodeUtf8(body);
+        std::size_t pos = 0;
+        try {
+            while (const std::optional<GroupToken> token = nextGroupToken(s, pos, groups)) {
+                std::string name = encodeUtf8(std::u32string_view(s).substr(token->start, token->end - token->start));
+                if (std::find(names.begin(), names.end(), name) == names.end()) {
+                    names.push_back(std::move(name));
+                }
+                pos = token->end;
+            }
+        } catch (const SelectionError&) {
+        }
+    }
+    std::vector<const ResidueGroup*> empty;
+    for (const std::string& name : names) {
+        const ResidueGroup* group = findGroup(groups, name);
+        if (!group) {
+            continue;
+        }
+        bool none = false;
+        try {
+            none = matchesNothing(expandGroups("group:" + name, groups, &topology));
+        } catch (const std::exception&) {
+        }
+        if (none) {
+            empty.push_back(group);
+        }
+    }
+    if (!empty.empty()) {
+        std::string why;
+        bool ranges = false;
+        for (const ResidueGroup* group : empty) {
+            why += (why.empty() ? "" : "; ") + std::string("group ") + repr(group->name) + " (" + definition(*group) +
+                   ") matches no atoms";
+            ranges = ranges || pythonStrip(group->selection).empty();
+        }
+        if (ranges && !topology.resids.empty()) {
+            const auto [lo, hi] = std::minmax_element(topology.resids.begin(), topology.resids.end());
+            why += " - the structure's residues are numbered " + std::to_string(*lo) + "-" + std::to_string(*hi);
+        }
+        return {empty.front()->name, why};
+    }
+    const std::vector<std::string> parts = bare ? std::vector<std::string>{} : clauses(body);
+    if (parts.size() < 2) {
+        return {body, ""};
+    }
+    std::vector<std::string> none;
+    for (const std::string& part : parts) {
+        try {
+            if (matchesNothing(resolveSelection(part, groups, &topology))) {
+                none.push_back(part);
+            }
+        } catch (const std::exception&) {
+        }
+    }
+    if (!none.empty()) {
+        std::string why;
+        for (const std::string& part : none) {
+            why += (why.empty() ? "" : "; ") + std::string("the part ") + repr(part) + " matches no atoms";
+        }
+        return {none.front(), why};
+    }
+    return {"", "each part matches atoms, but not in this combination (check 'and' / 'or')"};
+}
+
+}  // namespace
+
 AtomGroup select(const std::shared_ptr<const Topology>& topology, const Frame* current,
                  std::string_view text, const std::vector<ResidueGroup>& groups, bool allowEmpty) {
     const std::string resolved = resolveSelection(text, groups, topology.get());
@@ -372,11 +620,13 @@ AtomGroup select(const std::shared_ptr<const Topology>& topology, const Frame* c
     try {
         atoms = selectAtoms(*topology, current, resolved);
     } catch (const std::exception& e) {
-        throw SelectionError("invalid selection " + repr(text) + " -> " + repr(resolved) + ": " +
-                             e.what());
+        throw syntaxError(text, resolved, e, groups);
     }
     if (!allowEmpty && atoms.empty()) {
-        throw SelectionError("selection " + repr(text) + " matched no atoms");
+        const auto [token, why] = explainEmpty(*topology, current, text, groups);
+        throw SelectionError("selection " + repr(pythonStrip(text)) + " matched no atoms" +
+                                 (why.empty() ? "" : ": " + why),
+                             SelectionError::Kind::Empty, token);
     }
     return AtomGroup(topology, std::move(atoms));
 }
