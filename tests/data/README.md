@@ -711,6 +711,32 @@ cases read `io/loader/files` and `io/trajectories`, so run those generators firs
 /opt/mdbridge-venv/bin/python -I -B tests/parity/make_universe_cases.py /tmp/mdatk tests/data/analysis
 ```
 
+## render/molecule_geometry: the 3D representations' geometry (milestone 4, W0-F)
+
+`tests/parity/make_molecule_geometry_cases.py` runs MDATK's `mdatk/render/molecule/` (topology.py,
+geometry.py, surface.py, scene.py) in-process, for `src/render/molecule` and
+`tests/render/test_molecule_geometry.cpp` (vertices within 1e-5 Å, indices exact; docs/specs/m4-plan.md,
+section 3):
+
+| File | Content |
+|---|---|
+| `systems.json` | the inputs of each `Topology`: per-atom names, elements, residue names and rows, bonds, per-residue chain and resindex, groups, and the frames used. `demo_dry` comes from MDATK's `trace` and `atoms` analyses on `topology/demo_dry.parm7` + `io/trajectories/demo_dry.nc` (independent tables, residue rule, analysis improvements, `visual.align_frames = false`, so the coordinates are the trajectory's float32 values); frame 100 is frame 0 with three atoms set to NaN. `mixed` (a protein chain with a numbering gap and a far jump, four demo nucleotides, a ligand and an Mg ion), `charmm` (bases told by their atoms) and `odd_names` (old atom names, blank / lower-case elements, pseudouridine, a residue without atoms) are built in the generator |
+| `topology.json` | `normalise_name` / `base_letter` of name lists; per system and backbone atom (P, C4', and an unknown one) every role of `Topology` |
+| `styles.json` | one case per line: a style (cartoon, ribbon, tube, licorice, vdw, surf, trace) on a system, frame, residue mask, size, sugars, spline samples and backbone atom: `drawn()` and the `DrawList` (meshes, spheres, sticks) |
+| `surface.json` | `density_grid` (shape, origin, the float32 values for small grids), `surface_nets` and `gaussian_surface` (with each vertex's nearest atom and its distance, for ties) of small point sets and demo residues |
+| `scenes.json` | `MoleculeScene` with `residue_masks`, `fill_rest` ("trace" / "hide") and `frame(xyz, residue_rgb)`: the specs and masks, `drawn()`, per item its kind, owners, atoms / roles, radii, colours and opacity, and `depth_range` |
+| `ndimage.json` | scipy's `gaussian_filter1d` / `gaussian_filter` (mode "constant") and `map_coordinates` (order 1, mode "nearest") on float32 arrays, for the port in `src/render/molecule/ndimage.cpp` |
+
+Floats are `repr()` (exact). numpy's and OpenBLAS' kernels are pinned as in
+`make_analysis_cases.py` (the spline weights use a small matmul, the Gaussian kernel `np.exp`);
+`regenerate_all.py` compares `styles.json`, `scenes.json` and `ndimage.json` within a relative
+1e-12 where their bytes differ. The output is reproducible; it reads the demo files written by the
+topology and trajectory generators:
+
+```bash
+/opt/mdbridge-venv/bin/python -I -B tests/parity/make_molecule_geometry_cases.py /tmp/mdatk tests/data/render/molecule_geometry
+```
+
 ## Checking that the data is reproducible
 
 `tests/parity/regenerate_all.py` runs every generator above (and `tools/gen_*.py`) in this order
@@ -740,7 +766,8 @@ The same holds for `analysis/demo_dry_cases.json`, `demo_dry_variants.json`, `mi
 `systems_cases.json` despite the generator's pinning (CI run 56 moved RMSDs with a fit selection
 by 12 to 33 ulps), where an array's `sha256` is ignored when its values agree within the tolerance;
 not `analysis/spatial_cases.json`, whose degenerate `kabsch` inputs get a different rotation from
-other kernels.
+other kernels. Likewise `render/molecule_geometry/styles.json`, `scenes.json` and `ndimage.json`
+(pinned kernels; a small matmul and `np.exp`).
 The random rotations of `io/pdb/pdb_cases.json` are written out in `make_pdb_cases.py` for the same
 reason. `--list` shows the steps; `--only STEP ...` reruns some of them.
 

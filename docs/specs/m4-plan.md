@@ -284,6 +284,7 @@ Each lands in DIFFERENCES.md with a test; `improvements_render.py` adjusts the e
 | RN-15 | Panel options of the wrong type (`ylim = 5`, `frame = "x"`) → `TypeError` traceback | `check()` reports them (`layout.panels[k].options.ylim: expected two numbers`) |
 | RN-16 | The VTK probe / fallback note is per process; renderer `vtk` on machines without EGL can crash inside VTK | `vtk` means "GPU": Vulkan when usable, else the software renderer with the note (no VTK) |
 | RN-17 | Video positions with a stride skip the last frame (`0, s, 2s, ...`) | kept (convention: the frame count users expect); documented, not changed |
+| RN-18 | A `surf` grid for a blown-up frame (atoms thousands of Å apart) is allocated: `MemoryError` or gigabytes and minutes per frame | grids above 2^26 points refused up front; the surface is left out of that frame with the existing warning (W0-F) |
 
 Not bugs, kept as conventions: DPI semantics (text size relative to the frame), `MDATK_` file names,
 the example dataset's seeds (crc32 of the key → numpy PCG64: ported exactly so the GUI preview looks

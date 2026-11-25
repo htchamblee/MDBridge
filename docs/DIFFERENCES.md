@@ -601,6 +601,29 @@ hbonds 2, rmsd 2, proximity 2, atoms 3 ("Analysis cache" above has every analysi
   from the trace analysis' setup (once per run of the structural view; MDATK: silent). *Tested:*
   demo_dry_variants structure_unknown_group.
 
+## Rendering: molecule geometry (src/render/molecule)
+
+The 3D representations (MDATK's `mdatk/render/molecule/topology.py`, `geometry.py`, `surface.py`,
+`scene.py`) give MDATK's topology roles, DrawLists, surfaces and colours (vertices within 1e-5 Å,
+indices exact; `tests/render/test_molecule_geometry.cpp` against
+`tests/parity/make_molecule_geometry_cases.py`), with these differences:
+
+- **Oversized surface grids (RN-18).** A `surf` grid of more than 2^26 points (a blown-up frame with
+  atoms thousands of Å apart, or an implausibly large system: 2^26 points is a 400 Å cube at 1 Å,
+  600 Å at the 1.5 Å used above 5000 atoms) is refused before anything is allocated, with
+  `surface grid of NX x NY x NZ points is too large (at most 67108864 points)`. MDATK allocated it
+  (numpy needs over 30 bytes per point): a `MemoryError` that left the surface out of that frame,
+  or, below what the allocator refuses, gigabytes of memory and minutes per frame. MDBridge's scene
+  leaves the surface out of that frame with MDATK's warning, once per representation
+  (`3D representation K (surf) not drawn on some frames: surface grid of ...`), and draws the other
+  representations. A representation whose geometry fails for any other reason is skipped the same
+  way (MDATK caught only `ValueError`, `MemoryError`, `IndexError` and `FloatingPointError`; others
+  aborted the video). *Tested:* `MoleculeGeometry.OversizedSurfaceGridIsRefused`.
+- **Nearest atom of a surface vertex.** scipy's `cKDTree` is replaced by a cell grid; where two atoms
+  are exactly as near, MDBridge takes the lower atom index (cKDTree's choice depends on its tree).
+  *Tested:* `MoleculeGeometryParity.SurfacesMatchMdatk` (distances where the indices differ),
+  `MoleculeGeometry.NearestPointsAgreeWithBruteForce`.
+
 ## Planned (from the improvement register; add each entry here when it lands)
 
 None: every FIX and ASK item of the improvement register (docs/IMPROVEMENTS.md) has landed
