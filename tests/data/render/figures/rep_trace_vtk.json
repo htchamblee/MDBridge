@@ -29,7 +29,7 @@
  "dpi": 60,
  "watermark": "",
  "positions": [0,12,23],
- "improvements": [],
+ "improvements": ["RN-03","RN-08","RN-09","RN-16","RN-33"],
  "frames": [
   {
    "pos": 0,
@@ -133,6 +133,6 @@
   {"pos":12,"artists":[{"id":"ax0/0"},{"id":"ax0/1"},{"id":"ax0/2"},{"id":"ax0/6","coverage":61428},{"id":"ax0/3"},{"id":"ax0/4"},{"id":"ax0/5","text":"t = 0.120 ns  (frame 12)","extent_px":[9.297249999999998,508.4102114257812,109.29724999999999,517.2820375976562]},{"id":"ax0/legend"},{"id":"ax1/2","x":[0.12,0.12]},{"id":"ax1/1","x":[0.12],"y":[1.590748226]}]},
   {"pos":23,"artists":[{"id":"ax0/0"},{"id":"ax0/1"},{"id":"ax0/2"},{"id":"ax0/6","coverage":61858},{"id":"ax0/3"},{"id":"ax0/4"},{"id":"ax0/5","text":"t = 0.230 ns  (frame 23)","extent_px":[9.297249999999998,508.4102114257812,109.29724999999999,517.2820375976562]},{"id":"ax0/legend"},{"id":"ax1/2","x":[0.23,0.23]},{"id":"ax1/1","x":[0.23],"y":[0.2994213838]}]}
  ],
- "panels": [{"type":"structure","ok":true,"auto_title":"Structure","axes":{"main":"ax0"},"animated":["ax0/0","ax0/1","ax0/2","ax0/6","ax0/3","ax0/4","ax0/5","ax0/legend"],"radius":22.315833751558667,"data_lo":[-25.654783776652188,-25.654783776652188],"data_hi":[25.654783776652188,25.654783776652188],"view_note":"","stage_note":"VTK is not installed (pip install vtk); using the built-in renderer","density_note":"","stage":{"renderer":"SoftwareRenderer","quality":"high","failed":false}},{"type":"timeseries","ok":true,"auto_title":"RMSD Complex","axes":{"main":"ax1"},"animated":["ax1/2","ax1/1"]}],
- "log": ["WARNING 3D representations: VTK is not installed (pip install vtk); using the built-in renderer"]
+ "panels": [{"type":"structure","ok":true,"auto_title":"Structure","axes":{"main":"ax0"},"animated":["ax0/0","ax0/1","ax0/2","ax0/6","ax0/3","ax0/4","ax0/5","ax0/legend"],"radius":22.315833751558667,"data_lo":[-25.654783776652188,-25.654783776652188],"data_hi":[25.654783776652188,25.654783776652188],"view_note":"","stage_note":"the GPU renderer (Vulkan) is not available; using the built-in renderer","density_note":"","stage":{"renderer":"SoftwareRenderer","quality":"high","failed":false}},{"type":"timeseries","ok":true,"auto_title":"RMSD Complex","axes":{"main":"ax1"},"animated":["ax1/2","ax1/1"]}],
+ "log": ["WARNING 3D representations: the GPU renderer (Vulkan) is not available; using the built-in renderer"]
 }

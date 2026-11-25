@@ -38,7 +38,9 @@ Status of the items (see the plan for the full text):
   RN-17  video positions with a stride skip the last frame: kept (convention, no patch)
   RN-21 ... RN-25  residue shading, orientation and the example dataset: improvements_shading.py
 
-None of them is patched yet (milestone 4, wave 0: the generators and this skeleton).
+  RN-33  the density map's contour level from its finite voxels (W2-B)
+
+Patched by the structure view's chunk (W2-B): RN-03, RN-08, RN-09, RN-16, RN-33.
 
 RN-26 ... RN-29 (the software 3D renderer, W1-B; src/render/molecule/software.cpp) change only the
 renderer's own images, which make_molecule_cases.py alone records: it calls
@@ -57,26 +59,152 @@ here when its figure cases need them).
 
 from __future__ import annotations
 
+# --- the structure view (W2-B; src/render/panels/structure.cpp) ------------------------------------
+
+# MDBridge's legend label of the ions (structure.cpp ionLegendLabel): residue name of the ion labels
+# ("MG25" -> "MG"), charges and trailing digits dropped, upper case
+_ION_NAMES = {"MG": "Mg²⁺", "NA": "Na⁺", "SOD": "Na⁺", "K": "K⁺", "POT": "K⁺", "CA": "Ca²⁺", "CAL": "Ca²⁺",
+              "ZN": "Zn²⁺", "MN": "Mn²⁺", "CL": "Cl⁻", "CLA": "Cl⁻", "LI": "Li⁺", "RB": "Rb⁺", "CS": "Cs⁺"}
+
+
+def ion_legend_label(labels) -> str:
+    found = set()
+    for label in labels:
+        key = "".join(c for c in str(label).rstrip("0123456789") if c not in "+- ").upper().rstrip("0123456789")
+        found.add(_ION_NAMES.get(key, "Ions"))
+    return found.pop() if len(found) == 1 else "Ions"
+
+
+def _rn03_finite_structure_extent():
+    """StructurePanel.setup: the bounding sphere of the finite trace / ion points (MDATK: one NaN
+    point made the radius NaN, "Axis limits cannot be NaN or Inf"), and one warning naming the
+    frames with non-finite points."""
+    import numpy as np
+    from mdatk.render import panels
+    from mdatk.render.residues import warn_once
+
+    class _Linalg:
+        def __getattr__(self, name):
+            return getattr(np.linalg, name)
+
+        @staticmethod
+        def norm(x, *args, **kwargs):
+            r = np.linalg.norm(x, *args, **kwargs)
+            return np.where(np.isfinite(r), r, -np.inf)
+
+    class _Numpy:
+        linalg = _Linalg()
+
+        def __getattr__(self, name):
+            return getattr(np, name)
+
+    original = panels.StructurePanel.setup
+
+    def setup(self):
+        tr = self.ctx.dataset.results.get("trace")
+        bad, text = set(), ""
+        if tr is not None:
+            bad = set()
+            for key in ("coords", "ion_coords"):
+                a = np.asarray(tr.arrays[key], dtype=np.float64)
+                if a.size:
+                    bad |= set(np.flatnonzero(~np.isfinite(a).all(axis=(1, 2))).tolist())
+            if bad:
+                frames = [int(self.ctx.dataset.frames[f]) for f in sorted(bad)]
+                text = ", ".join(map(str, frames[:10])) + (f" and {len(frames) - 10} more" if len(frames) > 10 else "")
+        saved = panels.np
+        panels.np = _Numpy()
+        try:
+            original(self)
+        finally:
+            panels.np = saved
+        if bad:
+            warn_once(f"structure view: non-finite coordinates in frame(s) {text}; left out of the view "
+                      "(those residues are not drawn there)")
+
+    panels.StructurePanel.setup = setup
+
+
+def _rn08_rn09_legend():
+    """StructurePanel._legend: chains named as the trace names them ("Chain A"; the number only for
+    a chain without a name; RN-09, owner decision D11) and the ions by their element (RN-08)."""
+    import numpy as np
+    from mdatk.render import panels
+    from mdatk.render.residues import chain_names
+
+    original = panels.StructurePanel._legend
+
+    def _legend(self, v, tr):
+        original(self, v, tr)
+        if self.legend is None:
+            return
+        names = chain_names(tr)
+        chain = np.asarray(tr.arrays["chain"])
+        for text, handle in zip(self.legend.get_texts(), self.legend.legend_handles):
+            label = text.get_text()
+            new = label
+            if v.color_mode == "chain" and label.startswith("Chain "):
+                c = int(label.split()[1]) - 1
+                k = int(np.flatnonzero(chain == c)[0])
+                new = f"Chain {names[k] or c + 1}"
+            elif label == "Mg²⁺":
+                new = ion_legend_label(tr.meta.get("ion_labels") or [])
+            if new != label:
+                text.set_text(new)
+                handle.set_label(new)
+
+    panels.StructurePanel._legend = _legend
+
+
+def _rn16_gpu_renderer():
+    """renderer "vtk" means the GPU renderer (Vulkan); the figure cases have none: the built-in
+    renderer with MDBridge's note (MDATK: "VTK is not installed (pip install vtk)")."""
+    from mdatk.render.molecule import vtk_backend
+
+    vtk_backend.available = lambda: (False, "the GPU renderer (Vulkan) is not available")
+
+
+def _rn33_finite_map_level():
+    """map_level from the finite voxels (MDATK: NaN for a map with one NaN voxel, so no shadow)."""
+    import numpy as np
+    from mdatk import density
+
+    original = density.map_level
+
+    def map_level(dmap, sigmas):
+        d = np.asarray(dmap.data)
+        finite = np.isfinite(d)
+        if finite.all():
+            return original(dmap, sigmas)
+        if not finite.any():
+            return float("nan")
+        v = d[finite].astype(np.float64)
+        return float(v.mean() + sigmas * v.std())
+
+    density.map_level = map_level
+
+
 # item -> function(mdatk modules are importable) that patches MDATK in this process, or None while
 # the item is not implemented in MDBridge (the expected data is then MDATK's behaviour)
 PATCHES = {
     "RN-01": None,
     "RN-02": None,
-    "RN-03": None,
+    "RN-03": _rn03_finite_structure_extent,
     "RN-04": None,
     "RN-05": None,
     "RN-06": None,
     "RN-07": None,
-    "RN-08": None,
-    "RN-09": None,
+    "RN-08": _rn08_rn09_legend,
+    "RN-09": lambda: None,  # with RN-08 (_rn08_rn09_legend)
     "RN-10": None,
     "RN-11": None,
     "RN-12": None,
     "RN-13": None,
     "RN-14": None,
     "RN-15": None,
-    "RN-16": None,
+    "RN-16": _rn16_gpu_renderer,
     "RN-17": None,  # a documented convention, never patched
+    "RN-33": _rn33_finite_map_level,
 }
 
 

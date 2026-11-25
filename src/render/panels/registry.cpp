@@ -10,6 +10,7 @@
 #include "mdbridge/core/panels.hpp"
 #include "mdbridge/core/python.hpp"
 #include "mdbridge/render/panels/panel.hpp"
+#include "mdbridge/render/panels/structure.hpp"
 
 namespace mdbridge::render::panels {
 
@@ -22,6 +23,7 @@ const std::map<std::string, PanelFactory, std::less<>>& factories() {
             for (const PanelRegistration& r : family) m.emplace(std::string(r.type), r.make);
         };
 
+        add(structurePanels());  // W2-B: structure
         add(plotPanels());  // W2-A: timeseries, dual_axis, heatmap, contact_map
 
         return m;

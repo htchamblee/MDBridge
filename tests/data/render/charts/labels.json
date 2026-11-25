@@ -26,7 +26,7 @@
   "workflow": {"project_name":"project","stamp":"","use_stamp":true,"out_dir":"","step_folders":true,"nodes":[],"edges":[],"scratch":[]}
  },
  "stamp": "",
- "improvements": [],
+ "improvements": ["RN-03","RN-08","RN-09","RN-16","RN-33"],
  "paths": ["{out}/out/MDATK_chart_rmsd_Backbone.png"],
  "log": ["Wrote 1 chart file(s) to {out}/out"],
  "progress": [["0x1.0000000000000p+0","Chart rmsd/Backbone"]],

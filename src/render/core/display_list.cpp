@@ -277,6 +277,16 @@ void Builder::axes(std::size_t k) {
                                         im.width = a.cols;
                                         im.height = a.rows;
                                         im.rgba = a.pixels();
+                                        im.smooth = a.interpolation != "nearest";
+                                        if (a.fillsAxes) {
+                                            // PixelImage.draw: 1:1 at the axes box' rounded lower left corner
+                                            const Box bb = m_fig.axesBox(static_cast<std::size_t>(&ax - m_fig.axes.data()));
+                                            const double x0 = std::round(bb.x0), y0 = std::round(bb.y0);
+                                            im.corner0 = dev({x0, y0 + a.rows});
+                                            im.corner1 = dev({x0 + a.cols, y0});
+                                            emit(std::move(im), clip, a.animated);
+                                            return;
+                                        }
                                         const double top = a.originUpper ? a.extent[3] : a.extent[2];
                                         const double bottom = a.originUpper ? a.extent[2] : a.extent[3];
                                         im.corner0 = dev(m_fig.toPixels(ax, Coords::Data, {a.extent[0], top}));

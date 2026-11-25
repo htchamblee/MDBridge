@@ -212,7 +212,7 @@ void Axes::updateDataLimits(const Artist& art) {
                 }
             }
         }
-    } else if (const Image* im = std::get_if<Image>(&art)) {
+    } else if (const Image* im = std::get_if<Image>(&art); im && !im->fillsAxes) {
         dataX.add(im->extent[0]);
         dataX.add(im->extent[1]);
         dataY.add(im->extent[2]);
@@ -231,7 +231,7 @@ void Axes::updateDataLimits(const Artist& art) {
 
 std::size_t Axes::add(Artist artist) {
     updateDataLimits(artist);
-    if (const Image* im = std::get_if<Image>(&artist)) {
+    if (const Image* im = std::get_if<Image>(&artist); im && !im->fillsAxes) {
         // AxesImage.set_extent: autoscaled axes take the extent as their limits, in its order (an
         // "upper" origin image inverts the y axis)
         if (xaxis.autoscale) xaxis.limits = {im->extent[0], im->extent[1]};
