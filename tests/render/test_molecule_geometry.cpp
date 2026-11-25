@@ -840,7 +840,8 @@ TEST(MoleculeGeometryParity, NdimageMatchesScipy) {
     const Value& data = loadJson("ndimage.json");
     for (const Value& c : list(at(data, "filter1d"))) {
         const std::vector<double> in = doubles(at(c, "input"));
-        std::vector<float> x(in.begin(), in.end());
+        std::vector<float> x(in.size());  // float32 input, as the generator's numpy array
+        std::transform(in.begin(), in.end(), x.begin(), [](double v) { return static_cast<float>(v); });
         const double sigma = number(at(c, "sigma"));
         const double truncate = number(at(c, "truncate"));
         const auto radius = static_cast<std::size_t>(truncate * sigma + 0.5);
