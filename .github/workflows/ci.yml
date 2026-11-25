@@ -283,10 +283,22 @@ jobs:
         run: |
           $lvp = (Resolve-Path build\lavapipe).Path
           $env:PATH = "$lvp;$env:PATH"  # vulkan-1.dll, used when Windows has no Vulkan loader of its own
-          $env:VK_DRIVER_FILES = "$lvp\lvp_icd.x86_64.json"
-          $env:VK_ICD_FILENAMES = $env:VK_DRIVER_FILES  # loaders older than 1.3.234
-          ctest --test-dir build\windows\build -C Release -L vulkan --no-tests=error --output-on-failure
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $icd = "$lvp\lvp_icd.x86_64.json"
+          # The runner's processes are elevated, and the Vulkan loader ignores VK_DRIVER_FILES and
+          # VK_ICD_FILENAMES in elevated processes (it then reads drivers only from HKLM, so the tests
+          # saw no driver: VK_ERROR_INCOMPATIBLE_DRIVER). Register lavapipe there for this step only.
+          $key = "HKLM:\SOFTWARE\Khronos\Vulkan\Drivers"
+          if (-not (Test-Path $key)) { New-Item -Path $key -Force | Out-Null }  # -Force on an existing key would empty it
+          New-ItemProperty -Path $key -Name $icd -PropertyType DWord -Value 0 -Force | Out-Null
+          $env:VK_DRIVER_FILES = $icd  # for a non-elevated shell (only this driver)
+          $env:VK_LOADER_DEBUG = "error,warn"  # why a driver does not load, in a failing test's output
+          try {
+            ctest --test-dir build\windows\build -C Release -L vulkan --no-tests=error --output-on-failure
+            $code = $LASTEXITCODE
+          } finally {
+            Remove-ItemProperty -Path $key -Name $icd  # the installed program's smoke test runs without it
+          }
+          if ($code -ne 0) { exit $code }
 
       - name: Install for the current user, then smoke test the installed program
         run: |
