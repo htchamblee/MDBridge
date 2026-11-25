@@ -169,21 +169,22 @@ public:
         m_dcut = p.distance_cutoff;
         m_cosCut = std::cos(p.angle_cutoff * (std::numbers::pi / 180.0));  // np.cos(np.radians(x))
         m_count.assign(frameCount(), 0);
-        m_csr = core::CsrBuilder();
+        m_map.reset(frameCount());
     }
 
-    void process(std::size_t k, const core::Frame& frame) override {
-        const std::size_t n = m_ab.size();
-        std::vector<Vec3> pos(n);
-        for (std::size_t x = 0; x < n; ++x) {
-            const auto base = static_cast<std::size_t>(m_ab[x]) * 3;
-            pos[x] = {frame.positions[base], frame.positions[base + 1], frame.positions[base + 2]};
-        }
-        const std::optional<Box> box = widenedBox(context().box(frame));
+    // Hydrogens unknown from bonds are guessed on the first analysed frame.
+    void prepare(const core::Frame& first) override {
         if (m_donorsPending) {
-            guessHydrogens(pos, box);
+            guessHydrogens(positions(first), widenedBox(context().box(first)));
             m_donorsPending = false;
         }
+    }
+
+    bool concurrentProcess() const override { return true; }
+
+    void process(std::size_t k, const core::Frame& frame) override {
+        const std::vector<Vec3> pos = positions(frame);
+        const std::optional<Box> box = widenedBox(context().box(frame));
         std::vector<std::int64_t> rowsA, rowsB;
         for (int s = 0; s < 2; ++s) {
             const std::vector<std::size_t>& don = m_donorIdx[s];
@@ -220,27 +221,25 @@ public:
         }
         m_count[k] = static_cast<std::int64_t>(rowsA.size());
         if (rowsA.empty()) {
-            m_csr.add({}, {}, {});
-            return;
+            return;  // an empty frame of the map
         }
         std::vector<std::int64_t> keys(rowsA.size());
         for (std::size_t e = 0; e < keys.size(); ++e) {
             keys[e] = rowsA[e] * m_nB + rowsB[e];
         }
         std::sort(keys.begin(), keys.end());
-        std::vector<std::int64_t> ri, rj;
-        std::vector<double> counts;
+        FrameEntries entries;
         for (std::size_t e = 0; e < keys.size();) {
             std::size_t end = e;
             while (end < keys.size() && keys[end] == keys[e]) {
                 ++end;
             }
-            ri.push_back(keys[e] / m_nB);
-            rj.push_back(keys[e] % m_nB);
-            counts.push_back(static_cast<double>(end - e));
+            entries.i.push_back(keys[e] / m_nB);
+            entries.j.push_back(keys[e] % m_nB);
+            entries.v.push_back(static_cast<double>(end - e));
             e = end;
         }
-        m_csr.add(ri, rj, counts);
+        m_map.set(k, std::move(entries));
     }
 
     core::AnalysisResult finalize() override {
@@ -253,7 +252,7 @@ public:
                                                   {"used_angle", m_useAngle},
                                                   {"distance_cutoff", p.distance_cutoff},
                                                   {"angle_cutoff", p.angle_cutoff}});
-        core::NamedArrays arrays = m_csr.arrays("map");
+        core::NamedArrays arrays = m_map.csr().arrays("map");
         const auto offsets = arrays[0].second.values<std::int64_t>();
         core::NumArray perA = perRowCounts(offsets, arrays[1].second.values<std::int32_t>(),
                                            arrays[3].second.values<float>(), m_resA.size());
@@ -275,6 +274,17 @@ public:
     }
 
 private:
+    // the positions of m_ab in `frame`
+    std::vector<Vec3> positions(const core::Frame& frame) const {
+        const std::size_t n = m_ab.size();
+        std::vector<Vec3> pos(n);
+        for (std::size_t x = 0; x < n; ++x) {
+            const auto base = static_cast<std::size_t>(m_ab[x]) * 3;
+            pos[x] = {frame.positions[base], frame.positions[base + 1], frame.positions[base + 2]};
+        }
+        return pos;
+    }
+
     static Vec3 difference(const Vec3& x, const Vec3& y) { return {x[0] - y[0], x[1] - y[1], x[2] - y[2]}; }
 
     static std::vector<double> coordinates(const std::vector<Vec3>& pos, const std::vector<std::size_t>& atoms) {
@@ -390,7 +400,7 @@ private:
     double m_dcut = 0.0;
     double m_cosCut = 0.0;
     std::vector<std::int64_t> m_count;
-    core::CsrBuilder m_csr;
+    FrameCsr m_map;  // residue H-bond map per frame
 };
 
 class HBondsDescriptor final : public AnalysisDescriptor {

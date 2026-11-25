@@ -61,4 +61,12 @@ core::NumArray perRowCounts(std::span<const std::int64_t> offsets, std::span<con
     return core::NumArray(std::move(out), {nRows, nFrames});
 }
 
+core::CsrBuilder FrameCsr::csr() const {
+    core::CsrBuilder out;
+    for (const FrameEntries& f : m_frames) {
+        out.add(f.i, f.j, f.v);
+    }
+    return out;
+}
+
 }  // namespace mdbridge::analysis

@@ -59,6 +59,14 @@ Each module is a library with a C++ API; only `app` depends on Qt widgets.
 | `workflow` | planner model, step types and checks; generators written in Lua and loaded from `.lua` files (users can add steps) | core, chem |
 | `app` | Qt GUI and the CLI: two thin front ends over the same libraries | all |
 
+Analyses run in one pass over the frames, frame-parallel (`runAnalyses`, `analysis.hpp`): one
+thread reads the trajectory in order, worker threads run each analysis' per-frame step, and
+results go to per-frame slots, so they are byte-identical for any thread count; first-frame steps
+(rmsd reference, hbonds hydrogen guess, trace / atoms alignment reference and links) run in a
+sequential `prepare` on the first frame. Threads: `RunOptions::threads` (`Pipeline::setThreads`),
+else the environment variable `MDBRIDGE_THREADS` (a positive integer; `1` is the sequential run),
+else the hardware concurrency capped at 16.
+
 PDB hygiene stays in C++ (it shares chirality and base logic with the builder and analyses);
 Lua generators call it rather than reimplement it.
 

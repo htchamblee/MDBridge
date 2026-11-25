@@ -81,9 +81,13 @@ public:
         m_source.assign(frameCount(), 0);
     }
 
+    bool concurrentProcess() const override { return true; }
+
+    // Frames between two strides hold the pairs of the last detected frame (k - k % stride).
     void process(std::size_t k, const core::Frame& frame) override {
-        if (static_cast<std::int64_t>(k) % m_stride != 0) {
-            m_source[k] = m_source[k - 1];
+        const auto offset = static_cast<std::size_t>(static_cast<std::int64_t>(k) % m_stride);
+        if (offset != 0) {
+            m_source[k] = k - offset;
             return;
         }
         m_source[k] = k;

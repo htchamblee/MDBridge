@@ -141,6 +141,8 @@ public:
         m_pairCount.assign(n, 0);
     }
 
+    bool concurrentProcess() const override { return true; }
+
     void process(std::size_t k, const core::Frame& frame) override {
         const std::optional<Box> box = usableBox(context().box(frame));
         const std::vector<double> pa = widenedPositions(m_a, frame);

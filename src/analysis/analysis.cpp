@@ -155,6 +155,8 @@ Analysis::Analysis(const AnalysisDescriptor& descriptor, AnalysisContext& contex
     : m_descriptor(&descriptor), m_context(&context),
       m_instance(instance.empty() ? descriptor.name() : std::move(instance)) {}
 
+void Analysis::prepare(const core::Frame&) {}
+
 void Analysis::setup(std::span<const std::int64_t> frames) {
     m_frameCount = frames.size();
 }

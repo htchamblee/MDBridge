@@ -385,7 +385,7 @@ core::Dataset Pipeline::analyze(const std::optional<std::vector<std::string>>& r
             analyses.push_back(analysisFor(n).create(*contexts.back(), n));
         }
         const core::Reporter runReporter = rep.sub(0.02, 1.0);
-        RunResult run = runAnalyses(*contexts.front(), analyses, idx, &runReporter);
+        RunResult run = runAnalyses(*contexts.front(), analyses, idx, &runReporter, RunOptions{m_threads});
         system.trajectory->seek(0);  // MDATK iterates trajectory[idx], which rewinds to frame 0
         for (core::AnalysisResult& res : run.results) {
             res.key = keys[res.name];

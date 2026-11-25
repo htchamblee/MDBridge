@@ -330,8 +330,9 @@ inline std::vector<std::string> coveredInstances(const Value& c, const std::func
     return out;
 }
 
-// One case as the generator runs it, restricted to `instances`.
-inline CaseRun runCase(const Value& file, const Value& c, const std::vector<std::string>& instances) {
+// One case as the generator runs it, restricted to `instances` (runAnalyses with `options`).
+inline CaseRun runCase(const Value& file, const Value& c, const std::vector<std::string>& instances,
+                       const analysis::RunOptions& options = {}) {
     CaseRun out;
     out.instances = instances;
     const core::Project project = core::projectFromPlain(untag(at(c, "project")));
@@ -362,7 +363,7 @@ inline CaseRun runCase(const Value& file, const Value& c, const std::vector<std:
             analyses.push_back(analysis::analysisFor(instances[n]).create(*contexts.back(), instances[n]));
         }
         if (!analyses.empty()) {
-            out.run = analysis::runAnalyses(*contexts.front(), analyses, out.frames, &reporter);
+            out.run = analysis::runAnalyses(*contexts.front(), analyses, out.frames, &reporter, options);
         }
     } catch (const std::exception& e) {
         out.error = caseError(e);

@@ -27,6 +27,7 @@
 
 #include "builtin.hpp"
 #include "mdbridge/analysis/analyses.hpp"
+#include "mdbridge/analysis/common.hpp"
 #include "mdbridge/analysis/spatial.hpp"
 #include "mdbridge/core/linalg.hpp"
 #include "mdbridge/core/selections.hpp"
@@ -151,16 +152,17 @@ public:
         m_count.assign(n, 0);
         m_inter.assign(n, 0);
         m_intra.assign(n, 0);
-        m_csr = core::CsrBuilder();
+        m_map.reset(n);
         // np.cos(np.radians(x)); numpy's SIMD cos may differ from libm in the last bit
         m_cosCut = std::cos(p.angle_cutoff * kRadiansPerDegree);
     }
 
+    bool concurrentProcess() const override { return true; }
+
     void process(std::size_t k, const core::Frame& frame) override {
         const std::size_t nRings = m_rings.size();
         if (nRings < 2) {
-            m_csr.add({}, {}, {});
-            return;
+            return;  // an empty frame of the map
         }
         const core::StackingParams& p = m_p;
         const std::optional<Box> box = boxOf(context().box(frame));
@@ -247,8 +249,8 @@ public:
         m_count[k] = count;
         m_inter[k] = inter;
         m_intra[k] = count - inter;
-        const std::vector<double> ones(rowsOut.size(), 1.0);
-        m_csr.add(rowsOut, colsOut, ones);
+        std::vector<double> ones(rowsOut.size(), 1.0);
+        m_map.set(k, {std::move(rowsOut), std::move(colsOut), std::move(ones)});
     }
 
     core::AnalysisResult finalize() override {
@@ -265,7 +267,7 @@ public:
                                                              {"col_labels", std::move(colLabels)},
                                                              {"n_rings", static_cast<std::int64_t>(m_rings.size())},
                                                              {"scope", p.scope}});
-        for (auto& entry : m_csr.arrays("map")) {
+        for (auto& entry : m_map.csr().arrays("map")) {
             res.arrays.push_back(std::move(entry));
         }
         res.arrays.emplace_back("count", core::NumArray(m_count));
@@ -293,7 +295,7 @@ private:
     std::vector<SizeGroup> m_bySize;
     std::vector<std::int64_t> m_rows, m_cols, m_rowOf, m_colOf;
     std::vector<std::int64_t> m_count, m_inter, m_intra;
-    core::CsrBuilder m_csr;
+    FrameCsr m_map;  // stacked ring pairs per frame
     double m_cosCut = 0.0;
 };
 

@@ -182,6 +182,12 @@ public:
             m_inner->setup(frames);
         }
     }
+    void prepare(const core::Frame& first) override {
+        if (m_inner) {
+            m_inner->prepare(first);
+        }
+    }
+    bool concurrentProcess() const override { return !m_inner || m_inner->concurrentProcess(); }
     void process(std::size_t k, const core::Frame& frame) override {
         if (m_inner) {
             m_inner->process(k, frame);

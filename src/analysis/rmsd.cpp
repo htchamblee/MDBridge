@@ -157,6 +157,8 @@ public:
         m_values.assign(m_targets.size() * frameCount(), std::numeric_limits<double>::quiet_NaN());
     }
 
+    bool concurrentProcess() const override { return true; }
+
     void process(std::size_t k, const core::Frame& frame) override {
         for (std::size_t n = 0; n < m_targets.size(); ++n) {
             const RmsdTarget& t = m_targets[n];

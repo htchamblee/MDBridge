@@ -69,10 +69,12 @@ public:
         m_cutoff = p.cutoff;
         m_atomPairs.assign(frameCount(), 0);
         m_residuePairs.assign(frameCount(), 0);
-        m_csr = core::CsrBuilder();
+        m_map.reset(frameCount());
         m_groupA = p.group_a;
         m_groupB = p.group_b;
     }
+
+    bool concurrentProcess() const override { return true; }
 
     void process(std::size_t k, const core::Frame& frame) override {
         const std::vector<float> pa = gather(frame, m_a.indices());
@@ -100,8 +102,7 @@ public:
         }
         m_atomPairs[k] = static_cast<std::int64_t>(i.size());
         if (i.empty()) {
-            m_csr.add({}, {}, {});
-            return;
+            return;  // an empty frame of the map
         }
         // np.unique(row_a[i] * n_b + row_b[j], return_counts=True)
         std::vector<std::int64_t> keys(i.size());
@@ -109,20 +110,19 @@ public:
             keys[n] = m_rowA[static_cast<std::size_t>(i[n])] * m_nB + m_rowB[static_cast<std::size_t>(j[n])];
         }
         std::sort(keys.begin(), keys.end());
-        std::vector<std::int64_t> rows, cols;
-        std::vector<double> counts;
+        FrameEntries entries;
         for (std::size_t n = 0; n < keys.size();) {
             std::size_t end = n;
             while (end < keys.size() && keys[end] == keys[n]) {
                 ++end;
             }
-            rows.push_back(keys[n] / m_nB);
-            cols.push_back(keys[n] % m_nB);
-            counts.push_back(static_cast<double>(end - n));
+            entries.i.push_back(keys[n] / m_nB);
+            entries.j.push_back(keys[n] % m_nB);
+            entries.v.push_back(static_cast<double>(end - n));
             n = end;
         }
-        m_residuePairs[k] = static_cast<std::int64_t>(rows.size());
-        m_csr.add(rows, cols, counts);
+        m_residuePairs[k] = static_cast<std::int64_t>(entries.i.size());
+        m_map.set(k, std::move(entries));
     }
 
     core::AnalysisResult finalize() override {
@@ -132,7 +132,7 @@ public:
                                                   {"group_a", m_groupA},
                                                   {"group_b", m_groupB},
                                                   {"cutoff", m_cutoff}});
-        core::NamedArrays arrays = m_csr.arrays("map");
+        core::NamedArrays arrays = m_map.csr().arrays("map");
         const auto offsets = arrays[0].second.values<std::int64_t>();
         const auto mi = arrays[1].second.values<std::int32_t>();
         const auto mj = arrays[2].second.values<std::int32_t>();
@@ -192,7 +192,7 @@ private:
     std::int64_t m_nB = 0;
     double m_cutoff = 0.0;
     std::vector<std::int64_t> m_atomPairs, m_residuePairs;
-    core::CsrBuilder m_csr;
+    FrameCsr m_map;  // residue contact map per frame
     std::string m_groupA, m_groupB;
 };
 

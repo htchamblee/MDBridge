@@ -9,6 +9,7 @@
 // marker MDATK_clean.json naming that key) are used; without them the run fails with a
 // PipelineError ("cleaning with cpptraj is not available in MDBridge yet: ...").
 
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <optional>
@@ -75,6 +76,10 @@ public:
     const core::Project& project() const { return m_project; }
     const core::Reporter& reporter() const { return m_reporter; }
     const CacheStore& cache() const { return m_cache; }
+    // Worker threads of analyze()'s run (RunOptions::threads: 0, the default, for
+    // analysisThreads()'s choice; results do not depend on it).
+    std::size_t threads() const { return m_threads; }
+    void setThreads(std::size_t threads) { m_threads = threads; }
     // instance -> cache key of the last analyze() (dict order)
     const std::vector<std::pair<std::string, std::string>>& analysisKeys() const { return m_keys; }
 
@@ -132,6 +137,7 @@ private:
     std::optional<ResolvedInputs> m_inputs;
     std::unique_ptr<core::System> m_system;
     std::vector<std::pair<std::string, std::string>> m_keys;
+    std::size_t m_threads = 0;
 };
 
 }  // namespace mdbridge::analysis

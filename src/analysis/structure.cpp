@@ -401,13 +401,18 @@ public:
         m_links.clear();
     }
 
+    // The first analysed frame is the alignment reference and decides the links.
+    void prepare(const core::Frame& first) override {
+        m_reference = m_tracer->positions(first);
+        links(*m_reference);
+    }
+
+    bool concurrentProcess() const override { return true; }
+
     void process(std::size_t k, const core::Frame& frame) override {
         std::vector<Vec3> xyz = m_tracer->positions(frame);
         std::vector<Vec3> ions = positions(frame, m_ions);
-        if (!m_reference) {
-            m_reference = xyz;
-            links(xyz);
-        } else if (m_align && m_residues.size() >= 3) {
+        if (k != 0 && m_align && m_residues.size() >= 3) {  // the reference frame stays as it is
             const KabschResult fit = kabsch(xyz, *m_reference);
             superpose(xyz, fit);
             superpose(ions, fit);
@@ -510,6 +515,8 @@ public:
         m_dist.assign(m_residues.size() * frameCount(), std::numeric_limits<float>::infinity());
     }
 
+    bool concurrentProcess() const override { return true; }
+
     void process(std::size_t k, const core::Frame& frame) override {
         if (m_struct.empty()) {
             return;
@@ -583,13 +590,15 @@ public:
         m_bonds = atomBonds(m_atoms, currentFrame(context()));  // the frame current at setup
     }
 
+    // The first analysed frame is the alignment reference.
+    void prepare(const core::Frame& first) override { m_reference = m_tracer->positions(first); }
+
+    bool concurrentProcess() const override { return true; }
+
     void process(std::size_t k, const core::Frame& frame) override {
         std::vector<Vec3> xyz = positions(frame, m_atoms);
-        std::vector<Vec3> points = m_tracer->positions(frame);
-        if (!m_reference) {
-            m_reference = std::move(points);
-        } else if (m_align && points.size() >= 3) {
-            superpose(xyz, kabsch(points, *m_reference));
+        if (k != 0 && m_align && m_tracer->size() >= 3) {  // the reference frame stays as it is
+            superpose(xyz, kabsch(m_tracer->positions(frame), *m_reference));
         }
         store(m_coords, k, xyz);
     }

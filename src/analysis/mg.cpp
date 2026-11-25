@@ -130,6 +130,8 @@ public:
         m_cos180 = std::cos((180.0 - p.angle_tolerance) * kRadiansPerDegree);  // cos <= this ~ 180 deg
     }
 
+    bool concurrentProcess() const override { return true; }
+
     void process(std::size_t k, const core::Frame& frame) override {
         if (m_mg.empty()) {
             return;

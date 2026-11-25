@@ -202,6 +202,8 @@ public:
         context().system().trajectory->seek(m_setupFrame);
         m_inner->setup(frames);
     }
+    void prepare(const core::Frame& first) override { m_inner->prepare(first); }
+    bool concurrentProcess() const override { return m_inner->concurrentProcess(); }
     void process(std::size_t k, const core::Frame& frame) override { m_inner->process(k, frame); }
     core::AnalysisResult finalize() override { return m_inner->finalize(); }
 

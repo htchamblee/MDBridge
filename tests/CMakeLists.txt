@@ -65,6 +65,7 @@ add_executable(mdbridge_analysis_tests
     analysis/test_energy.cpp
     analysis/test_framework.cpp
     analysis/test_mg_stacking.cpp
+    analysis/test_parallel.cpp
     analysis/test_pipeline.cpp
     analysis/test_rmsd_analysis.cpp
     analysis/test_structure.cpp)
@@ -72,7 +73,11 @@ target_include_directories(mdbridge_analysis_tests PRIVATE "${CMAKE_CURRENT_SOUR
 target_link_libraries(mdbridge_analysis_tests PRIVATE mdbridge::analysis GTest::gtest_main)
 target_compile_definitions(mdbridge_analysis_tests PRIVATE MDBRIDGE_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data")
 mdbridge_target_warnings(mdbridge_analysis_tests)
-gtest_discover_tests(mdbridge_analysis_tests DISCOVERY_MODE PRE_TEST)
+# every case twice: with the frame-parallel runner (4 threads, whatever the machine) and
+# sequentially (MDBRIDGE_THREADS=1, tests named "<test>/threads1")
+gtest_discover_tests(mdbridge_analysis_tests DISCOVERY_MODE PRE_TEST PROPERTIES ENVIRONMENT "MDBRIDGE_THREADS=4")
+gtest_discover_tests(mdbridge_analysis_tests DISCOVERY_MODE PRE_TEST TEST_SUFFIX "/threads1"
+                     PROPERTIES ENVIRONMENT "MDBRIDGE_THREADS=1")
 
 # analysis spatial helpers (mdatk/spatial.py)
 add_subdirectory(analysis_spatial)
