@@ -249,9 +249,9 @@ TEST(NumpyRandom, Pcg64StreamsAreNumpys) {
     for (const Value& s : arr(at(at(cases(), "rng"), "seeds"))) {
         const std::uint64_t seed = std::stoull(str(at(s, "seed")));
         const std::vector<std::uint32_t> state = seedSequenceState(seed, 8);
-        const std::vector<std::int64_t> want = ints(at(s, "state"));
+        const std::vector<std::int64_t> wantState = ints(at(s, "state"));
         for (std::size_t k = 0; k < 8; ++k) {
-            EXPECT_EQ(state[k], static_cast<std::uint32_t>(want[k])) << "seed " << seed;
+            EXPECT_EQ(state[k], static_cast<std::uint32_t>(wantState[k])) << "seed " << seed;
         }
         NumpyGenerator raw(seed);
         for (const Value& r : arr(at(s, "raw"))) {

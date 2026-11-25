@@ -1016,21 +1016,25 @@ std::vector<PathCommand> textPath(const Font& font, const TextLayout& layout) {
                     rest = contour;
                 }
                 out.push_back({K::Move, start.x, start.y});
-                std::optional<P> control;
+                // A flag and a zeroed point rather than std::optional<P>: GCC 11 at -O3 reports the
+                // optional's payload as maybe-uninitialized (a false positive, fatal with -Werror).
+                bool hasControl = false;
+                P control{};
                 for (const P& q : rest) {
                     if (q.on) {
-                        out.push_back(control ? PathCommand{K::Quad, q.x, q.y, control->x, control->y}
-                                              : PathCommand{K::Line, q.x, q.y});
-                        control.reset();
+                        out.push_back(hasControl ? PathCommand{K::Quad, q.x, q.y, control.x, control.y}
+                                                 : PathCommand{K::Line, q.x, q.y});
+                        hasControl = false;
                     } else {
-                        if (control) {
-                            out.push_back({K::Quad, (control->x + q.x) / 2, (control->y + q.y) / 2, control->x, control->y});
+                        if (hasControl) {
+                            out.push_back({K::Quad, (control.x + q.x) / 2, (control.y + q.y) / 2, control.x, control.y});
                         }
                         control = q;
+                        hasControl = true;
                     }
                 }
-                if (control) {
-                    out.push_back({K::Quad, start.x, start.y, control->x, control->y});
+                if (hasControl) {
+                    out.push_back({K::Quad, start.x, start.y, control.x, control.y});
                 }
                 out.push_back({K::Close});
             }
