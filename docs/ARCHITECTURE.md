@@ -118,6 +118,14 @@ and workflows: the same numbers within floating-point tolerance, the same genera
 byte for byte (except time stamps), and the same project files. The Python test suite is the
 specification; each Python test gets a C++ (or CLI-level) counterpart.
 
+Parity is the floor, not the goal: MDBridge is meant to surpass MDATK. Where MDATK (or MDAnalysis,
+whose behaviour it inherits) has a bug, a crash, a misleading message or a numerically fragile
+result, MDBridge fixes it instead of reproducing it. Each such fix is a deliberate difference: it
+is listed in `docs/DIFFERENCES.md` with the reason, and the parity tests check MDBridge's improved
+behaviour there (the expected data is adjusted on the test side, as for the independent data tables,
+`tests/parity/independent_tables.py`). Behaviour that is merely a convention (output formats, file
+names, orders users rely on, option names) stays as MDATK has it.
+
 ## Repository and parity checks
 
 Own repository, `htchamblee/MDBridge`, with its own licence, releases, CI and issues (MDATK
