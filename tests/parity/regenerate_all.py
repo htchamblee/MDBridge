@@ -255,6 +255,9 @@ STEPS = [
     Step("analysis_framework", "tests/parity/make_analysis_framework_cases.py",
          lambda ctx: [M(ctx), d(ctx, "analysis")], [f"{DATA}/analysis/framework_cases.json"]),
     case_step("spatial_extra", "make_spatial_cases.py", "analysis"),
+    # milestone 3: the analysis cache and the analyze pipeline on the demo files
+    Step("pipeline", "tests/parity/make_pipeline_cases.py", lambda ctx: [M(ctx), d(ctx, "analysis")],
+         [f"{DATA}/analysis/pipeline_cases.json"]),
 ]
 
 

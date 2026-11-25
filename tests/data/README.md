@@ -591,6 +591,32 @@ The data keys must equal MDATK's exactly; the analysis cache itself is MDBridge'
 /opt/mdbridge-venv/bin/python -I -B tests/parity/make_analysis_framework_cases.py /tmp/mdatk tests/data/analysis
 ```
 
+`analysis/pipeline_cases.json` holds what MDATK's analyze pipeline (`mdatk/pipeline.py`
+`Pipeline.required_analyses` / `analyze` / `load_cached_dataset`, `mdatk/io/cache.py`) does, for
+`src/analysis/pipeline.cpp` and `cache.cpp` (`tests/analysis/test_pipeline.cpp`): `required` lists
+`required_analyses(video, charts)` of projects covering every panel type (structure with and without
+representations and proximity, sequence, secondary with each `source`, time series, dual axis,
+heatmap, contact map), charted series, analyses switched on and off and invalid instances (the
+"skipping data source" lines, sorted: MDATK logs them in the order of a Python set), and an unknown
+panel type; `sequences` are runs of `Pipeline(project).analyze(names, force)` one after the other on
+one cache folder (cache reuse, invalidation by a parameter and by the frame selection, a display-only
+change, `force`, instance lists, a repeated instance, no analyses, frame selections with external
+data, a reused cleaned trajectory, and errors: `check()`, unknown analyses and groups, an empty frame
+selection, bad external data). Per run: the project, the log and progress lines, the cache keys, the
+manifest (`MDATK_cache.json` without `project`, `mdatk_version` and `updated`; `all_entries` sorted by
+the masked keys, since MDATK sorts by the real ones), each entry's `.json`
+description, the entries in the cache folder, the dataset (frames, times, keys, labels, units,
+energy target) and what `load_cached_dataset` rebuilds. Paths are `{data}` / `{work}` placeholders;
+cache keys are those of the fingerprints with placeholder paths and `mtime_ns` 0 (the C++ test masks
+its own fingerprints the same way), and every `mtime_ns` is written as 0. Only the demo files'
+contents are read, through MDATK's loader with the independent tables and the residue-scoped ion
+rule; the analyses run are contacts, energy, H-bonds, RMSD, trace and proximity. The cache files
+themselves are MDBridge's own (`src/analysis/include/mdbridge/analysis/cache.hpp`) and not compared.
+
+```bash
+/opt/mdbridge-venv/bin/python -I -B tests/parity/make_pipeline_cases.py /tmp/mdatk tests/data/analysis
+```
+
 ## Checking that the data is reproducible
 
 `tests/parity/regenerate_all.py` runs every generator above (and `tools/gen_*.py`) in this order

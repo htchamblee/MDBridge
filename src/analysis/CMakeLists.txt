@@ -1,9 +1,11 @@
 # analysis: MDATK's analyses (mdatk/analysis/*.py): the framework (registry, instance ids, cache
-# keys, context, single-pass runner) and the analyses themselves.
+# keys, context, single-pass runner), the analyses themselves, and the analysis cache and analyze
+# pipeline (mdatk/io/cache.py, mdatk/pipeline.py; .npz entries written with zlib).
 add_library(mdbridge_analysis STATIC
     analysis.cpp
     basepairs.cpp
     builtin.hpp
+    cache.cpp
     common.cpp
     contacts.cpp
     context.cpp
@@ -11,6 +13,7 @@ add_library(mdbridge_analysis STATIC
     hbonds.cpp
     keys.cpp
     mg.cpp
+    pipeline.cpp
     registry.cpp
     rmsd.cpp
     rmsd_qcp.cpp
@@ -20,7 +23,7 @@ add_library(mdbridge_analysis STATIC
     structure.cpp)
 add_library(mdbridge::analysis ALIAS mdbridge_analysis)
 target_include_directories(mdbridge_analysis PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
-target_link_libraries(mdbridge_analysis PUBLIC mdbridge::core mdbridge::io)
+target_link_libraries(mdbridge_analysis PUBLIC mdbridge::core mdbridge::io PRIVATE ${MDBRIDGE_ZLIB_TARGET})
 target_compile_features(mdbridge_analysis PUBLIC cxx_std_20)
 mdbridge_target_warnings(mdbridge_analysis)
 # numerics reproduced as numpy rounds them: no contraction into fused multiply-adds
