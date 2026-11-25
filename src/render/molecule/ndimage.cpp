@@ -1,6 +1,7 @@
 // Gaussian filtering (mode "constant") and order-1 interpolation (mode "nearest") as
 // scipy.ndimage computes them, ported from SciPy 1.18.1: _gaussian_kernel1d / gaussian_filter1d /
-// gaussian_filter (scipy/ndimage/_filters.py), NI_Correlate1D and its line buffers
+// gaussian_filter / uniform_filter1d (scipy/ndimage/_filters.py), NI_Correlate1D,
+// NI_UniformFilter1D and their line buffers
 // (scipy/ndimage/src/ni_filters.c, ni_support.c), NI_GeometricTransform's interpolation (its
 // matrix path for affine_transform, scipy/ndimage/_interpolation.py) and map_coordinate
 // (src/ni_interpolation.c) and get_spline_interpolation_weights (src/ni_splines.c),
@@ -118,6 +119,33 @@ void gaussianFilter(std::vector<float>& data, const Shape3& shape, double sigma,
     }
     for (std::size_t axis = 0; axis < 3; ++axis) {
         gaussianFilter1d(data, shape, axis, sigma, truncate, cval);
+    }
+}
+
+void uniformFilter1dLine(const float* in, std::size_t stride, std::size_t length, std::size_t size, float* out,
+                         double cval) {
+    if (size < 1) {
+        throw std::invalid_argument("incorrect filter size");
+    }
+    if (length == 0) {
+        return;
+    }
+    // the line buffer: size / 2 values of cval before the line, size - size / 2 - 1 after it
+    const auto size1 = static_cast<std::ptrdiff_t>(size / 2);
+    const auto n = static_cast<std::ptrdiff_t>(length);
+    auto at = [&](std::ptrdiff_t i) {  // line value i (i < 0 or i >= length: cval)
+        return i < 0 || i >= n ? cval : static_cast<double>(in[static_cast<std::size_t>(i) * stride]);
+    };
+    const auto fs = static_cast<std::ptrdiff_t>(size);
+    const double div = static_cast<double>(size);
+    double tmp = 0.0;
+    for (std::ptrdiff_t ll = 0; ll < fs; ++ll) {
+        tmp += at(ll - size1);
+    }
+    out[0] = static_cast<float>(tmp / div);
+    for (std::ptrdiff_t ll = 1; ll < n; ++ll) {
+        tmp += at(ll - 1 + fs - size1) - at(ll - 1 - size1);
+        out[static_cast<std::size_t>(ll) * stride] = static_cast<float>(tmp / div);
     }
 }
 

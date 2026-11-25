@@ -145,6 +145,15 @@ target_compile_definitions(mdbridge_molecule_tests PRIVATE MDBRIDGE_TEST_DATA="$
 mdbridge_target_warnings(mdbridge_molecule_tests)
 gtest_discover_tests(mdbridge_molecule_tests DISCOVERY_MODE PRE_TEST)
 
+# render/molecule: the software 3D renderer (counterparts of MDATK's tests/test_molecule_render.py;
+# RGBA against MDATK's renders, data/render/molecule, tests/parity/make_molecule_cases.py); no Qt
+add_executable(mdbridge_molecule_render_tests render/test_molecule_render.cpp)
+target_link_libraries(mdbridge_molecule_render_tests PRIVATE mdbridge::render_molecule mdbridge::render_core
+                      mdbridge::core GTest::gtest_main)
+target_compile_definitions(mdbridge_molecule_render_tests PRIVATE MDBRIDGE_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data")
+mdbridge_target_warnings(mdbridge_molecule_render_tests)
+gtest_discover_tests(mdbridge_molecule_render_tests DISCOVERY_MODE PRE_TEST)
+
 # render/molecule: the density shadow (project_density, shadow_rgba, anchored, scipy's
 # affine_transform) against MDATK (data/render/density_shadow,
 # tests/parity/make_density_shadow_cases.py); no Qt
