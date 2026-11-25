@@ -6,6 +6,11 @@
   make the parity tests expect the improved behaviour. Conventions users rely on (file formats,
   names, options, output layout) stay as MDATK has them. See "Definition of done" in
   `docs/ARCHITECTURE.md`.
+- **Check later MDATK first.** MDATK is still developed (0.1.1 and later) and has fixed many
+  0.0.4.x issues. Before designing a fix or improvement, read MDATK's latest `CHANGELOG.md` and
+  code to see whether and how it was handled there, and prefer that design unless there is a
+  reason not to (say which version it follows in `docs/DIFFERENCES.md`). After 0.0.4.1 parity,
+  the plan is to add the features of the latest MDATK. Tests keep v0.0.4.1 as the reference.
 - **Clean room for MDAnalysis (LGPL).** Never copy or translate MDAnalysis code. Spec writers
   read and run it and write behaviour-only specs in `docs/specs/`; implementers of that behaviour
   never open MDAnalysis or the code a rewrite replaces (`docs/specs/README.md`, `LICENSING.md`).
