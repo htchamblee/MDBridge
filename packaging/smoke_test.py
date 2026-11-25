@@ -2,6 +2,7 @@
 
     python packaging/smoke_test.py EXE [--gui] [--expect-renderer auto|vulkan|software] [--version X.Y.Z]
                                        [--text-report OUT.json] [--compare-text-report REF.json]
+                                       [--screenshot-dir DIR]
 
 Runs, in order:
 
@@ -15,10 +16,14 @@ Runs, in order:
   the text metrics equal those of another machine's report (CI: the bare Rocky Linux system against
   the build machine)
 * ``EXE info`` (demo system), ``EXE density info`` (a map) and ``EXE init`` (a new project file)
-* ``--gui``: ``EXE gui PROJECT --screenshot`` with the software view and the automatic choice
-  (``--expect-renderer``: what the automatic choice must give; ``vulkan`` also forces a Vulkan
-  run), checking that each frame really has content; then ``EXE gui PROJECT --quit-after 5``.
-  On a headless Linux machine run it under ``xvfb-run -a``.
+* ``--gui``: ``EXE gui PROJECT --screenshot --preview-screenshot`` on a project of the demo system
+  (tests/data) with the software view and the automatic choice (``--expect-renderer``: what the
+  automatic choice must give; ``vulkan`` also forces a Vulkan run), checking that the 3D view shows
+  the project's structure, not the placeholder (the program says so, and a good part of the pixels
+  differ from the background), and that the figure preview was drawn; then
+  ``EXE gui PROJECT --quit-after 5`` on a project whose input files are missing (the interface
+  reports it and keeps running). On a headless Linux machine run it under ``xvfb-run -a``.
+  ``--screenshot-dir``: keep the screenshots there (CI uploads them for review).
 
 Uses the standard library only; exits with 1 when a check fails.
 """
@@ -28,6 +33,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -39,6 +45,7 @@ import compare  # noqa: E402  (tests/parity/compare.py)
 PROJECTS = os.path.join(ROOT, "tests", "data", "projects")
 EXPECTED = os.path.join(ROOT, "tests", "data", "expected")
 FAILED = []
+SCREENSHOT_DIR = None  # --screenshot-dir
 
 
 def env():
@@ -60,14 +67,61 @@ def run(exe, *args, timeout=180):
                           timeout=timeout)
 
 
+# The demo system (tests/data) as a project: the 3D view shows its reference frame, the preview its
+# figure with the example data
+DEMO_PROJECT = """format = "mdatk-project"
+
+[inputs]
+topology = "demo_dry.parm7"
+trajectories = ["demo_dry.nc"]
+
+[[groups]]
+name = "Aptamer"
+residues = "1-12"
+
+[[groups]]
+name = "Target"
+residues = "13-24"
+color = "#eb6834"
+"""
+MIN_COVERAGE = 0.1  # the demo structure covers ~17 % of the view in the 1280 x 800 window
+
+
+def demo_project(work: str) -> str:
+    data = os.path.join(ROOT, "tests", "data")
+    shutil.copy(os.path.join(data, "topology", "demo_dry.parm7"), work)
+    shutil.copy(os.path.join(data, "io", "trajectories", "demo_dry.nc"), work)
+    path = os.path.join(work, "demo.mdatk.toml")
+    with open(path, "w", encoding="utf-8") as fh:
+        fh.write(DEMO_PROJECT)
+    return path
+
+
 def screenshot(exe, renderer: str, work: str):
     png = os.path.join(work, f"view-{renderer}.png")
-    r = run(exe, "gui", os.path.join(PROJECTS, "full.mdatk.toml"), "--renderer", renderer, "--screenshot", png)
+    preview_png = os.path.join(work, f"preview-{renderer}.png")
+    r = run(exe, "gui", demo_project(work), "--renderer", renderer, "--screenshot", png,
+            "--preview-screenshot", preview_png)
     lines = [line for line in r.stdout.splitlines() if line.startswith("{")]
     report = json.loads(lines[-1]) if lines else {}
-    ok = r.returncode == 0 and report.get("colours", 0) > 100 and os.path.getsize(png) > 1000
-    check(f"gui --renderer {renderer}: {report.get('description', '?')}", ok,
-          f"exit {r.returncode}; {report}; {r.stderr.strip()[-600:]}")
+    detail = f"exit {r.returncode}; {report}; {r.stderr.strip()[-600:]}"
+    ok = r.returncode == 0 and report.get("colours", 0) > 100 and os.path.isfile(png) and os.path.getsize(png) > 1000
+    check(f"gui --renderer {renderer}: {report.get('description', '?')}", ok, detail)
+    check(f"gui --renderer {renderer}: the 3D view shows the project's structure ({report.get('structure')}, "
+          f"{100 * report.get('coverage', 0):.0f} % of the pixels)",
+          report.get("molecule") is True and report.get("coverage", 0) > MIN_COVERAGE, detail)
+    preview = report.get("preview") or {}
+    check(f"gui --renderer {renderer}: figure preview {preview.get('width')} x {preview.get('height')}",
+          r.returncode == 0 and not preview.get("problem") and preview.get("width", 0) >= 100
+          and preview.get("colours", 0) > 50 and os.path.isfile(preview_png) and os.path.getsize(preview_png) > 1000,
+          detail)
+    if SCREENSHOT_DIR:
+        os.makedirs(SCREENSHOT_DIR, exist_ok=True)
+        for f in (png, preview_png):
+            if os.path.isfile(f):
+                shutil.copy(f, SCREENSHOT_DIR)
+        with open(os.path.join(SCREENSHOT_DIR, f"report-{renderer}.json"), "w", encoding="utf-8") as fh:
+            json.dump(report, fh, indent=1, ensure_ascii=False)
     return report
 
 
@@ -120,8 +174,11 @@ def main(argv=None) -> int:
     parser.add_argument("--text-report", help="write the report of `EXE fonts --json` to this file")
     parser.add_argument("--compare-text-report", help="a report of --text-report another machine wrote: the text "
                         "image's pixels and the metrics must be the same")
+    parser.add_argument("--screenshot-dir", help="with --gui: keep the screenshots and reports in this folder")
     args = parser.parse_args(argv)
     exe = os.path.abspath(args.exe)
+    global SCREENSHOT_DIR
+    SCREENSHOT_DIR = os.path.abspath(args.screenshot_dir) if args.screenshot_dir else None
 
     r = run(exe, "--version")
     check(f"--version: {r.stdout.strip()}", r.returncode == 0 and r.stdout.startswith("mdbridge ")
@@ -173,7 +230,7 @@ def main(argv=None) -> int:
                 vulkan = screenshot(exe, "vulkan", work)
                 check("the Vulkan view ran", vulkan.get("renderer") == "vulkan", str(vulkan.get("fallback_reason")))
         r = run(exe, "gui", os.path.join(PROJECTS, "split.mdatk.toml"), "--quit-after", "5")
-        check("gui runs 5 s and quits", r.returncode == 0, r.stderr.strip()[-600:])
+        check("gui runs 5 s and quits (a project without input files)", r.returncode == 0, r.stderr.strip()[-600:])
 
     print(f"\n{'all checks passed' if not FAILED else str(len(FAILED)) + ' check(s) failed'}")
     return 1 if FAILED else 0

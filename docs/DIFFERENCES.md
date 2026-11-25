@@ -1223,6 +1223,46 @@ figures are compared by tests/render). Differences:
   locale Qt's notice about switching to `C.UTF-8` is not printed (the switch is made silently), and
   numbers in logs and files keep the decimal point whatever the user's locale.
 
+## Interface: 3D view and figure preview (src/app/gui, src/app/commands/project_view.cpp, src/render/view.cpp, software_view.cpp)
+
+Milestone 4's interface (owner decision D13) shows an opened project's structure in the 3D view and a
+read-only preview of its figure; the interactive layout editor (MDATK's canvas: dragging panels,
+rotating the model in the figure, moving the density map) is milestone 5. What it draws is MDATK's:
+the reference frame is `Pipeline.structure_preview()` (the first analysed frame of the cleaned files
+MDATK left, else the raw files; cpptraj never runs), the 3D scene is the structure panel's 3D layer
+of that frame (the project's representations, colours, `visual.rotation`, depth cue toward the panel
+surface, glow, ions), and the preview is the GUI canvas' figure (`example_dataset` with that frame,
+`build_figure` at `output.video`'s size and dpi scaled to the space available, the watermark
+`Example data – layout preview (structure: reference frame)`, panels at 35 % of the example time
+axis). Deliberate differences from MDATK's GUI:
+
+- **A 3D view of the reference frame.** MDATK's GUI showed the structure only inside the figure
+  canvas. MDBridge's main window has a 3D view (Vulkan, or the software view when Vulkan 1.3 is not
+  usable) above the preview; drag to rotate, wheel to zoom, double-click to reset. Its rotation and
+  zoom are the view's own: they do not change `visual.rotation` (MDATK's canvas rotation edited the
+  project; that comes with the editor in milestone 5). A project without representations is drawn
+  as a cartoon in the 3D view (the figure keeps its 2D trace, which is no 3D picture). *Tested:*
+  `ProjectView.*` (tests/cli/test_project_view.cpp), `ViewCamera.*`, `SoftwareView.*`,
+  packaging/smoke_test.py `--gui` (screenshots: the view must show the structure, not the
+  placeholder, on Vulkan / lavapipe and on the software view of a bare Rocky Linux).
+- **The reference frame loads by itself.** MDATK drew the schematic duplex until "Load real frame"
+  was pressed; MDBridge loads the reference frame on a worker thread as soon as a project is opened
+  (progress in the status bar), so the preview's structure panel shows the real trace and the
+  watermark says so. When the frame cannot be loaded (missing or unreadable input files, a bad
+  selection) the preview keeps the schematic structure and the reason is shown in the status bar
+  (and printed on stderr), never in a dialog; the window stays usable. With cleaning on and no
+  cleaned files yet, the raw files are shown, as MDATK, with a note in the status bar.
+  *Tested:* `ProjectView.CleaningWithoutCleanedFilesShowsTheRawFiles`, `ProjectView.MissingInputsFail`,
+  smoke_test.py (`gui runs 5 s and quits (a project without input files)`).
+- **Software 3D view.** Without Vulkan the 3D view draws the molecule with the built-in software
+  renderer (the structure panel's) on a worker thread, at fast quality while dragging; it shows the
+  last image until the next one is ready, so the interface never waits for it. *Tested:*
+  `SoftwareView.DrawsTheMoleculeAsTheSoftwareRenderer` (same pixels as the renderer, mouse rotation,
+  zoom and reset).
+- **Screenshots for checks.** `mdbridge gui PROJECT --screenshot PNG [--preview-screenshot PNG]`
+  waits until the structure and the preview are drawn and reports what was shown (renderer,
+  `molecule`, pixel `coverage`, the preview's size, load problems) as JSON (MDATK had no such check).
+
 ## Planned (from the improvement register; add each entry here when it lands)
 
 None: every FIX and ASK item of the improvement register (docs/IMPROVEMENTS.md) has landed

@@ -212,12 +212,13 @@ void PlaceholderRenderer::startNextFrame() {
         .pClearValues = clear,
     };
     const VkCommandBuffer commands = m_window->currentCommandBuffer();
-    const std::shared_ptr<const MoleculeFrame> frame = m_window->moleculeFrame();
+    const auto [frame, camera] = m_window->moleculeAndCamera();
     bool molecule = false;
     if (frame && m_scene) {
         try {  // geometry and compositing before the render pass, then drawn into it
             m_scene->recordFrame(commands, static_cast<std::uint32_t>(m_window->currentFrame()), frame->items,
-                                 fittedViewport(*frame, size.width(), size.height()), frame->shading, frame->quality);
+                                 cameraViewport(*frame, camera, size.width(), size.height()), frame->shading,
+                                 camera.quality);
             molecule = true;
             m_sceneFailed = false;
         } catch (const std::exception& e) {
@@ -243,6 +244,7 @@ void PlaceholderRenderer::startNextFrame() {
         m_f->vkCmdDraw(commands, 3, 1, 0, 0);
     }
     m_f->vkCmdEndRenderPass(commands);
+    m_window->setMoleculeDrawn(molecule ? frame.get() : nullptr);
     m_window->frameReady();
     m_window->frameDone();
     if (!frame) {
@@ -262,10 +264,11 @@ VulkanWindow::~VulkanWindow() { destroy(); }
 
 QVulkanWindowRenderer* VulkanWindow::createRenderer() { return new PlaceholderRenderer(this); }
 
-void VulkanWindow::setMoleculeFrame(std::shared_ptr<const MoleculeFrame> frame) {
+void VulkanWindow::setMoleculeFrame(std::shared_ptr<const MoleculeFrame> frame, const ViewCamera& camera) {
     {
         const std::lock_guard<std::mutex> lock(m_frameMutex);
         m_frame = std::move(frame);
+        m_camera = camera;
     }
     QMetaObject::invokeMethod(this, [this] { requestUpdate(); }, Qt::QueuedConnection);
 }
@@ -273,6 +276,16 @@ void VulkanWindow::setMoleculeFrame(std::shared_ptr<const MoleculeFrame> frame) 
 std::shared_ptr<const MoleculeFrame> VulkanWindow::moleculeFrame() const {
     const std::lock_guard<std::mutex> lock(m_frameMutex);
     return m_frame;
+}
+
+std::pair<std::shared_ptr<const MoleculeFrame>, ViewCamera> VulkanWindow::moleculeAndCamera() const {
+    const std::lock_guard<std::mutex> lock(m_frameMutex);
+    return {m_frame, m_camera};
+}
+
+bool VulkanWindow::moleculeDrawn() const {
+    const std::lock_guard<std::mutex> lock(m_frameMutex);
+    return m_frame && m_drawn.load() == m_frame.get();
 }
 
 void VulkanWindow::exposeEvent(QExposeEvent* event) {
@@ -293,13 +306,18 @@ VulkanView::VulkanView(VulkanWindow* window, const QString& description)
     connect(window, &VulkanWindow::failed, this, &View::failed);
 }
 
-bool VulkanView::setMoleculeFrame(std::shared_ptr<const MoleculeFrame> frame) {
+bool VulkanView::showMolecule(std::shared_ptr<const MoleculeFrame> frame, const ViewCamera& camera) {
     auto* w = static_cast<VulkanWindow*>(window());
     if (!w) {
         return false;
     }
-    w->setMoleculeFrame(std::move(frame));
+    w->setMoleculeFrame(std::move(frame), camera);
     return true;
+}
+
+bool VulkanView::moleculeShown() const {
+    const auto* w = static_cast<const VulkanWindow*>(window());
+    return w && w->moleculeDrawn();
 }
 
 QImage VulkanView::grabFrame() {

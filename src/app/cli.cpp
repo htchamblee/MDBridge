@@ -43,7 +43,10 @@ void addGuiOptions(CLI::App& command, GuiArguments& args) {
         ->check(CLI::IsMember({"auto", "vulkan", "software"}))
         ->capture_default_str();
     command.add_option("--screenshot", args.options.screenshot,
-                       "check: save the 3D view to this PNG after a few frames, print a JSON report and quit");
+                       "check: save the 3D view to this PNG once the project's structure and preview are loaded "
+                       "and a few frames drawn, print a JSON report and quit");
+    command.add_option("--preview-screenshot", args.options.previewScreenshot,
+                       "check: with --screenshot, also save the figure preview to this PNG");
     command.add_option("--screenshot-frames", args.options.screenshotFrames, "frames to render before --screenshot")
         ->check(CLI::PositiveNumber)
         ->capture_default_str();

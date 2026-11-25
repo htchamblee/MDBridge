@@ -6,10 +6,13 @@ add_library(mdbridge_app STATIC
     cli.hpp
     fonts_command.cpp
     fonts_command.hpp
+    gui/background.hpp
     gui/gui.cpp
     gui/gui.hpp
     gui/main_window.cpp
     gui/main_window.hpp
+    gui/preview_widget.cpp
+    gui/preview_widget.hpp
     gui/project_panel.cpp
     gui/project_panel.hpp
     project_summary.cpp

@@ -130,6 +130,17 @@ public:
     bool hasDensity() const { return ok() && m_map != nullptr && m_art.density.has_value(); }
     // Static artists that still change when the view rotates (the GUI redraws them).
     std::vector<ArtistRef> rotationArtists() const;
+    // The 3D layer of frame `pos` as the stage renderer is given it, for the GUI's 3D view: the
+    // scene's primitives (ions included), the view rotation, the square data window (xlim / ylim),
+    // the depth range and the shading; viewport width / height are left to the caller. nullopt
+    // without 3D representations, when the panel shows "No data" or for a position past the
+    // frames.
+    struct StageFrame {
+        std::vector<molecule::Colored> items;
+        molecule::Viewport viewport;
+        molecule::Shading shading;
+    };
+    std::optional<StageFrame> stageFrame(std::size_t pos);
 
     // ---- state (tests, records)
     double radius() const { return m_radius; }
@@ -177,6 +188,7 @@ private:
     bool densityAnimated() const;
     void followDensity(Figure& fig, std::size_t pos);
     void renderStage(Figure& fig);
+    void stageItems(std::size_t pos);
 
     std::size_t m_frames = 0, m_res = 0, m_nIons = 0;
     std::vector<Vec3d> m_centred, m_ionsCentred;  // frames x residues / ions

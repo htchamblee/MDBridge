@@ -138,7 +138,15 @@ jobs:
         run: |
           xvfb-run -a -s "-screen 0 1600x1000x24" python3.12 packaging/smoke_test.py dist/MDBridge-*-x86_64.AppImage \
             --gui --expect-renderer vulkan --version "${{ steps.version.outputs.version }}" \
-            --text-report text-report/text-report.json
+            --text-report text-report/text-report.json --screenshot-dir gui-screenshots
+
+      # the 3D view (Vulkan on lavapipe, software) and the figure preview, for review
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        if: always()
+        with:
+          name: gui-screenshots-linux
+          path: gui-screenshots
+          if-no-files-found: warn
 
       # the text image and metrics drawn here: appimage-rocky must draw the same on a bare system
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
@@ -214,7 +222,14 @@ jobs:
         run: |
           dnf install -y --setopt=install_weak_deps=False xorg-x11-server-Xvfb xorg-x11-xauth dejavu-sans-fonts
           xvfb-run -a -s "-screen 0 1600x1000x24" python3 packaging/smoke_test.py dist/MDBridge-*-x86_64.AppImage \
-            --gui --expect-renderer software --version "${{ needs.linux.outputs.version }}"
+            --gui --expect-renderer software --version "${{ needs.linux.outputs.version }}" \
+            --screenshot-dir gui-screenshots
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        if: always()
+        with:
+          name: gui-screenshots-rocky
+          path: gui-screenshots
+          if-no-files-found: warn
 
   windows:
     name: Windows build, tests and installer (MSVC 2022)

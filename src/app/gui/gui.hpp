@@ -10,9 +10,11 @@ namespace mdbridge::app {
 struct GuiOptions {
     std::string project;  // project file to open (UTF-8), "" for none
     render::Renderer renderer = render::Renderer::Auto;
-    // Checks for CI and support: save the 3D view after `screenshotFrames` frames to this PNG,
-    // print a JSON report and quit.
+    // Checks for CI and support: save the 3D view to this PNG once the project's structure and
+    // figure preview are loaded (and the view shows the structure) and at least `screenshotFrames`
+    // frames were drawn, print a JSON report and quit; `previewScreenshot`: the preview too.
     std::string screenshot;
+    std::string previewScreenshot;
     int screenshotFrames = 10;
     double quitAfter = 0;  // quit after this many seconds (0: run until closed)
 };
