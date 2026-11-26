@@ -150,12 +150,28 @@ Installed packages can be used instead with `-DMDBRIDGE_USE_SYSTEM_DEPS=ON` (zli
 - `ctest`: unit tests of `core` (every fixture in `tests/data/projects` must read exactly as MDATK
   reads it: `tests/data/expected`), of the Vulkan probe, and a check that the committed SPIR-V
   matches the shader sources.
-- GUI tests (`ctest -L gui`, program `tests/mdbridge_gui_tests`, Qt Test, part of Qt's `qtbase`):
-  the main window driven by the action scripts of `tests/data/gui` (format: `tests/data/README.md`,
-  "gui"), the saved files compared with MDATK's, on the `offscreen` platform (no display needed;
-  `MDBRIDGE_GUI_TEST_PLATFORM=xcb` shows the window). Screenshots go to `$MDBRIDGE_GUI_SCREENSHOTS`
-  (default `<build>/gui-screenshots`); CI uploads them as `gui-test-screenshots-linux` / `-windows`.
-  Run one case: `mdbridge_gui_tests cases:harness/open_save_default`.
+- GUI tests (`ctest -L gui`; Qt Test, part of Qt's `qtbase`, test-only), one program per part of the
+  interface, all on Qt's `offscreen` platform (no display needed; `MDBRIDGE_GUI_TEST_PLATFORM=xcb`
+  shows the windows) with `QT_FORCE_STDERR_LOGGING=1` (so Windows prints their report). The window
+  and page programs use Qt's Fusion style and the bundled IBM Plex Serif at 9 pt, as the
+  application does (the fonts are compiled into the programs: no system fonts are needed, and the
+  layout tests measure the application's own font):
+
+  | ctest | program | what |
+  |---|---|---|
+  | `gui.cases` | `mdbridge_gui_tests` | the window driven by the action scripts of `tests/data/gui` (format: `tests/data/README.md`, "gui"), the saved files and messages compared with MDATK's; one case: `mdbridge_gui_tests cases:harness/open_save_default` |
+  | `gui.window` | `mdbridge_gui_window_tests` | the window shell: layout, shortcuts, menus, questions, recovery, external changes, paths shown natively, keyboard access and accessible names, settings locations, pages fitting the side bar |
+  | `gui.window.scale150`, `gui.window.scale200` | same | the side-bar fit, accessible names, Tab order and screenshots at `QT_SCALE_FACTOR` 1.5 and 2 |
+  | `gui.canvas` | `mdbridge_gui_canvas_tests` | the canvas layout editor (drags, wheel, keyboard, undo) |
+  | `gui.actions` | `mdbridge_gui_actions_tests` | Render, still, exports, cleaning, desktop actions, result dialogs (the video parts need FFmpeg) |
+  | `gui.pages`, `gui.group_pages` | `mdbridge_gui_pages_tests`, `mdbridge_gui_group_pages_tests` | the settings pages |
+  | `gui.forms`, `gui.problems`, `gui.jobs` | `mdbridge_gui_forms_tests`, `..._problems_tests`, `..._jobs_tests` | field widgets, problems as you type, job runner and log view |
+
+  Run one function: `QT_QPA_PLATFORM=offscreen build/release/tests/mdbridge_gui_window_tests
+  tabOrderVisitsEveryField`. Screenshots (every page, canvas drags, result dialogs; never compared)
+  go to `$MDBRIDGE_GUI_SCREENSHOTS` (default `<build>/gui-screenshots`); CI uploads them as
+  `gui-test-screenshots-linux` / `-windows`. The tests keep the recent list and recovery copies in
+  a temporary folder (`XDG_CONFIG_HOME` / `APPDATA`).
 - `packaging/smoke_test.py EXE [--gui]`: a finished build as users get it (AppImage, install tree
   or `mdbridge.exe`): command line, project files against MDATK's reading, the figure fonts, a
   `render` of the demo project (an AV1 video read back with `mdbridge probe-video` and, when it is

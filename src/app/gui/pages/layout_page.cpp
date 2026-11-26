@@ -331,8 +331,25 @@ void LayoutPage::rebuildSlots() {
         m_slotBox->addWidget(slot->section);
         m_slots.push_back(std::move(slot));
     }
+    fixTabOrder();
     --m_loading;
     refreshSlots(true);
+}
+
+// D10: widgets made after the page go to the end of the window's focus chain; Tab visits the slot
+// editors between the preset and the still row, in their order, as the page shows them.
+void LayoutPage::fixTabOrder() {
+    QWidget* previous = m_preset;
+    for (const auto& slot : m_slots) {
+        for (QWidget* w : slot->section->findChildren<QWidget*>()) {
+            // not a combo's pop-up (a window of its own), not a widget that hands the focus on
+            if (w->window() != m_preset->window() || w->focusProxy() || !(w->focusPolicy() & Qt::TabFocus)) continue;
+            QWidget::setTabOrder(previous, w);
+            previous = w;
+        }
+    }
+    QWidget::setTabOrder(previous, m_stillFrame);
+    QWidget::setTabOrder(m_stillFrame, m_renderStill);
 }
 
 void LayoutPage::fillGroups(Slot& slot) {

@@ -2,7 +2,9 @@
 // shortcuts (D4, D11), every header and menu action, the questions about unsaved changes (AP-13),
 // Save as (AP-11), the start with a file that does not load (AP-12), closing during a job (AP-14),
 // recovery copies (D6), the external-change notice, drag and drop, and screenshots of the window
-// (one per page, CI artifacts, never compared) and that every page fits the 520 px side bar. Qt Test on the offscreen platform; questions,
+// (one per page, CI artifacts, never compared) and that every page fits the 520 px side bar (also at
+// 150 % and 200 %), paths shown with the platform's separators (WN-12), keyboard and screen-reader
+// access (D10, WN-13) and where the settings are (D16, WN-14). Qt Test on the offscreen platform; questions,
 // messages and file dialogs answered by the harness's RecordingPrompter and a file dialog function.
 
 #include <atomic>
@@ -15,6 +17,14 @@
 #include <vector>
 
 #include <QAbstractButton>
+#include <QAbstractItemView>
+#include <QAbstractSlider>
+#include <QAbstractSpinBox>
+#include <QAccessible>
+#include <QComboBox>
+#include <QLineEdit>
+#include <QPlainTextEdit>
+#include <QTextEdit>
 #include <QAction>
 #include <QApplication>
 #include <QClipboard>
@@ -27,15 +37,18 @@
 #include <QProgressBar>
 #include <QPushButton>
 #include <QScrollArea>
+#include <QStatusBar>
 #include <QScrollBar>
 #include <QTableView>
 #include <QToolButton>
 #include <QTemporaryDir>
+#include <QDialog>
 #include <QTest>
 #include <QUrl>
 
 #include "citations.hpp"
 #include "gui/dialogs/text_dialog.hpp"
+#include "gui/display_path.hpp"
 #include "gui/forms/field_widgets.hpp"
 #include "gui/jobs/job_runner.hpp"
 #include "gui/jobs/log_view.hpp"
@@ -55,13 +68,12 @@ namespace {
 const fs::path kData = core::pathFromUtf8(MDBRIDGE_TEST_DATA);
 
 QString qs(const fs::path& p) { return QString::fromStdString(core::pathToUtf8(p)); }
-// A project path as the window shows it in its title, recent list and change notice: the document's
-// absolute path, normalised with '/' (core::ntpath on Windows: generic form; the fixture's folder
-// is Qt's '/' path joined by std::filesystem's '\\'). The same as qs(p) on Linux and macOS.
-QString shown(const fs::path& p) {
-    const std::u8string text = p.lexically_normal().generic_u8string();
-    return QString::fromStdString(std::string(text.begin(), text.end()));
-}
+// A path as the window shows it in its title, recent list, change notice, log, dialogs and status
+// bar: the document's absolute path, normalised, with the platform's separators throughout
+// (gui::displayPath, WN-12: '\\' on Windows, where the fixture's folder is Qt's '/' path joined by
+// std::filesystem's '\\'). The same as qs(p) on Linux and macOS.
+QString shown(const fs::path& p) { return app::gui::displayPath(p.lexically_normal()); }
+std::string shownText(const fs::path& p) { return shown(p).toStdString(); }
 
 std::string readFile(const fs::path& path) {
     std::ifstream in(path, std::ios::binary);
@@ -157,6 +169,12 @@ private slots:
     void externalChange();
     void dragAndDrop();
     void pagesFitTheSideBar();
+    void pathsShownNatively();
+    void everyFocusableWidgetIsNamed();
+    void everyControlTakesTheKeyboardFocus();
+    void tabOrderVisitsEveryField();
+    void escapeClosesDialogs();
+    void settingsLocations();
     void screenshots();
 
 private:
@@ -303,7 +321,7 @@ void WindowTests::openAndRecentList() {
     w.action(QStringLiteral("open"))->trigger();
     QCOMPARE(w.document().path(), a);
     QCOMPARE(f.requests.back().title, QStringLiteral("Open project"));
-    QCOMPARE(f.lastLog(), "Opened project " + core::pathToUtf8(a));
+    QCOMPARE(f.lastLog(), "Opened project " + shownText(a));
     f.nextFile = {qs(b)};
     w.action(QStringLiteral("browse"))->trigger();
     QCOMPARE(w.document().path(), b);
@@ -337,8 +355,8 @@ void WindowTests::openFailure() {
     const fs::path broken = f.copy("broken.mdatk.toml", "broken.mdatk.toml");
     QVERIFY(!w.openPath(broken));
     QCOMPARE(f.prompter.dialogs.size(), std::size_t{1});
-    QCOMPARE(f.prompter.dialogs[0].find("text")->stringOr(), "Could not open " + core::pathToUtf8(broken));
-    QVERIFY(f.lastLog().rfind("ERROR: Could not open " + core::pathToUtf8(broken) + ": ", 0) == 0);
+    QCOMPARE(f.prompter.dialogs[0].find("text")->stringOr(), "Could not open " + shownText(broken));
+    QVERIFY(f.lastLog().rfind("ERROR: Could not open " + shownText(broken) + ": ", 0) == 0);
     QVERIFY(!w.document().hasPath());
 }
 
@@ -353,7 +371,7 @@ void WindowTests::saveAndSaveAs() {
     QVERIFY(f.requests.back().start.endsWith(QStringLiteral("MDATK.mdatk.toml")));
     QVERIFY(!f.requests.back().confirmOverwrite);
     QCOMPARE(w.document().path(), f.dir / "first.mdatk.toml");
-    QCOMPARE(f.lastLog(), "Saved project " + core::pathToUtf8(f.dir / "first.mdatk.toml"));
+    QCOMPARE(f.lastLog(), "Saved project " + shownText(f.dir / "first.mdatk.toml"));
     QVERIFY(!w.isWindowModified());
     // Save writes its own file without a dialog
     w.document().set("notes", std::string("second"));
@@ -385,7 +403,7 @@ void WindowTests::saveAsAppendsTheSuffixBeforeAsking() {
     f.nextFile = {qs(f.dir / "existing")};
     QVERIFY(!w.saveAs());
     QCOMPARE(f.lastQuestion(), std::string("overwrite:cancel"));
-    QCOMPARE(f.prompter.questions.back().find("path")->stringOr(), core::pathToUtf8(existing));
+    QCOMPARE(f.prompter.questions.back().find("path")->stringOr(), shownText(existing));
     QCOMPARE(readFile(existing), before);
     f.answer("overwrite", "replace");
     f.nextFile = {qs(f.dir / "existing")};
@@ -458,7 +476,7 @@ void WindowTests::citations() {
     } else {
         QVERIFY(f.requests.back().start.endsWith(QStringLiteral("_citations.bib")));
         QCOMPARE(readFile(bib), core::citations::bibtex(expected.keys));
-        QCOMPARE(f.lastLog(), "Wrote " + std::to_string(expected.keys.size()) + " references to " + core::pathToUtf8(bib));
+        QCOMPARE(f.lastLog(), "Wrote " + std::to_string(expected.keys.size()) + " references to " + shownText(bib));
     }
     // a project without any resource: nothing to cite
     w.action(QStringLiteral("new"))->trigger();
@@ -505,9 +523,9 @@ void WindowTests::demoProject() {
     QTRY_COMPARE(w.document().path(), folder / "demo.mdatk.toml");
     const std::vector<std::string> log = f.log();
     QVERIFY(std::find(log.begin(), log.end(), "--- Creating demo ---") != log.end());
-    QVERIFY(std::find(log.begin(), log.end(), "Demo system ready: " + core::pathToUtf8(folder / "demo.mdatk.toml")) !=
+    QVERIFY(std::find(log.begin(), log.end(), "Demo system ready: " + shownText(folder / "demo.mdatk.toml")) !=
             log.end());
-    QCOMPARE(f.lastLog(), "Opened project " + core::pathToUtf8(folder / "demo.mdatk.toml"));
+    QCOMPARE(f.lastLog(), "Opened project " + shownText(folder / "demo.mdatk.toml"));
 }
 
 // AP-12 (MDATK 0.1.0): the start with a file that does not load says so in the window
@@ -521,7 +539,7 @@ void WindowTests::startWithBrokenFile() {
     QVERIFY(f.prompter.stderrLines[0].rfind("warning: could not load " + core::pathToUtf8(broken) + ": ", 0) == 0);
     const std::vector<std::string> log = f.log();
     QCOMPARE(log.size(), std::size_t{2});
-    QVERIFY(log[0].rfind("ERROR: Could not open " + core::pathToUtf8(broken) + ": ", 0) == 0);
+    QVERIFY(log[0].rfind("ERROR: Could not open " + shownText(broken) + ": ", 0) == 0);
     QCOMPARE(log[1], std::string("These are the default settings instead (unsaved)."));
     QVERIFY(w.logView()->expanded());
     QVERIFY(f.prompter.dialogs.empty());
@@ -681,6 +699,10 @@ void WindowTests::pagesFitTheSideBar() {
     app::MainWindow& w = *f.window;
     // measured in the application's font, the bundled IBM Plex Serif (FONT-01; wider than DejaVu Sans)
     QCOMPARE(QFontInfo(w.font()).family(), QStringLiteral("IBM Plex Serif"));
+    // D10: also run at 150 % and 200 % (ctest gui.window.scale150 / scale200: QT_SCALE_FACTOR)
+    if (const QByteArray factor = qgetenv("QT_SCALE_FACTOR"); !factor.isEmpty()) {
+        QCOMPARE(w.devicePixelRatioF(), factor.toDouble());
+    }
     QVERIFY(w.openPath(f.copy("full.mdatk.toml", "full.mdatk.toml")));
     QTRY_VERIFY_WITH_TIMEOUT(!w.loading(), 120000);
     QStringList overflows;
@@ -723,6 +745,18 @@ void WindowTests::pagesFitTheSideBar() {
                 continue;
             }
             ++checked;
+            // no text cut off: buttons and labels at least their minimum size (also at 150 % and 200 %)
+            const auto* label = qobject_cast<QLabel*>(child);
+            const bool own = !child->inherits("QLineEditIconButton");  // Qt sizes a line edit's icon itself
+            if (own && (qobject_cast<QAbstractButton*>(child) || (label && !label->wordWrap() && !label->text().isEmpty())) &&
+                (child->width() < child->minimumSizeHint().width() || child->height() < child->minimumSizeHint().height())) {
+                overflows << QStringLiteral("%1: %2 '%3' is %4 x %5 px, less than its %6 x %7 px")
+                                 .arg(page.id, QString::fromLatin1(child->metaObject()->className()), child->objectName())
+                                 .arg(child->width())
+                                 .arg(child->height())
+                                 .arg(child->minimumSizeHint().width())
+                                 .arg(child->minimumSizeHint().height());
+            }
             const int right = child->mapTo(viewport, QPoint(child->width(), 0)).x();
             if (right > room) {
                 overflows << QStringLiteral("%1: %2 '%3' ends at %4 px (minimum width %5 px)")
@@ -748,7 +782,375 @@ void WindowTests::pagesFitTheSideBar() {
         }
         QVERIFY2(checked > 10, qPrintable(page.id));
     }
+    // the window's own bars at MDATK's 1320 px: no button or label cut off
+    for (const char* part : {"header", "pagebar", "actionbar"}) {
+        for (QWidget* child : w.findChild<QWidget*>(QString::fromLatin1(part))->findChildren<QWidget*>()) {
+            const auto* label = qobject_cast<QLabel*>(child);
+            if (!child->isVisibleTo(&w) || !(qobject_cast<QAbstractButton*>(child) || (label && !label->text().isEmpty()))) continue;
+            if (child->width() < child->minimumSizeHint().width() || child->height() < child->minimumSizeHint().height()) {
+                overflows << QStringLiteral("%1: %2 '%3' is %4 x %5 px, less than its %6 x %7 px")
+                                 .arg(QString::fromLatin1(part), QString::fromLatin1(child->metaObject()->className()),
+                                      child->objectName())
+                                 .arg(child->width())
+                                 .arg(child->height())
+                                 .arg(child->minimumSizeHint().width())
+                                 .arg(child->minimumSizeHint().height());
+            }
+        }
+    }
     QVERIFY2(overflows.isEmpty(), qPrintable(overflows.join(QLatin1Char('\n'))));
+}
+
+// WN-12: paths in interface text with the platform's separators. The Windows rules, checked on every
+// platform; on Linux and macOS the window's helpers return their input.
+void WindowTests::pathsShownNatively() {
+    using app::gui::PathStyle;
+    const auto win = [](const QString& text, const QStringList& roots = {}) {
+        return app::gui::displayPathsInText(text, PathStyle::Windows, roots);
+    };
+    QCOMPARE(app::gui::displayPathText(QStringLiteral("C:/Users/me/out\\video.mp4"), PathStyle::Windows),
+             QStringLiteral("C:\\Users\\me\\out\\video.mp4"));
+    QCOMPARE(app::gui::displayPathText(QStringLiteral("C:/Users/me/out\\video.mp4"), PathStyle::Posix),
+             QStringLiteral("C:/Users/me/out\\video.mp4"));
+    // the pipeline's mixed joins, a path ending at ':' or white space, text around it unchanged
+    QCOMPARE(win(QStringLiteral("MDBridge 0.5 - output directory C:/Users/me/out")),
+             QStringLiteral("MDBridge 0.5 - output directory C:\\Users\\me\\out"));
+    QCOMPARE(win(QStringLiteral("Video: C:/Users/me/out\\aptamer.mp4 (120/120 frames)")),
+             QStringLiteral("Video: C:\\Users\\me\\out\\aptamer.mp4 (120/120 frames)"));
+    QCOMPARE(win(QStringLiteral("ERROR: Could not open C:/p/a.mdatk.toml: no such file")),
+             QStringLiteral("ERROR: Could not open C:\\p\\a.mdatk.toml: no such file"));
+    QCOMPARE(win(QStringLiteral("Density map not found: d:/maps/x.mrc (untick 'show' to render without it)")),
+             QStringLiteral("Density map not found: d:\\maps\\x.mrc (untick 'show' to render without it)"));
+    QCOMPARE(win(QStringLiteral("skipping data source 'C:/x/e.dat': bad")), QStringLiteral("skipping data source 'C:\\x\\e.dat': bad"));
+    // UNC and device paths; no path: unchanged
+    QCOMPARE(win(QStringLiteral("Opened //server/share/p/x.nc")), QStringLiteral("Opened \\\\server\\share\\p\\x.nc"));
+    QCOMPARE(win(QStringLiteral("at \\\\?\\C:/long/x.nc")), QStringLiteral("at \\\\?\\C:\\long\\x.nc"));
+    for (const char* plain : {"5/10 frames, kcal/mol", "see https://example.org/a/b", "group A/B: 3 atoms", "inputs/a.parm7",
+                              "AB:/x"}) {
+        QCOMPARE(win(QString::fromLatin1(plain)), QString::fromLatin1(plain));
+    }
+    // a root folder with spaces is converted as a whole (the home folder, the project's folders)
+    QCOMPARE(win(QStringLiteral("Wrote 3 references to C:/Users/John Doe/p/x.bib"), {QStringLiteral("C:\\Users\\John Doe")}),
+             QStringLiteral("Wrote 3 references to C:\\Users\\John Doe\\p\\x.bib"));
+    QCOMPARE(win(QStringLiteral("Saved c:/users/john doe/p.mdatk.toml"), {QStringLiteral("C:/Users/John Doe/")}),
+             QStringLiteral("Saved c:\\users\\john doe\\p.mdatk.toml"));
+    QCOMPARE(win(QStringLiteral("C:/database/a b/c"), {QStringLiteral("C:/data")}), QStringLiteral("C:\\database\\a b/c"));
+    // the log view shows its lines through the window's transform
+    app::jobs::LogView view;
+    view.setLineTransform([&](const QString& line) { return win(line); });
+    view.feed(QStringLiteral("Opened C:/a\\b.mp4"));
+    QCOMPARE(view.text(), QStringLiteral("Opened C:\\a\\b.mp4\n"));
+    if constexpr (app::gui::kNativePathStyle == PathStyle::Posix) {
+        QCOMPARE(app::gui::displayPath(fs::path("/home/me/a b/p.mdatk.toml")), QStringLiteral("/home/me/a b/p.mdatk.toml"));
+        QCOMPARE(app::gui::displayPathsIn(QStringLiteral("C:/x")), QStringLiteral("C:/x"));
+    } else {
+        QCOMPARE(app::gui::displayPath(fs::path("C:/me/out") / "v.mp4"), QStringLiteral("C:\\me\\out\\v.mp4"));
+    }
+    // the window: title, recent list, log, status bar
+    Fixture f;
+    app::MainWindow& w = *f.window;
+    const fs::path p = f.copy("default.mdatk.toml", "p.mdatk.toml");
+    QVERIFY(w.openPath(p));
+    QVERIFY(w.windowTitle().startsWith(shown(p)));
+    QCOMPARE(QString::fromStdString(f.lastLog()), QStringLiteral("Opened project ") + shown(p));
+    QCOMPARE(w.statusBar()->currentMessage(), QStringLiteral("Opened ") + shown(p));
+    if constexpr (app::gui::kNativePathStyle == PathStyle::Windows) {
+        QVERIFY(!w.windowTitle().contains(QLatin1Char('/')));
+        QVERIFY(!QString::fromStdString(f.lastLog()).contains(QLatin1Char('/')));
+    }
+}
+
+namespace {
+
+// The accessible name a screen reader announces for `w` (its own, its text, a buddy label's).
+QString accessibleNameOf(QWidget* w) {
+    QAccessibleInterface* iface = QAccessible::queryAccessibleInterface(w);
+    return iface ? iface->text(QAccessible::Name).trimmed() : QString();
+}
+
+// Opens every section of every page (all fields shown).
+void openAllSections(app::MainWindow& w) {
+    for (const app::MainWindow::Page& page : w.pages()) {
+        w.showPage(page.id);
+        for (QToolButton* header : page.widget->findChildren<QToolButton*>()) {
+            if (header->objectName().startsWith(QStringLiteral("section:")) && header->isCheckable() && !header->isChecked()) {
+                header->setChecked(true);
+            }
+        }
+    }
+    QApplication::processEvents();
+}
+
+// Where a widget is: its object name and those of its named parents.
+QString whereIs(const QWidget* w) {
+    QStringList names;
+    for (const QWidget* up = w; up; up = up->parentWidget()) {
+        if (!up->objectName().isEmpty()) names.push_front(up->objectName());
+        if (names.size() >= 3) break;
+    }
+    return QStringLiteral("%1 '%2'").arg(QString::fromLatin1(w->metaObject()->className()), names.join(QStringLiteral(" > ")));
+}
+
+// The widget the focus goes to for `w` (a spin box's line edit hands it to the spin box).
+QWidget* focusOwner(QWidget* w) {
+    while (w->focusProxy()) w = w->focusProxy();
+    return w;
+}
+
+}  // namespace
+
+// D10: every widget that takes the keyboard focus, on every page with every section open and in the
+// window's chrome, has an accessible name (what a screen reader announces: its own name, its text,
+// or a buddy label's).
+void WindowTests::everyFocusableWidgetIsNamed() {
+    Fixture f;
+    app::MainWindow& w = *f.window;
+    QVERIFY(w.openPath(f.copy("full.mdatk.toml", "full.mdatk.toml")));
+    QTRY_VERIFY_WITH_TIMEOUT(!w.loading(), 120000);
+    QStringList unnamed;
+    int checked = 0;
+    const auto check = [&](QWidget* root) {
+        for (QWidget* child : root->findChildren<QWidget*>()) {
+            // a widget with a focus proxy hands the focus on (a spin box's line edit to the spin box)
+            if (!child->isVisibleTo(&w) || !(child->focusPolicy() & Qt::TabFocus) || child->focusProxy()) continue;
+            ++checked;
+            if (accessibleNameOf(child).isEmpty()) unnamed << whereIs(child);
+        }
+    };
+    openAllSections(w);
+    for (const app::MainWindow::Page& page : w.pages()) {
+        w.showPage(page.id);
+        QApplication::processEvents();
+        check(page.widget);
+    }
+    w.logView()->setExpanded(true);
+    QApplication::processEvents();
+    for (const char* part : {"header", "pagebar", "preview", "log", "actionbar"}) {
+        QWidget* widget = w.findChild<QWidget*>(QString::fromLatin1(part));
+        QVERIFY2(widget, part);
+        if (widget->focusPolicy() & Qt::TabFocus) {
+            ++checked;
+            if (accessibleNameOf(widget).isEmpty()) unnamed << whereIs(widget);
+        }
+        check(widget);
+    }
+    QVERIFY2(checked > 300, qPrintable(QString::number(checked)));
+    unnamed.removeDuplicates();
+    QVERIFY2(unnamed.isEmpty(), qPrintable(unnamed.join(QLatin1Char('\n'))));
+}
+
+// D10: every control (button, field, list, slider, the canvas) can take the keyboard focus with
+// Tab: none is reachable by the mouse only. The header's tool buttons too (a QToolBar's have no
+// focus by default).
+void WindowTests::everyControlTakesTheKeyboardFocus() {
+    Fixture f;
+    app::MainWindow& w = *f.window;
+    QVERIFY(w.openPath(f.copy("full.mdatk.toml", "full.mdatk.toml")));
+    QTRY_VERIFY_WITH_TIMEOUT(!w.loading(), 120000);
+    openAllSections(w);
+    w.logView()->setExpanded(true);
+    QStringList unreachable;
+    int controls = 0;
+    QStringList seen;
+    for (const app::MainWindow::Page& page : w.pages()) {
+        w.showPage(page.id);
+        QApplication::processEvents();
+        for (QWidget* child : w.findChildren<QWidget*>()) {
+            if (!child->isVisibleTo(&w)) continue;
+            const bool control = qobject_cast<QAbstractButton*>(child) || qobject_cast<QComboBox*>(child) ||
+                                 qobject_cast<QLineEdit*>(child) || qobject_cast<QAbstractSpinBox*>(child) ||
+                                 qobject_cast<QAbstractSlider*>(child) || qobject_cast<QAbstractItemView*>(child) ||
+                                 qobject_cast<QPlainTextEdit*>(child) || qobject_cast<QTextEdit*>(child) ||
+                                 qobject_cast<app::PreviewWidget*>(child);
+            // not controls of their own: scroll bars, a table's header, a line edit's icon (its action)
+            if (!control || qobject_cast<QScrollBar*>(child) || qobject_cast<QHeaderView*>(child) ||
+                child->inherits("QLineEditIconButton")) {
+                continue;
+            }
+            if (child->objectName().startsWith(QStringLiteral("qt_"))) continue;  // Qt's own parts (a line edit's clear button)
+            const QString where = whereIs(child);
+            if (seen.contains(where)) continue;
+            seen << where;
+            ++controls;
+            QWidget* owner = focusOwner(child);
+            const bool takes = (owner->focusPolicy() & Qt::TabFocus) || (child->focusPolicy() & Qt::TabFocus) ||
+                               (child->focusProxy() && (child->focusProxy()->focusPolicy() & Qt::TabFocus));
+            if (!takes) unreachable << where;
+        }
+    }
+    QVERIFY2(controls > 300, qPrintable(QString::number(controls)));
+    QVERIFY2(unreachable.isEmpty(), qPrintable(unreachable.join(QLatin1Char('\n'))));
+    // Tab goes round the window: header, page buttons, the page, the canvas, the log, the action bar
+    w.showPage(QStringLiteral("groups"));
+    QApplication::processEvents();
+    QWidget* start = w.findChild<QWidget*>(QStringLiteral("header.open"));
+    QVERIFY(start);
+    w.activateWindow();
+    start->setFocus(Qt::TabFocusReason);
+    QTRY_COMPARE(QApplication::focusWidget(), start);
+    QStringList order;
+    for (int step = 0; step < 3000; ++step) {
+        QWidget* now = QApplication::focusWidget();
+        QVERIFY(now);
+        order << now->objectName();
+        QTest::keyClick(now, Qt::Key_Tab);
+        if (QApplication::focusWidget() == start) break;
+    }
+    QCOMPARE(QApplication::focusWidget(), start);
+    QStringList expected{QStringLiteral("header.open"), QStringLiteral("header.workflow"), QStringLiteral("header.menu"),
+                         QStringLiteral("page:input"), QStringLiteral("pagebar.refresh"), QStringLiteral("groups"),
+                         QStringLiteral("preview"), QStringLiteral("log.text"), QStringLiteral("actionbar.render"),
+                         QStringLiteral("actionbar.open_video")};
+    qsizetype at = -1;
+    for (const QString& name : expected) {
+        const qsizetype next = order.indexOf(name);
+        QVERIFY2(next > at, qPrintable(name + QStringLiteral(" in ") + order.join(QStringLiteral(", "))));
+        at = next;
+    }
+    // the page buttons are one group: Tab enters it, the arrow keys move in it, Space shows the page
+    QWidget* input = w.findChild<QWidget*>(QStringLiteral("page:input"));
+    input->setFocus(Qt::TabFocusReason);
+    QTRY_COMPARE(QApplication::focusWidget(), input);
+    QTest::keyClick(input, Qt::Key_Right);
+    QCOMPARE(QApplication::focusWidget()->objectName(), QStringLiteral("page:groups"));
+    QTest::keyClick(QApplication::focusWidget(), Qt::Key_Space);
+    QCOMPARE(w.currentPage(), QStringLiteral("groups"));
+}
+
+// D10: on every page, Tab from the page's first field visits every field editor shown (every section
+// open), section by section in the page's order, without being caught by a field (a multi-line text
+// passes the focus on; a table's cells are left at its end).
+void WindowTests::tabOrderVisitsEveryField() {
+    Fixture f;
+    app::MainWindow& w = *f.window;
+    QVERIFY(w.openPath(f.copy("full.mdatk.toml", "full.mdatk.toml")));
+    QTRY_VERIFY_WITH_TIMEOUT(!w.loading(), 120000);
+    openAllSections(w);
+    QStringList problems;
+    for (const app::MainWindow::Page& page : w.pages()) {
+        if (page.placeholder) continue;
+        w.showPage(page.id);
+        QApplication::processEvents();
+        std::vector<QWidget*> editors;
+        for (app::forms::FieldWidget* field : page.widget->findChildren<app::forms::FieldWidget*>()) {
+            QWidget* e = field->editor();
+            if (e && e->isVisibleTo(&w) && e->isEnabled()) editors.push_back(e);
+        }
+        QVERIFY2(!editors.empty(), qPrintable(page.id));
+        // the sections in the page's order
+        QList<QWidget*> sections;
+        for (QWidget* box : page.widget->findChildren<QWidget*>()) {
+            if (box->objectName().startsWith(QStringLiteral("section:")) && !qobject_cast<QToolButton*>(box)) sections << box;
+        }
+        const auto sectionOf = [&](QWidget* e) {
+            for (qsizetype k = 0; k < sections.size(); ++k) {
+                if (sections[k]->isAncestorOf(e)) return static_cast<int>(k);
+            }
+            return -1;
+        };
+        // the field editor a focused widget belongs to (a spin box's line edit, a table's cell editor)
+        const auto editorOf = [&](QWidget* c) -> QWidget* {
+            for (QWidget* up = c; up && up != page.widget; up = up->parentWidget()) {
+                if (std::find(editors.begin(), editors.end(), up) != editors.end()) return up;
+            }
+            return nullptr;
+        };
+        // start at the first field in the focus chain of the page
+        QWidget* first = nullptr;
+        for (QWidget* c = page.widget->nextInFocusChain(); c && c != page.widget; c = c->nextInFocusChain()) {
+            if (page.widget->isAncestorOf(c) && editorOf(c) && (c->focusPolicy() & Qt::TabFocus) && c->isVisibleTo(&w)) {
+                first = c;
+                break;
+            }
+        }
+        QVERIFY2(first, qPrintable(page.id));
+        w.activateWindow();
+        first->setFocus(Qt::TabFocusReason);
+        QTRY_COMPARE(QApplication::focusWidget(), first);
+        std::vector<QWidget*> visited;
+        int lastSection = -1;
+        for (int step = 0; step < 4000; ++step) {
+            QWidget* now = QApplication::focusWidget();
+            if (!now || !page.widget->isAncestorOf(now)) break;
+            QWidget* owner = editorOf(now);
+            if (owner && std::find(visited.begin(), visited.end(), owner) == visited.end()) {
+                visited.push_back(owner);
+                const int section = sectionOf(owner);
+                if (section >= 0 && section < lastSection) {
+                    problems << QStringLiteral("%1: Tab goes back from section %2 to %3 at %4")
+                                    .arg(page.id)
+                                    .arg(lastSection)
+                                    .arg(section)
+                                    .arg(owner->objectName());
+                }
+                lastSection = std::max(lastSection, section);
+            }
+            QTest::keyClick(now, Qt::Key_Tab);
+        }
+        if (QWidget* now = QApplication::focusWidget(); now && page.widget->isAncestorOf(now)) {
+            problems << QStringLiteral("%1: Tab is caught at %2").arg(page.id, whereIs(now));
+        }
+        for (QWidget* e : editors) {
+            if (std::find(visited.begin(), visited.end(), e) == visited.end()) {
+                problems << QStringLiteral("%1: Tab does not reach %2").arg(page.id, e->objectName());
+            }
+        }
+    }
+    QVERIFY2(problems.isEmpty(), qPrintable(problems.join(QLatin1Char('\n'))));
+}
+
+// D10: Esc closes the window's dialogs (About, Citations, Graphics, Project log).
+void WindowTests::escapeClosesDialogs() {
+    Fixture f;
+    app::MainWindow& w = *f.window;
+    QVERIFY(w.openPath(f.copy("full.mdatk.toml", "full.mdatk.toml")));  // the project log needs a file
+    for (const char* name : {"about", "citations", "graphics", "project_log"}) {
+        w.action(QString::fromLatin1(name))->trigger();
+        QDialog* dialog = nullptr;
+        QTRY_VERIFY((dialog = qobject_cast<QDialog*>(QApplication::activeModalWidget())) != nullptr ||
+                    [&] {
+                        for (QDialog* d : w.findChildren<QDialog*>()) {
+                            if (d->isVisible()) dialog = d;
+                        }
+                        return dialog != nullptr;
+                    }());
+        QVERIFY2(dialog, name);
+        QTest::keyClick(dialog, Qt::Key_Escape);
+        QTRY_VERIFY2(!dialog->isVisible(), name);
+    }
+}
+
+// D16: the recent list in MDATK's shared settings file on Linux ($XDG_CONFIG_HOME/mdatk), MDBridge's
+// own settings and recovery copies in $XDG_CONFIG_HOME/mdbridge; on Windows both in
+// %APPDATA%\MDBridge (MDATK's Windows build keeps its own file elsewhere, not shared).
+void WindowTests::settingsLocations() {
+    const fs::path config = core::pathFromUtf8(m_config.path().toStdString());
+#ifdef _WIN32
+    const fs::path recentFile = config / "MDBridge" / "settings.toml";
+    const fs::path ownDir = config / "MDBridge";
+#else
+    const fs::path recentFile = config / "mdatk" / "settings.toml";
+    const fs::path ownDir = config / "mdbridge";
+#endif
+    QCOMPARE(core::userSettingsPath(), recentFile);
+    QCOMPARE(core::mdbridgeConfigDir(), ownDir);
+    QCOMPARE(core::recoveryDir(), ownDir / "recovery");
+    Fixture f;
+    app::MainWindow& w = *f.window;
+    const fs::path p = f.copy("default.mdatk.toml", "where.mdatk.toml");
+    QVERIFY(w.openPath(p));
+    QVERIFY(fs::exists(recentFile));
+    QVERIFY(readFile(recentFile).find("where.mdatk.toml") != std::string::npos);
+    w.document().set("notes", std::string("unsaved"));
+    w.writeRecoveryNow();
+    QVERIFY(!w.recoveryFile().empty());
+    QCOMPARE(w.recoveryFile().parent_path(), ownDir / "recovery");
+#ifndef _WIN32
+    QVERIFY(!fs::exists(config / "MDBridge"));  // nothing in the Windows folder name
+    QVERIFY(!fs::exists(config / "mdatk" / "recovery"));  // MDATK's folder holds the shared list only
+#endif
+    QVERIFY(w.save());
+    QVERIFY(w.recoveryFile().empty());
 }
 
 void WindowTests::screenshots() {
@@ -757,10 +1159,14 @@ void WindowTests::screenshots() {
     const fs::path dir = guitest::screenshotDir(core::pathFromUtf8(MDBRIDGE_GUI_SCREENSHOT_DIR));
     QVERIFY(w.openPath(f.copy("full.mdatk.toml", "full.mdatk.toml")));
     QTRY_VERIFY_WITH_TIMEOUT(!w.loading() && w.preview()->settled(), 120000);
+    // at 150 % and 200 % (gui.window.scale150 / scale200) the names say so: window-input-150.png
+    const QByteArray factor = qgetenv("QT_SCALE_FACTOR");
+    const std::string suffix =
+        factor.isEmpty() || factor == "1" ? std::string() : "-" + std::to_string(static_cast<int>(factor.toDouble() * 100.0 + 0.5));
     for (const app::MainWindow::Page& page : w.pages()) {
         w.showPage(page.id);
         QApplication::processEvents();
-        const fs::path shot = guitest::saveScreenshot(&w, dir, "window-" + page.id.toStdString());
+        const fs::path shot = guitest::saveScreenshot(&w, dir, "window-" + page.id.toStdString() + suffix);
         QVERIFY(fs::file_size(shot) > 10000);
         qInfo("screenshot %s", core::pathToUtf8(shot).c_str());
     }

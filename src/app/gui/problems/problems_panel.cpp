@@ -18,6 +18,7 @@
 #include <QTableView>
 #include <QVBoxLayout>
 
+#include "gui/display_path.hpp"
 #include "gui/forms/field_widgets.hpp"
 #include "gui/forms/list_editor.hpp"
 
@@ -132,7 +133,7 @@ QString summaryText(const std::vector<core::Problem>& problems, int limit) {
         const QString location = toQString(problems[i].location);
         const qsizetype cut = location.indexOf(QStringLiteral(" › "));
         const QString where = cut < 0 ? location : location.mid(cut + 3);
-        lines << QStringLiteral("• %1: %2").arg(where, toQString(problems[i].message));
+        lines << QStringLiteral("• %1: %2").arg(where, gui::displayPathsIn(toQString(problems[i].message)));
     }
     if (problems.size() > shown) {
         lines << QStringLiteral("… and %1 more").arg(problems.size() - shown);
@@ -278,14 +279,16 @@ void ProblemsPanel::refresh() {
         m_list->clear();
         for (const core::Problem& p : m_problems) {
             const QString location = p.location.empty() ? QStringLiteral("Project") : toQString(p.location);
-            auto* item = new QListWidgetItem(levelIcon(this, p.level), location + QLatin1Char('\n') + toQString(p.message));
+            const QString text = gui::displayPathsIn(toQString(p.text()));  // paths shown natively (WN-12)
+            auto* item = new QListWidgetItem(levelIcon(this, p.level),
+                                             location + QLatin1Char('\n') + gui::displayPathsIn(toQString(p.message)));
             item->setData(FieldRole, toQString(p.field));
             item->setData(PageRole, toQString(p.page()));
             item->setData(LevelRole, toQString(p.level));
-            item->setToolTip(toQString(p.text()));
+            item->setToolTip(text);
             item->setData(Qt::AccessibleTextRole, QStringLiteral("%1: %2").arg(p.level == "warning" ? QStringLiteral("Warning")
                                                                                                     : QStringLiteral("Error"),
-                                                                               toQString(p.text())));
+                                                                               text));
             m_list->addItem(item);
         }
         if (current >= 0 && current < m_list->count()) {

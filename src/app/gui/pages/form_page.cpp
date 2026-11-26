@@ -176,6 +176,7 @@ FormPage::FormPage(forms::FormContext& context, QString id, QString pageTitle, Q
     m_scroll->setWidgetResizable(true);
     m_scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     m_scroll->setFrameShape(QFrame::NoFrame);
+    m_scroll->setAccessibleName(m_title);  // it takes the focus to scroll the page with the keys (D10)
     m_body = new QWidget;
     m_body->setObjectName(objectName() + QStringLiteral(":body"));
     m_column = new QVBoxLayout(m_body);

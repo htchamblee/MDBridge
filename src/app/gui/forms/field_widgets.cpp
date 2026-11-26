@@ -30,6 +30,7 @@
 #include <QStylePainter>
 #include <QToolButton>
 
+#include "gui/display_path.hpp"
 #include "mdbridge/core/errors.hpp"
 #include "mdbridge/core/json.hpp"
 #include "mdbridge/core/python.hpp"
@@ -245,8 +246,9 @@ void setFlag(QWidget* widget, const QString& message, const QString& level, cons
     }
     const QString lv = message.isEmpty() ? QString() : (level == QLatin1String("warning") ? level : QStringLiteral("error"));
     const bool same = widget->property(kFlagMessage).toString() == message && widget->property(kFlagLevel).toString() == lv;
-    widget->setToolTip(withHint(message, hint));
-    widget->setAccessibleDescription(withHint(message, hint));
+    const QString shown = gui::displayPathsIn(message);  // paths in it shown natively (WN-12)
+    widget->setToolTip(withHint(shown, hint));
+    widget->setAccessibleDescription(withHint(shown, hint));
     if (same) {
         return;
     }
@@ -273,8 +275,8 @@ void setFlag(QWidget* widget, const QString& message, const QString& level, cons
         const QIcon icon = widget->style()->standardIcon(lv == QLatin1String("warning") ? QStyle::SP_MessageBoxWarning
                                                                                         : QStyle::SP_MessageBoxCritical);
         QAction* action = edit->addAction(icon, QLineEdit::TrailingPosition);
-        action->setToolTip(message);
-        action->setText(message);
+        action->setToolTip(shown);
+        action->setText(shown);
         edit->setProperty(kFlagAction, QVariant::fromValue<QObject*>(action));
     }
 }
@@ -355,6 +357,9 @@ void FieldWidget::setEditor(QWidget* editor, QWidget* flagTarget) {
     m_flagTarget = flagTarget ? flagTarget : editor;
     editor->setObjectName(toQString(m_path));
     editor->setAccessibleName(label());
+    if (QLineEdit* inner = lineEditOf(editor); inner && inner != editor) {
+        inner->setAccessibleName(label());  // a spin box's or editable combo's text: what has the focus (D10)
+    }
     editor->setToolTip(m_spec.hint);
     editor->setAccessibleDescription(m_spec.hint);
     setFocusProxy(editor);

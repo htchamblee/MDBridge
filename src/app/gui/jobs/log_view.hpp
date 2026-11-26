@@ -9,6 +9,7 @@
 
 #include <functional>
 #include <memory>
+#include <utility>
 #include <vector>
 
 #include <QString>
@@ -64,6 +65,9 @@ public:
     QAction* copyAction() const { return m_copy; }
     QAction* saveAction() const { return m_save; }
     QPlainTextEdit* textView() const { return m_view; }
+    // Applied to each line as it is shown, on the interface thread (the window shows the paths in
+    // lines natively with it, WN-12); none by default.
+    void setLineTransform(std::function<QString(const QString&)> transform) { m_transform = std::move(transform); }
 
 signals:
     void expandedChanged(bool expanded);
@@ -93,6 +97,7 @@ private:
     QAction* m_clear = nullptr;
     QAction* m_copy = nullptr;
     QAction* m_save = nullptr;
+    std::function<QString(const QString&)> m_transform;
     int m_lines = 0;
     QTextCharFormat m_plain, m_info, m_stderr, m_status, m_error, m_waiting;
 

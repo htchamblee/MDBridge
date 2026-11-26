@@ -19,6 +19,7 @@
 #include <QTableView>
 #include <QThreadPool>
 
+#include "gui/display_path.hpp"
 #include "gui/forms/field_widgets.hpp"
 #include "gui/forms/list_editor.hpp"
 #include "mdbridge/core/errors.hpp"
@@ -111,8 +112,8 @@ std::vector<std::string> GroupsPage::names() const {
 }
 
 void GroupsPage::message(const QString& text, bool error, const QString& detail) {
-    m_status->setText(text);
-    m_status->setToolTip(detail);
+    m_status->setText(gui::displayPathsIn(text));  // a topology's read error names its path (WN-12)
+    m_status->setToolTip(gui::displayPathsIn(detail));
     m_statusError = error;
     QPalette palette = m_status->palette();
     palette.setColor(QPalette::WindowText, error ? QColor(0xc0, 0x1c, 0x28) : QApplication::palette().color(QPalette::WindowText));

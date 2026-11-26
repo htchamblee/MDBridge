@@ -12,6 +12,8 @@
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPainterPath>
+#include <QStyle>
+#include <QStyleOptionFocusRect>
 #include <QWheelEvent>
 
 #include "log_capture.hpp"
@@ -36,6 +38,10 @@ constexpr double kTitleStrip = 0.12;  // top fraction of a slot that drags the s
 constexpr double kDragThreshold = 4;  // pixels before a press becomes a drag
 constexpr double kDegreesPerPixel = 0.5;
 constexpr double kWheelFactor = 1.15;
+// the keyboard (D10; MDATK's canvas has none): an arrow key turns the model as a drag of this many
+// pixels (5°; with Shift 1°)
+constexpr double kKeyPixels = 10.0;
+constexpr double kFineKeyPixels = 2.0;
 
 // round(x, 3): how visual.rotation is stored
 double round3(double x) { return std::round(x * 1000.0) / 1000.0; }
@@ -126,7 +132,11 @@ std::vector<QRectF> figureSlotRects(const core::Project& project, const render::
 PreviewWidget::PreviewWidget(QWidget* parent) : QWidget(parent) {
     setMinimumSize(160, 90);
     setMouseTracking(true);
-    setFocusPolicy(Qt::ClickFocus);
+    setFocusPolicy(Qt::StrongFocus);  // reached with Tab too: the keyboard alternatives below (D10)
+    setAccessibleName(tr("Figure canvas"));
+    setAccessibleDescription(tr("The layout preview and editor. Drag panels to swap them, drag the structure to "
+                                "rotate it, double-click a panel to edit it. Keyboard: arrow keys rotate the "
+                                "structure (Shift: in small steps), + and - zoom it."));
     m_message = tr("The figure preview appears here once a project is open.");
     m_debounce.setSingleShot(true);
     m_debounce.setInterval(kDebounceMs);
@@ -577,7 +587,58 @@ void PreviewWidget::keyPressEvent(QKeyEvent* event) {
         event->accept();
         return;
     }
+    // the keyboard's way to turn and zoom the structure (D10): only while no drag runs, and only
+    // with a structure panel that draws
+    const Qt::KeyboardModifiers others = event->modifiers() & ~(Qt::ShiftModifier | Qt::KeypadModifier);
+    if (!m_press && others == Qt::NoModifier && current() && m_structureSlot >= 0) {
+        const double step = (event->modifiers() & Qt::ShiftModifier) ? kFineKeyPixels : kKeyPixels;
+        double dx = 0.0, dy = 0.0;
+        switch (event->key()) {
+        case Qt::Key_Left: dx = -step; break;
+        case Qt::Key_Right: dx = step; break;
+        case Qt::Key_Up: dy = -step; break;
+        case Qt::Key_Down: dy = step; break;
+        case Qt::Key_Plus:
+        case Qt::Key_Equal:
+            emit zoomRequested(kWheelFactor);
+            event->accept();
+            return;
+        case Qt::Key_Minus:
+        case Qt::Key_Underscore:
+            emit zoomRequested(1.0 / kWheelFactor);
+            event->accept();
+            return;
+        default: break;
+        }
+        if (dx != 0.0 || dy != 0.0) {
+            const render::Vec3d next = render::drag({m_angles[0], m_angles[1], m_angles[2]}, dx, dy, kDegreesPerPixel);
+            setRotation({next[0], next[1], next[2]});  // fast at once, full quality 250 ms after the last key
+            emit keyRotated(m_angles);
+            event->accept();
+            return;
+        }
+    }
     QWidget::keyPressEvent(event);
+}
+
+void PreviewWidget::focusInEvent(QFocusEvent* event) {
+    update();  // the focus frame
+    QWidget::focusInEvent(event);
+}
+
+void PreviewWidget::focusOutEvent(QFocusEvent* event) {
+    update();
+    QWidget::focusOutEvent(event);
+}
+
+// The keyboard focus is visible (D10): the style's focus frame inside the widget's edge.
+void PreviewWidget::drawFocus(QPainter& painter) {
+    if (!hasFocus()) return;
+    QStyleOptionFocusRect option;
+    option.initFrom(this);
+    option.rect = rect().adjusted(1, 1, -1, -1);
+    option.backgroundColor = palette().color(QPalette::Window);
+    style()->drawPrimitive(QStyle::PE_FrameFocusRect, &option, &painter, this);
 }
 
 void PreviewWidget::cancelDrag() {
@@ -633,6 +694,7 @@ void PreviewWidget::paintEvent(QPaintEvent*) {
         if (m_press && m_dragging && m_press->mode == QStringLiteral("move")) {
             drawDrag(painter);
         }
+        drawFocus(painter);
         return;
     }
     painter.fillRect(rect(), palette().window());
@@ -640,6 +702,7 @@ void PreviewWidget::paintEvent(QPaintEvent*) {
         painter.setPen(palette().color(QPalette::PlaceholderText));
         painter.drawText(rect().adjusted(12, 12, -12, -12), Qt::AlignCenter | Qt::TextWordWrap, m_message);
     }
+    drawFocus(painter);
 }
 
 // MDATK's _draw_drag: the source slot tinted, the target outlined (dashed) and the panel's type at

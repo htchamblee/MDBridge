@@ -11,6 +11,11 @@
 //   double-click                    opens the slot's editor (slotActivated)
 //   wheel over the structure        zooms (x 1.15 per notch; zoomRequested)
 //
+// The keyboard (D10; MDATK's canvas has no keyboard use): the canvas takes the focus with Tab or a
+// click (a focus frame shows it); then the arrow keys turn the structure as a drag of 10 pixels
+// would (5°; with Shift 2 pixels, 1°; keyRotated) and + / - zoom it as a wheel notch (zoomRequested);
+// Esc cancels a drag.
+//
 // A press becomes a drag after 4 pixels (|dx| + |dy|). Hit areas are each panel's drawn extent
 // (Figure::tightBox of its axes and the twin axes in its cell), an empty slot's grid cell.
 //
@@ -141,6 +146,8 @@ signals:
     void zoomRequested(double factor);
     // A double-click on slot `slot`.
     void slotActivated(int slot);
+    // An arrow key turned the model (the angles unrounded; the canvas shows them already).
+    void keyRotated(const std::array<double, 3>& angles);
 
 protected:
     void paintEvent(QPaintEvent* event) override;
@@ -151,6 +158,8 @@ protected:
     void mouseDoubleClickEvent(QMouseEvent* event) override;
     void wheelEvent(QWheelEvent* event) override;
     void keyPressEvent(QKeyEvent* event) override;
+    void focusInEvent(QFocusEvent* event) override;
+    void focusOutEvent(QFocusEvent* event) override;
     void leaveEvent(QEvent* event) override;
 
 public:
@@ -177,6 +186,7 @@ private:
     void queue(const Op& op);
     void updateCursor(const QPointF& at);
     void drawDrag(QPainter& painter);
+    void drawFocus(QPainter& painter);
     void settleNow();
     void maybeFinish();
 

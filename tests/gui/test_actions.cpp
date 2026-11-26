@@ -45,6 +45,7 @@
 #include "gui/dialogs/image_dialog.hpp"
 #include "gui/dialogs/prompts.hpp"
 #include "gui/dialogs/text_dialog.hpp"
+#include "gui/display_path.hpp"
 #include "gui/forms/field_widgets.hpp"
 #include "gui/forms/form_context.hpp"
 #include "gui/jobs/job_runner.hpp"
@@ -75,13 +76,11 @@ namespace {
 constexpr int kJobWait = 300000;  // ms: a job of these tests (the demo's analyses and video)
 
 QString qs(const fs::path& p) { return QString::fromStdString(core::pathToUtf8(p)); }
-// The output folder or one of its files as the window shows it: '/' separators throughout
-// (WindowActions' display(), WA-06), while f.outDir() / name and directory listings join with
-// std::filesystem's '\\' on Windows. The same as core::pathToUtf8(p) on Linux and macOS.
-std::string shown(const fs::path& p) {
-    const std::u8string text = p.generic_u8string();
-    return std::string(text.begin(), text.end());
-}
+// The output folder or one of its files as the window shows it: the platform's separators
+// throughout (gui::displayPath, WN-12; WindowActions' display(), WA-06), while f.outDir() / name and
+// directory listings join with std::filesystem's '\\' on Windows. The same as core::pathToUtf8(p)
+// on Linux and macOS.
+std::string shown(const fs::path& p) { return app::gui::displayPath(p).toStdString(); }
 
 bool videoBuild() { return render::video::videoEncodingAvailable(); }
 
@@ -355,7 +354,7 @@ void ActionTests::realFramePreviewAndRender() {
     QCOMPARE(still->image().size(), QSize(320, 180));
     QVERIFY(still->windowTitle().startsWith(QStringLiteral("MDBridge preview – MDATK_still_")));
     QCOMPARE(still->path(), qs(app::WindowActions::stillPath()));
-    QVERIFY(f.logged("Still frame written to " + core::pathToUtf8(app::WindowActions::stillPath())));
+    QVERIFY(f.logged("Still frame written to " + shown(app::WindowActions::stillPath())));
     QCOMPARE(w.jobRunner()->statusText(), QStringLiteral("Rendering still: done"));
     QVERIFY(QTest::qWaitForWindowExposed(still));
     guitest::saveScreenshot(still, guitest::screenshotDir(core::pathFromUtf8(MDBRIDGE_GUI_SCREENSHOT_DIR)),
@@ -453,7 +452,7 @@ void ActionTests::aboutAndBibtexWithRunKeys() {
     const std::string text((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
     QCOMPARE(text, core::citations::bibtex(citations.keys));
     QVERIFY(text.find("cordero2008") != std::string::npos);
-    QVERIFY(f.logged("Wrote " + std::to_string(citations.keys.size()) + " references to " + core::pathToUtf8(bib)));
+    QVERIFY(f.logged("Wrote " + std::to_string(citations.keys.size()) + " references to " + shown(bib)));
 }
 
 void ActionTests::exportRerenderInspect() {

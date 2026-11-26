@@ -20,6 +20,7 @@
 
 #include "commands.hpp"
 #include "gui/dialogs/image_dialog.hpp"
+#include "gui/display_path.hpp"
 #include "gui/forms/form_context.hpp"
 #include "gui/jobs/job_runner.hpp"
 #include "gui/jobs/log_view.hpp"
@@ -50,14 +51,16 @@ namespace fs = std::filesystem;
 namespace {
 
 QString qs(const std::string& text) { return QString::fromUtf8(text.data(), static_cast<qsizetype>(text.size())); }
-// The output folder or one of its files as the window shows it: '/' separators throughout, as
-// core::outDir resolves the folder (the documented Windows path rules). On Windows the pipeline's
-// files (core::outDir joined by std::filesystem) and a video found by listing the folder would
-// otherwise end in "\\<name>". The same text on Linux and macOS.
-QString display(const fs::path& path) {
+// The output folder or one of its files with '/' separators throughout, as core::outDir resolves the
+// folder (the documented Windows path rules): for the URL the desktop opens. On Windows the
+// pipeline's files (core::outDir joined by std::filesystem) and a video found by listing the folder
+// would otherwise end in "\\<name>". The same text on Linux and macOS.
+QString generic(const fs::path& path) {
     const std::u8string text = path.generic_u8string();
     return QString::fromUtf8(reinterpret_cast<const char*>(text.data()), static_cast<qsizetype>(text.size()));
 }
+// ... and as the interface shows it: native separators throughout on Windows (WN-12, WA-06).
+QString display(const fs::path& path) { return gui::displayPath(generic(path)); }
 
 // What a re-render from the cache wrote.
 struct Rerendered {
@@ -361,7 +364,7 @@ void WindowActions::openOutputFolder() {
         m_window.showError(QStringLiteral("The output directory does not exist yet."), display(folder));
         return;
     }
-    if (!m_opener(QUrl::fromLocalFile(display(folder)))) {
+    if (!m_opener(QUrl::fromLocalFile(generic(folder)))) {
         m_window.showError(QStringLiteral("Could not open the folder"), tr("no file manager could be started"));
         return;
     }
@@ -413,10 +416,10 @@ void WindowActions::openVideo() {
     const fs::path video = videoToOpen();
     if (video.empty()) {
         m_window.showError(QStringLiteral("No video has been rendered yet."),
-                           qs(core::outDir(currentProject(m_window))));
+                           display(core::pathFromUtf8(core::outDir(currentProject(m_window)))));
         return;
     }
-    if (!m_opener(QUrl::fromLocalFile(display(video)))) {
+    if (!m_opener(QUrl::fromLocalFile(generic(video)))) {
         m_window.showError(QStringLiteral("Could not open the video"),
                            tr("no application could be started for %1").arg(display(video)));
         return;

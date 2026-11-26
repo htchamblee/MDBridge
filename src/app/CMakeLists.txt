@@ -17,6 +17,8 @@ add_library(mdbridge_app STATIC
     gui/dialogs/prompts.hpp
     gui/dialogs/text_dialog.cpp
     gui/dialogs/text_dialog.hpp
+    gui/display_path.cpp
+    gui/display_path.hpp
     gui/forms/custom_fields.cpp
     gui/forms/custom_fields.hpp
     gui/forms/field_factory.cpp

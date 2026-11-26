@@ -552,7 +552,8 @@ test_selections.cpp; cli_cases.json (`info_groups`); framework_cases.json (cache
   1. *Separators and normalisation.* MDATK writes `\` in resolved relative paths
      (`C:\projects\p\sub\a.pdb`) and keeps absolute ones exactly as given (`C:\data\..\a.pdb`,
      `C:\Users\me/a.pdb` from `~/a.pdb`, `\\server\share\x\..\a.pdb`); MDBridge normalises every
-     result to one generic form with `/` (the same file; one text to compare, log and show).
+     result to one generic form with `/` (the same file; one text to compare and store; the
+     command line prints it so, the interface shows it with `\`, WN-12).
   2. *A drive-relative path on another drive.* `D:a.pdb` with the project on C: MDATK keeps `D:a.pdb`,
      which Windows resolves against the process's current folder on drive D when the file is opened
      (a GUI program does not control it); MDBridge uses `D:/a.pdb` (`D:` alone: `D:/`).
@@ -1907,6 +1908,25 @@ figures are compared by tests/render). Differences:
   locale Qt's notice about switching to `C.UTF-8` is not printed (the switch is made silently), and
   numbers in logs and files keep the decimal point whatever the user's locale.
 
+## Interface: index of the ids (milestone 5)
+
+The interface's deliberate differences, by id; each entry below says what MDATK does, what MDBridge
+does instead and why, which MDATK version's design it follows, and how it is tested.
+
+| Ids | Section | Items |
+|---|---|---|
+| AP-01 ... AP-20 | the analysis window (AP items; tests/data/gui) | 01 no clamping on load, 02 every digit, 03 colour text, 04 chart formats, 05 unknown choices, 06 paths as written (D8), 07 empty slots, 08 smaller preset keeps panels, 09 swaps refused with bad options, 10 located form errors, 11 Save as asks about the final name, 12 start-up error shown, 13 unsaved changes (D6), 14 closing during a job, 15 table edits on focus loss, 16 run citations, 17 recent list keeps other keys, 18 dialog details in full, 19 MDBridge's choices, 20 drawing off the interface thread |
+| WN-01 ... WN-14 | the window shell | 01 layout (D4), 02 shortcuts (D11), 03 modified marker and questions, 04 recovery copies, 05 another program changed the file, 06 Close project, 07 citations, 08 shells (D2), 09 the start, 10 drawing warnings, 11 pages fit the side bar (100 / 150 / 200 %), 12 paths shown with the platform's separators, 13 keyboard and screen readers (D10; canvas keys), 14 settings locations (D16) |
+| ED-01 ... ED-08 | the edit model | 01 lossless fields, 02 paths as written, 03 located problems, 04 form errors in words, 05 undo / redo / modified, 06 group rename cascade, 07 later MDATK's comments, 08 recovery and external changes |
+| FW-01 ... FW-08 | the field widgets | 01 ranges as hints, 02 digits and colours kept, 03 lists and unknown choices, 04 problems on the field, 05 cells commit on focus loss, 06 load / save identity, 07 wheel and keyboard, 08 picks inside the project relative |
+| PV-01 ... PV-03 | problems as you type | 01 checked as you type, 02 badges and the problems list, 03 the widgets' own problems |
+| PG-01 ... PG-06 | Structure view and Outputs pages | 01 rotation sliders, 02 chart format boxes, 03 chart styles, 04 density buttons (D2), 05 texts for the side bar, 06 a focused field destroyed |
+| GP-01 ... GP-05 | Input, Residue groups and Analyses pages | 01 renames cascade, 02 removed groups in use, 03 Groups from chains (D15), 04 Pick colour and the swatch, 05 texts naming MDAnalysis or Barnaba |
+| JB-01 ... JB-04 | jobs and the log | 01 closing asks and waits, 02 the log never floods, 03 Copy / Save / dark styles, 04 failures |
+| WA-01 ... WA-09 | the window's actions | 01 job buttons while a job runs, 02 what blocks a job (D7), 03 Open video, 04 Inspect system, 05 cleaned files shown, 06 the desktop through Qt, 07 the still fits the screen, 08 Centre on model, 09 run citations |
+| LE-01 ... LE-10 | the canvas and the Layout & panels page | 01 the structure panel as the 3D view, 02 no drawing on the interface thread, 03 one drag one undo step, 04 MDATK's angles, 05 AP-07 ... AP-10 on the page, 06 data labels, 07 titles follow renames, 08 no frame announcement, 09 MDATK's pointer positions, 10 wheel bursts |
+| FONT-01 ... FONT-03 | Rendering: fonts and text | IBM Plex Serif in the interface and figures, Plex Math fallback, Plex Mono |
+
 ## Interface: 3D view and figure preview (src/app/gui, src/app/commands/project_view.cpp, src/render/view.cpp, software_view.cpp)
 
 Milestone 4's interface (owner decision D13) shows an opened project's structure in the 3D view and a
@@ -1975,7 +1995,7 @@ tests (`mdbridge_gui_tests`) replay the cases. *Tested:* the case named after ea
 - **AP-04: chart formats as set.** Three check boxes saved `["jpg", "svg"]` as `["svg"]`. MDBridge
   keeps the list (validation flags unknown entries). Not fixed in 0.1.1. *Tested:*
   `roundtrip/lossy_values`.
-- **AP-05 / AP-19: unknown drop-down values stay.** A stored value outside a drop-down's list was
+- **AP-05: unknown drop-down values stay.** A stored value outside a drop-down's list was
   saved as the previous project's choice (`visual.renderer = "vulkan"` -> `"software"`) or as `""`.
   MDBridge keeps it (shown as unknown and flagged). *Tested:* `ap/ap05_unknown_choice`,
   `roundtrip/lossy_values`.
@@ -2013,17 +2033,43 @@ tests (`mdbridge_gui_tests`) replay the cases. *Tested:* the case named after ea
 - **AP-13: unsaved changes are not lost unasked (owner decision D6).** MDATK's New, Open and closing
   discarded edits. MDBridge asks Save / Discard / Cancel when the project differs from what was last
   loaded or saved. *Tested:* `ap/ap13_unsaved_changes`.
+- **AP-14: closing during a job asks and waits.** MDATK's analysis window cancelled its worker on
+  close without waiting (a daemon thread), so a render could end in the middle of writing its
+  video. MDBridge asks (*Cancel it and close* / Cancel), cancels and waits for the job's own clean-up,
+  and asks again after 15 s (*Keep waiting*, *Close anyway*); MDATK 0.1.1's RNAdo question (0.0.11),
+  which its analysis window never got (section "jobs and the log", JB-01). *Tested:*
+  `JobRunnerTest::closeWaitsForTheJobsCleanUp`, `closeAsksAgainWhenTheJobDoesNotStop`,
+  `WindowTests::closingDuringAJob`, `ActionTests::closeDuringRender`.
+- **AP-15: table edits are kept when the cell is left by a click.** MDATK 0.0.4.1 dropped text typed
+  into a table cell (groups, trajectories, external data, RMSD targets) unless Enter confirmed it.
+  MDBridge stores a cell on Enter, on focus loss and before a save (MDATK 0.1.0, 608f322; FW-05).
+  *Tested:* `FormsTest::tableCellsCommitOnFocusLossAndEnter`.
+- **AP-16: About and Export citations name the run's references too.** MDATK cited the settings'
+  resources only; MDBridge adds the run-time references the cached results of the last run record
+  (`core::citations::withRunKeys`, CIT-06; as the `citations` command). MDBridge-specific (WN-07,
+  WA-09). *Tested:* `WindowTests::citations`, `ActionTests::aboutAndBibtexWithRunKeys`, the
+  `citations_*` cases of `cli_parity.py`.
 - **AP-17: the recent list keeps the settings file's other keys.** MDATK 0.0.4.1 rewrote
   `settings.toml` with `recent` only, deleting newer MDATK's keys (0.0.14's `cat_proof`). MDBridge
   keeps every other key (MDATK 0.0.14) and writes atomically. *Tested:* `ap/ap17_recent_keeps_settings`.
-- **AP-18: dialog details in full.** MDATK cut message details at 3 000 characters. *Tested:* the
-  recorded dialogs (`detail` uncut).
+- **AP-18: dialog details in full.** MDATK cut message details at 3 000 characters (a long list of
+  problems or a traceback lost its end), its texts could not be selected and the still preview was
+  scaled to a fixed 1 200 px. MDBridge shows the whole text, selectable and scrollable (MDATK 0.1.0,
+  `dialogtext.py`), keeps it in the log, and fits the still to the screen (WA-07). *Tested:* the
+  recorded dialogs (`detail` uncut), `ActionTests::resultDialogScreenshots`.
+- **AP-19: MDBridge's choices offered.** MDATK offered choices MDBridge does not have (base-pair
+  engine `barnaba`, renderer `vtk`, every Matplotlib chart style). The drop-downs offer MDBridge's
+  (the built-in base-pair engine; renderers `auto`, `software`, `vulkan`, RN-20; chart styles `mdatk`
+  and `default`, D5 of milestone 4); a stored value outside them is kept (AP-05). *Tested:*
+  `FormsTest::unknownChoicesAreKeptAndShown`, `PagesTest::chartStylesAreMdbridgesAndTypedNamesStay`
+  (FW-03, PG-03, GP-05).
+- **AP-20: nothing is drawn on the interface thread.** MDATK built and drew the figure in GTK's main
+  loop and rebuilt it for every wheel notch. MDBridge draws on a worker; a rotation, zoom or map
+  move redraws the structure panel only and the full figure follows debounced (LE-01, LE-02).
+  *Tested:* `CanvasTests::rotationRedrawsOnlyTheStructure`, `canvas/wheel_zoom`.
 
-AP-14 (closing during a job), AP-15 (table edits committed on focus loss), AP-16 (About and BibTeX
-with the run-time citations; the `citations` command's cases in `cli_parity.py` cover the keys),
-AP-19's offered choices and AP-20 (drawing off the GUI thread) leave no trace in the recorded files
-and messages; their packages' Qt tests cover them (AP-14: `WindowTests::closingDuringAJob`, AP-16:
-`WindowTests::citations`).
+AP-14, AP-15, AP-16, AP-19 and AP-20 leave no trace in the recorded files and messages: their
+packages' Qt tests above cover them.
 
 The window's saves of a file a later MDATK wrote follow the edit model (PRJ-09, ED-07): its
 `mdatk_version` and comments stay; and a step-log marker pasted into the notes starts no log
@@ -2047,7 +2093,7 @@ lines) and the suggested file names (`<project_name or MDATK>.mdatk.toml`,
 
 - **WN-01: layout (D4).** No separate 3D view (above). The canvas is MDATK's layout editor (LE-01 ..
   LE-10 below); it redraws 120 ms after a change (MDATK's debounce) and with *Refresh* (F5).
-  *Load real frame* is gone (the reference frame loads by itself). The Layout & panels page is W2-A's. Qt's Fusion style in the system's light or dark scheme
+  *Load real frame* is gone (the reference frame loads by itself). Qt's Fusion style in the system's light or dark scheme
   (D3). *Tested:* `WindowTests::layoutAndShortcuts`, `pagesAndSections`, `screenshots`.
 - **WN-02: shortcuts (D11).** MDATK's Ctrl+O, Ctrl+S, Ctrl+Shift+S, Ctrl+R (Ctrl+P, Ctrl+Shift+W
   reserved for the planner and wizard) plus Ctrl+N, Ctrl+W (*Close project*), Ctrl+Q, Ctrl+Z /
@@ -2078,9 +2124,9 @@ lines) and the suggested file names (`<project_name or MDATK>.mdatk.toml`,
   same text with *Copy*, *Copy as JSON* (the `citations --json` form) and *Export BibTeX…*. The texts
   are selectable (MDATK 0.1.0). *Tested:* `WindowTests::citations`, `aboutAndGraphics`.
 - **WN-08: shells (D2).** The *Workflow* menu's Project Planner, Script wizard, PDB clean-up and
-  Structure builder are present but disabled with a tooltip naming their milestone; *Render*, *Open
-  output folder* and *Open video* are disabled until W2-B wires them (Cancel is enabled while a job
-  runs; the demo runs as a job). *Tested:* `workflowShells`, `demoProject`, `closingDuringAJob`.
+  Structure builder are present but disabled with a tooltip naming their milestone (Cancel is
+  enabled while a job runs; the demo runs as a job; *Render*, *Open output folder* and *Open video*
+  are the window's actions, WA-xx). *Tested:* `workflowShells`, `demoProject`, `closingDuringAJob`.
 - **WN-09: what the start says (AP-12).** As MDATK 0.1.0: the window logs the error (the log
   unfolded) and names it in the status bar, besides MDATK's stderr line; no dialog. Warnings of the
   file read at the start (unknown keys, D9) go to stderr as MDATK's do (its log handler is attached
@@ -2107,7 +2153,62 @@ lines) and the suggested file names (`<project_name or MDATK>.mdatk.toml`,
   `pagesFitTheSideBar` (with every section open, no widget of any page reaches past its viewport,
   no table scrolls sideways and no column label is clipped) with the GUI tests' font pinned to the bundled IBM Plex Serif 9 pt (the
   application's font, FONT-01; with DejaVu Sans, the only font of the Linux CI, the list editors'
-  button rows had made the Input page 3 px too wide); screenshots of all six pages at 100% and 200% scale (CI artifacts).
+  button rows had made the Input page 3 px too wide); no button or label of a page or of the header,
+  page bar and action bar is smaller than its minimum size (no text cut off). The same test runs at
+  150 % and 200 % (`gui.window.scale150` / `scale200`: Qt's `QT_SCALE_FACTOR`, the device pixel
+  ratio checked), and screenshots of all six pages are taken at each scale (`window-<page>.png`,
+  `-150`, `-200`; CI artifacts).
+- **WN-12: paths shown with the platform's separators.** MDBridge stores a path in one generic form
+  with `/` (the Windows path rules, "Project files") and std::filesystem joins a name to a folder
+  with `\`, so on Windows the interface showed `C:/Users/me/out\video.mp4`, and `/` forms elsewhere,
+  where Windows users read `\`. On Windows every path in interface text is shown with `\`
+  throughout: the window title, the recent list (text and tooltips), the external-change notice,
+  log lines (the window's and the pipeline's own messages as the log view shows them), questions and
+  result / error dialogs, *Open output folder* / *Open video*, the status bar, the problems list,
+  badges' and fields' problem tooltips. One helper does it (`gui::displayPath` for a path,
+  `gui::displayPathsIn` for a message: each absolute Windows path in it, a drive letter or a UNC /
+  device prefix, up to the next white space, quote or `:`; the home, temporary, project, output and
+  cache folders as a whole, so spaces in them are kept inside the path). Storage is unchanged:
+  project files, settings, parameter logs, the cache, the file watcher, the URLs handed to the
+  desktop and the stderr line of a failed start (MDATK's) keep their forms; the command line prints
+  what it printed. On Linux and macOS the helpers return their input. MDATK has no such rule (its
+  Windows build shows Python's mixed forms). *Tested:* `WindowTests::pathsShownNatively` (the Windows
+  rules on every platform: mixed joins, paths before `:`, quoted paths, UNC and device paths, roots
+  with spaces, text without paths unchanged; the log view's transform; the window's title, log and
+  status bar), the window and action tests' `shown()` helpers (`gui::displayPath`: native on the
+  Windows CI, unchanged on Linux), `cli_parity.py --mdbridge` (298 of 298: the command line's output
+  unchanged).
+- **WN-13: keyboard and screen-reader access (owner decision D10).** MDATK names its icon buttons;
+  its canvas (`gui/canvas.py`, also in 0.1.1) has no keyboard use at all. MDBridge:
+  every control takes the keyboard focus with Tab (the header's tool buttons too, which a Qt tool
+  bar leaves out; the page buttons are one group, entered with Tab, moved in with the arrow keys and
+  shown with Space; Ctrl+1 ... Ctrl+6 as before), Tab goes round the window in its visual order
+  (header, page bar, page, canvas, log, action bar) and through a page section by section (the
+  Layout page's slot editors, rebuilt with each preset, are put back in their place in the order;
+  multi-line texts pass Tab on), every focusable widget has an accessible name (the field's label;
+  a spin box's or editable combo's text part too; a page's scroll area the page's title; the canvas
+  "Figure canvas" with a description of its mouse and keys), Esc closes the dialogs, and the canvas
+  shows the focus with the style's focus frame. **Keyboard on the canvas (addition; MDATK's canvas
+  has no keyboard use):** with the canvas focused, the arrow keys turn the structure as a 10-pixel
+  drag would (5°; Shift: 1°), + and - zoom it as a wheel notch; a burst of keys (at most 500 ms
+  apart) is one undo step (*Rotate structure* / *Zoom the structure*, as LE-10); Esc still cancels a
+  drag. Panel swaps and slot edits keep their keyboard path through the Layout & panels page (Ctrl+5).
+  *Tested:* `WindowTests::everyFocusableWidgetIsNamed` (every page with all sections open and the
+  window's bars: no focusable widget without an accessible name), `everyControlTakesTheKeyboardFocus`
+  (no button, field, list, slider or canvas without Tab focus; the round through the window; the
+  page-button group), `tabOrderVisitsEveryField` (each page: Tab from its first field reaches every
+  field editor, sections in order, never caught), `escapeClosesDialogs`, `layoutAndShortcuts` (D11),
+  `CanvasTests::keyboardRotatesAndZooms` (the angles of the same mouse path, the zoom, one undo step
+  per burst); `gui.window.scale150` / `scale200` repeat the naming and Tab tests at 150 % and 200 %.
+- **WN-14: where the settings are (owner decision D16).** Linux: the recent list in MDATK's shared
+  `$XDG_CONFIG_HOME/mdatk/settings.toml` (else `~/.config/mdatk`; its other keys kept, AP-17),
+  MDBridge's own settings and the recovery copies in `$XDG_CONFIG_HOME/mdbridge` (`recovery/`);
+  nothing else goes into MDATK's folder. Windows: both in `%APPDATA%\MDBridge` (without APPDATA,
+  `%USERPROFILE%\AppData\Roaming\MDBridge`); MDATK's Windows build keeps its own file in
+  `%USERPROFILE%\.config\mdatk`, which is not shared. MDBridge uses no Qt settings (no registry
+  entries). *Tested:* `ProjectIo.ConfigFolders` (core, both platforms' rules),
+  `WindowTests::settingsLocations` (opening a project writes the recent list there, a recovery copy
+  goes to `<own folder>/recovery`, saving removes it).
 
 ## Interface: the edit model (src/core/project_document.cpp, problems.cpp; milestone 5 W0-B)
 
@@ -2345,8 +2446,9 @@ folding sections (`section:structure.orientation` ...). Deliberate differences:
   `mdbridge_gui_tests` ends with a focused field.
 
 The GUI cases `pages/structure_page` and `pages/outputs_page` (and the AP cases that only touch these
-pages: `ap05_unknown_choice`, `ap07_empty_slots`) run against a test-only page host until the window
-has its pages (tests/gui/page_host.hpp, tests/data/README.md "gui"). The structure case's rotation
+pages: `ap05_unknown_choice`, `ap07_empty_slots`) ran against a test-only page host
+(tests/gui/page_host.hpp) until the window had its pages; they run in the window now, as every case
+(tests/data/README.md "gui"). The structure case's rotation
 is set as floats (`-30.0`; a slider holds no integers), so its expected file reads as MDATK's.
 
 ## Interface: the Input, Residue groups and Analyses pages (src/app/gui/pages; milestone 5 W1-B)
@@ -2413,7 +2515,7 @@ in batches every 40 ms, at most 2 000 per batch (the newest, with the note `… 
 shown: they came faster than the log can show them`), 5 000 to 6 000 lines kept, 0.1.1's styles,
 Copy, Save, Clear, follow, fold on Ctrl+L. Deliberate differences:
 
-- **Closing during a job asks and waits (AP-14).** MDATK's analysis window cancelled the worker
+- **JB-01: closing during a job asks and waits (AP-14).** MDATK's analysis window cancelled the worker
   on close and quit without waiting (a daemon thread, `worker.py`), so a render could end in the
   middle of writing its video. MDBridge asks first (*Cancel it and close* / Cancel), then cancels
   the job and waits for it to end, its own clean-up included, while the log and progress go on
@@ -2425,7 +2527,7 @@ Copy, Save, Clear, follow, fold on Ctrl+L. Deliberate differences:
   `closeWaitsForTheJobsCleanUp` (the job removes its partial file before close returns),
   `closeAsksAgainWhenTheJobDoesNotStop`, `destroyingTheRunnerWaitsForTheJob`
   (tests/gui/test_jobs.cpp).
-- **The log never floods the interface.** MDATK v0.0.4.1 posted one main-loop callback per log
+- **JB-02: the log never floods the interface.** MDATK v0.0.4.1 posted one main-loop callback per log
   line and progress value, and trimmed the buffer after every line; a chatty cpptraj or a long
   trajectory made the window unresponsive. The log follows 0.1.1's batched panel (above) for the
   analysis window too; without a GIL the queue needs no `FLOOD_PAUSE_S` sleep (the producing
@@ -2436,13 +2538,13 @@ Copy, Save, Clear, follow, fold on Ctrl+L. Deliberate differences:
   `aFloodingJobCanBeCancelled`: 10^6 lines, no event-loop stall of 0.2 s, at most 6 000 lines,
   the newest line shown, Cancel effective within the flood; `keepsFiveToSixThousandLines`,
   `aFloodShowsTheNewestLinesAndANote`, `JobRunnerTest::progressTextAndThrottle`.
-- **Copy and Save in the analysis window's log; dark-palette styles.** MDATK v0.0.4.1's log had
+- **JB-03: Copy and Save in the analysis window's log; dark-palette styles.** MDATK v0.0.4.1's log had
   Clear only; Copy, Save (`Log saved to <path>`, or `ERROR: could not write <path>: <reason>` in the
   log; written atomically) and the follow toggle are 0.1.1's output-log controls. The 0.1.1 colours
   are GNOME's light-theme shades; on a dark palette (D3) the same hues in lighter shades are used
   (`#99c1f1` info, `#f66151` stderr, `#ff7b63` error, `#ffa348` warning). *Tested:*
   `LogViewTest::styles`, `clearCopySave`, `foldsWithCtrlL`, `followsTheEnd`.
-- **Failures carry no traceback; failed result handlers are failures.** MDATK logged the Python
+- **JB-04: failures carry no traceback; failed result handlers are failures.** MDATK logged the Python
   traceback of an unexpected exception; C++ exceptions have none, so the log gets `ERROR: <title>
   failed: <message>` (MDATK's `error()` line) and the handler gets the exception itself
   (`JobFailure::error`) to tell kinds apart (AP-10's located problems). An exception from the
@@ -2508,12 +2610,11 @@ has nothing to adopt: MDBridge does not fit maps yet (milestone 4 D9). Deliberat
 - **WA-06: the desktop through Qt.** *Open output folder* and *Open video* use
   `QDesktopServices::openUrl` (Explorer on Windows; the XDG portal or `xdg-open` on Linux) instead
   of MDATK's FileManager1 D-Bus call, `inode/directory` handler and `xdg-open` chain; the log line
-  is `Opened <path>` without MDATK's `(<how>)`, the path with `/` separators as the output folder
-  is resolved (Windows path rules above; also for a video found by listing the folder). The
-  result dialogs of Render (`Video:`, `Parameter log:`) and Export PDBs list the files the same
-  way; on Windows the pipeline's own text joins the folder and the name with `\`, which the log
-  and the command line keep. When nothing can open it: `Could not open the folder` / `Could not
-  open the video`. *Tested:* `ActionTests::openFolderAndVideo` (the opener replaced by the test),
+  is `Opened <path>` without MDATK's `(<how>)`, the path shown with the platform's separators
+  (WN-12: on Windows `\` throughout, also for a video found by listing the folder). The result
+  dialogs of Render (`Video:`, `Parameter log:`) and Export PDBs list the files the same way; the
+  URL handed to the desktop is made from the resolved folder (`/` form). When nothing can open it:
+  `Could not open the folder` / `Could not open the video`. *Tested:* `ActionTests::openFolderAndVideo` (the opener replaced by the test),
   `realFramePreviewAndRender`, `exportRerenderInspect`.
 - **WA-07: the still fits the screen (AP-18).** MDATK scaled the still to a fixed 1 200 px width;
   MDBridge shows it at its own size when it fits and otherwise scales it, aspect kept, to 90 % of

@@ -23,6 +23,7 @@
 #include <QTemporaryDir>
 #include <QTest>
 #include <QWheelEvent>
+#include <QKeyEvent>
 
 #include "gui/main_window.hpp"
 #include "gui/pages/layout_page.hpp"
@@ -31,6 +32,8 @@
 #include "mdbridge/core/paths.hpp"
 #include "mdbridge/core/project.hpp"
 #include "mdbridge/core/project_document.hpp"
+#include "mdbridge/core/python.hpp"
+#include "mdbridge/render/orientation.hpp"
 
 namespace fs = std::filesystem;
 using namespace mdbridge;
@@ -80,6 +83,7 @@ private slots:
     void rotationRedrawsOnlyTheStructure();
     void slotDefaultsAndWheelZoom();
     void wheelBurstIsOneUndoStep();
+    void keyboardRotatesAndZooms();
     void titlesFollowAGroupRename();
 
 private:
@@ -260,6 +264,50 @@ void CanvasTests::wheelBurstIsOneUndoStep() {
     doc.undo();
     QVERIFY(settled());
     QCOMPARE(doc.project().visual.zoom, z0);
+    QVERIFY(!doc.canUndo());
+}
+
+// D10 (WN-13; MDATK's canvas has no keyboard use): the canvas takes the focus with Tab, shows it,
+// has an accessible name; the arrow keys turn the structure as a 10-pixel drag (Shift: 2 pixels), +
+// and - zoom it as a wheel notch; a burst of keys is one undo step; Ctrl+arrow does nothing here.
+void CanvasTests::keyboardRotatesAndZooms() {
+    app::PreviewWidget* canvas = m_window->preview();
+    core::ProjectDocument& doc = m_window->document();
+    QVERIFY(canvas->focusPolicy() & Qt::TabFocus);
+    QVERIFY(!canvas->accessibleName().isEmpty());
+    QVERIFY(canvas->accessibleDescription().contains(QStringLiteral("arrow keys")));
+    canvas->setFocus(Qt::TabFocusReason);
+    QTRY_VERIFY(canvas->hasFocus());
+    const std::vector<double> r0 = doc.project().visual.rotation;
+    const double z0 = doc.project().visual.zoom;
+    QTest::keyClick(canvas, Qt::Key_Right);
+    QTest::keyClick(canvas, Qt::Key_Right);
+    QTest::keyClick(canvas, Qt::Key_Up, Qt::ShiftModifier);
+    QVERIFY(settled());
+    // the angles of the same mouse path: right 10 + 10 pixels, then up 2
+    render::Vec3d expected = render::drag({r0[0], r0[1], r0[2]}, 10.0, 0.0, 0.5);
+    expected = render::drag(expected, 10.0, 0.0, 0.5);
+    expected = render::drag(expected, 0.0, -2.0, 0.5);
+    const std::vector<double>& r = doc.project().visual.rotation;
+    QCOMPARE(r.size(), std::size_t{3});
+    for (std::size_t k = 0; k < 3; ++k) QVERIFY(std::abs(r[k] - core::pythonRound(expected[k], 3)) < 1e-9);
+    QCOMPARE(canvas->angles()[0], expected[0]);
+    QCOMPARE(QString::fromStdString(doc.undoLabel()), QStringLiteral("Rotate structure"));
+    QTest::keyClick(canvas, Qt::Key_Right, Qt::ControlModifier);  // not the canvas's
+    QCOMPARE(doc.project().visual.rotation, r);
+    QTest::qWait(app::MainWindow::kWheelBurstMs + 200);
+    QTest::keyClick(canvas, Qt::Key_Plus);
+    QTest::keyClick(canvas, Qt::Key_Plus);
+    QTest::keyClick(canvas, Qt::Key_Minus);
+    QVERIFY(settled());
+    QVERIFY(std::abs(doc.project().visual.zoom - z0 * 1.15) < 1e-12);
+    QCOMPARE(QString::fromStdString(doc.undoLabel()), QStringLiteral("Zoom the structure"));
+    doc.undo();  // the zoom keys
+    QVERIFY(settled());
+    QCOMPARE(doc.project().visual.zoom, z0);
+    doc.undo();  // the three arrow keys
+    QVERIFY(settled());
+    QCOMPARE(doc.project().visual.rotation, r0);
     QVERIFY(!doc.canUndo());
 }
 

@@ -199,6 +199,9 @@ void LogView::showBatch(std::vector<Line> lines, long long skipped) {
         }
         lines.erase(lines.begin(), lines.begin() + (cut - old));
     }
+    if (m_transform) {
+        for (Line& line : lines) line.text = m_transform(line.text);
+    }
     if (!lines.empty()) {
         QTextCursor cursor(document);
         cursor.movePosition(QTextCursor::End);

@@ -8,7 +8,7 @@ manage a language runtime: a Linux AppImage and a Windows installer.
 The plan (modules, libraries, migration order, definition of done) is in
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-## Status: milestone 4 done (`render`); next: milestone 5, the interface (`app`)
+## Status: milestone 5 done (the interface, `app`); next: milestone 6 (`chem`)
 
 **Milestone 1, the skeleton**, proved the delivery path before any science moved:
 
@@ -17,9 +17,9 @@ The plan (modules, libraries, migration order, definition of done) is in
   Windows installer with MSVC 2022, and tests both as users get them (`.github/workflows/ci.yml`).
 - **3D view**: a Vulkan 1.3 window inside the Qt interface, with a software view (QPainter) as
   the fallback on machines without Vulkan 1.3 (older GPUs, virtual machines, remote displays), or
-  when Vulkan fails to start. It showed a placeholder scene until milestone 4, which draws an
-  opened project's reference-frame structure there (mouse rotation and zoom) above a read-only
-  preview of its figure.
+  when Vulkan fails to start. It showed a placeholder scene until milestone 4, which drew an
+  opened project's reference-frame structure there above a read-only preview of its figure; since
+  milestone 5 the figure canvas's structure panel is the 3D view.
 
 **Milestone 2, `core` and `io`**, reads and writes everything MDATK v0.0.4.1 reads and writes
 before its analyses start, checked against MDATK itself in CI:
@@ -97,10 +97,9 @@ without Matplotlib, Python or an `ffmpeg` executable, on a desktop or a headless
 - **Command line**: MDATK's `render` (full run: analyses, video, charts, PDBs, params log, step log),
   `charts` and `preview`, with MDATK's options, output, files, messages and exit codes; project
   settings are checked before any analysis runs. `probe-video FILE` reads back what a video holds.
-- **Interface**: the 3D view shows an opened project's reference-frame structure with its
-  representations (mouse rotation and zoom; Vulkan, or the software renderer without Vulkan 1.3),
-  above a read-only preview of its figure on MDATK's example data. The layout editor comes with
-  milestone 5.
+- **Interface**: the 3D view showed an opened project's reference-frame structure with its
+  representations above a read-only preview of its figure on MDATK's example data (replaced by
+  milestone 5's window).
 - **Parity method** (owner decision D10, contents only): generators in `tests/parity/` record what
   MDATK's figures contain (the data, colours, ticks, labels, legends, images and colour bars of
   every panel at the first, middle and last frame, the layout's boxes), what its software renderer
@@ -114,16 +113,52 @@ without Matplotlib, Python or an `ffmpeg` executable, on a desktop or a headless
   [docs/DIFFERENCES.md](docs/DIFFERENCES.md); the plan and its RN-xx items in
   [docs/specs/m4-plan.md](docs/specs/m4-plan.md).
 
-Next, milestone 5 (`app`, docs/ARCHITECTURE.md "Migration order"): the interface pages and the
-canvas layout editor (dragging panels, rotating the model in the figure, moving the density map).
-PDB hygiene and base-pair annotation (`chem`) and the workflow planner follow (milestones 6 and 7);
-until then MDBridge's command line offers only the commands it has.
+**Milestone 5, `app`**, is MDATK's analysis window in Qt 6 Widgets, checked against MDATK's own GTK
+window driven by the same action scripts (`tests/parity/make_gui_cases.py`; 42 recorded cases):
+
+- **Pages**: MDATK's six settings pages in its order and words (*Input & cleaning*, *Residue groups*,
+  *Analyses*, *Structure view*, *Layout & panels*, *Outputs*), every field bound to the project by
+  its key; a field you do not change is saved back as it was read (no clamping, every digit, colours
+  and unknown choices kept), paths stay as the file has them (relative stays relative; *Save as*
+  rebases them), files picked inside the project folder are stored relative. Settings are checked
+  as you type: page badges, flagged fields and a problems list that jumps to the field (MDATK
+  0.0.10's presentation). Group renames follow through the project; *Groups from chains* (D15).
+- **Canvas layout editor**: the figure on MDATK's example data, drawn on a worker thread; drag a
+  panel onto another to swap them, drag the structure to rotate it, the wheel (or + / - with the
+  canvas focused) zooms, the arrow keys turn it, map mode moves and rotates the density map,
+  double-click opens a slot's editor. The figure's structure panel is the 3D view (Vulkan while
+  dragging on a GPU, else the software renderer).
+- **Actions**: *Render* (analyses, video, charts, PDBs, params log; what `mdbridge render` writes),
+  *Render still*, *Export PDBs*, *Re-render from cache*, *Run cleaning now* (cpptraj), *Inspect
+  system*, *Centre on model*, *Create demo system…*, *Open output folder* / *Open video*, project
+  log, About and citations (with the run's references) and BibTeX export; one job at a time with
+  progress and Cancel, closing during a job asks and waits for its clean-up.
+- **Undo and recovery**: undo / redo of every edit and canvas action (a drag is one step; Ctrl+Z,
+  Ctrl+Shift+Z), a modified marker and Save / Discard / Cancel before anything discards changes, a
+  recovery copy every 2 minutes offered at the next start (the project file is written only by
+  Save), a notice when another program changes the file.
+- **Keyboard and screens**: MDATK's shortcuts plus Ctrl+N, Ctrl+W, Ctrl+Q, Ctrl+L (log), F5 and
+  Ctrl+1 ... Ctrl+6 (pages); every control reachable with Tab and named for screen readers; every
+  page fits the side bar at 100, 150 and 200 % scale; on Windows paths are shown with `\`.
+- **Fonts**: IBM Plex Serif in the interface, figures, charts and videos (IBM Plex Math for missing
+  symbols, Plex Mono for fixed-width and sequence text), bundled, so text looks the same everywhere.
+- **Settings**: the recent list is shared with MDATK on Linux (`~/.config/mdatk/settings.toml`, its
+  other keys kept); MDBridge's own settings and recovery copies are in `~/.config/mdbridge`
+  (`%APPDATA%\MDBridge` on Windows).
+- **Deliberate differences** (the AP items: MDATK window bugs fixed, and the window's additions) are
+  listed by id with their tests in [docs/DIFFERENCES.md](docs/DIFFERENCES.md) ("Interface: index of
+  the ids"); the plan in [docs/specs/m5-plan.md](docs/specs/m5-plan.md).
+
+Next, milestone 6 (`chem`, docs/ARCHITECTURE.md "Migration order"): PDB hygiene and base-pair
+annotation, the PDB clean-up and structure builder windows and density fitting; the workflow
+planner and script wizard (RNAdo) follow in milestone 7. Their menu entries are there, disabled,
+until then.
 
 ## Using it
 
 ```bash
 chmod +x MDBridge-0.1.0-x86_64.AppImage
-./MDBridge-0.1.0-x86_64.AppImage                          # the interface
+./MDBridge-0.1.0-x86_64.AppImage                          # the analysis window
 ./MDBridge-0.1.0-x86_64.AppImage project.mdatk.toml       # ... with a project
 ./MDBridge-0.1.0-x86_64.AppImage project show project.mdatk.toml   # summary on the command line
 ./MDBridge-0.1.0-x86_64.AppImage graphics                 # Vulkan devices, or why the software view is used

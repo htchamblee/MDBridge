@@ -4,7 +4,9 @@ Status: agreed plan; milestones 1 (skeleton), 2 (`core` + `io`, with the command
 `export-pdb` and `density info`), 3 (`analysis`: the ten analyses, `analyze` and `list`, the
 cache, the frame-parallel runner) and 4 (`render`: figures, charts, the structure view with the
 software and Vulkan renderers, MP4 video with bundled LGPL FFmpeg, the commands `render`, `charts`
-and `preview`, the GUI's 3D view and figure preview) done, milestone 5 (`app`) next. The C++ successor of MDATK is
+and `preview`) and 5 (`app`: MDATK's analysis window in Qt Widgets with its six pages, the canvas
+layout editor whose structure panel is the 3D view, jobs, undo, recovery copies, and the commands
+`demo`, `clean` and `citations`) done, milestone 6 (`chem`) next. The C++ successor of MDATK is
 named **MDBridge** and lives in its own repository (`htchamblee/MDBridge`). The Python package MDATK (v0.0.4.1) is frozen as
 the reference implementation and receives bug fixes only.
 

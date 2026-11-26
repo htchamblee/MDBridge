@@ -728,9 +728,9 @@ std::string replaceFolder(std::string text, const std::string& folder, const std
 namespace {
 
 // Windows: the harness's folders are Qt's '/' paths joined by std::filesystem ('\\'); the window
-// shows a path as it was given (mixed) or normalised by core::ntpath ('/'), and the cases were
-// recorded with '/': the folders match whatever their separators and the paths after them
-// compare with '/'.
+// shows paths with '\\' throughout (WN-12) and stores them normalised by core::ntpath ('/'), and the
+// cases were recorded with '/': the folders match whatever their separators and the paths after
+// them compare with '/'.
 #ifdef _WIN32
 constexpr bool kAnySeparator = true;
 #else

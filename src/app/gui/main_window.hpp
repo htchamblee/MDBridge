@@ -164,6 +164,8 @@ public:
     // MDATK's error() / info(): the log line, then the message (prompter()).
     void showError(const QString& text, const QString& detail = QString());
     void showInfo(const QString& text, const QString& detail = QString());
+    // A status-bar message (0: until the next one); paths in it are shown natively (WN-12).
+    void showStatus(const QString& text, int timeoutMs = 0);
 
     // The located form errors (typed text a field could not take), one per line in page order; ""
     // when none (Save refuses then: "Some settings are invalid").
@@ -234,6 +236,7 @@ private:
     bool saveTo(const std::filesystem::path& target, bool asNew);
     std::filesystem::path askSavePath();
     void afterReplace(const std::filesystem::path& opened);
+    void updateDisplayRoots();  // the folders displayPathsIn knows (WN-12)
     void dropRecovery();
     void watchFile();
     void startLoad();
@@ -294,6 +297,7 @@ private:
     pages::StructurePage* m_structurePage = nullptr;
     bool m_canvasEdit = false;            // the document change comes from the canvas, which shows it
     QElapsedTimer m_wheelClock;           // since the last wheel notch (LE-10)
+    QElapsedTimer m_keyClock;             // since the last arrow key on the canvas (WN-13)
     std::shared_ptr<void> m_gpu;          // render::panels::GpuStageRenderers while it may be used
 };
 

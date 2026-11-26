@@ -98,6 +98,7 @@ private:
     friend class SlotTextField;
 
     void rebuildSlots();
+    void fixTabOrder();
     void refreshSlots(bool force);
     void loadSlot(Slot& slot, const core::PanelSpec& spec, bool keepText);
     void fillData(Slot& slot, const std::string& type, const std::string& select);

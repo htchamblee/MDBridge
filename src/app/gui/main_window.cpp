@@ -53,6 +53,7 @@
 #include "demo.hpp"
 #include "gui/dialogs/prompts.hpp"
 #include "gui/dialogs/text_dialog.hpp"
+#include "gui/display_path.hpp"
 #include "gui/forms/field_spec.hpp"
 #include "gui/forms/field_widgets.hpp"
 #include "gui/jobs/job_runner.hpp"
@@ -95,7 +96,10 @@ constexpr const char* kProjectSuffix = ".mdatk.toml";
 
 QString qs(const std::string& text) { return QString::fromUtf8(text.data(), static_cast<qsizetype>(text.size())); }
 std::string utf8(const QString& text) { return forms::toStdString(text); }
-QString display(const fs::path& path) { return qs(core::pathToUtf8(path)); }
+// A path as the interface shows it (native separators on Windows, WN-12); stored(): as stored and
+// handed to Qt's file functions.
+QString display(const fs::path& path) { return gui::displayPath(path); }
+QString stored(const fs::path& path) { return qs(core::pathToUtf8(path)); }
 fs::path toPath(const QString& file) { return core::pathFromUtf8(utf8(file)); }
 
 // MDATK's name for a new file: the plan's project name unless it is the default.
@@ -191,6 +195,9 @@ MainWindow::MainWindow(render::Renderer renderer, QWidget* parent)
     m_log->textView()->setMinimumHeight(120);  // MDATK: min content height 120
     m_log->textView()->setMaximumHeight(200);  // the canvas keeps the room
     m_log->setExpanded(false);  // MDATK's log expander starts folded (Ctrl+L)
+    if constexpr (gui::kNativePathStyle != gui::PathStyle::Posix) {
+        m_log->setLineTransform([](const QString& line) { return gui::displayPathsIn(line); });  // WN-12
+    }
     m_jobs = new jobs::JobRunner(m_log->sink(), this);
 
     // WARNING and above of the libraries' messages go to the log too (MDATK's GuiLogHandler)
@@ -263,7 +270,7 @@ MainWindow::MainWindow(render::Renderer renderer, QWidget* parent)
     });
     connectCanvas();
     connect(m_jobs, &jobs::JobRunner::errorReported, this, [this](const QString& text, const QString& detail) {
-        prompter().message(this, MessageKind::Error, text, detail);
+        prompter().message(this, MessageKind::Error, gui::displayPathsIn(text), gui::displayPathsIn(detail));
     });
     connect(m_jobs, &jobs::JobRunner::statusChanged, this, [this](double fraction, const QString& text) {
         m_progress->setValue(static_cast<int>(fraction * 1000.0));
@@ -286,7 +293,7 @@ MainWindow::MainWindow(render::Renderer renderer, QWidget* parent)
     connect(&m_reloadTimer, &QTimer::timeout, this, &MainWindow::startLoad);
 
     showPage(QStringLiteral("input"));
-    statusBar()->showMessage(tr("Open a project (Ctrl+O), or start from these default settings."));
+    showStatus(tr("Open a project (Ctrl+O), or start from these default settings."));
     afterReplace({});
 }
 
@@ -489,6 +496,12 @@ QWidget* MainWindow::createHeader() {
     }
     menuButton->setMenu(menu);
     bar->addWidget(menuButton);
+    // D10: a tool bar's buttons take no keyboard focus by default; the header's do (Tab reaches them)
+    for (QAction* a : bar->actions()) {
+        if (QWidget* button = bar->widgetForAction(a); button && qobject_cast<QToolButton*>(button)) {
+            button->setFocusPolicy(Qt::TabFocus);
+        }
+    }
     return bar;
 }
 
@@ -527,6 +540,7 @@ QWidget* MainWindow::createPageBar() {
     hint->setEnabled(false);
     layout->addWidget(hint);
     auto* refresh = new QToolButton(bar);
+    refresh->setObjectName(QStringLiteral("pagebar.refresh"));
     refresh->setDefaultAction(action(QStringLiteral("refresh")));
     layout->addWidget(refresh);
     return bar;
@@ -631,7 +645,7 @@ void MainWindow::fillOpenMenu() {
             QAction* item = m_openMenu->addAction(display(path.filename()));
             item->setObjectName(QStringLiteral("recent:%1").arg(n++));
             item->setToolTip(display(path));
-            item->setData(display(path));
+            item->setData(stored(path));
             connect(item, &QAction::triggered, this, [this, path] { openPath(path); });
         }
         m_openMenu->addSeparator();
@@ -721,12 +735,16 @@ void MainWindow::appendLog(const QString& text) { m_log->feed(text); }
 
 void MainWindow::showError(const QString& text, const QString& detail) {
     appendLog(QStringLiteral("ERROR: ") + text + (detail.isEmpty() ? QString() : QStringLiteral(": ") + detail));
-    prompter().message(this, MessageKind::Error, text, detail);
+    prompter().message(this, MessageKind::Error, gui::displayPathsIn(text), gui::displayPathsIn(detail));
 }
 
 void MainWindow::showInfo(const QString& text, const QString& detail) {
     appendLog(text + (detail.isEmpty() ? QString() : QStringLiteral(": ") + detail));
-    prompter().message(this, MessageKind::Info, text, detail);
+    prompter().message(this, MessageKind::Info, gui::displayPathsIn(text), gui::displayPathsIn(detail));
+}
+
+void MainWindow::showStatus(const QString& text, int timeoutMs) {
+    statusBar()->showMessage(gui::displayPathsIn(text), timeoutMs);
 }
 
 QString MainWindow::ask(const QString& kind, const QString& path, const QString& title, const QString& text,
@@ -736,8 +754,8 @@ QString MainWindow::ask(const QString& kind, const QString& path, const QString&
     q.kind = kind;
     q.path = path;
     q.title = title;
-    q.text = text;
-    q.detail = detail;
+    q.text = gui::displayPathsIn(text);
+    q.detail = gui::displayPathsIn(detail);
     q.choices = choices;
     q.defaultId = defaultId;
     return prompter().ask(this, q);
@@ -784,6 +802,7 @@ void MainWindow::onDocumentChanged(const core::DocumentChange& change) {
         m_externalNoticed = false;
         m_externalBar->hide();
         watchFile();
+        updateDisplayRoots();
         if (!change.fields.empty()) schedulePreview();  // Save as rebased paths
         return;
     }
@@ -799,6 +818,7 @@ void MainWindow::onDocumentChanged(const core::DocumentChange& change) {
     } else {
         schedulePreview();
     }
+    if (change.affects("output")) updateDisplayRoots();
     for (const char* part : {"inputs", "cleaning", "groups"}) {
         if (change.affects(part)) {
             m_reloadTimer.start();
@@ -807,7 +827,19 @@ void MainWindow::onDocumentChanged(const core::DocumentChange& change) {
     }
 }
 
+void MainWindow::updateDisplayRoots() {
+    QStringList roots;
+    if (m_document.hasPath()) roots << stored(m_document.path().parent_path());
+    try {
+        const core::Project project = m_document.resolvedProject();
+        roots << qs(core::outDir(project)) << qs(core::cacheDir(project));
+    } catch (const std::exception&) {  // the folders of a project that does not resolve are not shown
+    }
+    gui::setDisplayRoots(roots);
+}
+
 void MainWindow::afterReplace(const fs::path& /*opened*/) {
+    updateDisplayRoots();
     render::resetWarnOnce();  // a project shown anew warns again about what its drawing finds
     m_warningsKnown = false;
     m_lastWarnings.clear();
@@ -824,15 +856,15 @@ void MainWindow::watchFile() {
     if (!m_watcher->files().isEmpty()) m_watcher->removePaths(m_watcher->files());
     const fs::path file = projectFile();
     std::error_code ec;
-    if (!file.empty() && fs::exists(file, ec)) m_watcher->addPath(display(file));
+    if (!file.empty() && fs::exists(file, ec)) m_watcher->addPath(stored(file));
 }
 
 void MainWindow::checkDisk() {
     const fs::path file = projectFile();
     if (file.empty()) return;
     std::error_code ec;
-    if (fs::exists(file, ec) && !m_watcher->files().contains(display(file))) {
-        m_watcher->addPath(display(file));  // an atomic save by another program replaced the file watched
+    if (fs::exists(file, ec) && !m_watcher->files().contains(stored(file))) {
+        m_watcher->addPath(stored(file));  // an atomic save by another program replaced the file watched
     }
     if (m_externalNoticed || !m_document.changedOnDisk()) return;
     m_externalNoticed = true;
@@ -890,17 +922,17 @@ bool MainWindow::startWith(const fs::path& path) {
         m_document.open(path, &warnings);
     } catch (const std::exception& e) {
         const QString reason = describe(e);
-        prompter().printError(QStringLiteral("warning: could not load %1: %2").arg(display(path), reason));
+        prompter().printError(QStringLiteral("warning: could not load %1: %2").arg(stored(path), reason));  // MDATK's stderr line
         // AP-12 (MDATK 0.1.0): started from a menu no terminal shows that warning
         appendLog(QStringLiteral("ERROR: Could not open %1: %2\nThese are the default settings instead (unsaved).")
                       .arg(display(path), reason));
         m_log->setExpanded(true);
-        statusBar()->showMessage(tr("Could not open %1; these are the default settings (unsaved)").arg(display(path)));
+        showStatus(tr("Could not open %1; these are the default settings (unsaved)").arg(display(path)));
         return false;
     }
     // on the terminal, as MDATK's start (its log handler is not there yet when the file is read)
     for (const std::string& warning : warnings) std::cerr << "WARNING: " << warning << '\n';
-    statusBar()->showMessage(tr("Opened %1").arg(display(path)), 5000);
+    showStatus(tr("Opened %1").arg(display(path)), 5000);
     return true;
 }
 
@@ -1012,7 +1044,7 @@ bool MainWindow::openPath(const fs::path& path, bool askUnsaved) {
         core::addRecent(path);
         appendLog(QStringLiteral("Opened project %1").arg(display(path)));
     }
-    statusBar()->showMessage(tr("Opened %1").arg(display(path)), 5000);
+    showStatus(tr("Opened %1").arg(display(path)), 5000);
     return true;
 }
 
@@ -1136,7 +1168,7 @@ bool MainWindow::saveTo(const fs::path& target, bool asNew) {
     dropRecovery();
     core::addRecent(target);
     appendLog(QStringLiteral("Saved project %1").arg(display(target)));
-    statusBar()->showMessage(tr("Saved %1").arg(display(target)), 5000);
+    showStatus(tr("Saved %1").arg(display(target)), 5000);
     updateTitle();
     return true;
 }
@@ -1379,14 +1411,14 @@ void MainWindow::startLoad() {
     }
     m_cancel = std::make_shared<std::atomic<bool>>(false);
     m_loading = true;
-    statusBar()->showMessage(tr("Loading the reference frame ..."));
+    showStatus(tr("Loading the reference frame ..."));
     const auto post = m_background.poster();
     const core::Reporter reporter(
         {},
         [this, post, generation](double fraction, const std::string& message) {
             post([this, generation, fraction, text = qs(message)] {
                 if (generation == m_loadGeneration && !text.isEmpty()) {
-                    statusBar()->showMessage(tr("Loading the reference frame: %1 (%2 %)")
+                    showStatus(tr("Loading the reference frame: %1 (%2 %)")
                                                  .arg(text)
                                                  .arg(static_cast<int>(fraction * 100)));
                 }
@@ -1408,7 +1440,7 @@ void MainWindow::startLoad() {
                          if (!loaded.notes.isEmpty()) {
                              message += QStringLiteral(" (") + loaded.notes.join(QStringLiteral("; ")) + QLatin1Char(')');
                          }
-                         statusBar()->showMessage(message);
+                         showStatus(message);
                          emit projectLoaded();
                      });
 }
@@ -1486,6 +1518,15 @@ void MainWindow::connectCanvas() {
         if (!m_wheelClock.isValid() || m_wheelClock.elapsed() > kWheelBurstMs) m_document.endMerge();
         m_wheelClock.start();
         m_document.setMerged("wheel", "visual.zoom", core::Value(zoom), "Zoom the structure");
+    });
+    connect(m_preview, &PreviewWidget::keyRotated, this, [this](const std::array<double, 3>& angles) {
+        // the arrow keys (D10): a burst of presses is one undo step, as the wheel's notches (LE-10)
+        const CanvasEdit edit(m_canvasEdit);
+        core::Array stored;
+        for (const double a : angles) stored.emplace_back(core::pythonRound(a, 3));
+        if (!m_keyClock.isValid() || m_keyClock.elapsed() > kWheelBurstMs) m_document.endMerge();
+        m_keyClock.start();
+        m_document.setMerged("keys", "visual.rotation", core::Value(std::move(stored)), "Rotate structure");
     });
     connect(m_preview, &PreviewWidget::swapRequested, this, [this](int from, int to) {
         if (m_layoutPage) m_layoutPage->swapPanels(from, to);

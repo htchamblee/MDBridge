@@ -12,6 +12,8 @@
 #include <QScreen>
 #include <QVBoxLayout>
 
+#include "gui/display_path.hpp"
+
 namespace mdbridge::app {
 
 namespace {
@@ -40,7 +42,7 @@ ImageDialog::ImageDialog(QWidget* parent, const QString& path) : QDialog(parent)
     QImageReader reader(path);
     m_image = reader.read();
     if (m_image.isNull()) {
-        m_label->setText(tr("Cannot show %1: %2").arg(path, reader.errorString()));
+        m_label->setText(tr("Cannot show %1: %2").arg(gui::displayPath(path), reader.errorString()));
         m_label->setTextInteractionFlags(Qt::TextSelectableByMouse);
     } else {
         const QScreen* screen = parent && parent->screen() ? parent->screen() : QGuiApplication::primaryScreen();

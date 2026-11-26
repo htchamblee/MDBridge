@@ -416,6 +416,17 @@ if(MDBRIDGE_BUILD_APP)
     mdbridge_target_warnings(mdbridge_gui_window_tests)
     add_test(NAME gui.window COMMAND mdbridge_gui_window_tests)
     set_tests_properties(gui.window PROPERTIES LABELS gui ENVIRONMENT "${MDBRIDGE_QT_TEST_ENVIRONMENT}" TIMEOUT 900)
+    # high-DPI (D10): the pages fit the side bar with nothing cut off, every focusable widget is named
+    # and the canvas draws at 150 % and 200 % (Qt's scale factor); screenshots window-<page>-150.png ...
+    foreach(scale 150 200)
+        math(EXPR scale_whole "${scale} / 100")
+        math(EXPR scale_part "${scale} % 100")
+        add_test(NAME gui.window.scale${scale}
+                 COMMAND mdbridge_gui_window_tests pagesFitTheSideBar everyFocusableWidgetIsNamed tabOrderVisitsEveryField
+                         screenshots)
+        set_tests_properties(gui.window.scale${scale} PROPERTIES LABELS gui TIMEOUT 600
+                             ENVIRONMENT "${MDBRIDGE_QT_TEST_ENVIRONMENT};QT_SCALE_FACTOR=${scale_whole}.${scale_part}")
+    endforeach()
 
     # the window's jobs and desktop actions (src/app/gui/actions, milestone 5 W2-B): Render, Render still,
     # Export PDBs, Re-render, Inspect system, Run cleaning, Centre on model, Open output folder / video,
