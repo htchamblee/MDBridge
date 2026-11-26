@@ -38,7 +38,7 @@ if [ -z "${FONTCONFIG_FILE:-}" ] && [ ! -e /etc/fonts/fonts.conf ]; then
 fi
 
 # X11, also in Wayland sessions (through XWayland): the AppImage has no Wayland platform plugin yet.
-# The commands that draw without a window (render, charts, preview, fonts) use "offscreen" instead
+# The commands that draw without a window (render, charts, preview, fonts, demo --run) use "offscreen" instead
 # (set by the program), so they need no display.
 QT_QPA_PLATFORM="${QT_QPA_PLATFORM:-xcb}"
 export QT_QPA_PLATFORM

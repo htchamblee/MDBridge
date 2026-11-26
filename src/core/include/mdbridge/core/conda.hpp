@@ -53,4 +53,23 @@ std::vector<CondaEnv> findEnvs(const std::optional<std::vector<std::string>>& ro
 // within each part, by name within that (stable).
 std::vector<CondaEnv> findCpptrajEnvs(const std::optional<std::vector<std::string>>& roots = std::nullopt);
 
+// detect_ambertools_env(roots): the first of findCpptrajEnvs(roots).
+std::optional<CondaEnv> detectAmbertoolsEnv(const std::optional<std::vector<std::string>>& roots = std::nullopt);
+
+// resolve_env(spec, roots): an environment given by a path (spec contains the platform's
+// separator: its real path when it is a folder; the root is two levels up for <root>/envs/<name>,
+// else the prefix itself) or by name (the first of findEnvs(roots) with that name). Blank: none.
+std::optional<CondaEnv> resolveEnv(std::string_view spec,
+                                   const std::optional<std::vector<std::string>>& roots = std::nullopt);
+
+// find_conda_exe(explicit, env): `explicit` when given (a path: when executable; a name: found on
+// PATH); otherwise <root>/condabin/conda, bin/conda, bin/mamba, bin/micromamba of env's root and
+// $CONDA_EXE, the first executable file, then conda, mamba, micromamba on PATH. "~" expanded.
+std::optional<std::string> findCondaExe(std::string_view explicitExe = {}, const std::optional<CondaEnv>& env = std::nullopt);
+
+// run_command(conda_exe, env_spec, argv): [exe, "run", ("--no-capture-output",) "-p"|"-n", env, argv...]
+// ("-p" when env_spec contains the platform's separator; micromamba gets no --no-capture-output).
+std::vector<std::string> runCommand(const std::string& condaExe, const std::string& envSpec,
+                                    const std::vector<std::string>& argv);
+
 }  // namespace mdbridge::core::conda

@@ -9,7 +9,7 @@ Every case (CASES below) runs `mdatk ARGS` and `EXE ARGS` in two fresh work fold
 same inputs (copies of files of tests/data, and files written by the case), then compares the exit
 status, stdout, stderr and every file the command left in the folder (byte for byte, except the
 analysis cache: see below). `init` / `init-params`, `info`, `list`, `analyze`, `export-pdb`,
-`density info`, `render`, `charts` and `preview` are covered: their results, files (project files,
+`density info`, `render`, `charts`, `preview`, `demo` and `clean` (with a fake cpptraj) are covered: their results, files (project files,
 PDB files, the analysis cache; figures and videos by their metadata, see RENDER_PROJECT), messages
 and errors. The render cases need the Qt program (the `mdbridge` program or the AppImage, not
 `mdbridge_commands_cli`) and `ffprobe` on PATH (MDATK's side also `ffmpeg`). A case may first run other command lines in the same folder (`before`: an
@@ -29,8 +29,10 @@ requirements-regenerate.txt); EXE is the `mdbridge` program, the AppImage, or th
 Normalised on both sides before comparing (the only differences allowed):
   * the work folder's path -> {work} (each side runs in its own folder);
   * `saved = <time>` of project files -> {time}; run time stamps (2026-10-15_143205) -> {stamp};
-  * MDATK's stderr loses the line MDAnalysis logs when netCDF4 is missing (an environment notice,
-    not MDATK's output; MDBridge reads NetCDF itself);
+  * MDATK's stderr loses the lines MDAnalysis logs when netCDF4 is missing (environment notices,
+    not MDATK's output; MDBridge reads and writes NetCDF itself);
+  * the cleaning's generated script time stamp and marker time -> {time}, the cleaning key (it
+    hashes the inputs' mtimes) in cleaned/<key> folders, the marker and the manifest -> {key};
   * MDAnalysis' hidden XTC / TRR offset caches (.NAME_offsets.npz / .lock) are not files of the run;
   * MDATK messages that MDBridge words with its own name (NAMING) are adapted;
   * MDBridge's documented improvements (docs/DIFFERENCES.md, improvements_cli.py) are applied to
@@ -185,6 +187,109 @@ ALL_GROUP = ["-s", 'groups=[{"name": "All", "selection": "all"}]', "-s", "analys
              "-s", "analyses.hbonds.enabled=false", "-s", "analyses.mg.enabled=false", "-s",
              "analyses.stacking.enabled=false", "-s", "analyses.energy.enabled=false"]
 EXTERNAL = "time_ps,potential,temp K\n0,1.5,300\n100,2.5,301\n200,4.0,299.5\n300,3.0,300.25\n"
+
+
+# ---- demo and clean (CLEAN) ------------------------------------------------------------------------
+# `demo` writes MDATK's synthetic system (byte for byte; the project's cleaning is on when there is
+# solvent and cpptraj is on PATH, so PATH is set). `clean` and cleaning in `analyze` run a fake
+# cpptraj (a shell script: it copies the topology and the first trajectory of its input script to
+# the outputs and prints one block of output with a percentage), directly, through a fake `conda
+# run`, or failing; the generated script's time stamp, the marker's time and the cleaning key
+# (it hashes the inputs' mtimes) are normalised ({time}, {key}).
+SYSTEM_PATH = "/usr/bin:/bin"
+FAKE_CPPTRAJ = r"""#!/bin/sh
+# fake cpptraj -i SCRIPT
+script="$2"
+parm=$(sed -n 's/^parm "\(.*\)"$/\1/p' "$script")
+traj=$(sed -n 's/^trajin "\([^"]*\)".*/\1/p' "$script" | head -n 1)
+parmout=$(sed -n 's/.* parmout "\([^"]*\)"$/\1/p; s/^parmwrite out "\([^"]*\)"$/\1/p' "$script")
+nc=$(sed -n 's/^trajout "\([^"]*\)" netcdf$/\1/p' "$script")
+pdb=$(sed -n 's/^trajout "\([^"]*\)" pdb onlyframes 1$/\1/p' "$script")
+[ -n "$parmout" ] && cp "$parm" "$parmout"
+cp "$traj" "$nc"
+printf 'REMARK fake reference\nEND\n' > "$pdb"
+printf 'CPPTRAJ: Trajectory Analysis. V6.29.0 (fake)\nINPUT: Reading input from %s\n  0%% 25%% 50%% 75%% 100%% Complete.\nTIME: Total execution time: 0.0 seconds.\n' "$(basename "$script")"
+"""
+FAILING_CPPTRAJ = r"""#!/bin/sh
+printf 'CPPTRAJ: Trajectory Analysis. V6.29.0 (fake)\nError: Could not open trajectory.\n'
+exit 3
+"""
+FAKE_CONDA_RUN = r"""#!/bin/sh
+# fake conda run --no-capture-output -p PREFIX PROGRAM ARGS...
+shift 3
+prefix="$1"
+shift
+program="$1"
+shift
+exec "$prefix/bin/$program" "$@"
+"""
+CPPTRAJ_ON_PATH = {"bin/cpptraj": FAKE_CPPTRAJ}
+CLEAN_ENV = {**NO_CONDA, "PATH": "{work}/bin:" + SYSTEM_PATH, "AMBERHOME": ""}
+NO_CPPTRAJ_ENV = {**NO_CONDA, "PATH": SYSTEM_PATH, "AMBERHOME": ""}
+CONDA_CLEAN_SETUP = {"miniforge/condabin/conda": FAKE_CONDA_RUN, "miniforge/envs/AmberTools26/bin/cpptraj": FAKE_CPPTRAJ}
+CONDA_CLEAN_ENV = {**NO_CONDA, "PATH": SYSTEM_PATH, "AMBERHOME": "", "CONDA_EXE": "{work}/miniforge/condabin/conda"}
+CLEAN_RUN = ["--top", "demo_dry.parm7", "--traj", "demo_dry.nc"]
+
+
+def clean_case(name, argv, setup=None, env=None, before=None, executable=None):
+    setup = CPPTRAJ_ON_PATH if setup is None else setup
+    return case(name, argv, DEMO, setup, env=CLEAN_ENV if env is None else env, before=before,
+                executable=list(setup) if executable is None else executable)
+
+
+def demo_clean_cases():
+    return [
+        case("demo_dry", ["demo", "d", "--n-frames", "6", "--no-solvent"], env=NO_CPPTRAJ_ENV),
+        case("demo_solvated", ["demo", "out/demo", "--n-frames", "5", "--dt", "2.5"], env=NO_CPPTRAJ_ENV),
+        case("demo_default", ["demo", "d"], env=NO_CPPTRAJ_ENV),
+        case("demo_with_cpptraj", ["demo", "d", "--n-frames", "2", "-q"], setup=CPPTRAJ_ON_PATH, env=CLEAN_ENV,
+             executable=list(CPPTRAJ_ON_PATH)),
+        case("demo_dry_with_cpptraj", ["demo", "d", "--n-frames", "2", "--no-solvent"], setup=CPPTRAJ_ON_PATH,
+             env=CLEAN_ENV, executable=list(CPPTRAJ_ON_PATH)),
+        case("demo_no_frames", ["demo", "d", "--n-frames", "0"], env=NO_CPPTRAJ_ENV),
+        case("demo_negative_frames", ["demo", "d", "--n-frames=-2"], env=NO_CPPTRAJ_ENV),
+        case("demo_bad_dt", ["demo", "d", "--n-frames", "3", "--dt", "0"], env=NO_CPPTRAJ_ENV),
+        case("demo_no_folder", ["demo"], exit_only=True),
+        # --run renders the new project (the Qt program: figures and the video by their metadata)
+        case("demo_run", ["demo", "d", "--n-frames", "4", "--no-solvent", "--run", "-q"], env=NO_CPPTRAJ_ENV,
+             render=True),
+        clean_case("clean", ["clean", *CLEAN_RUN]),
+        clean_case("clean_verbose", ["clean", *CLEAN_RUN, "-v", "-s", "cleaning.fit_reference=\"frame\"",
+                                     "-s", "cleaning.reference_frame=3", "-s", "cleaning.stop=20",
+                                     "-s", "cleaning.extra_commands=\"  center :1-12\\n\\nimage  \\n\""]),
+        clean_case("clean_quiet_output_dir", ["clean", *CLEAN_RUN, "-q", "-s", 'cleaning.output_dir="cleaned"',
+                                              "-s", 'cleaning.solvent_mask=""', "-s", 'cleaning.ion_mask=" "',
+                                              "-s", "cleaning.autoimage=false", "-s", "cleaning.fit=false"]),
+        clean_case("clean_reuse", ["clean", *CLEAN_RUN], before=[["clean", *CLEAN_RUN, "-q"]]),
+        clean_case("clean_force", ["clean", *CLEAN_RUN, "--force"], before=[["clean", *CLEAN_RUN, "-q"]]),
+        clean_case("clean_changed_settings", ["clean", *CLEAN_RUN, "-s", 'cleaning.output_dir="cleaned"', "-s",
+                                              "cleaning.offset=2"],
+                   before=[["clean", *CLEAN_RUN, "-q", "-s", 'cleaning.output_dir="cleaned"']]),
+        clean_case("clean_cpptraj_path", ["clean", *CLEAN_RUN, "--cpptraj", "tools/cpptraj"],
+                   setup={"tools/cpptraj": FAKE_CPPTRAJ}),
+        clean_case("clean_cpptraj_not_executable", ["clean", *CLEAN_RUN, "--cpptraj", "tools/cpptraj"],
+                   setup={"tools/cpptraj": FAKE_CPPTRAJ}, executable=[]),
+        clean_case("clean_cpptraj_named", ["clean", *CLEAN_RUN, "--cpptraj", "cpptraj.OMP"], setup={},
+                   env=NO_CPPTRAJ_ENV),
+        clean_case("clean_no_cpptraj", ["clean", *CLEAN_RUN], setup={}, env=NO_CPPTRAJ_ENV),
+        clean_case("clean_amberhome", ["clean", *CLEAN_RUN], setup={"amber/bin/cpptraj": FAKE_CPPTRAJ},
+                   env={**NO_CPPTRAJ_ENV, "AMBERHOME": "{work}/amber"}),
+        clean_case("clean_conda_env", ["clean", *CLEAN_RUN, "--conda-env", "AmberTools26"], setup=CONDA_CLEAN_SETUP,
+                   env=CONDA_CLEAN_ENV),
+        clean_case("clean_conda_detected", ["clean", *CLEAN_RUN], setup=CONDA_CLEAN_SETUP, env=CONDA_CLEAN_ENV),
+        clean_case("clean_conda_missing", ["clean", *CLEAN_RUN, "--conda-env", "Nope"], setup=CONDA_CLEAN_SETUP,
+                   env=CONDA_CLEAN_ENV),
+        clean_case("clean_failing", ["clean", *CLEAN_RUN], setup={"bin/cpptraj": FAILING_CPPTRAJ}),
+        clean_case("clean_missing_trajectory", ["clean", "--top", "demo_dry.parm7", "--traj", "missing.nc"]),
+        clean_case("clean_no_trajectory", ["clean", "--top", "demo_dry.parm7"]),
+        clean_case("clean_nothing", ["clean"]),
+        clean_case("clean_quote", ["clean", *CLEAN_RUN, "-s", 'cleaning.output_dir="a\\"b"']),
+        clean_case("analyze_clean", ["analyze", *CLEAN_RUN, "--clean", "--only", "rmsd", "-q"]),
+        clean_case("analyze_clean_no_cpptraj", ["analyze", *CLEAN_RUN, "--clean", "--only", "rmsd"], setup={},
+                   env=NO_CPPTRAJ_ENV),
+        clean_case("export_clean", ["export-pdb", *CLEAN_RUN, "--clean", "--frame-list", "1", "--selection",
+                                    "Target", *NO_STAMP]),
+    ]
 
 
 # ---- render, charts, preview (RENDER) ------------------------------------------------------------
@@ -511,6 +616,9 @@ CASES = [
     case("density_folder", ["density", "info", "."]),
     case("density_no_action", ["density"], exit_only=True),
 
+    # ---- demo, clean
+    *demo_clean_cases(),
+
     # ---- render, charts, preview
     *render_cases(),
 ]
@@ -524,12 +632,18 @@ PROGRAM_RE = re.compile(r"^(Molecular Dynamic Analysis Tool Kit \(MDATK\) 0\.0\.
                         re.M)
 LOG_TIME_RE = re.compile(r"^time = \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?$", re.M)
 LOG_DURATION_RE = re.compile(r"^duration_s = [0-9.e+-]+$", re.M)
+GENERATED_RE = re.compile(r"(# Generated by MDATK 0\.0\.4\.1 on )\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}")
+CREATED_RE = re.compile(r'"created": "\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}"')
+CLEANING_KEY_RE = re.compile(r'(?<=cleaned/)[0-9a-f]{16}\b|(?<="key": ")[0-9a-f]{16}(?=")')
 NETCDF_NOTICE = "WARNING: netCDF4 is not available. Writing AMBER ncdf files will be slow.\n"
+NETCDF_WRITER_NOTICE = ("WARNING: Could not find netCDF4 module. Falling back to MUCH slower scipy.io.netcdf "
+                        "implementation for writing.\n")
 TRACEBACK = "Traceback (most recent call last):"
 # MDATK's words that MDBridge's libraries replace by its own name (applied to MDATK's output)
 NAMING = [("JSON presets are no longer supported; MDATK 0.0.4.1 uses TOML project files",
            "JSON presets are no longer supported; MDBridge uses TOML project files"),
-          ("Run 'mdatk analyze' to list the keys of a system.", "Run 'mdbridge analyze' to list the keys of a system.")]
+          ("Run 'mdatk analyze' to list the keys of a system.", "Run 'mdbridge analyze' to list the keys of a system."),
+          ("\nNext: mdatk render -p ", "\nNext: mdbridge render -p "), ("   (or: mdatk gui ", "   (or: mdbridge gui ")]
 # the analysis cache: keys in names and messages, file names, the float tolerance of .npz arrays
 CACHE_KEY_RE = re.compile(r"-[0-9a-f]{16}(?=\)|(\.mdbridge)?\.(npz|json)\b)")
 MANIFEST_RE = re.compile(r"\b(MDATK|MDBridge)_cache\.json\b")
@@ -569,6 +683,7 @@ def normalise(text, folder):
     for path in {os.path.realpath(folder), os.path.abspath(folder)}:
         text = text.replace(path, "{work}")
     text = PROGRAM_RE.sub("{program} - output directory", FINISHED_RE.sub("Finished in {seconds} s", text))
+    text = CLEANING_KEY_RE.sub("{key}", CREATED_RE.sub('"created": "{time}"', GENERATED_RE.sub(r"\1{time}", text)))
     return MANIFEST_RE.sub("{manifest}", CACHE_KEY_RE.sub("-{key}", STAMP_RE.sub("{stamp}", text)))
 
 
@@ -618,7 +733,7 @@ def masked_cache_json(value, folder, top=True):
                 out[k] = "{project}"
             elif top and k in ("updated", "created"):
                 out[k] = "{time}"
-            elif k == "key" and isinstance(v, str):
+            elif k in ("key", "cleaning_key") and isinstance(v, str):  # cleaning_key: it hashes mtimes too
                 out[k] = "{key}"
             elif k == "mtime_ns":
                 out[k] = 0
@@ -669,7 +784,8 @@ def read_npz(data):
     return out
 
 
-def file_entry(rel, data, folder):
+def file_entry(rel, data, folder, mask=None):
+    """mask: a further normalisation of a text file's text (before a large file is hashed)."""
     if is_cache_file(rel):
         if rel.endswith(".npz"):
             # the flat values as one line of JSON text (compact; the C++ test parses it)
@@ -681,6 +797,8 @@ def file_entry(rel, data, folder):
     except UnicodeDecodeError:
         return {"sha256": hashlib.sha256(data).hexdigest(), "size": len(data)}
     text = SAVED_RE.sub("saved = {time}", normalise(text, folder))
+    if mask is not None:
+        text = mask(text)
     if len(text.encode("utf-8")) <= LIMIT:
         return {"text": text}
     raw = text.encode("utf-8")
@@ -748,10 +866,9 @@ def render_file_entry(rel, data, full, folder):
         run = tomllib.loads(data.decode("utf-8")).get("run", {})
         outputs = json.loads(normalise(json.dumps(run.get("outputs"), ensure_ascii=False), folder))
         return {"params_log": {"outputs": outputs, "timestamp": run.get("timestamp") and normalise(run["timestamp"], folder)}}
-    entry = file_entry(rel, data, folder)
-    if "text" in entry:
-        entry["text"] = LOG_DURATION_RE.sub("duration_s = 0.0", LOG_TIME_RE.sub("time = {time}", entry["text"]))
-    return entry
+    # the step log's time and duration masked, in large project files too (the demo's)
+    return file_entry(rel, data, folder,
+                      lambda text: LOG_DURATION_RE.sub("duration_s = 0.0", LOG_TIME_RE.sub("time = {time}", text)))
 
 
 def written_entry(rel, datas, folder):
@@ -846,7 +963,7 @@ def child(mdatk, jobs_file, results_file):
             code = 1
         finally:
             sys.stdout, sys.stderr = old
-        return [code, out.getvalue(), err.getvalue().replace(NETCDF_NOTICE, "")]
+        return [code, out.getvalue(), err.getvalue().replace(NETCDF_NOTICE, "").replace(NETCDF_WRITER_NOTICE, "")]
 
     with open(jobs_file, encoding="utf-8") as fh:
         jobs = json.load(fh)

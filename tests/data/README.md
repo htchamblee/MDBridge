@@ -457,8 +457,13 @@ panels' and charts' analyses, no analyses at all, external data, a project file,
 layout warnings, a project's `[output.pdb]`, every error), `density info` of every map of
 `io/maps/files`, and `render`, `charts` and `preview` (`render: true`; the demo project of
 `make_render_cli_cases.py`: full runs, `--from-cache`, strides, codecs, odd sizes, `ffmpeg_path`, PDBs,
-a parameter log as project, every format, unknown formats and invalid settings, frames out of range).
-The render cases' figures and videos are recorded by metadata only (PNG size, JPEG / TIFF kind, SVG
+a parameter log as project, every format, unknown formats and invalid settings, frames out of range),
+`demo` (dry, solvated and default systems byte for byte, the project's cleaning with and without
+cpptraj on PATH, impossible arguments, `--run` as a render case) and `clean` and cleaning in
+`analyze` / `export-pdb` with a fake cpptraj (a shell script that copies the inputs to the outputs)
+run directly, from `--cpptraj`, `$AMBERHOME` or a fake `conda run` (`--conda-env`, detected), reuse,
+`--force`, changed settings, `--verbose`, every error; the script's time stamp, the marker's time and
+the cleaning key are normalised. The render cases' figures and videos are recorded by metadata only (PNG size, JPEG / TIFF kind, SVG
 and PDF page size in points, PostScript bounding box, ffprobe's video metadata without the codec
 name and faststart; the parameter log as its run's `outputs` and `timestamp`; the step log in the
 project file with `time` / `duration_s` masked), with MDBridge's rendering improvements patched into

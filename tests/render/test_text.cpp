@@ -192,7 +192,7 @@ TEST(BatchPlatform, OffscreenWithoutDisplayServer) {
 #else
     EXPECT_EQ(render::batchQtPlatform(), "offscreen");
 #endif
-    for (const char* c : {"render", "charts", "preview", "fonts"}) {
+    for (const char* c : {"render", "charts", "preview", "fonts", "demo"}) {
         EXPECT_TRUE(render::drawsWithoutWindow(c)) << c;
     }
     for (const char* c : {"gui", "analyze", "info", ""}) {

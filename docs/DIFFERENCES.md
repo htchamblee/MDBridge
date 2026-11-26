@@ -710,6 +710,71 @@ test_selections.cpp; cli_cases.json (`info_groups`); framework_cases.json (cache
   (init_options_twice, analyze_options_twice, export_options_twice).
 - JSON presets: `init` with a `.json` preset reports that MDBridge uses TOML project files.
 
+## Demo, cleaning and citations commands (src/app/commands/demo.cpp, citations.cpp; src/analysis/cleaning.cpp; src/core/process.cpp)
+
+`demo` is a port of MDATK's `mdatk/demo.py` and writes MDATK's files byte for byte for the same
+arguments (demo.parm7, demo.nc; demo.mdatk.toml apart from `saved`): numpy's `default_rng(7)`
+(normal, `shuffle`), numpy's evaluation order without fused multiply-adds, scipy's KD-tree queries
+as exact searches. `clean` and the cleaning inside `analyze`, `render` and `export-pdb` are a port of
+`mdatk/cleaning/cpptraj.py` and `conda.py`: the same cpptraj script (byte for byte apart from the
+time stamp of its first line), folder (`<cache>/cleaned/<key>` or `cleaning.output_dir`), file
+names, marker `MDATK_clean.json`, `conda run` command lines and messages, so MDATK and MDBridge reuse
+each other's cleaned files. MDATK 0.1.1's demo.py, cpptraj.py and conda.py are unchanged from
+0.0.4.1; its pipeline change is adopted (CMD-05). *Tested:* cli_cases.json (`demo_*`, `clean_*`,
+`analyze_clean*`, `export_clean`, `demo_run` against the Qt program; tests/parity/cli_parity.py runs
+a fake cpptraj and a fake `conda run`), tests/cli/test_cleaning.cpp.
+
+- **CMD-01: `demo` refuses impossible arguments before writing anything.** `--n-frames 0` (MDATK:
+  `error: [Errno 5] trying to go over trajectory limit` after writing demo.parm7), a negative count
+  (`negative dimensions are not allowed`) and a time step that is not a positive finite number
+  (MDATK writes a trajectory whose frames are all at 0 ps, go back in time or are at NaN ps, and a
+  project with the PDB time `nanps`) give `the demo needs at least one frame (--n-frames 0)` and
+  `the time between frames must be a positive number of ps (--dt 0.0)`; the library's sequence
+  (not a command option) must have at least four of A, C, G, U (MDATK: KeyError or IndexError).
+  Not fixed in MDATK 0.1.1. *Tested:* cli_cases.json (demo_no_frames, demo_negative_frames,
+  demo_bad_dt; tests/parity/improvements_cli.py patches MDATK's build_demo the same way),
+  `Demo.RefusesImpossibleArguments`.
+- **CMD-02: the demo's hint names MDBridge:** `Next: mdbridge render -p d/demo.mdatk.toml   (or:
+  mdbridge gui d/demo.mdatk.toml)`. The files keep MDATK's texts (the parm7 title `MDATK synthetic
+  RNA aptamer/target demo`, the notes `... written by 'mdatk demo' ...`) so that they are MDATK's
+  byte for byte. *Tested:* cli_cases.json (NAMING in cli_parity.py), `Demo.Command`.
+- **CMD-03: cancelling cleaning stops cpptraj at once, with its children.** MDATK checks the cancel
+  flag between reads of cpptraj's output, so a cancel waits until cpptraj next prints (it is silent
+  for long stretches of a large trajectory), and `terminate()` ends `conda run` but not the cpptraj
+  it started. MDBridge's process runner (src/core/process.hpp, also for the planner's scripts in
+  milestone 7) polls every 50 ms, starts the program in its own process group (Windows: a job
+  object) and ends the whole group: SIGTERM, SIGKILL after 10 s (Windows: at once, as Python's
+  terminate()). *Tested:* `Process.CancelEndsTheProcessGroup`, `Cleaning.Cancel`.
+- **CMD-04: cpptraj's output is decoded line by line.** MDATK decodes each 4 KiB chunk on its own,
+  so a UTF-8 character split between two reads becomes two U+FFFD; MDBridge decodes whole lines
+  (invalid bytes still become U+FFFD) and writes cpptraj.log with the bytes cpptraj wrote (MDATK:
+  the decoded text; the same file for UTF-8 output). *Tested:* `Process.LineSplitter`.
+- **CMD-05: cleaned files are matched by their key everywhere** (MDATK 0.1.0, pipeline.py
+  `cleaned_if_available`): previews and the interface's structure view use cleaned files only when
+  the marker names the key of the current inputs and settings, also in a folder given as
+  `cleaning.output_dir` (MDATK 0.0.4.1 used any cleaned files found there). Previews never start
+  cpptraj. *Tested:* `Cleaning.OutputDirNeedsTheKey`, `ProjectView.CleaningWithoutCleanedFilesShowsTheRawFiles`.
+- **CMD-06: `mdbridge citations [-p PROJECT] [--bibtex FILE] [--json]`** (new; owner decision D14,
+  AP-16). Cites the resources of the settings (as MDATK's About dialog: `project_resources`,
+  `keys_for`) followed by the run-time references of the cached results (meta `citation_keys` of the
+  entries of the cache manifest's latest run, CIT-06; `core::citations::withRunKeys`). Text
+  (default): MDATK's About text, `Resources this project uses (N references; each generated script
+  lists only its own):`, a blank line, then per resource `<name>[ - <note>]` and its references
+  indented by four spaces and a blank line; then, when cached results add references, `Used at run
+  time by the cached results (<instance>, ...):` with those references; N counts every reference;
+  without any: `This project uses no external resource with a reference yet.` `--json`: `{"keys",
+  "resources": [{"id", "name", "note", "keys"}], "run_keys", "run_instances", "references": [{"key",
+  "text", "doi", "url", "bibtex"}]}` (references in citation order). `--bibtex FILE` writes the
+  BibTeX entries (`-`: to stdout; nothing to cite: nothing written, a note on stderr) and says `Wrote
+  N references to FILE` on stderr, as the interface's export logs it. *Tested:*
+  `Citations.SettingsAndRunKeys`, `Citations.Command`.
+- **CMD-07: programs started from the AppImage get the user's environment** (as MDATK's frozen
+  build: `frozen.child_env`): `LD_LIBRARY_PATH` and `PATH` entries inside `$APPDIR` and a
+  `FONTCONFIG_FILE` there are left out, so cpptraj and conda do not load the AppImage's libraries.
+  *Tested:* `Process.ChildEnvironmentLeavesTheAppImageOut`.
+- The parameter log's `[run.inputs.cleaning]` holds `key`, `script`, `log` and `reused`, as MDATK's
+  (MDBridge wrote `key` and `reused = true` alone while it could only reuse MDATK's cleaned files).
+
 ## Citations (src/core/citations.cpp, src/core/citation_data.inc)
 
 Owner decision (2026-11-25): a method is cited by the people who originated it, not by one

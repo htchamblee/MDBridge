@@ -241,6 +241,28 @@ std::vector<double> NumpyGenerator::normal(double loc, double scale, std::size_t
     return out;
 }
 
+std::uint64_t NumpyGenerator::randomInterval(std::uint64_t max) {
+    if (max == 0) {
+        return 0;
+    }
+    std::uint64_t mask = max;  // the smallest bit mask >= max
+    mask |= mask >> 1;
+    mask |= mask >> 2;
+    mask |= mask >> 4;
+    mask |= mask >> 8;
+    mask |= mask >> 16;
+    mask |= mask >> 32;
+    std::uint64_t value = 0;
+    if (max <= 0xffffffffULL) {
+        while ((value = (next32() & mask)) > max) {
+        }
+    } else {
+        while ((value = (next64() & mask)) > max) {
+        }
+    }
+    return value;
+}
+
 std::uint64_t NumpyGenerator::boundedUint64(std::uint64_t off, std::uint64_t rng) {
     // random_bounded_uint64_fill (use_masked = false, one value)
     if (rng == 0) {

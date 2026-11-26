@@ -4,10 +4,8 @@
 // data and the charted series), running the missing ones in one pass and reusing the rest from the
 // cache (cache.hpp), the dataset with display overrides and external data, and the manifest.
 //
-// Cleaning (cpptraj) is not available in MDBridge yet: with cleaning.enabled, the cleaned files
-// MDATK left for the same inputs and settings (<output_dir or cache/cleaned/<key>>, with its
-// marker MDATK_clean.json naming that key) are used; without them the run fails with a
-// PipelineError ("cleaning with cpptraj is not available in MDBridge yet: ...").
+// With cleaning.enabled the inputs are first cleaned with cpptraj (cleaning.hpp), or the cleaned
+// files of an earlier run with the same inputs and settings (MDATK's or MDBridge's) are reused.
 
 #include <cstddef>
 #include <cstdint>
@@ -19,6 +17,7 @@
 #include <vector>
 
 #include "mdbridge/analysis/cache.hpp"
+#include "mdbridge/analysis/cleaning.hpp"
 #include "mdbridge/core/dataset.hpp"
 #include "mdbridge/core/errors.hpp"
 #include "mdbridge/core/progress.hpp"
@@ -63,6 +62,8 @@ struct ResolvedInputs {
     std::string topology;
     std::vector<std::string> trajectories;
     std::string cleaningKey;  // the cleaned files' key; "" without cleaning
+    // clean()'s result (script, log, reused) when resolveInputs cleaned or reused cleaned files
+    std::optional<CleanResult> cleaned;
 };
 
 class Pipeline {
@@ -84,11 +85,15 @@ public:
     // problems, then "WARNING: <text>" for every layout warning.
     void check() const;
 
-    // resolve_inputs: the input files (cleaned ones with cleaning, see above), then
-    // progress(1, "inputs ready"). Kept for later calls. Throws PipelineError (no cleaned files),
-    // core::NamedError("CpptrajError", "topology not found: <path>" / "trajectory not found:
-    // <path>") with cleaning.
-    const ResolvedInputs& resolveInputs(const core::Reporter* reporter = nullptr);
+    // resolve_inputs(reporter, force_clean): the input files, with cleaning the cleaned ones
+    // ("Cleaning trajectory with cpptraj ...", then analysis::clean with this reporter; `forceClean`
+    // runs cpptraj again), then progress(1, "inputs ready"). Kept for later calls unless
+    // forceClean. Throws CpptrajError (cleaning.hpp), core::Cancelled.
+    const ResolvedInputs& resolveInputs(const core::Reporter* reporter = nullptr, bool forceClean = false);
+    // cleaned_if_available: the cleaned files when a finished cleaning with these inputs and
+    // settings exists (its marker naming this key, MDATK 0.1.0), else the raw inputs; never runs
+    // cpptraj (previews, the interface's structure view).
+    ResolvedInputs cleanedIfAvailable() const;
     // universe(): the loaded system of the resolved inputs (kept). Throws what io::loadSystem
     // throws, and core::ValueError("No trajectory loaded into Universe") without coordinates. The
     // readers' warnings (core::System::warnings) go to the reporter as "WARNING: <message>" once,

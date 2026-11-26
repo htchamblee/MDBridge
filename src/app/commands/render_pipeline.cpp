@@ -229,9 +229,11 @@ std::string RenderPipeline::writeParamsLog(const RunOutputs& outputs) {
         const analysis::ResolvedInputs& in = m_analyses.resolveInputs();
         inputs = core::Table{{"topology", in.topology},
                              {"trajectories", textArray(in.trajectories)},
-                             {"cleaning", in.cleaningKey.empty()
-                                              ? Value()
-                                              : Value(core::Table{{"key", in.cleaningKey}, {"reused", true}})}};
+                             {"cleaning", in.cleaned ? Value(core::Table{{"key", in.cleaned->key},
+                                                                         {"script", in.cleaned->script},
+                                                                         {"log", in.cleaned->log},
+                                                                         {"reused", in.cleaned->reused}})
+                                                     : Value()}};
     }
     core::Table environment = environmentInfo();
     if (m_backend.environment) {

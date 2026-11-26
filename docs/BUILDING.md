@@ -57,8 +57,9 @@ libxkbcommon-x11`). Useful options: `-DMDBRIDGE_WARNINGS_AS_ERRORS=ON` (as in CI
 `-DMDBRIDGE_BUILD_APP=OFF` (only the Qt-free libraries - `core`, `io`, `analysis`, the render core
 and panels, molecule geometry, software and offscreen Vulkan renderers, video encoder - the command
 line's MDATK commands and their tests: no Qt needed; `build/tests/mdbridge_commands_cli` then offers
-`init`, `info`, `list`, `analyze`, `export-pdb` and `density info` for `tests/parity/cli_parity.py
---mdbridge`; `render`, `charts` and `preview` need the Qt build).
+`demo`, `init`, `info`, `list`, `clean`, `analyze`, `export-pdb`, `citations` and `density info` for
+`tests/parity/cli_parity.py --mdbridge`; `render`, `charts`, `preview` and `demo --run` need the Qt
+build).
 
 ### AppImage
 

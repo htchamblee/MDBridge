@@ -21686,6 +21686,3583 @@
    "posix_only": false
   },
   {
+   "name": "demo_dry",
+   "argv": [
+    "demo",
+    "d",
+    "--n-frames",
+    "6",
+    "--no-solvent"
+   ],
+   "inputs": {},
+   "setup": {},
+   "exit_only": false,
+   "before": [],
+   "env": {
+    "HOME": "{work}/home",
+    "CONDA_EXE": "",
+    "CONDA_PREFIX": "",
+    "MAMBA_ROOT_PREFIX": "",
+    "CONDA_ROOT": "",
+    "PATH": "/usr/bin:/bin",
+    "AMBERHOME": ""
+   },
+   "executable": [],
+   "exit": 0,
+   "stdout": "Synthetic system written to {work}/d:\n  topology   d/demo.parm7\n  trajectory d/demo.nc\n  project    d/demo.mdatk.toml\n  preset     d/demo.mdatk.toml\nNext: mdbridge render -p d/demo.mdatk.toml   (or: mdbridge gui d/demo.mdatk.toml)\n",
+   "stderr": "",
+   "written": {
+    "d/.demo.mdatk.toml.lock": {
+     "text": ""
+    },
+    "d/demo.mdatk.toml": {
+     "sha256": "4549826bcab0b67e23c0a7f891401cbe21ad11bb40ade60af5709fd6294bb516",
+     "size": 17405
+    },
+    "d/demo.nc": {
+     "sha256": "86a907218a39bd2326e13d82dce6b8a319d2963d96e6c34ddd92358ac39bbd52",
+     "size": 56784
+    },
+    "d/demo.parm7": {
+     "sha256": "4007a646be96d7ff0a4567b789c97fec80a4b1d19c89297cde871da9bf7057c0",
+     "size": 124144
+    }
+   },
+   "before_exits": [],
+   "posix_only": true
+  },
+  {
+   "name": "demo_solvated",
+   "argv": [
+    "demo",
+    "out/demo",
+    "--n-frames",
+    "5",
+    "--dt",
+    "2.5"
+   ],
+   "inputs": {},
+   "setup": {},
+   "exit_only": false,
+   "before": [],
+   "env": {
+    "HOME": "{work}/home",
+    "CONDA_EXE": "",
+    "CONDA_PREFIX": "",
+    "MAMBA_ROOT_PREFIX": "",
+    "CONDA_ROOT": "",
+    "PATH": "/usr/bin:/bin",
+    "AMBERHOME": ""
+   },
+   "executable": [],
+   "exit": 0,
+   "stdout": "Synthetic system written to {work}/out/demo:\n  topology   out/demo/demo.parm7\n  trajectory out/demo/demo.nc\n  project    out/demo/demo.mdatk.toml\n  preset     out/demo/demo.mdatk.toml\nNext: mdbridge render -p out/demo/demo.mdatk.toml   (or: mdbridge gui out/demo/demo.mdatk.toml)\n",
+   "stderr": "",
+   "written": {
+    "out/demo/.demo.mdatk.toml.lock": {
+     "text": ""
+    },
+    "out/demo/demo.mdatk.toml": {
+     "sha256": "51748077bcbf7176990f88882cdb79b1d578687ee98dcadd1bf274862482415d",
+     "size": 17404
+    },
+    "out/demo/demo.nc": {
+     "sha256": "7faac00e28a9119b0432d59f6c96060f8e84e628bd7ce0ecb30a12a5997f4622",
+     "size": 777536
+    },
+    "out/demo/demo.parm7": {
+     "sha256": "ffe27d325e14638d32013ca072cd367ac90211e9fc0337043e59a69c2e6dbbd1",
+     "size": 1933211
+    }
+   },
+   "before_exits": [],
+   "posix_only": true
+  },
+  {
+   "name": "demo_default",
+   "argv": [
+    "demo",
+    "d"
+   ],
+   "inputs": {},
+   "setup": {},
+   "exit_only": false,
+   "before": [],
+   "env": {
+    "HOME": "{work}/home",
+    "CONDA_EXE": "",
+    "CONDA_PREFIX": "",
+    "MAMBA_ROOT_PREFIX": "",
+    "CONDA_ROOT": "",
+    "PATH": "/usr/bin:/bin",
+    "AMBERHOME": ""
+   },
+   "executable": [],
+   "exit": 0,
+   "stdout": "Synthetic system written to {work}/d:\n  topology   d/demo.parm7\n  trajectory d/demo.nc\n  project    d/demo.mdatk.toml\n  preset     d/demo.mdatk.toml\nNext: mdbridge render -p d/demo.mdatk.toml   (or: mdbridge gui d/demo.mdatk.toml)\n",
+   "stderr": "",
+   "written": {
+    "d/.demo.mdatk.toml.lock": {
+     "text": ""
+    },
+    "d/demo.mdatk.toml": {
+     "sha256": "d509ecfb5be25b721a3b3449764c9fb94af56331f38095c96d015dc8953ca8c0",
+     "size": 17406
+    },
+    "d/demo.nc": {
+     "sha256": "bc0c337a050aa1e1f3751baeb2c436bfeb5dbc74920317f1168823f4e61c2172",
+     "size": 18642096
+    },
+    "d/demo.parm7": {
+     "sha256": "ffe27d325e14638d32013ca072cd367ac90211e9fc0337043e59a69c2e6dbbd1",
+     "size": 1933211
+    }
+   },
+   "before_exits": [],
+   "posix_only": true
+  },
+  {
+   "name": "demo_with_cpptraj",
+   "argv": [
+    "demo",
+    "d",
+    "--n-frames",
+    "2",
+    "-q"
+   ],
+   "inputs": {},
+   "setup": {
+    "bin/cpptraj": "#!/bin/sh\n# fake cpptraj -i SCRIPT\nscript=\"$2\"\nparm=$(sed -n 's/^parm \"\\(.*\\)\"$/\\1/p' \"$script\")\ntraj=$(sed -n 's/^trajin \"\\([^\"]*\\)\".*/\\1/p' \"$script\" | head -n 1)\nparmout=$(sed -n 's/.* parmout \"\\([^\"]*\\)\"$/\\1/p; s/^parmwrite out \"\\([^\"]*\\)\"$/\\1/p' \"$script\")\nnc=$(sed -n 's/^trajout \"\\([^\"]*\\)\" netcdf$/\\1/p' \"$script\")\npdb=$(sed -n 's/^trajout \"\\([^\"]*\\)\" pdb onlyframes 1$/\\1/p' \"$script\")\n[ -n \"$parmout\" ] && cp \"$parm\" \"$parmout\"\ncp \"$traj\" \"$nc\"\nprintf 'REMARK fake reference\\nEND\\n' > \"$pdb\"\nprintf 'CPPTRAJ: Trajectory Analysis. V6.29.0 (fake)\\nINPUT: Reading input from %s\\n  0%% 25%% 50%% 75%% 100%% Complete.\\nTIME: Total execution time: 0.0 seconds.\\n' \"$(basename \"$script\")\"\n"
+   },
+   "exit_only": false,
+   "before": [],
+   "env": {
+    "HOME": "{work}/home",
+    "CONDA_EXE": "",
+    "CONDA_PREFIX": "",
+    "MAMBA_ROOT_PREFIX": "",
+    "CONDA_ROOT": "",
+    "PATH": "{work}/bin:/usr/bin:/bin",
+    "AMBERHOME": ""
+   },
+   "executable": [
+    "bin/cpptraj"
+   ],
+   "exit": 0,
+   "stdout": "Synthetic system written to {work}/d:\n  topology   d/demo.parm7\n  trajectory d/demo.nc\n  project    d/demo.mdatk.toml\n  preset     d/demo.mdatk.toml\nNext: mdbridge render -p d/demo.mdatk.toml   (or: mdbridge gui d/demo.mdatk.toml)\n",
+   "stderr": "",
+   "written": {
+    "d/.demo.mdatk.toml.lock": {
+     "text": ""
+    },
+    "d/demo.mdatk.toml": {
+     "sha256": "f07e7ed17ae30be8208226fa02b99c48c0f5d91922489fb7e45f1b4818e3818d",
+     "size": 17404
+    },
+    "d/demo.nc": {
+     "sha256": "004a6b04a9c77bb920f966b3c239b1c11d0c9d66317bc5c54bfcc470914d8955",
+     "size": 311504
+    },
+    "d/demo.parm7": {
+     "sha256": "ffe27d325e14638d32013ca072cd367ac90211e9fc0337043e59a69c2e6dbbd1",
+     "size": 1933211
+    }
+   },
+   "before_exits": [],
+   "posix_only": true
+  },
+  {
+   "name": "demo_dry_with_cpptraj",
+   "argv": [
+    "demo",
+    "d",
+    "--n-frames",
+    "2",
+    "--no-solvent"
+   ],
+   "inputs": {},
+   "setup": {
+    "bin/cpptraj": "#!/bin/sh\n# fake cpptraj -i SCRIPT\nscript=\"$2\"\nparm=$(sed -n 's/^parm \"\\(.*\\)\"$/\\1/p' \"$script\")\ntraj=$(sed -n 's/^trajin \"\\([^\"]*\\)\".*/\\1/p' \"$script\" | head -n 1)\nparmout=$(sed -n 's/.* parmout \"\\([^\"]*\\)\"$/\\1/p; s/^parmwrite out \"\\([^\"]*\\)\"$/\\1/p' \"$script\")\nnc=$(sed -n 's/^trajout \"\\([^\"]*\\)\" netcdf$/\\1/p' \"$script\")\npdb=$(sed -n 's/^trajout \"\\([^\"]*\\)\" pdb onlyframes 1$/\\1/p' \"$script\")\n[ -n \"$parmout\" ] && cp \"$parm\" \"$parmout\"\ncp \"$traj\" \"$nc\"\nprintf 'REMARK fake reference\\nEND\\n' > \"$pdb\"\nprintf 'CPPTRAJ: Trajectory Analysis. V6.29.0 (fake)\\nINPUT: Reading input from %s\\n  0%% 25%% 50%% 75%% 100%% Complete.\\nTIME: Total execution time: 0.0 seconds.\\n' \"$(basename \"$script\")\"\n"
+   },
+   "exit_only": false,
+   "before": [],
+   "env": {
+    "HOME": "{work}/home",
+    "CONDA_EXE": "",
+    "CONDA_PREFIX": "",
+    "MAMBA_ROOT_PREFIX": "",
+    "CONDA_ROOT": "",
+    "PATH": "{work}/bin:/usr/bin:/bin",
+    "AMBERHOME": ""
+   },
+   "executable": [
+    "bin/cpptraj"
+   ],
+   "exit": 0,
+   "stdout": "Synthetic system written to {work}/d:\n  topology   d/demo.parm7\n  trajectory d/demo.nc\n  project    d/demo.mdatk.toml\n  preset     d/demo.mdatk.toml\nNext: mdbridge render -p d/demo.mdatk.toml   (or: mdbridge gui d/demo.mdatk.toml)\n",
+   "stderr": "",
+   "written": {
+    "d/.demo.mdatk.toml.lock": {
+     "text": ""
+    },
+    "d/demo.mdatk.toml": {
+     "sha256": "d536b7cb0c27c8f612d6b6f377703a0fcfd2b836d81b2811bf20fb19ee9d10b0",
+     "size": 17405
+    },
+    "d/demo.nc": {
+     "sha256": "b34522e34fb6eef283d2f3304c73a716e58660645e2162b764067350211678f7",
+     "size": 19472
+    },
+    "d/demo.parm7": {
+     "sha256": "4007a646be96d7ff0a4567b789c97fec80a4b1d19c89297cde871da9bf7057c0",
+     "size": 124144
+    }
+   },
+   "before_exits": [],
+   "posix_only": true
+  },
+  {
+   "name": "demo_no_frames",
+   "argv": [
+    "demo",
+    "d",
+    "--n-frames",
+    "0"
+   ],
+   "inputs": {},
+   "setup": {},
+   "exit_only": false,
+   "before": [],
+   "env": {
+    "HOME": "{work}/home",
+    "CONDA_EXE": "",
+    "CONDA_PREFIX": "",
+    "MAMBA_ROOT_PREFIX": "",
+    "CONDA_ROOT": "",
+    "PATH": "/usr/bin:/bin",
+    "AMBERHOME": ""
+   },
+   "executable": [],
+   "exit": 1,
+   "stdout": "",
+   "stderr": "error: the demo needs at least one frame (--n-frames 0)\n",
+   "written": {},
+   "before_exits": [],
+   "posix_only": true
+  },
+  {
+   "name": "demo_negative_frames",
+   "argv": [
+    "demo",
+    "d",
+    "--n-frames=-2"
+   ],
+   "inputs": {},
+   "setup": {},
+   "exit_only": false,
+   "before": [],
+   "env": {
+    "HOME": "{work}/home",
+    "CONDA_EXE": "",
+    "CONDA_PREFIX": "",
+    "MAMBA_ROOT_PREFIX": "",
+    "CONDA_ROOT": "",
+    "PATH": "/usr/bin:/bin",
+    "AMBERHOME": ""
+   },
+   "executable": [],
+   "exit": 1,
+   "stdout": "",
+   "stderr": "error: the demo needs at least one frame (--n-frames -2)\n",
+   "written": {},
+   "before_exits": [],
+   "posix_only": true
+  },
+  {
+   "name": "demo_bad_dt",
+   "argv": [
+    "demo",
+    "d",
+    "--n-frames",
+    "3",
+    "--dt",
+    "0"
+   ],
+   "inputs": {},
+   "setup": {},
+   "exit_only": false,
+   "before": [],
+   "env": {
+    "HOME": "{work}/home",
+    "CONDA_EXE": "",
+    "CONDA_PREFIX": "",
+    "MAMBA_ROOT_PREFIX": "",
+    "CONDA_ROOT": "",
+    "PATH": "/usr/bin:/bin",
+    "AMBERHOME": ""
+   },
+   "executable": [],
+   "exit": 1,
+   "stdout": "",
+   "stderr": "error: the time between frames must be a positive number of ps (--dt 0.0)\n",
+   "written": {},
+   "before_exits": [],
+   "posix_only": true
+  },
+  {
+   "name": "demo_no_folder",
+   "argv": [
+    "demo"
+   ],
+   "inputs": {},
+   "setup": {},
+   "exit_only": true,
+   "before": [],
+   "env": {},
+   "executable": [],
+   "exit": 2,
+   "stdout": "",
+   "stderr": "usage: mdatk demo [-h] [--n-frames N_FRAMES] [--dt DT] [--no-solvent] [--run]\n                  [--quiet]\n                  out_dir\nmdatk demo: error: the following arguments are required: out_dir\n",
+   "written": {},
+   "before_exits": [],
+   "posix_only": false
+  },
+  {
+   "name": "demo_run",
+   "argv": [
+    "demo",
+    "d",
+    "--n-frames",
+    "4",
+    "--no-solvent",
+    "--run",
+    "-q"
+   ],
+   "inputs": {},
+   "setup": {},
+   "exit_only": false,
+   "before": [],
+   "env": {
+    "HOME": "{work}/home",
+    "CONDA_EXE": "",
+    "CONDA_PREFIX": "",
+    "MAMBA_ROOT_PREFIX": "",
+    "CONDA_ROOT": "",
+    "PATH": "/usr/bin:/bin",
+    "AMBERHOME": ""
+   },
+   "executable": [],
+   "render": true,
+   "exit": 0,
+   "stdout": "Synthetic system written to {work}/d:\n  topology   d/demo.parm7\n  trajectory d/demo.nc\n  project    d/demo.mdatk.toml\n  preset     d/demo.mdatk.toml\n{\n  \"video\": \"{work}/d/MDATK_output/MDATK_video_{stamp}.mp4\",\n  \"charts\": [\n    \"{work}/d/MDATK_output/MDATK_chart_contacts_atom_pairs_{stamp}.png\",\n    \"{work}/d/MDATK_output/MDATK_chart_contacts_residue_pairs_{stamp}.png\",\n    \"{work}/d/MDATK_output/MDATK_chart_contacts_q_native_{stamp}.png\",\n    \"{work}/d/MDATK_output/MDATK_chart_energy_total_{stamp}.png\",\n    \"{work}/d/MDATK_output/MDATK_chart_energy_elec_{stamp}.png\",\n    \"{work}/d/MDATK_output/MDATK_chart_energy_vdw_{stamp}.png\",\n    \"{work}/d/MDATK_output/MDATK_chart_energy_net_force_{stamp}.png\",\n    \"{work}/d/MDATK_output/MDATK_chart_hbonds_count_{stamp}.png\",\n    \"{work}/d/MDATK_output/MDATK_chart_mg_contacts_{stamp}.png\",\n    \"{work}/d/MDATK_output/MDATK_chart_mg_outer_contacts_{stamp}.png\",\n    \"{work}/d/MDATK_output/MDATK_chart_mg_bridges_{stamp}.png\",\n    \"{work}/d/MDATK_output/MDATK_chart_mg_inter_bridges_{stamp}.png\",\n    \"{work}/d/MDATK_output/MDATK_chart_mg_bridging_ions_{stamp}.png\",\n    \"{work}/d/MDATK_output/MDATK_chart_mg_inner_residues_{stamp}.png\",\n    \"{work}/d/MDATK_output/MDATK_chart_rmsd_Complex_{stamp}.png\",\n    \"{work}/d/MDATK_output/MDATK_chart_rmsd_Backbone_{stamp}.png\",\n    \"{work}/d/MDATK_output/MDATK_chart_stacking_count_{stamp}.png\",\n    \"{work}/d/MDATK_output/MDATK_chart_stacking_inter_{stamp}.png\",\n    \"{work}/d/MDATK_output/MDATK_chart_stacking_intra_{stamp}.png\"\n  ],\n  \"pdbs\": [\n    \"{work}/d/MDATK_output/MDATK_frame_00000_{stamp}.pdb\",\n    \"{work}/d/MDATK_output/MDATK_frame_00002_{stamp}.pdb\",\n    \"{work}/d/MDATK_output/MDATK_frame_00003_{stamp}.pdb\"\n  ],\n  \"cache_manifest\": \"{work}/d/MDATK_output/MDATK_cache/{manifest}\",\n  \"params_log\": \"{work}/d/MDATK_output/MDATK_params_log.toml\"\n}\n",
+   "stderr": "WARNING: video: codec libx264 is not bundled (GPL); using libsvtav1 (AV1)\n",
+   "written": {
+    "d/.demo.mdatk.toml.lock": {
+     "text": ""
+    },
+    "d/MDATK_output/MDATK_cache/contacts-{key}.json": {
+     "json": {
+      "project": "{project}",
+      "version": "{version}",
+      "created": "{time}",
+      "name": "contacts",
+      "key": "{key}",
+      "params": {
+       "enabled": null,
+       "group_a": "Aptamer",
+       "group_b": "Target",
+       "cutoff": 4.5,
+       "heavy_only": true
+      },
+      "meta": {
+       "labels_a": [
+        "G1",
+        "C2",
+        "A3",
+        "U4",
+        "G5",
+        "G6",
+        "C7",
+        "A8",
+        "U9",
+        "C10",
+        "G11",
+        "A12"
+       ],
+       "labels_b": [
+        "U13",
+        "C14",
+        "G15",
+        "A16",
+        "U17",
+        "G18",
+        "C19",
+        "C20",
+        "A21",
+        "U22",
+        "G23",
+        "C24"
+       ],
+       "group_a": "Aptamer",
+       "group_b": "Target",
+       "cutoff": 4.5,
+       "label": "Pairwise contacts",
+       "analysis": "contacts",
+       "outputs": {
+        "series": {
+         "atom_pairs": {
+          "array": "atom_pairs",
+          "label": "Aptamer–Target heavy-atom contacts",
+          "unit": "count"
+         },
+         "residue_pairs": {
+          "array": "residue_pairs",
+          "label": "Aptamer–Target residue contacts",
+          "unit": "count"
+         },
+         "q_native": {
+          "array": "q_native",
+          "label": "Fraction of native contacts (Q)",
+          "unit": ""
+         }
+        },
+        "matrices": {
+         "per_residue_a": {
+          "array": "per_res_a",
+          "rows": "labels_a",
+          "label": "Aptamer residue contacts with Target",
+          "kind": "count"
+         },
+         "per_residue_b": {
+          "array": "per_res_b",
+          "rows": "labels_b",
+          "label": "Target residue contacts with Aptamer",
+          "kind": "count"
+         }
+        },
+        "pairmaps": {
+         "map": {
+          "prefix": "map",
+          "rows": "labels_a",
+          "cols": "labels_b",
+          "label": "Aptamer–Target contact map"
+         }
+        }
+       }
+      },
+      "arrays": [
+       "atom_pairs",
+       "map_i",
+       "map_j",
+       "map_offsets",
+       "map_v",
+       "per_res_a",
+       "per_res_b",
+       "q_native",
+       "residue_pairs"
+      ],
+      "n_frames": 4
+     }
+    },
+    "d/MDATK_output/MDATK_cache/contacts-{key}.npz": {
+     "npz": [
+      [
+       "map_offsets",
+       "<i8",
+       [
+        5
+       ],
+       "[0,26,51,70,96]"
+      ],
+      [
+       "map_i",
+       "<i4",
+       [
+        96
+       ],
+       "[0,0,1,2,2,2,3,4,4,4,5,5,5,6,7,7,7,8,8,9,9,10,10,10,11,11,0,0,1,2,2,2,3,4,4,4,5,5,5,6,7,7,7,8,8,9,9,10,10,10,11,0,0,1,2,2,2,3,4,4,4,5,5,5,6,7,7,7,8,10,0,0,1,2,2,2,3,4,4,4,5,5,5,6,7,7,7,8,8,9,9,10,10,10,11,11]"
+      ],
+      [
+       "map_j",
+       "<i4",
+       [
+        96
+       ],
+       "[10,11,10,8,9,10,8,6,7,8,5,6,7,5,3,4,5,2,3,2,3,0,1,2,0,1,10,11,10,8,9,10,8,6,7,8,5,6,7,5,3,4,5,2,3,2,3,0,1,2,0,10,11,10,8,9,10,8,6,7,8,5,6,7,5,3,4,5,3,2,10,11,10,8,9,10,8,6,7,8,5,6,7,5,3,4,5,2,3,2,3,0,1,2,0,1]"
+      ],
+      [
+       "map_v",
+       "<f4",
+       [
+        96
+       ],
+       "[32.0,16.0,17.0,32.0,14.0,27.0,14.0,4.0,17.0,28.0,36.0,16.0,6.0,17.0,33.0,13.0,26.0,7.0,13.0,16.0,4.0,6.0,16.0,33.0,14.0,3.0,34.0,17.0,17.0,33.0,14.0,26.0,14.0,6.0,17.0,26.0,36.0,17.0,6.0,17.0,29.0,14.0,26.0,4.0,13.0,14.0,3.0,3.0,12.0,29.0,6.0,35.0,17.0,17.0,29.0,14.0,25.0,13.0,6.0,17.0,25.0,39.0,17.0,6.0,17.0,11.0,14.0,25.0,1.0,3.0,36.0,17.0,16.0,29.0,14.0,24.0,12.0,6.0,16.0,27.0,34.0,17.0,6.0,17.0,26.0,13.0,24.0,7.0,14.0,17.0,2.0,7.0,17.0,31.0,14.0,3.0]"
+      ],
+      [
+       "atom_pairs",
+       "<i8",
+       [
+        4
+       ],
+       "[460,433,331,446]"
+      ],
+      [
+       "residue_pairs",
+       "<i8",
+       [
+        4
+       ],
+       "[26,25,19,26]"
+      ],
+      [
+       "q_native",
+       "<f8",
+       [
+        4
+       ],
+       "[1.0,0.9615384615384616,0.7307692307692307,1.0]"
+      ],
+      [
+       "per_res_a",
+       "<f4",
+       [
+        12,
+        4
+       ],
+       "[48.0,51.0,52.0,53.0,17.0,17.0,17.0,16.0,73.0,73.0,68.0,67.0,14.0,14.0,13.0,12.0,49.0,49.0,48.0,49.0,58.0,59.0,62.0,57.0,17.0,17.0,17.0,17.0,72.0,69.0,50.0,63.0,20.0,17.0,1.0,21.0,20.0,17.0,0.0,19.0,55.0,44.0,3.0,55.0,17.0,6.0,0.0,17.0]"
+      ],
+      [
+       "per_res_b",
+       "<f4",
+       [
+        12,
+        4
+       ],
+       "[20.0,9.0,0.0,21.0,19.0,12.0,0.0,20.0,56.0,47.0,3.0,55.0,50.0,45.0,12.0,42.0,13.0,14.0,14.0,13.0,79.0,79.0,81.0,75.0,20.0,23.0,23.0,23.0,23.0,23.0,23.0,22.0,74.0,73.0,67.0,68.0,14.0,14.0,14.0,14.0,76.0,77.0,77.0,76.0,16.0,17.0,17.0,17.0]"
+      ],
+      [
+       "_frames",
+       "<i8",
+       [
+        4
+       ],
+       "[0,1,2,3]"
+      ],
+      [
+       "_time_ps",
+       "<f8",
+       [
+        4
+       ],
+       "[0.0,10.0,20.0,30.0]"
+      ]
+     ]
+    },
+    "d/MDATK_output/MDATK_cache/energy-{key}.json": {
+     "json": {
+      "project": "{project}",
+      "version": "{version}",
+      "created": "{time}",
+      "name": "energy",
+      "key": "{key}",
+      "params": {
+       "enabled": null,
+       "group_a": "Aptamer",
+       "group_b": "Target",
+       "cutoff": 12.0,
+       "dielectric": 4.0,
+       "distance_dependent": true,
+       "use_parm7": true,
+       "exclude_bonded": 3
+      },
+      "meta": {
+       "lj_source": "parm7",
+       "charge_source": "topology",
+       "group_a": "Aptamer",
+       "group_b": "Target",
+       "n_excluded_pairs": 0,
+       "lj_atoms": {
+        "parm7": 770,
+        "template": 0,
+        "typed": 0
+       },
+       "charge_atoms": {
+        "topology": 770,
+        "template": 0,
+        "none": 0
+       },
+       "lj_references": [],
+       "lj_default_elements": [],
+       "citation_keys": [],
+       "label": "Intermolecular energy",
+       "analysis": "energy",
+       "outputs": {
+        "series": {
+         "total": {
+          "array": "total",
+          "label": "Aptamer–Target interaction energy",
+          "unit": "kcal/mol",
+          "target": -60.0
+         },
+         "elec": {
+          "array": "elec",
+          "label": "Aptamer–Target electrostatic energy",
+          "unit": "kcal/mol"
+         },
+         "vdw": {
+          "array": "vdw",
+          "label": "Aptamer–Target van der Waals energy",
+          "unit": "kcal/mol"
+         },
+         "net_force": {
+          "array": "force",
+          "label": "Net force of Target on Aptamer",
+          "unit": "kcal/mol/Å"
+         }
+        },
+        "matrices": {},
+        "pairmaps": {}
+       }
+      },
+      "arrays": [
+       "elec",
+       "force",
+       "n_pairs",
+       "total",
+       "vdw"
+      ],
+      "n_frames": 4
+     }
+    },
+    "d/MDATK_output/MDATK_cache/energy-{key}.npz": {
+     "npz": [
+      [
+       "total",
+       "<f8",
+       [
+        4
+       ],
+       "[-78.43012916383523,-67.71382483748994,-51.449426059818606,-79.3580082236816]"
+      ],
+      [
+       "elec",
+       "<f8",
+       [
+        4
+       ],
+       "[-43.75658383309839,-34.92850158928063,-39.31440185553665,-41.37896191119237]"
+      ],
+      [
+       "vdw",
+       "<f8",
+       [
+        4
+       ],
+       "[-34.67354533073684,-32.7853232482093,-12.135024204281954,-37.97904631248922]"
+      ],
+      [
+       "force",
+       "<f8",
+       [
+        4
+       ],
+       "[96.3215400100965,19.324344916718978,82.29644363579702,58.18878683579807]"
+      ],
+      [
+       "n_pairs",
+       "<i8",
+       [
+        4
+       ],
+       "[36284,35575,30802,36171]"
+      ],
+      [
+       "_frames",
+       "<i8",
+       [
+        4
+       ],
+       "[0,1,2,3]"
+      ],
+      [
+       "_time_ps",
+       "<f8",
+       [
+        4
+       ],
+       "[0.0,10.0,20.0,30.0]"
+      ]
+     ]
+    },
+    "d/MDATK_output/MDATK_cache/hbonds-{key}.json": {
+     "json": {
+      "project": "{project}",
+      "version": "{version}",
+      "created": "{time}",
+      "name": "hbonds",
+      "key": "{key}",
+      "params": {
+       "enabled": null,
+       "group_a": "Aptamer",
+       "group_b": "Target",
+       "distance_cutoff": 3.5,
+       "use_angle": true,
+       "angle_cutoff": 135.0,
+       "donor_elements": "N,O",
+       "acceptor_elements": "N,O"
+      },
+      "meta": {
+       "labels_a": [
+        "G1",
+        "C2",
+        "A3",
+        "U4",
+        "G5",
+        "G6",
+        "C7",
+        "A8",
+        "U9",
+        "C10",
+        "G11",
+        "A12"
+       ],
+       "labels_b": [
+        "U13",
+        "C14",
+        "G15",
+        "A16",
+        "U17",
+        "G18",
+        "C19",
+        "C20",
+        "A21",
+        "U22",
+        "G23",
+        "C24"
+       ],
+       "group_a": "Aptamer",
+       "group_b": "Target",
+       "used_angle": true,
+       "distance_cutoff": 3.5,
+       "angle_cutoff": 135.0,
+       "label": "Hydrogen bonds",
+       "analysis": "hbonds",
+       "outputs": {
+        "series": {
+         "count": {
+          "array": "count",
+          "label": "Aptamer–Target H-bonds",
+          "unit": "count"
+         }
+        },
+        "matrices": {
+         "per_residue_a": {
+          "array": "per_res_a",
+          "rows": "labels_a",
+          "label": "Aptamer residue H-bonds",
+          "kind": "count"
+         },
+         "per_residue_b": {
+          "array": "per_res_b",
+          "rows": "labels_b",
+          "label": "Target residue H-bonds",
+          "kind": "count"
+         }
+        },
+        "pairmaps": {
+         "map": {
+          "prefix": "map",
+          "rows": "labels_a",
+          "cols": "labels_b",
+          "label": "Aptamer–Target H-bond map"
+         }
+        }
+       }
+      },
+      "arrays": [
+       "count",
+       "map_i",
+       "map_j",
+       "map_offsets",
+       "map_v",
+       "per_res_a",
+       "per_res_b"
+      ],
+      "n_frames": 4
+     }
+    },
+    "d/MDATK_output/MDATK_cache/hbonds-{key}.npz": {
+     "npz": [
+      [
+       "map_offsets",
+       "<i8",
+       [
+        5
+       ],
+       "[0,12,24,32,44]"
+      ],
+      [
+       "map_i",
+       "<i4",
+       [
+        44
+       ],
+       "[0,1,2,3,4,5,6,7,8,9,10,11,0,1,2,3,4,5,6,7,8,9,10,11,0,1,2,3,4,5,6,7,0,1,2,3,4,5,6,7,8,9,10,11]"
+      ],
+      [
+       "map_j",
+       "<i4",
+       [
+        44
+       ],
+       "[11,10,9,8,7,6,5,4,3,2,1,0,11,10,9,8,7,6,5,4,3,2,1,0,11,10,9,8,7,6,5,4,11,10,9,8,7,6,5,4,3,2,1,0]"
+      ],
+      [
+       "map_v",
+       "<f4",
+       [
+        44
+       ],
+       "[3.0,3.0,2.0,2.0,3.0,3.0,3.0,2.0,2.0,3.0,3.0,2.0,3.0,3.0,2.0,2.0,3.0,3.0,3.0,2.0,2.0,1.0,2.0,1.0,3.0,3.0,2.0,2.0,3.0,3.0,3.0,2.0,3.0,3.0,2.0,2.0,3.0,3.0,3.0,2.0,2.0,3.0,3.0,2.0]"
+      ],
+      [
+       "count",
+       "<i8",
+       [
+        4
+       ],
+       "[31,27,21,31]"
+      ],
+      [
+       "per_res_a",
+       "<f4",
+       [
+        12,
+        4
+       ],
+       "[3.0,3.0,3.0,3.0,3.0,3.0,3.0,3.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,3.0,3.0,3.0,3.0,3.0,3.0,3.0,3.0,3.0,3.0,3.0,3.0,2.0,2.0,2.0,2.0,2.0,2.0,0.0,2.0,3.0,1.0,0.0,3.0,3.0,2.0,0.0,3.0,2.0,1.0,0.0,2.0]"
+      ],
+      [
+       "per_res_b",
+       "<f4",
+       [
+        12,
+        4
+       ],
+       "[2.0,1.0,0.0,2.0,3.0,2.0,0.0,3.0,3.0,1.0,0.0,3.0,2.0,2.0,0.0,2.0,2.0,2.0,2.0,2.0,3.0,3.0,3.0,3.0,3.0,3.0,3.0,3.0,3.0,3.0,3.0,3.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,3.0,3.0,3.0,3.0,3.0,3.0,3.0,3.0]"
+      ],
+      [
+       "_frames",
+       "<i8",
+       [
+        4
+       ],
+       "[0,1,2,3]"
+      ],
+      [
+       "_time_ps",
+       "<f8",
+       [
+        4
+       ],
+       "[0.0,10.0,20.0,30.0]"
+      ]
+     ]
+    },
+    "d/MDATK_output/MDATK_cache/mg-{key}.json": {
+     "json": {
+      "project": "{project}",
+      "version": "{version}",
+      "created": "{time}",
+      "name": "mg",
+      "key": "{key}",
+      "params": {
+       "enabled": null,
+       "mg_selection": "resname MG Mg MG2 or name MG Mg",
+       "ligand_selection": "group:Aptamer or group:Target",
+       "ligand_elements": "O",
+       "group_a": "Aptamer",
+       "group_b": "Target",
+       "inner_cutoff": 2.6,
+       "outer_cutoff": 4.5,
+       "bridge_shell": "inner",
+       "geometry": false,
+       "angle_tolerance": 25.0,
+       "occupancy_selection": "",
+       "occupancy_elements": "N,O"
+      },
+      "meta": {
+       "occ_labels": [
+        "G1",
+        "C2",
+        "A3",
+        "U4",
+        "G5",
+        "G6",
+        "C7",
+        "A8",
+        "U9",
+        "C10",
+        "G11",
+        "A12",
+        "U13",
+        "C14",
+        "G15",
+        "A16",
+        "U17",
+        "G18",
+        "C19",
+        "C20",
+        "A21",
+        "U22",
+        "G23",
+        "C24"
+       ],
+       "n_ions": 3,
+       "group_a": "Aptamer",
+       "group_b": "Target",
+       "label": "Mg coordination",
+       "analysis": "mg",
+       "outputs": {
+        "series": {
+         "contacts": {
+          "array": "contacts",
+          "label": "Mg–O inner-sphere contacts",
+          "unit": "count"
+         },
+         "outer_contacts": {
+          "array": "outer",
+          "label": "Mg–O outer-sphere contacts",
+          "unit": "count"
+         },
+         "bridges": {
+          "array": "bridges",
+          "label": "O–Mg–O bridges",
+          "unit": "count"
+         },
+         "inter_bridges": {
+          "array": "inter",
+          "label": "Aptamer–Mg–Target bridges",
+          "unit": "count"
+         },
+         "bridging_ions": {
+          "array": "bridging_ions",
+          "label": "Bridging Mg ions",
+          "unit": "count"
+         },
+         "inner_residues": {
+          "array": "inner_residues",
+          "label": "Residues with inner-sphere Mg",
+          "unit": "count"
+         }
+        },
+        "matrices": {
+         "occupancy": {
+          "array": "occupancy",
+          "rows": "occ_labels",
+          "label": "Mg occupancy",
+          "kind": "class",
+          "classes": [
+           "none",
+           "outer sphere",
+           "inner sphere"
+          ]
+         }
+        },
+        "pairmaps": {}
+       }
+      },
+      "arrays": [
+       "bridges",
+       "bridging_ions",
+       "contacts",
+       "inner_residues",
+       "inter",
+       "occupancy",
+       "outer"
+      ],
+      "n_frames": 4
+     }
+    },
+    "d/MDATK_output/MDATK_cache/mg-{key}.npz": {
+     "npz": [
+      [
+       "contacts",
+       "<i8",
+       [
+        4
+       ],
+       "[4,4,2,4]"
+      ],
+      [
+       "outer",
+       "<i8",
+       [
+        4
+       ],
+       "[6,6,5,6]"
+      ],
+      [
+       "bridges",
+       "<i8",
+       [
+        4
+       ],
+       "[1,1,0,1]"
+      ],
+      [
+       "inter",
+       "<i8",
+       [
+        4
+       ],
+       "[1,1,0,1]"
+      ],
+      [
+       "bridging_ions",
+       "<i8",
+       [
+        4
+       ],
+       "[1,1,0,1]"
+      ],
+      [
+       "occupancy",
+       "|i1",
+       [
+        24,
+        4
+       ],
+       "[0,0,0,0,1,1,1,1,2,2,2,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,2,2,2,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,2,2,1,2,2,2,1,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]"
+      ],
+      [
+       "inner_residues",
+       "<i8",
+       [
+        4
+       ],
+       "[4,4,2,4]"
+      ],
+      [
+       "_frames",
+       "<i8",
+       [
+        4
+       ],
+       "[0,1,2,3]"
+      ],
+      [
+       "_time_ps",
+       "<f8",
+       [
+        4
+       ],
+       "[0.0,10.0,20.0,30.0]"
+      ]
+     ]
+    },
+    "d/MDATK_output/MDATK_cache/proximity-{key}.json": {
+     "json": {
+      "project": "{project}",
+      "version": "{version}",
+      "created": "{time}",
+      "name": "proximity",
+      "key": "{key}",
+      "params": {
+       "groups": [
+        "Aptamer",
+        "Target"
+       ],
+       "set": "Target",
+       "radius": 8.0,
+       "ions": "resname MG Mg MG2 or name MG Mg"
+      },
+      "meta": {
+       "residue_labels": [
+        "G1",
+        "C2",
+        "A3",
+        "U4",
+        "G5",
+        "G6",
+        "C7",
+        "A8",
+        "U9",
+        "C10",
+        "G11",
+        "A12",
+        "U13",
+        "C14",
+        "G15",
+        "A16",
+        "U17",
+        "G18",
+        "C19",
+        "C20",
+        "A21",
+        "U22",
+        "G23",
+        "C24"
+       ],
+       "radius": 8.0,
+       "label": "Proximity to residue set",
+       "analysis": "proximity",
+       "outputs": {
+        "series": {},
+        "matrices": {
+         "min_distance": {
+          "array": "min_distance",
+          "rows": "residue_labels",
+          "label": "Distance to proximity set",
+          "kind": "value",
+          "unit": "Å"
+         }
+        },
+        "pairmaps": {}
+       }
+      },
+      "arrays": [
+       "member",
+       "min_distance",
+       "resindex"
+      ],
+      "n_frames": 4
+     }
+    },
+    "d/MDATK_output/MDATK_cache/proximity-{key}.npz": {
+     "npz": [
+      [
+       "min_distance",
+       "<f4",
+       [
+        24,
+        4
+       ],
+       "[2.95304536819458,2.6056652069091797,2.905405044555664,2.8449151515960693,2.884514808654785,2.825486183166504,2.8127472400665283,2.7263286113739014,2.7608354091644287,2.7233264446258545,2.644144058227539,2.8149871826171875,2.604877471923828,2.9698524475097656,3.011923313140869,2.881927490234375,2.8267924785614014,2.846773624420166,2.838391065597534,2.739849328994751,2.679419994354248,2.6781558990478516,2.6302244663238525,2.6664671897888184,2.646782875061035,2.7767558097839355,2.964038372039795,2.882798433303833,2.877023220062256,2.5909836292266846,2.5207419395446777,2.7373619079589844,2.6911160945892334,3.026740312576294,4.386983871459961,2.8079373836517334,2.880000591278076,3.0131583213806152,5.243677139282227,2.913557767868042,2.8018381595611572,2.820951461791992,3.723982334136963,2.655388116836548,3.0378639698028564,3.340186357498169,6.60355806350708,2.9090323448181152,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]"
+      ],
+      [
+       "member",
+       "|b1",
+       [
+        24
+       ],
+       "[false,false,false,false,false,false,false,false,false,false,false,false,true,true,true,true,true,true,true,true,true,true,true,true]"
+      ],
+      [
+       "resindex",
+       "<i8",
+       [
+        24
+       ],
+       "[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23]"
+      ],
+      [
+       "_frames",
+       "<i8",
+       [
+        4
+       ],
+       "[0,1,2,3]"
+      ],
+      [
+       "_time_ps",
+       "<f8",
+       [
+        4
+       ],
+       "[0.0,10.0,20.0,30.0]"
+      ]
+     ]
+    },
+    "d/MDATK_output/MDATK_cache/rmsd-{key}.json": {
+     "json": {
+      "project": "{project}",
+      "version": "{version}",
+      "created": "{time}",
+      "name": "rmsd",
+      "key": "{key}",
+      "params": {
+       "targets": [
+        {
+         "label": "Complex",
+         "selection": "(group:Aptamer or group:Target) and not name H*",
+         "fit_selection": ""
+        },
+        {
+         "label": "Backbone",
+         "selection": "(group:Aptamer or group:Target) and name C4'",
+         "fit_selection": ""
+        }
+       ],
+       "reference_frame": 0,
+       "superposition": true,
+       "mass_weighted": false
+      },
+      "meta": {
+       "reference_frame_index": 0,
+       "label": "RMSD",
+       "analysis": "rmsd",
+       "outputs": {
+        "series": {
+         "Complex": {
+          "array": "rmsd_0",
+          "label": "RMSD Complex",
+          "unit": "Å"
+         },
+         "Backbone": {
+          "array": "rmsd_1",
+          "label": "RMSD Backbone",
+          "unit": "Å"
+         }
+        },
+        "matrices": {},
+        "pairmaps": {}
+       }
+      },
+      "arrays": [
+       "rmsd_0",
+       "rmsd_1"
+      ],
+      "n_frames": 4
+     }
+    },
+    "d/MDATK_output/MDATK_cache/rmsd-{key}.npz": {
+     "npz": [
+      [
+       "rmsd_0",
+       "<f8",
+       [
+        4
+       ],
+       "[0.0,0.35178096380075785,1.5285659195068437,0.2857244493545984]"
+      ],
+      [
+       "rmsd_1",
+       "<f8",
+       [
+        4
+       ],
+       "[0.0,0.3867774360374106,1.6089617452693372,0.2866352424492548]"
+      ],
+      [
+       "_frames",
+       "<i8",
+       [
+        4
+       ],
+       "[0,1,2,3]"
+      ],
+      [
+       "_time_ps",
+       "<f8",
+       [
+        4
+       ],
+       "[0.0,10.0,20.0,30.0]"
+      ]
+     ]
+    },
+    "d/MDATK_output/MDATK_cache/stacking-{key}.json": {
+     "json": {
+      "project": "{project}",
+      "version": "{version}",
+      "created": "{time}",
+      "name": "stacking",
+      "key": "{key}",
+      "params": {
+       "enabled": null,
+       "selection": "group:Aptamer or group:Target",
+       "scope": "all",
+       "group_a": "Aptamer",
+       "group_b": "Target",
+       "distance_cutoff": 4.5,
+       "angle_cutoff": 30.0,
+       "offset_cutoff": 2.5,
+       "planarity_cutoff": 0.25
+      },
+      "meta": {
+       "row_labels": [
+        "G1",
+        "C2",
+        "A3",
+        "U4",
+        "G5",
+        "G6",
+        "C7",
+        "A8",
+        "U9",
+        "C10",
+        "G11",
+        "A12",
+        "U13",
+        "C14",
+        "G15",
+        "A16",
+        "U17",
+        "G18",
+        "C19",
+        "C20",
+        "A21",
+        "U22",
+        "G23",
+        "C24"
+       ],
+       "col_labels": [
+        "G1",
+        "C2",
+        "A3",
+        "U4",
+        "G5",
+        "G6",
+        "C7",
+        "A8",
+        "U9",
+        "C10",
+        "G11",
+        "A12",
+        "U13",
+        "C14",
+        "G15",
+        "A16",
+        "U17",
+        "G18",
+        "C19",
+        "C20",
+        "A21",
+        "U22",
+        "G23",
+        "C24"
+       ],
+       "n_rings": 24,
+       "scope": "all",
+       "label": "π–π stacking",
+       "analysis": "stacking",
+       "outputs": {
+        "series": {
+         "count": {
+          "array": "count",
+          "label": "π–π stacked pairs",
+          "unit": "count"
+         },
+         "inter": {
+          "array": "inter",
+          "label": "Aptamer–Target stacked pairs",
+          "unit": "count"
+         },
+         "intra": {
+          "array": "intra",
+          "label": "Intra-group stacked pairs",
+          "unit": "count"
+         }
+        },
+        "matrices": {},
+        "pairmaps": {
+         "map": {
+          "prefix": "map",
+          "rows": "row_labels",
+          "cols": "col_labels",
+          "label": "Stacking map"
+         }
+        }
+       }
+      },
+      "arrays": [
+       "count",
+       "inter",
+       "intra",
+       "map_i",
+       "map_j",
+       "map_offsets",
+       "map_v"
+      ],
+      "n_frames": 4
+     }
+    },
+    "d/MDATK_output/MDATK_cache/stacking-{key}.npz": {
+     "npz": [
+      [
+       "map_offsets",
+       "<i8",
+       [
+        5
+       ],
+       "[0,14,28,39,54]"
+      ],
+      [
+       "map_i",
+       "<i4",
+       [
+        54
+       ],
+       "[1,4,3,21,19,18,6,14,16,13,12,10,9,8,1,4,3,21,19,18,6,14,15,16,13,10,9,8,1,4,3,21,19,18,16,10,9,8,6,1,4,3,21,18,19,17,6,16,9,14,13,8,12,10]"
+      ],
+      [
+       "map_j",
+       "<i4",
+       [
+        54
+       ],
+       "[2,5,4,22,20,19,7,15,17,14,13,11,10,9,2,5,4,22,20,19,7,15,16,17,14,11,10,9,2,5,4,22,20,19,17,11,10,9,7,2,5,4,22,19,20,18,7,17,10,15,14,9,13,11]"
+      ],
+      [
+       "map_v",
+       "<f4",
+       [
+        54
+       ],
+       "[1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0]"
+      ],
+      [
+       "count",
+       "<i8",
+       [
+        4
+       ],
+       "[14,14,11,15]"
+      ],
+      [
+       "inter",
+       "<i8",
+       [
+        4
+       ],
+       "[0,0,0,0]"
+      ],
+      [
+       "intra",
+       "<i8",
+       [
+        4
+       ],
+       "[14,14,11,15]"
+      ],
+      [
+       "_frames",
+       "<i8",
+       [
+        4
+       ],
+       "[0,1,2,3]"
+      ],
+      [
+       "_time_ps",
+       "<f8",
+       [
+        4
+       ],
+       "[0.0,10.0,20.0,30.0]"
+      ]
+     ]
+    },
+    "d/MDATK_output/MDATK_cache/trace-{key}.json": {
+     "json": {
+      "project": "{project}",
+      "version": "{version}",
+      "created": "{time}",
+      "name": "trace",
+      "key": "{key}",
+      "params": {
+       "groups": [
+        "Aptamer",
+        "Target"
+       ],
+       "trace_atoms": "C4',CA",
+       "align": true,
+       "show_ions": true,
+       "ions": "resname MG Mg MG2 or name MG Mg",
+       "group_order": [
+        "Aptamer",
+        "Target"
+       ]
+      },
+      "meta": {
+       "residue_labels": [
+        "G1",
+        "C2",
+        "A3",
+        "U4",
+        "G5",
+        "G6",
+        "C7",
+        "A8",
+        "U9",
+        "C10",
+        "G11",
+        "A12",
+        "U13",
+        "C14",
+        "G15",
+        "A16",
+        "U17",
+        "G18",
+        "C19",
+        "C20",
+        "A21",
+        "U22",
+        "G23",
+        "C24"
+       ],
+       "ion_labels": [
+        "MG25",
+        "MG26",
+        "MG27"
+       ],
+       "group_names": [
+        "Aptamer",
+        "Target"
+       ],
+       "label": "Backbone trace",
+       "analysis": "trace"
+      },
+      "arrays": [
+       "backbone",
+       "chain",
+       "chain_name",
+       "coords",
+       "group_index",
+       "group_member",
+       "ion_coords",
+       "is_point",
+       "links",
+       "resid",
+       "resindex",
+       "resname"
+      ],
+      "n_frames": 4
+     }
+    },
+    "d/MDATK_output/MDATK_cache/trace-{key}.npz": {
+     "npz": [
+      [
+       "coords",
+       "<f4",
+       [
+        4,
+        24,
+        3
+       ],
+       "[15.474376678466797,23.37226104736328,15.184104919433594,17.484277725219727,17.76389503479004,18.132843017578125,19.806827545166016,16.425928115844727,21.028127670288086,25.836437225341797,15.906383514404297,24.097671508789062,27.945192337036133,17.225452423095703,27.215213775634766,30.151906967163086,20.754779815673828,30.179834365844727,29.649410247802734,26.676315307617188,33.20925521850586,28.11292266845703,28.723295211791992,36.104061126708984,22.888282775878906,30.77264976501465,39.11309051513672,18.570825576782227,29.460460662841797,42.17704391479492,16.669193267822266,27.26026153564453,45.05281066894531,15.542428970336914,23.337308883666992,48.32971954345703,30.602197647094727,21.576576232910156,46.54153823852539,28.296390533447266,17.81110191345215,43.3599967956543,26.316848754882812,16.634464263916016,40.624549865722656,22.105154037475586,15.769302368164062,37.793495178222656,16.630767822265625,18.494314193725586,34.43390655517578,15.696304321289062,20.763721466064453,31.358360290527344,16.0328426361084,26.662750244140625,28.330041885375977,19.20819854736328,29.644203186035156,25.540672302246094,21.709087371826172,30.725881576538086,22.5263614654541,27.436662673950195,29.2528133392334,19.693391799926758,29.172285079956055,27.473426818847656,16.44754981994629,30.500097274780273,21.636568069458008,13.502764701843262,15.428384780883789,23.4409236907959,15.095820426940918,17.516172409057617,17.54399299621582,18.081140518188477,19.90583038330078,16.422563552856445,21.05013084411621,25.613340377807617,16.179861068725586,24.168256759643555,27.616666793823242,17.37750244140625,27.212955474853516,30.01500701904297,20.560537338256836,30.390682220458984,29.752391815185547,26.849706649780273,33.22048568725586,28.02397346496582,28.811668395996094,36.07926559448242,22.392995834350586,30.99304962158203,39.27370071411133,18.207565307617188,29.460155487060547,41.929378509521484,16.613380432128906,27.481353759765625,45.401824951171875,15.240256309509277,23.478416442871094,48.0884895324707,31.062040328979492,21.471935272216797,46.67683410644531,29.075965881347656,17.60706901550293,43.68337631225586,26.47721290588379,15.946256637573242,40.638267517089844,22.070598602294922,15.630522727966309,37.422481536865234,16.80594253540039,18.392122268676758,34.415706634521484,15.661989212036133,20.850706100463867,31.476259231567383,16.15694236755371,26.900554656982422,28.463024139404297,19.149553298950195,29.98517608642578,25.50928497314453,21.71744728088379,30.70615005493164,22.44654083251953,27.37958526611328,29.400592803955078,19.412199020385742,29.35213851928711,27.152328491210938,16.5029239654541,30.603538513183594,21.480968475341797,13.33737564086914,15.810870170593262,23.25005531311035,14.82349681854248,17.334070205688477,17.80320930480957,18.131080627441406,19.70049476623535,16.58502960205078,21.112653732299805,25.46841812133789,16.0041446685791,24.538183212280273,27.415925979614258,17.490646362304688,27.386545181274414,29.864849090576172,20.877235412597656,30.73283576965332,29.441267013549805,27.050800323486328,33.38146209716797,27.475732803344727,29.033329010009766,36.013702392578125,21.54340171813965,31.256967544555664,38.96332550048828,17.407360076904297,30.20616340637207,41.76073455810547,15.687439918518066,27.96109962463379,44.73869323730469,14.195113182067871,24.071611404418945,47.815818786621094,35.61186599731445,21.90251350402832,47.174102783203125,31.376392364501953,15.959310531616211,44.080039978027344,26.638782501220703,13.835142135620117,40.944393157958984,21.045406341552734,14.64236831665039,37.51873016357422,15.973876953125,18.824142456054688,34.16167068481445,15.12194538116455,21.21550178527832,31.11251449584961,15.899993896484375,27.034435272216797,28.211061477661133,19.18758201599121,29.842437744140625,25.063085556030273,21.777568817138672,30.774208068847656,22.350141525268555,27.664623260498047,29.474517822265625,19.512012481689453,29.386823654174805,27.409107208251953,16.686885833740234,30.809114456176758,21.620141983032227,13.763236999511719,15.607218742370605,23.262081146240234,15.263263702392578,17.533506393432617,17.896942138671875,18.38389778137207,19.587495803833008,16.322877883911133,21.09761619567871,25.645057678222656,15.904047012329102,24.236572265625,27.813125610351562,17.208818435668945,27.03358268737793,30.223630905151367,20.9870548248291,30.2901554107666,29.855663299560547,26.946596145629883,33.21937942504883,28.18031120300293,28.626541137695312,36.021324157714844,22.534019470214844,30.853479385375977,39.05152130126953,18.428295135498047,29.31989860534668,42.35648727416992,16.855388641357422,27.576614379882812,45.19002151489258,15.43333911895752,23.301593780517578,48.112449645996094,30.54779624938965,21.523082733154297,46.63526153564453,28.40330696105957,17.721324920654297,43.62472915649414,26.09206771850586,16.455039978027344,40.47671890258789,22.15592384338379,15.460651397705078,37.398963928222656,16.91006088256836,18.327180862426758,34.50996398925781,15.855633735656738,20.945579528808594,31.466703414916992,16.168254852294922,26.67450523376465,28.403236389160156,19.15367889404297,29.99769401550293,25.345108032226562,21.618541717529297,30.396595001220703,22.590436935424805,27.46532440185547,29.377410888671875,19.46268653869629,29.152374267578125,27.456972122192383,16.372501373291016,30.618900299072266,21.58152961730957,13.433820724487305]"
+      ],
+      [
+       "ion_coords",
+       "<f4",
+       [
+        4,
+        3,
+        3
+       ],
+       "[15.280675888061523,12.376469612121582,18.519807815551758,26.452198028564453,24.685197830200195,40.02516174316406,20.644140243530273,12.201663970947266,41.04511260986328,14.6951322555542,13.13575267791748,18.716960906982422,26.364736557006836,24.65421485900879,39.987586975097656,19.99726676940918,11.382501602172852,40.52418518066406,15.191473960876465,12.85027027130127,18.36478614807129,25.71409797668457,25.16526222229004,40.094146728515625,13.779240608215332,9.06265640258789,45.391483306884766,14.489460945129395,13.422561645507812,18.859275817871094,26.481353759765625,24.6158504486084,40.04339599609375,20.350677490234375,11.657171249389648,40.673439025878906]"
+      ],
+      [
+       "chain",
+       "<i8",
+       [
+        24
+       ],
+       "[0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1]"
+      ],
+      [
+       "group_index",
+       "<i8",
+       [
+        24
+       ],
+       "[0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1]"
+      ],
+      [
+       "group_member",
+       "|b1",
+       [
+        2,
+        24
+       ],
+       "[true,true,true,true,true,true,true,true,true,true,true,true,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,true,true,true,true,true,true,true,true,true,true,true,true]"
+      ],
+      [
+       "is_point",
+       "|b1",
+       [
+        24
+       ],
+       "[true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true]"
+      ],
+      [
+       "links",
+       "<i8",
+       [
+        22,
+        2
+       ],
+       "[0,1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10,11,12,13,13,14,14,15,15,16,16,17,17,18,18,19,19,20,20,21,21,22,22,23]"
+      ],
+      [
+       "resindex",
+       "<i8",
+       [
+        24
+       ],
+       "[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23]"
+      ],
+      [
+       "resid",
+       "<i8",
+       [
+        24
+       ],
+       "[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24]"
+      ],
+      [
+       "resname",
+       "<U8",
+       [
+        24
+       ],
+       "[\"G\",\"C\",\"A\",\"U\",\"G\",\"G\",\"C\",\"A\",\"U\",\"C\",\"G\",\"A\",\"U\",\"C\",\"G\",\"A\",\"U\",\"G\",\"C\",\"C\",\"A\",\"U\",\"G\",\"C\"]"
+      ],
+      [
+       "chain_name",
+       "<U1",
+       [
+        24
+       ],
+       "[\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\"]"
+      ],
+      [
+       "backbone",
+       "|b1",
+       [
+        24
+       ],
+       "[true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true]"
+      ],
+      [
+       "_frames",
+       "<i8",
+       [
+        4
+       ],
+       "[0,1,2,3]"
+      ],
+      [
+       "_time_ps",
+       "<f8",
+       [
+        4
+       ],
+       "[0.0,10.0,20.0,30.0]"
+      ]
+     ]
+    },
+    "d/MDATK_output/MDATK_cache/{manifest}": {
+     "json": {
+      "project": "{project}",
+      "version": "{version}",
+      "updated": "{time}",
+      "system": {
+       "inputs": {
+        "topology": {
+         "path": "{work}/d/demo.parm7",
+         "size": 124144,
+         "mtime_ns": 0
+        },
+        "trajectories": [
+         {
+          "path": "{work}/d/demo.nc",
+          "size": 38128,
+          "mtime_ns": 0
+         }
+        ],
+        "frames": {
+         "start": 0,
+         "stop": null,
+         "step": 1
+        },
+        "dt_ps": null
+       },
+       "cleaning_key": null,
+       "topology": "{work}/d/demo.parm7",
+       "trajectories": [
+        "{work}/d/demo.nc"
+       ]
+      },
+      "frames": {
+       "start": 0,
+       "stop": null,
+       "step": 1,
+       "n_frames": 4,
+       "first_frame": 0,
+       "last_frame": 3
+      },
+      "time_axis": {
+       "unit": "ps",
+       "n": 4,
+       "start": 0.0,
+       "end": 30.0,
+       "dt": 10.0
+      },
+      "groups": [
+       {
+        "name": "Aptamer",
+        "residues": "1-12",
+        "selection": "",
+        "color": "#2a78d6"
+       },
+       {
+        "name": "Target",
+        "residues": "13-24",
+        "selection": "",
+        "color": "#eb6834"
+       }
+      ],
+      "available": {
+       "series": [
+        "contacts/atom_pairs",
+        "contacts/residue_pairs",
+        "contacts/q_native",
+        "energy/total",
+        "energy/elec",
+        "energy/vdw",
+        "energy/net_force",
+        "hbonds/count",
+        "mg/contacts",
+        "mg/outer_contacts",
+        "mg/bridges",
+        "mg/inter_bridges",
+        "mg/bridging_ions",
+        "mg/inner_residues",
+        "rmsd/Complex",
+        "rmsd/Backbone",
+        "stacking/count",
+        "stacking/inter",
+        "stacking/intra"
+       ],
+       "matrices": [
+        "contacts/per_residue_a",
+        "contacts/per_residue_b",
+        "hbonds/per_residue_a",
+        "hbonds/per_residue_b",
+        "mg/occupancy",
+        "proximity/min_distance"
+       ],
+       "pairmaps": [
+        "contacts/map",
+        "hbonds/map",
+        "stacking/map"
+       ]
+      },
+      "entries": [
+       {
+        "name": "contacts",
+        "key": "{key}",
+        "file": "contacts-{key}.npz",
+        "params": {
+         "enabled": null,
+         "group_a": "Aptamer",
+         "group_b": "Target",
+         "cutoff": 4.5,
+         "heavy_only": true
+        },
+        "outputs": {
+         "series": [
+          "atom_pairs",
+          "q_native",
+          "residue_pairs"
+         ],
+         "matrices": [
+          "per_residue_a",
+          "per_residue_b"
+         ],
+         "pairmaps": [
+          "map"
+         ]
+        }
+       },
+       {
+        "name": "energy",
+        "key": "{key}",
+        "file": "energy-{key}.npz",
+        "params": {
+         "enabled": null,
+         "group_a": "Aptamer",
+         "group_b": "Target",
+         "cutoff": 12.0,
+         "dielectric": 4.0,
+         "distance_dependent": true,
+         "use_parm7": true,
+         "exclude_bonded": 3
+        },
+        "outputs": {
+         "series": [
+          "elec",
+          "net_force",
+          "total",
+          "vdw"
+         ],
+         "matrices": [],
+         "pairmaps": []
+        }
+       },
+       {
+        "name": "hbonds",
+        "key": "{key}",
+        "file": "hbonds-{key}.npz",
+        "params": {
+         "enabled": null,
+         "group_a": "Aptamer",
+         "group_b": "Target",
+         "distance_cutoff": 3.5,
+         "use_angle": true,
+         "angle_cutoff": 135.0,
+         "donor_elements": "N,O",
+         "acceptor_elements": "N,O"
+        },
+        "outputs": {
+         "series": [
+          "count"
+         ],
+         "matrices": [
+          "per_residue_a",
+          "per_residue_b"
+         ],
+         "pairmaps": [
+          "map"
+         ]
+        }
+       },
+       {
+        "name": "mg",
+        "key": "{key}",
+        "file": "mg-{key}.npz",
+        "params": {
+         "enabled": null,
+         "mg_selection": "resname MG Mg MG2 or name MG Mg",
+         "ligand_selection": "group:Aptamer or group:Target",
+         "ligand_elements": "O",
+         "group_a": "Aptamer",
+         "group_b": "Target",
+         "inner_cutoff": 2.6,
+         "outer_cutoff": 4.5,
+         "bridge_shell": "inner",
+         "geometry": false,
+         "angle_tolerance": 25.0,
+         "occupancy_selection": "",
+         "occupancy_elements": "N,O"
+        },
+        "outputs": {
+         "series": [
+          "bridges",
+          "bridging_ions",
+          "contacts",
+          "inner_residues",
+          "inter_bridges",
+          "outer_contacts"
+         ],
+         "matrices": [
+          "occupancy"
+         ],
+         "pairmaps": []
+        }
+       },
+       {
+        "name": "rmsd",
+        "key": "{key}",
+        "file": "rmsd-{key}.npz",
+        "params": {
+         "targets": [
+          {
+           "label": "Complex",
+           "selection": "(group:Aptamer or group:Target) and not name H*",
+           "fit_selection": ""
+          },
+          {
+           "label": "Backbone",
+           "selection": "(group:Aptamer or group:Target) and name C4'",
+           "fit_selection": ""
+          }
+         ],
+         "reference_frame": 0,
+         "superposition": true,
+         "mass_weighted": false
+        },
+        "outputs": {
+         "series": [
+          "Backbone",
+          "Complex"
+         ],
+         "matrices": [],
+         "pairmaps": []
+        }
+       },
+       {
+        "name": "stacking",
+        "key": "{key}",
+        "file": "stacking-{key}.npz",
+        "params": {
+         "enabled": null,
+         "selection": "group:Aptamer or group:Target",
+         "scope": "all",
+         "group_a": "Aptamer",
+         "group_b": "Target",
+         "distance_cutoff": 4.5,
+         "angle_cutoff": 30.0,
+         "offset_cutoff": 2.5,
+         "planarity_cutoff": 0.25
+        },
+        "outputs": {
+         "series": [
+          "count",
+          "inter",
+          "intra"
+         ],
+         "matrices": [],
+         "pairmaps": [
+          "map"
+         ]
+        }
+       },
+       {
+        "name": "trace",
+        "key": "{key}",
+        "file": "trace-{key}.npz",
+        "params": {
+         "groups": [
+          "Aptamer",
+          "Target"
+         ],
+         "trace_atoms": "C4',CA",
+         "align": true,
+         "show_ions": true,
+         "ions": "resname MG Mg MG2 or name MG Mg",
+         "group_order": [
+          "Aptamer",
+          "Target"
+         ]
+        },
+        "outputs": {
+         "series": [],
+         "matrices": [],
+         "pairmaps": []
+        }
+       },
+       {
+        "name": "proximity",
+        "key": "{key}",
+        "file": "proximity-{key}.npz",
+        "params": {
+         "groups": [
+          "Aptamer",
+          "Target"
+         ],
+         "set": "Target",
+         "radius": 8.0,
+         "ions": "resname MG Mg MG2 or name MG Mg"
+        },
+        "outputs": {
+         "series": [],
+         "matrices": [
+          "min_distance"
+         ],
+         "pairmaps": []
+        }
+       }
+      ],
+      "all_entries": [
+       {
+        "name": "contacts",
+        "key": "{key}",
+        "file": "contacts-{key}.npz"
+       },
+       {
+        "name": "energy",
+        "key": "{key}",
+        "file": "energy-{key}.npz"
+       },
+       {
+        "name": "hbonds",
+        "key": "{key}",
+        "file": "hbonds-{key}.npz"
+       },
+       {
+        "name": "mg",
+        "key": "{key}",
+        "file": "mg-{key}.npz"
+       },
+       {
+        "name": "proximity",
+        "key": "{key}",
+        "file": "proximity-{key}.npz"
+       },
+       {
+        "name": "rmsd",
+        "key": "{key}",
+        "file": "rmsd-{key}.npz"
+       },
+       {
+        "name": "stacking",
+        "key": "{key}",
+        "file": "stacking-{key}.npz"
+       },
+       {
+        "name": "trace",
+        "key": "{key}",
+        "file": "trace-{key}.npz"
+       }
+      ]
+     }
+    },
+    "d/MDATK_output/MDATK_chart_contacts_atom_pairs_{stamp}.png": {
+     "png": [
+      2400,
+      1350
+     ]
+    },
+    "d/MDATK_output/MDATK_chart_contacts_q_native_{stamp}.png": {
+     "png": [
+      2400,
+      1350
+     ]
+    },
+    "d/MDATK_output/MDATK_chart_contacts_residue_pairs_{stamp}.png": {
+     "png": [
+      2400,
+      1350
+     ]
+    },
+    "d/MDATK_output/MDATK_chart_energy_elec_{stamp}.png": {
+     "png": [
+      2400,
+      1350
+     ]
+    },
+    "d/MDATK_output/MDATK_chart_energy_net_force_{stamp}.png": {
+     "png": [
+      2400,
+      1350
+     ]
+    },
+    "d/MDATK_output/MDATK_chart_energy_total_{stamp}.png": {
+     "png": [
+      2400,
+      1350
+     ]
+    },
+    "d/MDATK_output/MDATK_chart_energy_vdw_{stamp}.png": {
+     "png": [
+      2400,
+      1350
+     ]
+    },
+    "d/MDATK_output/MDATK_chart_hbonds_count_{stamp}.png": {
+     "png": [
+      2400,
+      1350
+     ]
+    },
+    "d/MDATK_output/MDATK_chart_mg_bridges_{stamp}.png": {
+     "png": [
+      2400,
+      1350
+     ]
+    },
+    "d/MDATK_output/MDATK_chart_mg_bridging_ions_{stamp}.png": {
+     "png": [
+      2400,
+      1350
+     ]
+    },
+    "d/MDATK_output/MDATK_chart_mg_contacts_{stamp}.png": {
+     "png": [
+      2400,
+      1350
+     ]
+    },
+    "d/MDATK_output/MDATK_chart_mg_inner_residues_{stamp}.png": {
+     "png": [
+      2400,
+      1350
+     ]
+    },
+    "d/MDATK_output/MDATK_chart_mg_inter_bridges_{stamp}.png": {
+     "png": [
+      2400,
+      1350
+     ]
+    },
+    "d/MDATK_output/MDATK_chart_mg_outer_contacts_{stamp}.png": {
+     "png": [
+      2400,
+      1350
+     ]
+    },
+    "d/MDATK_output/MDATK_chart_rmsd_Backbone_{stamp}.png": {
+     "png": [
+      2400,
+      1350
+     ]
+    },
+    "d/MDATK_output/MDATK_chart_rmsd_Complex_{stamp}.png": {
+     "png": [
+      2400,
+      1350
+     ]
+    },
+    "d/MDATK_output/MDATK_chart_stacking_count_{stamp}.png": {
+     "png": [
+      2400,
+      1350
+     ]
+    },
+    "d/MDATK_output/MDATK_chart_stacking_inter_{stamp}.png": {
+     "png": [
+      2400,
+      1350
+     ]
+    },
+    "d/MDATK_output/MDATK_chart_stacking_intra_{stamp}.png": {
+     "png": [
+      2400,
+      1350
+     ]
+    },
+    "d/MDATK_output/MDATK_frame_00000_{stamp}.pdb": {
+     "sha256": "e3a36b7862f05384855452b87a012d5c69d0add3e7825f7b25a904f99a4beb0a",
+     "size": 80016
+    },
+    "d/MDATK_output/MDATK_frame_00002_{stamp}.pdb": {
+     "sha256": "c053cf40b5aa7f17937b5b4bdd4f732efe9d02f221c78f6f1dcd4476c640e77b",
+     "size": 80016
+    },
+    "d/MDATK_output/MDATK_frame_00003_{stamp}.pdb": {
+     "sha256": "2946ea3ced1d63561b24566951e45a54827f019fe813acd4f8a47306fdde38aa",
+     "size": 80016
+    },
+    "d/MDATK_output/MDATK_params_log.toml": {
+     "params_log": {
+      "outputs": {
+       "video": "{work}/d/MDATK_output/MDATK_video_{stamp}.mp4",
+       "charts": [
+        "{work}/d/MDATK_output/MDATK_chart_contacts_atom_pairs_{stamp}.png",
+        "{work}/d/MDATK_output/MDATK_chart_contacts_residue_pairs_{stamp}.png",
+        "{work}/d/MDATK_output/MDATK_chart_contacts_q_native_{stamp}.png",
+        "{work}/d/MDATK_output/MDATK_chart_energy_total_{stamp}.png",
+        "{work}/d/MDATK_output/MDATK_chart_energy_elec_{stamp}.png",
+        "{work}/d/MDATK_output/MDATK_chart_energy_vdw_{stamp}.png",
+        "{work}/d/MDATK_output/MDATK_chart_energy_net_force_{stamp}.png",
+        "{work}/d/MDATK_output/MDATK_chart_hbonds_count_{stamp}.png",
+        "{work}/d/MDATK_output/MDATK_chart_mg_contacts_{stamp}.png",
+        "{work}/d/MDATK_output/MDATK_chart_mg_outer_contacts_{stamp}.png",
+        "{work}/d/MDATK_output/MDATK_chart_mg_bridges_{stamp}.png",
+        "{work}/d/MDATK_output/MDATK_chart_mg_inter_bridges_{stamp}.png",
+        "{work}/d/MDATK_output/MDATK_chart_mg_bridging_ions_{stamp}.png",
+        "{work}/d/MDATK_output/MDATK_chart_mg_inner_residues_{stamp}.png",
+        "{work}/d/MDATK_output/MDATK_chart_rmsd_Complex_{stamp}.png",
+        "{work}/d/MDATK_output/MDATK_chart_rmsd_Backbone_{stamp}.png",
+        "{work}/d/MDATK_output/MDATK_chart_stacking_count_{stamp}.png",
+        "{work}/d/MDATK_output/MDATK_chart_stacking_inter_{stamp}.png",
+        "{work}/d/MDATK_output/MDATK_chart_stacking_intra_{stamp}.png"
+       ],
+       "pdbs": [
+        "{work}/d/MDATK_output/MDATK_frame_00000_{stamp}.pdb",
+        "{work}/d/MDATK_output/MDATK_frame_00002_{stamp}.pdb",
+        "{work}/d/MDATK_output/MDATK_frame_00003_{stamp}.pdb"
+       ],
+       "cache_manifest": "{work}/d/MDATK_output/MDATK_cache/{manifest}"
+      },
+      "timestamp": "{stamp}"
+     }
+    },
+    "d/MDATK_output/MDATK_video_{stamp}.mp4": {
+     "mp4": {
+      "streams": [
+       {
+        "avg_frame_rate": "24/1",
+        "codec_type": "video",
+        "height": 1080,
+        "nb_read_frames": "4",
+        "pix_fmt": "yuv420p",
+        "r_frame_rate": "24/1",
+        "time_base": "1/12288",
+        "width": 1920
+       }
+      ],
+      "format": {
+       "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+       "nb_streams": 1
+      },
+      "faststart": true
+     }
+    },
+    "d/demo.mdatk.toml": {
+     "sha256": "7f9bc47c7dc10000a1bac13715e8e1a40a287cb4460d3d340bb210deffbbc0bd",
+     "size": 19777
+    },
+    "d/demo.nc": {
+     "sha256": "f87e73e5330529c639a355c62c7e982cebe2c5458b24e971f9924f4f32b5651a",
+     "size": 38128
+    },
+    "d/demo.parm7": {
+     "sha256": "4007a646be96d7ff0a4567b789c97fec80a4b1d19c89297cde871da9bf7057c0",
+     "size": 124144
+    }
+   },
+   "before_exits": [],
+   "posix_only": true
+  },
+  {
+   "name": "clean",
+   "argv": [
+    "clean",
+    "--top",
+    "demo_dry.parm7",
+    "--traj",
+    "demo_dry.nc"
+   ],
+   "inputs": {
+    "demo_dry.parm7": "topology/demo_dry.parm7",
+    "demo_dry.nc": "io/trajectories/demo_dry.nc"
+   },
+   "setup": {
+    "bin/cpptraj": "#!/bin/sh\n# fake cpptraj -i SCRIPT\nscript=\"$2\"\nparm=$(sed -n 's/^parm \"\\(.*\\)\"$/\\1/p' \"$script\")\ntraj=$(sed -n 's/^trajin \"\\([^\"]*\\)\".*/\\1/p' \"$script\" | head -n 1)\nparmout=$(sed -n 's/.* parmout \"\\([^\"]*\\)\"$/\\1/p; s/^parmwrite out \"\\([^\"]*\\)\"$/\\1/p' \"$script\")\nnc=$(sed -n 's/^trajout \"\\([^\"]*\\)\" netcdf$/\\1/p' \"$script\")\npdb=$(sed -n 's/^trajout \"\\([^\"]*\\)\" pdb onlyframes 1$/\\1/p' \"$script\")\n[ -n \"$parmout\" ] && cp \"$parm\" \"$parmout\"\ncp \"$traj\" \"$nc\"\nprintf 'REMARK fake reference\\nEND\\n' > \"$pdb\"\nprintf 'CPPTRAJ: Trajectory Analysis. V6.29.0 (fake)\\nINPUT: Reading input from %s\\n  0%% 25%% 50%% 75%% 100%% Complete.\\nTIME: Total execution time: 0.0 seconds.\\n' \"$(basename \"$script\")\"\n"
+   },
+   "exit_only": false,
+   "before": [],
+   "env": {
+    "HOME": "{work}/home",
+    "CONDA_EXE": "",
+    "CONDA_PREFIX": "",
+    "MAMBA_ROOT_PREFIX": "",
+    "CONDA_ROOT": "",
+    "PATH": "{work}/bin:/usr/bin:/bin",
+    "AMBERHOME": ""
+   },
+   "executable": [
+    "bin/cpptraj"
+   ],
+   "exit": 0,
+   "stdout": "{\n  \"topology\": \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.parm7\",\n  \"trajectory\": [\n    \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.nc\"\n  ],\n  \"script\": \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/cpptraj.in\",\n  \"log\": \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/cpptraj.log\",\n  \"reused\": false\n}\n",
+   "stderr": "Cleaning trajectory with cpptraj ...\ncpptraj script written to {work}/MDATK_output/MDATK_cache/cleaned/{key}/cpptraj.in:\n[100.0%] cpptraj\nCPPTRAJ: Trajectory Analysis. V6.29.0 (fake)\nINPUT: Reading input from cpptraj.in\n  0% 25% 50% 75% 100% Complete.\nTIME: Total execution time: 0.0 seconds.\n[100.0%] cpptraj\n[100.0%] inputs ready\n",
+   "written": {
+    "MDATK_output/MDATK_cache/cleaned/{key}/MDATK_clean.json": {
+     "text": "{\n  \"project\": \"MDATK\",\n  \"mdatk_version\": \"0.0.4.1\",\n  \"key\": \"{key}\",\n  \"created\": \"{time}\",\n  \"cpptraj\": \"{work}/bin/cpptraj\",\n  \"topology_in\": \"{work}/demo_dry.parm7\",\n  \"trajectories_in\": [\n    \"{work}/demo_dry.nc\"\n  ],\n  \"params\": {\n    \"enabled\": true,\n    \"cpptraj_path\": \"cpptraj\",\n    \"conda_env\": \"\",\n    \"conda_exe\": \"\",\n    \"solvent_mask\": \":WAT,HOH,TIP3,SOL,T3P,T4P,SPC\",\n    \"ion_mask\": \":Na+,Cl-,K+,NA,CL,K,Na,Cl,SOD,CLA,POT\",\n    \"extra_strip_mask\": \"\",\n    \"autoimage\": true,\n    \"autoimage_anchor\": \"\",\n    \"fit\": true,\n    \"fit_mask\": \"@P,C4'\",\n    \"fit_reference\": \"first\",\n    \"remove_box_after_fit\": true,\n    \"reference_frame\": 1,\n    \"reference_file\": \"\",\n    \"start\": 1,\n    \"stop\": null,\n    \"offset\": 1,\n    \"extra_commands\": \"\",\n    \"output_dir\": \"\"\n  },\n  \"outputs\": {\n    \"topology\": \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.parm7\",\n    \"trajectory\": \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.nc\",\n    \"reference_pdb\": \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned_ref.pdb\"\n  }\n}\n"
+    },
+    "MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.nc": {
+     "sha256": "9c6ada87d6eb27fc384e2551a322c378b7e75c1fe2e36574261f524c66bfbb48",
+     "size": 224688
+    },
+    "MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.parm7": {
+     "sha256": "4007a646be96d7ff0a4567b789c97fec80a4b1d19c89297cde871da9bf7057c0",
+     "size": 124144
+    },
+    "MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned_ref.pdb": {
+     "text": "REMARK fake reference\nEND\n"
+    },
+    "MDATK_output/MDATK_cache/cleaned/{key}/cpptraj.in": {
+     "text": "# Generated by MDATK 0.0.4.1 on {time}\nparm \"{work}/demo_dry.parm7\"\ntrajin \"{work}/demo_dry.nc\" 1 last 1\nstrip (:WAT,HOH,TIP3,SOL,T3P,T4P,SPC)|(:Na+,Cl-,K+,NA,CL,K,Na,Cl,SOD,CLA,POT) parmout \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.parm7\"\nautoimage\nbox nobox\nrms MDATKfit @P,C4' first mass\ntrajout \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.nc\" netcdf\ntrajout \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned_ref.pdb\" pdb onlyframes 1\nrun\nquit\n"
+    },
+    "MDATK_output/MDATK_cache/cleaned/{key}/cpptraj.log": {
+     "text": "CPPTRAJ: Trajectory Analysis. V6.29.0 (fake)\nINPUT: Reading input from cpptraj.in\n  0% 25% 50% 75% 100% Complete.\nTIME: Total execution time: 0.0 seconds.\n"
+    }
+   },
+   "before_exits": [],
+   "posix_only": true
+  },
+  {
+   "name": "clean_verbose",
+   "argv": [
+    "clean",
+    "--top",
+    "demo_dry.parm7",
+    "--traj",
+    "demo_dry.nc",
+    "-v",
+    "-s",
+    "cleaning.fit_reference=\"frame\"",
+    "-s",
+    "cleaning.reference_frame=3",
+    "-s",
+    "cleaning.stop=20",
+    "-s",
+    "cleaning.extra_commands=\"  center :1-12\\n\\nimage  \\n\""
+   ],
+   "inputs": {
+    "demo_dry.parm7": "topology/demo_dry.parm7",
+    "demo_dry.nc": "io/trajectories/demo_dry.nc"
+   },
+   "setup": {
+    "bin/cpptraj": "#!/bin/sh\n# fake cpptraj -i SCRIPT\nscript=\"$2\"\nparm=$(sed -n 's/^parm \"\\(.*\\)\"$/\\1/p' \"$script\")\ntraj=$(sed -n 's/^trajin \"\\([^\"]*\\)\".*/\\1/p' \"$script\" | head -n 1)\nparmout=$(sed -n 's/.* parmout \"\\([^\"]*\\)\"$/\\1/p; s/^parmwrite out \"\\([^\"]*\\)\"$/\\1/p' \"$script\")\nnc=$(sed -n 's/^trajout \"\\([^\"]*\\)\" netcdf$/\\1/p' \"$script\")\npdb=$(sed -n 's/^trajout \"\\([^\"]*\\)\" pdb onlyframes 1$/\\1/p' \"$script\")\n[ -n \"$parmout\" ] && cp \"$parm\" \"$parmout\"\ncp \"$traj\" \"$nc\"\nprintf 'REMARK fake reference\\nEND\\n' > \"$pdb\"\nprintf 'CPPTRAJ: Trajectory Analysis. V6.29.0 (fake)\\nINPUT: Reading input from %s\\n  0%% 25%% 50%% 75%% 100%% Complete.\\nTIME: Total execution time: 0.0 seconds.\\n' \"$(basename \"$script\")\"\n"
+   },
+   "exit_only": false,
+   "before": [],
+   "env": {
+    "HOME": "{work}/home",
+    "CONDA_EXE": "",
+    "CONDA_PREFIX": "",
+    "MAMBA_ROOT_PREFIX": "",
+    "CONDA_ROOT": "",
+    "PATH": "{work}/bin:/usr/bin:/bin",
+    "AMBERHOME": ""
+   },
+   "executable": [
+    "bin/cpptraj"
+   ],
+   "exit": 0,
+   "stdout": "{\n  \"topology\": \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.parm7\",\n  \"trajectory\": [\n    \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.nc\"\n  ],\n  \"script\": \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/cpptraj.in\",\n  \"log\": \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/cpptraj.log\",\n  \"reused\": false\n}\n",
+   "stderr": "Cleaning trajectory with cpptraj ...\ncpptraj script written to {work}/MDATK_output/MDATK_cache/cleaned/{key}/cpptraj.in:\n    # Generated by MDATK 0.0.4.1 on {time}\n    parm \"{work}/demo_dry.parm7\"\n    trajin \"{work}/demo_dry.nc\" 1 20 1\n    reference \"{work}/demo_dry.nc\" 3 [mdatkref]\n    strip (:WAT,HOH,TIP3,SOL,T3P,T4P,SPC)|(:Na+,Cl-,K+,NA,CL,K,Na,Cl,SOD,CLA,POT) parmout \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.parm7\"\n    autoimage\n    box nobox\n    rms MDATKfit @P,C4' ref [mdatkref] mass\n    center :1-12\n    \n    image\n    trajout \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.nc\" netcdf\n    trajout \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned_ref.pdb\" pdb onlyframes 1\n    run\n    quit\n[100.0%] cpptraj\nCPPTRAJ: Trajectory Analysis. V6.29.0 (fake)\nINPUT: Reading input from cpptraj.in\n  0% 25% 50% 75% 100% Complete.\nTIME: Total execution time: 0.0 seconds.\n[100.0%] cpptraj\n[100.0%] inputs ready\n",
+   "written": {
+    "MDATK_output/MDATK_cache/cleaned/{key}/MDATK_clean.json": {
+     "text": "{\n  \"project\": \"MDATK\",\n  \"mdatk_version\": \"0.0.4.1\",\n  \"key\": \"{key}\",\n  \"created\": \"{time}\",\n  \"cpptraj\": \"{work}/bin/cpptraj\",\n  \"topology_in\": \"{work}/demo_dry.parm7\",\n  \"trajectories_in\": [\n    \"{work}/demo_dry.nc\"\n  ],\n  \"params\": {\n    \"enabled\": true,\n    \"cpptraj_path\": \"cpptraj\",\n    \"conda_env\": \"\",\n    \"conda_exe\": \"\",\n    \"solvent_mask\": \":WAT,HOH,TIP3,SOL,T3P,T4P,SPC\",\n    \"ion_mask\": \":Na+,Cl-,K+,NA,CL,K,Na,Cl,SOD,CLA,POT\",\n    \"extra_strip_mask\": \"\",\n    \"autoimage\": true,\n    \"autoimage_anchor\": \"\",\n    \"fit\": true,\n    \"fit_mask\": \"@P,C4'\",\n    \"fit_reference\": \"frame\",\n    \"remove_box_after_fit\": true,\n    \"reference_frame\": 3,\n    \"reference_file\": \"\",\n    \"start\": 1,\n    \"stop\": 20,\n    \"offset\": 1,\n    \"extra_commands\": \"  center :1-12\\n\\nimage  \\n\",\n    \"output_dir\": \"\"\n  },\n  \"outputs\": {\n    \"topology\": \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.parm7\",\n    \"trajectory\": \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.nc\",\n    \"reference_pdb\": \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned_ref.pdb\"\n  }\n}\n"
+    },
+    "MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.nc": {
+     "sha256": "9c6ada87d6eb27fc384e2551a322c378b7e75c1fe2e36574261f524c66bfbb48",
+     "size": 224688
+    },
+    "MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.parm7": {
+     "sha256": "4007a646be96d7ff0a4567b789c97fec80a4b1d19c89297cde871da9bf7057c0",
+     "size": 124144
+    },
+    "MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned_ref.pdb": {
+     "text": "REMARK fake reference\nEND\n"
+    },
+    "MDATK_output/MDATK_cache/cleaned/{key}/cpptraj.in": {
+     "text": "# Generated by MDATK 0.0.4.1 on {time}\nparm \"{work}/demo_dry.parm7\"\ntrajin \"{work}/demo_dry.nc\" 1 20 1\nreference \"{work}/demo_dry.nc\" 3 [mdatkref]\nstrip (:WAT,HOH,TIP3,SOL,T3P,T4P,SPC)|(:Na+,Cl-,K+,NA,CL,K,Na,Cl,SOD,CLA,POT) parmout \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.parm7\"\nautoimage\nbox nobox\nrms MDATKfit @P,C4' ref [mdatkref] mass\ncenter :1-12\n\nimage\ntrajout \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.nc\" netcdf\ntrajout \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned_ref.pdb\" pdb onlyframes 1\nrun\nquit\n"
+    },
+    "MDATK_output/MDATK_cache/cleaned/{key}/cpptraj.log": {
+     "text": "CPPTRAJ: Trajectory Analysis. V6.29.0 (fake)\nINPUT: Reading input from cpptraj.in\n  0% 25% 50% 75% 100% Complete.\nTIME: Total execution time: 0.0 seconds.\n"
+    }
+   },
+   "before_exits": [],
+   "posix_only": true
+  },
+  {
+   "name": "clean_quiet_output_dir",
+   "argv": [
+    "clean",
+    "--top",
+    "demo_dry.parm7",
+    "--traj",
+    "demo_dry.nc",
+    "-q",
+    "-s",
+    "cleaning.output_dir=\"cleaned\"",
+    "-s",
+    "cleaning.solvent_mask=\"\"",
+    "-s",
+    "cleaning.ion_mask=\" \"",
+    "-s",
+    "cleaning.autoimage=false",
+    "-s",
+    "cleaning.fit=false"
+   ],
+   "inputs": {
+    "demo_dry.parm7": "topology/demo_dry.parm7",
+    "demo_dry.nc": "io/trajectories/demo_dry.nc"
+   },
+   "setup": {
+    "bin/cpptraj": "#!/bin/sh\n# fake cpptraj -i SCRIPT\nscript=\"$2\"\nparm=$(sed -n 's/^parm \"\\(.*\\)\"$/\\1/p' \"$script\")\ntraj=$(sed -n 's/^trajin \"\\([^\"]*\\)\".*/\\1/p' \"$script\" | head -n 1)\nparmout=$(sed -n 's/.* parmout \"\\([^\"]*\\)\"$/\\1/p; s/^parmwrite out \"\\([^\"]*\\)\"$/\\1/p' \"$script\")\nnc=$(sed -n 's/^trajout \"\\([^\"]*\\)\" netcdf$/\\1/p' \"$script\")\npdb=$(sed -n 's/^trajout \"\\([^\"]*\\)\" pdb onlyframes 1$/\\1/p' \"$script\")\n[ -n \"$parmout\" ] && cp \"$parm\" \"$parmout\"\ncp \"$traj\" \"$nc\"\nprintf 'REMARK fake reference\\nEND\\n' > \"$pdb\"\nprintf 'CPPTRAJ: Trajectory Analysis. V6.29.0 (fake)\\nINPUT: Reading input from %s\\n  0%% 25%% 50%% 75%% 100%% Complete.\\nTIME: Total execution time: 0.0 seconds.\\n' \"$(basename \"$script\")\"\n"
+   },
+   "exit_only": false,
+   "before": [],
+   "env": {
+    "HOME": "{work}/home",
+    "CONDA_EXE": "",
+    "CONDA_PREFIX": "",
+    "MAMBA_ROOT_PREFIX": "",
+    "CONDA_ROOT": "",
+    "PATH": "{work}/bin:/usr/bin:/bin",
+    "AMBERHOME": ""
+   },
+   "executable": [
+    "bin/cpptraj"
+   ],
+   "exit": 0,
+   "stdout": "{\n  \"topology\": \"{work}/cleaned/MDATK_cleaned.parm7\",\n  \"trajectory\": [\n    \"{work}/cleaned/MDATK_cleaned.nc\"\n  ],\n  \"script\": \"{work}/cleaned/cpptraj.in\",\n  \"log\": \"{work}/cleaned/cpptraj.log\",\n  \"reused\": false\n}\n",
+   "stderr": "",
+   "written": {
+    "cleaned/MDATK_clean.json": {
+     "text": "{\n  \"project\": \"MDATK\",\n  \"mdatk_version\": \"0.0.4.1\",\n  \"key\": \"{key}\",\n  \"created\": \"{time}\",\n  \"cpptraj\": \"{work}/bin/cpptraj\",\n  \"topology_in\": \"{work}/demo_dry.parm7\",\n  \"trajectories_in\": [\n    \"{work}/demo_dry.nc\"\n  ],\n  \"params\": {\n    \"enabled\": true,\n    \"cpptraj_path\": \"cpptraj\",\n    \"conda_env\": \"\",\n    \"conda_exe\": \"\",\n    \"solvent_mask\": \"\",\n    \"ion_mask\": \" \",\n    \"extra_strip_mask\": \"\",\n    \"autoimage\": false,\n    \"autoimage_anchor\": \"\",\n    \"fit\": false,\n    \"fit_mask\": \"@P,C4'\",\n    \"fit_reference\": \"first\",\n    \"remove_box_after_fit\": true,\n    \"reference_frame\": 1,\n    \"reference_file\": \"\",\n    \"start\": 1,\n    \"stop\": null,\n    \"offset\": 1,\n    \"extra_commands\": \"\",\n    \"output_dir\": \"{work}/cleaned\"\n  },\n  \"outputs\": {\n    \"topology\": \"{work}/cleaned/MDATK_cleaned.parm7\",\n    \"trajectory\": \"{work}/cleaned/MDATK_cleaned.nc\",\n    \"reference_pdb\": \"{work}/cleaned/MDATK_cleaned_ref.pdb\"\n  }\n}\n"
+    },
+    "cleaned/MDATK_cleaned.nc": {
+     "sha256": "9c6ada87d6eb27fc384e2551a322c378b7e75c1fe2e36574261f524c66bfbb48",
+     "size": 224688
+    },
+    "cleaned/MDATK_cleaned.parm7": {
+     "sha256": "4007a646be96d7ff0a4567b789c97fec80a4b1d19c89297cde871da9bf7057c0",
+     "size": 124144
+    },
+    "cleaned/MDATK_cleaned_ref.pdb": {
+     "text": "REMARK fake reference\nEND\n"
+    },
+    "cleaned/cpptraj.in": {
+     "text": "# Generated by MDATK 0.0.4.1 on {time}\nparm \"{work}/demo_dry.parm7\"\ntrajin \"{work}/demo_dry.nc\" 1 last 1\nparmwrite out \"{work}/cleaned/MDATK_cleaned.parm7\"\ntrajout \"{work}/cleaned/MDATK_cleaned.nc\" netcdf\ntrajout \"{work}/cleaned/MDATK_cleaned_ref.pdb\" pdb onlyframes 1\nrun\nquit\n"
+    },
+    "cleaned/cpptraj.log": {
+     "text": "CPPTRAJ: Trajectory Analysis. V6.29.0 (fake)\nINPUT: Reading input from cpptraj.in\n  0% 25% 50% 75% 100% Complete.\nTIME: Total execution time: 0.0 seconds.\n"
+    }
+   },
+   "before_exits": [],
+   "posix_only": true
+  },
+  {
+   "name": "clean_reuse",
+   "argv": [
+    "clean",
+    "--top",
+    "demo_dry.parm7",
+    "--traj",
+    "demo_dry.nc"
+   ],
+   "inputs": {
+    "demo_dry.parm7": "topology/demo_dry.parm7",
+    "demo_dry.nc": "io/trajectories/demo_dry.nc"
+   },
+   "setup": {
+    "bin/cpptraj": "#!/bin/sh\n# fake cpptraj -i SCRIPT\nscript=\"$2\"\nparm=$(sed -n 's/^parm \"\\(.*\\)\"$/\\1/p' \"$script\")\ntraj=$(sed -n 's/^trajin \"\\([^\"]*\\)\".*/\\1/p' \"$script\" | head -n 1)\nparmout=$(sed -n 's/.* parmout \"\\([^\"]*\\)\"$/\\1/p; s/^parmwrite out \"\\([^\"]*\\)\"$/\\1/p' \"$script\")\nnc=$(sed -n 's/^trajout \"\\([^\"]*\\)\" netcdf$/\\1/p' \"$script\")\npdb=$(sed -n 's/^trajout \"\\([^\"]*\\)\" pdb onlyframes 1$/\\1/p' \"$script\")\n[ -n \"$parmout\" ] && cp \"$parm\" \"$parmout\"\ncp \"$traj\" \"$nc\"\nprintf 'REMARK fake reference\\nEND\\n' > \"$pdb\"\nprintf 'CPPTRAJ: Trajectory Analysis. V6.29.0 (fake)\\nINPUT: Reading input from %s\\n  0%% 25%% 50%% 75%% 100%% Complete.\\nTIME: Total execution time: 0.0 seconds.\\n' \"$(basename \"$script\")\"\n"
+   },
+   "exit_only": false,
+   "before": [
+    [
+     "clean",
+     "--top",
+     "demo_dry.parm7",
+     "--traj",
+     "demo_dry.nc",
+     "-q"
+    ]
+   ],
+   "env": {
+    "HOME": "{work}/home",
+    "CONDA_EXE": "",
+    "CONDA_PREFIX": "",
+    "MAMBA_ROOT_PREFIX": "",
+    "CONDA_ROOT": "",
+    "PATH": "{work}/bin:/usr/bin:/bin",
+    "AMBERHOME": ""
+   },
+   "executable": [
+    "bin/cpptraj"
+   ],
+   "exit": 0,
+   "stdout": "{\n  \"topology\": \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.parm7\",\n  \"trajectory\": [\n    \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.nc\"\n  ],\n  \"script\": \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/cpptraj.in\",\n  \"log\": \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/cpptraj.log\",\n  \"reused\": true\n}\n",
+   "stderr": "Cleaning trajectory with cpptraj ...\nReusing cleaned trajectory from {work}/MDATK_output/MDATK_cache/cleaned/{key}\n[100.0%] inputs ready\n",
+   "written": {
+    "MDATK_output/MDATK_cache/cleaned/{key}/MDATK_clean.json": {
+     "text": "{\n  \"project\": \"MDATK\",\n  \"mdatk_version\": \"0.0.4.1\",\n  \"key\": \"{key}\",\n  \"created\": \"{time}\",\n  \"cpptraj\": \"{work}/bin/cpptraj\",\n  \"topology_in\": \"{work}/demo_dry.parm7\",\n  \"trajectories_in\": [\n    \"{work}/demo_dry.nc\"\n  ],\n  \"params\": {\n    \"enabled\": true,\n    \"cpptraj_path\": \"cpptraj\",\n    \"conda_env\": \"\",\n    \"conda_exe\": \"\",\n    \"solvent_mask\": \":WAT,HOH,TIP3,SOL,T3P,T4P,SPC\",\n    \"ion_mask\": \":Na+,Cl-,K+,NA,CL,K,Na,Cl,SOD,CLA,POT\",\n    \"extra_strip_mask\": \"\",\n    \"autoimage\": true,\n    \"autoimage_anchor\": \"\",\n    \"fit\": true,\n    \"fit_mask\": \"@P,C4'\",\n    \"fit_reference\": \"first\",\n    \"remove_box_after_fit\": true,\n    \"reference_frame\": 1,\n    \"reference_file\": \"\",\n    \"start\": 1,\n    \"stop\": null,\n    \"offset\": 1,\n    \"extra_commands\": \"\",\n    \"output_dir\": \"\"\n  },\n  \"outputs\": {\n    \"topology\": \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.parm7\",\n    \"trajectory\": \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.nc\",\n    \"reference_pdb\": \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned_ref.pdb\"\n  }\n}\n"
+    },
+    "MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.nc": {
+     "sha256": "9c6ada87d6eb27fc384e2551a322c378b7e75c1fe2e36574261f524c66bfbb48",
+     "size": 224688
+    },
+    "MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.parm7": {
+     "sha256": "4007a646be96d7ff0a4567b789c97fec80a4b1d19c89297cde871da9bf7057c0",
+     "size": 124144
+    },
+    "MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned_ref.pdb": {
+     "text": "REMARK fake reference\nEND\n"
+    },
+    "MDATK_output/MDATK_cache/cleaned/{key}/cpptraj.in": {
+     "text": "# Generated by MDATK 0.0.4.1 on {time}\nparm \"{work}/demo_dry.parm7\"\ntrajin \"{work}/demo_dry.nc\" 1 last 1\nstrip (:WAT,HOH,TIP3,SOL,T3P,T4P,SPC)|(:Na+,Cl-,K+,NA,CL,K,Na,Cl,SOD,CLA,POT) parmout \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.parm7\"\nautoimage\nbox nobox\nrms MDATKfit @P,C4' first mass\ntrajout \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.nc\" netcdf\ntrajout \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned_ref.pdb\" pdb onlyframes 1\nrun\nquit\n"
+    },
+    "MDATK_output/MDATK_cache/cleaned/{key}/cpptraj.log": {
+     "text": "CPPTRAJ: Trajectory Analysis. V6.29.0 (fake)\nINPUT: Reading input from cpptraj.in\n  0% 25% 50% 75% 100% Complete.\nTIME: Total execution time: 0.0 seconds.\n"
+    }
+   },
+   "before_exits": [
+    0
+   ],
+   "posix_only": true
+  },
+  {
+   "name": "clean_force",
+   "argv": [
+    "clean",
+    "--top",
+    "demo_dry.parm7",
+    "--traj",
+    "demo_dry.nc",
+    "--force"
+   ],
+   "inputs": {
+    "demo_dry.parm7": "topology/demo_dry.parm7",
+    "demo_dry.nc": "io/trajectories/demo_dry.nc"
+   },
+   "setup": {
+    "bin/cpptraj": "#!/bin/sh\n# fake cpptraj -i SCRIPT\nscript=\"$2\"\nparm=$(sed -n 's/^parm \"\\(.*\\)\"$/\\1/p' \"$script\")\ntraj=$(sed -n 's/^trajin \"\\([^\"]*\\)\".*/\\1/p' \"$script\" | head -n 1)\nparmout=$(sed -n 's/.* parmout \"\\([^\"]*\\)\"$/\\1/p; s/^parmwrite out \"\\([^\"]*\\)\"$/\\1/p' \"$script\")\nnc=$(sed -n 's/^trajout \"\\([^\"]*\\)\" netcdf$/\\1/p' \"$script\")\npdb=$(sed -n 's/^trajout \"\\([^\"]*\\)\" pdb onlyframes 1$/\\1/p' \"$script\")\n[ -n \"$parmout\" ] && cp \"$parm\" \"$parmout\"\ncp \"$traj\" \"$nc\"\nprintf 'REMARK fake reference\\nEND\\n' > \"$pdb\"\nprintf 'CPPTRAJ: Trajectory Analysis. V6.29.0 (fake)\\nINPUT: Reading input from %s\\n  0%% 25%% 50%% 75%% 100%% Complete.\\nTIME: Total execution time: 0.0 seconds.\\n' \"$(basename \"$script\")\"\n"
+   },
+   "exit_only": false,
+   "before": [
+    [
+     "clean",
+     "--top",
+     "demo_dry.parm7",
+     "--traj",
+     "demo_dry.nc",
+     "-q"
+    ]
+   ],
+   "env": {
+    "HOME": "{work}/home",
+    "CONDA_EXE": "",
+    "CONDA_PREFIX": "",
+    "MAMBA_ROOT_PREFIX": "",
+    "CONDA_ROOT": "",
+    "PATH": "{work}/bin:/usr/bin:/bin",
+    "AMBERHOME": ""
+   },
+   "executable": [
+    "bin/cpptraj"
+   ],
+   "exit": 0,
+   "stdout": "{\n  \"topology\": \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.parm7\",\n  \"trajectory\": [\n    \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.nc\"\n  ],\n  \"script\": \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/cpptraj.in\",\n  \"log\": \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/cpptraj.log\",\n  \"reused\": false\n}\n",
+   "stderr": "Cleaning trajectory with cpptraj ...\ncpptraj script written to {work}/MDATK_output/MDATK_cache/cleaned/{key}/cpptraj.in:\n[100.0%] cpptraj\nCPPTRAJ: Trajectory Analysis. V6.29.0 (fake)\nINPUT: Reading input from cpptraj.in\n  0% 25% 50% 75% 100% Complete.\nTIME: Total execution time: 0.0 seconds.\n[100.0%] cpptraj\n[100.0%] inputs ready\n",
+   "written": {
+    "MDATK_output/MDATK_cache/cleaned/{key}/MDATK_clean.json": {
+     "text": "{\n  \"project\": \"MDATK\",\n  \"mdatk_version\": \"0.0.4.1\",\n  \"key\": \"{key}\",\n  \"created\": \"{time}\",\n  \"cpptraj\": \"{work}/bin/cpptraj\",\n  \"topology_in\": \"{work}/demo_dry.parm7\",\n  \"trajectories_in\": [\n    \"{work}/demo_dry.nc\"\n  ],\n  \"params\": {\n    \"enabled\": true,\n    \"cpptraj_path\": \"cpptraj\",\n    \"conda_env\": \"\",\n    \"conda_exe\": \"\",\n    \"solvent_mask\": \":WAT,HOH,TIP3,SOL,T3P,T4P,SPC\",\n    \"ion_mask\": \":Na+,Cl-,K+,NA,CL,K,Na,Cl,SOD,CLA,POT\",\n    \"extra_strip_mask\": \"\",\n    \"autoimage\": true,\n    \"autoimage_anchor\": \"\",\n    \"fit\": true,\n    \"fit_mask\": \"@P,C4'\",\n    \"fit_reference\": \"first\",\n    \"remove_box_after_fit\": true,\n    \"reference_frame\": 1,\n    \"reference_file\": \"\",\n    \"start\": 1,\n    \"stop\": null,\n    \"offset\": 1,\n    \"extra_commands\": \"\",\n    \"output_dir\": \"\"\n  },\n  \"outputs\": {\n    \"topology\": \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.parm7\",\n    \"trajectory\": \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.nc\",\n    \"reference_pdb\": \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned_ref.pdb\"\n  }\n}\n"
+    },
+    "MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.nc": {
+     "sha256": "9c6ada87d6eb27fc384e2551a322c378b7e75c1fe2e36574261f524c66bfbb48",
+     "size": 224688
+    },
+    "MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.parm7": {
+     "sha256": "4007a646be96d7ff0a4567b789c97fec80a4b1d19c89297cde871da9bf7057c0",
+     "size": 124144
+    },
+    "MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned_ref.pdb": {
+     "text": "REMARK fake reference\nEND\n"
+    },
+    "MDATK_output/MDATK_cache/cleaned/{key}/cpptraj.in": {
+     "text": "# Generated by MDATK 0.0.4.1 on {time}\nparm \"{work}/demo_dry.parm7\"\ntrajin \"{work}/demo_dry.nc\" 1 last 1\nstrip (:WAT,HOH,TIP3,SOL,T3P,T4P,SPC)|(:Na+,Cl-,K+,NA,CL,K,Na,Cl,SOD,CLA,POT) parmout \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.parm7\"\nautoimage\nbox nobox\nrms MDATKfit @P,C4' first mass\ntrajout \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.nc\" netcdf\ntrajout \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned_ref.pdb\" pdb onlyframes 1\nrun\nquit\n"
+    },
+    "MDATK_output/MDATK_cache/cleaned/{key}/cpptraj.log": {
+     "text": "CPPTRAJ: Trajectory Analysis. V6.29.0 (fake)\nINPUT: Reading input from cpptraj.in\n  0% 25% 50% 75% 100% Complete.\nTIME: Total execution time: 0.0 seconds.\n"
+    }
+   },
+   "before_exits": [
+    0
+   ],
+   "posix_only": true
+  },
+  {
+   "name": "clean_changed_settings",
+   "argv": [
+    "clean",
+    "--top",
+    "demo_dry.parm7",
+    "--traj",
+    "demo_dry.nc",
+    "-s",
+    "cleaning.output_dir=\"cleaned\"",
+    "-s",
+    "cleaning.offset=2"
+   ],
+   "inputs": {
+    "demo_dry.parm7": "topology/demo_dry.parm7",
+    "demo_dry.nc": "io/trajectories/demo_dry.nc"
+   },
+   "setup": {
+    "bin/cpptraj": "#!/bin/sh\n# fake cpptraj -i SCRIPT\nscript=\"$2\"\nparm=$(sed -n 's/^parm \"\\(.*\\)\"$/\\1/p' \"$script\")\ntraj=$(sed -n 's/^trajin \"\\([^\"]*\\)\".*/\\1/p' \"$script\" | head -n 1)\nparmout=$(sed -n 's/.* parmout \"\\([^\"]*\\)\"$/\\1/p; s/^parmwrite out \"\\([^\"]*\\)\"$/\\1/p' \"$script\")\nnc=$(sed -n 's/^trajout \"\\([^\"]*\\)\" netcdf$/\\1/p' \"$script\")\npdb=$(sed -n 's/^trajout \"\\([^\"]*\\)\" pdb onlyframes 1$/\\1/p' \"$script\")\n[ -n \"$parmout\" ] && cp \"$parm\" \"$parmout\"\ncp \"$traj\" \"$nc\"\nprintf 'REMARK fake reference\\nEND\\n' > \"$pdb\"\nprintf 'CPPTRAJ: Trajectory Analysis. V6.29.0 (fake)\\nINPUT: Reading input from %s\\n  0%% 25%% 50%% 75%% 100%% Complete.\\nTIME: Total execution time: 0.0 seconds.\\n' \"$(basename \"$script\")\"\n"
+   },
+   "exit_only": false,
+   "before": [
+    [
+     "clean",
+     "--top",
+     "demo_dry.parm7",
+     "--traj",
+     "demo_dry.nc",
+     "-q",
+     "-s",
+     "cleaning.output_dir=\"cleaned\""
+    ]
+   ],
+   "env": {
+    "HOME": "{work}/home",
+    "CONDA_EXE": "",
+    "CONDA_PREFIX": "",
+    "MAMBA_ROOT_PREFIX": "",
+    "CONDA_ROOT": "",
+    "PATH": "{work}/bin:/usr/bin:/bin",
+    "AMBERHOME": ""
+   },
+   "executable": [
+    "bin/cpptraj"
+   ],
+   "exit": 0,
+   "stdout": "{\n  \"topology\": \"{work}/cleaned/MDATK_cleaned.parm7\",\n  \"trajectory\": [\n    \"{work}/cleaned/MDATK_cleaned.nc\"\n  ],\n  \"script\": \"{work}/cleaned/cpptraj.in\",\n  \"log\": \"{work}/cleaned/cpptraj.log\",\n  \"reused\": false\n}\n",
+   "stderr": "Cleaning trajectory with cpptraj ...\ncpptraj script written to {work}/cleaned/cpptraj.in:\n[100.0%] cpptraj\nCPPTRAJ: Trajectory Analysis. V6.29.0 (fake)\nINPUT: Reading input from cpptraj.in\n  0% 25% 50% 75% 100% Complete.\nTIME: Total execution time: 0.0 seconds.\n[100.0%] cpptraj\n[100.0%] inputs ready\n",
+   "written": {
+    "cleaned/MDATK_clean.json": {
+     "text": "{\n  \"project\": \"MDATK\",\n  \"mdatk_version\": \"0.0.4.1\",\n  \"key\": \"{key}\",\n  \"created\": \"{time}\",\n  \"cpptraj\": \"{work}/bin/cpptraj\",\n  \"topology_in\": \"{work}/demo_dry.parm7\",\n  \"trajectories_in\": [\n    \"{work}/demo_dry.nc\"\n  ],\n  \"params\": {\n    \"enabled\": true,\n    \"cpptraj_path\": \"cpptraj\",\n    \"conda_env\": \"\",\n    \"conda_exe\": \"\",\n    \"solvent_mask\": \":WAT,HOH,TIP3,SOL,T3P,T4P,SPC\",\n    \"ion_mask\": \":Na+,Cl-,K+,NA,CL,K,Na,Cl,SOD,CLA,POT\",\n    \"extra_strip_mask\": \"\",\n    \"autoimage\": true,\n    \"autoimage_anchor\": \"\",\n    \"fit\": true,\n    \"fit_mask\": \"@P,C4'\",\n    \"fit_reference\": \"first\",\n    \"remove_box_after_fit\": true,\n    \"reference_frame\": 1,\n    \"reference_file\": \"\",\n    \"start\": 1,\n    \"stop\": null,\n    \"offset\": 2,\n    \"extra_commands\": \"\",\n    \"output_dir\": \"{work}/cleaned\"\n  },\n  \"outputs\": {\n    \"topology\": \"{work}/cleaned/MDATK_cleaned.parm7\",\n    \"trajectory\": \"{work}/cleaned/MDATK_cleaned.nc\",\n    \"reference_pdb\": \"{work}/cleaned/MDATK_cleaned_ref.pdb\"\n  }\n}\n"
+    },
+    "cleaned/MDATK_cleaned.nc": {
+     "sha256": "9c6ada87d6eb27fc384e2551a322c378b7e75c1fe2e36574261f524c66bfbb48",
+     "size": 224688
+    },
+    "cleaned/MDATK_cleaned.parm7": {
+     "sha256": "4007a646be96d7ff0a4567b789c97fec80a4b1d19c89297cde871da9bf7057c0",
+     "size": 124144
+    },
+    "cleaned/MDATK_cleaned_ref.pdb": {
+     "text": "REMARK fake reference\nEND\n"
+    },
+    "cleaned/cpptraj.in": {
+     "text": "# Generated by MDATK 0.0.4.1 on {time}\nparm \"{work}/demo_dry.parm7\"\ntrajin \"{work}/demo_dry.nc\" 1 last 2\nstrip (:WAT,HOH,TIP3,SOL,T3P,T4P,SPC)|(:Na+,Cl-,K+,NA,CL,K,Na,Cl,SOD,CLA,POT) parmout \"{work}/cleaned/MDATK_cleaned.parm7\"\nautoimage\nbox nobox\nrms MDATKfit @P,C4' first mass\ntrajout \"{work}/cleaned/MDATK_cleaned.nc\" netcdf\ntrajout \"{work}/cleaned/MDATK_cleaned_ref.pdb\" pdb onlyframes 1\nrun\nquit\n"
+    },
+    "cleaned/cpptraj.log": {
+     "text": "CPPTRAJ: Trajectory Analysis. V6.29.0 (fake)\nINPUT: Reading input from cpptraj.in\n  0% 25% 50% 75% 100% Complete.\nTIME: Total execution time: 0.0 seconds.\n"
+    }
+   },
+   "before_exits": [
+    0
+   ],
+   "posix_only": true
+  },
+  {
+   "name": "clean_cpptraj_path",
+   "argv": [
+    "clean",
+    "--top",
+    "demo_dry.parm7",
+    "--traj",
+    "demo_dry.nc",
+    "--cpptraj",
+    "tools/cpptraj"
+   ],
+   "inputs": {
+    "demo_dry.parm7": "topology/demo_dry.parm7",
+    "demo_dry.nc": "io/trajectories/demo_dry.nc"
+   },
+   "setup": {
+    "tools/cpptraj": "#!/bin/sh\n# fake cpptraj -i SCRIPT\nscript=\"$2\"\nparm=$(sed -n 's/^parm \"\\(.*\\)\"$/\\1/p' \"$script\")\ntraj=$(sed -n 's/^trajin \"\\([^\"]*\\)\".*/\\1/p' \"$script\" | head -n 1)\nparmout=$(sed -n 's/.* parmout \"\\([^\"]*\\)\"$/\\1/p; s/^parmwrite out \"\\([^\"]*\\)\"$/\\1/p' \"$script\")\nnc=$(sed -n 's/^trajout \"\\([^\"]*\\)\" netcdf$/\\1/p' \"$script\")\npdb=$(sed -n 's/^trajout \"\\([^\"]*\\)\" pdb onlyframes 1$/\\1/p' \"$script\")\n[ -n \"$parmout\" ] && cp \"$parm\" \"$parmout\"\ncp \"$traj\" \"$nc\"\nprintf 'REMARK fake reference\\nEND\\n' > \"$pdb\"\nprintf 'CPPTRAJ: Trajectory Analysis. V6.29.0 (fake)\\nINPUT: Reading input from %s\\n  0%% 25%% 50%% 75%% 100%% Complete.\\nTIME: Total execution time: 0.0 seconds.\\n' \"$(basename \"$script\")\"\n"
+   },
+   "exit_only": false,
+   "before": [],
+   "env": {
+    "HOME": "{work}/home",
+    "CONDA_EXE": "",
+    "CONDA_PREFIX": "",
+    "MAMBA_ROOT_PREFIX": "",
+    "CONDA_ROOT": "",
+    "PATH": "{work}/bin:/usr/bin:/bin",
+    "AMBERHOME": ""
+   },
+   "executable": [
+    "tools/cpptraj"
+   ],
+   "exit": 0,
+   "stdout": "{\n  \"topology\": \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.parm7\",\n  \"trajectory\": [\n    \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.nc\"\n  ],\n  \"script\": \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/cpptraj.in\",\n  \"log\": \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/cpptraj.log\",\n  \"reused\": false\n}\n",
+   "stderr": "Cleaning trajectory with cpptraj ...\ncpptraj script written to {work}/MDATK_output/MDATK_cache/cleaned/{key}/cpptraj.in:\n[100.0%] cpptraj\nCPPTRAJ: Trajectory Analysis. V6.29.0 (fake)\nINPUT: Reading input from cpptraj.in\n  0% 25% 50% 75% 100% Complete.\nTIME: Total execution time: 0.0 seconds.\n[100.0%] cpptraj\n[100.0%] inputs ready\n",
+   "written": {
+    "MDATK_output/MDATK_cache/cleaned/{key}/MDATK_clean.json": {
+     "text": "{\n  \"project\": \"MDATK\",\n  \"mdatk_version\": \"0.0.4.1\",\n  \"key\": \"{key}\",\n  \"created\": \"{time}\",\n  \"cpptraj\": \"{work}/tools/cpptraj\",\n  \"topology_in\": \"{work}/demo_dry.parm7\",\n  \"trajectories_in\": [\n    \"{work}/demo_dry.nc\"\n  ],\n  \"params\": {\n    \"enabled\": true,\n    \"cpptraj_path\": \"{work}/tools/cpptraj\",\n    \"conda_env\": \"\",\n    \"conda_exe\": \"\",\n    \"solvent_mask\": \":WAT,HOH,TIP3,SOL,T3P,T4P,SPC\",\n    \"ion_mask\": \":Na+,Cl-,K+,NA,CL,K,Na,Cl,SOD,CLA,POT\",\n    \"extra_strip_mask\": \"\",\n    \"autoimage\": true,\n    \"autoimage_anchor\": \"\",\n    \"fit\": true,\n    \"fit_mask\": \"@P,C4'\",\n    \"fit_reference\": \"first\",\n    \"remove_box_after_fit\": true,\n    \"reference_frame\": 1,\n    \"reference_file\": \"\",\n    \"start\": 1,\n    \"stop\": null,\n    \"offset\": 1,\n    \"extra_commands\": \"\",\n    \"output_dir\": \"\"\n  },\n  \"outputs\": {\n    \"topology\": \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.parm7\",\n    \"trajectory\": \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.nc\",\n    \"reference_pdb\": \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned_ref.pdb\"\n  }\n}\n"
+    },
+    "MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.nc": {
+     "sha256": "9c6ada87d6eb27fc384e2551a322c378b7e75c1fe2e36574261f524c66bfbb48",
+     "size": 224688
+    },
+    "MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.parm7": {
+     "sha256": "4007a646be96d7ff0a4567b789c97fec80a4b1d19c89297cde871da9bf7057c0",
+     "size": 124144
+    },
+    "MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned_ref.pdb": {
+     "text": "REMARK fake reference\nEND\n"
+    },
+    "MDATK_output/MDATK_cache/cleaned/{key}/cpptraj.in": {
+     "text": "# Generated by MDATK 0.0.4.1 on {time}\nparm \"{work}/demo_dry.parm7\"\ntrajin \"{work}/demo_dry.nc\" 1 last 1\nstrip (:WAT,HOH,TIP3,SOL,T3P,T4P,SPC)|(:Na+,Cl-,K+,NA,CL,K,Na,Cl,SOD,CLA,POT) parmout \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.parm7\"\nautoimage\nbox nobox\nrms MDATKfit @P,C4' first mass\ntrajout \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.nc\" netcdf\ntrajout \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned_ref.pdb\" pdb onlyframes 1\nrun\nquit\n"
+    },
+    "MDATK_output/MDATK_cache/cleaned/{key}/cpptraj.log": {
+     "text": "CPPTRAJ: Trajectory Analysis. V6.29.0 (fake)\nINPUT: Reading input from cpptraj.in\n  0% 25% 50% 75% 100% Complete.\nTIME: Total execution time: 0.0 seconds.\n"
+    }
+   },
+   "before_exits": [],
+   "posix_only": true
+  },
+  {
+   "name": "clean_cpptraj_not_executable",
+   "argv": [
+    "clean",
+    "--top",
+    "demo_dry.parm7",
+    "--traj",
+    "demo_dry.nc",
+    "--cpptraj",
+    "tools/cpptraj"
+   ],
+   "inputs": {
+    "demo_dry.parm7": "topology/demo_dry.parm7",
+    "demo_dry.nc": "io/trajectories/demo_dry.nc"
+   },
+   "setup": {
+    "tools/cpptraj": "#!/bin/sh\n# fake cpptraj -i SCRIPT\nscript=\"$2\"\nparm=$(sed -n 's/^parm \"\\(.*\\)\"$/\\1/p' \"$script\")\ntraj=$(sed -n 's/^trajin \"\\([^\"]*\\)\".*/\\1/p' \"$script\" | head -n 1)\nparmout=$(sed -n 's/.* parmout \"\\([^\"]*\\)\"$/\\1/p; s/^parmwrite out \"\\([^\"]*\\)\"$/\\1/p' \"$script\")\nnc=$(sed -n 's/^trajout \"\\([^\"]*\\)\" netcdf$/\\1/p' \"$script\")\npdb=$(sed -n 's/^trajout \"\\([^\"]*\\)\" pdb onlyframes 1$/\\1/p' \"$script\")\n[ -n \"$parmout\" ] && cp \"$parm\" \"$parmout\"\ncp \"$traj\" \"$nc\"\nprintf 'REMARK fake reference\\nEND\\n' > \"$pdb\"\nprintf 'CPPTRAJ: Trajectory Analysis. V6.29.0 (fake)\\nINPUT: Reading input from %s\\n  0%% 25%% 50%% 75%% 100%% Complete.\\nTIME: Total execution time: 0.0 seconds.\\n' \"$(basename \"$script\")\"\n"
+   },
+   "exit_only": false,
+   "before": [],
+   "env": {
+    "HOME": "{work}/home",
+    "CONDA_EXE": "",
+    "CONDA_PREFIX": "",
+    "MAMBA_ROOT_PREFIX": "",
+    "CONDA_ROOT": "",
+    "PATH": "{work}/bin:/usr/bin:/bin",
+    "AMBERHOME": ""
+   },
+   "executable": [],
+   "exit": 1,
+   "stdout": "",
+   "stderr": "Cleaning trajectory with cpptraj ...\nerror: cpptraj not executable at {work}/tools/cpptraj\n",
+   "written": {},
+   "before_exits": [],
+   "posix_only": true
+  },
+  {
+   "name": "clean_cpptraj_named",
+   "argv": [
+    "clean",
+    "--top",
+    "demo_dry.parm7",
+    "--traj",
+    "demo_dry.nc",
+    "--cpptraj",
+    "cpptraj.OMP"
+   ],
+   "inputs": {
+    "demo_dry.parm7": "topology/demo_dry.parm7",
+    "demo_dry.nc": "io/trajectories/demo_dry.nc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "before": [],
+   "env": {
+    "HOME": "{work}/home",
+    "CONDA_EXE": "",
+    "CONDA_PREFIX": "",
+    "MAMBA_ROOT_PREFIX": "",
+    "CONDA_ROOT": "",
+    "PATH": "/usr/bin:/bin",
+    "AMBERHOME": ""
+   },
+   "executable": [],
+   "exit": 1,
+   "stdout": "",
+   "stderr": "Cleaning trajectory with cpptraj ...\nerror: cpptraj ('cpptraj.OMP') was not found on PATH. Install AmberTools or set the cpptraj path in the cleaning options.\n",
+   "written": {},
+   "before_exits": [],
+   "posix_only": true
+  },
+  {
+   "name": "clean_no_cpptraj",
+   "argv": [
+    "clean",
+    "--top",
+    "demo_dry.parm7",
+    "--traj",
+    "demo_dry.nc"
+   ],
+   "inputs": {
+    "demo_dry.parm7": "topology/demo_dry.parm7",
+    "demo_dry.nc": "io/trajectories/demo_dry.nc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "before": [],
+   "env": {
+    "HOME": "{work}/home",
+    "CONDA_EXE": "",
+    "CONDA_PREFIX": "",
+    "MAMBA_ROOT_PREFIX": "",
+    "CONDA_ROOT": "",
+    "PATH": "/usr/bin:/bin",
+    "AMBERHOME": ""
+   },
+   "executable": [],
+   "exit": 1,
+   "stdout": "",
+   "stderr": "Cleaning trajectory with cpptraj ...\nerror: cpptraj ('cpptraj') was not found on PATH. Install AmberTools or set the cpptraj path in the cleaning options.\n",
+   "written": {},
+   "before_exits": [],
+   "posix_only": true
+  },
+  {
+   "name": "clean_amberhome",
+   "argv": [
+    "clean",
+    "--top",
+    "demo_dry.parm7",
+    "--traj",
+    "demo_dry.nc"
+   ],
+   "inputs": {
+    "demo_dry.parm7": "topology/demo_dry.parm7",
+    "demo_dry.nc": "io/trajectories/demo_dry.nc"
+   },
+   "setup": {
+    "amber/bin/cpptraj": "#!/bin/sh\n# fake cpptraj -i SCRIPT\nscript=\"$2\"\nparm=$(sed -n 's/^parm \"\\(.*\\)\"$/\\1/p' \"$script\")\ntraj=$(sed -n 's/^trajin \"\\([^\"]*\\)\".*/\\1/p' \"$script\" | head -n 1)\nparmout=$(sed -n 's/.* parmout \"\\([^\"]*\\)\"$/\\1/p; s/^parmwrite out \"\\([^\"]*\\)\"$/\\1/p' \"$script\")\nnc=$(sed -n 's/^trajout \"\\([^\"]*\\)\" netcdf$/\\1/p' \"$script\")\npdb=$(sed -n 's/^trajout \"\\([^\"]*\\)\" pdb onlyframes 1$/\\1/p' \"$script\")\n[ -n \"$parmout\" ] && cp \"$parm\" \"$parmout\"\ncp \"$traj\" \"$nc\"\nprintf 'REMARK fake reference\\nEND\\n' > \"$pdb\"\nprintf 'CPPTRAJ: Trajectory Analysis. V6.29.0 (fake)\\nINPUT: Reading input from %s\\n  0%% 25%% 50%% 75%% 100%% Complete.\\nTIME: Total execution time: 0.0 seconds.\\n' \"$(basename \"$script\")\"\n"
+   },
+   "exit_only": false,
+   "before": [],
+   "env": {
+    "HOME": "{work}/home",
+    "CONDA_EXE": "",
+    "CONDA_PREFIX": "",
+    "MAMBA_ROOT_PREFIX": "",
+    "CONDA_ROOT": "",
+    "PATH": "/usr/bin:/bin",
+    "AMBERHOME": "{work}/amber"
+   },
+   "executable": [
+    "amber/bin/cpptraj"
+   ],
+   "exit": 0,
+   "stdout": "{\n  \"topology\": \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.parm7\",\n  \"trajectory\": [\n    \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.nc\"\n  ],\n  \"script\": \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/cpptraj.in\",\n  \"log\": \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/cpptraj.log\",\n  \"reused\": false\n}\n",
+   "stderr": "Cleaning trajectory with cpptraj ...\ncpptraj script written to {work}/MDATK_output/MDATK_cache/cleaned/{key}/cpptraj.in:\n[100.0%] cpptraj\nCPPTRAJ: Trajectory Analysis. V6.29.0 (fake)\nINPUT: Reading input from cpptraj.in\n  0% 25% 50% 75% 100% Complete.\nTIME: Total execution time: 0.0 seconds.\n[100.0%] cpptraj\n[100.0%] inputs ready\n",
+   "written": {
+    "MDATK_output/MDATK_cache/cleaned/{key}/MDATK_clean.json": {
+     "text": "{\n  \"project\": \"MDATK\",\n  \"mdatk_version\": \"0.0.4.1\",\n  \"key\": \"{key}\",\n  \"created\": \"{time}\",\n  \"cpptraj\": \"{work}/amber/bin/cpptraj\",\n  \"topology_in\": \"{work}/demo_dry.parm7\",\n  \"trajectories_in\": [\n    \"{work}/demo_dry.nc\"\n  ],\n  \"params\": {\n    \"enabled\": true,\n    \"cpptraj_path\": \"cpptraj\",\n    \"conda_env\": \"\",\n    \"conda_exe\": \"\",\n    \"solvent_mask\": \":WAT,HOH,TIP3,SOL,T3P,T4P,SPC\",\n    \"ion_mask\": \":Na+,Cl-,K+,NA,CL,K,Na,Cl,SOD,CLA,POT\",\n    \"extra_strip_mask\": \"\",\n    \"autoimage\": true,\n    \"autoimage_anchor\": \"\",\n    \"fit\": true,\n    \"fit_mask\": \"@P,C4'\",\n    \"fit_reference\": \"first\",\n    \"remove_box_after_fit\": true,\n    \"reference_frame\": 1,\n    \"reference_file\": \"\",\n    \"start\": 1,\n    \"stop\": null,\n    \"offset\": 1,\n    \"extra_commands\": \"\",\n    \"output_dir\": \"\"\n  },\n  \"outputs\": {\n    \"topology\": \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.parm7\",\n    \"trajectory\": \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.nc\",\n    \"reference_pdb\": \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned_ref.pdb\"\n  }\n}\n"
+    },
+    "MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.nc": {
+     "sha256": "9c6ada87d6eb27fc384e2551a322c378b7e75c1fe2e36574261f524c66bfbb48",
+     "size": 224688
+    },
+    "MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.parm7": {
+     "sha256": "4007a646be96d7ff0a4567b789c97fec80a4b1d19c89297cde871da9bf7057c0",
+     "size": 124144
+    },
+    "MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned_ref.pdb": {
+     "text": "REMARK fake reference\nEND\n"
+    },
+    "MDATK_output/MDATK_cache/cleaned/{key}/cpptraj.in": {
+     "text": "# Generated by MDATK 0.0.4.1 on {time}\nparm \"{work}/demo_dry.parm7\"\ntrajin \"{work}/demo_dry.nc\" 1 last 1\nstrip (:WAT,HOH,TIP3,SOL,T3P,T4P,SPC)|(:Na+,Cl-,K+,NA,CL,K,Na,Cl,SOD,CLA,POT) parmout \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.parm7\"\nautoimage\nbox nobox\nrms MDATKfit @P,C4' first mass\ntrajout \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.nc\" netcdf\ntrajout \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned_ref.pdb\" pdb onlyframes 1\nrun\nquit\n"
+    },
+    "MDATK_output/MDATK_cache/cleaned/{key}/cpptraj.log": {
+     "text": "CPPTRAJ: Trajectory Analysis. V6.29.0 (fake)\nINPUT: Reading input from cpptraj.in\n  0% 25% 50% 75% 100% Complete.\nTIME: Total execution time: 0.0 seconds.\n"
+    }
+   },
+   "before_exits": [],
+   "posix_only": true
+  },
+  {
+   "name": "clean_conda_env",
+   "argv": [
+    "clean",
+    "--top",
+    "demo_dry.parm7",
+    "--traj",
+    "demo_dry.nc",
+    "--conda-env",
+    "AmberTools26"
+   ],
+   "inputs": {
+    "demo_dry.parm7": "topology/demo_dry.parm7",
+    "demo_dry.nc": "io/trajectories/demo_dry.nc"
+   },
+   "setup": {
+    "miniforge/condabin/conda": "#!/bin/sh\n# fake conda run --no-capture-output -p PREFIX PROGRAM ARGS...\nshift 3\nprefix=\"$1\"\nshift\nprogram=\"$1\"\nshift\nexec \"$prefix/bin/$program\" \"$@\"\n",
+    "miniforge/envs/AmberTools26/bin/cpptraj": "#!/bin/sh\n# fake cpptraj -i SCRIPT\nscript=\"$2\"\nparm=$(sed -n 's/^parm \"\\(.*\\)\"$/\\1/p' \"$script\")\ntraj=$(sed -n 's/^trajin \"\\([^\"]*\\)\".*/\\1/p' \"$script\" | head -n 1)\nparmout=$(sed -n 's/.* parmout \"\\([^\"]*\\)\"$/\\1/p; s/^parmwrite out \"\\([^\"]*\\)\"$/\\1/p' \"$script\")\nnc=$(sed -n 's/^trajout \"\\([^\"]*\\)\" netcdf$/\\1/p' \"$script\")\npdb=$(sed -n 's/^trajout \"\\([^\"]*\\)\" pdb onlyframes 1$/\\1/p' \"$script\")\n[ -n \"$parmout\" ] && cp \"$parm\" \"$parmout\"\ncp \"$traj\" \"$nc\"\nprintf 'REMARK fake reference\\nEND\\n' > \"$pdb\"\nprintf 'CPPTRAJ: Trajectory Analysis. V6.29.0 (fake)\\nINPUT: Reading input from %s\\n  0%% 25%% 50%% 75%% 100%% Complete.\\nTIME: Total execution time: 0.0 seconds.\\n' \"$(basename \"$script\")\"\n"
+   },
+   "exit_only": false,
+   "before": [],
+   "env": {
+    "HOME": "{work}/home",
+    "CONDA_EXE": "{work}/miniforge/condabin/conda",
+    "CONDA_PREFIX": "",
+    "MAMBA_ROOT_PREFIX": "",
+    "CONDA_ROOT": "",
+    "PATH": "/usr/bin:/bin",
+    "AMBERHOME": ""
+   },
+   "executable": [
+    "miniforge/condabin/conda",
+    "miniforge/envs/AmberTools26/bin/cpptraj"
+   ],
+   "exit": 0,
+   "stdout": "{\n  \"topology\": \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.parm7\",\n  \"trajectory\": [\n    \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.nc\"\n  ],\n  \"script\": \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/cpptraj.in\",\n  \"log\": \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/cpptraj.log\",\n  \"reused\": false\n}\n",
+   "stderr": "Cleaning trajectory with cpptraj ...\ncpptraj script written to {work}/MDATK_output/MDATK_cache/cleaned/{key}/cpptraj.in:\n[100.0%] cpptraj\nCPPTRAJ: Trajectory Analysis. V6.29.0 (fake)\nINPUT: Reading input from cpptraj.in\n  0% 25% 50% 75% 100% Complete.\nTIME: Total execution time: 0.0 seconds.\n[100.0%] cpptraj\n[100.0%] inputs ready\n",
+   "written": {
+    "MDATK_output/MDATK_cache/cleaned/{key}/MDATK_clean.json": {
+     "text": "{\n  \"project\": \"MDATK\",\n  \"mdatk_version\": \"0.0.4.1\",\n  \"key\": \"{key}\",\n  \"created\": \"{time}\",\n  \"cpptraj\": \"{work}/miniforge/condabin/conda run --no-capture-output -p {work}/miniforge/envs/AmberTools26 cpptraj\",\n  \"topology_in\": \"{work}/demo_dry.parm7\",\n  \"trajectories_in\": [\n    \"{work}/demo_dry.nc\"\n  ],\n  \"params\": {\n    \"enabled\": true,\n    \"cpptraj_path\": \"cpptraj\",\n    \"conda_env\": \"AmberTools26\",\n    \"conda_exe\": \"\",\n    \"solvent_mask\": \":WAT,HOH,TIP3,SOL,T3P,T4P,SPC\",\n    \"ion_mask\": \":Na+,Cl-,K+,NA,CL,K,Na,Cl,SOD,CLA,POT\",\n    \"extra_strip_mask\": \"\",\n    \"autoimage\": true,\n    \"autoimage_anchor\": \"\",\n    \"fit\": true,\n    \"fit_mask\": \"@P,C4'\",\n    \"fit_reference\": \"first\",\n    \"remove_box_after_fit\": true,\n    \"reference_frame\": 1,\n    \"reference_file\": \"\",\n    \"start\": 1,\n    \"stop\": null,\n    \"offset\": 1,\n    \"extra_commands\": \"\",\n    \"output_dir\": \"\"\n  },\n  \"outputs\": {\n    \"topology\": \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.parm7\",\n    \"trajectory\": \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.nc\",\n    \"reference_pdb\": \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned_ref.pdb\"\n  }\n}\n"
+    },
+    "MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.nc": {
+     "sha256": "9c6ada87d6eb27fc384e2551a322c378b7e75c1fe2e36574261f524c66bfbb48",
+     "size": 224688
+    },
+    "MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.parm7": {
+     "sha256": "4007a646be96d7ff0a4567b789c97fec80a4b1d19c89297cde871da9bf7057c0",
+     "size": 124144
+    },
+    "MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned_ref.pdb": {
+     "text": "REMARK fake reference\nEND\n"
+    },
+    "MDATK_output/MDATK_cache/cleaned/{key}/cpptraj.in": {
+     "text": "# Generated by MDATK 0.0.4.1 on {time}\nparm \"{work}/demo_dry.parm7\"\ntrajin \"{work}/demo_dry.nc\" 1 last 1\nstrip (:WAT,HOH,TIP3,SOL,T3P,T4P,SPC)|(:Na+,Cl-,K+,NA,CL,K,Na,Cl,SOD,CLA,POT) parmout \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.parm7\"\nautoimage\nbox nobox\nrms MDATKfit @P,C4' first mass\ntrajout \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.nc\" netcdf\ntrajout \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned_ref.pdb\" pdb onlyframes 1\nrun\nquit\n"
+    },
+    "MDATK_output/MDATK_cache/cleaned/{key}/cpptraj.log": {
+     "text": "CPPTRAJ: Trajectory Analysis. V6.29.0 (fake)\nINPUT: Reading input from cpptraj.in\n  0% 25% 50% 75% 100% Complete.\nTIME: Total execution time: 0.0 seconds.\n"
+    }
+   },
+   "before_exits": [],
+   "posix_only": true
+  },
+  {
+   "name": "clean_conda_detected",
+   "argv": [
+    "clean",
+    "--top",
+    "demo_dry.parm7",
+    "--traj",
+    "demo_dry.nc"
+   ],
+   "inputs": {
+    "demo_dry.parm7": "topology/demo_dry.parm7",
+    "demo_dry.nc": "io/trajectories/demo_dry.nc"
+   },
+   "setup": {
+    "miniforge/condabin/conda": "#!/bin/sh\n# fake conda run --no-capture-output -p PREFIX PROGRAM ARGS...\nshift 3\nprefix=\"$1\"\nshift\nprogram=\"$1\"\nshift\nexec \"$prefix/bin/$program\" \"$@\"\n",
+    "miniforge/envs/AmberTools26/bin/cpptraj": "#!/bin/sh\n# fake cpptraj -i SCRIPT\nscript=\"$2\"\nparm=$(sed -n 's/^parm \"\\(.*\\)\"$/\\1/p' \"$script\")\ntraj=$(sed -n 's/^trajin \"\\([^\"]*\\)\".*/\\1/p' \"$script\" | head -n 1)\nparmout=$(sed -n 's/.* parmout \"\\([^\"]*\\)\"$/\\1/p; s/^parmwrite out \"\\([^\"]*\\)\"$/\\1/p' \"$script\")\nnc=$(sed -n 's/^trajout \"\\([^\"]*\\)\" netcdf$/\\1/p' \"$script\")\npdb=$(sed -n 's/^trajout \"\\([^\"]*\\)\" pdb onlyframes 1$/\\1/p' \"$script\")\n[ -n \"$parmout\" ] && cp \"$parm\" \"$parmout\"\ncp \"$traj\" \"$nc\"\nprintf 'REMARK fake reference\\nEND\\n' > \"$pdb\"\nprintf 'CPPTRAJ: Trajectory Analysis. V6.29.0 (fake)\\nINPUT: Reading input from %s\\n  0%% 25%% 50%% 75%% 100%% Complete.\\nTIME: Total execution time: 0.0 seconds.\\n' \"$(basename \"$script\")\"\n"
+   },
+   "exit_only": false,
+   "before": [],
+   "env": {
+    "HOME": "{work}/home",
+    "CONDA_EXE": "{work}/miniforge/condabin/conda",
+    "CONDA_PREFIX": "",
+    "MAMBA_ROOT_PREFIX": "",
+    "CONDA_ROOT": "",
+    "PATH": "/usr/bin:/bin",
+    "AMBERHOME": ""
+   },
+   "executable": [
+    "miniforge/condabin/conda",
+    "miniforge/envs/AmberTools26/bin/cpptraj"
+   ],
+   "exit": 0,
+   "stdout": "{\n  \"topology\": \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.parm7\",\n  \"trajectory\": [\n    \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.nc\"\n  ],\n  \"script\": \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/cpptraj.in\",\n  \"log\": \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/cpptraj.log\",\n  \"reused\": false\n}\n",
+   "stderr": "Cleaning trajectory with cpptraj ...\ncpptraj is not on PATH; using conda environment 'AmberTools26' ({work}/miniforge/envs/AmberTools26)\ncpptraj script written to {work}/MDATK_output/MDATK_cache/cleaned/{key}/cpptraj.in:\n[100.0%] cpptraj\nCPPTRAJ: Trajectory Analysis. V6.29.0 (fake)\nINPUT: Reading input from cpptraj.in\n  0% 25% 50% 75% 100% Complete.\nTIME: Total execution time: 0.0 seconds.\n[100.0%] cpptraj\n[100.0%] inputs ready\n",
+   "written": {
+    "MDATK_output/MDATK_cache/cleaned/{key}/MDATK_clean.json": {
+     "text": "{\n  \"project\": \"MDATK\",\n  \"mdatk_version\": \"0.0.4.1\",\n  \"key\": \"{key}\",\n  \"created\": \"{time}\",\n  \"cpptraj\": \"{work}/miniforge/condabin/conda run --no-capture-output -p {work}/miniforge/envs/AmberTools26 cpptraj\",\n  \"topology_in\": \"{work}/demo_dry.parm7\",\n  \"trajectories_in\": [\n    \"{work}/demo_dry.nc\"\n  ],\n  \"params\": {\n    \"enabled\": true,\n    \"cpptraj_path\": \"cpptraj\",\n    \"conda_env\": \"\",\n    \"conda_exe\": \"\",\n    \"solvent_mask\": \":WAT,HOH,TIP3,SOL,T3P,T4P,SPC\",\n    \"ion_mask\": \":Na+,Cl-,K+,NA,CL,K,Na,Cl,SOD,CLA,POT\",\n    \"extra_strip_mask\": \"\",\n    \"autoimage\": true,\n    \"autoimage_anchor\": \"\",\n    \"fit\": true,\n    \"fit_mask\": \"@P,C4'\",\n    \"fit_reference\": \"first\",\n    \"remove_box_after_fit\": true,\n    \"reference_frame\": 1,\n    \"reference_file\": \"\",\n    \"start\": 1,\n    \"stop\": null,\n    \"offset\": 1,\n    \"extra_commands\": \"\",\n    \"output_dir\": \"\"\n  },\n  \"outputs\": {\n    \"topology\": \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.parm7\",\n    \"trajectory\": \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.nc\",\n    \"reference_pdb\": \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned_ref.pdb\"\n  }\n}\n"
+    },
+    "MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.nc": {
+     "sha256": "9c6ada87d6eb27fc384e2551a322c378b7e75c1fe2e36574261f524c66bfbb48",
+     "size": 224688
+    },
+    "MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.parm7": {
+     "sha256": "4007a646be96d7ff0a4567b789c97fec80a4b1d19c89297cde871da9bf7057c0",
+     "size": 124144
+    },
+    "MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned_ref.pdb": {
+     "text": "REMARK fake reference\nEND\n"
+    },
+    "MDATK_output/MDATK_cache/cleaned/{key}/cpptraj.in": {
+     "text": "# Generated by MDATK 0.0.4.1 on {time}\nparm \"{work}/demo_dry.parm7\"\ntrajin \"{work}/demo_dry.nc\" 1 last 1\nstrip (:WAT,HOH,TIP3,SOL,T3P,T4P,SPC)|(:Na+,Cl-,K+,NA,CL,K,Na,Cl,SOD,CLA,POT) parmout \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.parm7\"\nautoimage\nbox nobox\nrms MDATKfit @P,C4' first mass\ntrajout \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.nc\" netcdf\ntrajout \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned_ref.pdb\" pdb onlyframes 1\nrun\nquit\n"
+    },
+    "MDATK_output/MDATK_cache/cleaned/{key}/cpptraj.log": {
+     "text": "CPPTRAJ: Trajectory Analysis. V6.29.0 (fake)\nINPUT: Reading input from cpptraj.in\n  0% 25% 50% 75% 100% Complete.\nTIME: Total execution time: 0.0 seconds.\n"
+    }
+   },
+   "before_exits": [],
+   "posix_only": true
+  },
+  {
+   "name": "clean_conda_missing",
+   "argv": [
+    "clean",
+    "--top",
+    "demo_dry.parm7",
+    "--traj",
+    "demo_dry.nc",
+    "--conda-env",
+    "Nope"
+   ],
+   "inputs": {
+    "demo_dry.parm7": "topology/demo_dry.parm7",
+    "demo_dry.nc": "io/trajectories/demo_dry.nc"
+   },
+   "setup": {
+    "miniforge/condabin/conda": "#!/bin/sh\n# fake conda run --no-capture-output -p PREFIX PROGRAM ARGS...\nshift 3\nprefix=\"$1\"\nshift\nprogram=\"$1\"\nshift\nexec \"$prefix/bin/$program\" \"$@\"\n",
+    "miniforge/envs/AmberTools26/bin/cpptraj": "#!/bin/sh\n# fake cpptraj -i SCRIPT\nscript=\"$2\"\nparm=$(sed -n 's/^parm \"\\(.*\\)\"$/\\1/p' \"$script\")\ntraj=$(sed -n 's/^trajin \"\\([^\"]*\\)\".*/\\1/p' \"$script\" | head -n 1)\nparmout=$(sed -n 's/.* parmout \"\\([^\"]*\\)\"$/\\1/p; s/^parmwrite out \"\\([^\"]*\\)\"$/\\1/p' \"$script\")\nnc=$(sed -n 's/^trajout \"\\([^\"]*\\)\" netcdf$/\\1/p' \"$script\")\npdb=$(sed -n 's/^trajout \"\\([^\"]*\\)\" pdb onlyframes 1$/\\1/p' \"$script\")\n[ -n \"$parmout\" ] && cp \"$parm\" \"$parmout\"\ncp \"$traj\" \"$nc\"\nprintf 'REMARK fake reference\\nEND\\n' > \"$pdb\"\nprintf 'CPPTRAJ: Trajectory Analysis. V6.29.0 (fake)\\nINPUT: Reading input from %s\\n  0%% 25%% 50%% 75%% 100%% Complete.\\nTIME: Total execution time: 0.0 seconds.\\n' \"$(basename \"$script\")\"\n"
+   },
+   "exit_only": false,
+   "before": [],
+   "env": {
+    "HOME": "{work}/home",
+    "CONDA_EXE": "{work}/miniforge/condabin/conda",
+    "CONDA_PREFIX": "",
+    "MAMBA_ROOT_PREFIX": "",
+    "CONDA_ROOT": "",
+    "PATH": "/usr/bin:/bin",
+    "AMBERHOME": ""
+   },
+   "executable": [
+    "miniforge/condabin/conda",
+    "miniforge/envs/AmberTools26/bin/cpptraj"
+   ],
+   "exit": 1,
+   "stdout": "",
+   "stderr": "Cleaning trajectory with cpptraj ...\ncpptraj script written to {work}/MDATK_output/MDATK_cache/cleaned/{key}/cpptraj.in:\n{work}/miniforge/condabin/conda: 8: exec: Nope/bin/cpptraj: not found\nerror: cpptraj failed with exit code 127; see {work}/MDATK_output/MDATK_cache/cleaned/{key}/cpptraj.log\n",
+   "written": {
+    "MDATK_output/MDATK_cache/cleaned/{key}/cpptraj.in": {
+     "text": "# Generated by MDATK 0.0.4.1 on {time}\nparm \"{work}/demo_dry.parm7\"\ntrajin \"{work}/demo_dry.nc\" 1 last 1\nstrip (:WAT,HOH,TIP3,SOL,T3P,T4P,SPC)|(:Na+,Cl-,K+,NA,CL,K,Na,Cl,SOD,CLA,POT) parmout \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.parm7\"\nautoimage\nbox nobox\nrms MDATKfit @P,C4' first mass\ntrajout \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.nc\" netcdf\ntrajout \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned_ref.pdb\" pdb onlyframes 1\nrun\nquit\n"
+    },
+    "MDATK_output/MDATK_cache/cleaned/{key}/cpptraj.log": {
+     "text": "{work}/miniforge/condabin/conda: 8: exec: Nope/bin/cpptraj: not found\n"
+    }
+   },
+   "before_exits": [],
+   "posix_only": true
+  },
+  {
+   "name": "clean_failing",
+   "argv": [
+    "clean",
+    "--top",
+    "demo_dry.parm7",
+    "--traj",
+    "demo_dry.nc"
+   ],
+   "inputs": {
+    "demo_dry.parm7": "topology/demo_dry.parm7",
+    "demo_dry.nc": "io/trajectories/demo_dry.nc"
+   },
+   "setup": {
+    "bin/cpptraj": "#!/bin/sh\nprintf 'CPPTRAJ: Trajectory Analysis. V6.29.0 (fake)\\nError: Could not open trajectory.\\n'\nexit 3\n"
+   },
+   "exit_only": false,
+   "before": [],
+   "env": {
+    "HOME": "{work}/home",
+    "CONDA_EXE": "",
+    "CONDA_PREFIX": "",
+    "MAMBA_ROOT_PREFIX": "",
+    "CONDA_ROOT": "",
+    "PATH": "{work}/bin:/usr/bin:/bin",
+    "AMBERHOME": ""
+   },
+   "executable": [
+    "bin/cpptraj"
+   ],
+   "exit": 1,
+   "stdout": "",
+   "stderr": "Cleaning trajectory with cpptraj ...\ncpptraj script written to {work}/MDATK_output/MDATK_cache/cleaned/{key}/cpptraj.in:\nCPPTRAJ: Trajectory Analysis. V6.29.0 (fake)\nError: Could not open trajectory.\nerror: cpptraj failed with exit code 3; see {work}/MDATK_output/MDATK_cache/cleaned/{key}/cpptraj.log\n",
+   "written": {
+    "MDATK_output/MDATK_cache/cleaned/{key}/cpptraj.in": {
+     "text": "# Generated by MDATK 0.0.4.1 on {time}\nparm \"{work}/demo_dry.parm7\"\ntrajin \"{work}/demo_dry.nc\" 1 last 1\nstrip (:WAT,HOH,TIP3,SOL,T3P,T4P,SPC)|(:Na+,Cl-,K+,NA,CL,K,Na,Cl,SOD,CLA,POT) parmout \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.parm7\"\nautoimage\nbox nobox\nrms MDATKfit @P,C4' first mass\ntrajout \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.nc\" netcdf\ntrajout \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned_ref.pdb\" pdb onlyframes 1\nrun\nquit\n"
+    },
+    "MDATK_output/MDATK_cache/cleaned/{key}/cpptraj.log": {
+     "text": "CPPTRAJ: Trajectory Analysis. V6.29.0 (fake)\nError: Could not open trajectory.\n"
+    }
+   },
+   "before_exits": [],
+   "posix_only": true
+  },
+  {
+   "name": "clean_missing_trajectory",
+   "argv": [
+    "clean",
+    "--top",
+    "demo_dry.parm7",
+    "--traj",
+    "missing.nc"
+   ],
+   "inputs": {
+    "demo_dry.parm7": "topology/demo_dry.parm7",
+    "demo_dry.nc": "io/trajectories/demo_dry.nc"
+   },
+   "setup": {
+    "bin/cpptraj": "#!/bin/sh\n# fake cpptraj -i SCRIPT\nscript=\"$2\"\nparm=$(sed -n 's/^parm \"\\(.*\\)\"$/\\1/p' \"$script\")\ntraj=$(sed -n 's/^trajin \"\\([^\"]*\\)\".*/\\1/p' \"$script\" | head -n 1)\nparmout=$(sed -n 's/.* parmout \"\\([^\"]*\\)\"$/\\1/p; s/^parmwrite out \"\\([^\"]*\\)\"$/\\1/p' \"$script\")\nnc=$(sed -n 's/^trajout \"\\([^\"]*\\)\" netcdf$/\\1/p' \"$script\")\npdb=$(sed -n 's/^trajout \"\\([^\"]*\\)\" pdb onlyframes 1$/\\1/p' \"$script\")\n[ -n \"$parmout\" ] && cp \"$parm\" \"$parmout\"\ncp \"$traj\" \"$nc\"\nprintf 'REMARK fake reference\\nEND\\n' > \"$pdb\"\nprintf 'CPPTRAJ: Trajectory Analysis. V6.29.0 (fake)\\nINPUT: Reading input from %s\\n  0%% 25%% 50%% 75%% 100%% Complete.\\nTIME: Total execution time: 0.0 seconds.\\n' \"$(basename \"$script\")\"\n"
+   },
+   "exit_only": false,
+   "before": [],
+   "env": {
+    "HOME": "{work}/home",
+    "CONDA_EXE": "",
+    "CONDA_PREFIX": "",
+    "MAMBA_ROOT_PREFIX": "",
+    "CONDA_ROOT": "",
+    "PATH": "{work}/bin:/usr/bin:/bin",
+    "AMBERHOME": ""
+   },
+   "executable": [
+    "bin/cpptraj"
+   ],
+   "exit": 1,
+   "stdout": "",
+   "stderr": "Cleaning trajectory with cpptraj ...\nerror: trajectory not found: {work}/missing.nc\n",
+   "written": {},
+   "before_exits": [],
+   "posix_only": true
+  },
+  {
+   "name": "clean_no_trajectory",
+   "argv": [
+    "clean",
+    "--top",
+    "demo_dry.parm7"
+   ],
+   "inputs": {
+    "demo_dry.parm7": "topology/demo_dry.parm7",
+    "demo_dry.nc": "io/trajectories/demo_dry.nc"
+   },
+   "setup": {
+    "bin/cpptraj": "#!/bin/sh\n# fake cpptraj -i SCRIPT\nscript=\"$2\"\nparm=$(sed -n 's/^parm \"\\(.*\\)\"$/\\1/p' \"$script\")\ntraj=$(sed -n 's/^trajin \"\\([^\"]*\\)\".*/\\1/p' \"$script\" | head -n 1)\nparmout=$(sed -n 's/.* parmout \"\\([^\"]*\\)\"$/\\1/p; s/^parmwrite out \"\\([^\"]*\\)\"$/\\1/p' \"$script\")\nnc=$(sed -n 's/^trajout \"\\([^\"]*\\)\" netcdf$/\\1/p' \"$script\")\npdb=$(sed -n 's/^trajout \"\\([^\"]*\\)\" pdb onlyframes 1$/\\1/p' \"$script\")\n[ -n \"$parmout\" ] && cp \"$parm\" \"$parmout\"\ncp \"$traj\" \"$nc\"\nprintf 'REMARK fake reference\\nEND\\n' > \"$pdb\"\nprintf 'CPPTRAJ: Trajectory Analysis. V6.29.0 (fake)\\nINPUT: Reading input from %s\\n  0%% 25%% 50%% 75%% 100%% Complete.\\nTIME: Total execution time: 0.0 seconds.\\n' \"$(basename \"$script\")\"\n"
+   },
+   "exit_only": false,
+   "before": [],
+   "env": {
+    "HOME": "{work}/home",
+    "CONDA_EXE": "",
+    "CONDA_PREFIX": "",
+    "MAMBA_ROOT_PREFIX": "",
+    "CONDA_ROOT": "",
+    "PATH": "{work}/bin:/usr/bin:/bin",
+    "AMBERHOME": ""
+   },
+   "executable": [
+    "bin/cpptraj"
+   ],
+   "exit": 1,
+   "stdout": "",
+   "stderr": "Cleaning trajectory with cpptraj ...\nerror: cleaning requires at least one trajectory\n",
+   "written": {},
+   "before_exits": [],
+   "posix_only": true
+  },
+  {
+   "name": "clean_nothing",
+   "argv": [
+    "clean"
+   ],
+   "inputs": {
+    "demo_dry.parm7": "topology/demo_dry.parm7",
+    "demo_dry.nc": "io/trajectories/demo_dry.nc"
+   },
+   "setup": {
+    "bin/cpptraj": "#!/bin/sh\n# fake cpptraj -i SCRIPT\nscript=\"$2\"\nparm=$(sed -n 's/^parm \"\\(.*\\)\"$/\\1/p' \"$script\")\ntraj=$(sed -n 's/^trajin \"\\([^\"]*\\)\".*/\\1/p' \"$script\" | head -n 1)\nparmout=$(sed -n 's/.* parmout \"\\([^\"]*\\)\"$/\\1/p; s/^parmwrite out \"\\([^\"]*\\)\"$/\\1/p' \"$script\")\nnc=$(sed -n 's/^trajout \"\\([^\"]*\\)\" netcdf$/\\1/p' \"$script\")\npdb=$(sed -n 's/^trajout \"\\([^\"]*\\)\" pdb onlyframes 1$/\\1/p' \"$script\")\n[ -n \"$parmout\" ] && cp \"$parm\" \"$parmout\"\ncp \"$traj\" \"$nc\"\nprintf 'REMARK fake reference\\nEND\\n' > \"$pdb\"\nprintf 'CPPTRAJ: Trajectory Analysis. V6.29.0 (fake)\\nINPUT: Reading input from %s\\n  0%% 25%% 50%% 75%% 100%% Complete.\\nTIME: Total execution time: 0.0 seconds.\\n' \"$(basename \"$script\")\"\n"
+   },
+   "exit_only": false,
+   "before": [],
+   "env": {
+    "HOME": "{work}/home",
+    "CONDA_EXE": "",
+    "CONDA_PREFIX": "",
+    "MAMBA_ROOT_PREFIX": "",
+    "CONDA_ROOT": "",
+    "PATH": "{work}/bin:/usr/bin:/bin",
+    "AMBERHOME": ""
+   },
+   "executable": [
+    "bin/cpptraj"
+   ],
+   "exit": 1,
+   "stdout": "",
+   "stderr": "Cleaning trajectory with cpptraj ...\nerror: topology not found: \n",
+   "written": {},
+   "before_exits": [],
+   "posix_only": true
+  },
+  {
+   "name": "clean_quote",
+   "argv": [
+    "clean",
+    "--top",
+    "demo_dry.parm7",
+    "--traj",
+    "demo_dry.nc",
+    "-s",
+    "cleaning.output_dir=\"a\\\"b\""
+   ],
+   "inputs": {
+    "demo_dry.parm7": "topology/demo_dry.parm7",
+    "demo_dry.nc": "io/trajectories/demo_dry.nc"
+   },
+   "setup": {
+    "bin/cpptraj": "#!/bin/sh\n# fake cpptraj -i SCRIPT\nscript=\"$2\"\nparm=$(sed -n 's/^parm \"\\(.*\\)\"$/\\1/p' \"$script\")\ntraj=$(sed -n 's/^trajin \"\\([^\"]*\\)\".*/\\1/p' \"$script\" | head -n 1)\nparmout=$(sed -n 's/.* parmout \"\\([^\"]*\\)\"$/\\1/p; s/^parmwrite out \"\\([^\"]*\\)\"$/\\1/p' \"$script\")\nnc=$(sed -n 's/^trajout \"\\([^\"]*\\)\" netcdf$/\\1/p' \"$script\")\npdb=$(sed -n 's/^trajout \"\\([^\"]*\\)\" pdb onlyframes 1$/\\1/p' \"$script\")\n[ -n \"$parmout\" ] && cp \"$parm\" \"$parmout\"\ncp \"$traj\" \"$nc\"\nprintf 'REMARK fake reference\\nEND\\n' > \"$pdb\"\nprintf 'CPPTRAJ: Trajectory Analysis. V6.29.0 (fake)\\nINPUT: Reading input from %s\\n  0%% 25%% 50%% 75%% 100%% Complete.\\nTIME: Total execution time: 0.0 seconds.\\n' \"$(basename \"$script\")\"\n"
+   },
+   "exit_only": false,
+   "before": [],
+   "env": {
+    "HOME": "{work}/home",
+    "CONDA_EXE": "",
+    "CONDA_PREFIX": "",
+    "MAMBA_ROOT_PREFIX": "",
+    "CONDA_ROOT": "",
+    "PATH": "{work}/bin:/usr/bin:/bin",
+    "AMBERHOME": ""
+   },
+   "executable": [
+    "bin/cpptraj"
+   ],
+   "exit": 1,
+   "stdout": "",
+   "stderr": "Cleaning trajectory with cpptraj ...\nerror: path contains a double quote: {work}/a\"b/MDATK_cleaned.parm7\n",
+   "written": {},
+   "before_exits": [],
+   "posix_only": true
+  },
+  {
+   "name": "analyze_clean",
+   "argv": [
+    "analyze",
+    "--top",
+    "demo_dry.parm7",
+    "--traj",
+    "demo_dry.nc",
+    "--clean",
+    "--only",
+    "rmsd",
+    "-q"
+   ],
+   "inputs": {
+    "demo_dry.parm7": "topology/demo_dry.parm7",
+    "demo_dry.nc": "io/trajectories/demo_dry.nc"
+   },
+   "setup": {
+    "bin/cpptraj": "#!/bin/sh\n# fake cpptraj -i SCRIPT\nscript=\"$2\"\nparm=$(sed -n 's/^parm \"\\(.*\\)\"$/\\1/p' \"$script\")\ntraj=$(sed -n 's/^trajin \"\\([^\"]*\\)\".*/\\1/p' \"$script\" | head -n 1)\nparmout=$(sed -n 's/.* parmout \"\\([^\"]*\\)\"$/\\1/p; s/^parmwrite out \"\\([^\"]*\\)\"$/\\1/p' \"$script\")\nnc=$(sed -n 's/^trajout \"\\([^\"]*\\)\" netcdf$/\\1/p' \"$script\")\npdb=$(sed -n 's/^trajout \"\\([^\"]*\\)\" pdb onlyframes 1$/\\1/p' \"$script\")\n[ -n \"$parmout\" ] && cp \"$parm\" \"$parmout\"\ncp \"$traj\" \"$nc\"\nprintf 'REMARK fake reference\\nEND\\n' > \"$pdb\"\nprintf 'CPPTRAJ: Trajectory Analysis. V6.29.0 (fake)\\nINPUT: Reading input from %s\\n  0%% 25%% 50%% 75%% 100%% Complete.\\nTIME: Total execution time: 0.0 seconds.\\n' \"$(basename \"$script\")\"\n"
+   },
+   "exit_only": false,
+   "before": [],
+   "env": {
+    "HOME": "{work}/home",
+    "CONDA_EXE": "",
+    "CONDA_PREFIX": "",
+    "MAMBA_ROOT_PREFIX": "",
+    "CONDA_ROOT": "",
+    "PATH": "{work}/bin:/usr/bin:/bin",
+    "AMBERHOME": ""
+   },
+   "executable": [
+    "bin/cpptraj"
+   ],
+   "exit": 0,
+   "stdout": "{\n  \"cache_manifest\": \"{work}/MDATK_output/MDATK_cache/{manifest}\",\n  \"n_frames\": 24,\n  \"data_keys\": {\n    \"series\": [\n      \"rmsd/Complex\",\n      \"rmsd/Backbone\"\n    ],\n    \"matrices\": [],\n    \"pairmaps\": []\n  }\n}\n",
+   "stderr": "",
+   "written": {
+    "MDATK_output/MDATK_cache/cleaned/{key}/MDATK_clean.json": {
+     "text": "{\n  \"project\": \"MDATK\",\n  \"mdatk_version\": \"0.0.4.1\",\n  \"key\": \"{key}\",\n  \"created\": \"{time}\",\n  \"cpptraj\": \"{work}/bin/cpptraj\",\n  \"topology_in\": \"{work}/demo_dry.parm7\",\n  \"trajectories_in\": [\n    \"{work}/demo_dry.nc\"\n  ],\n  \"params\": {\n    \"enabled\": true,\n    \"cpptraj_path\": \"cpptraj\",\n    \"conda_env\": \"\",\n    \"conda_exe\": \"\",\n    \"solvent_mask\": \":WAT,HOH,TIP3,SOL,T3P,T4P,SPC\",\n    \"ion_mask\": \":Na+,Cl-,K+,NA,CL,K,Na,Cl,SOD,CLA,POT\",\n    \"extra_strip_mask\": \"\",\n    \"autoimage\": true,\n    \"autoimage_anchor\": \"\",\n    \"fit\": true,\n    \"fit_mask\": \"@P,C4'\",\n    \"fit_reference\": \"first\",\n    \"remove_box_after_fit\": true,\n    \"reference_frame\": 1,\n    \"reference_file\": \"\",\n    \"start\": 1,\n    \"stop\": null,\n    \"offset\": 1,\n    \"extra_commands\": \"\",\n    \"output_dir\": \"\"\n  },\n  \"outputs\": {\n    \"topology\": \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.parm7\",\n    \"trajectory\": \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.nc\",\n    \"reference_pdb\": \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned_ref.pdb\"\n  }\n}\n"
+    },
+    "MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.nc": {
+     "sha256": "9c6ada87d6eb27fc384e2551a322c378b7e75c1fe2e36574261f524c66bfbb48",
+     "size": 224688
+    },
+    "MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.parm7": {
+     "sha256": "4007a646be96d7ff0a4567b789c97fec80a4b1d19c89297cde871da9bf7057c0",
+     "size": 124144
+    },
+    "MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned_ref.pdb": {
+     "text": "REMARK fake reference\nEND\n"
+    },
+    "MDATK_output/MDATK_cache/cleaned/{key}/cpptraj.in": {
+     "text": "# Generated by MDATK 0.0.4.1 on {time}\nparm \"{work}/demo_dry.parm7\"\ntrajin \"{work}/demo_dry.nc\" 1 last 1\nstrip (:WAT,HOH,TIP3,SOL,T3P,T4P,SPC)|(:Na+,Cl-,K+,NA,CL,K,Na,Cl,SOD,CLA,POT) parmout \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.parm7\"\nautoimage\nbox nobox\nrms MDATKfit @P,C4' first mass\ntrajout \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.nc\" netcdf\ntrajout \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned_ref.pdb\" pdb onlyframes 1\nrun\nquit\n"
+    },
+    "MDATK_output/MDATK_cache/cleaned/{key}/cpptraj.log": {
+     "text": "CPPTRAJ: Trajectory Analysis. V6.29.0 (fake)\nINPUT: Reading input from cpptraj.in\n  0% 25% 50% 75% 100% Complete.\nTIME: Total execution time: 0.0 seconds.\n"
+    },
+    "MDATK_output/MDATK_cache/rmsd-{key}.json": {
+     "json": {
+      "project": "{project}",
+      "version": "{version}",
+      "created": "{time}",
+      "name": "rmsd",
+      "key": "{key}",
+      "params": {
+       "targets": [
+        {
+         "label": "Complex",
+         "selection": "(group:Aptamer or group:Target) and not name H*",
+         "fit_selection": ""
+        },
+        {
+         "label": "Backbone",
+         "selection": "(group:Aptamer or group:Target) and name C4'",
+         "fit_selection": ""
+        }
+       ],
+       "reference_frame": 0,
+       "superposition": true,
+       "mass_weighted": false
+      },
+      "meta": {
+       "reference_frame_index": 0,
+       "label": "RMSD",
+       "analysis": "rmsd",
+       "outputs": {
+        "series": {
+         "Complex": {
+          "array": "rmsd_0",
+          "label": "RMSD Complex",
+          "unit": "Å"
+         },
+         "Backbone": {
+          "array": "rmsd_1",
+          "label": "RMSD Backbone",
+          "unit": "Å"
+         }
+        },
+        "matrices": {},
+        "pairmaps": {}
+       }
+      },
+      "arrays": [
+       "rmsd_0",
+       "rmsd_1"
+      ],
+      "n_frames": 24
+     }
+    },
+    "MDATK_output/MDATK_cache/rmsd-{key}.npz": {
+     "npz": [
+      [
+       "rmsd_0",
+       "<f8",
+       [
+        24
+       ],
+       "[0.0,0.28945864958187484,0.28618283107756753,0.28572445456399864,0.2993893911638533,0.29330169951879353,0.2925160173480385,0.2826236511613504,0.4768154757125187,1.0774746544433484,1.5453062826002357,1.5786316782707406,1.5907482259884829,1.5907148665444835,1.5983261764642869,1.588462862597893,1.2557369554383861,0.6233123267234716,0.30284929960782714,0.29072421308569446,0.2907708441130456,0.28812486959688927,0.2926872902949795,0.29942138376098026]"
+      ],
+      [
+       "rmsd_1",
+       "<f8",
+       [
+        24
+       ],
+       "[0.0,0.30575016594346954,0.2718829361583935,0.2866349703648466,0.30984501282737514,0.2866892634778007,0.2531383182829757,0.2738926538194303,0.5243420877699494,1.1915509025540851,1.6785775742472449,1.6842141577937715,1.6820292059299518,1.6449925489681547,1.6737509192806586,1.6784849872394538,1.320921048999222,0.6624271268308768,0.26079712081553075,0.3314508255516705,0.2686428842948385,0.2502556430277885,0.2672125140919578,0.3130826615419282]"
+      ],
+      [
+       "_frames",
+       "<i8",
+       [
+        24
+       ],
+       "[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23]"
+      ],
+      [
+       "_time_ps",
+       "<f8",
+       [
+        24
+       ],
+       "[0.0,10.0,20.0,30.0,40.0,50.0,60.0,70.0,80.0,90.0,100.0,110.0,120.0,130.0,140.0,150.0,160.0,170.0,180.0,190.0,200.0,210.0,220.0,230.0]"
+      ]
+     ]
+    },
+    "MDATK_output/MDATK_cache/{manifest}": {
+     "json": {
+      "project": "{project}",
+      "version": "{version}",
+      "updated": "{time}",
+      "system": {
+       "inputs": {
+        "topology": {
+         "path": "{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.parm7",
+         "size": 124144,
+         "mtime_ns": 0
+        },
+        "trajectories": [
+         {
+          "path": "{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.nc",
+          "size": 224688,
+          "mtime_ns": 0
+         }
+        ],
+        "frames": {
+         "start": 0,
+         "stop": null,
+         "step": 1
+        },
+        "dt_ps": null
+       },
+       "cleaning_key": "{key}",
+       "topology": "{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.parm7",
+       "trajectories": [
+        "{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.nc"
+       ]
+      },
+      "frames": {
+       "start": 0,
+       "stop": null,
+       "step": 1,
+       "n_frames": 24,
+       "first_frame": 0,
+       "last_frame": 23
+      },
+      "time_axis": {
+       "unit": "ps",
+       "n": 24,
+       "start": 0.0,
+       "end": 230.0,
+       "dt": 10.0
+      },
+      "groups": [
+       {
+        "name": "Aptamer",
+        "residues": "1-12",
+        "selection": "",
+        "color": "#2a78d6"
+       },
+       {
+        "name": "Target",
+        "residues": "13-24",
+        "selection": "",
+        "color": "#eb6834"
+       }
+      ],
+      "available": {
+       "series": [
+        "rmsd/Complex",
+        "rmsd/Backbone"
+       ],
+       "matrices": [],
+       "pairmaps": []
+      },
+      "entries": [
+       {
+        "name": "rmsd",
+        "key": "{key}",
+        "file": "rmsd-{key}.npz",
+        "params": {
+         "targets": [
+          {
+           "label": "Complex",
+           "selection": "(group:Aptamer or group:Target) and not name H*",
+           "fit_selection": ""
+          },
+          {
+           "label": "Backbone",
+           "selection": "(group:Aptamer or group:Target) and name C4'",
+           "fit_selection": ""
+          }
+         ],
+         "reference_frame": 0,
+         "superposition": true,
+         "mass_weighted": false
+        },
+        "outputs": {
+         "series": [
+          "Backbone",
+          "Complex"
+         ],
+         "matrices": [],
+         "pairmaps": []
+        }
+       }
+      ],
+      "all_entries": [
+       {
+        "name": "rmsd",
+        "key": "{key}",
+        "file": "rmsd-{key}.npz"
+       }
+      ]
+     }
+    }
+   },
+   "before_exits": [],
+   "posix_only": true
+  },
+  {
+   "name": "analyze_clean_no_cpptraj",
+   "argv": [
+    "analyze",
+    "--top",
+    "demo_dry.parm7",
+    "--traj",
+    "demo_dry.nc",
+    "--clean",
+    "--only",
+    "rmsd"
+   ],
+   "inputs": {
+    "demo_dry.parm7": "topology/demo_dry.parm7",
+    "demo_dry.nc": "io/trajectories/demo_dry.nc"
+   },
+   "setup": {},
+   "exit_only": false,
+   "before": [],
+   "env": {
+    "HOME": "{work}/home",
+    "CONDA_EXE": "",
+    "CONDA_PREFIX": "",
+    "MAMBA_ROOT_PREFIX": "",
+    "CONDA_ROOT": "",
+    "PATH": "/usr/bin:/bin",
+    "AMBERHOME": ""
+   },
+   "executable": [],
+   "exit": 1,
+   "stdout": "",
+   "stderr": "Cleaning trajectory with cpptraj ...\nerror: cpptraj ('cpptraj') was not found on PATH. Install AmberTools or set the cpptraj path in the cleaning options.\n",
+   "written": {},
+   "before_exits": [],
+   "posix_only": true
+  },
+  {
+   "name": "export_clean",
+   "argv": [
+    "export-pdb",
+    "--top",
+    "demo_dry.parm7",
+    "--traj",
+    "demo_dry.nc",
+    "--clean",
+    "--frame-list",
+    "1",
+    "--selection",
+    "Target",
+    "-s",
+    "output.timestamp_files=false"
+   ],
+   "inputs": {
+    "demo_dry.parm7": "topology/demo_dry.parm7",
+    "demo_dry.nc": "io/trajectories/demo_dry.nc"
+   },
+   "setup": {
+    "bin/cpptraj": "#!/bin/sh\n# fake cpptraj -i SCRIPT\nscript=\"$2\"\nparm=$(sed -n 's/^parm \"\\(.*\\)\"$/\\1/p' \"$script\")\ntraj=$(sed -n 's/^trajin \"\\([^\"]*\\)\".*/\\1/p' \"$script\" | head -n 1)\nparmout=$(sed -n 's/.* parmout \"\\([^\"]*\\)\"$/\\1/p; s/^parmwrite out \"\\([^\"]*\\)\"$/\\1/p' \"$script\")\nnc=$(sed -n 's/^trajout \"\\([^\"]*\\)\" netcdf$/\\1/p' \"$script\")\npdb=$(sed -n 's/^trajout \"\\([^\"]*\\)\" pdb onlyframes 1$/\\1/p' \"$script\")\n[ -n \"$parmout\" ] && cp \"$parm\" \"$parmout\"\ncp \"$traj\" \"$nc\"\nprintf 'REMARK fake reference\\nEND\\n' > \"$pdb\"\nprintf 'CPPTRAJ: Trajectory Analysis. V6.29.0 (fake)\\nINPUT: Reading input from %s\\n  0%% 25%% 50%% 75%% 100%% Complete.\\nTIME: Total execution time: 0.0 seconds.\\n' \"$(basename \"$script\")\"\n"
+   },
+   "exit_only": false,
+   "before": [],
+   "env": {
+    "HOME": "{work}/home",
+    "CONDA_EXE": "",
+    "CONDA_PREFIX": "",
+    "MAMBA_ROOT_PREFIX": "",
+    "CONDA_ROOT": "",
+    "PATH": "{work}/bin:/usr/bin:/bin",
+    "AMBERHOME": ""
+   },
+   "executable": [
+    "bin/cpptraj"
+   ],
+   "exit": 0,
+   "stdout": "{\n  \"pdbs\": [\n    \"{work}/MDATK_output/MDATK_frame_00001.pdb\"\n  ]\n}\n",
+   "stderr": "Cleaning trajectory with cpptraj ...\ncpptraj script written to {work}/MDATK_output/MDATK_cache/cleaned/{key}/cpptraj.in:\n[100.0%] cpptraj\nCPPTRAJ: Trajectory Analysis. V6.29.0 (fake)\nINPUT: Reading input from cpptraj.in\n  0% 25% 50% 75% 100% Complete.\nTIME: Total execution time: 0.0 seconds.\n[100.0%] cpptraj\n[100.0%] inputs ready\nExporting 1 frame(s) (382 atoms) as PDB\n[100.0%] PDB frame 1\n",
+   "written": {
+    "MDATK_output/MDATK_cache/cleaned/{key}/MDATK_clean.json": {
+     "text": "{\n  \"project\": \"MDATK\",\n  \"mdatk_version\": \"0.0.4.1\",\n  \"key\": \"{key}\",\n  \"created\": \"{time}\",\n  \"cpptraj\": \"{work}/bin/cpptraj\",\n  \"topology_in\": \"{work}/demo_dry.parm7\",\n  \"trajectories_in\": [\n    \"{work}/demo_dry.nc\"\n  ],\n  \"params\": {\n    \"enabled\": true,\n    \"cpptraj_path\": \"cpptraj\",\n    \"conda_env\": \"\",\n    \"conda_exe\": \"\",\n    \"solvent_mask\": \":WAT,HOH,TIP3,SOL,T3P,T4P,SPC\",\n    \"ion_mask\": \":Na+,Cl-,K+,NA,CL,K,Na,Cl,SOD,CLA,POT\",\n    \"extra_strip_mask\": \"\",\n    \"autoimage\": true,\n    \"autoimage_anchor\": \"\",\n    \"fit\": true,\n    \"fit_mask\": \"@P,C4'\",\n    \"fit_reference\": \"first\",\n    \"remove_box_after_fit\": true,\n    \"reference_frame\": 1,\n    \"reference_file\": \"\",\n    \"start\": 1,\n    \"stop\": null,\n    \"offset\": 1,\n    \"extra_commands\": \"\",\n    \"output_dir\": \"\"\n  },\n  \"outputs\": {\n    \"topology\": \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.parm7\",\n    \"trajectory\": \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.nc\",\n    \"reference_pdb\": \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned_ref.pdb\"\n  }\n}\n"
+    },
+    "MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.nc": {
+     "sha256": "9c6ada87d6eb27fc384e2551a322c378b7e75c1fe2e36574261f524c66bfbb48",
+     "size": 224688
+    },
+    "MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.parm7": {
+     "sha256": "4007a646be96d7ff0a4567b789c97fec80a4b1d19c89297cde871da9bf7057c0",
+     "size": 124144
+    },
+    "MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned_ref.pdb": {
+     "text": "REMARK fake reference\nEND\n"
+    },
+    "MDATK_output/MDATK_cache/cleaned/{key}/cpptraj.in": {
+     "text": "# Generated by MDATK 0.0.4.1 on {time}\nparm \"{work}/demo_dry.parm7\"\ntrajin \"{work}/demo_dry.nc\" 1 last 1\nstrip (:WAT,HOH,TIP3,SOL,T3P,T4P,SPC)|(:Na+,Cl-,K+,NA,CL,K,Na,Cl,SOD,CLA,POT) parmout \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.parm7\"\nautoimage\nbox nobox\nrms MDATKfit @P,C4' first mass\ntrajout \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.nc\" netcdf\ntrajout \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned_ref.pdb\" pdb onlyframes 1\nrun\nquit\n"
+    },
+    "MDATK_output/MDATK_cache/cleaned/{key}/cpptraj.log": {
+     "text": "CPPTRAJ: Trajectory Analysis. V6.29.0 (fake)\nINPUT: Reading input from cpptraj.in\n  0% 25% 50% 75% 100% Complete.\nTIME: Total execution time: 0.0 seconds.\n"
+    },
+    "MDATK_output/MDATK_frame_00001.pdb": {
+     "sha256": "535fc19b0cf2768bf2fbe146a52e82da9ebb87803b0dd368a24fda0266a80074",
+     "size": 39752
+    }
+   },
+   "before_exits": [],
+   "posix_only": true
+  },
+  {
    "name": "render_full",
    "argv": [
     "render",

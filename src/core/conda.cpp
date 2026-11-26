@@ -17,6 +17,7 @@
 #endif
 
 #include "mdbridge/core/paths.hpp"
+#include "mdbridge/core/process.hpp"
 #include "mdbridge/core/python.hpp"
 #include "mdbridge/core/text.hpp"
 #ifdef _WIN32
@@ -252,6 +253,95 @@ std::vector<CondaEnv> findCpptrajEnvs(const std::optional<std::vector<std::strin
                std::make_tuple(!containsAmber(b.name), b.name == "base", std::string_view(b.name));
     });
     return envs;
+}
+
+std::optional<CondaEnv> detectAmbertoolsEnv(const std::optional<std::vector<std::string>>& roots) {
+    std::vector<CondaEnv> envs = findCpptrajEnvs(roots);
+    if (envs.empty()) {
+        return std::nullopt;
+    }
+    return std::move(envs.front());
+}
+
+namespace {
+
+// os.sep in text; on Windows '/' too, as cleaning.cpptraj_path (DIFFERENCES "Windows paths" 4)
+bool hasSeparator(std::string_view text) {
+#ifdef _WIN32
+    return text.find_first_of("/\\") != std::string_view::npos;
+#else
+    return text.find('/') != std::string_view::npos;
+#endif
+}
+
+}  // namespace
+
+std::optional<CondaEnv> resolveEnv(std::string_view specText, const std::optional<std::vector<std::string>>& roots) {
+    const std::string spec = pythonStrip(specText);
+    if (spec.empty()) {
+        return std::nullopt;
+    }
+    if (hasSeparator(spec)) {
+        const std::string prefix = realpath(expanduser(spec));
+        if (!isDirectory(prefix)) {
+            return std::nullopt;
+        }
+        return CondaEnv{basename(prefix), prefix, rootOf(prefix)};
+    }
+    for (CondaEnv& env : findEnvs(roots, !roots.has_value())) {
+        if (env.name == spec) {
+            return std::move(env);
+        }
+    }
+    return std::nullopt;
+}
+
+std::optional<std::string> findCondaExe(std::string_view explicitExe, const std::optional<CondaEnv>& env) {
+    if (!explicitExe.empty()) {
+        const std::string path = expanduser(explicitExe);
+        if (hasSeparator(path)) {
+#ifdef _WIN32
+            std::error_code ec;
+            return fs::exists(pathFromUtf8(path), ec) ? std::optional<std::string>(path) : std::nullopt;
+#else
+            return ::access(path.c_str(), X_OK) == 0 ? std::optional<std::string>(path) : std::nullopt;
+#endif
+        }
+        return process::which(path);
+    }
+    std::vector<std::string> candidates;
+    if (env) {
+        for (const char* rel : {"condabin/conda", "bin/conda", "bin/mamba", "bin/micromamba"}) {
+            candidates.push_back(join(env->root, rel));
+        }
+    }
+    if (std::string condaExe = environment("CONDA_EXE"); !condaExe.empty()) {
+        candidates.push_back(std::move(condaExe));
+    }
+    for (const std::string& path : candidates) {
+        if (process::isExecutableFile(path)) {
+            return path;
+        }
+    }
+    for (const char* name : {"conda", "mamba", "micromamba"}) {
+        if (std::optional<std::string> found = process::which(name)) {
+            return found;
+        }
+    }
+    return std::nullopt;
+}
+
+std::vector<std::string> runCommand(const std::string& condaExe, const std::string& envSpec,
+                                    const std::vector<std::string>& argv) {
+    const std::string flag = hasSeparator(envSpec) ? "-p" : "-n";
+    std::vector<std::string> out{condaExe, "run"};
+    if (!basename(condaExe).starts_with("micromamba")) {
+        out.push_back("--no-capture-output");  // streams the child's output live (conda >= 4.9)
+    }
+    out.push_back(flag);
+    out.push_back(envSpec);
+    out.insert(out.end(), argv.begin(), argv.end());
+    return out;
 }
 
 }  // namespace mdbridge::core::conda

@@ -15,6 +15,7 @@ expected data is MDATK's output with the improvement applied here, never edited 
     PRJ-05           load_project: "--frames: 'x' is not a frame number or range"
     CLI-02           Pipeline.analyze reads the external data once before the frame loop
     CLI-08           export_frames checks every frame's coordinates before writing any file
+    CMD-01           build_demo checks the frame count, the time step and the sequence first
 * improve_text() / improve_strings(): messages reworded in place:
     CLI-01           a KeyError printed without the quotes of str(KeyError)
     CLI-03           "frame selection start=30 stop=None ..." -> "stop=end"
@@ -251,6 +252,7 @@ def apply():
     _patch_cli(cli)
     _patch_pipeline()
     _patch_export()
+    _patch_demo()
 
 
 def apply_rmsd():
@@ -351,3 +353,21 @@ def _patch_export():  # CLI-08
 
     pdb_export.export_frames = export_frames
     pipeline.export_frames = export_frames
+
+
+def _patch_demo():  # CMD-01 (src/app/commands/demo.cpp buildDemo)
+    from mdatk import demo
+
+    original = demo.build_demo
+
+    def build_demo(out_dir, n_frames=120, dt_ps=10.0, solvent=True, sequence="GCAUGGCAUCGA", seed=7):
+        if n_frames < 1:
+            raise ValueError(f"the demo needs at least one frame (--n-frames {n_frames})")
+        if not (math.isfinite(dt_ps) and dt_ps > 0):
+            raise ValueError(f"the time between frames must be a positive number of ps (--dt {dt_ps!r})")
+        if len(sequence) < 4 or any(c not in "ACGU" for c in sequence):
+            raise ValueError(f"demo sequence {sequence!r}: at least four of the letters A, C, G and U")
+        return original(out_dir, n_frames, dt_ps, solvent, sequence, seed)
+
+    demo.build_demo = build_demo
+

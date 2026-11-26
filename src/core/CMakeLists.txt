@@ -10,6 +10,7 @@ add_library(mdbridge_core STATIC
     citations.cpp
     clock.cpp
     conda.cpp
+    process.cpp
     dataset.cpp
     hash.cpp
     json.cpp

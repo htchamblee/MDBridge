@@ -104,14 +104,13 @@ ReferenceFrame loadReferenceFrame(const core::Project& project, const core::Repo
     std::string topology = in.topology;
     std::vector<std::string> trajectories = in.trajectories;
     {
-        analysis::Pipeline pipeline(project, core::Reporter());  // quiet: no "Cleaning ..." line
-        try {
-            const analysis::ResolvedInputs& resolved = pipeline.resolveInputs();
-            topology = resolved.topology;
-            trajectories = resolved.trajectories;
-            out.cleaned = !resolved.cleaningKey.empty();
-        } catch (const analysis::PipelineError&) {
-            // structure_preview: cleaned files when a matching result exists, else the raw files
+        // structure_preview: cleaned files when a matching result exists, else the raw files (no cpptraj run)
+        const analysis::Pipeline pipeline(project, core::Reporter());
+        const analysis::ResolvedInputs resolved = pipeline.cleanedIfAvailable();
+        topology = resolved.topology;
+        trajectories = resolved.trajectories;
+        out.cleaned = !resolved.cleaningKey.empty();
+        if (project.cleaning.enabled && !out.cleaned) {
             out.notes.push_back("no cleaned trajectory of these inputs yet: the structure is shown from the raw files");
         }
     }
