@@ -35,6 +35,17 @@ consistently (title, recent list, change notice, log); storage unchanged.
 Owner decisions since: fonts switch to IBM Plex Serif everywhere (interface, figures, charts,
 videos) with IBM Plex Math as the only fallback for missing symbols (branch `plex-serif`).
 
-## Wave 2: in progress
+## Wave 2: done (CI green at d1a4310)
 
-W2-A layout page + canvas editor (the canvas's structure panel is the 3D view), W2-B actions.
+Layout & panels page and canvas editor (the canvas's structure panel is the 3D view; Vulkan while
+dragging with a real GPU; one undo step per drag and per wheel burst), the window's actions
+(Render, still, Export PDBs, Re-render, Inspect, cleaning, Centre on model, result dialogs,
+About / BibTeX with run citations). All 42 recorded MDATK GUI cases pass. Fonts: IBM Plex Serif
+everywhere, Plex Math fallback, Plex Mono for fixed-width interface text and sequence text
+(FONT-01..03); DejaVu removed. Windows: project saves retry a rename the system refuses for up
+to 2 s (PRJ-13).
+
+## Wave 3: in progress
+
+Docs, accessibility (D10), Windows checks (native '\\' in every path shown in the interface;
+%APPDATA%, D16; Start-menu entry), GUI smoke tests on bare Rocky and Windows, AppRun fallback fix.
