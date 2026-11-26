@@ -38,6 +38,7 @@
 #include "mdbridge/core/paths.hpp"
 #include "mdbridge/core/project_file.hpp"
 #include "mdbridge/core/settings.hpp"
+#include "mdbridge/render/text.hpp"
 #include "mdbridge/render/text_qt.hpp"
 #include "gui/preview_widget.hpp"
 
@@ -657,7 +658,8 @@ fs::path saveScreenshot(QWidget* widget, const fs::path& dir, const std::string&
 }
 
 void useBundledFont() {
-    const QString family = QStringLiteral("DejaVu Sans");
+    const std::string_view name = render::bundledFont(render::FontFace::Sans).family;
+    const QString family = QString::fromUtf8(name.data(), static_cast<qsizetype>(name.size()));
     QStringList families;
     try {
         families = render::registerBundledFonts();
@@ -714,9 +716,10 @@ std::string replaceFolder(std::string text, const std::string& folder, const std
 
 namespace {
 
-// Windows: the window joins and normalises paths as ntpath does ('\\'), the harness's folders come
-// from Qt ('/') joined by std::filesystem ('\\'), and the cases were recorded with '/': the
-// folders match whatever their separators and the paths after them compare with '/'.
+// Windows: the harness's folders are Qt's '/' paths joined by std::filesystem ('\\'); the window
+// shows a path as it was given (mixed) or normalised by core::ntpath ('/'), and the cases were
+// recorded with '/': the folders match whatever their separators and the paths after them
+// compare with '/'.
 #ifdef _WIN32
 constexpr bool kAnySeparator = true;
 #else

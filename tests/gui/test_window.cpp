@@ -54,6 +54,13 @@ namespace {
 const fs::path kData = core::pathFromUtf8(MDBRIDGE_TEST_DATA);
 
 QString qs(const fs::path& p) { return QString::fromStdString(core::pathToUtf8(p)); }
+// A project path as the window shows it in its title, recent list and change notice: the document's
+// absolute path, normalised with '/' (core::ntpath on Windows: generic form; the fixture's folder
+// is Qt's '/' path joined by std::filesystem's '\\'). The same as qs(p) on Linux and macOS.
+QString shown(const fs::path& p) {
+    const std::u8string text = p.lexically_normal().generic_u8string();
+    return QString::fromStdString(std::string(text.begin(), text.end()));
+}
 
 std::string readFile(const fs::path& path) {
     std::ifstream in(path, std::ios::binary);
@@ -243,7 +250,7 @@ void WindowTests::titleMarksChanges() {
     QVERIFY(!w.isWindowModified());
     const fs::path p = f.copy("default.mdatk.toml", "p.mdatk.toml");
     QVERIFY(w.openPath(p));
-    QCOMPARE(w.windowTitle(), QStringLiteral("%1[*] - MDBridge").arg(qs(p)));
+    QCOMPARE(w.windowTitle(), QStringLiteral("%1[*] - MDBridge").arg(shown(p)));
     w.document().set("analyses.contacts.cutoff", 6.0);
     QVERIFY(w.isWindowModified());
     w.document().undo();
@@ -312,7 +319,7 @@ void WindowTests::openAndRecentList() {
     QCOMPARE(texts.mid(texts.size() - 2), (QStringList{QStringLiteral("Demo project…"), QStringLiteral("Browse…")}));
     QAction* recent = menu->findChild<QAction*>(QStringLiteral("recent:1"));
     QVERIFY(recent);
-    QCOMPARE(recent->toolTip(), qs(a));
+    QCOMPARE(recent->toolTip(), shown(a));
     recent->trigger();
     QCOMPARE(w.document().path(), a);
     // a parameter log opens as an unsaved project (MDATK)
@@ -637,7 +644,7 @@ void WindowTests::externalChange() {
     }
     w.checkDisk();
     QVERIFY(w.externalChangeShown());
-    QCOMPARE(f.lastLog(), core::pathToUtf8(p) + " was changed by another program.");
+    QCOMPARE(QString::fromStdString(f.lastLog()), shown(p) + QStringLiteral(" was changed by another program."));
     // Save asks before it replaces the other program's version
     w.document().set("notes", std::string("mine"));
     f.answer("external", "cancel");

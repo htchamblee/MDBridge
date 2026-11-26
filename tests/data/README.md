@@ -1005,7 +1005,8 @@ line, values as TOML, since arrays wrap by the length of the paths in them). A c
 
 Placeholders, in expected files and in `outcome` texts: `{case_dir}` (the case folder, absolute)
 and `{config_dir}` (`$XDG_CONFIG_HOME`, a folder outside it). Paths are written with `/`: on
-Windows, where the window writes `\` as MDATK's `os.path` does there, the folder matches with
+Windows, where the case folder is Qt's `/` path joined with `\` and the window shows a path as
+given or normalised (MDATK's `os.path` would write `\`), the folder matches with
 either separator and the separators of the path after it become `/` (up to a space, quote, colon,
 comma, semicolon or closing bracket); the settings file is compared by its parsed values, so a
 TOML string's escaped `\\` is a path's `\` there. The environment of a run:
