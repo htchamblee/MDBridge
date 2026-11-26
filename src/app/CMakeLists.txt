@@ -27,6 +27,8 @@ add_library(mdbridge_app STATIC
     gui/main_window.hpp
     gui/preview_widget.cpp
     gui/preview_widget.hpp
+    gui/problems/problems_panel.cpp
+    gui/problems/problems_panel.hpp
     gui/project_panel.cpp
     gui/project_panel.hpp
     project_summary.cpp

@@ -364,6 +364,17 @@ if(MDBRIDGE_BUILD_APP)
     add_test(NAME gui.forms COMMAND mdbridge_gui_forms_tests)
     set_tests_properties(gui.forms PROPERTIES LABELS gui ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 
+    # the problems presentation (src/app/gui/problems, milestone 5 W1-D): every validate case's problem
+    # on its field of a factory-built form with its location, page badges, jumps, checking as you type
+    add_executable(mdbridge_gui_problems_tests gui/test_problems.cpp)
+    set_target_properties(mdbridge_gui_problems_tests PROPERTIES AUTOMOC ON)
+    target_include_directories(mdbridge_gui_problems_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/core")
+    target_link_libraries(mdbridge_gui_problems_tests PRIVATE mdbridge_app Qt6::Test)
+    target_compile_definitions(mdbridge_gui_problems_tests PRIVATE MDBRIDGE_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data")
+    mdbridge_target_warnings(mdbridge_gui_problems_tests)
+    add_test(NAME gui.problems COMMAND mdbridge_gui_problems_tests)
+    set_tests_properties(gui.problems PROPERTIES LABELS gui ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
     # the interface's job runner and log view (src/app/gui/jobs; Qt Test, offscreen platform): job
     # texts, one job at a time, progress throttle, cancel paths, failures, close-while-running
     # (AP-14), a bounded batched log that keeps the event loop responsive under 10^6 lines
@@ -376,7 +387,7 @@ if(MDBRIDGE_BUILD_APP)
 
     # every GUI test program links mdbridge_app, which links the video encoder: the FFmpeg DLLs next to it
     if(WIN32 AND MDBRIDGE_VIDEO_RUNTIME_FILES)
-        foreach(gui_test mdbridge_gui_tests mdbridge_gui_forms_tests mdbridge_gui_jobs_tests)
+        foreach(gui_test mdbridge_gui_tests mdbridge_gui_forms_tests mdbridge_gui_problems_tests mdbridge_gui_jobs_tests)
             add_custom_command(TARGET ${gui_test} POST_BUILD
                 COMMAND ${CMAKE_COMMAND} -E copy_if_different ${MDBRIDGE_VIDEO_RUNTIME_FILES} $<TARGET_FILE_DIR:${gui_test}>
                 VERBATIM)

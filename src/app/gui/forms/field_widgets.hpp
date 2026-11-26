@@ -106,6 +106,9 @@ public:
     virtual void commit() {}
     // The text the field shows for its value (what a commit of it would store).
     virtual QString displayedText() const = 0;
+    // Text typed into the field and not stored yet (nullopt when it shows the document's value):
+    // what FormContext checks as you type.
+    virtual std::optional<QString> pendingText() const { return std::nullopt; }
 
     // The flag shown: (message, level).
     std::pair<QString, QString> flag() const;
@@ -127,7 +130,8 @@ protected:
     QString documentText() const;
     bool fieldExists() const;
     // A problem the widget itself sees (a value outside the range hint, an unknown choice, a
-    // colour Matplotlib cannot read); shown when the document has none for the field.
+    // colour Matplotlib cannot read); shown when the document has none for the field, and given to
+    // the context (FormContext::localProblems) for the problems list.
     void setLocalProblem(const QString& message, const QString& level = QStringLiteral("warning"));
     void updateFlag();
     // True while refresh() writes into the editor (its signals are no user input then).
@@ -181,9 +185,11 @@ public:
     void refresh() override;
     void commit() override;
     QString displayedText() const override;
+    std::optional<QString> pendingText() const override;
 
 private:
     void step(int steps);
+    void checkRange(const QString& text);
     bool isInteger() const;
     std::optional<double> currentNumber() const;
     NumberBox* m_box = nullptr;
@@ -203,6 +209,7 @@ public:
     void refresh() override;
     void commit() override;
     QString displayedText() const override;
+    std::optional<QString> pendingText() const override;
 
 protected:
     virtual void textShown(const QString& text);  // after refresh and while typing
@@ -259,6 +266,7 @@ public:
     void refresh() override;
     void commit() override;
     QString displayedText() const override;
+    std::optional<QString> pendingText() const override;
 
 protected:
     bool eventFilter(QObject* watched, QEvent* event) override;
@@ -300,6 +308,7 @@ public:
     void refresh() override;
     void commit() override;
     QString displayedText() const override;
+    std::optional<QString> pendingText() const override;
 
 private:
     QComboBox* m_combo = nullptr;
