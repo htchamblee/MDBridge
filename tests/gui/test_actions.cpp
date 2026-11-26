@@ -75,8 +75,8 @@ namespace {
 constexpr int kJobWait = 300000;  // ms: a job of these tests (the demo's analyses and video)
 
 QString qs(const fs::path& p) { return QString::fromStdString(core::pathToUtf8(p)); }
-// A file of the output folder as the window and the pipeline show it: '/' separators (core::outDir,
-// the documented Windows path rules), while f.outDir() / name and directory listings join with
+// The output folder or one of its files as the window shows it: '/' separators throughout
+// (WindowActions' display(), WA-06), while f.outDir() / name and directory listings join with
 // std::filesystem's '\\' on Windows. The same as core::pathToUtf8(p) on Linux and macOS.
 std::string shown(const fs::path& p) {
     const std::u8string text = p.generic_u8string();

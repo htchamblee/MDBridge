@@ -2509,9 +2509,12 @@ has nothing to adopt: MDBridge does not fit maps yet (milestone 4 D9). Deliberat
   `QDesktopServices::openUrl` (Explorer on Windows; the XDG portal or `xdg-open` on Linux) instead
   of MDATK's FileManager1 D-Bus call, `inode/directory` handler and `xdg-open` chain; the log line
   is `Opened <path>` without MDATK's `(<how>)`, the path with `/` separators as the output folder
-  is resolved (Windows path rules above; also for a video found by listing the folder). When
-  nothing can open it: `Could not open the folder` / `Could not open the video`. *Tested:* `ActionTests::openFolderAndVideo` (the opener
-  replaced by the test).
+  is resolved (Windows path rules above; also for a video found by listing the folder). The
+  result dialogs of Render (`Video:`, `Parameter log:`) and Export PDBs list the files the same
+  way; on Windows the pipeline's own text joins the folder and the name with `\`, which the log
+  and the command line keep. When nothing can open it: `Could not open the folder` / `Could not
+  open the video`. *Tested:* `ActionTests::openFolderAndVideo` (the opener replaced by the test),
+  `realFramePreviewAndRender`, `exportRerenderInspect`.
 - **WA-07: the still fits the screen (AP-18).** MDATK scaled the still to a fixed 1 200 px width;
   MDBridge shows it at its own size when it fits and otherwise scales it, aspect kept, to 90 % of
   the available screen (less the dialog's frame). The title is `MDBridge preview – <file>`.

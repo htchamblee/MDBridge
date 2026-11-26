@@ -50,9 +50,10 @@ namespace fs = std::filesystem;
 namespace {
 
 QString qs(const std::string& text) { return QString::fromUtf8(text.data(), static_cast<qsizetype>(text.size())); }
-// A file of the output folder as the window shows it: '/' separators, as core::outDir and the
-// pipeline's outputs (the documented Windows path rules); a video found by listing the folder
-// would otherwise end in "\\MDATK_video_....mp4" on Windows. The same text on Linux and macOS.
+// The output folder or one of its files as the window shows it: '/' separators throughout, as
+// core::outDir resolves the folder (the documented Windows path rules). On Windows the pipeline's
+// files (core::outDir joined by std::filesystem) and a video found by listing the folder would
+// otherwise end in "\\<name>". The same text on Linux and macOS.
 QString display(const fs::path& path) {
     const std::u8string text = path.generic_u8string();
     return QString::fromUtf8(reinterpret_cast<const char*>(text.data()), static_cast<qsizetype>(text.size()));
@@ -189,10 +190,10 @@ bool WindowActions::render() {
         [this](RunOutputs outputs) {
             if (outputs.video) m_lastVideo = core::pathFromUtf8(*outputs.video);
             QStringList lines;
-            if (outputs.video) lines.push_back(QStringLiteral("Video: %1").arg(qs(*outputs.video)));
+            if (outputs.video) lines.push_back(QStringLiteral("Video: %1").arg(display(core::pathFromUtf8(*outputs.video))));
             if (!outputs.charts.empty()) lines.push_back(QStringLiteral("Charts: %1 file(s)").arg(outputs.charts.size()));
             if (!outputs.pdbs.empty()) lines.push_back(QStringLiteral("PDB files: %1").arg(outputs.pdbs.size()));
-            if (outputs.paramsLog) lines.push_back(QStringLiteral("Parameter log: %1").arg(qs(*outputs.paramsLog)));
+            if (outputs.paramsLog) lines.push_back(QStringLiteral("Parameter log: %1").arg(display(core::pathFromUtf8(*outputs.paramsLog))));
             result(QStringLiteral("Render finished"),
                    lines.isEmpty() ? QStringLiteral("Nothing was enabled.") : lines.join(QLatin1Char('\n')));
         });
@@ -240,7 +241,7 @@ bool WindowActions::exportPdbs() {
         },
         [this](std::vector<std::string> paths) {
             QStringList lines;
-            for (const std::string& p : paths) lines.push_back(qs(p));
+            for (const std::string& p : paths) lines.push_back(display(core::pathFromUtf8(p)));
             result(QStringLiteral("PDB export finished"), lines.join(QLatin1Char('\n')));
         });
 }
