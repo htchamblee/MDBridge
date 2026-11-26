@@ -2766,9 +2766,12 @@ differences:
   the smoke test of finished builds (AppImage on Ubuntu and on a bare Rocky Linux 9 under Xvfb, the
   installed Windows program) edits a field, saves, renders a still and photographs every page
   (CI artifacts `gui-screenshots-<platform>`), which the GUI tests (offscreen, build tree) cannot
-  show for the shipped programs. *Tested:* `ScriptTests` (`gui.script`: exactly the edited line
-  changes on save, a screenshot per page, a failing action stops the script, malformed scripts are
-  refused) and `packaging/smoke_test.py --gui`.
+  show for the shipped programs. The report's path fields (`project`, `file`, `files`, `image`) are
+  stored paths; its messages (`problem`, the window's `messages` and `questions`) and stderr show
+  paths as the interface does (WN-12: `\` throughout on Windows). *Tested:* `ScriptTests`
+  (`gui.script`: exactly the edited line changes on save, a screenshot per page, a failing action
+  stops the script, malformed scripts are refused, a failing copy names its target as
+  `gui::displayPath` shows it) and `packaging/smoke_test.py --gui`.
 - **PKG-03 The Windows Start-menu entry is checked, no file association** (`packaging/windows/mdbridge.iss`,
   CI job `windows`). As MDATK's installer (0.0.4.1 and 0.1.1), MDBridge's registers no file type:
   Windows associates by the last extension only, so `*.mdatk.toml` could only be had by taking over

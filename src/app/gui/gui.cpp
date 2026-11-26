@@ -10,10 +10,12 @@
 #include <QIcon>
 #include <QImage>
 #include <QPaintDeviceWindow>
+#include <QString>
 #include <QThreadPool>
 #include <QTimer>
 #include <QWidget>
 
+#include "gui/display_path.hpp"
 #include "main_window.hpp"
 #include "mdbridge/core/json.hpp"
 #include "mdbridge/core/paths.hpp"
@@ -254,8 +256,8 @@ int runGui(const GuiOptions& options, int& argc, char** argv) {
             try {
                 script = std::make_unique<ScriptRunner>(window, core::pathFromUtf8(options.script),
                                                         core::pathFromUtf8(options.scriptOutput));
-            } catch (const std::exception& e) {
-                std::cerr << "mdbridge: " << e.what() << '\n';
+            } catch (const std::exception& e) {  // the reason's paths as the interface shows them (WN-12)
+                std::cerr << "mdbridge: " << gui::displayPathsIn(QString::fromUtf8(e.what())).toStdString() << '\n';
             }
             // a script that cannot be read: exit code 2, through the usual end (the load is stopped)
             QTimer::singleShot(0, &app, [&script] { QApplication::exit(script ? script->run() : 2); });

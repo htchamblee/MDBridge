@@ -145,6 +145,11 @@ window driven by the same action scripts (`tests/parity/make_gui_cases.py`; 42 r
 - **Settings**: the recent list is shared with MDATK on Linux (`~/.config/mdatk/settings.toml`, its
   other keys kept); MDBridge's own settings and recovery copies are in `~/.config/mdbridge`
   (`%APPDATA%\MDBridge` on Windows).
+- **Packaging**: the AppImage uses the host's desktop libraries (GL, fontconfig, freetype, X11,
+  xcb) and supplies its own copy only of one the host lacks (the GL dispatch libraries as one set);
+  CI's smoke test drives the shipped programs' window (`mdbridge gui PROJECT --script FILE`): a
+  field edited and saved, a still rendered, every page photographed, on Ubuntu, a bare Rocky Linux
+  9 and the installed Windows program, whose Start-menu entry is checked.
 - **Deliberate differences** (the AP items: MDATK window bugs fixed, and the window's additions) are
   listed by id with their tests in [docs/DIFFERENCES.md](docs/DIFFERENCES.md) ("Interface: index of
   the ids"); the plan in [docs/specs/m5-plan.md](docs/specs/m5-plan.md).

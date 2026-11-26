@@ -29,6 +29,7 @@
 #include "gui/actions/window_actions.hpp"
 #include "gui/dialogs/image_dialog.hpp"
 #include "gui/dialogs/prompts.hpp"
+#include "gui/display_path.hpp"
 #include "gui/forms/field_widgets.hpp"
 #include "gui/forms/form_context.hpp"
 #include "gui/jobs/job_runner.hpp"
@@ -55,6 +56,9 @@ public:
 
 QString qs(const std::string& text) { return QString::fromUtf8(text.data(), static_cast<qsizetype>(text.size())); }
 std::string utf8(const QString& text) { return forms::toStdString(text); }
+// A path in a message (the report's "problem", stderr) as the interface shows it: native
+// separators on Windows (WN-12); the report's path fields keep the stored form.
+std::string displayed(const fs::path& path) { return utf8(gui::displayPath(path)); }
 
 // Runs the event loop until `done` holds or `timeoutMs` passed (as QTest::qWaitFor).
 bool waitFor(const std::function<bool()>& done, int timeoutMs) {
@@ -190,7 +194,7 @@ int intEntry(const core::Value& action, std::string_view k, int fallback) {
 
 std::string readText(const fs::path& path) {
     std::ifstream in(path, std::ios::binary);
-    if (!in) throw std::runtime_error("cannot read " + core::pathToUtf8(path));
+    if (!in) throw std::runtime_error("cannot read " + displayed(path));
     return {std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>()};
 }
 
@@ -233,6 +237,7 @@ struct ScriptRunner::Impl {
     core::Value script;
     ScriptPrompter prompter;
     core::Array results;
+    std::string lastProblem;  // the report's "problem" of the last run
 
     Impl(MainWindow& w, const fs::path& file, const fs::path& out) : window(w) {
         script = core::parseJson(readText(file), core::pathToUtf8(file));
@@ -240,7 +245,7 @@ struct ScriptRunner::Impl {
         output = out.empty() ? scriptDir : fs::absolute(out);
         const core::Value* actions = script.find("actions");
         if (!actions || !actions->get<core::Array>()) {
-            throw std::runtime_error(core::pathToUtf8(file) + ": the script has no \"actions\" list");
+            throw std::runtime_error(displayed(file) + ": the script has no \"actions\" list");
         }
     }
 
@@ -262,7 +267,7 @@ struct ScriptRunner::Impl {
         const fs::path file = output / core::pathFromUtf8(name + ".png");
         const QPixmap pixmap = widget->grab();
         if (pixmap.isNull() || !pixmap.save(qs(core::pathToUtf8(file)), "PNG")) {
-            throw ActionError("could not save the screenshot " + core::pathToUtf8(file));
+            throw ActionError("could not save the screenshot " + displayed(file));
         }
         return file;
     }
@@ -301,7 +306,7 @@ struct ScriptRunner::Impl {
             const fs::path to = resolved(stringEntry(action, "to"));
             std::error_code ec;
             fs::copy_file(window.projectFile(), to, fs::copy_options::overwrite_existing, ec);
-            if (ec) throw ActionError("could not copy the project file to " + core::pathToUtf8(to) + ": " + ec.message());
+            if (ec) throw ActionError("could not copy the project file to " + displayed(to) + ": " + ec.message());
             result.emplace_back("file", core::pathToUtf8(to));
         } else if (what == "render_still") {
             renderStill(action, result);
@@ -352,7 +357,7 @@ struct ScriptRunner::Impl {
             const fs::path target = resolved(to->stringOr());
             std::error_code ec;
             fs::copy_file(core::pathFromUtf8(utf8(shown)), target, fs::copy_options::overwrite_existing, ec);
-            if (ec) throw ActionError("could not copy the still to " + core::pathToUtf8(target) + ": " + ec.message());
+            if (ec) throw ActionError("could not copy the still to " + displayed(target) + ": " + ec.message());
             result.emplace_back("file", core::pathToUtf8(target));
         }
         if (ImageDialog* dialog = actions->stillDialog()) {
@@ -384,9 +389,11 @@ struct ScriptRunner::Impl {
                 }
                 result.emplace_back("ok", true);
             } catch (const std::exception& e) {
-                problem = "action " + std::to_string(k + 1) + " (" + result.front().second.stringOr() + "): " + e.what();
+                // paths in the reasons other code gives (the pipeline's, the file system's) shown too
+                const std::string reason = utf8(gui::displayPathsIn(qs(e.what())));
+                problem = "action " + std::to_string(k + 1) + " (" + result.front().second.stringOr() + "): " + reason;
                 result.emplace_back("ok", false);
-                result.emplace_back("problem", e.what());
+                result.emplace_back("problem", reason);
             }
             results.push_back(std::move(result));
         }
@@ -406,6 +413,7 @@ struct ScriptRunner::Impl {
             {"questions", prompter.questions},
             {"libraries", std::move(libraries)},
         };
+        lastProblem = problem;
         std::cout << core::toJson(report, -1) << std::endl;
         if (!problem.empty()) std::cerr << "mdbridge: script: " << problem << '\n';
         return problem.empty() ? 0 : 1;
@@ -418,5 +426,7 @@ ScriptRunner::ScriptRunner(MainWindow& window, const fs::path& script, const fs:
 ScriptRunner::~ScriptRunner() = default;
 
 int ScriptRunner::run() { return m_impl->run(); }
+
+const std::string& ScriptRunner::problem() const { return m_impl->lastProblem; }
 
 }  // namespace mdbridge::app

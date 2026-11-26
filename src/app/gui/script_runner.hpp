@@ -26,7 +26,10 @@
 // one line at the end: {"ok", "problem", "project", "modified", "pages", "actions": [{"action", "ok",
 // ...}], "messages", "questions", "libraries" (the shared libraries loaded, Linux: which copies an
 // AppImage used)}; the window then quits with 0 when every action succeeded, else 1 (2: the script
-// could not be read).
+// could not be read). The report's paths ("project", "file", "files", "image", "dialog") are
+// stored paths (as the project file and settings keep them, '/' on Windows); its texts ("problem",
+// "messages", "questions") and stderr show paths as the interface does (gui::displayPath: '\' on
+// Windows, docs/DIFFERENCES.md WN-12).
 
 #include <filesystem>
 #include <memory>
@@ -47,6 +50,9 @@ public:
     // Runs every action (waiting inside, as the GUI tests do), prints the report and returns the
     // exit code: 0 when every action succeeded, 1 when one failed (the rest are not run).
     int run();
+
+    // After run(): the report's "problem" ("" when every action succeeded).
+    const std::string& problem() const;
 
 private:
     struct Impl;

@@ -17,6 +17,7 @@
 #include <QTemporaryDir>
 #include <QTest>
 
+#include "gui/display_path.hpp"
 #include "gui/main_window.hpp"
 #include "gui/script_runner.hpp"
 #include "mdbridge/core/paths.hpp"
@@ -53,6 +54,7 @@ private slots:
     void editSaveAndScreenshots();
     void failingActionStops();
     void malformedScriptRefused();
+    void problemShowsPathsAsTheInterface();
 
 private:
     QTemporaryDir m_config;
@@ -122,6 +124,27 @@ void ScriptTests::malformedScriptRefused() {
     QVERIFY_THROWS_EXCEPTION(std::runtime_error, app::ScriptRunner(window, folder / "s.json", {}));
     writeFile(folder / "t.json", "{");
     QVERIFY_THROWS_EXCEPTION(std::exception, app::ScriptRunner(window, folder / "t.json", {}));
+}
+
+// The report's "problem" (and stderr) shows a path as the interface does: gui::displayPath, '\'
+// throughout on Windows (WN-12), unchanged on Linux and macOS.
+void ScriptTests::problemShowsPathsAsTheInterface() {
+    QTemporaryDir dir;
+    const fs::path folder = core::pathFromUtf8(dir.path().toStdString());
+    const fs::path project = folder / "p.mdatk.toml";
+    writeFile(project, "format = \"mdatk-project\"\n");
+    writeFile(folder / "s.json", R"({"actions": [{"action": "copy_project", "to": "missing/copy.toml"}]})");
+    app::MainWindow window(render::Renderer::Software);
+    QVERIFY(window.startWith(project));
+    app::ScriptRunner runner(window, folder / "s.json", {});
+    QCOMPARE(runner.run(), 1);
+    const fs::path target = fs::absolute(folder / "s.json").parent_path() / core::pathFromUtf8("missing/copy.toml");
+    const std::string expected = app::gui::displayPath(target).toStdString();
+    const std::string& problem = runner.problem();
+    QVERIFY2(problem.find("could not copy the project file to " + expected + ": ") != std::string::npos, problem.c_str());
+#ifdef _WIN32
+    QVERIFY2(problem.find('/') == std::string::npos, problem.c_str());
+#endif
 }
 
 int main(int argc, char** argv) {

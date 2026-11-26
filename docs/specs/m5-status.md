@@ -1,4 +1,7 @@
-# Milestone 5: status (2026-11-25)
+# Milestone 5: status (2026-11-26)
+
+Milestone 5 is complete pending CI on the wave-3 merge: every wave is done and checked locally;
+CI runs on the pushed branch decide.
 
 Pushed and green on CI: everything up to the pre-M5 fix wave (`9abefbf`) and the M5 plan with the
 owner's decisions (`docs/specs/m5-plan.md`, all D1-D20 accepted, D4 amended: no separate 3D view).
@@ -18,9 +21,9 @@ and log view (`src/app/gui/jobs/`), `demo` / `clean` / `citations` (with the pro
 (`mdbridge_gui_tests`, `gui.forms`, `gui.jobs`). Owner decision: cpptraj scripts name MDBridge
 (CMD-08).
 
-Known issue for W3 (packaging): when the host lacks one of the AppImage's fallback libraries,
-AppRun puts the whole `usr/lib/fallback` folder first on LD_LIBRARY_PATH, so Rocky's fontconfig,
-freetype, harfbuzz and GL replace the host's; only the missing libraries should be supplied.
+Known issue for W3 (packaging), resolved in wave 3 (PKG-01): when the host lacked one of the
+AppImage's fallback libraries, AppRun put the whole `usr/lib/fallback` folder first on
+LD_LIBRARY_PATH, so the bundled fontconfig, freetype, X11 and GL replaced the host's.
 
 ## Wave 1: done (CI green at 70b8a42)
 
@@ -45,7 +48,25 @@ everywhere, Plex Math fallback, Plex Mono for fixed-width interface text and seq
 (FONT-01..03); DejaVu removed. Windows: project saves retry a rename the system refuses for up
 to 2 s (PRJ-13).
 
-## Wave 3: in progress
+## Wave 3: done (local checks at the wave-3 merge; CI pending)
 
-Docs, accessibility (D10), Windows checks (native '\\' in every path shown in the interface;
-%APPDATA%, D16; Start-menu entry), GUI smoke tests on bare Rocky and Windows, AppRun fallback fix.
+W3-A: on Windows every path the interface shows uses native '\\' separators (`gui::displayPath` /
+`displayPathsIn`: title, recent list, change notice, log lines including the pipeline's, dialogs,
+status bar, problems, field flags; storage and the command line unchanged, WN-12); keyboard and
+screen-reader access (D10, WN-13: Tab reaches every control in visual order, every focusable widget
+named, the canvas takes the focus with a focus frame, arrow keys rotate and + / - zoom the
+structure, one undo step per burst); every page fits at 150 % and 200 % (`gui.window.scale150` /
+`scale200`); settings locations checked (`%APPDATA%\\MDBridge`, D16, WN-14); the docs (README,
+BUILDING, DIFFERENCES interface index, ARCHITECTURE status).
+
+W3-B: the AppImage supplies only the fallback libraries the host lacks, the GL dispatch libraries
+(glvnd) as one unit (PKG-01: the known issue above); `graphics --json` and the script report list
+the libraries loaded; `mdbridge gui PROJECT --script FILE` drives the window from a JSON action
+list (PKG-02; `gui.script`), used by `packaging/smoke_test.py --gui` to edit a field, save (exactly
+one line changes), render a still and photograph every page on the AppImage (Ubuntu, bare Rocky 9
+under Xvfb) and on the installed Windows program; CI checks the Windows Start-menu entry and starts
+its target on a project (PKG-03; no file association, as MDATK).
+
+Integration: the script runner's messages (its report's "problem", stderr) show paths as the
+interface does (`gui::displayPath`), its report's path fields keep the stored form
+(`ScriptTests::problemShowsPathsAsTheInterface`).
