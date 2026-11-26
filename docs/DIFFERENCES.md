@@ -2915,11 +2915,18 @@ cases of `cli_parity.py`.
   and `density fit`: a non-finite `--resolution` gives "the resolution must be a positive number of Å"
   (zero / negative keep MDATK's "enter the map resolution (Å)" and the project check); `density
   simulate`: any resolution that is not a positive finite number gives that message, a negative or
-  non-finite `--spacing` "the grid spacing must be positive" (`--spacing 0` stays the default).
+  non-finite `--spacing` "the grid spacing must be positive" (`--spacing 0` stays the default). The
+  library refuses it too: `chem::FitProblem` (so `fitModel`) throws FitError "the resolution must be
+  a positive number of Å" for a NaN or infinite resolution, MDATK's message for zero and negative
+  ones (*Tested:* `DensityFit.NonFiniteResolutionIsRefused`, `DensityFit.ErrorsAsMdatk`).
 - **CH-11 Non-finite voxels carry no density in a fit** (RN-30's rule; MDATK-BUG-060). The fit's
   Gaussian smoothing spread one NaN voxel over 9^3 voxels (a 0.0° fit became 0.1°, the CC changed);
   MDBridge fits a copy with them as 0, centres a local start on the finite voxels (RN-33's level) and
-  ends the fit message with "; N non-finite map voxel(s) read as no density".
+  ends the fit message with "; N non-finite map voxel(s) read as no density". In C++ `chem::FitProblem`
+  keeps a copy of the map with them as 0 (`nonFiniteVoxels()` counts them) and `chem::fitModel` adds
+  the note; `centreTransform` uses `numerics::densityCentroid`, which skips them (*Tested:*
+  `DensityFit.NonFiniteVoxelsCarryNoDensity`, and the `fit_nan.mrc` case of
+  `Cases/DensityFitProblem.AsMdatk`).
 - **CH-12 `density fit --save` keeps the project's paths** (MDATK-BUG-006 on the command line; ED-02).
   MDATK saved every path absolute; the project file is written with its paths as it had them and the
   fit's density settings, a relative `--map` relative to the project folder, and `--save OTHER` rebases
@@ -2973,6 +2980,31 @@ cases of `cli_parity.py`.
 Fitted outputs are compared within tolerances (plan 4.1, D10): the rebuilt helices of the other
 pairings and triplexes, the density fits and their transforms; regenerate_all.py compares the chem
 JSON files within FITTED's tolerance where their bytes differ (tests/data/README.md).
+
+- **The density fit's sums in double precision, on several threads** (src/chem/density_fit.cpp,
+  milestone 6 W1-E; owner decision D2; density.py unchanged in 0.1.1). `rotationSamples`,
+  `FitProblem` (envelope, `cc`, `atResolution`, `flips`, `refine`), `CoarseSearch` (`_CoarseSearch`),
+  `globalSearch`, `fitModel`, `fftSize` and `centreTransform` follow MDATK's code step by step, with
+  SciPy's pieces from src/numerics (the same FFT, Gaussian filter, `map_coordinates` and Powell). The
+  map samples stay float32 as scipy returns them, but MDATK centred them with float32 means and summed
+  them with BLAS `sdot`, and Fourier-transformed the coarse map in float32 (`scipy.fft` keeps single
+  precision); MDBridge takes every mean, sum and FFT in double precision and in a fixed order. *Why:*
+  float32 accumulations lose about 1e-6 of a score and depend on the CPU's BLAS kernel; a fixed order
+  makes the result independent of the machine and of the thread count. The global search scores its
+  rotations and refines its poses on several threads (`FitControl::threads`, default the hardware's,
+  at most 16); candidates are collected and sorted in MDATK's order, so the pose, CC, evaluation
+  count and message are those of one thread. Progress and cancellation go through `core::Reporter`
+  (MDATK's messages; a cancel throws `core::Cancelled`, which MDATK 0.0.13 logs as *cancelled*).
+  *Tested:* `tests/chem/test_density_fit.cpp`: rotations within 1e-13 and their counts and errors,
+  `_fft_size` for 1 ... 400, the envelopes (points, values) exactly, scores and coarse-search peaks
+  within 1e-5, flips within 1e-9, and every refinement and `fit_model` result of
+  `density_fit_cases.json` within D10's tolerance (0.5°, 0.2 Å at the model centre, CC 1e-3) with
+  MDATK's messages and candidate counts; `SameResultForAnyThreadCountAndProgress` (1, 3 and 8 threads
+  bit for bit), `CancelStopsTheSearch`, and the counterparts of tests/test_density.py's
+  `test_rotation_samples_cover_so3`, `test_global_search_recovers_the_pose` and
+  `test_global_search_ignores_unrelated_density_and_validates_steps` (their maps' noise from
+  `std::mt19937_64`: properties, not parity). On the demo frame's map MDBridge takes 3.1 s on one
+  thread and 1.2-1.5 s on four, MDATK 4.8 s (the 551-rotation search of `fit_demo.mrc`).
 
 ## Chemistry: restraint dictionaries (src/chem/dictionaries.cpp, smiles.cpp; milestone 6 W1-C)
 
