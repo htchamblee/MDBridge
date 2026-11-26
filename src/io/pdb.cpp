@@ -466,6 +466,16 @@ ParsedAtom parseAtom(U32View raw, std::size_t lineno) {
         element = strip(slice(line, 76, 78));
         charge = strip(slice(line, 78, 80));
         if (!coordsOk(tail)) {
+            // CH-01: a number below -999 as MDATK wrote it ("A-1234"), every later column shifted
+            const U32 number = slice(line, 22, 27);
+            const bool wide = number.size() == 5 && number[0] == U'-' &&
+                              std::all_of(number.begin() + 1, number.end(),
+                                          [](char32_t c) { return c >= U'0' && c <= U'9'; });
+            if (wide && coordsOk(slice(line, 28, 77))) {
+                throw PdbError("line " + std::to_string(lineno) + ": residue number " +
+                               std::to_string(*toInt(number)) +
+                               " does not fit the PDB columns (-999 to 9999); the later columns are shifted");
+            }
             throw PdbError("line " + std::to_string(lineno) + ": unreadable coordinates");
         }
     }
@@ -532,6 +542,11 @@ U32 firstOr(const std::string& text, char32_t fallback) {
 }
 
 U32 idColumns(const PdbResidue& res) {
+    if (res.resseq < -999) {  // CH-01: "-1002" would shift every later column
+        throw PdbError("residue number " + std::to_string(res.resseq) + " (" +
+                       (res.chain.empty() ? std::string("_") : res.chain) +
+                       ") does not fit the PDB columns (-999 to 9999)");
+    }
     const std::int64_t resseq = res.resseq > 9999 ? res.resseq % 10000 : res.resseq;
     return residueField(toU32(res.name)) + firstOr(res.chain, U' ') + toU32(padInt(resseq, 4)) +
            firstOr(res.icode, U' ');
@@ -926,6 +941,10 @@ std::vector<std::string> seqresLines(const std::vector<SeqresChain>& chains) {
         for (std::size_t k = 0; k < n; k += 13) {
             U32 body;
             for (std::size_t i = k; i < std::min(n, k + 13); ++i) {
+                if (core::characterCount(chain.names[i]) > 3) {  // CH-07
+                    throw PdbError("SEQRES residue names have at most three characters: " +
+                                   core::pythonStringRepr(chain.names[i]));
+                }
                 body += (i > k ? U" " : U"") + rjust(toU32(chain.names[i]), 3);
             }
             const U32 line = U"SEQRES " + toU32(padInt(static_cast<std::int64_t>(k / 13 + 1), 3)) +
@@ -1064,6 +1083,10 @@ std::optional<ResidueName> parseResidueName(std::string_view name) {
         return std::nullopt;
     }
     return ResidueName{base, "rna", (pre == 'L' || pre == '0') ? 'L' : 'D', term};
+}
+
+std::string pythonUpper(std::string_view text) {
+    return toUtf8(upper(toU32(text)));
 }
 
 bool isBackboneAtomName(std::string_view atomName) {

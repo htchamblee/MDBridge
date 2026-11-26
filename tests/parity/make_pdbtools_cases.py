@@ -341,7 +341,7 @@ def clean_options(choice, texts, k):
 def clean_case(texts, k, kw, label):
     shown = dict(kw)
     if "chain_reference" in shown:
-        shown["chain_reference"] = 2  # the input index
+        shown["chain_reference"] = texts.index(kw["chain_reference"])  # the input index
     case = {"input": k, "label": label, "options": shown}
     try:
         r = pt.clean(texts[k], **kw)

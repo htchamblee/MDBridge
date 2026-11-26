@@ -84,8 +84,12 @@ PdbStructure readPdbText(std::string_view text);
 PdbStructure readPdbFile(const std::filesystem::path& path);
 
 // write_pdb(structure, strip_conect, seqres): "\n" line ends, every line right-stripped, final
-// "\n". `seqres`: per-chain residue-name lists for SEQRES records (which residues: the caller's
-// hygiene logic), inserted where MDATK inserts them.
+// "\n". `seqres`: per-chain residue-name lists for SEQRES records (which residues and names: the
+// caller's hygiene logic, chem::seqresNames), inserted where MDATK inserts them. CH-01: a residue
+// number below -999 does not fit columns 23-26: PdbError("residue number -1002 (A) does not fit the
+// PDB columns (-999 to 9999)"), MDATK wrote "A-1002" and shifted the line; numbers above 9999 wrap
+// as MDATK's do. CH-07: SEQRES names have at most three characters (PdbError otherwise; MDATK
+// wrote longer names in four columns).
 struct SeqresChain {
     std::string chain;
     std::vector<std::string> names;
@@ -111,6 +115,9 @@ std::optional<ResidueName> parseResidueName(std::string_view name);
 // has_backbone_atoms (MDATK 0.1.x): whether a residue with these atom names has a sugar-phosphate
 // atom (a primed name, an old-style '*' or P), the guard of parseResidueName's names.
 bool isBackboneAtomName(std::string_view atomName);
+
+// Python's str.upper() (full case mappings: "ß" -> "SS"), as the PDB tools compare residue names.
+std::string pythonUpper(std::string_view text);
 template <class Names>
 bool hasBackboneAtoms(const Names& atomNames) {
     for (const auto& name : atomNames) {
