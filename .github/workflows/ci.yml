@@ -208,6 +208,8 @@ jobs:
           path: dist
       - name: Xvfb and a Vulkan driver (lavapipe)
         run: |
+          # the runner image's packages.microsoft.com source is not used here and its outages (403) fail the update
+          { grep -l packages.microsoft.com /etc/apt/sources.list.d/* 2>/dev/null || true; } | xargs -r sudo rm -f
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends xvfb xauth libvulkan1 mesa-vulkan-drivers
       - name: Smoke test
@@ -478,6 +480,8 @@ jobs:
       # sides' videos are compared by ffprobe's metadata (Ubuntu's package)
       - name: FFmpeg for MDATK's video and ffprobe
         run: |
+          # the runner image's packages.microsoft.com source is not used here and its outages (403) fail the update
+          { grep -l packages.microsoft.com /etc/apt/sources.list.d/* 2>/dev/null || true; } | xargs -r sudo rm -f
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends ffmpeg
           ffmpeg -version | head -n 1
@@ -543,6 +547,8 @@ jobs:
       # own 3.12): built from the pinned sources against the system's GTK
       - name: FFmpeg for MDATK's video; GTK 3, Xvfb, PyGObject and pycairo for MDATK's window
         run: |
+          # the runner image's packages.microsoft.com source is not used here and its outages (403) fail the update
+          { grep -l packages.microsoft.com /etc/apt/sources.list.d/* 2>/dev/null || true; } | xargs -r sudo rm -f
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends ffmpeg xvfb xauth gir1.2-gtk-3.0 \
             libgirepository-2.0-dev libcairo2-dev pkg-config
