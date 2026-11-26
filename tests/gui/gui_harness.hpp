@@ -107,7 +107,8 @@ void tableAction(QWidget* root, const QString& key, const std::string& what, int
 // Saves `widget` as <dir>/<name>.png (the folder is made); returns the file. Throws CaseError.
 std::filesystem::path saveScreenshot(QWidget* widget, const std::filesystem::path& dir, const std::string& name);
 
-// The application font of the GUI tests: the bundled sans face (render::FontFace::Sans) at Qt's
+// The application font of the GUI tests: the bundled IBM Plex Serif (render::bundledFont of
+// render::FontFace::Regular, the application's font, with IBM Plex Math for missing glyphs) at Qt's
 // default 9 pt, so text widths are the same on every machine (Qt's offscreen platform on Windows
 // finds no font at all and draws boxes; Linux CI and developers' machines have different fonts)
 // and layout tests such as WindowTests::pagesFitTheSideBar measure what CI measures. Call after

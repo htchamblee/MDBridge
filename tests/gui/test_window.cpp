@@ -18,6 +18,7 @@
 #include <QAction>
 #include <QApplication>
 #include <QClipboard>
+#include <QFontInfo>
 #include <QHeaderView>
 #include <QLabel>
 #include <QLocale>
@@ -678,6 +679,8 @@ void WindowTests::dragAndDrop() {
 void WindowTests::pagesFitTheSideBar() {
     Fixture f;
     app::MainWindow& w = *f.window;
+    // measured in the application's font, the bundled IBM Plex Serif (FONT-01; wider than DejaVu Sans)
+    QCOMPARE(QFontInfo(w.font()).family(), QStringLiteral("IBM Plex Serif"));
     QVERIFY(w.openPath(f.copy("full.mdatk.toml", "full.mdatk.toml")));
     QTRY_VERIFY_WITH_TIMEOUT(!w.loading(), 120000);
     QStringList overflows;
@@ -729,6 +732,18 @@ void WindowTests::pagesFitTheSideBar() {
             }
             if (auto* table = qobject_cast<QTableView*>(child); table && table->horizontalScrollBar()->isVisible()) {
                 overflows << QStringLiteral("%1: the table '%2' scrolls sideways").arg(page.id, table->objectName());
+            }
+            if (auto* table = qobject_cast<QTableView*>(child)) {  // no column label clipped
+                const QHeaderView* header = table->horizontalHeader();
+                for (int c = 0; c < header->count(); ++c) {
+                    if (!header->isSectionHidden(c) && header->sectionSize(c) < header->sectionSizeHint(c)) {
+                        overflows << QStringLiteral("%1: the table '%2' clips its column label %3 (%4 of %5 px)")
+                                         .arg(page.id, table->objectName())
+                                         .arg(c)
+                                         .arg(header->sectionSize(c))
+                                         .arg(header->sectionSizeHint(c));
+                    }
+                }
             }
         }
         QVERIFY2(checked > 10, qPrintable(page.id));

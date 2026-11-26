@@ -2,12 +2,14 @@
 
 #include <utility>
 
-#include <QFontDatabase>
+#include <QApplication>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QPlainTextEdit>
 #include <QPushButton>
 #include <QVBoxLayout>
+
+#include "mdbridge/render/text_qt.hpp"
 
 namespace mdbridge::app {
 
@@ -33,7 +35,7 @@ TextDialog::TextDialog(QWidget* parent, const QString& title, const QString& hea
     m_view->setAccessibleName(title);
     m_view->setLineWrapMode(QPlainTextEdit::WidgetWidth);
     if (monospace) {
-        m_view->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
+        m_view->setFont(render::interfaceFixedFont(QApplication::font().pointSizeF()));
     }
     m_view->setMinimumSize(720, 420);  // MDATK: 720 x 420
     layout->addWidget(m_view, 1);

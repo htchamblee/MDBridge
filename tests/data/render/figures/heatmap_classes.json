@@ -42,8 +42,8 @@
     "axes": [
      {
       "id": "ax0",
-      "position_px": [23.21666666666667,30.403759765625004,864.6327796549477,523.1999999999999],
-      "tight_px": [4.800000000000001,4.8000000000000025,864.6327796549477,535.1999999999999],
+      "position_px": [22.21666666666667,29.591666666666672,866.3865499999999,523.05],
+      "tight_px": [4.800000000000001,4.8000000000000025,866.3865499999999,535.1999999999999],
       "facecolor": [0.9882352941176471,0.9882352941176471,0.984313725490196,1.0],
       "visible": true,
       "axison": true,
@@ -51,17 +51,17 @@
       "ylim": [23.5,-0.5],
       "aspect": "auto",
       "zorder": 0.0,
-      "titles": {"left":{"id":"ax0/title_left","kind":"text","zorder":3.0,"visible":true,"alpha":null,"animated":false,"text":"Mg occupancy","xy":[0.0,1.0],"coords":"other","ha":"left","va":"baseline","color":[0.043137254901960784,0.043137254901960784,0.043137254901960784,1.0],"size":11.0,"weight":"normal","style":"normal","family":["sans-serif"],"rotation":0.0,"clip_on":true,"wrap":false,"extent_px":[23.21666666666667,525.9978515624999,90.21666666666667,535.1999999999999]}},
+      "titles": {"left":{"id":"ax0/title_left","kind":"text","zorder":3.0,"visible":true,"alpha":null,"animated":false,"text":"Mg occupancy","xy":[0.0,1.0],"coords":"other","ha":"left","va":"baseline","color":[0.043137254901960784,0.043137254901960784,0.043137254901960784,1.0],"size":11.0,"weight":"normal","style":"normal","family":["sans-serif"],"rotation":0.0,"clip_on":true,"wrap":false,"extent_px":[22.21666666666667,526.0333333333333,85.31041666666667,535.1999999999999]}},
       "spines": {"left":{"visible":true,"color":[0.7647058823529411,0.7607843137254902,0.7176470588235294,1.0],"lw":0.8},"right":{"visible":false,"color":[0.0,0.0,0.0,1.0],"lw":0.8},"bottom":{"visible":true,"color":[0.7647058823529411,0.7607843137254902,0.7176470588235294,1.0],"lw":0.8},"top":{"visible":false,"color":[0.0,0.0,0.0,1.0],"lw":0.8}},
       "xaxis": {
-       "label": {"text":"Time (ns)","color":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"size":9.9,"extent_px":[425.04972316080716,4.8000000000000025,462.79972316080716,13.781933593750002]},
+       "label": {"text":"Time (ns)","color":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"size":9.9,"extent_px":[425.8016083333333,4.8000000000000025,462.8016083333333,13.050000000000002]},
        "scale": "linear",
        "inverted": false,
        "visible": true,
        "ticks": [[0.0,"0.00",true,false],[0.05,"0.05",true,false],[0.10000000000000002,"0.10",true,false],[0.15000000000000002,"0.15",true,false],[0.2,"0.20",true,false]],
        "tick_style": {"tick1":true,"tick2":false,"label1":true,"label2":false,"color":[0.5372549019607843,0.5294117647058824,0.5058823529411764,1.0],"length":3.0,"width":0.6,"labelcolor":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"labelsize":9.35,"rotation":0.0,"gridOn":false,"grid":{"color":[0.8823529411764706,0.8784313725490196,0.8509803921568627,1.0],"lw":0.6,"ls":"-"}},
        "offset_text": "",
-       "locator": {"class":"AutoLocator","nbins":"auto","steps":[1.0,2.0,2.5,5.0,10.0],"integer":false,"min_n_ticks":2,"symmetric":false,"prune":null,"tick_space":35,"auto_nbins":9},
+       "locator": {"class":"AutoLocator","nbins":"auto","steps":[1.0,2.0,2.5,5.0,10.0],"integer":false,"min_n_ticks":2,"symmetric":false,"prune":null,"tick_space":36,"auto_nbins":9},
        "formatter": {"class":"ScalarFormatter","offset":0.0,"orderOfMagnitude":0,"format":"%1.2f","useMathText":false,"useOffset":true}
       },
       "yaxis": {
@@ -84,8 +84,8 @@
      },
      {
       "id": "ax1",
-      "position_px": [881.4611019147134,30.403759765625004,906.1009139264321,523.1999999999999],
-      "tight_px": [881.4611019147134,30.403759765625004,954.7779972597655,523.1999999999999],
+      "position_px": [883.2699476666667,29.591666666666672,907.9428643333333,523.05],
+      "tight_px": [883.2699476666667,29.591666666666672,954.7761976666667,523.05],
       "facecolor": [1.0,1.0,1.0,1.0],
       "visible": true,
       "axison": true,

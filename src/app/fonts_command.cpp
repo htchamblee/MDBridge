@@ -41,15 +41,22 @@ int fontsCommand(const char* program, bool json, const std::string& renderPath) 
 
         core::Array faces;
         core::Array metrics;
-        for (const render::BundledFont& f : render::bundledFonts()) {
-            const render::Font& font = set.font(f.face);
-            const QFontInfo info(render::figureFont(f.face, 13.888888, image));
+        const auto face = [&faces](const render::BundledFile& f, const char* role, const QFont& qfont) {
+            const QFontInfo info(qfont);
             faces.push_back(core::Table{{"file", std::string(f.file)},
-                                        {"family", font.family()},
-                                        {"style", font.subfamily()},
-                                        {"version", font.version()},
+                                        {"role", std::string(role)},
+                                        {"family", std::string(f.family)},
+                                        {"style", std::string(f.style)},
+                                        {"version", std::string(f.version)},
                                         {"sha256", std::string(f.sha256)},
                                         {"qt_family", info.family().toStdString()}});
+        };
+        for (const render::BundledFont& f : render::bundledFonts()) {
+            face(f, f.monospace ? "sequences, interface fixed-width" : "figures, interface",
+                 render::figureFont(f.face, 13.888888, image));
+        }
+        face(render::fallbackFont(), "fallback", render::figureFont(render::FontFace::Regular, 13.888888, image, true));
+        for (const render::BundledFont& f : render::bundledFonts()) {
             for (const char* text : kSamples) {
                 const render::TextLayout t = set.layout(f.face, text, 10.0, 100.0);
                 metrics.push_back(core::Table{{"file", std::string(f.file)},
@@ -79,13 +86,14 @@ int fontsCommand(const char* program, bool json, const std::string& renderPath) 
             std::cout << core::toJson(report) << '\n';
             return 0;
         }
-        std::cout << "Figure fonts   bundled DejaVu " << render::kDejaVuVersion << " (Matplotlib's), Qt platform "
+        std::cout << "Figure fonts   bundled IBM Plex Serif (" << render::kPlexSerifRelease << "), fallback "
+                  << render::fallbackFont().family << " (" << render::kPlexMathRelease << "), Qt platform "
                   << platform.toStdString() << '\n';
         for (const render::BundledFont& f : render::bundledFonts()) {
             const render::Font& font = set.font(f.face);
             const render::TextLayout t = set.layout(f.face, kSamples[0], 10.0, 100.0);
-            std::cout << "               " << std::left << std::setw(26) << (font.family() + " " + font.subfamily())
-                      << std::setw(26) << f.file << "'" << kSamples[0] << "' at 10 pt, 100 dpi: " << fixed(t.width())
+            std::cout << "               " << std::left << std::setw(28) << (font.family() + " " + font.subfamily())
+                      << std::setw(30) << f.file << "'" << kSamples[0] << "' at 10 pt, 100 dpi: " << fixed(t.width())
                       << " px\n";
         }
         std::cout << "Text image     " << image.width() << " x " << image.height() << ", pixels sha256 " << pixels

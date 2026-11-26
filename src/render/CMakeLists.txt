@@ -31,10 +31,12 @@ target_link_libraries(mdbridge_render PUBLIC Qt6::Gui Qt6::Svg mdbridge::render_
     mdbridge::render_vulkan_scene)  # the 3D view: the molecule scene on the GPU
 mdbridge_target_warnings(mdbridge_render)
 
-# the figure fonts (data/fonts: DejaVu 2.35 as Matplotlib ships it; licence in packaging/licenses)
-# compiled into the programs: figures never depend on the system's fonts
-set(MDBRIDGE_FONT_FILES DejaVuSans.ttf DejaVuSans-Bold.ttf DejaVuSans-Oblique.ttf DejaVuSansMono.ttf
-                        DejaVuSansMono-Bold.ttf)
+# the bundled fonts (data/fonts: IBM Plex Serif, Plex Math and Plex Mono as IBM's releases have
+# them, data/sources/fonts/README.md; licence in packaging/licenses/IBM-Plex-OFL-1.1.txt) compiled
+# into the programs: figures and the interface never depend on the system's fonts
+set(MDBRIDGE_FONT_FILES IBMPlexSerif-Regular.ttf IBMPlexSerif-Bold.ttf IBMPlexSerif-Italic.ttf
+                        IBMPlexSerif-BoldItalic.ttf IBMPlexMath-Regular.ttf IBMPlexMono-Regular.ttf
+                        IBMPlexMono-Bold.ttf)
 list(TRANSFORM MDBRIDGE_FONT_FILES PREPEND "${PROJECT_SOURCE_DIR}/data/fonts/" OUTPUT_VARIABLE mdbridge_font_paths)
 qt_add_resources(mdbridge_render mdbridge_fonts PREFIX /mdbridge/fonts BASE "${PROJECT_SOURCE_DIR}/data/fonts"
                  FILES ${mdbridge_font_paths})

@@ -118,9 +118,12 @@ struct Painter {
         if (text == TextOutput::Outlines) {
             drawText(p, QPointF(0, 0), t.face, t.layout, qcolor(t.color));
         } else {
-            p.setFont(figureFont(t.face, t.pixelSize, *p.device()));
+            // one QFont per run: the figure face, and the fallback font for the glyphs it lacks
             p.setPen(qcolor(t.color));
-            p.drawText(QPointF(0, 0), QString::fromUtf8(t.text.data(), static_cast<qsizetype>(t.text.size())));
+            for (const TextRun& run : fontRuns(t.text, t.layout)) {
+                p.setFont(figureFont(t.face, t.pixelSize, *p.device(), run.fallback));
+                p.drawText(QPointF(run.x, 0), runText(t.text, run));
+            }
         }
         p.restore();
     }

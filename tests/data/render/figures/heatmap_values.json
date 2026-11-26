@@ -42,8 +42,8 @@
     "axes": [
      {
       "id": "ax0",
-      "position_px": [23.21666666666667,30.403759765625004,891.826503613281,523.1999999999999],
-      "tight_px": [4.800000000000001,4.8000000000000025,891.826503613281,535.1999999999999],
+      "position_px": [22.21666666666667,29.591666666666672,891.1378791666666,523.05],
+      "tight_px": [4.800000000000001,4.8000000000000025,891.1378791666666,535.1999999999999],
       "facecolor": [0.9882352941176471,0.9882352941176471,0.984313725490196,1.0],
       "visible": true,
       "axison": true,
@@ -51,10 +51,10 @@
       "ylim": [23.5,-0.5],
       "aspect": "auto",
       "zorder": 0.0,
-      "titles": {"left":{"id":"ax0/title_left","kind":"text","zorder":3.0,"visible":true,"alpha":null,"animated":false,"text":"Distance to proximity set","xy":[0.0,1.0],"coords":"other","ha":"left","va":"baseline","color":[0.043137254901960784,0.043137254901960784,0.043137254901960784,1.0],"size":11.0,"weight":"normal","style":"normal","family":["sans-serif"],"rotation":0.0,"clip_on":true,"wrap":false,"extent_px":[23.21666666666667,525.9978515624999,143.73229166666667,535.1999999999999]}},
+      "titles": {"left":{"id":"ax0/title_left","kind":"text","zorder":3.0,"visible":true,"alpha":null,"animated":false,"text":"Distance to proximity set","xy":[0.0,1.0],"coords":"other","ha":"left","va":"baseline","color":[0.043137254901960784,0.043137254901960784,0.043137254901960784,1.0],"size":11.0,"weight":"normal","style":"normal","family":["sans-serif"],"rotation":0.0,"clip_on":true,"wrap":false,"extent_px":[22.21666666666667,526.0333333333333,127.90416666666667,535.1999999999999]}},
       "spines": {"left":{"visible":true,"color":[0.7647058823529411,0.7607843137254902,0.7176470588235294,1.0],"lw":0.8},"right":{"visible":false,"color":[0.0,0.0,0.0,1.0],"lw":0.8},"bottom":{"visible":true,"color":[0.7647058823529411,0.7607843137254902,0.7176470588235294,1.0],"lw":0.8},"top":{"visible":false,"color":[0.0,0.0,0.0,1.0],"lw":0.8}},
       "xaxis": {
-       "label": {"text":"Time (ns)","color":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"size":9.9,"extent_px":[438.6465851399738,4.8000000000000025,476.3965851399738,13.781933593750002]},
+       "label": {"text":"Time (ns)","color":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"size":9.9,"extent_px":[438.17727291666665,4.8000000000000025,475.17727291666665,13.050000000000002]},
        "scale": "linear",
        "inverted": false,
        "visible": true,
@@ -84,8 +84,8 @@
      },
      {
       "id": "ax1",
-      "position_px": [909.1987003522135,30.403759765625004,933.8385123639322,523.1999999999999],
-      "tight_px": [909.1987003522135,26.140454101562504,954.7668977805989,523.1999999999999],
+      "position_px": [908.5163034166666,29.591666666666672,933.1892200833332,523.05],
+      "tight_px": [908.5163034166666,25.397916666666674,954.7660950833333,523.05],
       "facecolor": [1.0,1.0,1.0,1.0],
       "visible": true,
       "axison": true,
@@ -97,7 +97,7 @@
       "spines": {"left":{"visible":false,"color":[0.0,0.0,0.0,1.0],"lw":0.8},"right":{"visible":false,"color":[0.0,0.0,0.0,1.0],"lw":0.8},"bottom":{"visible":false,"color":[0.0,0.0,0.0,1.0],"lw":0.8},"top":{"visible":false,"color":[0.0,0.0,0.0,1.0],"lw":0.8},"outline":{"visible":true,"color":[0.8823529411764706,0.8784313725490196,0.8509803921568627,1.0],"lw":0.8}},
       "xaxis": {"label":{"text":"","color":[0.0,0.0,0.0,1.0],"size":10.0,"extent_px":null},"scale":"linear","inverted":false,"visible":true,"ticks":[],"tick_style":{"tick1":true,"tick2":false,"label1":true,"label2":false,"color":[0.5372549019607843,0.5294117647058824,0.5058823529411764,1.0],"length":3.5,"width":0.8,"labelcolor":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"labelsize":8.25,"rotation":0.0,"gridOn":false,"grid":{"color":[0.6901960784313725,0.6901960784313725,0.6901960784313725,1.0],"lw":0.8,"ls":"-"}},"offset_text":"","locator":{"class":"FixedLocator","locs":[],"nbins":null},"formatter":{"class":"ScalarFormatter","offset":0.0,"orderOfMagnitude":0,"format":"","useMathText":false,"useOffset":true}},
       "yaxis": {
-       "label": {"text":"Å","color":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"size":8.8,"extent_px":[947.0051790305989,274.30187988281244,954.7668977805989,279.30187988281244]},
+       "label": {"text":"Å","color":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"size":8.8,"extent_px":[946.35588675,273.8208333333333,954.7660950833333,278.8208333333333]},
        "scale": "linear",
        "inverted": false,
        "visible": true,

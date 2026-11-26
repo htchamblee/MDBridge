@@ -382,22 +382,40 @@ void ListEditor::fitColumns() {
     if (columns <= 0 || available <= 0) {
         return;
     }
+    // natural: a column's widest content (header included); least: its header label's width, below
+    // which the label would be clipped (a header's text is not elided reliably by every style)
     std::vector<int> natural(static_cast<std::size_t>(columns));
+    std::vector<int> least(static_cast<std::size_t>(columns));
     const int rows = std::min(m_model->rowCount(), 200);
     const int grid = m_view->showGrid() ? 1 : 0;
     for (int c = 0; c < columns; ++c) {
-        int fit = std::max(header->sectionSizeHint(c), header->minimumSectionSize());
+        const int labelWidth = std::max(header->sectionSizeHint(c), header->minimumSectionSize());
+        int fit = labelWidth;
         for (int r = 0; r < rows; ++r) {
             fit = std::max(fit, m_view->sizeHintForIndex(m_model->index(r, c)).width() + grid);
         }
         natural[static_cast<std::size_t>(c)] = fit;
+        least[static_cast<std::size_t>(c)] = labelWidth;
     }
+    if (std::accumulate(least.begin(), least.end(), 0) > available) {
+        // even the labels do not fit: every column may shrink to the header's minimum
+        std::fill(least.begin(), least.end(), header->minimumSectionSize());
+    }
+    // a column's width under a cap: its natural width, at most the cap, never below its least
+    const auto widthOf = [&natural, &least](std::size_t c, int limit) {
+        return std::max(std::min(natural[c], limit), least[c]);
+    };
     int cap = *std::max_element(natural.begin(), natural.end());
-    const auto total = [&natural](int limit) {
-        return std::accumulate(natural.begin(), natural.end(), 0, [limit](int sum, int w) { return sum + std::min(w, limit); });
+    const auto total = [&natural, &widthOf](int limit) {
+        int sum = 0;
+        for (std::size_t c = 0; c < natural.size(); ++c) {
+            sum += widthOf(c, limit);
+        }
+        return sum;
     };
     if (total(cap) > available) {
-        // the largest cap at which everything fits (water filling), never below the header's minimum
+        // the largest cap at which everything fits (water filling): the widest columns shrink alike,
+        // their cells elided, their labels whole
         int low = header->minimumSectionSize();
         int high = cap;
         while (low < high) {
@@ -412,13 +430,13 @@ void ListEditor::fitColumns() {
     }
     int used = 0;
     for (int c = 0; c + 1 < columns; ++c) {
-        const int section = std::min(natural[static_cast<std::size_t>(c)], cap);
+        const int section = widthOf(static_cast<std::size_t>(c), cap);
         header->resizeSection(c, section);
         used += section;
     }
     // the last column takes the rest (the header's own last-section stretch keeps it at least
-    // its default size, which made narrow tables scroll)
-    header->resizeSection(columns - 1, std::max(available - used, header->minimumSectionSize()));
+    // its default size, which made narrow tables scroll), at least its least
+    header->resizeSection(columns - 1, std::max(available - used, least.back()));
 }
 
 void ListEditor::addButton(QWidget* button) {

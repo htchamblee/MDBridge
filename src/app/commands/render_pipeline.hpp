@@ -51,7 +51,7 @@ struct RenderBackend {
     // Called once before anything is drawn (the Qt application on the offscreen platform); the
     // object is kept until the command ends.
     std::function<std::shared_ptr<void>()> start;
-    // The figure fonts (the bundled DejaVu faces).
+    // The figure fonts (the bundled IBM Plex Serif faces and their fallback).
     std::function<const render::FontSet&()> fonts;
     // Writes a drawn figure (render::Figure::draw) to `path` in `format` (one of
     // render::charts::chartFormats()); throws naming the file when it cannot.

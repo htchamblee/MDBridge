@@ -186,6 +186,7 @@ void Builder::axis(std::size_t k, AxisDirection d, std::optional<Box> clip) {
             Text l;
             l.text = t.label;
             l.font.size = ts.labelSize;
+            l.font.family = ts.labelFamily;
             l.color = ts.labelColor;
             l.rotation = ts.rotation;
             if (x) {

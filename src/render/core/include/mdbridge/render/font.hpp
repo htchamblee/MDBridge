@@ -1,9 +1,10 @@
 #pragma once
-// TrueType fonts read and laid out without Qt or FreeType: the metrics of the bundled DejaVu faces
+// TrueType fonts read and laid out without Qt or FreeType: the metrics of the bundled IBM Plex faces
 // (text.hpp) as Matplotlib 3.11 measures text with `text.hinting: no_hinting`, i.e. FreeType's
-// unhinted outlines and HarfBuzz' shaping (cmap, the GSUB ligatures, the GPOS kerning), in 26.6 fixed
-// point. Device independent: the same numbers on every system and at every dpi (Matplotlib's default
-// hinting snaps glyphs to the pixel grid; docs/DIFFERENCES.md). The figure layout measures text with
+// unhinted outlines and HarfBuzz' shaping (cmap, the GSUB ligatures, the GPOS kerning) with
+// Matplotlib's per-glyph font fallback, in 26.6 fixed point. Device independent: the same numbers
+// on every system and at every dpi (Matplotlib's default hinting snaps glyphs to the pixel grid;
+// docs/DIFFERENCES.md). The figure layout measures text with
 // it; the Qt side draws the glyph runs it produces (text_qt.hpp).
 //
 // Implemented from the OpenType specification (tables head, hhea, maxp, hmtx, loca, glyf, cmap
@@ -61,6 +62,7 @@ struct PositionedGlyph {
     std::int64_t x = 0;
     std::int64_t advance = 0;  // 26.6, kerning included
     std::size_t cluster = 0;
+    bool fallback = false;  // the glyph is the fallback font's (Font::layout)
 };
 
 // A single line of text laid out (newlines are not special: the figure layout splits lines first,
@@ -87,9 +89,9 @@ public:
     static Font fromData(std::string data);
 
     const std::string& data() const;
-    const std::string& family() const;     // name ID 1, e.g. "DejaVu Sans"
-    const std::string& subfamily() const;  // name ID 2, e.g. "Book", "Bold", "Oblique"
-    const std::string& version() const;    // name ID 5, e.g. "Version 2.35"
+    const std::string& family() const;     // name ID 1, e.g. "IBM Plex Serif"
+    const std::string& subfamily() const;  // name ID 2, e.g. "Regular", "Bold", "Italic"
+    const std::string& version() const;    // name ID 5, e.g. "Version 3.006"
     int unitsPerEm() const;
     int ascender() const;   // hhea, font units
     int descender() const;  // hhea, font units (negative)
@@ -116,8 +118,12 @@ public:
     // placement per glyph, applied in lookup order as HarfBuzz does.
     void kern(const std::vector<std::uint16_t>& glyphs, std::vector<int>& xAdvance, std::vector<int>& xPlacement) const;
 
-    // Lays out one line of UTF-8 text (invalid bytes become U+FFFD) at `points` and `dpi`.
-    TextLayout layout(std::string_view utf8, double points, double dpi) const;
+    // Lays out one line of UTF-8 text (invalid bytes become U+FFFD) at `points` and `dpi`. With a
+    // `fallback` font, the characters this font has no glyph for come from it, as Matplotlib's
+    // FT2Font falls back (FT2Font::layout): the clusters with a missing glyph take the fallback
+    // font and the line is shaped again in runs of one font and script (no kerning or ligature
+    // across a font change). Characters neither font has are the fallback's .notdef glyph.
+    TextLayout layout(std::string_view utf8, double points, double dpi, const Font* fallback = nullptr) const;
 
     struct Impl;
 
@@ -135,7 +141,8 @@ struct PathCommand {
     double x = 0, y = 0;    // end point
     double cx = 0, cy = 0;  // control point (Quad)
 };
-std::vector<PathCommand> textPath(const Font& font, const TextLayout& layout);
+// `fallback`: the font the layout's fallback glyphs come from (the one given to Font::layout).
+std::vector<PathCommand> textPath(const Font& font, const TextLayout& layout, const Font* fallback = nullptr);
 
 // UTF-8 -> code points; invalid or truncated sequences become U+FFFD (as Python's "replace").
 std::u32string decodeUtf8(std::string_view text);

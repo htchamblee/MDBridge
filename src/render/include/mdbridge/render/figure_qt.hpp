@@ -5,7 +5,8 @@
 //   raster  QImage, RGBA8888 (straight alpha), width x height pixels; text filled from the bundled
 //           fonts' outlines (text_qt.hpp): the same pixels on every system
 //   SVG     QSvgGenerator, width / height = the figure's size in inches at its dpi, view box in
-//           pixels; text kept as text (<text> elements in the bundled DejaVu families)
+//           pixels; text kept as text (<text> elements in the bundled IBM Plex families: one per
+//           run of the figure face or of its fallback, IBM Plex Math)
 //   PDF     QPdfWriter, one page of the figure's size in points, no margins; text kept as text
 //           (the bundled faces embedded by Qt)
 //   EPS, PS, TIFF  render core's writers (figure_formats.hpp)

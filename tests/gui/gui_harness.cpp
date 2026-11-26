@@ -669,7 +669,7 @@ fs::path saveScreenshot(QWidget* widget, const fs::path& dir, const std::string&
 }
 
 void useBundledFont() {
-    const std::string_view name = render::bundledFont(render::FontFace::Sans).family;
+    const std::string_view name = render::bundledFont(render::FontFace::Regular).family;
     const QString family = QString::fromUtf8(name.data(), static_cast<qsizetype>(name.size()));
     QStringList families;
     try {
@@ -681,7 +681,7 @@ void useBundledFont() {
         qWarning("the bundled fonts have no %s: the tests run with Qt's default font", qPrintable(family));
         return;
     }
-    QApplication::setFont(QFont(family, 9));
+    QApplication::setFont(render::interfaceFont(9));  // as the application sets it, at 9 pt
 }
 
 fs::path screenshotDir(const fs::path& fallback) {

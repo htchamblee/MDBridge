@@ -327,7 +327,7 @@ angular_step = 30.0
 # Fit before rendering when no placement is stored
 auto_fit = true
 # Placement: 3x3 rotation (row-major) + translation, model -> map
-transform = [0.984808, 0.0, -0.173648, 0.0, 1.0, 0.0, 0.173648, 0.0, 0.984808, 3.070859, 0.971863, -3.85747]
+transform = [0.984808, 0.0, -0.173648, 0.0, 1.0, 0.0, 0.173648, 0.0, 0.984808, 3.06889, 0.97253, -3.857817]
 # Backbone points of the reference frame the placement was made on (the map follows the molecule
 # when the reference changes: other start frame, cleaned vs raw files)
 anchor = [

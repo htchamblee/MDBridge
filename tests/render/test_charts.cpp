@@ -197,7 +197,9 @@ TEST_P(ChartCase, AsMdatk) {
         FigureComparison c;
         c.width = w.figure.widthPx();
         c.height = w.figure.heightPx();
-        c.minBoxPixels = 6.0;
+        // at least 8 px: in the 200 px wide charts at 50 dpi a title's 7 px glyphs are hinted up to 0.3 px
+        // wider each by Matplotlib (IBM Plex Serif, FONT-01; MDBridge measures the unhinted outline)
+        c.minBoxPixels = 8.0;
         c.figure(dump, at(charts[k], "figure"));
         arrays += test::compareArrays(w.figure, npz, "c" + std::to_string(k) + "/");
         if (c.worstBox > worst) {
