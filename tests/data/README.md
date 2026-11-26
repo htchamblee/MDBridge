@@ -946,11 +946,11 @@ Actions (`"action"` names the step; an unknown one fails the case, naming it):
 
 | Action | Keys | What the harness does |
 |---|---|---|
-| `open` | `path` (case folder) | `MainWindow::openProject`; it must succeed |
+| `open` | `path` (case folder) | the window's *Open project* with `path` chosen in its file dialog; it must succeed (unless the case needs `open_failure`) |
 | `wait` | `timeout_s` (default 60) | until the window has loaded the project's structure and preview data (`MainWindow::loading()` false) and the preview has settled |
 | `set` | `key`, `value` | finds the one widget whose `objectName` is `key` (field widgets use their project key, `analyses.contacts.cutoff`) and enters `value` as a user would: keys typed into line edits, spin boxes and editable combo boxes (select all, type, Enter), check boxes toggled with Space when their state differs, the item whose project value (item data) is `value` chosen in other combo boxes, plain-text edits replaced by typing; a key no widget has is a list editor's cell (`groups.3.name`): its editor opened, the value entered, Enter (check cells: Space) |
 | `click` | `key` | clicks the button whose `objectName` is `key` |
-| `save` | `path` (optional, case folder) | `MainWindow::saveProject` (the window's own file without `path`); it must succeed. Until the window has Save / Save as (W1-A) this calls `core::saveProject` with the opened project |
+| `save` | `path` (optional, case folder) | the window's *Save* (Ctrl+S); with `path`, *Save as…* onto that file |
 | `screenshot` | `name`, `widget` (optional objectName) | saves the window (or that widget) as `<case>-<name>.png` in the screenshot folder (below); never compared (D10 of M4) |
 
 Screenshots go to `$MDBRIDGE_GUI_SCREENSHOTS` (default: `gui-screenshots/` in the build tree);
@@ -980,22 +980,28 @@ lacks something a case `needs` skips the case and names what is missing):
 | `clock` | always set: every case starts at `2026-11-25T12:00:00` (MDATK reads the clock once per save) |
 | `items` | ids the case covers (`AP-01`, `D8` ...; `[]`: plain parity with MDATK) |
 | `mdatk_test` | the MDATK test (`tests/test_gui.py::...`) the case mirrors, or `""` |
-| `needs` | the actions and keys of this section the case uses (`canvas`, `save_as`, `new`, `close`, `table`, `type`, `toggle`, `snapshot`, `start`, `settings`, `answers`; `open_failure` when an `open` is expected to fail), so a runner can skip what it does not have yet (`mdbridge_gui_tests` runs `type` and `table`; every case needing them also needs `start` and the settings pages of wave 1, so it is still skipped) |
+| `needs` | the actions and keys of this section the case uses (`canvas`, `save_as`, `new`, `close`, `table`, `type`, `toggle`, `snapshot`, `start`, `settings`, `answers`; `open_failure` when an `open` is expected to fail), so a runner can skip what it does not have yet (`mdbridge_gui_tests` runs all but `canvas`, below) |
 | `canvas` | `{"width": W, "height": H}`: the figure canvas widget's size in pixels (device pixel ratio 1); the figure is drawn at `scale = min(W / video.width, H / video.height)`, `int(video.width * scale)` x `int(video.height * scale)` pixels at `video.dpi * scale`, centred |
 | `settings` | path under tests/data of `$XDG_CONFIG_HOME/mdatk/settings.toml` before the start (`{case_dir}` in it: the case folder), or absent: no such file (D16, AP-17) |
 | `start` | `{"project": name}`: the window is started with `{case_dir}/name` (as `gui PATH`), before the first action; absent: started without a project |
 | `outcome` | MDBridge's expected outcome besides files (below) |
 | `mdatk` | the keys of `expected` / `outcome` whose MDATK value differs, with MDATK's value (`expected` paths point into `<case>/mdatk/`); `{}`: MDATK did the same. Never compared |
 
-Until the window has its settings pages (W1-A), `mdbridge_gui_tests` runs a case that needs more
-than the harness has on a test-only page host (`tests/gui/page_host.hpp`) when it can: the case
-starts with a project, needs only `start`, `lossless`, `type`, `table`, `snapshot` and `toggle`,
-and every key its actions and snapshots name is on a page `pages::createPages()` makes. The host
-opens the start project in a `ProjectDocument`, shows every page in a tab, runs `set`, `type`,
-`table`, `click`, `toggle`, `open`, `save`, `snapshot` (keys and `density_status`; compared with
-`outcome.snapshots`) and `screenshot`, and saves a screenshot of each page the case used. It does
-not check `log`, `outcome.settings` or the other window outcomes. The other cases are skipped with
-the reason.
+`mdbridge_gui_tests` runs every case against the window (`app::MainWindow`, W1-A): it supports
+every need but `canvas` (W2-A); a case whose snapshot names `slots` (the Layout & panels page's slot
+editors, W2-A) is skipped with that reason (the list in tests/gui/test_gui.cpp). Each case gets an
+environment of its own (`XDG_CONFIG_HOME` and `APPDATA` = `{config_dir}`, `HOME` an empty folder,
+the case folder current), the `settings` file is written first, the window is started with
+`start.project` (`MainWindow::startWith`, as `gui PATH`), questions are answered from `answers`
+(else the first choice) and recorded, file dialogs get `name` (Save as), `path` (Open) or
+`answers.name` (Save of a project without a file), and message dialogs are recorded. After every
+action the harness waits until the preview has redrawn (the generator's `flush`). Compared: the
+files of `expected`; `log` (the window's log lines; the TOML parser's own words in `not valid TOML:
+<words> (at line ...` are masked, tests/core/test_project_file.cpp); `outcome.questions`,
+`dialogs`, `snapshots` (`values`, `error`, `page`, `density_status`, `modified`; numbers within
+1e-9 relative), `stderr` (an absent key: none expected); and `outcome.settings` (comments line for
+line, values as TOML, since arrays wrap by the length of the paths in them). A case without
+`outcome` (`harness/`) is compared by its files only.
 
 Placeholders, in expected files and in `outcome` texts: `{case_dir}` (the case folder, absolute)
 and `{config_dir}` (`$XDG_CONFIG_HOME`, a folder outside it). The environment of a run:

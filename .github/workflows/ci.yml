@@ -117,7 +117,7 @@ jobs:
         env:
           MDBRIDGE_REQUIRE_VULKAN: "1"  # the Vulkan tests run on lavapipe (mesa-vulkan-drivers), never skip
         run: |
-          # the GUI tests (label gui: gui.cases, gui.pages, gui.group_pages, gui.forms, gui.problems, gui.jobs; offscreen platform) run with the
+          # the GUI tests (label gui: gui.cases, gui.window, gui.pages, gui.group_pages, gui.forms, gui.problems, gui.jobs; offscreen platform) run with the
           # rest; gui.cases saves its screenshots there
           export MDBRIDGE_GUI_SCREENSHOTS="$PWD/gui-test-screenshots"
           ctest --test-dir build/release --output-on-failure
@@ -305,7 +305,7 @@ jobs:
 
       - name: Build, tests, zip and installer
         run: |
-          $env:MDBRIDGE_GUI_SCREENSHOTS = "$PWD\gui-test-screenshots"  # gui.cases (label gui with gui.forms, gui.problems, gui.jobs; offscreen)
+          $env:MDBRIDGE_GUI_SCREENSHOTS = "$PWD\gui-test-screenshots"  # gui.cases, gui.window (label gui with gui.forms, gui.problems, gui.jobs; offscreen)
           packaging\windows\build_windows.ps1 -QtDir "C:\Qt\$env:QT_VERSION\msvc2022_64" -Out dist -FFmpegRoot build\ffmpeg\prefix
 
       # the main window as the GUI tests drove it (tests/gui), for review; never compared

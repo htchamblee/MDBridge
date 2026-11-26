@@ -67,8 +67,8 @@ PlaceholderPage::PlaceholderPage(forms::FormContext& context, const QString& id,
     std::map<std::string, Section*> sections;
     for (const std::string& path : pagePaths(project, id.toStdString())) {
         const std::string part = sectionPath(path);
-        Section*& section = sections[part];
-        if (!section) {
+        Section*& sec = sections[part];
+        if (!sec) {
             const std::size_t dot = part.rfind('.');
             QString sectionId = toQString(dot == std::string::npos ? part : part.substr(dot + 1));
             QString heading = lastPart(core::describeField(part, &project));
@@ -76,17 +76,17 @@ PlaceholderPage::PlaceholderPage(forms::FormContext& context, const QString& id,
                 sectionId = QStringLiteral("general");
                 heading = part == "analyses" ? tr("General") : tr("Locations");
             }
-            section = addSection(sectionId, heading);
+            sec = addSection(sectionId, QString(heading).replace(QLatin1Char('&'), QStringLiteral("&&")));
             if (sections.size() == 1) {
-                section->form()->addHint(tr("Every setting of this page, one field each; the page's own layout "
+                sec->form()->addHint(tr("Every setting of this page, one field each; the page's own layout "
                                             "comes with a later version."));
             }
         }
-        forms::FieldWidget* widget = forms::createFieldWidget(context, path, section->form());
+        forms::FieldWidget* widget = forms::createFieldWidget(context, path, sec->form());
         if (!widget) continue;
         QString label = widget->label();
         if (label.isEmpty()) label = lastPart(core::describeField(path, &project));
-        section->form()->add(label, widget);
+        sec->form()->add(label, widget);
     }
 }
 

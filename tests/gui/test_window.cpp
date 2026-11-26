@@ -69,9 +69,9 @@ struct Fixture {
         dir = core::pathFromUtf8(tmp.path().toStdString());
         previous = app::forms::setFileDialogFunction([this](QWidget*, const app::forms::FileDialogRequest& r) {
             requests.push_back(r);
-            QStringList answer = nextFile;
+            QStringList reply = nextFile;
             nextFile.clear();
-            return answer;
+            return reply;
         });
         window.emplace(render::Renderer::Software);
         window->setPrompter(&prompter);
@@ -193,11 +193,11 @@ void WindowTests::layoutAndShortcuts() {
     QTest::keyClick(&w, Qt::Key_3, Qt::ControlModifier);
     QCOMPARE(w.currentPage(), QStringLiteral("analyses"));
     QVERIFY(w.pageButton(QStringLiteral("analyses"))->isChecked());
+    QVERIFY(!w.logView()->expanded());  // folded at first, as MDATK's expander
+    QTest::keyClick(&w, Qt::Key_L, Qt::ControlModifier);
     QVERIFY(w.logView()->expanded());
     QTest::keyClick(&w, Qt::Key_L, Qt::ControlModifier);
     QVERIFY(!w.logView()->expanded());
-    QTest::keyClick(&w, Qt::Key_L, Qt::ControlModifier);
-    QVERIFY(w.logView()->expanded());
     // the action bar's jobs are present; Render comes with W2-B, Cancel only while a job runs
     QVERIFY(!w.action(QStringLiteral("render"))->isEnabled());
     QVERIFY(!w.action(QStringLiteral("cancel"))->isEnabled());

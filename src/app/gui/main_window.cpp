@@ -179,6 +179,8 @@ MainWindow::MainWindow(render::Renderer renderer, QWidget* parent)
     m_log = new jobs::LogView;
     m_log->setObjectName(QStringLiteral("log"));
     m_log->textView()->setMinimumHeight(120);  // MDATK: min content height 120
+    m_log->textView()->setMaximumHeight(200);  // the canvas keeps the room
+    m_log->setExpanded(false);  // MDATK's log expander starts folded (Ctrl+L)
     m_jobs = new jobs::JobRunner(m_log->sink(), this);
 
     // WARNING and above of the libraries' messages go to the log too (MDATK's GuiLogHandler)
@@ -492,7 +494,7 @@ QWidget* MainWindow::createPageBar() {
         const QString title = qs(std::string(core::kProblemPages[k].title));
         auto* button = new QToolButton(bar);
         button->setObjectName(QStringLiteral("page:") + id);
-        button->setText(title);
+        button->setText(QString(title).replace(QLatin1Char('&'), QStringLiteral("&&")));  // no mnemonic
         button->setCheckable(true);
         button->setAutoRaise(true);
         button->setToolTip(tr("%1 (Ctrl+%2)").arg(title).arg(k + 1));

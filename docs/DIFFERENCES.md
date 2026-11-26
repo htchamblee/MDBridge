@@ -1844,21 +1844,19 @@ surface, glow, ions), and the preview is the GUI canvas' figure (`example_datase
 `Example data – layout preview (structure: reference frame)`, panels at 35 % of the example time
 axis). Deliberate differences from MDATK's GUI:
 
-- **A 3D view of the reference frame.** MDATK's GUI showed the structure only inside the figure
-  canvas. MDBridge's main window has a 3D view (Vulkan, or the software view when Vulkan 1.3 is not
-  usable) above the preview; drag to rotate, wheel to zoom, double-click to reset. Its rotation and
-  zoom are the view's own: they do not change `visual.rotation` (MDATK's canvas rotation edited the
-  project; that comes with the editor in milestone 5). A project without representations is drawn
-  as a cartoon in the 3D view (the figure keeps its 2D trace, which is no 3D picture). *Tested:*
-  `ProjectView.*` (tests/cli/test_project_view.cpp), `ViewCamera.*`, `SoftwareView.*`,
-  packaging/smoke_test.py `--gui` (screenshots: the view must show the structure, not the
-  placeholder, on Vulkan / lavapipe and on the software view of a bare Rocky Linux).
+- **A 3D view of the reference frame (milestone 4; removed from the window in milestone 5, owner
+  decision D4 as amended).** Milestone 4's window had a 3D view (Vulkan, or the software view) above
+  the preview. The analysis window of milestone 5 has MDATK's layout instead: the figure canvas takes
+  the right side and its structure panel becomes the 3D view (W2-A). Until then `gui --screenshot`
+  opens the chosen renderer's view in a window of its own for the renderer check (smoke_test.py
+  `--gui`). *Tested:* `ProjectView.*` (tests/cli/test_project_view.cpp), `ViewCamera.*`,
+  `SoftwareView.*`, packaging/smoke_test.py `--gui`, `WindowTests::layoutAndShortcuts` (no 3D view).
 - **The reference frame loads by itself.** MDATK drew the schematic duplex until "Load real frame"
   was pressed; MDBridge loads the reference frame on a worker thread as soon as a project is opened
   (progress in the status bar), so the preview's structure panel shows the real trace and the
-  watermark says so. When the frame cannot be loaded (missing or unreadable input files, a bad
-  selection) the preview keeps the schematic structure and the reason is shown in the status bar
-  (and printed on stderr), never in a dialog; the window stays usable. With cleaning on and no
+  watermark says so; it loads again when the input files, cleaning or groups change. When the frame
+  cannot be loaded (missing or unreadable input files, a bad selection) the preview keeps the
+  schematic structure and the reason is shown in the status bar, never in a dialog; the window stays usable. With cleaning on and no
   cleaned files yet, the raw files are shown, as MDATK, with a note in the status bar.
   *Tested:* `ProjectView.CleaningWithoutCleanedFilesShowsTheRawFiles`, `ProjectView.MissingInputsFail`,
   smoke_test.py (`gui runs 5 s and quits (a project without input files)`).
@@ -1948,7 +1946,79 @@ tests (`mdbridge_gui_tests`) replay the cases. *Tested:* the case named after ea
 AP-14 (closing during a job), AP-15 (table edits committed on focus loss), AP-16 (About and BibTeX
 with the run-time citations; the `citations` command's cases in `cli_parity.py` cover the keys),
 AP-19's offered choices and AP-20 (drawing off the GUI thread) leave no trace in the recorded files
-and messages; their packages' Qt tests cover them.
+and messages; their packages' Qt tests cover them (AP-14: `WindowTests::closingDuringAJob`, AP-16:
+`WindowTests::citations`).
+
+The window's saves of a file a later MDATK wrote follow the edit model (PRJ-09, ED-07): its
+`mdatk_version` and comments stay; and a step-log marker pasted into the notes starts no log
+(PRJ-10, MDATK 0.1.1's `_log_start`). improvements_gui.py applies both to MDATK's saves, so
+`roundtrip/open_save_mdatk_0_1_1` expects the file back as it was (only `saved` new).
+
+## Interface: the window shell (src/app/gui/main_window.cpp, gui/dialogs, gui/pages/page_registry.cpp; milestone 5 W1-A)
+
+MDATK v0.0.4.1's window (`gui/app.py`): header with *Open project* and its drop-down (recent
+projects from the shared `settings.toml`, D16; *Demo project…*; *Browse…*), *Save*, *Save as…*,
+the *Workflow* menu and the main menu (*New project (defaults)*, *Create demo system…*, *Project
+log…*, *Export citations (BibTeX)…*, *About and citations*); six page buttons; the 520 px side bar
+with the page title and the page; the figure canvas on the right; the log (*Log (pipeline and
+cpptraj output)*); the action bar (*Render*, *Cancel*, progress `Idle`, *Open output folder*, *Open
+video*); MDATK's texts for the log lines (`Opened project …`, `Saved project …`, `New project with
+default settings (unsaved).`, `Loaded the settings of the run logged in …`, `Demo system ready: …`,
+`Wrote N references to …`), the dialogs (`Could not open …`, `Some settings are invalid`, `The
+project has no file yet`, `Nothing to cite yet`, the project log's `time  step  [status]  title`
+lines) and the suggested file names (`<project_name or MDATK>.mdatk.toml`,
+`<project_name>_citations.bib`). Deliberate differences:
+
+- **WN-01: layout (D4).** No separate 3D view (above). The canvas is milestone 4's read-only preview
+  until W2-A's editor; it redraws 120 ms after a change (MDATK's debounce) and with *Refresh* (F5).
+  *Load real frame* is gone (the reference frame loads by itself). The Layout & panels page is a
+  placeholder built from the model (`pages/placeholder_page.cpp`: every field of the page, one
+  folding section per part) until W2-A. Qt's Fusion style in the system's light or dark scheme
+  (D3). *Tested:* `WindowTests::layoutAndShortcuts`, `pagesAndSections`, `screenshots`.
+- **WN-02: shortcuts (D11).** MDATK's Ctrl+O, Ctrl+S, Ctrl+Shift+S, Ctrl+R (Ctrl+P, Ctrl+Shift+W
+  reserved for the planner and wizard) plus Ctrl+N, Ctrl+W (*Close project*), Ctrl+Q, Ctrl+Z /
+  Ctrl+Shift+Z (Ctrl+Y) undo / redo of the edit model (D5; also header buttons), Ctrl+L (fold the
+  log, as RNAdo), F5 and Ctrl+1 ... Ctrl+6 for the pages. *Tested:* `layoutAndShortcuts`,
+  `undoRedo`.
+- **WN-03: the modified marker and the questions (AP-13, D6).** The title is `<file or "unsaved
+  project">[*] - MDBridge` with Qt's modified marker. New, Open (also a recent entry, a drop and the
+  demo's project), *Close project* and closing the window ask Save / Discard / Cancel when the
+  project is modified; text typed into a field but not committed counts (it is committed first, as
+  before every save). Save with a file another program changed since it was read asks before
+  replacing it. *Tested:* `ap/ap13_unsaved_changes`, `WindowTests::newProjectAsks`, `closeProject`,
+  `closingAsks`, `externalChange`.
+- **WN-04: recovery copies (D6).** Every 2 minutes a modified project is copied (core::writeRecovery,
+  `<config>/mdbridge/recovery`); the project file is never written without Save. A copy is removed
+  when the project is saved or its changes discarded, and offered at the next start (*Recover*,
+  *Discard the copy*, *Not now*). Copies written in the last 150 s are not offered: they may belong to
+  another MDBridge window that is still open. *Tested:* `WindowTests::recoveryCopies`.
+- **WN-05: another program changed the file (MDATK 0.1.1's co-editing notice, without its merge,
+  which is milestone 7).** A file watcher (and each activation of the window) notices a change on
+  disk; a bar offers *Reload* (asking first when there are unsaved changes) or *Keep mine*.
+  *Tested:* `externalChange`.
+- **WN-06: Close project (MDATK 0.0.13)** returns to the default settings tied to no file (`Closed
+  <name>: default settings (unsaved).`). *Tested:* `closeProject`.
+- **WN-07: citations (AP-16).** *About and citations* shows MDBridge's version, licences and the
+  citation text of the settings followed by the run-time references of the cached results
+  (`citationText`), with *Copy citations*, *Export BibTeX…* and *Graphics…*; *Citations…* shows the
+  same text with *Copy*, *Copy as JSON* (the `citations --json` form) and *Export BibTeX…*. The texts
+  are selectable (MDATK 0.1.0). *Tested:* `WindowTests::citations`, `aboutAndGraphics`.
+- **WN-08: shells (D2).** The *Workflow* menu's Project Planner, Script wizard, PDB clean-up and
+  Structure builder are present but disabled with a tooltip naming their milestone; *Render*, *Open
+  output folder* and *Open video* are disabled until W2-B wires them (Cancel is enabled while a job
+  runs; the demo runs as a job). *Tested:* `workflowShells`, `demoProject`, `closingDuringAJob`.
+- **WN-09: what the start says (AP-12).** As MDATK 0.1.0: the window logs the error (the log
+  unfolded) and names it in the status bar, besides MDATK's stderr line; no dialog. Warnings of the
+  file read at the start (unknown keys, D9) go to stderr as MDATK's do (its log handler is attached
+  after the file is read); later opens log them. A start without a project, or with one that loads,
+  adds nothing to the log and nothing to the recent list (MDATK's start). *Tested:*
+  `ap/ap12_start_broken`, `WindowTests::startWithBrokenFile`, `roundtrip/open_save_datetimes`.
+- **WN-10: drawing warnings in the log.** MDATK logs a warning of each redraw after an edit (`WARNING:
+  layout single has 1 slots; ...`). MDBridge's preview draws on a worker thread; its warnings are
+  logged when they differ from the last drawing's, never for the project as opened (MDATK draws it
+  before its log handler is there), and the render's warn-once memory starts afresh with each
+  project shown. *Tested:* `pages/structure_page` (`Centre on` warning), `roundtrip/open_save_full`
+  (no warning for the 6 panels on 4 slots of the file as opened).
 
 ## Interface: the edit model (src/core/project_document.cpp, problems.cpp; milestone 5 W0-B)
 
