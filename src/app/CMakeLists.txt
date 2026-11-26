@@ -19,6 +19,10 @@ add_library(mdbridge_app STATIC
     gui/forms/list_editor.hpp
     gui/gui.cpp
     gui/gui.hpp
+    gui/jobs/job_runner.cpp
+    gui/jobs/job_runner.hpp
+    gui/jobs/log_view.cpp
+    gui/jobs/log_view.hpp
     gui/main_window.cpp
     gui/main_window.hpp
     gui/preview_widget.cpp

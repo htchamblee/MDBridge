@@ -2081,6 +2081,58 @@ after its field path. Deliberate differences from MDATK v0.0.4.1:
   filters, each pattern also in lower and upper case (MDATK's match ignores case; Qt's dialogs do not on
   Linux). *Tested:* `valueWidgetsIgnoreTheMouseWheel`, `everyEditorIsNamedAndReachable`.
 
+## Interface: jobs and the log (src/app/gui/jobs)
+
+The window's background jobs (render, cleaning, export, …; M7's script runner reuses it) run
+through `JobRunner`, MDATK's `gui/worker.py` with 0.1.1's `gui/jobs.py` JobControl: one job at a
+time (a second start reports `Another job is still running.`), the job on a worker thread with a
+`core::Reporter`, progress throttled as `worker.py` (a value at least 0.5 % above the last one
+shown, 1.0, or a step back), MDATK's texts (`<title> …`, `NN%  message`, `Cancelling …`,
+`Cancelled`, `Failed`, `<title>: done`; log `--- <title> ---`, `Cancelled.`), busy widgets
+disabled and stop widgets enabled while it runs, the result or the failure handed to the
+interface thread (the failure handler before the error dialog, as 0.1.1's `on_failure`). The log
+view is 0.1.1's `gui/logpanel.py` without the per-step parts (M7): lines from any thread inserted
+in batches every 40 ms, at most 2 000 per batch (the newest, with the note `… N line(s) not
+shown: they came faster than the log can show them`), 5 000 to 6 000 lines kept, 0.1.1's styles,
+Copy, Save, Clear, follow, fold on Ctrl+L. Deliberate differences:
+
+- **Closing during a job asks and waits (AP-14).** MDATK's analysis window cancelled the worker
+  on close and quit without waiting (a daemon thread, `worker.py`), so a render could end in the
+  middle of writing its video. MDBridge asks first (*Cancel it and close* / Cancel), then cancels
+  the job and waits for it to end, its own clean-up included, while the log and progress go on
+  updating; after 15 s (0.1.1 RNAdo's `jobs.stop(wait=15.0)`) it asks again: *Keep waiting*,
+  *Close anyway* (the job is abandoned to the process exit, the log says so) or Cancel. Destroying
+  the runner with a job running cancels and waits too, unless the user chose *Close anyway*.
+  Follows 0.1.1 RNAdo's close question (0.0.11), which the analysis window never got.
+  *Tested:* `JobRunnerTest::closeWithoutAJobDoesNotAsk`, `closeQuestionAnsweredCancelKeepsTheJob`,
+  `closeWaitsForTheJobsCleanUp` (the job removes its partial file before close returns),
+  `closeAsksAgainWhenTheJobDoesNotStop`, `destroyingTheRunnerWaitsForTheJob`
+  (tests/gui/test_jobs.cpp).
+- **The log never floods the interface.** MDATK v0.0.4.1 posted one main-loop callback per log
+  line and progress value, and trimmed the buffer after every line; a chatty cpptraj or a long
+  trajectory made the window unresponsive. The log follows 0.1.1's batched panel (above) for the
+  analysis window too; without a GIL the queue needs no `FLOOD_PAUSE_S` sleep (the producing
+  thread only takes a short lock). Progress updates are coalesced besides the throttle: at most
+  one is pending, it shows the newest value (frame-parallel analyses report from several threads,
+  whose interleaved fractions would pass MDATK's "step back" test every time). *Tested:*
+  `LogViewTest::aMillionLinesFromAThread`, `aMillionLinesFromTheInterfaceThread` and
+  `aFloodingJobCanBeCancelled`: 10^6 lines, no event-loop stall of 0.2 s, at most 6 000 lines,
+  the newest line shown, Cancel effective within the flood; `keepsFiveToSixThousandLines`,
+  `aFloodShowsTheNewestLinesAndANote`, `JobRunnerTest::progressTextAndThrottle`.
+- **Copy and Save in the analysis window's log; dark-palette styles.** MDATK v0.0.4.1's log had
+  Clear only; Copy, Save (`Log saved to <path>`, or `ERROR: could not write <path>: <reason>` in the
+  log; written atomically) and the follow toggle are 0.1.1's output-log controls. The 0.1.1 colours
+  are GNOME's light-theme shades; on a dark palette (D3) the same hues in lighter shades are used
+  (`#99c1f1` info, `#f66151` stderr, `#ff7b63` error, `#ffa348` warning). *Tested:*
+  `LogViewTest::styles`, `clearCopySave`, `foldsWithCtrlL`, `followsTheEnd`.
+- **Failures carry no traceback; failed result handlers are failures.** MDATK logged the Python
+  traceback of an unexpected exception; C++ exceptions have none, so the log gets `ERROR: <title>
+  failed: <message>` (MDATK's `error()` line) and the handler gets the exception itself
+  (`JobFailure::error`) to tell kinds apart (AP-10's located problems). An exception from the
+  result handler on the interface thread is reported as the job's failure instead of escaping the
+  event loop; a non-standard exception reads `unknown error`. *Tested:*
+  `JobRunnerTest::failuresReachTheInterface`.
+
 ## Planned (from the improvement register; add each entry here when it lands)
 
 None: every FIX and ASK item of the improvement register (docs/IMPROVEMENTS.md) has landed

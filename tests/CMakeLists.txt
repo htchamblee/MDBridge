@@ -337,6 +337,16 @@ if(MDBRIDGE_BUILD_APP)
             VERBATIM)
     endif()
     gtest_discover_tests(mdbridge_video_qt_tests DISCOVERY_MODE PRE_TEST)
+
+    # the interface's job runner and log view (src/app/gui/jobs; Qt Test, offscreen platform): job
+    # texts, one job at a time, progress throttle, cancel paths, failures, close-while-running
+    # (AP-14), a bounded batched log that keeps the event loop responsive under 10^6 lines
+    add_executable(mdbridge_gui_jobs_tests gui/test_jobs.cpp)
+    set_target_properties(mdbridge_gui_jobs_tests PROPERTIES AUTOMOC ON)
+    target_link_libraries(mdbridge_gui_jobs_tests PRIVATE mdbridge_app Qt6::Test)
+    mdbridge_target_warnings(mdbridge_gui_jobs_tests)
+    add_test(NAME mdbridge_gui_jobs_tests COMMAND mdbridge_gui_jobs_tests)
+    set_tests_properties(mdbridge_gui_jobs_tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen" TIMEOUT 600)
 endif()
 
 if(MDBRIDGE_BUILD_APP)
