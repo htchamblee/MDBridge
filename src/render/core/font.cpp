@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <map>
 #include <optional>
 #include <utility>
 
@@ -943,40 +944,116 @@ void Font::kern(const std::vector<std::uint16_t>& glyphs, std::vector<int>& xAdv
     kernRun(*impl_, glyphs, 0, glyphs.size(), Script::Latin, xAdvance, xPlacement);
 }
 
-TextLayout Font::layout(std::string_view utf8, double points, double dpi) const {
-    const Impl& f = *impl_;
-    const std::u32string text = decodeUtf8(utf8);
-    const FontScale size = fontScale(f.unitsPerEm, points, dpi);
-    // HarfBuzz' font scale from FreeType's size (hb-ft) and its em_mult for GPOS values
-    const std::int64_t hbScale = (size.scale * f.unitsPerEm + (1 << 15)) >> 16;
-    const std::int64_t emMult = (hbScale << 16) / f.unitsPerEm;
-    const auto em = [emMult](int v) { return (static_cast<std::int64_t>(v) * emMult + 32768) >> 16; };
+namespace {
 
+// One shaped line: glyphs with their cluster (first code point) and the face they come from
+struct Shaped {
     std::vector<std::uint16_t> glyphs;
     std::vector<std::size_t> clusters;
     std::vector<int> kernAdvance, kernPlacement;
-    const auto runs = scriptRuns(text);
-    for (std::size_t r = 0; r < runs.size(); ++r) {
-        const std::size_t end = r + 1 < runs.size() ? runs[r + 1].first : text.size();
-        const auto part = substituteRun(f, text, runs[r].first, end, runs[r].second);
-        const std::size_t first = glyphs.size();
-        for (const auto& [g, cluster] : part) {
-            glyphs.push_back(g);
-            clusters.push_back(cluster);
+    std::vector<bool> fromFallback;
+};
+
+// shapes `text` in runs of one script and one face (as libraqm itemizes: a face change starts a run),
+// `useFallback[i]` choosing the face of code point i
+Shaped shape(const Font::Impl& primary, const Font::Impl* fallback, const std::u32string& text,
+             const std::vector<bool>& useFallback) {
+    Shaped out;
+    std::vector<std::pair<std::size_t, Script>> runs;
+    const auto scripts = scriptRuns(text);
+    for (std::size_t r = 0; r < scripts.size(); ++r) {
+        const std::size_t end = r + 1 < scripts.size() ? scripts[r + 1].first : text.size();
+        runs.push_back(scripts[r]);
+        for (std::size_t i = scripts[r].first + 1; i < end; ++i) {
+            if (useFallback[i] != useFallback[i - 1]) {
+                runs.emplace_back(i, scripts[r].second);
+            }
         }
-        kernAdvance.resize(glyphs.size(), 0);
-        kernPlacement.resize(glyphs.size(), 0);
-        kernRun(f, glyphs, first, glyphs.size(), runs[r].second, kernAdvance, kernPlacement);
     }
+    for (std::size_t r = 0; r < runs.size(); ++r) {
+        const std::size_t begin = runs[r].first;
+        const std::size_t end = r + 1 < runs.size() ? runs[r + 1].first : text.size();
+        if (begin >= end) {
+            continue;
+        }
+        const bool fb = fallback != nullptr && useFallback[begin];
+        const Font::Impl& f = fb ? *fallback : primary;
+        const auto part = substituteRun(f, text, begin, end, runs[r].second);
+        const std::size_t first = out.glyphs.size();
+        for (const auto& [g, cluster] : part) {
+            out.glyphs.push_back(g);
+            out.clusters.push_back(cluster);
+            out.fromFallback.push_back(fb);
+        }
+        out.kernAdvance.resize(out.glyphs.size(), 0);
+        out.kernPlacement.resize(out.glyphs.size(), 0);
+        kernRun(f, out.glyphs, first, out.glyphs.size(), runs[r].second, out.kernAdvance, out.kernPlacement);
+    }
+    return out;
+}
+
+}  // namespace
+
+TextLayout Font::layout(std::string_view utf8, double points, double dpi, const Font* fallback) const {
+    const Impl& f = *impl_;
+    const Impl* fb = fallback ? fallback->impl_.get() : nullptr;
+    const std::u32string text = decodeUtf8(utf8);
+
+    // Matplotlib's FT2Font::layout: shape with the font; the clusters with a missing glyph (glyph
+    // 0), each up to the next cluster, then take the fallback font, and the line is shaped again
+    std::vector<bool> useFallback(text.size(), false);
+    Shaped shaped = shape(f, nullptr, text, useFallback);
+    if (fb) {
+        std::map<std::size_t, bool> missing;  // cluster -> any of its glyphs missing (ordered)
+        for (std::size_t i = 0; i < shaped.glyphs.size(); ++i) {
+            missing[shaped.clusters[i]] = missing[shaped.clusters[i]] || shaped.glyphs[i] == 0;
+        }
+        bool used = false;
+        for (auto it = missing.begin(); it != missing.end();) {
+            const auto [cluster, isMissing] = *it;
+            ++it;
+            if (isMissing) {
+                const std::size_t next = it != missing.end() ? it->first : text.size();
+                for (std::size_t i = cluster; i < next; ++i) {
+                    useFallback[i] = true;
+                }
+                used = true;
+            }
+        }
+        if (used) {
+            shaped = shape(f, fb, text, useFallback);
+        }
+    }
+
+    // the em in 26.6 pixels is the same for both faces (points and dpi only); the scales are each
+    // face's own
+    const FontScale size = fontScale(f.unitsPerEm, points, dpi);
+    struct Scales {
+        std::int64_t scale, emMult;
+    };
+    const auto scalesOf = [&](const Impl& face) {
+        const FontScale s = fontScale(face.unitsPerEm, points, dpi);
+        // HarfBuzz' font scale from FreeType's size (hb-ft) and its em_mult for GPOS values
+        const std::int64_t hbScale = (s.scale * face.unitsPerEm + (1 << 15)) >> 16;
+        return Scales{s.scale, (hbScale << 16) / face.unitsPerEm};
+    };
+    const Scales primaryScales = scalesOf(f);
+    const Scales fallbackScales = fb ? scalesOf(*fb) : primaryScales;
 
     TextLayout out;
     out.pixelSize = size.pixelSize();
     std::int64_t pen = 0;
-    for (std::size_t i = 0; i < glyphs.size(); ++i) {
+    for (std::size_t i = 0; i < shaped.glyphs.size(); ++i) {
+        const bool fromFallback = shaped.fromFallback[i];
+        const Impl& face = fromFallback ? *fb : f;
+        const Scales& sc = fromFallback ? fallbackScales : primaryScales;
+        const auto em = [&sc](int v) { return (static_cast<std::int64_t>(v) * sc.emMult + 32768) >> 16; };
+        const std::uint16_t glyph = shaped.glyphs[i];
         // FT_Get_Advance (unhinted: units x x_scale / 64 in 16.16) -> 26.6, as hb-ft rounds it
-        const std::int64_t advance = ((mulDiv(f.advance(glyphs[i]), size.scale, 64) + (1 << 9)) >> 10) + em(kernAdvance[i]);
-        const std::int64_t x = pen + em(kernPlacement[i]);
-        const GlyphBox b = f.box(glyphs[i], size.scale);
+        const std::int64_t advance =
+            ((mulDiv(face.advance(glyph), sc.scale, 64) + (1 << 9)) >> 10) + em(shaped.kernAdvance[i]);
+        const std::int64_t x = pen + em(shaped.kernPlacement[i]);
+        const GlyphBox b = face.box(glyph, sc.scale);
         if (!b.empty) {
             const std::int64_t x0 = x + b.xMin, x1 = x + b.xMax, y0 = b.yMin, y1 = b.yMax;
             if (!out.hasInk) {
@@ -987,14 +1064,14 @@ TextLayout Font::layout(std::string_view utf8, double points, double dpi) const 
                 out.inkYMin = std::min(out.inkYMin, y0), out.inkYMax = std::max(out.inkYMax, y1);
             }
         }
-        out.glyphs.push_back({glyphs[i], x, advance, clusters[i]});
+        out.glyphs.push_back({glyph, x, advance, shaped.clusters[i], fromFallback});
         pen += advance;
     }
     out.advance = pen;
     return out;
 }
 
-std::vector<PathCommand> textPath(const Font& font, const TextLayout& layout) {
+std::vector<PathCommand> textPath(const Font& font, const TextLayout& layout, const Font* fallback) {
     using K = PathCommand::Kind;
     struct P {
         double x, y;
@@ -1002,7 +1079,8 @@ std::vector<PathCommand> textPath(const Font& font, const TextLayout& layout) {
     };
     std::vector<PathCommand> out;
     for (const PositionedGlyph& g : layout.glyphs) {
-        const std::vector<OutlinePoint> pts = font.outline(g.glyph, layout.pixelSize);
+        const Font& face = g.fallback && fallback ? *fallback : font;
+        const std::vector<OutlinePoint> pts = face.outline(g.glyph, layout.pixelSize);
         std::vector<P> contour;
         for (std::size_t i = 0; i < pts.size(); ++i) {
             contour.push_back({static_cast<double>(g.x + pts[i].x) / 64.0, -static_cast<double>(pts[i].y) / 64.0,

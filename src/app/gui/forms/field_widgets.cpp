@@ -16,7 +16,6 @@
 #include <QEvent>
 #include <QFileDialog>
 #include <QFileInfo>
-#include <QFontDatabase>
 #include <QHBoxLayout>
 #include <QKeyEvent>
 #include <QLineEdit>
@@ -35,6 +34,7 @@
 #include "mdbridge/core/json.hpp"
 #include "mdbridge/core/python.hpp"
 #include "mdbridge/render/color.hpp"
+#include "mdbridge/render/text_qt.hpp"
 
 namespace mdbridge::app::forms {
 
@@ -730,7 +730,7 @@ MultiLineField::MultiLineField(FormContext& context, std::string path, FieldSpec
     m_edit->setTabChangesFocus(true);  // keyboard users leave the field with Tab
     m_edit->setMinimumHeight(54);
     if (this->spec().monospace) {
-        m_edit->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
+        m_edit->setFont(render::interfaceFixedFont(QApplication::font().pointSizeF()));
     } else {
         m_edit->setLineWrapMode(QPlainTextEdit::WidgetWidth);
     }

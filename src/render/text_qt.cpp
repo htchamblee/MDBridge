@@ -1,5 +1,6 @@
 #include "mdbridge/render/text_qt.hpp"
 
+#include <algorithm>
 #include <clocale>
 #include <string_view>
 #if !defined(_WIN32) && !defined(__APPLE__)
@@ -55,8 +56,7 @@ QStringList registerBundledFonts() {
     }
     const FontSet& set = bundledFontSet();
     QStringList found;
-    for (const BundledFont& f : bundledFonts()) {
-        const std::string& data = set.font(f.face).data();
+    const auto add = [&found](const BundledFile& f, const std::string& data) {
         const int id = QFontDatabase::addApplicationFontFromData(
             QByteArray(data.data(), static_cast<qsizetype>(data.size())));
         const QStringList names = id < 0 ? QStringList() : QFontDatabase::applicationFontFamilies(id);
@@ -68,17 +68,25 @@ QStringList registerBundledFonts() {
                 found.push_back(name);
             }
         }
+    };
+    for (const BundledFont& f : bundledFonts()) {
+        add(f, set.font(f.face).data());
+    }
+    add(fallbackFont(), set.fallback().data());
+    for (const BundledFile& f : interfaceMonoFonts()) {
+        add(f, checkedFont(f, resourceBytes(f.file)).data());
     }
     families = found;
     return families;
 }
 
-QFont figureFont(FontFace face, double pixels, const QPaintDevice& device) {
+QFont figureFont(FontFace face, double pixels, const QPaintDevice& device, bool fallbackGlyphs) {
     const BundledFont& f = bundledFont(face);
-    QFont font(QString::fromUtf8(f.family.data(), static_cast<qsizetype>(f.family.size())));
-    font.setWeight(f.weight >= 700 ? QFont::Bold : QFont::Normal);
-    font.setStyle(f.oblique ? QFont::StyleOblique : QFont::StyleNormal);
-    font.setFixedPitch(f.monospace);
+    // the fallback font has one face (Regular), used for every figure face as Matplotlib uses it
+    const std::string_view family = fallbackGlyphs ? fallbackFont().family : f.family;
+    QFont font(QString::fromUtf8(family.data(), static_cast<qsizetype>(family.size())));
+    font.setWeight(f.weight >= 700 && !fallbackGlyphs ? QFont::Bold : QFont::Normal);
+    font.setStyle(f.italic && !fallbackGlyphs ? QFont::StyleItalic : QFont::StyleNormal);
     font.setPointSizeF(qtPointSize(pixels, device.logicalDpiY() > 0 ? device.logicalDpiY() : 96));
     font.setHintingPreference(QFont::PreferNoHinting);
     font.setStyleStrategy(QFont::StyleStrategy(QFont::NoFontMerging | QFont::PreferAntialias));
@@ -86,10 +94,38 @@ QFont figureFont(FontFace face, double pixels, const QPaintDevice& device) {
     return font;
 }
 
+namespace {
+
+QString qstring(std::string_view s) { return QString::fromUtf8(s.data(), static_cast<qsizetype>(s.size())); }
+
+}  // namespace
+
+QFont interfaceFont(double pointSize) {
+    QFont font(qstring(kFigureFamily));
+    font.setFamilies({qstring(kFigureFamily), qstring(fallbackFont().family)});
+    font.setStyleHint(QFont::Serif);
+    if (pointSize > 0) {
+        font.setPointSizeF(pointSize);
+    }
+    return font;
+}
+
+QFont interfaceFixedFont(double pointSize) {
+    const BundledFile& mono = interfaceMonoFonts().front();
+    QFont font(qstring(mono.family));
+    font.setFamilies({qstring(mono.family), qstring(fallbackFont().family)});
+    font.setStyleHint(QFont::Monospace);
+    font.setFixedPitch(true);
+    if (pointSize > 0) {
+        font.setPointSizeF(pointSize);
+    }
+    return font;
+}
+
 QPainterPath textPainterPath(FontFace face, const TextLayout& layout) {
     QPainterPath path;
     path.setFillRule(Qt::WindingFill);
-    for (const PathCommand& c : textPath(bundledFontSet().font(face), layout)) {
+    for (const PathCommand& c : bundledFontSet().path(face, layout)) {
         switch (c.kind) {
         case PathCommand::Kind::Move:
             path.moveTo(c.x, c.y);
@@ -106,6 +142,36 @@ QPainterPath textPainterPath(FontFace face, const TextLayout& layout) {
         }
     }
     return path;
+}
+
+std::vector<TextRun> fontRuns(std::string_view utf8, const TextLayout& layout) {
+    std::vector<TextRun> runs;
+    const std::u32string text = decodeUtf8(utf8);
+    std::int64_t pen = 0;
+    for (std::size_t i = 0; i < layout.glyphs.size(); ++i) {
+        const PositionedGlyph& g = layout.glyphs[i];
+        if (runs.empty() || runs.back().fallback != g.fallback) {
+            runs.push_back({static_cast<double>(pen) / 64.0, g.fallback, g.cluster, g.cluster});
+        }
+        pen += g.advance;
+    }
+    // each run's characters: from its first cluster to the next run's (or the end)
+    std::vector<TextRun> out;
+    for (std::size_t r = 0; r < runs.size(); ++r) {
+        const std::size_t begin = std::min(runs[r].begin, text.size());
+        const std::size_t end = r + 1 < runs.size() ? std::min(runs[r + 1].begin, text.size()) : text.size();
+        TextRun run = runs[r];
+        run.begin = begin;
+        run.end = std::max(begin, end);
+        out.push_back(run);
+    }
+    return out;
+}
+
+QString runText(std::string_view utf8, const TextRun& run) {
+    const std::u32string text = decodeUtf8(utf8);
+    const std::u32string part = text.substr(std::min(run.begin, text.size()), run.end - run.begin);
+    return QString::fromUcs4(part.data(), static_cast<qsizetype>(part.size()));
 }
 
 void drawText(QPainter& painter, QPointF origin, FontFace face, const TextLayout& layout, const QColor& color) {
@@ -134,9 +200,10 @@ QImage textSampleImage() {
     painter.save();
     painter.translate(18, 300);
     painter.rotate(-90);
-    drawText(painter, QPointF(0, 0), FontFace::Sans, set.layout(FontFace::Sans, "Time (ns)", 11, 100), QColor(0xd6, 0x27, 0x28));
+    drawText(painter, QPointF(0, 0), FontFace::Regular, set.layout(FontFace::Regular, "Time (ns)", 11, 100),
+             QColor(0xd6, 0x27, 0x28));
     painter.restore();
-    drawText(painter, QPointF(500.5, 380.7), FontFace::SansBold, set.layout(FontFace::SansBold, "frame 120", 12, 150),
+    drawText(painter, QPointF(500.5, 380.7), FontFace::Bold, set.layout(FontFace::Bold, "frame 120", 12, 150),
              QColor(31, 119, 180, 160));
     painter.end();
     return image;

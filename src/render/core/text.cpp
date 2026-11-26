@@ -20,16 +20,28 @@ namespace mdbridge::render {
 namespace {
 
 constexpr std::array<BundledFont, kFontFaceCount> kFonts{{
-    {FontFace::Sans, "DejaVuSans.ttf", "DejaVu Sans", "Book", 400, false, false,
-     "3fdf69cabf06049ea70a00b5919340e2ce1e6d02b0cc3c4b44fb6801bd1e0d22"},
-    {FontFace::SansBold, "DejaVuSans-Bold.ttf", "DejaVu Sans", "Bold", 700, false, false,
-     "b184b89e3c1075f22f6b71575b6fc20d4972b3cfd3b23322ca6fd596dcaef167"},
-    {FontFace::SansOblique, "DejaVuSans-Oblique.ttf", "DejaVu Sans", "Oblique", 400, true, false,
-     "ccdf74b350f11fd3dd5774de50e5e6346a1a5da1f5b7d5fb83590665e97a5213"},
-    {FontFace::Mono, "DejaVuSansMono.ttf", "DejaVu Sans Mono", "Book", 400, false, true,
-     "602ec86b8948cfcd956482fe64f94c36c867770149ef2f791d4613f443bcecb3"},
-    {FontFace::MonoBold, "DejaVuSansMono-Bold.ttf", "DejaVu Sans Mono", "Bold", 700, false, true,
-     "baada9a5172fe20886251aff0433fc38461912d5daf07287e7bee56620a8da96"},
+    {{"IBMPlexSerif-Regular.ttf", "IBM Plex Serif", "Regular", "Version 3.006",
+      "6c490ccd38e856c674e0d163f3f40742a75058b7b935998dbfbc1745ba54e474"},
+     FontFace::Regular, 400, false},
+    {{"IBMPlexSerif-Bold.ttf", "IBM Plex Serif", "Bold", "Version 3.006",
+      "5fa66833dc80adb6252c793adb555716ec10833d2b1e5b0235b68c72cd69adf0"},
+     FontFace::Bold, 700, false},
+    {{"IBMPlexSerif-Italic.ttf", "IBM Plex Serif", "Italic", "Version 3.006",
+      "d28aa63cf618439712d6b459c5649af1d6d789cb911994f2357f1ce44128f163"},
+     FontFace::Italic, 400, true},
+    {{"IBMPlexSerif-BoldItalic.ttf", "IBM Plex Serif", "Bold Italic", "Version 3.006",
+      "e33c9d0a692bb26c9c1ece4a35fd2a351317f5a60009d0e9945ae30d0297bf42"},
+     FontFace::BoldItalic, 700, true},
+}};
+
+constexpr BundledFile kFallback{"IBMPlexMath-Regular.ttf", "IBM Plex Math", "Regular", "Version 1.000",
+                                "10d07a23cb322725f83ca51748a4c7a61cf14caf2c4d880d793c65d3a1402533"};
+
+constexpr std::array<BundledFile, 2> kMono{{
+    {"IBMPlexMono-Regular.ttf", "IBM Plex Mono", "Regular", "Version 2.005",
+     "7c6fbddca4b700be918f5f6183d9bd4464fa427fe435f0b480d77fe2bb8c5a43"},
+    {"IBMPlexMono-Bold.ttf", "IBM Plex Mono", "Bold", "Version 2.005",
+     "74e5eedcfa4596497d34e19023cabdabd3a8c852b903007a5654a59591a72ffb"},
 }};
 
 std::string lower(std::string_view s) {
@@ -42,16 +54,18 @@ std::string lower(std::string_view s) {
     return out;
 }
 
-// Matplotlib's rcParams defaults for the generic families (font.sans-serif, ...)
+// Matplotlib's rcParams defaults for the generic families (font.sans-serif, ...), with IBM Plex
+// Serif first in sans-serif, serif and monospace (MDBridge's figures draw them all in it;
+// tests/parity/improvements_fonts.py gives Matplotlib the same lists)
 const std::vector<std::string_view>* aliasList(std::string_view generic) {
     static const std::vector<std::string_view> sans{
-        "DejaVu Sans", "Bitstream Vera Sans", "Computer Modern Sans Serif", "Lucida Grande", "Verdana", "Geneva",
-        "Lucid", "Arial", "Helvetica", "Avant Garde", "sans-serif"};
+        kFigureFamily, "DejaVu Sans", "Bitstream Vera Sans", "Computer Modern Sans Serif", "Lucida Grande", "Verdana",
+        "Geneva", "Lucid", "Arial", "Helvetica", "Avant Garde", "sans-serif"};
     static const std::vector<std::string_view> mono{
-        "DejaVu Sans Mono", "Bitstream Vera Sans Mono", "Computer Modern Typewriter", "Andale Mono",
+        kFigureFamily, "DejaVu Sans Mono", "Bitstream Vera Sans Mono", "Computer Modern Typewriter", "Andale Mono",
         "Nimbus Mono L", "Courier New", "Courier", "Fixed", "Terminal", "monospace"};
     static const std::vector<std::string_view> serif{
-        "DejaVu Serif", "Bitstream Vera Serif", "Computer Modern Roman", "New Century Schoolbook",
+        kFigureFamily, "DejaVu Serif", "Bitstream Vera Serif", "Computer Modern Roman", "New Century Schoolbook",
         "Century Schoolbook L", "Utopia", "ITC Bookman", "Bookman", "Nimbus Roman No9 L", "Times New Roman",
         "Times", "Palatino", "Charter", "serif"};
     static const std::vector<std::string_view> cursive{
@@ -98,9 +112,9 @@ double scoreStyle(std::string_view a, std::string_view b) {
 
 FontFace bestFace(std::span<const std::string> families, std::string_view style, int weight, double& best) {
     best = 1e64;
-    FontFace face = FontFace::Sans;
+    FontFace face = FontFace::Regular;
     for (const BundledFont& f : kFonts) {
-        const double score = scoreFamily(families, f.family) * 10 + scoreStyle(style, f.oblique ? "oblique" : "normal") +
+        const double score = scoreFamily(families, f.family) * 10 + scoreStyle(style, f.italic ? "italic" : "normal") +
                              0.95 * (std::abs(weight - f.weight) / 1000.0) + 0.05;
         if (score < best) {
             best = score;
@@ -115,6 +129,10 @@ FontFace bestFace(std::span<const std::string> families, std::string_view style,
 std::span<const BundledFont> bundledFonts() { return kFonts; }
 
 const BundledFont& bundledFont(FontFace face) { return kFonts[static_cast<std::size_t>(face)]; }
+
+const BundledFile& fallbackFont() { return kFallback; }
+
+std::span<const BundledFile> interfaceMonoFonts() { return kMono; }
 
 std::optional<int> fontWeight(std::string_view name) {
     static constexpr std::pair<std::string_view, int> kWeights[] = {
@@ -138,7 +156,7 @@ FontFace chooseFace(std::span<const std::string> families, std::string_view styl
     double best = 0;
     const FontFace face = bestFace(families, style, weight, best);
     if (best >= 10.0) {  // no family matched: Matplotlib retries with its default family
-        const std::string fallback[] = {"DejaVu Sans"};
+        const std::string fallback[] = {std::string(kFigureFamily)};
         return bestFace(fallback, style, weight, best);
     }
     return face;
@@ -153,22 +171,26 @@ double pointsToPixels(double points, double dpi) { return points * dpi / 72.0; }
 double pixelsToPoints(double pixels, double dpi) { return pixels * 72.0 / dpi; }
 double qtPointSize(double pixels, double deviceDpi) { return pixels * 72.0 / deviceDpi; }
 
-FontSet::FontSet(std::array<std::string, kFontFaceCount> data) {
-    for (const BundledFont& f : kFonts) {
-        std::string& bytes = data[static_cast<std::size_t>(f.face)];
-        if (bytes.empty()) {
-            throw FontError("bundled font " + std::string(f.file) + " is missing");
-        }
-        if (core::sha256Hex(bytes) != f.sha256) {
-            throw FontError("bundled font " + std::string(f.file) + " is not DejaVu " + std::string(kDejaVuVersion) +
-                            " as Matplotlib 3.11.2 ships it (sha256 differs)");
-        }
-        Font font = Font::fromData(std::move(bytes));
-        if (font.family() != f.family || font.subfamily() != f.style) {
-            throw FontError("bundled font " + std::string(f.file) + " is " + font.family() + " " + font.subfamily());
-        }
-        fonts_.push_back(std::move(font));
+Font checkedFont(const BundledFile& f, std::string bytes) {
+    if (bytes.empty()) {
+        throw FontError("bundled font " + std::string(f.file) + " is missing");
     }
+    if (core::sha256Hex(bytes) != f.sha256) {
+        throw FontError("bundled font " + std::string(f.file) + " is not " + std::string(f.family) + " " +
+                        std::string(f.style) + " as IBM's release has it (sha256 differs)");
+    }
+    Font font = Font::fromData(std::move(bytes));
+    if (font.family() != f.family || font.subfamily() != f.style) {
+        throw FontError("bundled font " + std::string(f.file) + " is " + font.family() + " " + font.subfamily());
+    }
+    return font;
+}
+
+FontSet::FontSet(std::array<std::string, kFontFaceCount> data, std::string fallbackData) {
+    for (const BundledFont& f : kFonts) {
+        fonts_.push_back(checkedFont(f, std::move(data[static_cast<std::size_t>(f.face)])));
+    }
+    fonts_.push_back(checkedFont(kFallback, std::move(fallbackData)));
 }
 
 std::optional<std::string_view> batchQtPlatform() {

@@ -425,7 +425,7 @@ public:
         Box box;                 // the rotated text's axis-aligned extent
         std::vector<std::pair<std::string, Point>> lines;  // each line and its baseline origin
         std::vector<TextLayout> layouts;
-        FontFace face = FontFace::Sans;
+        FontFace face = FontFace::Regular;
         double pixelSize = 0.0;
         double descent = 0.0;    // of the last line
     };

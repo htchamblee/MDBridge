@@ -4,8 +4,9 @@ make_molecule_cases.py, make_render_cli_cases.py; tests/data/README.md "Renderin
 Import it before numpy: it pins numpy's and OpenBLAS' kernels (as make_analysis_cases.py does), so
 that what MDATK computes with them (view rotations, matplotlib's numerics, the software renderer's
 float32 arithmetic, scipy.ndimage's Gaussian kernels) is the same on every x86-64 machine. Then
-``setup(checkout)`` makes Matplotlib use only the fonts of its wheel (bundled_fonts_only), puts MDATK
-on sys.path and patches it the way the analysis generators do:
+``setup(checkout)`` gives Matplotlib MDBridge's figure fonts (improvements_fonts.py: the bundled IBM
+Plex Serif faces only, IBM Plex Math as the fallback), puts MDATK on sys.path and patches it the way
+the analysis generators do:
 MDBridge's independent tables (independent_tables.py), periodic geometry, analysis, selection and
 CLI improvements, the residue-scoped ion rule on every Universe the pipeline loads, and MDBridge's
 rendering improvements (improvements_render.py).
@@ -105,7 +106,9 @@ def setup(checkout: str, collect: bool = True) -> None:
 
     matplotlib.use("Agg")
     matplotlib.rcdefaults()  # no matplotlibrc of the machine (MDATK uses the defaults)
-    bundled_fonts_only()
+    import improvements_fonts
+
+    improvements_fonts.apply()  # MDBridge's figure fonts (FONT-01, FONT-02): IBM Plex Serif, Plex Math fallback
 
     import independent_tables
 
@@ -146,19 +149,6 @@ def setup(checkout: str, collect: bool = True) -> None:
     import improvements_citations
 
     improvements_citations.apply_mdatk()  # MDBridge's citations (CIT-01, CIT-02; params and step logs)
-
-
-def bundled_fonts_only() -> None:
-    """Matplotlib finds only the fonts of its own wheel (DejaVu, pinned with it): a machine's own
-    copies of DejaVu (other versions, other metrics) or other fonts never take part."""
-    import matplotlib
-    from matplotlib import font_manager as fm
-
-    data = os.path.join(os.path.dirname(os.path.abspath(matplotlib.__file__)), "mpl-data")
-    fm.fontManager.ttflist = [f for f in fm.fontManager.ttflist if os.path.abspath(f.fname).startswith(data)]
-    fm.fontManager.afmlist = [f for f in fm.fontManager.afmlist if os.path.abspath(f.fname).startswith(data)]
-    fm.fontManager._findfont_cached.cache_clear()
-    fm._get_font.cache_clear()
 
 
 # --- JSON -----------------------------------------------------------------------------------------

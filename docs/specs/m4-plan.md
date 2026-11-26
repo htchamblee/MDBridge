@@ -187,7 +187,7 @@ example dataset matches layout).
 |---|---|---|---|
 | Figure, panels, charts | Matplotlib 3.11 (Agg) | own figure model + QPainter (`QImage` raster, `QSvgGenerator`, `QPdfWriter`) | Qt LGPL v3 (dynamic); QtSvg is one more Qt module (`get_qt.py --archive qtsvg`, AppImage / windeployqt). Qt Charts / Qt Graphs (GPL v3 in open-source Qt 6), QCustomPlot (GPL) excluded; JKQtPlotter (LGPL 2.1) allowed but not needed (we need Matplotlib-identical ticks, layout and colour maps) |
 | Tick locator / formatter, autoscale margins, colormap interpolation, colour names | Matplotlib (`MaxNLocator`, `ScalarFormatter`, `to_rgba`, `LinearSegmentedColormap`, `colormaps`) | ported algorithms + tables with notice (`src/render/mpl_*`) | Matplotlib licence (PSF-style, permissive): port with notice; CSS4 names W3C; `tab10/tab20` (Tableau, distributed in Matplotlib's BSD-compatible terms), ColorBrewer (Apache-style), viridis family (CC0) |
-| Fonts | DejaVu Sans / Mono shipped with Matplotlib | the same DejaVu fonts bundled as Qt resources, registered with `QFontDatabase::addApplicationFont`; no system fonts used for figures | Bitstream Vera / DejaVu licence (permissive), notice; identical metrics on every OS = reproducible layout, works on the bare Rocky system |
+| Fonts | DejaVu Sans / Mono shipped with Matplotlib | (milestone 4; since milestone 5 IBM Plex Serif with an IBM Plex Math fallback, D4 and docs/DIFFERENCES.md FONT-01) the same DejaVu fonts bundled as Qt resources, registered with `QFontDatabase::addApplicationFont`; no system fonts used for figures | Bitstream Vera / DejaVu licence (permissive), notice; identical metrics on every OS = reproducible layout, works on the bare Rocky system |
 | Headless text / painting | Agg | `QT_QPA_PLATFORM=offscreen` set by the CLI for `render`/`charts`/`preview` when no display is needed (plugin already deployed in the AppImage) | Qt |
 | 3D: software path | own numpy renderer (`software.py`) | C++ port (owner's code), also the fallback renderer of the GUI | - |
 | 3D: GPU path | VTK (optional, BSD) | Vulkan 1.3: impostor spheres / cylinders, meshes, fog, outlines, glow, OIT-lite (front-most translucent layer); offscreen `VkImage` + readback for batch (no surface; works without X on lavapipe / GPUs) | Vulkan-Headers Apache/MIT; system loader; shaders via glslang (build tool only, header committed as now) |
@@ -424,7 +424,9 @@ W3-B (D8, D9, D12), W3-C (D13), the image parity bar (D10).
 - **D3 Chart engine**: recommend own QPainter figure code (Matplotlib-identical ticks / layout,
   vector output) — not JKQtPlotter (LGPL) and never Qt Charts / Qt Graphs / QCustomPlot (GPL).
 - **D4 Fonts**: recommend bundling DejaVu Sans / Mono (Matplotlib's fonts) for all figures; user
-  fonts later as an option.
+  fonts later as an option. *Superseded in milestone 5 by the owner's font decision:* IBM Plex
+  Serif for figures and the interface, IBM Plex Math as the one fallback, IBM Plex Mono for the
+  interface's fixed-width text (docs/DIFFERENCES.md FONT-01, FONT-02; data/sources/fonts/README.md).
 - **D5 `output.charts.style`**: recommend `mdatk` plus Matplotlib's `default` look; other style
   names warn and use MDATK chrome (as MDATK does for unknown styles).
 - **D6 `visual.chain_palette`**: recommend porting Matplotlib's qualitative (tab10/20, Set1-3,

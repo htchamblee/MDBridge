@@ -160,7 +160,7 @@ TEST(FigureSvg, TextAsTextAndPhysicalSize) {
     EXPECT_NEAR(std::stod(m[2]), 228.6, 0.2);
     EXPECT_NE(s.find("viewBox=\"0 0 960 540\""), std::string::npos);
     EXPECT_NE(s.find("<text"), std::string::npos);
-    EXPECT_NE(s.find("DejaVu Sans"), std::string::npos);
+    EXPECT_NE(s.find("IBM Plex Serif"), std::string::npos);
     EXPECT_NE(s.find("Time (ns)"), std::string::npos);
     EXPECT_NE(s.find("Figure title"), std::string::npos);
     EXPECT_NE(s.find("RMSD (Å)"), std::string::npos);

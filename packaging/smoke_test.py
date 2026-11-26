@@ -223,8 +223,9 @@ def screenshot(exe, renderer: str, work: str):
     return report
 
 
-BUNDLED_FONTS = {"DejaVuSans.ttf", "DejaVuSans-Bold.ttf", "DejaVuSans-Oblique.ttf", "DejaVuSansMono.ttf",
-                 "DejaVuSansMono-Bold.ttf"}
+BUNDLED_FONTS = {"IBMPlexSerif-Regular.ttf", "IBMPlexSerif-Bold.ttf", "IBMPlexSerif-Italic.ttf",
+                 "IBMPlexSerif-BoldItalic.ttf", "IBMPlexMath-Regular.ttf", "IBMPlexMono-Regular.ttf",
+                 "IBMPlexMono-Bold.ttf"}
 
 
 def fonts_check(exe, report_path, reference_path):

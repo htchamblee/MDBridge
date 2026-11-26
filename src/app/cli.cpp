@@ -191,7 +191,7 @@ int cliMain(int argc, char** argv) {
     graphicsCommand->add_flag("--json", graphicsJson, "print the report as JSON");
 
     CLI::App* fontsCmd = app.add_subcommand(
-        "fonts", "the figure fonts (bundled DejaVu): metrics and a text image drawn without a display (check)");
+        "fonts", "the bundled fonts (IBM Plex): metrics and a text image drawn without a display (check)");
     bool fontsJson = false;
     std::string fontsRender;
     fontsCmd->add_flag("--json", fontsJson, "print the report as JSON");

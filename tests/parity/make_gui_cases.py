@@ -12,16 +12,17 @@ io/trajectories/demo_dry.nc, render/inputs/demo_dry_map.mrc) and point at them.
 Every case runs twice, each time in a child process of this script (--worker): as MDATK v0.0.4.1
 ("mdatk") and with MDBridge's window improvements (improvements_gui.py, "improved"). Both import
 MDATK's GTK 3 window (mdatk/gui/app.py) under the display of DISPLAY, or of an Xvfb this script
-starts (-displayfd), with render_common.setup(): numpy's and OpenBLAS' kernels pinned, Matplotlib's
-own fonts only, MDBridge's earlier improvements patched in. A case gets a new work folder (the
-current folder) and XDG_CONFIG_HOME / HOME folders of its own; the window is a MainWindow of a
-Gtk.Application, driven through its own methods and widgets (the binder's widgets, the slot editors,
-the canvas' press / motion / release / scroll handlers with synthetic events, save_project with the
-file dialog answered by the script), its canvas widget fixed at the case's size. Pending canvas
-redraws and settle timers run before each action (MDATK's 120 / 250 ms timers are waited out, as a
-user would). MDATK's clock (projectfile._now) is fixed: inputs are written at 2026-11-25T11:00:00,
-the window's saves count from the case's `clock` one second per reading. Paths of the work folder
-and the config folder become {case_dir} / {config_dir}; cpptraj and conda are never found.
+starts (-displayfd), with render_common.setup(): numpy's and OpenBLAS' kernels pinned, Matplotlib
+with MDBridge's bundled fonts only (improvements_fonts.py), MDBridge's earlier improvements patched
+in. A case gets a new work folder (the current folder) and XDG_CONFIG_HOME / HOME folders of its
+own; the window is a MainWindow of a Gtk.Application, driven through its own methods and widgets
+(the binder's widgets, the slot editors, the canvas' press / motion / release / scroll handlers with
+synthetic events, save_project with the file dialog answered by the script), its canvas widget fixed
+at the case's size. Pending canvas redraws and settle timers run before each action (MDATK's 120 /
+250 ms timers are waited out, as a user would). MDATK's clock (projectfile._now) is fixed: inputs
+are written at 2026-11-25T11:00:00, the window's saves count from the case's `clock` one second per
+reading. Paths of the work folder and the config folder become {case_dir} / {config_dir}; cpptraj
+and conda are never found.
 
 Needs GTK 3 introspection data, PyGObject and pycairo for this Python
 (tests/parity/requirements-gui.txt) and Xvfb when DISPLAY is unset. The output is reproducible.

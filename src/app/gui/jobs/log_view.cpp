@@ -11,7 +11,6 @@
 #include <QClipboard>
 #include <QEvent>
 #include <QFileDialog>
-#include <QFontDatabase>
 #include <QHBoxLayout>
 #include <QKeySequence>
 #include <QLabel>
@@ -26,6 +25,8 @@
 #include <QThread>
 #include <QToolButton>
 #include <QVBoxLayout>
+
+#include "mdbridge/render/text_qt.hpp"
 
 namespace mdbridge::app::jobs {
 
@@ -121,7 +122,7 @@ LogView::LogView(QWidget* parent) : QWidget(parent), m_queue(std::make_shared<Qu
     m_view->setUndoRedoEnabled(false);
     m_view->setLineWrapMode(QPlainTextEdit::WidgetWidth);
     m_view->setWordWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
-    m_view->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
+    m_view->setFont(render::interfaceFixedFont(QApplication::font().pointSizeF()));
     m_view->setMinimumHeight(60);
     m_view->setAccessibleName(tr("Log"));
 

@@ -77,8 +77,9 @@ without Matplotlib, Python or an `ffmpeg` executable, on a desktop or a headless
   contact map, sequence and secondary-structure panels; the 16 layout presets; light and dark
   themes) on MDBridge's own figure model and QPainter backends (PNG, SVG, PDF, JPEG, TIFF, EPS,
   PS). Matplotlib's colours, colormaps, tick locators and formatters and its constrained layout are
-  ported with their notice; text is drawn in the bundled DejaVu fonts (Matplotlib's), so a figure
-  looks the same on every machine and needs no fonts, fontconfig or display (Qt's `offscreen`
+  ported with their notice; text is drawn in the bundled IBM Plex Serif (with IBM Plex Math for the
+  few symbols it lacks; the interface uses the same font), so a figure looks the same on every
+  machine and needs no fonts, fontconfig or display (Qt's `offscreen`
   platform).
 - **Standalone charts**: MDATK's series and matrix charts (`output.charts`: sizes, styles,
   smoothing, targets, title templates, file names).

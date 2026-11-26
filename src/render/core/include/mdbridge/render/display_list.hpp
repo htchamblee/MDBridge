@@ -60,7 +60,7 @@ struct RoundRectItem {
 
 struct TextItem {
     std::string text;  // one line
-    FontFace face = FontFace::Sans;
+    FontFace face = FontFace::Regular;
     double pixelSize = 10.0;  // the em in pixels
     Point origin;             // baseline, left end of the line
     double rotation = 0.0;    // degrees, counter-clockwise on screen

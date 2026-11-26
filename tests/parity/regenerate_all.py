@@ -14,7 +14,8 @@ never the committed ones. The committed public-source extracts of data/sources/ 
 tools/extract_*.py from downloads) are copied to FRESH_DIR/data/sources: tools/gen_data_tables.py
 writes src/core/include/mdbridge/core/detail/data_tables_independent.inc from them, and
 tests/parity/independent_tables.py loads the same tables through it to patch MDAnalysis in the
-generators that depend on them. Then every
+generators that depend on them. The bundled fonts of data/fonts are copied to FRESH_DIR/data/fonts
+too: the render generators give them to Matplotlib (improvements_fonts.py). Then every
 committed file is compared with its fresh copy; each difference is printed with a unified-diff
 excerpt (a hex excerpt for binary files). Exit status 1 on any difference, missing or unexpected
 file, or generator failure.
@@ -112,6 +113,7 @@ TABLES = ["src/core/unicode_tables.inc", "src/core/case_tables.inc", "src/core/c
           "src/io/pdb_tables.inc", "src/analysis/covalent_radii.inc", "src/analysis/energy_lj_tables.inc",
           "src/render/core/mpl_colors.inc"]
 SOURCES = "data/sources"  # committed inputs of tools/gen_data_tables.py, copied into the fresh tree
+FONTS = "data/fonts"  # the bundled fonts the render generators give Matplotlib (improvements_fonts.py), copied too
 
 # Outputs that legitimately depend on the CPU: compared byte for byte, and where the bytes differ, as
 # JSON documents with the same structure, strings and case count whose numbers agree within
@@ -334,7 +336,7 @@ STEPS = [
     case_step("colors", "make_color_cases.py", "render/colors"),
     # milestone 4: axis limits, ticks and tick labels (Matplotlib as MDATK uses it, thin_ticks)
     case_step("ticks", "make_tick_cases.py", "render/ticks"),
-    # milestone 4: the bundled DejaVu fonts, Matplotlib's font choice and text metrics (no MDATK)
+    # milestone 4: the bundled IBM Plex fonts, Matplotlib's font choice and text metrics (no MDATK)
     Step("text", "tests/parity/make_text_cases.py", lambda ctx: [d(ctx, "render/text")], [f"{DATA}/render/text"]),
     # milestone 4: what MDATK's figures, charts, 3D representations and render commands show and
     # write (contents only, no reference images); the figure step writes the input datasets the
@@ -517,7 +519,7 @@ def prepare(root: str, steps: list[Step], only: bool) -> None:
         for name in os.listdir(os.path.join(ROOT, sub)):
             if name.endswith(".py"):
                 shutil.copyfile(os.path.join(ROOT, sub, name), os.path.join(root, sub, name))
-    for rel in committed_files([SOURCES]):
+    for rel in committed_files([SOURCES, FONTS]):
         os.makedirs(os.path.dirname(os.path.join(root, rel)), exist_ok=True)
         shutil.copyfile(os.path.join(ROOT, rel), os.path.join(root, rel))
     for sub in ("src/core", "src/io", DATA):

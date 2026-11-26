@@ -1257,30 +1257,77 @@ Matplotlib 3.11.2's bit for bit (ported with its notice); MDATK's `thin_ticks` l
 ## Rendering: fonts and text (src/render/core/font.cpp, text.cpp; src/render/text_qt.cpp)
 
 MDATK draws text with Matplotlib's Agg backend in the DejaVu fonts Matplotlib ships. MDBridge
-bundles the same five files (DejaVu 2.35 from Matplotlib 3.11.2's wheel, `data/fonts`: Sans, Sans
-Bold, Sans Oblique, Sans Mono, Sans Mono Bold) compiled into the programs, chooses among them with
-Matplotlib's font-manager scoring, and lays text out with its own TrueType reader. Differences:
+bundles IBM Plex fonts (`data/fonts`, unmodified files of IBM's releases, SIL Open Font License
+1.1; sources and checksums in `data/sources/fonts/README.md`) compiled into the programs, chooses
+among them with Matplotlib's font-manager scoring, and lays text out with its own TrueType reader.
+Differences:
+
+- **IBM Plex Serif instead of DejaVu Sans (FONT-01).** Every text of figures, charts, videos and
+  previews (labels, ticks, titles, legends, notes, MDATK's "monospace" sequence letters) and the
+  whole interface (window, pages, dialogs; the GUI tests too) are drawn in IBM Plex Serif
+  (Regular, Bold, Italic, Bold Italic) instead of Matplotlib's DejaVu Sans / Sans Mono. *Why:* the
+  owner's decision: DejaVu Sans draws capital I and small l as near-identical strokes (and 1 close
+  to them); Plex Serif's slab serifs keep I, l and 1 apart, which matters for chain letters, atom
+  and residue names and numbers in labels. One family everywhere: MDATK's monospace sequence
+  letters are single centred letters (each in its own box), which need no fixed width, so figures
+  have no monospace face. The interface's fixed-width text (the log view, multi-line TOML / command
+  fields, text dialogs) uses IBM Plex Mono (same release family, the same unambiguous I / l / 1)
+  instead of the system's fixed font, because those need aligned columns. Matplotlib's font
+  *choice* is kept: the family names a text asks for are MDATK's (`sans-serif`, `monospace`) and
+  every generic list starts with IBM Plex Serif, so the face follows Matplotlib's style and weight
+  scoring (bold, italic, bold italic). Conventions are unchanged (options, file names, layout
+  rules); only the font, so text widths, tick label sizes and hence the constrained layout's
+  margins differ from MDATK's by the fonts' metrics. *Follows:* no MDATK version (0.1.1 still uses
+  Matplotlib's DejaVu Sans). *Tested:* the parity data are generated with the same fonts in
+  Matplotlib (`tests/parity/improvements_fonts.py`, applied by `render_common.setup`,
+  `make_text_cases.py` and `cli_parity.py`: Matplotlib's font list is the four bundled Plex Serif
+  files, IBM Plex Serif first in `font.sans-serif` / `font.serif` / `font.monospace` and in
+  rcParamsDefault, so that the `default` chart style keeps it, and the font manager's default
+  family), so `FigureCase.LayoutTicksAndTextsAsMatplotlib`, the chart, preview, video and GUI cases
+  compare MDBridge with Matplotlib drawing in the same font, within the same tolerances as before
+  (figure boxes within 1.01 % of the figure, every tick equal; the standalone charts' minimum box
+  tolerance is 8 px instead of 6 px, for the 200 px wide charts at 50 dpi whose 7 px title glyphs
+  Matplotlib's hinting widens by up to 0.3 px each);
+  `BundledFonts.AreTheReleaseFiles` (the files' checksums, names, metrics), `FontChoice.AsMatplotlibsFontManager`
+  (Matplotlib's choice among the four faces for 936 property sets), `TextQt.BundledFontsFromResources`
+  (the interface's fonts), `WindowTests::pagesFitTheSideBar` (the wider serif text still fits the
+  side bar, no page scrolls sideways).
+- **One fallback font for missing glyphs: IBM Plex Math (FONT-02).** IBM Plex Serif has no
+  SUPERSCRIPT PLUS SIGN (U+207A) or SUPERSCRIPT MINUS (U+207B), which the ion legend entries
+  (RN-08: Mg²⁺, Na⁺, Cl⁻ ...) and the interface's labels ("Analyse Mg²⁺ coordination") show. They
+  come from IBM Plex Math (Regular, its only face; owner's decision: one fallback, of the same
+  release family), per glyph: in figures as Matplotlib's FT2Font falls back between the fonts of a
+  font list (the clusters whose glyph is missing take the next font and the line is shaped again in
+  runs of one font and script, so there is no kerning or ligature across a font change; the
+  fallback's Regular serves every face); vector output (SVG, PDF) writes such runs as text in the
+  fallback family; in the interface the fonts are the family lists Plex Serif, Plex Math and Plex
+  Mono, Plex Math (Qt's font fallback). Every other character MDBridge's figures and interface
+  show is in Plex Serif (checked over all non-ASCII characters of `src/`, MDATK's figure and window
+  labels and the parity generators). Characters neither font has (CJK, Arabic-Indic digits, emoji,
+  Roman numeral signs, which only user data such as file names or residue names can bring) are
+  the fallback's `.notdef` box in figures (Matplotlib: its Last Resort font's box glyph) and Qt's
+  system fallback in the interface; no third font is bundled. *Tested:* `TextMetrics.AsMatplotlibUnhinted`
+  (strings with superscript charges on every face, exact against Matplotlib with the same fallback),
+  `TextMetrics.LayoutDetails`, `TextQt.FontRunsOfVectorText`.
 
 - **Unhinted text metrics and glyphs.** With its default `text.hinting`, Matplotlib 3.11 measures and
   draws glyphs hinted by FreeType's TrueType interpreter: advances and heights snap to whole pixels,
-  so a label's width depends on the dpi grid and on the FreeType build (up to 0.66 px per glyph and
-  2 px in height against the unhinted outline at MDATK's sizes; 17 % narrower for small monospace
-  text). MDBridge measures and draws the unhinted outlines, exactly as Matplotlib does with
+  so a label's width depends on the dpi grid and on the FreeType build (with IBM Plex Serif, FONT-01,
+  up to 0.66 px per glyph, 0.91 px for a single wide glyph at 37.5 px per em, and 1.7 px in height
+  against the unhinted outline at MDATK's sizes). MDBridge measures and draws the unhinted outlines, exactly as Matplotlib does with
   `text.hinting: no_hinting` (width, height, descent and every glyph position equal in 26.6 fixed
-  point, kerning and ligatures included). *Why:* the same layout and text pixels on Linux, Windows
+  point, kerning, ligatures and the IBM Plex Math fallback included). *Why:* the same layout and text pixels on Linux, Windows
   and any server, at every dpi, independent of a font engine's version or the system's font
   settings; the figure layout tolerance (docs/specs/m4-plan.md, section 3) covers the difference.
   *Tested:* `tests/render/test_text.cpp` (`TextMetrics.AsMatplotlibUnhinted`: exact against
-  `no_hinting`, and within 0.7 px per glyph / 2 px / 1.5 px of the default hinting, for every case of
+  `no_hinting`, and within 0.7 px per glyph (at least 1 px) / 2 px / 1.5 px of the default hinting, for every case of
   `tests/data/render/text/text_cases.json`).
 - **Figures never use the machine's fonts.** MDATK's text follows the Matplotlib configuration of the
   machine it runs on (`font.family` of a matplotlibrc, other DejaVu releases or fonts installed
   there), so the same project renders differently on two machines. MDBridge always uses the bundled
-  faces; font properties choose among them as Matplotlib's `findfont` scores (bold oblique and mono
-  oblique, which MDATK does not use, are not bundled: the closest bundled face by that score).
-  Missing glyphs are the font's `.notdef` box (Matplotlib falls back to other fonts with a warning).
-  *Tested:* `FontChoice.AsMatplotlibsFontManager` (Matplotlib's choice among the bundled faces for
-  792 property sets), `BundledFonts.AreMatplotlibsFiles` (the files' checksums).
+  faces (FONT-01, FONT-02); font properties choose among them as Matplotlib's `findfont` scores.
+  *Tested:* `FontChoice.AsMatplotlibsFontManager`, `BundledFonts.AreTheReleaseFiles` (the files'
+  checksums).
 - **Text pixels come from the outlines.** Raster figures fill the glyph outlines as paths with Qt's
   antialiasing instead of FreeType's glyph bitmaps (Agg); shapes and positions are the unhinted
   outline's, the antialiasing differs slightly (no gamma). A text image is identical wherever the
@@ -1309,19 +1356,20 @@ a display list, and QPainter backends (QImage, QSvgGenerator, QPdfWriter). Diffe
   the figure, inner sizes in the grid's ratios), with Matplotlib's two passes, margins, colour-bar
   pads, submerged-margin matching and collapse warning. Positions differ from Matplotlib's by the
   text metrics only (the unhinted text above): every axes, twin and colour-bar box, tight box, axis
-  label, title, text and legend of the 97 drawn figure cases lies within 1.25 % of the figure size of
-  Matplotlib's (tolerance 1.5 %, docs/specs/m4-plan.md section 3), and every tick and tick label is
+  label, title, text and legend of the drawn figure cases lies within 1.01 % of the figure size of
+  Matplotlib's in IBM Plex Serif (FONT-01; 1.25 % with DejaVu Sans; tolerance 1.5 %, docs/specs/m4-plan.md section 3), and every tick and tick label is
   equal (the automatic bin counts agree on every axis). *Tested:* `tests/render/test_figure.cpp`
   (`FigureCase.LayoutTicksAndTextsAsMatplotlib` on `tests/data/render/figures`).
 - **"Best" legend locations follow MDBridge's text widths.** Matplotlib places a `loc="best"`
   legend where it covers the fewest line vertices, line segments, points and texts; its box width
   comes from the hinted text, up to 7 % narrower than the unhinted text at small pixel sizes (8.8 pt
   at 60 dpi). With Matplotlib's box size MDBridge's search picks Matplotlib's location in every case;
-  with its own (wider) box, 3 of the 23 "best" legends of the figure cases go to another corner
-  where the wider box fits better. *Tested:* `FigureCase.LayoutTicksAndTextsAsMatplotlib` (the
+  with its own (wider) box, 2 of the 23 "best" legends of the figure cases (in IBM Plex Serif;
+  3 with DejaVu Sans) go to another corner where the wider box fits better. *Tested:* `FigureCase.LayoutTicksAndTextsAsMatplotlib` (the
   location for Matplotlib's box in Matplotlib's axes box, and the box size).
 - **Vector output keeps text as text in the bundled fonts.** SVG files have `<text>` elements in the
-  DejaVu families (Matplotlib's default SVG output converts text to paths); PDF pages embed the
+  IBM Plex families (one per run of the figure face or of its fallback, FONT-02; Matplotlib's
+  default SVG output converts text to paths); PDF pages embed the
   bundled faces. Raster images fill the glyph outlines (above). The SVG size is given in mm (the
   same physical size as Matplotlib's pt). *Tested:* `FigureSvg.TextAsTextAndPhysicalSize`,
   `FigurePdf.PageOfTheFigureSize`.
@@ -2027,12 +2075,13 @@ lines) and the suggested file names (`<project_name or MDATK>.mdatk.toml`,
   (`forms::FlowLayout`; a list editor's Add / Remove / move / Browse buttons too), a check box's
   long text wraps, the rotation sliders and their angle line shrink and wrap, and a list editor
   sizes its columns to the table's width (each its content's
-  width while all fit, else the widest shrink alike with their text elided; it scrolls sideways
-  only when even the header's minimum widths do not fit). *Tested:* `mdbridge_gui_window_tests`
-  `pagesFitTheSideBar` (with every section open, no widget of any page reaches past its viewport and
-  no table scrolls sideways) with the GUI tests' font pinned to the bundled DejaVu Sans 9 pt (the
-  only font of the Linux CI, where the list editors' button rows had made the Input page 3 px too
-  wide); screenshots of all six pages at 100% and 200% scale (CI artifacts).
+  width while all fit, else the widest shrink alike with their cells' text elided but never below
+  their column label's width, so no label is clipped; it scrolls sideways only when even the
+  header's minimum widths do not fit). *Tested:* `mdbridge_gui_window_tests`
+  `pagesFitTheSideBar` (with every section open, no widget of any page reaches past its viewport,
+  no table scrolls sideways and no column label is clipped) with the GUI tests' font pinned to the bundled IBM Plex Serif 9 pt (the
+  application's font, FONT-01; with DejaVu Sans, the only font of the Linux CI, the list editors'
+  button rows had made the Input page 3 px too wide); screenshots of all six pages at 100% and 200% scale (CI artifacts).
 
 ## Interface: the edit model (src/core/project_document.cpp, problems.cpp; milestone 5 W0-B)
 

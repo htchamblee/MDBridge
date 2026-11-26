@@ -408,7 +408,7 @@
    "exit": 0,
    "stdout": "a.jpg\n",
    "stderr": "",
-   "files": {"a.jpg":{"magic":"ffd8ffe000104a46","nonempty":true,"lines":38},"results/MDATK_cache/contacts-{key}.json":{"cache":true},"results/MDATK_cache/contacts-{key}.npz":{"cache":true},"results/MDATK_cache/energy-{key}.json":{"cache":true},"results/MDATK_cache/energy-{key}.npz":{"cache":true},"results/MDATK_cache/hbonds-{key}.json":{"cache":true},"results/MDATK_cache/hbonds-{key}.npz":{"cache":true},"results/MDATK_cache/proximity-{key}.json":{"cache":true},"results/MDATK_cache/proximity-{key}.npz":{"cache":true},"results/MDATK_cache/rmsd-{key}.json":{"cache":true},"results/MDATK_cache/rmsd-{key}.npz":{"cache":true},"results/MDATK_cache/trace-{key}.json":{"cache":true},"results/MDATK_cache/trace-{key}.npz":{"cache":true},"results/MDATK_cache/{manifest}":{"cache":true}},
+   "files": {"a.jpg":{"magic":"ffd8ffe000104a46","nonempty":true,"lines":27},"results/MDATK_cache/contacts-{key}.json":{"cache":true},"results/MDATK_cache/contacts-{key}.npz":{"cache":true},"results/MDATK_cache/energy-{key}.json":{"cache":true},"results/MDATK_cache/energy-{key}.npz":{"cache":true},"results/MDATK_cache/hbonds-{key}.json":{"cache":true},"results/MDATK_cache/hbonds-{key}.npz":{"cache":true},"results/MDATK_cache/proximity-{key}.json":{"cache":true},"results/MDATK_cache/proximity-{key}.npz":{"cache":true},"results/MDATK_cache/rmsd-{key}.json":{"cache":true},"results/MDATK_cache/rmsd-{key}.npz":{"cache":true},"results/MDATK_cache/trace-{key}.json":{"cache":true},"results/MDATK_cache/trace-{key}.npz":{"cache":true},"results/MDATK_cache/{manifest}":{"cache":true}},
    "step_log": []
   }
  ]

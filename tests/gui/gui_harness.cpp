@@ -657,7 +657,7 @@ fs::path saveScreenshot(QWidget* widget, const fs::path& dir, const std::string&
 }
 
 void useBundledFont() {
-    const QString family = QStringLiteral("DejaVu Sans");
+    const QString family = QStringLiteral("IBM Plex Serif");
     QStringList families;
     try {
         families = render::registerBundledFonts();
@@ -668,7 +668,7 @@ void useBundledFont() {
         qWarning("the bundled fonts have no %s: the tests run with Qt's default font", qPrintable(family));
         return;
     }
-    QApplication::setFont(QFont(family, 9));
+    QApplication::setFont(render::interfaceFont(9));  // as the application sets it, at 9 pt
 }
 
 fs::path screenshotDir(const fs::path& fallback) {

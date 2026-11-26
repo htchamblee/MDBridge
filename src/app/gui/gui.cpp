@@ -16,6 +16,7 @@
 #include "main_window.hpp"
 #include "mdbridge/core/json.hpp"
 #include "mdbridge/core/paths.hpp"
+#include "mdbridge/render/text_qt.hpp"
 #include "mdbridge/version.hpp"
 #include "preview_widget.hpp"
 
@@ -166,6 +167,14 @@ int runGui(const GuiOptions& options, int& argc, char** argv) {
     // owner decision D3: Fusion on every platform, in the system's light or dark scheme
     QApplication::setStyle(QStringLiteral("Fusion"));
     QApplication::setWindowIcon(QIcon(QStringLiteral(":/mdbridge/icons/mdbridge.png")));
+    // the interface in the bundled IBM Plex Serif on every platform (IBM Plex Math for the
+    // characters it lacks), at the platform's default size
+    try {
+        render::registerBundledFonts();
+        QApplication::setFont(render::interfaceFont(QApplication::font().pointSizeF()));
+    } catch (const render::FontError& e) {
+        std::cerr << "mdbridge: the bundled fonts: " << e.what() << " (the system's font is used)\n";
+    }
 
     const bool checking = !options.screenshot.empty() || options.quitAfter > 0;
     int code = 0;

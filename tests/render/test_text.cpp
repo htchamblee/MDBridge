@@ -1,8 +1,10 @@
 // The bundled fonts, Matplotlib's font choice and the text metrics (src/render/core/font.cpp,
-// text.cpp) against Matplotlib 3.11.2 (data/render/text/text_cases.json,
-// tests/parity/make_text_cases.py): the committed data/fonts files are Matplotlib's; the face its
-// font manager picks; width / height / descent and glyph positions exactly as Matplotlib measures
-// with text.hinting "no_hinting" (26.6 fixed point), and within a bound of its default hinting.
+// text.cpp) against Matplotlib 3.11.2 configured with MDBridge's fonts
+// (data/render/text/text_cases.json, tests/parity/make_text_cases.py and improvements_fonts.py): the
+// committed data/fonts files are IBM's release files; the face its font manager picks; width /
+// height / descent and glyph positions, with the IBM Plex Math fallback, exactly as Matplotlib
+// measures with text.hinting "no_hinting" (26.6 fixed point), and within a bound of its default
+// hinting.
 
 #include <algorithm>
 #include <cmath>
@@ -60,40 +62,60 @@ FontFace faceOfFile(const std::string& file) {
 
 }  // namespace
 
-TEST(BundledFonts, AreMatplotlibsFiles) {
+TEST(BundledFonts, AreTheReleaseFiles) {
     EXPECT_EQ(str(at(data(), "matplotlib")), "3.11.2");
+    std::vector<std::pair<const render::BundledFile*, std::string>> files;
+    for (const render::BundledFont& f : render::bundledFonts()) {
+        files.emplace_back(&f, "figures");
+    }
+    files.emplace_back(&render::fallbackFont(), "fallback");
+    for (const render::BundledFile& f : render::interfaceMonoFonts()) {
+        files.emplace_back(&f, "interface fixed-width");
+    }
     const Array& expected = list(at(data(), "fonts"));
-    ASSERT_EQ(expected.size(), render::kFontFaceCount);
+    ASSERT_EQ(expected.size(), files.size());
     for (std::size_t i = 0; i < expected.size(); ++i) {
         const Value& e = expected[i];
-        const render::BundledFont& f = render::bundledFonts()[i];
+        const render::BundledFile& f = *files[i].first;
         SCOPED_TRACE(f.file);
         EXPECT_EQ(str(at(e, "file")), f.file);
+        EXPECT_EQ(str(at(e, "role")), files[i].second);
         EXPECT_EQ(str(at(e, "sha256")), f.sha256);
-        EXPECT_EQ(core::sha256Hex(test::readFile(kFonts / std::string(f.file))), f.sha256);  // data/fonts
-        const render::Font& font = fonts().font(f.face);
+        const std::string bytes = test::readFile(kFonts / std::string(f.file));
+        EXPECT_EQ(core::sha256Hex(bytes), f.sha256);  // data/fonts
+        const render::Font font = render::checkedFont(f, bytes);
         EXPECT_EQ(font.family(), str(at(e, "family")));
         EXPECT_EQ(font.family(), f.family);
+        EXPECT_EQ(font.subfamily(), str(at(e, "style")));
         EXPECT_EQ(font.subfamily(), f.style);
         EXPECT_EQ(font.version(), str(at(e, "version")));
-        EXPECT_EQ(font.version(), "Version " + std::string(render::kDejaVuVersion));
+        EXPECT_EQ(font.version(), f.version);
         EXPECT_EQ(font.unitsPerEm(), integer(at(e, "units_per_em")));
         EXPECT_EQ(font.ascender(), integer(at(e, "ascender")));
         EXPECT_EQ(font.descender(), integer(at(e, "descender")));
         EXPECT_EQ(font.glyphCount(), integer(at(e, "glyphs")));
-        EXPECT_EQ(render::bundledFont(f.face).file, f.file);
     }
+    for (const render::BundledFont& f : render::bundledFonts()) {
+        EXPECT_EQ(render::bundledFont(f.face).file, f.file);
+        EXPECT_EQ(fonts().font(f.face).family(), render::kFigureFamily);
+    }
+    EXPECT_EQ(fonts().fallback().family(), "IBM Plex Math");
 }
 
 TEST(BundledFonts, RejectsOtherData) {
     EXPECT_THROW(render::Font::fromData("not a font"), render::FontError);
     EXPECT_THROW(render::Font::fromData(std::string(64, '\0')), render::FontError);
-    std::string truncated = test::readFile(kFonts / "DejaVuSans.ttf").substr(0, 4000);
+    std::string truncated = test::readFile(kFonts / "IBMPlexSerif-Regular.ttf").substr(0, 4000);
     EXPECT_THROW(render::Font::fromData(truncated), render::FontError);
     EXPECT_THROW(render::FontSet::load([](std::string_view file) {
-                     // the Bold face where Book belongs: rejected by its checksum
-                     return test::readFile(kFonts / (file == "DejaVuSans.ttf" ? std::string("DejaVuSans-Bold.ttf")
-                                                                               : std::string(file)));
+                     // the Bold face where Regular belongs: rejected by its checksum
+                     const bool regular = file == "IBMPlexSerif-Regular.ttf";
+                     return test::readFile(kFonts / (regular ? std::string("IBMPlexSerif-Bold.ttf") : std::string(file)));
+                 }),
+                 render::FontError);
+    EXPECT_THROW(render::FontSet::load([](std::string_view file) {  // no fallback font
+                     return file == render::fallbackFont().file ? std::string()
+                                                                 : test::readFile(kFonts / std::string(file));
                  }),
                  render::FontError);
 }
@@ -112,9 +134,11 @@ TEST(FontChoice, AsMatplotlibsFontManager) {
         EXPECT_EQ(render::bundledFont(render::chooseFace(families, style, weight)).file, str(at(c, "file")));
         ++n;
     }
-    EXPECT_GT(n, 700);
-    EXPECT_EQ(render::chooseFace("monospace", "normal", 700), FontFace::MonoBold);  // MDATK's sequence letters
-    EXPECT_EQ(render::chooseFace("sans-serif", "italic", 400), FontFace::SansOblique);
+    EXPECT_GT(n, 900);
+    EXPECT_EQ(render::chooseFace("monospace", "normal", 700), FontFace::Bold);  // MDATK's sequence letters
+    EXPECT_EQ(render::chooseFace("sans-serif", "italic", 400), FontFace::Italic);
+    EXPECT_EQ(render::chooseFace("sans-serif", "oblique", 700), FontFace::BoldItalic);
+    EXPECT_EQ(render::chooseFace("DejaVu Sans", "normal", 400), FontFace::Regular);  // MDATK's default family
     EXPECT_EQ(render::fontWeight("bold"), 700);
     EXPECT_EQ(render::fontWeight("650"), 650);
     EXPECT_EQ(render::fontWeight("bolder"), std::nullopt);
@@ -151,7 +175,7 @@ TEST(TextMetrics, AsMatplotlibUnhinted) {
         // Matplotlib's default hinting (MDATK's figures) rounds each glyph to the pixel grid
         const Array& hinted = list(at(c, "hinted"));
         const double glyphs = static_cast<double>(std::max<std::size_t>(xs.size(), 1));
-        EXPECT_LE(std::abs(t.width() - num(hinted[0])), 0.7 * glyphs);
+        EXPECT_LE(std::abs(t.width() - num(hinted[0])), std::max(0.7 * glyphs, 1.0));  // one glyph: up to 0.91 px
         EXPECT_LE(std::abs(t.height() - num(hinted[1])), 2.0);
         EXPECT_LE(std::abs(t.descent() - num(hinted[2])), 1.5);
         ++n;
@@ -160,27 +184,41 @@ TEST(TextMetrics, AsMatplotlibUnhinted) {
 }
 
 TEST(TextMetrics, LayoutDetails) {
-    const render::TextLayout blank = fonts().layout(FontFace::Sans, "  ", 10, 100);
+    const render::TextLayout blank = fonts().layout(FontFace::Regular, "  ", 10, 100);
     EXPECT_FALSE(blank.hasInk);
     EXPECT_GT(blank.width(), 0);
     EXPECT_EQ(blank.height(), 0);
     EXPECT_EQ(blank.descent(), 0);
-    const render::TextLayout empty = fonts().layout(FontFace::Sans, "", 10, 100);
+    const render::TextLayout empty = fonts().layout(FontFace::Regular, "", 10, 100);
     EXPECT_TRUE(empty.glyphs.empty());
     EXPECT_EQ(empty.width(), 0);
     // ligature: "fi" is one glyph whose cluster is the 'f'
-    const render::TextLayout fi = fonts().layout(FontFace::Sans, "afi", 10, 100);
+    const render::TextLayout fi = fonts().layout(FontFace::Regular, "afi", 10, 100);
     ASSERT_EQ(fi.glyphs.size(), 2u);
     EXPECT_EQ(fi.glyphs[1].cluster, 1u);
     // kerning: "AV" is narrower than A and V apart
-    const render::TextLayout av = fonts().layout(FontFace::Sans, "AV", 10, 100);
-    EXPECT_LT(av.advance, fonts().layout(FontFace::Sans, "A", 10, 100).advance +
-                              fonts().layout(FontFace::Sans, "V", 10, 100).advance);
-    // monospace: every glyph the same advance, no kerning
-    const render::TextLayout mono = fonts().layout(FontFace::MonoBold, "AVWi", 10, 100);
-    EXPECT_EQ(mono.advance, 4 * fonts().layout(FontFace::MonoBold, "A", 10, 100).advance);
-    // a missing glyph is .notdef; invalid UTF-8 becomes U+FFFD
-    EXPECT_EQ(fonts().font(FontFace::Sans).glyphIndex(0x10FFFD), 0);
+    const render::TextLayout av = fonts().layout(FontFace::Regular, "AV", 10, 100);
+    EXPECT_LT(av.advance, fonts().layout(FontFace::Regular, "A", 10, 100).advance +
+                              fonts().layout(FontFace::Regular, "V", 10, 100).advance);
+    // the characters Plex Serif lacks come from the fallback font (IBM Plex Math), in their own run
+    EXPECT_EQ(fonts().font(FontFace::Regular).glyphIndex(0x207A), 0);  // SUPERSCRIPT PLUS SIGN
+    EXPECT_NE(fonts().fallback().glyphIndex(0x207A), 0);
+    const render::TextLayout mg = fonts().layout(FontFace::Bold, "Mg\u00b2\u207a", 10, 100);
+    ASSERT_EQ(mg.glyphs.size(), 4u);
+    EXPECT_FALSE(mg.glyphs[2].fallback);  // superscript two: Plex Serif has it
+    EXPECT_TRUE(mg.glyphs[3].fallback);
+    EXPECT_EQ(mg.glyphs[3].glyph, fonts().fallback().glyphIndex(0x207A));
+    EXPECT_EQ(mg.glyphs[3].cluster, 3u);
+    const render::TextLayout plain = fonts().font(FontFace::Bold).layout("Mg\u00b2\u207a", 10, 100);  // no fallback
+    EXPECT_EQ(plain.glyphs[3].glyph, 0);
+    EXPECT_FALSE(plain.glyphs[3].fallback);
+    EXPECT_FALSE(fonts().path(FontFace::Bold, mg).empty());
+    // a character neither font has is the fallback's .notdef; invalid UTF-8 becomes U+FFFD
+    EXPECT_EQ(fonts().font(FontFace::Regular).glyphIndex(0x10FFFD), 0);
+    const render::TextLayout none = fonts().layout(FontFace::Regular, "a\U0010FFFD", 10, 100);
+    ASSERT_EQ(none.glyphs.size(), 2u);
+    EXPECT_TRUE(none.glyphs[1].fallback);
+    EXPECT_EQ(none.glyphs[1].glyph, 0);
     EXPECT_EQ(render::decodeUtf8("a\xff" "b\xe2\x82"), std::u32string({U'a', 0xFFFD, U'b', 0xFFFD}));
     EXPECT_EQ(render::decodeUtf8("\xc3\xa5\xe2\x88\x92"), std::u32string({0xE5, 0x2212}));
     EXPECT_EQ(render::decodeUtf8("\xed\xa0\x80"), std::u32string({0xFFFD, 0xFFFD, 0xFFFD}));
@@ -202,8 +240,8 @@ TEST(BatchPlatform, OffscreenWithoutDisplayServer) {
 
 TEST(TextPath, OutlinesAtThePenPositions) {
     using K = render::PathCommand::Kind;
-    const render::Font& sans = fonts().font(FontFace::Sans);
-    // 'l' is a rectangle: four lines
+    const render::Font& sans = fonts().font(FontFace::Regular);
+    // 'l' (IBM Plex Serif: a stem with slab serifs) has straight edges only
     const render::TextLayout l = sans.layout("l", 10, 100);
     const std::vector<render::PathCommand> lp = render::textPath(sans, l);
     ASSERT_FALSE(lp.empty());

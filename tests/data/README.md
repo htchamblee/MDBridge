@@ -757,8 +757,10 @@ the exception: MDATK's numpy software renderer is compared pixel by pixel in fix
 viewports, within the plan's tolerance (99.5 % of pixels equal, all within 2/255).
 
 The four generators run MDATK in-process through `tests/parity/render_common.py`, which pins
-numpy's and OpenBLAS' kernels (as `make_analysis_cases.py` does), makes Matplotlib use only the
-DejaVu fonts of its own wheel (never a machine's fonts), and patches MDATK like the pipeline
+numpy's and OpenBLAS' kernels (as `make_analysis_cases.py` does), gives Matplotlib MDBridge's figure
+fonts (`tests/parity/improvements_fonts.py`: the bundled IBM Plex Serif faces of `data/fonts` only,
+IBM Plex Math as their fallback; never a machine's fonts or the wheel's DejaVu; docs/DIFFERENCES.md
+FONT-01, FONT-02), and patches MDATK like the pipeline
 generator (independent tables, analysis / selection / CLI improvements) and with MDBridge's
 rendering improvements, `tests/parity/improvements_render.py` (items RN-01 to RN-17 of the plan;
 patched so far: RN-01, RN-04 and RN-14, the plot panels, and RN-40 ... RN-42, the sequence /
@@ -836,18 +838,22 @@ with its notices). To regenerate, with Python 3.13 and Matplotlib 3.11.2 in `/op
 
 ## render/text: the figure fonts and text metrics (milestone 4, W0-D)
 
-`render/text/text_cases.json` holds what Matplotlib 3.11.2 does with the DejaVu fonts MDBridge
-bundles (`data/fonts`, Matplotlib's own copies), for `src/render/core/font.cpp` and `text.cpp`
+`render/text/text_cases.json` holds what Matplotlib 3.11.2 does with the IBM Plex fonts MDBridge
+bundles (`data/fonts`, IBM's release files, `data/sources/fonts/README.md`), configured as MDBridge
+draws (`tests/parity/improvements_fonts.py`: Plex Serif first in the generic font lists, IBM Plex
+Math as the fallback font), for `src/render/core/font.cpp` and `text.cpp`
 (`tests/render/test_text.cpp`), written by `tests/parity/make_text_cases.py` (no MDATK needed): the
-five files' checksums, names and metrics (the committed `data/fonts` must have the same checksums);
-the face Matplotlib's `findfont` picks among the five for 792 font-property sets (family lists,
-weights, styles); and `get_text_width_height_descent` of 59 strings (MDATK's labels, tick labels,
-superscripts, Greek, ligatures, kerning pairs, blank text) on every face at four of ten (points, dpi)
-sizes, with `text.hinting: no_hinting` (width / height / descent and the glyph x positions in 26.6
+seven files' roles, checksums, names and metrics (the committed `data/fonts` must have the release's
+checksums); the face Matplotlib's `findfont` picks among the four Plex Serif faces for 936
+font-property sets (family lists, weights, styles); and `get_text_width_height_descent` of 69
+strings (MDATK's labels, tick labels, superscripts, ion charges from the fallback font, Greek,
+ligatures, kerning pairs, blank text) on every figure face at four of ten (points, dpi) sizes, with
+`text.hinting: no_hinting` (width / height / descent and the glyph x positions in 26.6
 fixed point, which MDBridge reproduces exactly) and with Matplotlib's default hinting (MDATK's
 figures; MDBridge stays within a bound, docs/DIFFERENCES.md "Rendering: fonts and text"). Matplotlib's
-rcParams are its defaults and the machine's fonts are left out, so the output depends only on the
-Matplotlib wheel (its FreeType 2.14.3 and HarfBuzz) and is the same everywhere:
+rcParams are its defaults with MDBridge's font lists and the machine's fonts are left out, so the
+output depends only on the Matplotlib wheel (its FreeType 2.14.3 and HarfBuzz) and the bundled
+fonts, and is the same everywhere:
 
 ```bash
 /opt/mdbridge-venv/bin/python -I -B tests/parity/make_text_cases.py tests/data/render/text

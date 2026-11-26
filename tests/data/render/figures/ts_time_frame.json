@@ -42,8 +42,8 @@
     "axes": [
      {
       "id": "ax0",
-      "position_px": [36.550000000000004,29.671826171875008,955.2,522.1999999999999],
-      "tight_px": [4.800000000000001,4.800000000000006,955.2,535.1999999999999],
+      "position_px": [35.14625,29.591666666666672,955.2,523.05],
+      "tight_px": [4.799999999999999,4.8000000000000025,955.2,535.1999999999999],
       "facecolor": [0.9882352941176471,0.9882352941176471,0.984313725490196,1.0],
       "visible": true,
       "axison": true,
@@ -51,10 +51,10 @@
       "ylim": [-0.0799163088,1.6782424848000002],
       "aspect": "auto",
       "zorder": 0.0,
-      "titles": {"left":{"id":"ax0/title_left","kind":"text","zorder":3.0,"visible":true,"alpha":null,"animated":false,"text":"RMSD Complex","xy":[0.0,1.0],"coords":"other","ha":"left","va":"baseline","color":[0.043137254901960784,0.043137254901960784,0.043137254901960784,1.0],"size":11.0,"weight":"normal","style":"normal","family":["sans-serif"],"rotation":0.0,"clip_on":true,"wrap":false,"extent_px":[36.550000000000004,524.9978515624999,107.39375000000001,535.1999999999999]}},
+      "titles": {"left":{"id":"ax0/title_left","kind":"text","zorder":3.0,"visible":true,"alpha":null,"animated":false,"text":"RMSD Complex","xy":[0.0,1.0],"coords":"other","ha":"left","va":"baseline","color":[0.043137254901960784,0.043137254901960784,0.043137254901960784,1.0],"size":11.0,"weight":"normal","style":"normal","family":["sans-serif"],"rotation":0.0,"clip_on":true,"wrap":false,"extent_px":[35.14625,526.0333333333333,100.95875000000001,535.1999999999999]}},
       "spines": {"left":{"visible":true,"color":[0.7647058823529411,0.7607843137254902,0.7176470588235294,1.0],"lw":0.8},"right":{"visible":false,"color":[0.0,0.0,0.0,1.0],"lw":0.8},"bottom":{"visible":true,"color":[0.7647058823529411,0.7607843137254902,0.7176470588235294,1.0],"lw":0.8},"top":{"visible":false,"color":[0.0,0.0,0.0,1.0],"lw":0.8}},
       "xaxis": {
-       "label": {"text":"Frame","color":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"size":9.9,"extent_px":[483.17187500000006,4.800000000000006,508.57812500000006,13.050000000000006]},
+       "label": {"text":"Frame","color":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"size":9.9,"extent_px":[482.7746875,4.8000000000000025,507.5715625,13.050000000000002]},
        "scale": "linear",
        "inverted": false,
        "visible": true,
@@ -65,7 +65,7 @@
        "formatter": {"class":"ScalarFormatter","offset":0.0,"orderOfMagnitude":0,"format":"%1.0f","useMathText":false,"useOffset":true}
       },
       "yaxis": {
-       "label": {"text":"RMSD Complex (Å)","color":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"size":9.9,"extent_px":[4.800000000000001,237.50622558593744,14.800000000000006,314.36560058593744]},
+       "label": {"text":"RMSD Complex (Å)","color":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"size":9.9,"extent_px":[4.799999999999999,240.89895833333333,14.396250000000002,311.7427083333333]},
        "scale": "linear",
        "inverted": false,
        "visible": true,

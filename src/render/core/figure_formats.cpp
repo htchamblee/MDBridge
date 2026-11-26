@@ -142,7 +142,7 @@ public:
 
     void operator()(const TextItem& t) {
         if (!(t.color.a > 0.0)) return;
-        const std::vector<PathCommand> cmds = textPath(m_fonts.font(t.face), t.layout);
+        const std::vector<PathCommand> cmds = m_fonts.path(t.face, t.layout);
         if (cmds.empty()) return;
         out += "gsave " + num(t.origin.x) + " " + num(t.origin.y) + " translate";
         if (t.rotation != 0.0) out += " " + num(-t.rotation) + " rotate";

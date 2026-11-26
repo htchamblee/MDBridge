@@ -34,7 +34,7 @@ Not adopted yet; it takes effect only after legal review and a formal change of 
    | nanoflann | BSD-2 | OK | planned |
    | FFmpeg (libavcodec, libavformat, libavutil, libswscale) | LGPL v2.1+ | own LGPL-only build (`packaging/ffmpeg`: `--disable-gpl --disable-nonfree --disable-version3`, no x264 / x265 or other GPL parts), linked dynamically, shipped with its licence and the corresponding source on each release; the GPL / non-free check runs at configure time (`cmake/FindFFmpegLGPL.cmake`) and at run time | milestone 4 (video) |
    | SVT-AV1 | BSD 3-Clause Clear + AOM Patent License 1.0 | OK (the AV1 encoder; shared library) | milestone 4 (video) |
-   | DejaVu fonts 2.35 (as Matplotlib ships them) | Bitstream Vera / Arev font licences (permissive; modified fonts must be renamed), DejaVu changes public domain | OK (unmodified, compiled in; licence in `packaging/licenses/DejaVu-LICENSE.txt`) | milestone 4 (figures) |
+   | IBM Plex Serif, Plex Math, Plex Mono (IBM's releases `@ibm/plex-serif@2.0.0`, `@ibm/plex-math@1.1.0`, `@ibm/plex-mono@2.5.0`) | SIL Open Font License 1.1 (permissive; modified fonts must not use the reserved name "Plex"; may be bundled and embedded) | OK (unmodified, compiled in; licence in `packaging/licenses/IBM-Plex-OFL-1.1.txt`; replaced the DejaVu fonts of milestone 4) | milestone 5 (interface and figures) |
    | Lua | MIT | OK | planned |
    | Python, NumPy, SciPy (interim, embedded) | PSF / BSD-style | OK | planned |
    | MDAnalysis (interim) | check the bundled version's licence | verify before bundling | planned |

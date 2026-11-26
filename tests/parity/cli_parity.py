@@ -1041,6 +1041,10 @@ def child(mdatk, jobs_file, results_file):
     import matplotlib
 
     matplotlib.use("Agg")
+    matplotlib.rcdefaults()  # no matplotlibrc of the machine (/etc/matplotlibrc may name other fonts)
+    import improvements_fonts
+
+    improvements_fonts.apply()  # MDBridge's figure fonts: IBM Plex Serif, IBM Plex Math fallback (FONT-01, FONT-02)
     import improvements_render
     from mdatk import density
 

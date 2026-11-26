@@ -62,8 +62,9 @@ where masked), the RGBA they show (uint8) and colour-bar lookup tables (float64 
 
 Image parity is contents only (owner decision D10): there are no reference images. The 3D layer's
 pixels are make_molecule_cases.py's subject (fixed viewports); here only its size and coverage.
-The output is reproducible (numpy / OpenBLAS kernels pinned by render_common, matplotlib's bundled
-DejaVu fonts, inputs rounded as render_common.save_dataset describes).
+The output is reproducible (numpy / OpenBLAS kernels pinned by render_common, MDBridge's bundled IBM
+Plex fonts given to Matplotlib by improvements_fonts.py, inputs rounded as
+render_common.save_dataset describes).
 """
 
 import os
