@@ -16,6 +16,7 @@
 #include <optional>
 #include <set>
 #include <string_view>
+#include <system_error>
 #include <utility>
 
 #include "mdbridge/core/errors.hpp"
@@ -938,6 +939,10 @@ DemoFiles buildDemo(const std::string& outDirText, const DemoOptions& options, c
                                ": at least four of the letters A, C, G and U");
     }
     const fs::path outDir = core::pathFromUtf8(outDirText);
+    std::error_code ec;
+    if (fs::exists(outDir, ec) && !fs::is_directory(outDir, ec)) {  // os.makedirs(exist_ok=True)
+        throw fs::filesystem_error("mkdir", outDir, std::make_error_code(std::errc::file_exists));
+    }
     fs::create_directories(outDir);
     const System sys = buildSystem(options, reporter);
     DemoFiles files;

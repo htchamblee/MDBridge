@@ -333,3 +333,23 @@ if(MDBRIDGE_BUILD_APP)
     endif()
     gtest_discover_tests(mdbridge_video_qt_tests DISCOVERY_MODE PRE_TEST)
 endif()
+
+if(MDBRIDGE_BUILD_APP)
+    # the main window driven by action scripts (tests/data/gui, format in tests/data/README.md "gui"):
+    # saved files against MDATK's, screenshots to $MDBRIDGE_GUI_SCREENSHOTS (default
+    # <build>/gui-screenshots; CI artifacts, never compared). Qt Test on the offscreen platform.
+    find_package(Qt6 REQUIRED COMPONENTS Test)
+    add_executable(mdbridge_gui_tests gui/test_gui.cpp gui/gui_harness.cpp gui/gui_harness.hpp)
+    set_target_properties(mdbridge_gui_tests PROPERTIES AUTOMOC ON)
+    target_link_libraries(mdbridge_gui_tests PRIVATE mdbridge_app mdbridge::render_panels_vulkan Qt6::Test)
+    target_compile_definitions(mdbridge_gui_tests PRIVATE MDBRIDGE_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data"
+                               MDBRIDGE_GUI_SCREENSHOT_DIR="${CMAKE_BINARY_DIR}/gui-screenshots")
+    mdbridge_target_warnings(mdbridge_gui_tests)
+    if(WIN32 AND MDBRIDGE_VIDEO_RUNTIME_FILES)
+        add_custom_command(TARGET mdbridge_gui_tests POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different ${MDBRIDGE_VIDEO_RUNTIME_FILES} $<TARGET_FILE_DIR:mdbridge_gui_tests>
+            VERBATIM)
+    endif()
+    add_test(NAME gui.cases COMMAND mdbridge_gui_tests)
+    set_tests_properties(gui.cases PROPERTIES LABELS gui ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+endif()

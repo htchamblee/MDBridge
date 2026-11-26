@@ -754,20 +754,21 @@ a fake cpptraj and a fake `conda run`), tests/cli/test_cleaning.cpp.
   the marker names the key of the current inputs and settings, also in a folder given as
   `cleaning.output_dir` (MDATK 0.0.4.1 used any cleaned files found there). Previews never start
   cpptraj. *Tested:* `Cleaning.OutputDirNeedsTheKey`, `ProjectView.CleaningWithoutCleanedFilesShowsTheRawFiles`.
-- **CMD-06: `mdbridge citations [-p PROJECT] [--bibtex FILE] [--json]`** (new; owner decision D14,
-  AP-16). Cites the resources of the settings (as MDATK's About dialog: `project_resources`,
-  `keys_for`) followed by the run-time references of the cached results (meta `citation_keys` of the
-  entries of the cache manifest's latest run, CIT-06; `core::citations::withRunKeys`). Text
-  (default): MDATK's About text, `Resources this project uses (N references; each generated script
-  lists only its own):`, a blank line, then per resource `<name>[ - <note>]` and its references
-  indented by four spaces and a blank line; then, when cached results add references, `Used at run
-  time by the cached results (<instance>, ...):` with those references; N counts every reference;
-  without any: `This project uses no external resource with a reference yet.` `--json`: `{"keys",
-  "resources": [{"id", "name", "note", "keys"}], "run_keys", "run_instances", "references": [{"key",
-  "text", "doi", "url", "bibtex"}]}` (references in citation order). `--bibtex FILE` writes the
-  BibTeX entries (`-`: to stdout; nothing to cite: nothing written, a note on stderr) and says `Wrote
-  N references to FILE` on stderr, as the interface's export logs it. *Tested:*
-  `Citations.SettingsAndRunKeys`, `Citations.Command`.
+- **CMD-06: `mdbridge citations [common options] [--bibtex FILE] [--json]`** (new; owner decision
+  D14, AP-16; specification on MDATK's functions: tests/parity/citations_command.py). The project:
+  `-p` and the overrides of every analysis command. Cited: the settings' resources (as MDATK's About
+  dialog: `project_resources`, `keys_for`) followed by the run-time references of the cached results
+  (meta `citation_keys` of the analyses the cache manifest's last run lists; none when one of them
+  is missing; CIT-06, `core::citations::withRunKeys`). Text (default): MDATK's About text,
+  `Resources this project uses (N references; each generated script lists only its own):`, a blank
+  line, per resource `<name>[ - <note>]` and its references indented by four spaces and a blank
+  line; then, when the cache adds references, `Recorded by the cached results of the last run:` and
+  those references; without any: `This project uses no external resource with a reference yet.`
+  `--json`: `{"keys", "settings_keys", "run_keys" (the cache's, unfiltered), "resources": [{"id",
+  "name", "note", "keys"}]}` (indent 2, non-ASCII as it is). `--bibtex FILE` writes the BibTeX
+  entries and prints `Wrote N references to FILE` (with `--json`, the JSON instead); nothing to cite:
+  `Nothing to cite yet: The project uses no external resource with a reference.` and no file.
+  *Tested:* cli_cases.json (`citations_*`), `Citations.SettingsAndRunKeys`, `Citations.Command`.
 - **CMD-07: programs started from the AppImage get the user's environment** (as MDATK's frozen
   build: `frozen.child_env`): `LD_LIBRARY_PATH` and `PATH` entries inside `$APPDIR` and a
   `FONTCONFIG_FILE` there are left out, so cpptraj and conda do not load the AppImage's libraries.
@@ -1859,6 +1860,85 @@ axis). Deliberate differences from MDATK's GUI:
 - **Screenshots for checks.** `mdbridge gui PROJECT --screenshot PNG [--preview-screenshot PNG]`
   waits until the structure and the preview are drawn and reports what was shown (renderer,
   `molecule`, pixel `coverage`, the preview's size, load problems) as JSON (MDATK had no such check).
+
+## Interface: the analysis window (milestone 5, AP items; tests/data/gui)
+
+The expected behaviour of MDBridge's analysis window is MDATK v0.0.4.1's GTK window driven by action
+scripts (`tests/parity/make_gui_cases.py`, tests/data/README.md "gui") with these fixes applied on
+the test side (`tests/parity/improvements_gui.py`); each case keeps MDATK's own result under `mdatk`.
+The window itself lands in milestone 5's waves 1 and 2 (docs/specs/m5-plan.md section 6); the C++ GUI
+tests (`mdbridge_gui_tests`) replay the cases. *Tested:* the case named after each item, in
+`tests/data/gui/<topic>/` (`roundtrip`, `pages`, `ap`, `canvas`).
+
+- **AP-01: no clamping on load.** MDATK's spin boxes and sliders clamp a loaded value to their range,
+  so opening and saving rewrote valid settings (`contacts.cutoff` 25 -> 20, `hbonds.angle_cutoff`
+  60 -> 90, `energy.cutoff` 60 -> 50, `video.width` 7682 -> 7680, `visual.zoom` 0.01 -> 0.05, a
+  rotation of -200 -> -180). MDBridge's fields hold any value of the setting's type; a field the user
+  did not change saves its loaded value verbatim (the whole window round-trips losslessly), a value
+  typed beyond the range is kept and left to validation, and the wheel zoom multiplies the stored
+  zoom (within MDATK's wheel limits 0.05 ... 50). Values the user or the canvas sets keep MDATK's
+  storage rounding (rotation, representation size / opacity, map opacity: 3 decimals). *Why:* opening
+  a file must not change it. Not fixed in 0.1.1. *Tested:* `roundtrip/lossy_values`,
+  `ap/ap01_set_out_of_range`, `canvas/wheel_zoom_from_tiny`, every `roundtrip/open_save_*`.
+- **AP-02: optional numbers keep every digit.** MDATK showed `inputs.dt_ps` and
+  `energy.target_value` with `%g` and saved what it showed (0.0123456789 -> 0.0123457, -1234567.5 ->
+  -1234570). MDBridge shows and stores the shortest round-trip text. Not fixed in 0.1.1. *Tested:*
+  `roundtrip/lossy_values`, `ap/ap02_typed_numbers`.
+- **AP-03: colour fields keep their text.** MDATK's colour buttons parse with GDK and write
+  `#rrggbb`: Matplotlib colours MDATK itself accepts became black (`tab:orange`, `#ff000080`) or were
+  rewritten (`gold` -> `#ffd700`). MDBridge keeps the text; its picker writes `#rrggbb`. Not fixed in
+  0.1.1. *Tested:* `roundtrip/lossy_values`.
+- **AP-04: chart formats as set.** Three check boxes saved `["jpg", "svg"]` as `["svg"]`. MDBridge
+  keeps the list (validation flags unknown entries). Not fixed in 0.1.1. *Tested:*
+  `roundtrip/lossy_values`.
+- **AP-05 / AP-19: unknown drop-down values stay.** A stored value outside a drop-down's list was
+  saved as the previous project's choice (`visual.renderer = "vulkan"` -> `"software"`) or as `""`.
+  MDBridge keeps it (shown as unknown and flagged). *Tested:* `ap/ap05_unknown_choice`,
+  `roundtrip/lossy_values`.
+- **AP-06: paths written as the file had them (owner decision D8).** MDATK's window made every path
+  absolute on load and saved them so (`topology = "/home/.../system.parm7"`), which broke a project
+  folder that is moved or shared. MDBridge writes relative paths relative (to the project's folder);
+  *Save as* into another folder rebases them (`data/system.parm7` -> `../data/system.parm7` for a copy
+  in `sub/`); absolute and `~` paths stay. The paths it reads are resolved against the project's
+  folder as before. Not fixed in 0.1.1. *Tested:* `roundtrip/relative_paths`, every round trip.
+- **AP-07: empty slots stay empty.** A 4-slot preset with 2 panels was saved with 4 (two untitled
+  `contacts/atom_pairs` series). MDBridge saves the panels there are; a slot becomes a panel when its
+  editor is changed (and so do the slots before it, which are positional) or a panel is dragged onto
+  it. *Tested:* `ap/ap07_empty_slots`, `canvas/swap_into_empty_slot`, `pages/layout_page`.
+- **AP-08: a smaller preset keeps the panels.** equal_4 -> single dropped panels 2 ... 4 at once
+  and for good. MDBridge keeps them (rendering warns `layout single has 1 slots; ignoring 5 extra
+  panel(s)`, as M4's render does) and a larger preset shows them again. *Tested:*
+  `ap/ap08_preset_round_trip`, `roundtrip/open_save_full` (6 panels on 4 slots: MDATK dropped two).
+- **AP-09: swaps and preset changes with invalid options are refused.** MDATK raised out of the
+  signal handler (the swap silently not done, a traceback on the terminal). MDBridge logs `Panels not
+  swapped; fix this first: <located message>` (MDATK 0.1.0, c6d8d15) and, for a preset change, `Grid
+  preset not changed; fix this first: ...` with the preset put back. *Tested:* `ap/ap09_swap_bad_options`.
+- **AP-10: located form errors.** MDATK named Python's errors with the field path (`inputs.stop:
+  invalid literal for int() with base 10: 'x'`, `layout: panel options '{bad': Expecting ...`).
+  MDBridge names the place as MDATK 0.0.10's `problems.py` does (`Input & cleaning › Frames › Stop:
+  'x' is not a whole number`, `... › Target value: 'low' is not a number`, `Layout & panels › Panel 1
+  (Structure) › Options: '{bad' is not valid JSON: <json's message>` or `... is not a JSON object`);
+  0.1.1 still has the Python texts for numbers, so MDBridge follows its locations and words the
+  reasons. *Tested:* `ap/ap10_form_errors`, `ap/ap09_swap_bad_options`.
+- **AP-11: Save as asks about the final name.** MDATK appended `.mdatk.toml` after the overwrite
+  question, so an existing `name.mdatk.toml` was replaced unasked. MDBridge asks about the final name
+  (MDATK 0.1.0, 172df88). *Tested:* `ap/ap11_save_as_suffix`.
+- **AP-12: a start-up load error is shown in the window.** MDATK printed `warning: could not load
+  ...` on stderr only. MDBridge also logs `ERROR: Could not open <path>: <reason>` and `These are the
+  default settings instead (unsaved).` (MDATK 0.1.0, 13d4fea). *Tested:* `ap/ap12_start_broken`.
+- **AP-13: unsaved changes are not lost unasked (owner decision D6).** MDATK's New, Open and closing
+  discarded edits. MDBridge asks Save / Discard / Cancel when the project differs from what was last
+  loaded or saved. *Tested:* `ap/ap13_unsaved_changes`.
+- **AP-17: the recent list keeps the settings file's other keys.** MDATK 0.0.4.1 rewrote
+  `settings.toml` with `recent` only, deleting newer MDATK's keys (0.0.14's `cat_proof`). MDBridge
+  keeps every other key (MDATK 0.0.14) and writes atomically. *Tested:* `ap/ap17_recent_keeps_settings`.
+- **AP-18: dialog details in full.** MDATK cut message details at 3 000 characters. *Tested:* the
+  recorded dialogs (`detail` uncut).
+
+AP-14 (closing during a job), AP-15 (table edits committed on focus loss), AP-16 (About and BibTeX
+with the run-time citations; the `citations` command's cases in `cli_parity.py` cover the keys),
+AP-19's offered choices and AP-20 (drawing off the GUI thread) leave no trace in the recorded files
+and messages; their packages' Qt tests cover them.
 
 ## Planned (from the improvement register; add each entry here when it lands)
 

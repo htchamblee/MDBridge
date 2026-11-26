@@ -1,0 +1,258 @@
+{
+ "format": "mdbridge-gui-case",
+ "version": 1,
+ "description": "Input & cleaning: notes, files, frames, time, external data, cleaning",
+ "source": "MDATK v0.0.4.1's GTK window driven by tests/parity/make_gui_cases.py, with MDBridge's window improvements (tests/parity/improvements_gui.py)",
+ "clock": "2026-11-25T12:00:00",
+ "items": [],
+ "mdatk_test": "",
+ "needs": [
+  "lossless",
+  "snapshot",
+  "start",
+  "table",
+  "type"
+ ],
+ "canvas": {
+  "width": 960,
+  "height": 540
+ },
+ "files": {
+  "p.mdatk.toml": "projects/full.mdatk.toml"
+ },
+ "start": {
+  "project": "p.mdatk.toml"
+ },
+ "actions": [
+  {
+   "action": "type",
+   "key": "notes",
+   "text": "Edited in the window.\nSecond line"
+  },
+  {
+   "action": "type",
+   "key": "inputs.topology",
+   "text": "other.parm7"
+  },
+  {
+   "action": "table",
+   "key": "inputs.trajectories",
+   "do": "add"
+  },
+  {
+   "action": "set",
+   "key": "inputs.trajectories.2",
+   "value": "md3.nc"
+  },
+  {
+   "action": "table",
+   "key": "inputs.trajectories",
+   "do": "move",
+   "row": 2,
+   "by": -1
+  },
+  {
+   "action": "table",
+   "key": "inputs.trajectories",
+   "do": "remove",
+   "row": 0
+  },
+  {
+   "action": "set",
+   "key": "inputs.start",
+   "value": 3
+  },
+  {
+   "action": "type",
+   "key": "inputs.stop",
+   "text": "250"
+  },
+  {
+   "action": "set",
+   "key": "inputs.step",
+   "value": 5
+  },
+  {
+   "action": "type",
+   "key": "inputs.dt_ps",
+   "text": "0.002"
+  },
+  {
+   "action": "set",
+   "key": "inputs.time_unit",
+   "value": "ns"
+  },
+  {
+   "action": "table",
+   "key": "inputs.external",
+   "do": "add"
+  },
+  {
+   "action": "set",
+   "key": "inputs.external.1.path",
+   "value": "energy.dat"
+  },
+  {
+   "action": "set",
+   "key": "inputs.external.1.label",
+   "value": "Energy"
+  },
+  {
+   "action": "set",
+   "key": "inputs.external.1.x_unit",
+   "value": "ns"
+  },
+  {
+   "action": "set",
+   "key": "inputs.external.1.columns",
+   "value": "2, 3"
+  },
+  {
+   "action": "set",
+   "key": "cleaning.enabled",
+   "value": true
+  },
+  {
+   "action": "type",
+   "key": "cleaning.solvent_mask",
+   "text": ":WAT,HOH"
+  },
+  {
+   "action": "set",
+   "key": "cleaning.fit",
+   "value": true
+  },
+  {
+   "action": "set",
+   "key": "cleaning.fit_reference",
+   "value": "frame"
+  },
+  {
+   "action": "set",
+   "key": "cleaning.reference_frame",
+   "value": 10
+  },
+  {
+   "action": "type",
+   "key": "cleaning.stop",
+   "text": "500"
+  },
+  {
+   "action": "type",
+   "key": "cleaning.extra_commands",
+   "text": "center :1-24\nimage"
+  },
+  {
+   "action": "snapshot",
+   "keys": [
+    "inputs",
+    "cleaning.stop"
+   ]
+  },
+  {
+   "action": "save"
+  }
+ ],
+ "expected": {
+  "p.mdatk.toml": "gui/pages/input_page/out/p.mdatk.toml"
+ },
+ "log": [
+  "Saved project {case_dir}/p.mdatk.toml"
+ ],
+ "outcome": {
+  "snapshots": [
+   {
+    "action": 23,
+    "values": {
+     "inputs": {
+      "topology": "other.parm7",
+      "trajectories": [
+       "md3.nc",
+       "md2.nc"
+      ],
+      "start": 3,
+      "stop": 250,
+      "step": 5,
+      "dt_ps": 0.002,
+      "time_unit": "ns",
+      "external": [
+       {
+        "path": "rmsd.dat",
+        "label": "cpptraj RMSD",
+        "x_column": "",
+        "x_unit": "ps",
+        "columns": [
+         "2",
+         "rmsd"
+        ],
+        "delimiter": ""
+       },
+       {
+        "path": "energy.dat",
+        "label": "Energy",
+        "x_column": "",
+        "x_unit": "ns",
+        "columns": [
+         "2",
+         "3"
+        ],
+        "delimiter": ""
+       }
+      ]
+     },
+     "cleaning.stop": 500
+    }
+   }
+  ],
+  "settings": "gui/pages/input_page/settings.after.toml"
+ },
+ "mdatk": {
+  "expected": {
+   "p.mdatk.toml": "gui/pages/input_page/mdatk/p.mdatk.toml"
+  },
+  "snapshots": [
+   {
+    "action": 23,
+    "values": {
+     "inputs": {
+      "topology": "other.parm7",
+      "trajectories": [
+       "md3.nc",
+       "{case_dir}/md2.nc"
+      ],
+      "start": 3,
+      "stop": 250,
+      "step": 5,
+      "dt_ps": 0.002,
+      "time_unit": "ns",
+      "external": [
+       {
+        "path": "{case_dir}/rmsd.dat",
+        "label": "cpptraj RMSD",
+        "x_column": "",
+        "x_unit": "ps",
+        "columns": [
+         "2",
+         "rmsd"
+        ],
+        "delimiter": ""
+       },
+       {
+        "path": "energy.dat",
+        "label": "Energy",
+        "x_column": "",
+        "x_unit": "ns",
+        "columns": [
+         "2",
+         "3"
+        ],
+        "delimiter": ""
+       }
+      ]
+     },
+     "cleaning.stop": 500
+    }
+   }
+  ]
+ }
+}

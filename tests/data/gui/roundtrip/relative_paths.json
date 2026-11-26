@@ -1,0 +1,88 @@
+{
+ "format": "mdbridge-gui-case",
+ "version": 1,
+ "description": "Relative paths stay relative on Save; Save as into a sub-folder rebases them",
+ "source": "MDATK v0.0.4.1's GTK window driven by tests/parity/make_gui_cases.py, with MDBridge's window improvements (tests/parity/improvements_gui.py)",
+ "clock": "2026-11-25T12:00:00",
+ "items": [
+  "AP-06",
+  "D8"
+ ],
+ "mdatk_test": "",
+ "needs": [
+  "lossless",
+  "save_as",
+  "snapshot",
+  "start"
+ ],
+ "canvas": {
+  "width": 960,
+  "height": 540
+ },
+ "files": {
+  "p.mdatk.toml": "gui/roundtrip/relative_paths/in/p.mdatk.toml"
+ },
+ "start": {
+  "project": "p.mdatk.toml"
+ },
+ "actions": [
+  {
+   "action": "save"
+  },
+  {
+   "action": "save_as",
+   "name": "sub/copy"
+  },
+  {
+   "action": "snapshot",
+   "keys": [
+    "inputs.topology",
+    "inputs.trajectories",
+    "output.out_dir"
+   ]
+  }
+ ],
+ "expected": {
+  "p.mdatk.toml": "gui/roundtrip/relative_paths/out/p.mdatk.toml",
+  "sub/copy.mdatk.toml": "gui/roundtrip/relative_paths/out/sub/copy.mdatk.toml"
+ },
+ "log": [
+  "Saved project {case_dir}/p.mdatk.toml",
+  "Saved project {case_dir}/sub/copy.mdatk.toml"
+ ],
+ "outcome": {
+  "snapshots": [
+   {
+    "action": 2,
+    "values": {
+     "inputs.topology": "../data/system.parm7",
+     "inputs.trajectories": [
+      "../data/md1.nc",
+      "/abs/md2.nc"
+     ],
+     "output.out_dir": "../results"
+    }
+   }
+  ],
+  "settings": "gui/roundtrip/relative_paths/settings.after.toml"
+ },
+ "mdatk": {
+  "expected": {
+   "p.mdatk.toml": "gui/roundtrip/relative_paths/mdatk/p.mdatk.toml",
+   "sub/copy.mdatk.toml": "gui/roundtrip/relative_paths/mdatk/sub/copy.mdatk.toml"
+  },
+  "snapshots": [
+   {
+    "action": 2,
+    "values": {
+     "inputs.topology": "{case_dir}/data/system.parm7",
+     "inputs.trajectories": [
+      "{case_dir}/data/md1.nc",
+      "/abs/md2.nc"
+     ],
+     "output.out_dir": "{case_dir}/results"
+    }
+   }
+  ]
+ }
+}

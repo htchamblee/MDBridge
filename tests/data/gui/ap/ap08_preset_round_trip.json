@@ -1,0 +1,805 @@
+{
+ "format": "mdbridge-gui-case",
+ "version": 1,
+ "description": "equal_4 -> single -> equal_4 keeps every panel",
+ "source": "MDATK v0.0.4.1's GTK window driven by tests/parity/make_gui_cases.py, with MDBridge's window improvements (tests/parity/improvements_gui.py)",
+ "clock": "2026-11-25T12:00:00",
+ "items": [
+  "AP-08"
+ ],
+ "mdatk_test": "",
+ "needs": [
+  "lossless",
+  "snapshot",
+  "start"
+ ],
+ "canvas": {
+  "width": 960,
+  "height": 540
+ },
+ "files": {
+  "p.mdatk.toml": "projects/full.mdatk.toml"
+ },
+ "start": {
+  "project": "p.mdatk.toml"
+ },
+ "actions": [
+  {
+   "action": "set",
+   "key": "layout.preset",
+   "value": "single"
+  },
+  {
+   "action": "snapshot",
+   "keys": [
+    "layout.panels"
+   ]
+  },
+  {
+   "action": "set",
+   "key": "layout.preset",
+   "value": "equal_4"
+  },
+  {
+   "action": "snapshot",
+   "keys": [
+    "layout.panels"
+   ],
+   "slots": true
+  },
+  {
+   "action": "save"
+  }
+ ],
+ "expected": {
+  "p.mdatk.toml": "gui/ap/ap08_preset_round_trip/out/p.mdatk.toml"
+ },
+ "log": [
+  "WARNING: layout single has 1 slots; ignoring 5 extra panel(s)",
+  "WARNING: layout equal_4 has 4 slots; ignoring 2 extra panel(s)",
+  "Saved project {case_dir}/p.mdatk.toml"
+ ],
+ "outcome": {
+  "snapshots": [
+   {
+    "action": 1,
+    "values": {
+     "layout.panels": [
+      {
+       "type": "structure",
+       "series": [],
+       "title": "Structure",
+       "options": {}
+      },
+      {
+       "type": "timeseries",
+       "series": [
+        "rmsd/Complex"
+       ],
+       "title": "RMSD",
+       "options": {}
+      },
+      {
+       "type": "timeseries",
+       "series": [
+        "hbonds/count"
+       ],
+       "title": "Inter-strand H-bonds",
+       "options": {}
+      },
+      {
+       "type": "contact_map",
+       "series": [
+        "contacts/map"
+       ],
+       "title": "",
+       "options": {
+        "mode": "instant",
+        "transpose": true
+       }
+      },
+      {
+       "type": "timeseries",
+       "series": [
+        "rmsd/Complex",
+        "external/cpptraj RMSD/rmsd"
+       ],
+       "title": "RMSD",
+       "options": {
+        "smooth": 5,
+        "progressive": true,
+        "target": 1e-07,
+        "vmax": 1e+16,
+        "vmin": 100000.0,
+        "low": -0.0,
+        "nan": NaN,
+        "inf": Infinity,
+        "custom": [
+         1,
+         2.5,
+         "x",
+         true
+        ]
+       }
+      },
+      {
+       "type": "contact_map",
+       "series": [
+        "contacts/map"
+       ],
+       "title": "Contacts",
+       "options": {
+        "transpose": true
+       }
+      }
+     ]
+    }
+   },
+   {
+    "action": 3,
+    "values": {
+     "layout.panels": [
+      {
+       "type": "structure",
+       "series": [],
+       "title": "Structure",
+       "options": {}
+      },
+      {
+       "type": "timeseries",
+       "series": [
+        "rmsd/Complex"
+       ],
+       "title": "RMSD",
+       "options": {}
+      },
+      {
+       "type": "timeseries",
+       "series": [
+        "hbonds/count"
+       ],
+       "title": "Inter-strand H-bonds",
+       "options": {}
+      },
+      {
+       "type": "contact_map",
+       "series": [
+        "contacts/map"
+       ],
+       "title": "",
+       "options": {
+        "mode": "instant",
+        "transpose": true
+       }
+      },
+      {
+       "type": "timeseries",
+       "series": [
+        "rmsd/Complex",
+        "external/cpptraj RMSD/rmsd"
+       ],
+       "title": "RMSD",
+       "options": {
+        "smooth": 5,
+        "progressive": true,
+        "target": 1e-07,
+        "vmax": 1e+16,
+        "vmin": 100000.0,
+        "low": -0.0,
+        "nan": NaN,
+        "inf": Infinity,
+        "custom": [
+         1,
+         2.5,
+         "x",
+         true
+        ]
+       }
+      },
+      {
+       "type": "contact_map",
+       "series": [
+        "contacts/map"
+       ],
+       "title": "Contacts",
+       "options": {
+        "transpose": true
+       }
+      }
+     ]
+    },
+    "slots": [
+     {
+      "frame": "Slot 1",
+      "type": "structure",
+      "data": null,
+      "choices": [],
+      "group_a": "",
+      "group_b": "",
+      "group_a_enabled": false,
+      "group_b_enabled": false,
+      "more": "",
+      "title": "Structure",
+      "options": ""
+     },
+     {
+      "frame": "Slot 2",
+      "type": "timeseries",
+      "data": "rmsd/Complex",
+      "choices": [
+       [
+        "contacts/atom_pairs",
+        "Aptamer–Target heavy-atom contacts   [contacts/atom_pairs]"
+       ],
+       [
+        "contacts/residue_pairs",
+        "Aptamer–Target residue contacts   [contacts/residue_pairs]"
+       ],
+       [
+        "contacts/q_native",
+        "Aptamer–Target fraction of native contacts (Q)   [contacts/q_native]"
+       ],
+       [
+        "energy/total",
+        "Aptamer–Target interaction energy   [energy/total]"
+       ],
+       [
+        "energy/elec",
+        "Aptamer–Target electrostatic energy   [energy/elec]"
+       ],
+       [
+        "energy/vdw",
+        "Aptamer–Target van der Waals energy   [energy/vdw]"
+       ],
+       [
+        "energy/net_force",
+        "Net force of Target on Aptamer   [energy/net_force]"
+       ],
+       [
+        "hbonds/count",
+        "Aptamer–Target H-bonds   [hbonds/count]"
+       ],
+       [
+        "mg/contacts",
+        "Mg–O inner-sphere contacts   [mg/contacts]"
+       ],
+       [
+        "mg/outer_contacts",
+        "Mg–O outer-sphere contacts   [mg/outer_contacts]"
+       ],
+       [
+        "mg/bridges",
+        "O–Mg–O bridges   [mg/bridges]"
+       ],
+       [
+        "mg/inter_bridges",
+        "Aptamer–Mg–Target bridges   [mg/inter_bridges]"
+       ],
+       [
+        "mg/bridging_ions",
+        "Bridging Mg ions (Aptamer–Target)   [mg/bridging_ions]"
+       ],
+       [
+        "mg/inner_residues",
+        "Residues with inner-sphere Mg   [mg/inner_residues]"
+       ],
+       [
+        "rmsd/Complex",
+        "RMSD Complex   [rmsd/Complex]"
+       ],
+       [
+        "rmsd/Backbone",
+        "RMSD Backbone   [rmsd/Backbone]"
+       ],
+       [
+        "stacking/count",
+        "π–π stacked pairs   [stacking/count]"
+       ],
+       [
+        "stacking/inter",
+        "Aptamer–Target stacked pairs   [stacking/inter]"
+       ],
+       [
+        "stacking/intra",
+        "Intra-group stacked pairs   [stacking/intra]"
+       ],
+       [
+        "basepairs/count",
+        "Base pairs   [basepairs/count]"
+       ]
+      ],
+      "group_a": "",
+      "group_b": "",
+      "group_a_enabled": true,
+      "group_b_enabled": false,
+      "more": "",
+      "title": "RMSD",
+      "options": ""
+     },
+     {
+      "frame": "Slot 3",
+      "type": "timeseries",
+      "data": "hbonds/count",
+      "choices": [
+       [
+        "contacts/atom_pairs",
+        "Aptamer–Target heavy-atom contacts   [contacts/atom_pairs]"
+       ],
+       [
+        "contacts/residue_pairs",
+        "Aptamer–Target residue contacts   [contacts/residue_pairs]"
+       ],
+       [
+        "contacts/q_native",
+        "Aptamer–Target fraction of native contacts (Q)   [contacts/q_native]"
+       ],
+       [
+        "energy/total",
+        "Aptamer–Target interaction energy   [energy/total]"
+       ],
+       [
+        "energy/elec",
+        "Aptamer–Target electrostatic energy   [energy/elec]"
+       ],
+       [
+        "energy/vdw",
+        "Aptamer–Target van der Waals energy   [energy/vdw]"
+       ],
+       [
+        "energy/net_force",
+        "Net force of Target on Aptamer   [energy/net_force]"
+       ],
+       [
+        "hbonds/count",
+        "Aptamer–Target H-bonds   [hbonds/count]"
+       ],
+       [
+        "mg/contacts",
+        "Mg–O inner-sphere contacts   [mg/contacts]"
+       ],
+       [
+        "mg/outer_contacts",
+        "Mg–O outer-sphere contacts   [mg/outer_contacts]"
+       ],
+       [
+        "mg/bridges",
+        "O–Mg–O bridges   [mg/bridges]"
+       ],
+       [
+        "mg/inter_bridges",
+        "Aptamer–Mg–Target bridges   [mg/inter_bridges]"
+       ],
+       [
+        "mg/bridging_ions",
+        "Bridging Mg ions (Aptamer–Target)   [mg/bridging_ions]"
+       ],
+       [
+        "mg/inner_residues",
+        "Residues with inner-sphere Mg   [mg/inner_residues]"
+       ],
+       [
+        "rmsd/Complex",
+        "RMSD Complex   [rmsd/Complex]"
+       ],
+       [
+        "rmsd/Backbone",
+        "RMSD Backbone   [rmsd/Backbone]"
+       ],
+       [
+        "stacking/count",
+        "π–π stacked pairs   [stacking/count]"
+       ],
+       [
+        "stacking/inter",
+        "Aptamer–Target stacked pairs   [stacking/inter]"
+       ],
+       [
+        "stacking/intra",
+        "Intra-group stacked pairs   [stacking/intra]"
+       ],
+       [
+        "basepairs/count",
+        "Base pairs   [basepairs/count]"
+       ]
+      ],
+      "group_a": "",
+      "group_b": "",
+      "group_a_enabled": true,
+      "group_b_enabled": true,
+      "more": "",
+      "title": "Inter-strand H-bonds",
+      "options": ""
+     },
+     {
+      "frame": "Slot 4",
+      "type": "contact_map",
+      "data": "contacts/map",
+      "choices": [
+       [
+        "contacts/map",
+        "Aptamer–Target contact map   [contacts/map]"
+       ],
+       [
+        "hbonds/map",
+        "Aptamer–Target H-bond map   [hbonds/map]"
+       ],
+       [
+        "stacking/map",
+        "Stacking map   [stacking/map]"
+       ],
+       [
+        "basepairs/map",
+        "Base pairs   [basepairs/map]"
+       ]
+      ],
+      "group_a": "",
+      "group_b": "",
+      "group_a_enabled": true,
+      "group_b_enabled": true,
+      "more": "",
+      "title": "",
+      "options": "{\"mode\": \"instant\", \"transpose\": true}"
+     }
+    ]
+   }
+  ],
+  "settings": "gui/ap/ap08_preset_round_trip/settings.after.toml"
+ },
+ "mdatk": {
+  "expected": {
+   "p.mdatk.toml": "gui/ap/ap08_preset_round_trip/mdatk/p.mdatk.toml"
+  },
+  "log": [
+   "Saved project {case_dir}/p.mdatk.toml"
+  ],
+  "snapshots": [
+   {
+    "action": 1,
+    "values": {
+     "layout.panels": [
+      {
+       "type": "structure",
+       "series": [],
+       "title": "Structure",
+       "options": {}
+      }
+     ]
+    }
+   },
+   {
+    "action": 3,
+    "values": {
+     "layout.panels": [
+      {
+       "type": "structure",
+       "series": [],
+       "title": "Structure",
+       "options": {}
+      },
+      {
+       "type": "timeseries",
+       "series": [
+        "contacts/atom_pairs"
+       ],
+       "title": "",
+       "options": {}
+      },
+      {
+       "type": "timeseries",
+       "series": [
+        "contacts/atom_pairs"
+       ],
+       "title": "",
+       "options": {}
+      },
+      {
+       "type": "timeseries",
+       "series": [
+        "contacts/atom_pairs"
+       ],
+       "title": "",
+       "options": {}
+      }
+     ]
+    },
+    "slots": [
+     {
+      "frame": "Slot 1",
+      "type": "structure",
+      "data": null,
+      "choices": [],
+      "group_a": "",
+      "group_b": "",
+      "group_a_enabled": false,
+      "group_b_enabled": false,
+      "more": "",
+      "title": "Structure",
+      "options": ""
+     },
+     {
+      "frame": "Slot 2",
+      "type": "timeseries",
+      "data": "contacts/atom_pairs",
+      "choices": [
+       [
+        "contacts/atom_pairs",
+        "Aptamer–Target heavy-atom contacts   [contacts/atom_pairs]"
+       ],
+       [
+        "contacts/residue_pairs",
+        "Aptamer–Target residue contacts   [contacts/residue_pairs]"
+       ],
+       [
+        "contacts/q_native",
+        "Aptamer–Target fraction of native contacts (Q)   [contacts/q_native]"
+       ],
+       [
+        "energy/total",
+        "Aptamer–Target interaction energy   [energy/total]"
+       ],
+       [
+        "energy/elec",
+        "Aptamer–Target electrostatic energy   [energy/elec]"
+       ],
+       [
+        "energy/vdw",
+        "Aptamer–Target van der Waals energy   [energy/vdw]"
+       ],
+       [
+        "energy/net_force",
+        "Net force of Target on Aptamer   [energy/net_force]"
+       ],
+       [
+        "hbonds/count",
+        "Aptamer–Target H-bonds   [hbonds/count]"
+       ],
+       [
+        "mg/contacts",
+        "Mg–O inner-sphere contacts   [mg/contacts]"
+       ],
+       [
+        "mg/outer_contacts",
+        "Mg–O outer-sphere contacts   [mg/outer_contacts]"
+       ],
+       [
+        "mg/bridges",
+        "O–Mg–O bridges   [mg/bridges]"
+       ],
+       [
+        "mg/inter_bridges",
+        "Aptamer–Mg–Target bridges   [mg/inter_bridges]"
+       ],
+       [
+        "mg/bridging_ions",
+        "Bridging Mg ions (Aptamer–Target)   [mg/bridging_ions]"
+       ],
+       [
+        "mg/inner_residues",
+        "Residues with inner-sphere Mg   [mg/inner_residues]"
+       ],
+       [
+        "rmsd/Complex",
+        "RMSD Complex   [rmsd/Complex]"
+       ],
+       [
+        "rmsd/Backbone",
+        "RMSD Backbone   [rmsd/Backbone]"
+       ],
+       [
+        "stacking/count",
+        "π–π stacked pairs   [stacking/count]"
+       ],
+       [
+        "stacking/inter",
+        "Aptamer–Target stacked pairs   [stacking/inter]"
+       ],
+       [
+        "stacking/intra",
+        "Intra-group stacked pairs   [stacking/intra]"
+       ],
+       [
+        "basepairs/count",
+        "Base pairs   [basepairs/count]"
+       ]
+      ],
+      "group_a": "",
+      "group_b": "",
+      "group_a_enabled": true,
+      "group_b_enabled": true,
+      "more": "",
+      "title": "",
+      "options": ""
+     },
+     {
+      "frame": "Slot 3",
+      "type": "timeseries",
+      "data": "contacts/atom_pairs",
+      "choices": [
+       [
+        "contacts/atom_pairs",
+        "Aptamer–Target heavy-atom contacts   [contacts/atom_pairs]"
+       ],
+       [
+        "contacts/residue_pairs",
+        "Aptamer–Target residue contacts   [contacts/residue_pairs]"
+       ],
+       [
+        "contacts/q_native",
+        "Aptamer–Target fraction of native contacts (Q)   [contacts/q_native]"
+       ],
+       [
+        "energy/total",
+        "Aptamer–Target interaction energy   [energy/total]"
+       ],
+       [
+        "energy/elec",
+        "Aptamer–Target electrostatic energy   [energy/elec]"
+       ],
+       [
+        "energy/vdw",
+        "Aptamer–Target van der Waals energy   [energy/vdw]"
+       ],
+       [
+        "energy/net_force",
+        "Net force of Target on Aptamer   [energy/net_force]"
+       ],
+       [
+        "hbonds/count",
+        "Aptamer–Target H-bonds   [hbonds/count]"
+       ],
+       [
+        "mg/contacts",
+        "Mg–O inner-sphere contacts   [mg/contacts]"
+       ],
+       [
+        "mg/outer_contacts",
+        "Mg–O outer-sphere contacts   [mg/outer_contacts]"
+       ],
+       [
+        "mg/bridges",
+        "O–Mg–O bridges   [mg/bridges]"
+       ],
+       [
+        "mg/inter_bridges",
+        "Aptamer–Mg–Target bridges   [mg/inter_bridges]"
+       ],
+       [
+        "mg/bridging_ions",
+        "Bridging Mg ions (Aptamer–Target)   [mg/bridging_ions]"
+       ],
+       [
+        "mg/inner_residues",
+        "Residues with inner-sphere Mg   [mg/inner_residues]"
+       ],
+       [
+        "rmsd/Complex",
+        "RMSD Complex   [rmsd/Complex]"
+       ],
+       [
+        "rmsd/Backbone",
+        "RMSD Backbone   [rmsd/Backbone]"
+       ],
+       [
+        "stacking/count",
+        "π–π stacked pairs   [stacking/count]"
+       ],
+       [
+        "stacking/inter",
+        "Aptamer–Target stacked pairs   [stacking/inter]"
+       ],
+       [
+        "stacking/intra",
+        "Intra-group stacked pairs   [stacking/intra]"
+       ],
+       [
+        "basepairs/count",
+        "Base pairs   [basepairs/count]"
+       ]
+      ],
+      "group_a": "",
+      "group_b": "",
+      "group_a_enabled": true,
+      "group_b_enabled": true,
+      "more": "",
+      "title": "",
+      "options": ""
+     },
+     {
+      "frame": "Slot 4",
+      "type": "timeseries",
+      "data": "contacts/atom_pairs",
+      "choices": [
+       [
+        "contacts/atom_pairs",
+        "Aptamer–Target heavy-atom contacts   [contacts/atom_pairs]"
+       ],
+       [
+        "contacts/residue_pairs",
+        "Aptamer–Target residue contacts   [contacts/residue_pairs]"
+       ],
+       [
+        "contacts/q_native",
+        "Aptamer–Target fraction of native contacts (Q)   [contacts/q_native]"
+       ],
+       [
+        "energy/total",
+        "Aptamer–Target interaction energy   [energy/total]"
+       ],
+       [
+        "energy/elec",
+        "Aptamer–Target electrostatic energy   [energy/elec]"
+       ],
+       [
+        "energy/vdw",
+        "Aptamer–Target van der Waals energy   [energy/vdw]"
+       ],
+       [
+        "energy/net_force",
+        "Net force of Target on Aptamer   [energy/net_force]"
+       ],
+       [
+        "hbonds/count",
+        "Aptamer–Target H-bonds   [hbonds/count]"
+       ],
+       [
+        "mg/contacts",
+        "Mg–O inner-sphere contacts   [mg/contacts]"
+       ],
+       [
+        "mg/outer_contacts",
+        "Mg–O outer-sphere contacts   [mg/outer_contacts]"
+       ],
+       [
+        "mg/bridges",
+        "O–Mg–O bridges   [mg/bridges]"
+       ],
+       [
+        "mg/inter_bridges",
+        "Aptamer–Mg–Target bridges   [mg/inter_bridges]"
+       ],
+       [
+        "mg/bridging_ions",
+        "Bridging Mg ions (Aptamer–Target)   [mg/bridging_ions]"
+       ],
+       [
+        "mg/inner_residues",
+        "Residues with inner-sphere Mg   [mg/inner_residues]"
+       ],
+       [
+        "rmsd/Complex",
+        "RMSD Complex   [rmsd/Complex]"
+       ],
+       [
+        "rmsd/Backbone",
+        "RMSD Backbone   [rmsd/Backbone]"
+       ],
+       [
+        "stacking/count",
+        "π–π stacked pairs   [stacking/count]"
+       ],
+       [
+        "stacking/inter",
+        "Aptamer–Target stacked pairs   [stacking/inter]"
+       ],
+       [
+        "stacking/intra",
+        "Intra-group stacked pairs   [stacking/intra]"
+       ],
+       [
+        "basepairs/count",
+        "Base pairs   [basepairs/count]"
+       ]
+      ],
+      "group_a": "",
+      "group_b": "",
+      "group_a_enabled": true,
+      "group_b_enabled": true,
+      "more": "",
+      "title": "",
+      "options": ""
+     }
+    ]
+   }
+  ]
+ }
+}

@@ -448,7 +448,7 @@ TEST(Citations, SettingsAndRunKeys) {
     project.output.out_dir = utf8(work / "out");
     project.cleaning.enabled = true;
     app::ProjectCitations c = app::projectCitations(project);
-    EXPECT_TRUE(c.runKeys.empty());
+    EXPECT_TRUE(c.cacheKeys.empty());
     EXPECT_EQ(c.keys, c.settingsKeys);
     ASSERT_FALSE(c.keys.empty());
     const std::string text = app::citationText(c);
@@ -468,13 +468,18 @@ TEST(Citations, SettingsAndRunKeys) {
     const core::Dataset dataset({0}, {0.0});
     cache.writeManifest(core::Table{}, core::Table{}, dataset, core::Array{}, {{"atoms", "0123456789abcdef"}});
     c = app::projectCitations(project);
-    EXPECT_EQ(c.runKeys, std::vector<std::string>{"cordero2008"});
-    EXPECT_EQ(c.runInstances, std::vector<std::string>{"atoms"});
+    EXPECT_EQ(c.cacheKeys, (std::vector<std::string>{"cordero2008", "not-a-key"}));
+    EXPECT_EQ(c.runOnly, std::vector<std::string>{"cordero2008"});
     EXPECT_EQ(c.keys.back(), "cordero2008");
-    EXPECT_NE(app::citationText(c).find("Used at run time by the cached results (atoms):\n    "), std::string::npos);
+    EXPECT_NE(app::citationText(c).find("\nRecorded by the cached results of the last run:\n    "), std::string::npos);
     const core::Value json = app::citationJson(c);
-    EXPECT_EQ(json.find("run_keys")->get<core::Array>()->size(), 1u);
-    EXPECT_EQ(json.find("references")->get<core::Array>()->size(), c.keys.size());
+    EXPECT_EQ(json.find("run_keys")->get<core::Array>()->size(), 2u);
+    EXPECT_EQ(json.find("keys")->get<core::Array>()->size(), c.keys.size());
+
+    // an entry the manifest lists but the cache lacks: nothing is recorded
+    cache.writeManifest(core::Table{}, core::Table{}, dataset, core::Array{},
+                        {{"atoms", "0123456789abcdef"}, {"rmsd", "fedcba9876543210"}});
+    EXPECT_TRUE(app::projectCitations(project).cacheKeys.empty());
 
     core::Project none;
     none.output.out_dir = utf8(work / "none");
@@ -494,16 +499,13 @@ TEST(Citations, Command) {
     const CommandRun json = runIn(work.path(), {"citations", "-p", "p.mdatk.toml", "--json", "--bibtex", "refs.bib"});
     EXPECT_EQ(json.exit, 0) << json.err;
     const core::Value value = core::parseJson(json.out, "stdout");
-    const std::size_t n = value.find("keys")->get<core::Array>()->size();
-    EXPECT_EQ(json.err, "Wrote " + std::to_string(n) + " references to refs.bib\n");
     std::vector<std::string> keys;
     for (const core::Value& k : *value.find("keys")->get<core::Array>()) {
         keys.push_back(k.stringOr());
     }
     EXPECT_EQ(test::readFile(work / "refs.bib"), core::citations::bibtex(keys));
-    const CommandRun out = runIn(work.path(), {"citations", "-p", "p.mdatk.toml", "--bibtex", "-"});
-    EXPECT_EQ(out.out, core::citations::bibtex(keys));
-    EXPECT_EQ(out.err, "");
+    const CommandRun bib = runIn(work.path(), {"citations", "-p", "p.mdatk.toml", "--bibtex", "b.bib"});
+    EXPECT_EQ(bib.out, "Wrote " + std::to_string(keys.size()) + " references to b.bib\n");
     const CommandRun missing = runIn(work.path(), {"citations", "-p", "nope.mdatk.toml"});
     EXPECT_EQ(missing.exit, 1);
 }

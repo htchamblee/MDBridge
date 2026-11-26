@@ -37,8 +37,6 @@ ProjectCitations projectCitations(const core::Project& project) {
     const std::vector<std::string> resources = cit::projectResources(project, {});
     out.groups = cit::grouped(resources);
     out.settingsKeys = cit::keysFor(resources);
-
-    std::vector<std::string> recorded;  // every run-time key, in manifest order
     try {
         const analysis::CacheStore cache(core::cacheDir(project));
         const std::optional<Value> manifest = cache.readManifest();
@@ -47,43 +45,35 @@ ProjectCitations projectCitations(const core::Project& project) {
             for (const Value& entry : *entries->get<core::Array>()) {
                 const Value* name = entry.isTable() ? entry.find("name") : nullptr;
                 const Value* key = entry.isTable() ? entry.find("key") : nullptr;
-                if (!name || !key || !name->isString() || !key->isString()) {
-                    continue;
-                }
                 const std::optional<analysis::CachedResult> cached =
-                    cache.loadResult(*name->get<std::string>(), *key->get<std::string>());
-                if (!cached) {
-                    continue;
+                    name && key && name->isString() && key->isString()
+                        ? cache.loadResult(*name->get<std::string>(), *key->get<std::string>())
+                        : std::nullopt;
+                if (!cached) {  // an incomplete cache records nothing
+                    out.cacheKeys.clear();
+                    break;
                 }
-                bool adds = false;
                 for (const auto& [field, value] : cached->result.meta) {
                     if (field != "citation_keys" || !value.isArray()) {
                         continue;
                     }
                     for (const Value& item : *value.get<core::Array>()) {
-                        const std::string* k = item.get<std::string>();
-                        if (k == nullptr || cit::findReference(*k) == nullptr) {
-                            continue;
-                        }
-                        if (!contains(recorded, *k)) {
-                            recorded.push_back(*k);
-                        }
-                        if (!contains(out.settingsKeys, *k)) {
-                            adds = true;
-                            if (!contains(out.runKeys, *k)) {
-                                out.runKeys.push_back(*k);
-                            }
+                        if (const std::string* k = item.get<std::string>(); k && !contains(out.cacheKeys, *k)) {
+                            out.cacheKeys.push_back(*k);
                         }
                     }
-                }
-                if (adds && !contains(out.runInstances, *name->get<std::string>())) {
-                    out.runInstances.push_back(*name->get<std::string>());
                 }
             }
         }
     } catch (const std::exception&) {  // an unreadable manifest: no run-time keys
+        out.cacheKeys.clear();
     }
-    out.keys = cit::withRunKeys(out.settingsKeys, recorded);
+    out.keys = cit::withRunKeys(out.settingsKeys, out.cacheKeys);
+    for (const std::string& k : out.keys) {
+        if (!contains(out.settingsKeys, k)) {
+            out.runOnly.push_back(k);
+        }
+    }
     return out;
 }
 
@@ -103,13 +93,9 @@ std::string citationText(const ProjectCitations& c) {
         }
         out += "\n";
     }
-    if (!c.runKeys.empty()) {
-        std::string instances;
-        for (std::size_t k = 0; k < c.runInstances.size(); ++k) {
-            instances += (k ? ", " : "") + c.runInstances[k];
-        }
-        out += "Used at run time by the cached results (" + instances + "):\n";
-        for (const core::citations::Reference& r : core::citations::references(c.runKeys)) {
+    if (!c.runOnly.empty()) {
+        out += "Recorded by the cached results of the last run:\n";
+        for (const core::citations::Reference& r : core::citations::references(c.runOnly)) {
             out += "    " + text(r.text) + "\n";
         }
         out += "\n";
@@ -121,27 +107,18 @@ Value citationJson(const ProjectCitations& c) {
     core::Array resources;
     for (const auto& [res, refs] : c.groups) {
         std::vector<std::string> keys;
-        for (const core::citations::Reference& r : refs) {
-            keys.push_back(text(r.key));
+        for (const std::string_view k : res.keys) {
+            keys.push_back(text(k));
         }
         resources.emplace_back(Table{{"id", text(res.id)},
                                      {"name", text(res.name)},
                                      {"note", text(res.note)},
                                      {"keys", textArray(keys)}});
     }
-    core::Array references;
-    for (const core::citations::Reference& r : core::citations::references(c.keys)) {
-        references.emplace_back(Table{{"key", text(r.key)},
-                                      {"text", text(r.text)},
-                                      {"doi", text(r.doi)},
-                                      {"url", text(r.url)},
-                                      {"bibtex", text(r.bibtex)}});
-    }
     return Table{{"keys", textArray(c.keys)},
-                 {"resources", std::move(resources)},
-                 {"run_keys", textArray(c.runKeys)},
-                 {"run_instances", textArray(c.runInstances)},
-                 {"references", std::move(references)}};
+                 {"settings_keys", textArray(c.settingsKeys)},
+                 {"run_keys", textArray(c.cacheKeys)},
+                 {"resources", std::move(resources)}};
 }
 
 }  // namespace mdbridge::app

@@ -1,0 +1,45 @@
+{
+ "format": "mdbridge-gui-case",
+ "version": 1,
+ "description": "Start with projects/datetimes.mdatk.toml and save it unchanged",
+ "source": "MDATK v0.0.4.1's GTK window driven by tests/parity/make_gui_cases.py, with MDBridge's window improvements (tests/parity/improvements_gui.py)",
+ "clock": "2026-11-25T12:00:00",
+ "items": [],
+ "mdatk_test": "tests/test_gui.py::test_widgets_roundtrip_project",
+ "needs": [
+  "lossless",
+  "start"
+ ],
+ "canvas": {
+  "width": 960,
+  "height": 540
+ },
+ "files": {
+  "p.mdatk.toml": "projects/datetimes.mdatk.toml"
+ },
+ "start": {
+  "project": "p.mdatk.toml"
+ },
+ "actions": [
+  {
+   "action": "wait"
+  },
+  {
+   "action": "save"
+  }
+ ],
+ "expected": {
+  "p.mdatk.toml": "gui/roundtrip/open_save_datetimes/out/p.mdatk.toml"
+ },
+ "log": [
+  "Saved project {case_dir}/p.mdatk.toml"
+ ],
+ "outcome": {
+  "settings": "gui/roundtrip/open_save_datetimes/settings.after.toml"
+ },
+ "mdatk": {
+  "expected": {
+   "p.mdatk.toml": "gui/roundtrip/open_save_datetimes/mdatk/p.mdatk.toml"
+  }
+ }
+}

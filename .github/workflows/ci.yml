@@ -1,6 +1,7 @@
 # Build, test and package MDBridge: Linux AppImage and Windows installer, on every push.
 #
-# - linux:       build and unit tests on Rocky Linux 9 (the oldest supported glibc), AppImage,
+# - linux:       build and unit tests on Rocky Linux 9 (the oldest supported glibc; the GUI tests
+#                on the offscreen platform, their screenshots uploaded), AppImage,
 #                glibc check, smoke test with the Vulkan view (lavapipe) and the software view;
 #                the LGPL FFmpeg + SVT-AV1 libraries (packaging/ffmpeg) built there, cached
 # - appimage-*:  the AppImage on Ubuntu 22.04 (with Vulkan) and on a bare Rocky Linux 9 (command
@@ -10,7 +11,8 @@
 #                command line: an AV1 video (read back with `probe-video`, and ffprobe where
 #                installed), charts and previews; on the bare Rocky system that is the batch-on-a-
 #                cluster proof (no display, fonts or GPU)
-# - windows:     MSVC 2022 build and tests, zip and installer; smoke test of the installed program
+# - windows:     MSVC 2022 build and tests (GUI tests offscreen, screenshots uploaded), zip and
+#                installer; smoke test of the installed program
 #                (video, charts, preview and the interface);
 #                FFmpeg + SVT-AV1 through vcpkg (packaging/ffmpeg/windows), cached; the Vulkan tests on
 #                Mesa's lavapipe (test-only, tools/get_lavapipe.py), cached
@@ -114,7 +116,18 @@ jobs:
       - name: Unit tests
         env:
           MDBRIDGE_REQUIRE_VULKAN: "1"  # the Vulkan tests run on lavapipe (mesa-vulkan-drivers), never skip
-        run: ctest --test-dir build/release --output-on-failure
+        run: |
+          # the GUI tests (mdbridge_gui_tests, offscreen platform) save their screenshots there
+          export MDBRIDGE_GUI_SCREENSHOTS="$PWD/gui-test-screenshots"
+          ctest --test-dir build/release --output-on-failure
+
+      # the main window as the GUI tests drove it (tests/gui), for review; never compared
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        if: always()
+        with:
+          name: gui-test-screenshots-linux
+          path: gui-test-screenshots
+          if-no-files-found: warn
 
       - name: Vulkan 3D view drawing a molecule (Xvfb, lavapipe)
         env:
@@ -289,7 +302,17 @@ jobs:
           key: ${{ steps.ffmpeg-cache.outputs.cache-primary-key }}
 
       - name: Build, tests, zip and installer
-        run: packaging\windows\build_windows.ps1 -QtDir "C:\Qt\$env:QT_VERSION\msvc2022_64" -Out dist -FFmpegRoot build\ffmpeg\prefix
+        run: |
+          $env:MDBRIDGE_GUI_SCREENSHOTS = "$PWD\gui-test-screenshots"  # mdbridge_gui_tests (offscreen platform)
+          packaging\windows\build_windows.ps1 -QtDir "C:\Qt\$env:QT_VERSION\msvc2022_64" -Out dist -FFmpegRoot build\ffmpeg\prefix
+
+      # the main window as the GUI tests drove it (tests/gui), for review; never compared
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        if: always()
+        with:
+          name: gui-test-screenshots-windows
+          path: gui-test-screenshots
+          if-no-files-found: warn
 
       # Vulkan tests on Mesa's lavapipe, a test-only driver never shipped (owner decision D14;
       # tools/get_lavapipe.py pins the MSYS2 packages by SHA-256); rebuilt only when the pins change
@@ -467,15 +490,21 @@ jobs:
         run: |
           python -m venv "$RUNNER_TEMP/venv"
           "$RUNNER_TEMP/venv/bin/python" -m pip install --no-deps -r tests/parity/requirements-regenerate.txt
-          "$RUNNER_TEMP/venv/bin/python" -m pip check
-          "$RUNNER_TEMP/venv/bin/python" -m pip freeze
 
       # MDATK's render / video commands (tests/parity/make_render_cli_cases.py) run the ffmpeg
-      # executable and the generator reads the videos' metadata with ffprobe (Ubuntu's package)
-      - name: FFmpeg for MDATK's video
+      # executable and the generator reads the videos' metadata with ffprobe (Ubuntu's package);
+      # MDATK's GTK 3 window (tests/parity/make_gui_cases.py) needs GTK 3's introspection data and
+      # Xvfb, and PyGObject / pycairo built for this Python 3.13 (Ubuntu's python3-gi is for its
+      # own 3.12): built from the pinned sources against the system's GTK
+      - name: FFmpeg for MDATK's video; GTK 3, Xvfb, PyGObject and pycairo for MDATK's window
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends ffmpeg
+          sudo apt-get install -y --no-install-recommends ffmpeg xvfb xauth gir1.2-gtk-3.0 \
+            libgirepository-2.0-dev libcairo2-dev pkg-config
+          "$RUNNER_TEMP/venv/bin/python" -m pip install --no-deps -r tests/parity/requirements-gui-build.txt
+          "$RUNNER_TEMP/venv/bin/python" -m pip install --no-deps --no-build-isolation -r tests/parity/requirements-gui.txt
+          "$RUNNER_TEMP/venv/bin/python" -m pip check
+          "$RUNNER_TEMP/venv/bin/python" -m pip freeze
           ffmpeg -version | head -n 1
 
       - name: Regenerate every data set and compare with the committed files

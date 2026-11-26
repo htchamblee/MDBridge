@@ -1,0 +1,246 @@
+{
+ "format": "mdbridge-gui-case",
+ "version": 1,
+ "description": "Analyses: every section's fields",
+ "source": "MDATK v0.0.4.1's GTK window driven by tests/parity/make_gui_cases.py, with MDBridge's window improvements (tests/parity/improvements_gui.py)",
+ "clock": "2026-11-25T12:00:00",
+ "items": [],
+ "mdatk_test": "",
+ "needs": [
+  "lossless",
+  "snapshot",
+  "start",
+  "table",
+  "type"
+ ],
+ "canvas": {
+  "width": 960,
+  "height": 540
+ },
+ "files": {
+  "p.mdatk.toml": "projects/default.mdatk.toml"
+ },
+ "start": {
+  "project": "p.mdatk.toml"
+ },
+ "actions": [
+  {
+   "action": "set",
+   "key": "analyses.use_pbc",
+   "value": true
+  },
+  {
+   "action": "set",
+   "key": "analyses.proximity_search_radius",
+   "value": 12.5
+  },
+  {
+   "action": "table",
+   "key": "analyses.rmsd.targets",
+   "do": "add"
+  },
+  {
+   "action": "set",
+   "key": "analyses.rmsd.targets.1.label",
+   "value": "Loop RMSD"
+  },
+  {
+   "action": "set",
+   "key": "analyses.rmsd.targets.1.fit_selection",
+   "value": "group:Target and name P"
+  },
+  {
+   "action": "set",
+   "key": "analyses.rmsd.reference_frame",
+   "value": 4
+  },
+  {
+   "action": "set",
+   "key": "analyses.rmsd.mass_weighted",
+   "value": true
+  },
+  {
+   "action": "set",
+   "key": "analyses.contacts.cutoff",
+   "value": 4.25
+  },
+  {
+   "action": "set",
+   "key": "analyses.contacts.group_a",
+   "value": "Target"
+  },
+  {
+   "action": "set",
+   "key": "analyses.hbonds.distance_cutoff",
+   "value": 3.3
+  },
+  {
+   "action": "set",
+   "key": "analyses.hbonds.use_angle",
+   "value": false
+  },
+  {
+   "action": "type",
+   "key": "analyses.hbonds.donor_elements",
+   "text": "N,O,S"
+  },
+  {
+   "action": "set",
+   "key": "analyses.mg.inner_cutoff",
+   "value": 2.4
+  },
+  {
+   "action": "set",
+   "key": "analyses.mg.bridge_shell",
+   "value": "outer"
+  },
+  {
+   "action": "set",
+   "key": "analyses.stacking.scope",
+   "value": "inter"
+  },
+  {
+   "action": "set",
+   "key": "analyses.stacking.angle_cutoff",
+   "value": 25
+  },
+  {
+   "action": "set",
+   "key": "analyses.basepairs.stride",
+   "value": 3
+  },
+  {
+   "action": "set",
+   "key": "analyses.energy.dielectric",
+   "value": 4
+  },
+  {
+   "action": "set",
+   "key": "analyses.energy.exclude_bonded",
+   "value": 2
+  },
+  {
+   "action": "type",
+   "key": "analyses.energy.target_value",
+   "text": "-55.5"
+  },
+  {
+   "action": "snapshot",
+   "keys": [
+    "analyses"
+   ]
+  },
+  {
+   "action": "save"
+  }
+ ],
+ "expected": {
+  "p.mdatk.toml": "gui/pages/analyses_page/out/p.mdatk.toml"
+ },
+ "log": [
+  "Saved project {case_dir}/p.mdatk.toml"
+ ],
+ "outcome": {
+  "snapshots": [
+   {
+    "action": 20,
+    "values": {
+     "analyses": {
+      "rmsd": {
+       "enabled": true,
+       "targets": [
+        {
+         "label": "Complex",
+         "selection": "(group:Aptamer or group:Target) and not name H*",
+         "fit_selection": ""
+        },
+        {
+         "label": "Loop RMSD",
+         "selection": "(group:Aptamer or group:Target) and name C4'",
+         "fit_selection": "group:Target and name P"
+        },
+        {
+         "label": "Target",
+         "selection": "group:Aptamer and not name H*",
+         "fit_selection": ""
+        }
+       ],
+       "reference_frame": 4,
+       "superposition": true,
+       "mass_weighted": true
+      },
+      "contacts": {
+       "enabled": true,
+       "group_a": "Target",
+       "group_b": "Target",
+       "cutoff": 4.25,
+       "heavy_only": true
+      },
+      "hbonds": {
+       "enabled": true,
+       "group_a": "Aptamer",
+       "group_b": "Target",
+       "distance_cutoff": 3.3,
+       "use_angle": false,
+       "angle_cutoff": 135.0,
+       "donor_elements": "N,O,S",
+       "acceptor_elements": "N,O"
+      },
+      "mg": {
+       "enabled": true,
+       "mg_selection": "resname MG Mg MG2 or name MG Mg",
+       "ligand_selection": "group:Aptamer or group:Target",
+       "ligand_elements": "O",
+       "group_a": "Aptamer",
+       "group_b": "Target",
+       "inner_cutoff": 2.4,
+       "outer_cutoff": 4.5,
+       "bridge_shell": "outer",
+       "geometry": false,
+       "angle_tolerance": 25.0,
+       "occupancy_selection": "",
+       "occupancy_elements": "N,O"
+      },
+      "stacking": {
+       "enabled": true,
+       "selection": "group:Aptamer or group:Target",
+       "scope": "inter",
+       "group_a": "Aptamer",
+       "group_b": "Target",
+       "distance_cutoff": 4.5,
+       "angle_cutoff": 25,
+       "offset_cutoff": 2.5,
+       "planarity_cutoff": 0.25
+      },
+      "energy": {
+       "enabled": true,
+       "group_a": "Aptamer",
+       "group_b": "Target",
+       "cutoff": 12.0,
+       "dielectric": 4,
+       "distance_dependent": false,
+       "use_parm7": true,
+       "target_value": -55.5,
+       "exclude_bonded": 2
+      },
+      "basepairs": {
+       "engine": "builtin",
+       "stride": 3,
+       "cutoff": 3.5,
+       "wobble": true,
+       "noncanonical": false
+      },
+      "use_pbc": true,
+      "proximity_search_radius": 12.5
+     }
+    }
+   }
+  ],
+  "settings": "gui/pages/analyses_page/settings.after.toml"
+ },
+ "mdatk": {
+  "expected": {
+   "p.mdatk.toml": "gui/pages/analyses_page/mdatk/p.mdatk.toml"
+  }
+ }
+}

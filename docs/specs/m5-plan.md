@@ -371,6 +371,19 @@ Also accepted: the pre-M5 fix wave from the MDATK 0.1.1 comparison (section 5).
   the numpy random port exist).
 - **D14 Citations on the command line**: recommend a new `mdbridge citations [-p PROJECT] [--bibtex
   FILE] [--json]` citing settings and run-time keys (`withRunKeys`, CIT-06); name not used by MDATK.
+  **Format** (W0-A; the expected output of `cli_parity.py`'s `citations_*` cases is written from
+  this specification, `tests/parity/citations_command.py`): options of every analysis command
+  (`-p`, `--top`, `--traj`, `-o`, `--cache-dir`, `--frames`, `-s` ...) plus `--bibtex FILE` and
+  `--json`. Keys = the settings' keys, then the `citation_keys` of the analyses the cache manifest's
+  last run lists (none without a manifest), through `withRunKeys`. Plain: MDATK's About text
+  (`Resources this project uses (N references; each generated script lists only its own):`, per
+  resource its name and ` - note`, references indented by four spaces, empty lines between), then
+  `Recorded by the cached results of the last run:` with the references only the cache adds; no key:
+  `This project uses no external resource with a reference yet.` `--bibtex FILE`: MDATK's BibTeX of
+  the keys, `Wrote N references to FILE`; no key: `Nothing to cite yet: The project uses no external
+  resource with a reference.` and no file. `--json`: `{"keys", "settings_keys", "run_keys",
+  "resources": [{"id", "name", "note", "keys"}]}` (indent 2, non-ASCII as is) instead of the text or
+  the `Wrote` line. Errors: `error: <message>`, exit 1; usage errors exit 2.
 - **D15 Groups from chains (0.0.10) in M5**: recommend yes, with the rename cascade; both are
   additions beyond v0.0.4.1, listed in DIFFERENCES.
 - **D16 Settings location**: recommend Linux: keep the shared `$XDG_CONFIG_HOME/mdatk/settings.toml`
@@ -394,6 +407,11 @@ Also accepted: the pre-M5 fix wave from the MDATK 0.1.1 comparison (section 5).
    development packages. Mitigation: start W0-A first; fall back to a 3.12 venv with system packages
    for the GUI generator only (the GUI's outputs do not depend on numpy versions beyond the pinned
    ones).
+   **Solved (W0-A):** the regenerate job builds PyGObject 3.52.3 and pycairo 1.28.0 from source for
+   its Python 3.13 venv against Ubuntu 24.04's GTK (`libgirepository-2.0-dev`, `libcairo2-dev`,
+   `gir1.2-gtk-3.0`; pinned build tools, `tests/parity/requirements-gui-build.txt` /
+   `requirements-gui.txt`); `make_gui_cases.py` starts Xvfb itself. Its output is the same with the
+   system's PyGObject 3.48 on Python 3.12 (checked byte for byte).
 2. **Round-trip completeness**: one field bound lossily breaks byte parity of every saved file.
    Mitigation: W0-B tests every fixture and a 0.1.1 file byte for byte before widgets exist.
 3. **Two programs, one settings file** (D16): MDATK and MDBridge both write `settings.toml`; without

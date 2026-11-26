@@ -5,6 +5,7 @@
 #include "commands.hpp"
 
 #include <algorithm>
+#include <cerrno>
 #include <chrono>
 #include <cstdint>
 #include <cstdio>
@@ -103,7 +104,8 @@ struct CoreCommands::Arguments {
     CommonArguments cleanCommon;
     bool cleanForce = false;
 
-    std::string citationsProject, bibtex;
+    CommonArguments citationsCommon;
+    std::string bibtex;
     bool citationsJson = false;
 
     CommonArguments initCommon;
@@ -191,6 +193,13 @@ std::optional<bool> cleanChoice(const CLI::App& command, const CommonArguments& 
 
 // load_project(args, resolve)
 core::Project loadProject(const CLI::App& command, const CommonArguments& a, bool resolve) {
+    if (!a.params.empty()) {  // Project.load's open(): Python's FileNotFoundError text
+        std::error_code ec;
+        if (!fs::exists(core::pathFromUtf8(a.params), ec)) {
+            throw fs::filesystem_error("open", core::pathFromUtf8(a.params),
+                                       std::make_error_code(std::errc::no_such_file_or_directory));
+        }
+    }
     core::Project project = a.params.empty() ? core::Project{} : core::loadProject(core::pathFromUtf8(a.params));
     if (!a.top.empty()) {
         project.inputs.topology = absolutePath(a.top);
@@ -626,32 +635,32 @@ int commandClean(CLI::App& command, const CoreCommands::Arguments& a, Console& c
     return 0;
 }
 
-int commandCitations(const CoreCommands::Arguments& a, Console& console) {
-    core::Project project = a.citationsProject.empty() ? core::Project{}
-                                                       : core::loadProject(core::pathFromUtf8(a.citationsProject));
-    core::resolvePaths(project, core::currentDirectory());
+// MDBridge's citations (D14; tests/parity/citations_command.py)
+int commandCitations(CLI::App& command, const CoreCommands::Arguments& a, Console& console) {
+    const core::Project project = loadProject(command, a.citationsCommon, true);
     const ProjectCitations citations = projectCitations(project);
     if (!a.bibtex.empty()) {
-        const std::string text = core::citations::bibtex(citations.keys);
         if (citations.keys.empty()) {
-            console.err << "Nothing to cite yet: the project uses no external resource with a reference; "
-                        << a.bibtex << " was not written\n";
-        } else if (a.bibtex == "-") {
-            console.out << text;
-        } else {
-            std::ofstream out(core::pathFromUtf8(a.bibtex), std::ios::binary | std::ios::trunc);
-            out << text;
-            out.close();
-            if (!out) {
-                throw fs::filesystem_error("cannot write the BibTeX file", core::pathFromUtf8(a.bibtex),
-                                           std::make_error_code(std::errc::io_error));
-            }
-            console.err << "Wrote " << citations.keys.size() << " references to " << a.bibtex << '\n';
+            console.out << "Nothing to cite yet: The project uses no external resource with a reference.\n";
+            return 0;
+        }
+        std::ofstream out(core::pathFromUtf8(a.bibtex), std::ios::binary | std::ios::trunc);
+        if (!out) {
+            throw fs::filesystem_error("cannot write the BibTeX file", core::pathFromUtf8(a.bibtex),
+                                       std::error_code(errno, std::generic_category()));
+        }
+        out << core::citations::bibtex(citations.keys);
+        out.close();
+        if (!out) {
+            throw fs::filesystem_error("cannot write the BibTeX file", core::pathFromUtf8(a.bibtex),
+                                       std::make_error_code(std::errc::io_error));
         }
     }
     if (a.citationsJson) {
-        console.out << jsonForConsole(citationJson(citations)) << '\n';
-    } else if (a.bibtex.empty()) {
+        console.out << core::toJson(citationJson(citations), 2) << '\n';
+    } else if (!a.bibtex.empty()) {
+        console.out << "Wrote " << citations.keys.size() << " references to " << a.bibtex << '\n';
+    } else {
         console.out << citationText(citations);
     }
     return 0;
@@ -747,10 +756,9 @@ CoreCommands::CoreCommands(CLI::App& app, const RenderBackend* backend) : m_args
     a.preview->add_flag("--from-cache", a.previewFromCache, "use the analyses of the cache manifest");
 
     a.citations = app.add_subcommand("citations", "list the references a project's settings and results cite");
-    lastWins(a.citations->add_option("--project,-p,--params", a.citationsProject,
-                                     "project file (.mdatk.toml) or a run's MDATK_params_log.toml"));
-    lastWins(a.citations->add_option("--bibtex", a.bibtex, "write the references as BibTeX to this file (-: stdout)"));
-    a.citations->add_flag("--json", a.citationsJson, "print the citations as JSON");
+    addCommon(*a.citations, a.citationsCommon);
+    lastWins(a.citations->add_option("--bibtex", a.bibtex, "write the references as BibTeX to FILE"))->type_name("FILE");
+    a.citations->add_flag("--json", a.citationsJson, "print the keys and resources as JSON");
 
     a.density = app.add_subcommand("density", "density maps (MRC / CCP4): header info");
     a.density->require_subcommand(0, 1);
@@ -791,7 +799,7 @@ std::optional<int> CoreCommands::run(Console& console) {
             return commandClean(*a.clean, a, console);
         }
         if (a.citations->parsed()) {
-            return commandCitations(a, console);
+            return commandCitations(*a.citations, a, console);
         }
         if (a.init->parsed()) {
             return commandInit(*a.init, a.initCommon, a.initOutput, a.overwrite, console);
