@@ -27,7 +27,8 @@ and OpenBLAS' kernels are pinned (chem_common.pin_kernels). Writes:
     rebuilt     build_helix with other pairings and triplexes (MDATK's tests' builds, mismatches,
                 L, phosphate5): text, notes and the heavy-atom coordinates as numbers
     fits        fit_to_map(model, map, resolution, search, step): text, cc, notes or the error, on the
-                maps of OUT_DIR/maps (simulated from moved models; one with a NaN voxel, CH-11)
+                maps of OUT_DIR/maps (simulated from moved models; one with a NaN voxel, CH-11); a
+                model with shifted columns takes the rewrite through write_pdb
   OUT_DIR/maps/*.mrc  the fit cases' maps (mdatk.io.mrc.write_map)
 
 Floats are float.hex() strings unless noted; errors are {"type": class name, "message": str(exc)}.
@@ -316,6 +317,19 @@ def fit_cases():
         return ln[:22 - len(fused)] + fused + ln[22:]
 
     damaged = "\n".join(chimerax(ln) if ln.startswith("ATOM") else ln for ln in single.splitlines()) + "\n"
+
+    def shifted_lines(text):  # the fused field one column wider: the later columns move right (W2-B)
+        for ln in text.splitlines():
+            if ln.startswith("ATOM"):
+                yield ln[:17] + f"{ln[17:20].strip() + ln[21] + ':':>5}" + " " + ln[22:]
+                if ln[12:16] == " P  " or ln[12:16] == " O5'" and ln[22:26] == "   1":
+                    yield "ANISOU" + ln[6:28] + "   1000   2000   3000      0      0      0       " + ln[77]
+            elif ln == "END":
+                yield from ("CONECT    1    2", ln)
+            else:
+                yield ln
+
+    shifted = "\n".join(shifted_lines(single)) + "\n"
     cryst = "CRYST1   50.000   50.000   50.000  90.00  90.00  90.00 P 1           1\n" + single
     far = B.transform_pdb_text(single, np.eye(3), np.array([200.0, 0.0, 0.0]))
     runs = [("model", "global", 4.0, "global", 30.0), ("single", "local", 4.0, "local", 30.0),
@@ -324,8 +338,8 @@ def fit_cases():
             ("single", "local", float("nan"), "local", 30.0), ("single", "local", 0.0, "local", 30.0),
             ("single", "local", -2.0, "local", 30.0), ("single", "local", 4.0, "exhaustive", 30.0),
             ("single", "local", 4.0, "global", 2.0), ("single", "missing", 4.0, "local", 30.0),
-            ("single", "nan", 4.0, "global", 45.0)]
-    texts = {"model": model, "single": near, "damaged": damaged, "cryst": cryst, "far": far}
+            ("single", "nan", 4.0, "global", 45.0), ("shifted", "local", 4.0, "local", 30.0)]
+    texts = {"model": model, "single": near, "damaged": damaged, "cryst": cryst, "far": far, "shifted": shifted}
     here = os.getcwd()
     os.chdir(OUT)  # map paths relative to OUT_DIR (messages name them so)
     for which, map_key, resolution, search, step in runs:

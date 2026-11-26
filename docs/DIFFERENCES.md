@@ -2914,11 +2914,24 @@ account (plan risk 1).
   `pdbtools_cases.json`, `tests/io/test_pdb.cpp`.
 - **CH-08 Mutation specs without a chain read the whole number** (follows MDATK 0.1.0,
   `_MUTATION_RE`): `15G` is residue 15 of the blank chain, not residue 5 of chain 1.
+  *C++ (W2-B):* `chem::parseMutations` (src/chem/mutate.cpp) matches 0.1.0's expression by hand on
+  code points (Python's Unicode `\s` / `\d`, so `é:5G` and `A:5Ag` read as MDATK reads them; bases
+  A C G U as in 0.0.4.1, T stays an error). A residue number beyond 64 bits, which Python reads and
+  then does not find, is "cannot read mutation ...". *Tested:* every `parse_mutations` case and the
+  `blank` mutations of `builder_cases.json` (tests/chem/test_mutate.cpp `MutationCases.*`),
+  `Mutations.OptionsAndErrors`.
 - **CH-09 Mutated bases get hydrogens when the old base had them** (owner decision D11; beyond 0.1.1).
   MDATK dropped the old base's hydrogens and added a heavy-atom base, a mixed model. The new base's
   hydrogens come from the builder's ideal templates (`_H_RULES` order, after the heavy atoms, the same
   glycosidic-frame fit), with the note "replaced N hydrogen(s) of the old base (...) with M of the new
   base (...) at ideal positions".
+  *C++ (W2-B):* `chem::mutate` takes the new base from `chem::helixTemplate(base, true)` (W1-D's
+  templates, so guanine's H21 / H22 as CHD-01 names them) and moves its heavy atoms and, when the old
+  base had hydrogens, `baseHydrogenNames(base)` with the one Kabsch fit; a model without hydrogens
+  gets none. *Tested:* the `helix_h` and `l_ccd_h` mutations of `builder_cases.json` byte for byte,
+  `Mutations.KeepTheFrameAndCompensate` (MDATK's test with the hydrogens checked: bond lengths, order
+  after the heavy atoms, the same atom set as a helix built with the new sequence),
+  `Mutations.HydrogensOnlyWhereThereWereAndUnknownAtomsKept`.
 - **CH-10 Unusable resolutions and spacings are refused first** (density.py unchanged in 0.1.1). A NaN
   resolution or a negative spacing ended in numpy's `negative dimensions are not allowed`. `build fit`
   and `density fit`: a non-finite `--resolution` gives "the resolution must be a positive number of Å"
@@ -2975,6 +2988,26 @@ account (plan risk 1).
   option cases and 5 Structure cases, `tests/chem/test_annotate.cpp`) and 8 counterparts of MDATK's
   `tests/test_annotate.py` (the Barnaba tests check the builtin engine with the warning; the
   command-line test checks the library call, the command and its step log come with W2-C).
+- **W2-B: base mutations and the fit to a map in C++** (`src/chem/mutate.cpp`, `chem/mutate.hpp`,
+  `src/chem/fit_to_map.cpp`, `chem/fit_to_map.hpp`; milestone 6 W2-B). MDATK's `parse_mutations`,
+  `mutated_name`, `_partners` (W1-B's `chem::PairDetector`), `_swap_base`, `mutate`, `_atom_element`,
+  `model_atoms` and `fit_to_map` (section 1.3 of the plan; `transform_pdb_text` is M2's
+  `io::transformPdbText`, the fit W1-E's `chem::fitModel`) with CH-08, CH-09, CH-10 and CH-11. The
+  Kabsch rotation of `mdatk.spatial.kabsch` (weights 2, 2, 1, 1 on C1' and the glycosidic frame) is
+  computed with MDBridge's own `core::svd3x3` where MDATK called LAPACK; the other arithmetic in
+  NumPy's order. The text of a fit is the input with only the coordinates changed; an input whose atom
+  records lack fixed-column coordinates (ChimeraX lines the reader repairs, columns shifted) is
+  rewritten through `chem::writePdb` with CONECT kept and ANISOU dropped, as MDATK does. *Tested:*
+  tests/chem/test_mutate.cpp: all 32 `mutate` cases of `builder_cases.json` byte for byte (the test
+  accepts a coordinate within 0.0011 Å where Kabsch's last bits would flip a rounded digit, and counts
+  such lines: none), the fits of `builder_fitted_cases.json` within D10 (coordinates within 0.002 Å
+  of MDATK's, CC within 1e-3, notes equal), and the counterparts of MDATK's
+  `test_mutations_keep_the_frame_and_compensate` (with CH-09), `test_l_rna_mutation_keeps_l_names_and_chirality`,
+  `test_mutation_options_and_errors`, `test_global_fit_recovers_the_pose`,
+  `test_local_fit_and_anisou_rotation` and the DNA-partner and altloc part of
+  `test_negative_start_empty_partner_dna_partner_and_altlocs`. `make_builder_cases.py` gained one fit
+  case (`shifted`: the fused residue field one column wide, an ANISOU and a CONECT record) for the
+  rewrite path, which none of the recorded cases reached.
 - **D13 (milestone 6): the program named in written records** (as CMD-08): `REMARK 950 MDBridge
   BASE-PAIR ANNOTATION` and `REMARK 951 MDBridge IDEAL ...`; every other byte as MDATK writes it.
   Messages that name the program say `mdbridge` ('mdbridge pdb clean', 'mdbridge density fit --save').
