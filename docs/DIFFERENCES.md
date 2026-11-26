@@ -2375,6 +2375,91 @@ Copy, Save, Clear, follow, fold on Ctrl+L. Deliberate differences:
   event loop; a non-standard exception reads `unknown error`. *Tested:*
   `JobRunnerTest::failuresReachTheInterface`.
 
+## Interface: the window's actions (src/app/gui/actions; milestone 5 W2-B)
+
+MDATK v0.0.4.1's jobs and desktop actions (`gui/app.py` render, run_cleaning, inspect_system,
+preview_frame, export_pdbs, rerender_from_cache, open_output_dir, open_video, centre_density;
+`gui/desktop.py` latest_video) on the window's JobRunner (one job at a time, progress, Cancel,
+the close question; section "jobs and the log") and the pipelines of the command line
+(`analysis::Pipeline`, `RenderPipeline` with the Qt RenderBackend), so a run from the window
+writes what `mdbridge render` writes (files, params log, the project's step log). Kept: the job
+titles (`Rendering`, `Cleaning`, `Inspecting`, `Rendering still`, `Exporting PDBs`, `Re-rendering
+from cache`), the result dialogs and their texts (`Render finished` with `Video: …`, `Charts: N
+file(s)`, `PDB files: N`, `Parameter log: …` or `Nothing was enabled.`; `Cleaning finished` /
+`Cleaned files reused` with topology, trajectory and cpptraj script; `PDB export finished` with
+the files; `Re-render finished` with `N file(s) written`), the error titles (`Please fix these
+parameters before rendering`, `Please fix these parameters first`, `Invalid parameters`, `The
+output directory does not exist yet.`, `No video has been rendered yet.`, `Cannot read the density
+map`), Inspect system's log lines (`System (raw|cleaned files): {json}`, `  group G: N atoms, M
+residues (G1–A12)`, `  group G: ERROR …`), the still's file (`<temp>/MDATK_still_<pid>.png`) and
+its log line `Still frame written to …`, Re-render's progress split (video 0–0.85, charts
+0.85–1) and Render still's (analyses 0–0.9), latest_video's rule (the newest file named like
+`output.video.filename` with anything between stem and extension, hidden files left out), and
+centre_density's placement (identity rotation, translation density centre − model centre,
+anchored to the shown frame, `Centred on the model (not fitted).`). MDATK's `_adopt_auto_fit`
+has nothing to adopt: MDBridge does not fit maps yet (milestone 4 D9). Deliberate differences:
+
+- **WA-01: job buttons are disabled while a job runs.** MDATK disabled Render, Render still,
+  Export PDBs and Re-render (its busy widgets) but left *Run cleaning now* and *Inspect system*
+  clickable, to answer `Another job is still running.`; MDBridge disables those too (0.1.1 kept
+  MDATK's list). *Open output folder* and *Open video* stay usable during a job, as in MDATK.
+  *Tested:* `ActionTests::enableStates` (tests/gui/test_actions.cpp).
+- **WA-02: what blocks a job (owner decision D7).** v0.0.4.1's rules: text a field could not take
+  blocks every job (MDATK's `collect()` errors); Render, Render still and Export PDBs also need a
+  project `validate()` accepts (`collect(validate=True)`), the others do not (`validate=False`).
+  The render checks of milestone 4 (RN-11 ... RN-15, `render::panels::renderProblems`), which the
+  command line's `check()` refuses anyway, are listed in the same dialog before the job starts
+  instead of failing the job (`Rendering failed: Invalid parameters: …`). Re-render from cache
+  checks them inside the job, as `render --from-cache` does. 0.1.1's per-output checks ("only what
+  is about to run can block it") wait for the post-parity phase (D7). *Tested:*
+  `ActionTests::blockingRules`.
+- **WA-03: Open video opens the newest video of this output folder.** MDATK preferred the video of
+  the last *Render* of the session whenever that file still existed, also after the output folder
+  was changed to another one, and a *Re-render from cache* did not count, so Open video played the
+  older video. MDBridge remembers the video of a Render or a Re-render and opens it only while it
+  is in the folder the settings name; otherwise latest_video. Equal modification times pick the
+  last name (MDATK: the directory order), and only files count (not folders named like a video).
+  *Tested:* `ActionTests::exportRerenderInspect`, `openFolderAndVideo`, `latestVideo`.
+- **WA-04: Inspect system shows its result.** Its result is only in the log, which is folded by
+  default: MDBridge unfolds the log when the job ends. A group that selects nothing is logged as
+  `  group G: 0 atoms, 0 residues` (MDATK: `ERROR index 0 is out of bounds for axis 0 with size
+  0`). *Tested:* `ActionTests::exportRerenderInspect`.
+- **WA-05: after Run cleaning the preview shows the cleaned files.** MDATK kept showing the frame it
+  had loaded before (until *Load real frame*); MDBridge loads the reference frame again, which
+  takes the cleaned files now that they exist (milestone 4's `loadReferenceFrame`). Run cleaning
+  cleans a copy of the settings with cleaning on, as MDATK; the project's own setting is not
+  changed. *Tested:* `ActionTests::runCleaningWithoutCpptraj` (the failure path; cpptraj is not
+  part of the test environment).
+- **WA-06: the desktop through Qt.** *Open output folder* and *Open video* use
+  `QDesktopServices::openUrl` (Explorer on Windows; the XDG portal or `xdg-open` on Linux) instead
+  of MDATK's FileManager1 D-Bus call, `inode/directory` handler and `xdg-open` chain; the log line
+  is `Opened <path>` without MDATK's `(<how>)`. When nothing can open it: `Could not open the
+  folder` / `Could not open the video`. *Tested:* `ActionTests::openFolderAndVideo` (the opener
+  replaced by the test).
+- **WA-07: the still fits the screen (AP-18).** MDATK scaled the still to a fixed 1 200 px width;
+  MDBridge shows it at its own size when it fits and otherwise scales it, aspect kept, to 90 % of
+  the available screen (less the dialog's frame). The title is `MDBridge preview – <file>`.
+  *Tested:* `ActionTests::realFramePreviewAndRender` (the still of frame 5 at 320 x 180),
+  `resultDialogScreenshots` (a 4000 x 2250 still scaled down).
+- **WA-08: Centre on model without "Load real frame".** The reference frame loads by itself
+  (WN-01), so the button is enabled once it is loaded and a map file is chosen; the placement is
+  one undo step. Pressed without a structure panel in the layout or before the frame is loaded it
+  says `Load the real reference frame first`, explaining that the window loads it from the input
+  files. The density centre uses the finite voxels (RN-33's level), as the panel's own map moves.
+  *Tested:* `ActionTests::centreOnModel`.
+- **WA-09: About and Export citations cite the run (AP-16).** As the `citations` command (CIT-06):
+  the settings' references, then those the cached results of the last run record. *Tested:*
+  `ActionTests::aboutAndBibtexWithRunKeys`, `citationTextListsProjectResources` (MDATK's
+  `test_citation_text_lists_project_resources`).
+
+Also tested: MDATK's `test_real_frame_preview_and_render` (`ActionTests::realFramePreviewAndRender`:
+the demo's 24 residues and two chains on the canvas's example data, Render still, Render with one
+info dialog and one video, probed), Cancel in the middle of the video and closing the window during
+a render leave no video and no temporary file (`cancelMidRender`, `closeDuringRender`, AP-14), and
+the smoke test `smokeDemoFromWindow` (Create demo system…, Ctrl+R, the 120-frame 1080p video probed,
+charts, PDBs and the params log written). Screenshots of the result dialogs are CI artifacts
+(`result-*.png`).
+
 ## Planned (from the improvement register; add each entry here when it lands)
 
 None: every FIX and ASK item of the improvement register (docs/IMPROVEMENTS.md) has landed

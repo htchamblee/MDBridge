@@ -211,8 +211,8 @@ void WindowTests::layoutAndShortcuts() {
     QVERIFY(w.logView()->expanded());
     QTest::keyClick(&w, Qt::Key_L, Qt::ControlModifier);
     QVERIFY(!w.logView()->expanded());
-    // the action bar's jobs are present; Render comes with W2-B, Cancel only while a job runs
-    QVERIFY(!w.action(QStringLiteral("render"))->isEnabled());
+    // the action bar's jobs (W2-B, tests/gui/test_actions.cpp): Render is ready, Cancel only while a job runs
+    QVERIFY(w.action(QStringLiteral("render"))->isEnabled());
     QVERIFY(!w.action(QStringLiteral("cancel"))->isEnabled());
     // the page buttons carry W1-D's badges
     for (const char* page : {"input", "groups", "analyses", "structure", "layout", "outputs"}) {

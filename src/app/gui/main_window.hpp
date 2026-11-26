@@ -12,8 +12,8 @@
 //   canvas      the figure preview (the layout editor and its structure panel as the 3D view come
 //               with W2-A; the separate 3D view of M1 / M4 is gone, D4)
 //   log         jobs::LogView, folded with Ctrl+L
-//   action bar  Render (Ctrl+R), Cancel, progress, Open output folder, Open video (the actions
-//               are wired in W2-B)
+//   action bar  Render (Ctrl+R), Cancel, progress, Open output folder, Open video (the jobs and
+//               desktop actions: actions/window_actions.hpp, W2-B)
 //   status bar  loading messages and the reference frame's summary
 //
 // Unsaved changes (AP-13, D6): the title carries the modified marker; New, Open, Close project and
@@ -71,6 +71,7 @@ class ProblemsPanel;
 class PreviewWidget;
 class Prompter;
 class TextDialog;
+class WindowActions;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -167,6 +168,13 @@ public:
     // there is none.
     bool structureLoaded() const { return m_molecule != nullptr; }
     std::shared_ptr<const render::MoleculeFrame> moleculeFrame() const { return m_molecule; }
+    // The reference frame as the figure's example data shows it (null until it is loaded).
+    std::shared_ptr<const render::StructurePreview> structurePreview() const { return m_structurePreview; }
+    // Loads the reference frame again (after cleaning wrote new files).
+    void reloadReferenceFrame() { startLoad(); }
+    // Render, Render still, Export PDBs, Re-render, Inspect system, Run cleaning, Open output
+    // folder / video, Centre on model (W2-B).
+    WindowActions* windowActions() const { return m_windowActions; }
     QString loadProblem() const { return m_loadProblem; }
     QString structureSummary() const { return m_structureSummary; }
     void cancelLoad();
@@ -239,6 +247,7 @@ private:
     std::vector<Page> m_pages;
     PreviewWidget* m_preview = nullptr;
     problems::ProblemsPanel* m_problems = nullptr;
+    WindowActions* m_windowActions = nullptr;
     jobs::LogView* m_log = nullptr;
     jobs::JobRunner* m_jobs = nullptr;
     QProgressBar* m_progress = nullptr;

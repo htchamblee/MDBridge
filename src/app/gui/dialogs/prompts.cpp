@@ -1,6 +1,7 @@
 #include "gui/dialogs/prompts.hpp"
 
 #include <iostream>
+#include <memory>
 #include <string>
 
 #include <QAbstractButton>
@@ -65,13 +66,17 @@ QString Prompter::ask(QWidget* parent, const Question& question) {
 }
 
 void Prompter::message(QWidget* parent, MessageKind kind, const QString& text, const QString& detail) {
-    QMessageBox box(parent);
-    box.setIcon(kind == MessageKind::Error ? QMessageBox::Critical : QMessageBox::Information);
-    box.setWindowTitle(kind == MessageKind::Error ? QObject::tr("Error") : QObject::tr("Information"));
-    box.setText(text);
-    setDetail(box, detail);
-    box.setStandardButtons(QMessageBox::Ok);
-    box.exec();
+    messageBox(parent, kind, text, detail)->exec();
+}
+
+std::unique_ptr<QMessageBox> messageBox(QWidget* parent, MessageKind kind, const QString& text, const QString& detail) {
+    auto box = std::make_unique<QMessageBox>(parent);
+    box->setIcon(kind == MessageKind::Error ? QMessageBox::Critical : QMessageBox::Information);
+    box->setWindowTitle(kind == MessageKind::Error ? QObject::tr("Error") : QObject::tr("Information"));
+    box->setText(text);
+    setDetail(*box, detail);
+    box->setStandardButtons(QMessageBox::Ok);
+    return box;
 }
 
 void Prompter::printError(const QString& line) { std::cerr << line.toStdString() << std::endl; }

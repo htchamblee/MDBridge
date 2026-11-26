@@ -9,11 +9,13 @@
 // selectable (MDATK 0.1.0's dialogtext; long details scroll instead of being cut at 3 000
 // characters as in v0.0.4.1, AP-18), and prints to stderr.
 
+#include <memory>
 #include <utility>
 #include <vector>
 
 #include <QString>
 
+class QMessageBox;
 class QWidget;
 
 namespace mdbridge::app {
@@ -54,5 +56,9 @@ public:
 
 // The Prompter windows use unless they are given another (the Qt dialogs above).
 Prompter& defaultPrompter();
+
+// The message box Prompter::message shows, not yet shown (the tests' screenshots of the result
+// dialogs show it with show() instead of exec()).
+std::unique_ptr<QMessageBox> messageBox(QWidget* parent, MessageKind kind, const QString& text, const QString& detail);
 
 }  // namespace mdbridge::app

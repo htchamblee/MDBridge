@@ -46,6 +46,7 @@
 #include <QWidgetAction>
 
 #include "citations.hpp"
+#include "gui/actions/window_actions.hpp"
 #include "demo.hpp"
 #include "gui/dialogs/prompts.hpp"
 #include "gui/dialogs/text_dialog.hpp"
@@ -259,6 +260,7 @@ MainWindow::MainWindow(render::Renderer renderer, QWidget* parent)
         m_progress->setValue(static_cast<int>(fraction * 1000.0));
         m_progress->setFormat(text);
     });
+    m_windowActions = new WindowActions(*this);  // the action bar's and the pages' jobs (W2-B)
 
     m_watcher = new QFileSystemWatcher(this);
     connect(m_watcher, &QFileSystemWatcher::fileChanged, this,
@@ -307,7 +309,6 @@ QAction* MainWindow::action(const QString& name) const {
 void MainWindow::createActions() {
     const QString later6 = tr("Comes with milestone 6 of MDBridge");
     const QString later7 = tr("Comes with milestone 7 of MDBridge");
-    const QString laterW2 = tr("Comes with the next version of the window; meanwhile use the command line (mdbridge %1)");
     connect(makeAction(QStringLiteral("open"), tr("Open project"), QKeySequence::Open, tr("Open a project file (Ctrl+O)")),
             &QAction::triggered, this, &MainWindow::chooseAndOpen);
     connect(makeAction(QStringLiteral("browse"), tr("Browse…"), {}, tr("Choose a project file")), &QAction::triggered,
@@ -369,20 +370,15 @@ void MainWindow::createActions() {
           {QStringLiteral("builder"), tr("Structure builder…"), QKeySequence(), later6}}) {
         makeAction(name, text, key, tip)->setEnabled(false);
     }
-    // the action bar's jobs (wired in W2-B)
+    // the action bar's jobs (connected by WindowActions, W2-B)
     makeAction(QStringLiteral("render"), tr("Render"), QKeySequence(Qt::CTRL | Qt::Key_R),
-               tr("Run cleaning, analyses and all enabled outputs (Ctrl+R). ") + laterW2.arg(QStringLiteral("render")))
-        ->setEnabled(false);
+               tr("Run cleaning, analyses and all enabled outputs (Ctrl+R)"));
     QAction* cancel = makeAction(QStringLiteral("cancel"), tr("Cancel"), {}, tr("Stop the running job"));
     connect(cancel, &QAction::triggered, this, [this] { m_jobs->cancel(); });
     cancel->setEnabled(false);
     m_jobs->addStoppable(cancel);
-    makeAction(QStringLiteral("open_output"), tr("Open output folder"), {},
-               tr("Show the output folder in the file manager. ") + laterW2.arg(QStringLiteral("render")))
-        ->setEnabled(false);
-    makeAction(QStringLiteral("open_video"), tr("Open video"), {},
-               tr("Play the most recent video. ") + laterW2.arg(QStringLiteral("render")))
-        ->setEnabled(false);
+    makeAction(QStringLiteral("open_output"), tr("Open output folder"), {}, tr("Show the output folder in the file manager"));
+    makeAction(QStringLiteral("open_video"), tr("Open video"), {}, tr("Play the most recent video"));
     m_jobs->addBusy(action(QStringLiteral("create_demo")));
     m_jobs->addBusy(action(QStringLiteral("demo_project")));
 

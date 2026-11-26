@@ -406,6 +406,20 @@ if(MDBRIDGE_BUILD_APP)
     add_test(NAME gui.window COMMAND mdbridge_gui_window_tests)
     set_tests_properties(gui.window PROPERTIES LABELS gui ENVIRONMENT "${MDBRIDGE_QT_TEST_ENVIRONMENT}" TIMEOUT 900)
 
+    # the window's jobs and desktop actions (src/app/gui/actions, milestone 5 W2-B): Render, Render still,
+    # Export PDBs, Re-render, Inspect system, Run cleaning, Centre on model, Open output folder / video,
+    # Cancel and closing during a render (AP-14), the demo rendered from the window (needs FFmpeg for
+    # the video parts), screenshots of the result dialogs. Qt Test, offscreen.
+    add_executable(mdbridge_gui_actions_tests gui/test_actions.cpp gui/gui_harness.cpp gui/gui_harness.hpp)
+    set_target_properties(mdbridge_gui_actions_tests PROPERTIES AUTOMOC ON)
+    target_link_libraries(mdbridge_gui_actions_tests PRIVATE mdbridge_app mdbridge::commands mdbridge::io mdbridge::video
+                          mdbridge::render_panels mdbridge::render_panels_vulkan Qt6::Test)
+    target_compile_definitions(mdbridge_gui_actions_tests PRIVATE MDBRIDGE_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data"
+                               MDBRIDGE_GUI_SCREENSHOT_DIR="${CMAKE_BINARY_DIR}/gui-screenshots")
+    mdbridge_target_warnings(mdbridge_gui_actions_tests)
+    add_test(NAME gui.actions COMMAND mdbridge_gui_actions_tests)
+    set_tests_properties(gui.actions PROPERTIES LABELS gui ENVIRONMENT "${MDBRIDGE_QT_TEST_ENVIRONMENT}" TIMEOUT 1200)
+
     # the settings pages Input & cleaning, Residue groups and Analyses (src/app/gui/pages, milestone 5
     # W1-B): MDATK's sections and fields, the group drop-downs, group renames, Groups from chains
     # (D15), reveal; a screenshot of each page (artifacts). Qt Test, offscreen.

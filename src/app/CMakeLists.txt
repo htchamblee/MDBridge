@@ -8,7 +8,11 @@ add_library(mdbridge_app STATIC
     cli.hpp
     fonts_command.cpp
     fonts_command.hpp
+    gui/actions/window_actions.cpp
+    gui/actions/window_actions.hpp
     gui/background.hpp
+    gui/dialogs/image_dialog.cpp
+    gui/dialogs/image_dialog.hpp
     gui/dialogs/prompts.cpp
     gui/dialogs/prompts.hpp
     gui/dialogs/text_dialog.cpp

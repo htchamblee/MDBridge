@@ -97,6 +97,11 @@ inline constexpr std::string_view kNoGpuRendererNote =
 // io::mapLevel's value when all are; NaN when none is.
 double finiteMapLevel(const io::DensityMap& map, double sigmas);
 
+// density_centroid(map, level) (mdatk/density.py): the centre (Å) of the map density above
+// `level` (non-finite voxels carry none); the centre of the map box when nothing is above it. With
+// the model centre it gives MDATK's centre_transform (the window's *Centre on model*).
+core::Vec3 densityCentroid(const io::DensityMap& map, double level);
+
 // The legend label of the ions (RN-08) from the trace's meta["ion_labels"] ("MG25", "NA101",
 // "K+3", ...): "Mg²⁺", "Na⁺", "K⁺", "Ca²⁺", "Zn²⁺", "Mn²⁺", "Cl⁻" for one element, "Ions" for
 // several or unknown ones (and without labels).
@@ -155,6 +160,9 @@ public:
     // the view coordinates of the residues / ions in frame `pos`
     std::span<const Vec3d> view(std::size_t pos) const;
     std::span<const Vec3d> ionView(std::size_t pos) const;
+    // The residues' points of frame `pos` as the panel places them, before the view rotation
+    // (MDATK's st.centred[pos] + st.center): the anchor of a placement made on the shown frame.
+    std::vector<Vec3d> modelPoints(std::size_t pos) const;
     std::optional<core::RigidTransform> densityPlacement() const { return m_toMap; }
     bool hasStage() const { return m_stage != nullptr; }
     std::string stageRenderer() const;

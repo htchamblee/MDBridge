@@ -196,9 +196,9 @@ std::vector<std::uint8_t> rgbaBytes(const std::vector<float>& rgba) {
     return out;
 }
 
-// density_centroid(map, level): the centre of the density above the level (non-finite voxels carry
-// none); the map box' centre when nothing is above it.
-Vec3d densityCentroid(const io::DensityMap& map, double level) {
+}  // namespace
+
+core::Vec3 densityCentroid(const io::DensityMap& map, double level) {
     const auto nx = static_cast<std::size_t>(map.shapeXyz[0]), ny = static_cast<std::size_t>(map.shapeXyz[1]),
                nz = static_cast<std::size_t>(map.shapeXyz[2]);
     double total = 0.0, cx = 0.0, cy = 0.0, cz = 0.0;
@@ -221,8 +221,6 @@ Vec3d densityCentroid(const io::DensityMap& map, double level) {
     }
     return map.indexToXyz({cx / total, cy / total, cz / total});
 }
-
-}  // namespace
 
 // ---- the 3D layer ---------------------------------------------------------------------------------
 
@@ -250,6 +248,16 @@ std::span<const Vec3d> StructurePanel::view(std::size_t pos) const {
 }
 std::span<const Vec3d> StructurePanel::ionView(std::size_t pos) const {
     return std::span<const Vec3d>(m_ionViewXyz).subspan(pos * m_nIons, m_nIons);
+}
+std::vector<Vec3d> StructurePanel::modelPoints(std::size_t pos) const {
+    std::vector<Vec3d> out;
+    if (pos >= m_frames) return out;
+    out.reserve(m_res);
+    for (std::size_t r = 0; r < m_res; ++r) {
+        const Vec3d& c = m_centred[pos * m_res + r];
+        out.push_back({c[0] + m_center[0], c[1] + m_center[1], c[2] + m_center[2]});
+    }
+    return out;
 }
 
 void StructurePanel::setup(Figure& fig) {
