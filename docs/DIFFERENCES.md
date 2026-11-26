@@ -2145,6 +2145,59 @@ stays `validate()`'s, v0.0.4.1's blocking rules with MDBridge's fixes (owner dec
   or the widget.
   *Tested:* `rangeHintWarningsAreListed`.
 
+## Interface: the settings pages (src/app/gui/pages; milestone 5 W1-B)
+
+The *Input & cleaning*, *Residue groups* and *Analyses* pages lay out MDATK v0.0.4.1's
+(`gui/app.py` `_tab_input`, `_tab_groups`, `_tab_analyses`): the same sections, labels, field order,
+check box texts, tooltips and hints, built from the bound field widgets (FW-xx). The analysis group
+drop-downs list the current group names and follow every change of the groups, keeping their text
+(MDATK `_groups_changed`; `test_panel_group_dropdowns_and_auto_title`, the group part). Deliberate
+differences:
+
+- **PG-01: renaming a group renames its uses** (MDATK 0.0.10; follows 0.1.1's `commit_group_name`,
+  `tests/test_groups_gui.py`). In v0.0.4.1 a group renamed in the table left every analysis, selection
+  (`group:Aptamer`), representation, data key and the proximity set naming the old group, so the
+  project failed validation. A name typed into the table renames the group through
+  `ProjectDocument::renameGroup` (ED-06) as one undo step; the status line under the table says
+  `Renamed Aptamer → Binder in 11 places` (the changed fields as its tooltip, also logged). Empty,
+  invalid (spaces ...) and taken names are refused with `Group Target not renamed: <reason>`; a new
+  row's first name, or one of several rows of a name, is set without a cascade. Automatic panel titles
+  follow with the layout page (W2-A). *Tested:* test_pages.cpp `renamingAGroupRenamesItEverywhere`,
+  `badNamesAreRefused`.
+- **PG-02: removing a used group says where** (MDATK 0.1.1 `_report_removed_groups`). `Removed group
+  still in use, change these settings: Target in analyses.contacts.group_b, ...` (the settings keep
+  naming it; validation flags them). *Tested:* `removingAUsedGroupSaysWhere`.
+- **PG-03: Groups from chains** (owner decision D15; MDATK 0.0.10 `chaingroups.py`, ported from 0.1.1
+  as `src/app/chain_groups.cpp`). *Groups from chains* adds one group per polymer chain of the
+  topology that no group selects yet (water and ions left out; chain IDs, else segment ids, else bonded
+  fragments, else residues within 2 Å; the simplest residue spec that selects exactly the chain:
+  `1-4`, `A:1-4`, a `chainID A and resid ...` or an `index` selection; names `Chain_A` / `Chain_1`,
+  colours not yet used). Choosing a topology (typed or browsed, 500 ms after the last change) fills
+  empty groups, or replaces the untouched default groups when there are at least as many chains and
+  the defaults do not already select one each, renaming their uses (`Aptamer` -> the first chain);
+  user-made groups are never changed (the status line names the chains left to the button). The file
+  is read on a worker thread; an answer for a project or topology replaced meanwhile is dropped. One
+  undo step. MDATK 0.1.1's results for the same files are the expected ones (checked once with its
+  code). *Tested:* `chainGroupsAsMdatkLatest`, `groupsFromChainsButton`,
+  `choosingATopologyReplacesUntouchedDefaults`, `loadingAProjectDropsPendingReads`.
+- **PG-04: sections fold; Pick colour… without a selection.** Each section is a group box whose
+  title folds it (MDATK's frames do not fold); `revealField` opens the fold of the field it shows
+  (W1-D's problems list). *Pick colour…* with no group selected says `Select a group first.` in the
+  status line instead of a dialog. The colour swatch is drawn in the colour cell (MDATK: a column of
+  its own). *Tested:* `sectionsAndFields`, `pickColourWritesHex`, `revealFindsFieldsCellsAndRows`.
+- **PG-05: texts that named MDAnalysis or Barnaba.** The topology tooltip says `another topology`
+  (MDATK: `another MDAnalysis topology`; MDBridge reads the files itself); the base-pair engine offers
+  the built-in engine only (AP-19). The group hint keeps MDATK's "raw MDAnalysis selection string":
+  the selection language is MDAnalysis' grammar.
+
+*Run cleaning now* and *Inspect system* are the window's actions (W2-B; the page emits
+`runCleaningRequested` / `inspectSystemRequested`); *Detect* fills the conda environment as MDATK's
+`detect_conda` (`core::conda::findCpptrajEnvs`). A field widget deleted while its editor has the
+keyboard focus no longer receives that editor's `editingFinished` half destroyed (a crash when a page
+with a focused path field was closed). The GUI test data of `pages/analyses_page` now expects a number
+field of a float setting to store a float when an integer is entered (`angle_cutoff = 25.0`, as MDATK's
+`spin_float` and MDBridge's number fields do); `improvements_gui.on_set` had stored the case's integer.
+
 ## Interface: jobs and the log (src/app/gui/jobs)
 
 The window's background jobs (render, cleaning, export, …; M7's script runner reuses it) run

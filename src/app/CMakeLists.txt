@@ -2,6 +2,8 @@
 # line's MDATK commands are in commands/ (mdbridge::commands, no Qt).
 
 add_library(mdbridge_app STATIC
+    chain_groups.cpp
+    chain_groups.hpp
     cli.cpp
     cli.hpp
     fonts_command.cpp
@@ -25,6 +27,16 @@ add_library(mdbridge_app STATIC
     gui/jobs/log_view.hpp
     gui/main_window.cpp
     gui/main_window.hpp
+    gui/pages/analyses_page.cpp
+    gui/pages/analyses_page.hpp
+    gui/pages/groups_page.cpp
+    gui/pages/groups_page.hpp
+    gui/pages/input_page.cpp
+    gui/pages/input_page.hpp
+    gui/pages/page_registry.cpp
+    gui/pages/page_registry.hpp
+    gui/pages/settings_page.cpp
+    gui/pages/settings_page.hpp
     gui/preview_widget.cpp
     gui/preview_widget.hpp
     gui/problems/problems_panel.cpp
@@ -39,7 +51,7 @@ set_target_properties(mdbridge_app PROPERTIES AUTOMOC ON)
 target_include_directories(mdbridge_app PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 target_link_libraries(mdbridge_app
     PUBLIC mdbridge::core mdbridge::render Qt6::Widgets
-    PRIVATE mdbridge::commands mdbridge::video CLI11::CLI11)
+    PRIVATE mdbridge::commands mdbridge::io mdbridge::video CLI11::CLI11)
 mdbridge_target_warnings(mdbridge_app)
 
 set(MDBRIDGE_ICON_ICO "${PROJECT_SOURCE_DIR}/data/icons/mdbridge.ico")

@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <charconv>
+#include <cmath>
 #include <cstdint>
 #include <cstdlib>
 #include <fstream>
@@ -30,6 +31,7 @@
 #include "gui/main_window.hpp"
 #include "mdbridge/core/json.hpp"
 #include "mdbridge/core/paths.hpp"
+#include "mdbridge/core/project_document.hpp"
 #include "gui/preview_widget.hpp"
 
 namespace fs = std::filesystem;
@@ -339,6 +341,15 @@ GuiCase loadCase(const fs::path& file, const fs::path& casesDir) {
         }
     }
     c.actions = *actions->get<core::Array>();
+    if (const core::Value* start = root.find("start")) {
+        if (!start->isTable() || !start->find("project") || !start->find("project")->isString()) {
+            throw CaseError(where + ": 'start' must be {\"project\": name}");
+        }
+        c.startProject = start->find("project")->stringOr();
+    }
+    if (const core::Value* outcome = root.find("outcome")) {
+        c.outcome = *outcome;
+    }
     for (std::size_t k = 0; k < c.actions.size(); ++k) {
         if (!c.actions[k].isTable() || !c.actions[k].find("action") || !c.actions[k].find("action")->isString()) {
             throw CaseError(where + ": action " + std::to_string(k + 1) + " must be an object with an \"action\" string");
@@ -347,13 +358,14 @@ GuiCase loadCase(const fs::path& file, const fs::path& casesDir) {
     return c;
 }
 
-std::vector<std::string> unsupportedNeeds(const GuiCase& c) {
+std::vector<std::string> unsupportedNeeds(const GuiCase& c, const std::vector<std::string>& extra) {
     // grows as the window and this runner do: "type" and "table" are run (their cases still need the
     // settings pages of wave 1, and "start" / "lossless" / "snapshot", so they stay skipped)
     static const std::vector<std::string> supported{"table", "type"};
     std::vector<std::string> out;
     for (const std::string& need : c.needs) {
-        if (std::find(supported.begin(), supported.end(), need) == supported.end()) {
+        if (std::find(supported.begin(), supported.end(), need) == supported.end() &&
+            std::find(extra.begin(), extra.end(), need) == extra.end()) {
             out.push_back(need);
         }
     }
@@ -593,15 +605,144 @@ std::string compareText(const std::string& actual, const std::string& expected) 
     }
 }
 
+namespace {
+
+// The main window as a case host.
+class WindowHost : public CaseHost {
+public:
+    explicit WindowHost(app::MainWindow& window) : m_window(window) {}
+    QWidget* widget() override { return &m_window; }
+    bool openProject(const fs::path& path) override { return m_window.openProject(path, false); }
+    bool saveProject(const fs::path& path) override { return m_window.saveProject(path, false); }
+    bool settled() const override { return !m_window.loading() && m_window.preview()->settled(); }
+    core::ProjectDocument* document() override { return m_window.document(); }
+
+private:
+    app::MainWindow& m_window;
+};
+
+// The value as compared: tables by key (order free), arrays item by item, numbers by type.
+bool sameValue(const core::Value& a, const core::Value& b) {
+    if (a.type() != b.type()) {
+        return false;
+    }
+    if (const core::Table* ta = a.get<core::Table>()) {
+        const core::Table& tb = *b.get<core::Table>();
+        if (ta->size() != tb.size()) return false;
+        for (const auto& [key, value] : *ta) {
+            const core::Value* other = b.find(key);
+            if (!other || !sameValue(value, *other)) return false;
+        }
+        return true;
+    }
+    if (const core::Array* xa = a.get<core::Array>()) {
+        const core::Array& xb = *b.get<core::Array>();
+        if (xa->size() != xb.size()) return false;
+        for (std::size_t k = 0; k < xa->size(); ++k) {
+            if (!sameValue((*xa)[k], xb[k])) return false;
+        }
+        return true;
+    }
+    if (const double* da = a.get<double>()) {
+        const double db = *b.get<double>();
+        return *da == db || (std::isnan(*da) && std::isnan(db));
+    }
+    return a == b;
+}
+
+}  // namespace
+
 CaseRunner::CaseRunner(app::MainWindow& window, fs::path caseDir, fs::path screenshots, std::string caseName)
-    : m_window(window), m_caseDir(std::move(caseDir)), m_screenshotDir(std::move(screenshots)),
+    : CaseRunner(*new WindowHost(window), std::move(caseDir), std::move(screenshots), std::move(caseName)) {
+    m_ownHost.reset(&m_host);
+}
+
+CaseRunner::CaseRunner(CaseHost& host, fs::path caseDir, fs::path screenshots, std::string caseName)
+    : m_host(host), m_caseDir(std::move(caseDir)), m_screenshotDir(std::move(screenshots)),
       m_caseName(std::move(caseName)) {
     std::replace(m_caseName.begin(), m_caseName.end(), '/', '_');
+}
+
+CaseRunner::~CaseRunner() = default;
+
+void CaseRunner::start(const GuiCase& c) {
+    if (c.startProject.empty()) {
+        return;
+    }
+    const fs::path file = m_caseDir / core::pathFromUtf8(c.startProject);
+    if (!m_host.openProject(file)) {
+        throw CaseError("start: cannot open " + core::pathToUtf8(file));
+    }
+}
+
+void CaseRunner::snapshot(const core::Value& action) {
+    m_host.commitPendingEdits();
+    core::Table record{{"action", core::Value(static_cast<std::int64_t>(m_action))}};
+    if (const core::Value* keys = action.find("keys"); keys && keys->isArray() && !keys->get<core::Array>()->empty()) {
+        core::ProjectDocument* doc = m_host.document();
+        if (!doc) {
+            throw CaseError("no project is open");
+        }
+        core::Table values;
+        for (const core::Value& key : *keys->get<core::Array>()) {
+            values.emplace_back(key.stringOr(), doc->get(key.stringOr()));
+        }
+        record.emplace_back("values", core::Value(std::move(values)));
+    }
+    if (const core::Value* page = action.find("page"); page && page->get<bool>() && *page->get<bool>()) {
+        record.emplace_back("page", core::Value(m_host.currentPage().toStdString()));
+    }
+    if (const core::Value* modified = action.find("modified"); modified && modified->get<bool>() && *modified->get<bool>()) {
+        record.emplace_back("modified", core::Value(m_host.document() && m_host.document()->isModified()));
+    }
+    m_snapshots.push_back({m_action, core::Value(std::move(record))});
+}
+
+std::string compareSnapshots(const GuiCase& c, const std::vector<Snapshot>& recorded, std::vector<std::string>* skipped) {
+    const core::Value* expected = c.outcome.isTable() ? c.outcome.find("snapshots") : nullptr;
+    const core::Array none;
+    const core::Array& want = expected && expected->isArray() ? *expected->get<core::Array>() : none;
+    if (want.size() != recorded.size()) {
+        return "outcome.snapshots: expected " + std::to_string(want.size()) + " snapshot(s), recorded " +
+               std::to_string(recorded.size()) + "\n";
+    }
+    std::string problems;
+    for (std::size_t k = 0; k < want.size(); ++k) {
+        const core::Value& w = want[k];
+        const core::Value& got = recorded[k].record;
+        const std::string where = "snapshot of action " + std::to_string(recorded[k].action);
+        if (const core::Value* table = w.isTable() ? &w : nullptr) {
+            for (const auto& [key, value] : *table->get<core::Table>()) {
+                if (key == "action") {
+                    continue;
+                }
+                if (key == "slots" || key == "density_status") {
+                    if (skipped) skipped->push_back(where + ": " + key + " (no layout / structure page in this host)");
+                    continue;
+                }
+                const core::Value* mine = got.find(key);
+                if (key == "values" && mine) {
+                    for (const auto& [field, v] : *value.get<core::Table>()) {
+                        const core::Value* m = mine->find(field);
+                        if (!m || !sameValue(*m, v)) {
+                            problems += where + ": " + field + ": expected " + core::toJson(v, -1) + ", got " +
+                                        (m ? core::toJson(*m, -1) : std::string("nothing")) + "\n";
+                        }
+                    }
+                } else if (!mine || !sameValue(*mine, value)) {
+                    problems += where + ": " + key + ": expected " + core::toJson(value, -1) + ", got " +
+                                (mine ? core::toJson(*mine, -1) : std::string("nothing")) + "\n";
+                }
+            }
+        }
+    }
+    return problems;
 }
 
 void CaseRunner::run(const core::Array& actions) {
     for (std::size_t k = 0; k < actions.size(); ++k) {
         try {
+            m_action = k;
             runAction(actions[k]);
         } catch (const std::exception& e) {
             throw CaseError("action " + std::to_string(k + 1) + " (" + actions[k].find("action")->stringOr() +
@@ -611,8 +752,7 @@ void CaseRunner::run(const core::Array& actions) {
 }
 
 void CaseRunner::waitUntilLoaded(int timeoutMs) {
-    const bool done = QTest::qWaitFor([this] { return !m_window.loading() && m_window.preview()->settled(); },
-                                      timeoutMs);
+    const bool done = QTest::qWaitFor([this] { return m_host.settled(); }, timeoutMs);
     if (!done) {
         throw CaseError("the project was not loaded in " + std::to_string(timeoutMs / 1000) + " s");
     }
@@ -622,7 +762,7 @@ void CaseRunner::runAction(const core::Value& action) {
     const std::string& what = stringEntry(action, "action", "action");
     if (what == "open") {
         const fs::path file = m_caseDir / core::pathFromUtf8(stringEntry(action, "path", what));
-        if (!m_window.openProject(file, false)) {
+        if (!m_host.openProject(file)) {
             throw CaseError("cannot open " + core::pathToUtf8(file));
         }
     } else if (what == "wait") {
@@ -638,9 +778,11 @@ void CaseRunner::runAction(const core::Value& action) {
         if (!value) {
             throw CaseError("'value' is missing");
         }
-        setKey(&m_window, toQString(stringEntry(action, "key", what)), *value);
+        m_host.reveal(toQString(stringEntry(action, "key", what)));
+        setKey(m_host.widget(), toQString(stringEntry(action, "key", what)), *value);
     } else if (what == "type") {
-        typeKey(&m_window, toQString(stringEntry(action, "key", what)), toQString(stringEntry(action, "text", what)));
+        m_host.reveal(toQString(stringEntry(action, "key", what)));
+        typeKey(m_host.widget(), toQString(stringEntry(action, "key", what)), toQString(stringEntry(action, "text", what)));
     } else if (what == "table") {
         const auto integer = [&](std::string_view k, int fallback) {
             const core::Value* v = action.find(k);
@@ -649,10 +791,12 @@ void CaseRunner::runAction(const core::Value& action) {
             if (!i) throw CaseError("'" + std::string(k) + "' must be a whole number");
             return static_cast<int>(*i);
         };
-        tableAction(&m_window, toQString(stringEntry(action, "key", what)), stringEntry(action, "do", what),
+        m_host.reveal(toQString(stringEntry(action, "key", what)));
+        tableAction(m_host.widget(), toQString(stringEntry(action, "key", what)), stringEntry(action, "do", what),
                     integer("row", -1), integer("by", 0));
     } else if (what == "click") {
-        QWidget* widget = findField(&m_window, toQString(stringEntry(action, "key", what)));
+        m_host.reveal(toQString(stringEntry(action, "key", what)));
+        QWidget* widget = findField(m_host.widget(), toQString(stringEntry(action, "key", what)));
         auto* button = qobject_cast<QAbstractButton*>(widget);
         if (!button) {
             throw CaseError(widget->objectName().toStdString() + " is no button");
@@ -661,13 +805,16 @@ void CaseRunner::runAction(const core::Value& action) {
     } else if (what == "save") {
         const std::string path = optionalString(action, "path");
         const fs::path file = path.empty() ? fs::path() : m_caseDir / core::pathFromUtf8(path);
-        if (!m_window.saveProject(file, false)) {
+        m_host.commitPendingEdits();
+        if (!m_host.saveProject(file)) {
             throw CaseError("the save failed (see the output above)");
         }
     } else if (what == "screenshot") {
         const std::string widgetName = optionalString(action, "widget");
-        QWidget* widget = widgetName.empty() ? static_cast<QWidget*>(&m_window) : findField(&m_window, toQString(widgetName));
+        QWidget* widget = widgetName.empty() ? m_host.widget() : findField(m_host.widget(), toQString(widgetName));
         m_shots.push_back(saveScreenshot(widget, m_screenshotDir, m_caseName + "-" + stringEntry(action, "name", what)));
+    } else if (what == "snapshot") {
+        snapshot(action);
     } else {
         throw CaseError("unknown action (tests/data/README.md, \"gui\", lists the actions)");
     }

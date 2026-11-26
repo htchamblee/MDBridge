@@ -318,7 +318,18 @@ FieldWidget::FieldWidget(FormContext& context, std::string path, FieldSpec spec,
     connect(&m_context, &FormContext::problemsChanged, this, &FieldWidget::updateFlag);
 }
 
-FieldWidget::~FieldWidget() { m_context.removeField(this); }
+FieldWidget::~FieldWidget() {
+    // A focused editor loses the focus while its widgets are deleted: its editingFinished would
+    // reach a field already half destroyed (the derived parts are gone). Its text is not stored
+    // then (the window commits pending edits before it closes a project).
+    if (m_editor) {
+        m_editor->blockSignals(true);
+        for (QObject* child : m_editor->findChildren<QObject*>()) {
+            child->blockSignals(true);
+        }
+    }
+    m_context.removeField(this);
+}
 
 void FieldWidget::onDocumentChanged(const core::DocumentChange& change) {
     if (change.affects(m_path)) {

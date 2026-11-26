@@ -31,6 +31,7 @@
 #include "gui/forms/list_editor.hpp"
 #include "gui/main_window.hpp"
 #include "gui_harness.hpp"
+#include "page_host.hpp"
 #include "mdbridge/core/paths.hpp"
 #include "mdbridge/core/project_document.hpp"
 
@@ -283,7 +284,10 @@ void GuiTests::cases_data() {
 void GuiTests::cases() {
     QFETCH(QString, file);
     const guitest::GuiCase c = guitest::loadCase(core::pathFromUtf8(file.toStdString()), kData / "gui");
-    if (const std::vector<std::string> missing = guitest::unsupportedNeeds(c); !missing.empty()) {
+    // the per-page cases run in a test-only host of the pages until the window shows them (page_host.hpp)
+    const bool pageHost = guitest::runsInPageHost(c);
+    const std::vector<std::string> extra = pageHost ? guitest::pageHostNeeds() : std::vector<std::string>{};
+    if (const std::vector<std::string> missing = guitest::unsupportedNeeds(c, extra); !missing.empty()) {
         std::string why = "needs what the harness does not have yet:";
         for (const std::string& need : missing) {
             why += " " + need;
@@ -298,14 +302,11 @@ void GuiTests::cases() {
     if (c.clock) clock.emplace(*c.clock);
 
     std::string failure;
-    {
-        app::MainWindow window(render::Renderer::Software);
-        window.resize(1280, 800);
-        window.show();
-        QVERIFY(QTest::qWaitForWindowExposed(&window));
+    std::vector<guitest::Snapshot> snapshots;
+    const auto runCase = [&](guitest::CaseRunner& runner) {
         try {
             guitest::prepareCase(c, kData, caseDir);
-            guitest::CaseRunner runner(window, caseDir, screenshots(), c.name);
+            runner.start(c);
             runner.run(c.actions);
             for (const fs::path& shot : runner.screenshots()) {
                 qInfo("screenshot %s", core::pathToUtf8(shot).c_str());
@@ -313,10 +314,30 @@ void GuiTests::cases() {
         } catch (const std::exception& e) {
             failure = e.what();
         }
+        snapshots = runner.snapshots();
+    };
+    if (pageHost) {
+        guitest::PageHost host;
+        host.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&host));
+        guitest::CaseRunner runner(host, caseDir, screenshots(), c.name);
+        runCase(runner);
+    } else {
+        app::MainWindow window(render::Renderer::Software);
+        window.resize(1280, 800);
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        guitest::CaseRunner runner(window, caseDir, screenshots(), c.name);
+        runCase(runner);
         window.cancelLoad();
     }
     if (failure.empty()) {
         failure = guitest::checkExpected(c, kData, caseDir);
+        std::vector<std::string> skipped;
+        failure += guitest::compareSnapshots(c, snapshots, &skipped);
+        for (const std::string& s : skipped) {
+            qInfo("not compared: %s", s.c_str());
+        }
     }
     if (!failure.empty()) {
         tmp.setAutoRemove(false);

@@ -23,6 +23,7 @@
 
 #include "gui/forms/field_widgets.hpp"
 
+class QHBoxLayout;
 class QPushButton;
 class QTableView;
 class QToolButton;
@@ -112,6 +113,9 @@ public:
     QToolButton* upButton() const { return m_up; }
     QToolButton* downButton() const { return m_down; }
     QPushButton* browseButton() const { return m_browse; }
+    // Adds a page's own button to the row of buttons (MDATK: editor.buttons.pack_start), after the
+    // editor's.
+    void addButton(QWidget* button);
 
     // Called before a typed cell value is stored (row, column key, text); returning true means it
     // dealt with the edit itself (e.g. a group rename with its cascade, MDATK 0.1.1 on_edit).
@@ -140,6 +144,7 @@ private:
     QToolButton* m_up = nullptr;
     QToolButton* m_down = nullptr;
     QPushButton* m_browse = nullptr;
+    QHBoxLayout* m_buttonRow = nullptr;
     CellEditHandler m_cellEdit;
     bool m_writing = false;
 };
