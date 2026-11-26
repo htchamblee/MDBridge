@@ -1,0 +1,1390 @@
+// MDATK's structure builder, part 1 (mdatk/builder.py v0.0.4.1, MDATK's own code, ported): the
+// Arnott A-RNA templates and their hydrogens, the sequence functions, check_helix and the
+// Watson-Crick build_helix. Arithmetic in NumPy's order (no fused multiply-adds: CMakeLists.txt), so
+// that the written coordinates are MDATK's to the last printed digit. The fibre monomer comes from
+// the generated reference tables (data/sources/helix/arnott_arna.tsv, reference_tables.hpp).
+
+#include "mdbridge/chem/helix.hpp"
+
+#include <algorithm>
+#include <array>
+#include <cmath>
+#include <cstddef>
+#include <cstdint>
+#include <cstdio>
+#include <iterator>
+#include <limits>
+#include <map>
+#include <optional>
+#include <set>
+#include <span>
+#include <stdexcept>
+#include <string>
+#include <string_view>
+#include <type_traits>
+#include <utility>
+#include <vector>
+
+#include "mdbridge/chem/reference_tables.hpp"
+#include "mdbridge/core/json.hpp"
+#include "mdbridge/core/python.hpp"
+#include "mdbridge/core/text.hpp"
+#include "pdb_names.hpp"
+
+namespace mdbridge::chem {
+
+namespace {
+
+// --- vectors in NumPy's order of operations ----------------------------------------------------
+
+constexpr double kDegToRad = 3.141592653589793 / 180.0;  // math.radians: x * (pi / 180)
+
+double radians(double degrees) {
+    return degrees * kDegToRad;
+}
+
+Vec3 operator+(const Vec3& a, const Vec3& b) {
+    return {a[0] + b[0], a[1] + b[1], a[2] + b[2]};
+}
+Vec3 operator-(const Vec3& a, const Vec3& b) {
+    return {a[0] - b[0], a[1] - b[1], a[2] - b[2]};
+}
+Vec3 operator-(const Vec3& a) {
+    return {-a[0], -a[1], -a[2]};
+}
+Vec3 operator*(double s, const Vec3& a) {
+    return {s * a[0], s * a[1], s * a[2]};
+}
+
+// np.linalg.norm: sqrt(x . x)
+double norm(const Vec3& v) {
+    double sum = v[0] * v[0];
+    sum += v[1] * v[1];
+    sum += v[2] * v[2];
+    return std::sqrt(sum);
+}
+
+Vec3 unit(const Vec3& v) {
+    const double n = norm(v);
+    return {v[0] / n, v[1] / n, v[2] / n};
+}
+
+// np.cross
+Vec3 cross(const Vec3& a, const Vec3& b) {
+    return {a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]};
+}
+
+using Mat3 = std::array<Vec3, 3>;
+
+// v @ m.T
+Vec3 matVec(const Mat3& m, const Vec3& v) {
+    Vec3 out{};
+    for (std::size_t j = 0; j < 3; ++j) {
+        double sum = v[0] * m[j][0];
+        sum += v[1] * m[j][1];
+        sum += v[2] * m[j][2];
+        out[j] = sum;
+    }
+    return out;
+}
+
+Vec3 cartesian(double r, double phi, double z) {
+    const double p = radians(phi);
+    return {r * std::cos(p), r * std::sin(p), z};
+}
+
+// _place: atom d bonded to c with angle b-c-d and torsion a-b-c-d (degrees)
+Vec3 place(const Vec3& a, const Vec3& b, const Vec3& c, double bond, double angle, double torsion) {
+    const Vec3 bc = unit(c - b);
+    const Vec3 n = unit(cross(b - a, bc));
+    const Vec3 m = cross(n, bc);
+    const double th = radians(angle);
+    const double ph = radians(torsion);
+    const double d0 = -bond * std::cos(th);
+    const double d1 = bond * std::sin(th) * std::cos(ph);
+    const double d2 = bond * std::sin(th) * std::sin(ph);
+    return c + d0 * bc + d1 * m + d2 * n;
+}
+
+// _turn_matrix: rotation by `degrees` about `axis` (Rodrigues)
+Mat3 turnMatrix(const Vec3& axis, double degrees) {
+    const Vec3 k = unit(axis);
+    const Mat3 kx = {Vec3{0.0, -k[2], k[1]}, Vec3{k[2], 0.0, -k[0]}, Vec3{-k[1], k[0], 0.0}};
+    Mat3 kk{};
+    for (std::size_t i = 0; i < 3; ++i) {
+        for (std::size_t j = 0; j < 3; ++j) {
+            double sum = kx[i][0] * kx[0][j];
+            sum += kx[i][1] * kx[1][j];
+            sum += kx[i][2] * kx[2][j];
+            kk[i][j] = sum;
+        }
+    }
+    const double t = radians(degrees);
+    const double s = std::sin(t);
+    const double c = 1.0 - std::cos(t);
+    Mat3 out{};
+    for (std::size_t i = 0; i < 3; ++i) {
+        for (std::size_t j = 0; j < 3; ++j) {
+            out[i][j] = ((i == j ? 1.0 : 0.0) + s * kx[i][j]) + c * kk[i][j];
+        }
+    }
+    return out;
+}
+
+// _screw: level k is turned by -k * TWIST about z and moved by -k * RISE
+Vec3 screw(const Vec3& xyz, double level) {
+    const double t = radians(-kHelixTwist * level);
+    const Mat3 rot = {Vec3{std::cos(t), -std::sin(t), 0.0}, Vec3{std::sin(t), std::cos(t), 0.0}, Vec3{0.0, 0.0, 1.0}};
+    return matVec(rot, xyz) + Vec3{0.0, 0.0, -kHelixRise * level};
+}
+
+// _dyad: the fibre two-fold about x
+Vec3 dyad(const Vec3& xyz) {
+    return {xyz[0] * 1.0, xyz[1] * -1.0, xyz[2] * -1.0};
+}
+
+// pdbtools.chiral_volume
+double chiralVolume(const Vec3& centre, const Vec3& a, const Vec3& b, const Vec3& c) {
+    const Vec3 va = a - centre;
+    const Vec3 vb = b - centre;
+    const Vec3 vc = c - centre;
+    const Vec3 cr = {vb[1] * vc[2] - vb[2] * vc[1], vb[2] * vc[0] - vb[0] * vc[2], vb[0] * vc[1] - vb[1] * vc[0]};
+    return va[0] * cr[0] + va[1] * cr[1] + va[2] * cr[2];
+}
+
+// --- templates -------------------------------------------------------------------------------
+
+constexpr std::string_view kBackboneNames[] = {"P",   "OP1", "OP2", "O5'", "C5'", "C4'",
+                                               "O4'", "C3'", "O3'", "C2'", "O2'", "C1'"};
+constexpr std::string_view kBaseA[] = {"N9", "C8", "N7", "C5", "C6", "N6", "N1", "C2", "N3", "C4"};
+constexpr std::string_view kBaseC[] = {"N1", "C2", "O2", "N3", "C4", "N4", "C5", "C6"};
+constexpr std::string_view kBaseG[] = {"N9", "C8", "N7", "C5", "C6", "O6", "N1", "C2", "N2", "N3", "C4"};
+constexpr std::string_view kBaseU[] = {"N1", "C2", "O2", "N3", "C4", "O4", "C5", "C6"};
+
+enum class HRule { Ch, Ch2, Sp2, Nh, Nh2, Oh };
+
+double bondH(HRule rule) {
+    switch (rule) {
+        case HRule::Ch:
+        case HRule::Ch2:
+            return 1.09;
+        case HRule::Sp2:
+            return 1.08;
+        case HRule::Nh:
+        case HRule::Nh2:
+            return 1.01;
+        case HRule::Oh:
+            return 0.96;
+    }
+    return 0.0;
+}
+constexpr double kBondOH = 0.96;
+
+struct HydrogenRule {
+    std::string_view name;
+    std::string_view parent;
+    HRule rule;
+    std::string_view refs[3];  // "N": the glycosidic nitrogen
+    std::size_t refCount;
+};
+
+// _H_RULES; guanine's amino hydrogens follow the CCD (CHD-01, D15): H21 parallel to N1 -> C2 (trans
+// to N1, on the N3 side), H22 parallel to N3 -> C2 (cis to N1, the Watson-Crick edge)
+constexpr HydrogenRule kSugarH[] = {
+    {"H5'", "C5'", HRule::Ch2, {"O5'", "C4'", ""}, 2},  {"H5''", "C5'", HRule::Ch2, {"O5'", "C4'", ""}, 2},
+    {"H4'", "C4'", HRule::Ch, {"C5'", "O4'", "C3'"}, 3}, {"H3'", "C3'", HRule::Ch, {"C4'", "O3'", "C2'"}, 3},
+    {"H2'", "C2'", HRule::Ch, {"C3'", "O2'", "C1'"}, 3}, {"HO2'", "O2'", HRule::Oh, {"C2'", "C3'", ""}, 2},
+    {"H1'", "C1'", HRule::Ch, {"O4'", "C2'", "N"}, 3}};
+constexpr HydrogenRule kHydA[] = {{"H8", "C8", HRule::Sp2, {"N7", "N9", ""}, 2},
+                                  {"H61", "N6", HRule::Nh2, {"C6", "C5", ""}, 2},
+                                  {"H62", "N6", HRule::Nh2, {"C6", "N1", ""}, 2},
+                                  {"H2", "C2", HRule::Sp2, {"N1", "N3", ""}, 2}};
+constexpr HydrogenRule kHydG[] = {{"H8", "C8", HRule::Sp2, {"N7", "N9", ""}, 2},
+                                  {"H1", "N1", HRule::Nh, {"C2", "C6", ""}, 2},
+                                  {"H21", "N2", HRule::Nh2, {"C2", "N1", ""}, 2},
+                                  {"H22", "N2", HRule::Nh2, {"C2", "N3", ""}, 2}};
+constexpr HydrogenRule kHydC[] = {{"H41", "N4", HRule::Nh2, {"C4", "C5", ""}, 2},
+                                  {"H42", "N4", HRule::Nh2, {"C4", "N3", ""}, 2},
+                                  {"H5", "C5", HRule::Sp2, {"C4", "C6", ""}, 2},
+                                  {"H6", "C6", HRule::Sp2, {"C5", "N1", ""}, 2}};
+constexpr HydrogenRule kHydU[] = {{"H3", "N3", HRule::Nh, {"C2", "C4", ""}, 2},
+                                  {"H5", "C5", HRule::Sp2, {"C4", "C6", ""}, 2},
+                                  {"H6", "C6", HRule::Sp2, {"C5", "N1", ""}, 2}};
+
+constexpr std::string_view kSugarHNames[] = {"H5'", "H5''", "H4'", "H3'", "H2'", "HO2'", "H1'"};
+constexpr std::string_view kHNamesA[] = {"H8", "H61", "H62", "H2"};
+constexpr std::string_view kHNamesG[] = {"H8", "H1", "H21", "H22"};
+constexpr std::string_view kHNamesC[] = {"H41", "H42", "H5", "H6"};
+constexpr std::string_view kHNamesU[] = {"H3", "H5", "H6"};
+
+constexpr double kHo2Torsion = 180.0;  // C3'-C2'-O2'-HO2'
+constexpr double kPOp3 = 1.48;         // P-OP3 of a 5'-phosphate
+constexpr double kClash = 2.5;         // closest allowed heavy-atom distance of a mismatched pair's bases
+
+double wobbleTurn(char base) {
+    return base == 'G' ? -13.3 : base == 'U' ? 11.4 : 0.0;
+}
+
+std::span<const HydrogenRule> hydrogenRules(char base) {
+    switch (base) {
+        case 'A':
+            return kHydA;
+        case 'C':
+            return kHydC;
+        case 'G':
+            return kHydG;
+        case 'U':
+            return kHydU;
+        default:
+            return {};
+    }
+}
+
+struct Glycosidic {
+    std::string_view n;
+    std::string_view a;
+    std::string_view b;
+};
+Glycosidic glycosidic(char base) {
+    if (base == 'A' || base == 'G') {
+        return {"N9", "C4", "C8"};
+    }
+    return {"N1", "C2", "C6"};
+}
+
+// An ordered name -> coordinates map (Python dict)
+class Atoms {
+public:
+    std::vector<TemplateAtom> items;
+
+    const Vec3* find(std::string_view name) const {
+        for (const TemplateAtom& a : items) {
+            if (a.name == name) {
+                return &a.xyz;
+            }
+        }
+        return nullptr;
+    }
+    Vec3* find(std::string_view name) {
+        for (TemplateAtom& a : items) {
+            if (a.name == name) {
+                return &a.xyz;
+            }
+        }
+        return nullptr;
+    }
+    const Vec3& at(std::string_view name) const {
+        const Vec3* v = find(name);
+        if (!v) {
+            throw std::logic_error("helix template: no atom " + std::string(name));
+        }
+        return *v;
+    }
+    void set(std::string_view name, const Vec3& xyz) {
+        if (Vec3* v = find(name)) {
+            *v = xyz;
+        } else {
+            items.push_back({std::string(name), xyz});
+        }
+    }
+    void erase(std::string_view name) {
+        items.erase(std::remove_if(items.begin(), items.end(), [&](const TemplateAtom& a) { return a.name == name; }),
+                    items.end());
+    }
+};
+
+// _hydrogens: ideal hydrogens of a D-nucleotide
+Atoms hydrogens(const Atoms& heavy, char base) {
+    Atoms out;
+    const std::string_view glyco = glycosidic(base).n;
+    std::vector<HydrogenRule> rules(std::begin(kSugarH), std::end(kSugarH));
+    for (const HydrogenRule& rule : hydrogenRules(base)) {
+        rules.push_back(rule);
+    }
+    for (const HydrogenRule& rule : rules) {
+        const Vec3& c = heavy.at(rule.parent);
+        Vec3 ref[3]{};
+        for (std::size_t k = 0; k < rule.refCount; ++k) {
+            ref[k] = heavy.at(rule.refs[k] == "N" ? glyco : rule.refs[k]);
+        }
+        const double d = bondH(rule.rule);
+        switch (rule.rule) {
+            case HRule::Ch:
+            case HRule::Sp2:
+            case HRule::Nh: {
+                Vec3 sum = unit(ref[0] - c);
+                for (std::size_t k = 1; k < rule.refCount; ++k) {
+                    sum = sum + unit(ref[k] - c);
+                }
+                out.set(rule.name, c - d * unit(sum));
+                break;
+            }
+            case HRule::Nh2:  // parallel to the ring bond refs[1] -> refs[0]
+                out.set(rule.name, c + d * unit(ref[0] - ref[1]));
+                break;
+            case HRule::Oh:
+                out.set(rule.name, place(ref[1], ref[0], c, d, 109.5, kHo2Torsion));
+                break;
+            case HRule::Ch2: {
+                if (out.find(rule.name)) {
+                    break;
+                }
+                const Vec3 u1 = unit(ref[0] - c);
+                const Vec3 u2 = unit(ref[1] - c);
+                const Vec3 bis = -unit(u1 + u2);
+                const Vec3 perp = unit(cross(u1, u2));
+                const double half = radians(109.5 / 2);
+                Vec3 h1 = c + d * (std::cos(half) * bis + std::sin(half) * perp);
+                Vec3 h2 = c + d * (std::cos(half) * bis - std::sin(half) * perp);
+                // PDB v3 names of a D-ribose: H5' gives a positive volume C5'(O5', C4', H5')
+                if (chiralVolume(c, ref[0], ref[1], h1) < 0) {
+                    std::swap(h1, h2);
+                }
+                out.set("H5'", h1);
+                out.set("H5''", h2);
+                break;
+            }
+        }
+    }
+    return out;
+}
+
+char checkedBase(std::string_view base) {
+    if (base.size() == 1) {
+        const char b = base[0] >= 'a' && base[0] <= 'z' ? static_cast<char>(base[0] - 'a' + 'A') : base[0];
+        if (b == 'A' || b == 'C' || b == 'G' || b == 'U') {
+            return b;
+        }
+    }
+    std::string upper(base);
+    for (char& ch : upper) {
+        if (ch >= 'a' && ch <= 'z') {
+            ch = static_cast<char>(ch - 'a' + 'A');
+        }
+    }
+    throw BuildError("no template for base " + core::pythonStringRepr(upper) + " (A, C, G, U)");
+}
+
+// _template: heavy atoms, then hydrogens
+const std::vector<TemplateAtom>& fullTemplate(char base) {
+    static const std::map<char, std::vector<TemplateAtom>> cache = [] {
+        std::map<char, std::vector<TemplateAtom>> out;
+        for (const char b : std::string_view("ACGU")) {
+            Atoms heavy;
+            for (const reference::CylindricalAtom& a : reference::arnottBackbone()) {
+                heavy.set(a.name, cartesian(a.r, a.phi, a.z));
+            }
+            for (const reference::CylindricalBaseAtom& a : reference::arnottBase(b)) {
+                heavy.set(a.name, cartesian(a.r, a.phi, a.z));
+            }
+            std::vector<TemplateAtom> all = heavy.items;
+            for (const TemplateAtom& h : hydrogens(heavy, b).items) {
+                all.push_back(h);
+            }
+            out[b] = std::move(all);
+        }
+        return out;
+    }();
+    return cache.at(base);
+}
+
+Atoms templateAtoms(char base, bool withHydrogens) {
+    Atoms out;
+    for (const TemplateAtom& a : fullTemplate(base)) {
+        if (withHydrogens || a.name[0] != 'H') {
+            out.items.push_back(a);
+        }
+    }
+    return out;
+}
+
+// _turn_base: the base turned in its plane about C1' (in place)
+void turnBase(Atoms& coords, char base, double degrees, bool withHydrogens) {
+    if (degrees == 0.0) {
+        return;
+    }
+    const Glycosidic g = glycosidic(base);
+    const Vec3& n = coords.at(g.n);
+    const Vec3 normal = unit(cross(coords.at(g.a) - n, coords.at(g.b) - n));
+    const Mat3 r = turnMatrix(normal, degrees);
+    const Vec3 c1 = coords.at("C1'");
+    std::vector<std::string_view> names(baseAtomNames(base).begin(), baseAtomNames(base).end());
+    if (withHydrogens) {
+        for (const std::string_view h : baseHydrogenNames(base)) {
+            names.push_back(h);
+        }
+    }
+    for (const std::string_view name : names) {
+        if (Vec3* v = coords.find(name)) {
+            *v = matVec(r, *v - c1) + c1;
+        }
+    }
+}
+
+// --- text helpers ----------------------------------------------------------------------------
+
+std::string lower(std::string_view text) {
+    return core::pythonLower(text);
+}
+std::string strip(std::string_view text) {
+    return core::pythonStrip(text);
+}
+std::string upperAscii(std::string_view text) {
+    std::string out(text);
+    for (char& c : out) {
+        if (c >= 'a' && c <= 'z') {
+            c = static_cast<char>(c - 'a' + 'A');
+        }
+    }
+    return out;
+}
+std::string repr(std::string_view text) {
+    return core::pythonStringRepr(std::string(text));
+}
+std::string fixed(double x, int precision) {
+    char buffer[64];
+    std::snprintf(buffer, sizeof buffer, "%.*f", precision, x);
+    return buffer;
+}
+template <class Items>
+std::string join(const Items& items, std::string_view sep) {
+    std::string out;
+    bool first = true;
+    for (const auto& item : items) {
+        if (!first) {
+            out += sep;
+        }
+        out += item;
+        first = false;
+    }
+    return out;
+}
+// ", ".join(items[:8]) + (" ..." if more)
+std::string firstEight(const std::vector<std::string>& items) {
+    std::vector<std::string> shown(items.begin(), items.begin() + static_cast<std::ptrdiff_t>(std::min<std::size_t>(8, items.size())));
+    return join(shown, ", ") + (items.size() > 8 ? " ..." : "");
+}
+
+// --- pairings --------------------------------------------------------------------------------
+
+bool parallel(std::string_view pairing) {
+    return pairing == "reverse-wc" || pairing == "hoogsteen" || pairing == "hh";
+}
+
+std::string_view pairingLw(std::string_view pairing) {
+    if (pairing == "wc") return "cWW";
+    if (pairing == "reverse-wc") return "tWW";
+    if (pairing == "hoogsteen") return "cHW";
+    if (pairing == "reverse-hoogsteen") return "tHW";
+    return "tHH";
+}
+
+std::string_view pairingLabel(std::string_view pairing) {
+    if (pairing == "wc") return "Watson-Crick (cis WC/WC), antiparallel A-form";
+    if (pairing == "reverse-wc") return "reverse Watson-Crick (trans WC/WC), parallel";
+    if (pairing == "hoogsteen") return "Hoogsteen (cis WC/Hoogsteen: A·U, G·C+), parallel";
+    if (pairing == "reverse-hoogsteen")
+        return "reverse Hoogsteen (trans WC/Hoogsteen: A·U, A·A, G·G), antiparallel";
+    return "trans Hoogsteen/Hoogsteen A·A (as PDB 4JRD), parallel";
+}
+
+std::string_view triplexLabel(std::string_view motif) {
+    if (motif == "hoogsteen")
+        return "pyrimidine motif: Hoogsteen third strand parallel to the purine strand (U·A-U, C+·G-C)";
+    return "purine motif: reverse-Hoogsteen third strand antiparallel to the purine strand (A·A-U, G·G-C, also U·A-U)";
+}
+
+std::string_view referencePair(std::string_view pairing) {
+    return pairing == "hh" ? "AA" : "AU";
+}
+
+char complementBase(char b) {
+    switch (b) {
+        case 'A':
+            return 'U';
+        case 'U':
+            return 'A';
+        case 'G':
+            return 'C';
+        case 'C':
+            return 'G';
+        default:
+            return b;
+    }
+}
+
+char autoPartnerBase(std::string_view pairing, char b) {
+    if (pairing == "reverse-hoogsteen") {
+        return b == 'A' ? 'U' : b == 'G' ? 'G' : b == 'U' ? 'A' : 'G';
+    }
+    if (pairing == "hh") {
+        return b;
+    }
+    return complementBase(b);
+}
+
+std::string autoPartnerText(std::string_view pairing) {
+    // ", ".join(f"{a}·{b}" for a, b in AUTO_PARTNER[pairing].items()) in the dict's order
+    const std::string_view order = pairing == "wc" || pairing == "reverse-wc" || pairing == "hoogsteen" ? "AUGC" : "AGUC";
+    std::vector<std::string> parts;
+    for (const char b : (pairing == "hh" ? std::string_view("ACGU") : order)) {
+        parts.push_back(std::string(1, b) + "·" + std::string(1, autoPartnerBase(pairing, b)));
+    }
+    return join(parts, ", ");
+}
+
+char autoThirdBase(std::string_view motif, char b) {
+    if (motif == "hoogsteen") {
+        return b == 'A' ? 'U' : b == 'G' ? 'C' : b;
+    }
+    return b == 'A' ? 'A' : b == 'G' ? 'G' : b == 'U' ? 'A' : 'G';
+}
+
+struct HbondEntry {
+    std::string_view rule;
+    char a;
+    char b;
+    std::vector<PairHbond> bonds;
+};
+
+const std::vector<HbondEntry>& hbondTable() {
+    static const std::vector<HbondEntry> table = [] {
+        std::vector<HbondEntry> out = {
+            {"wc", 'A', 'U', {{"N1", "N3", 2, "H3"}, {"N6", "O4", 1, "H61"}}},
+            {"wc", 'G', 'C', {{"N1", "N3", 1, "H1"}, {"N2", "O2", 1, "H22"}, {"O6", "N4", 2, "H41"}}},
+            {"wc", 'G', 'U', {{"O6", "N3", 2, "H3"}, {"N1", "O2", 1, "H1"}}},
+            {"reverse-wc", 'A', 'U', {{"N1", "N3", 2, "H3"}, {"N6", "O2", 1, "H61"}}},
+            {"reverse-wc", 'G', 'C', {{"N1", "O2", 1, "H1"}, {"N2", "N3", 1, "H22"}}},
+            {"hoogsteen", 'A', 'U', {{"N7", "N3", 2, "H3"}, {"N6", "O4", 1, "H62"}}},
+            {"hoogsteen", 'G', 'C', {{"N7", "N3", 2, "H3+"}, {"O6", "N4", 2, "H41"}}},
+            {"reverse-hoogsteen", 'A', 'U', {{"N7", "N3", 2, "H3"}, {"N6", "O2", 1, "H62"}}},
+            {"reverse-hoogsteen", 'A', 'A', {{"N7", "N6", 2, "H61"}, {"N6", "N1", 1, "H62"}}},
+            {"reverse-hoogsteen", 'G', 'G', {{"N7", "N1", 2, "H1"}, {"O6", "N2", 2, "H22"}}},
+            {"hh", 'A', 'A', {{"N6", "N7", 1, "H62"}, {"N7", "N6", 2, "H62"}}},
+        };
+        const std::size_t base = out.size();
+        for (std::size_t k = 0; k < base; ++k) {  // the same pairs with the strands swapped
+            if (out[k].a != out[k].b) {
+                HbondEntry swapped{out[k].rule, out[k].b, out[k].a, {}};
+                for (const PairHbond& h : out[k].bonds) {
+                    swapped.bonds.push_back({h.atom2, h.atom1, 3 - h.donor, h.hydrogen});
+                }
+                out.push_back(std::move(swapped));
+            }
+        }
+        return out;
+    }();
+    return table;
+}
+
+// _canonical: a canonical pair of `rule`; the Hoogsteen rules need the purine on strand 1
+bool canonical(std::string_view rule, char a, char b) {
+    return !pairHbonds(rule, a, b).empty() &&
+           ((rule != "hoogsteen" && rule != "reverse-hoogsteen") || a == 'A' || a == 'G');
+}
+
+std::string reversed(std::string_view text) {
+    return std::string(text.rbegin(), text.rend());
+}
+
+// _parse_pair / _parse_ids on strings: the parts as text (strip()ped) or an error
+std::vector<std::string> splitParts(std::string_view value) {
+    std::vector<std::string> parts;
+    std::size_t start = 0;
+    while (true) {
+        const std::size_t comma = value.find(',', start);
+        parts.push_back(strip(value.substr(start, comma == std::string_view::npos ? std::string_view::npos : comma - start)));
+        if (comma == std::string_view::npos) {
+            break;
+        }
+        start = comma + 1;
+    }
+    return parts;
+}
+
+std::string listRepr(const std::vector<std::string>& parts) {
+    std::vector<std::string> items;
+    for (const std::string& p : parts) {
+        items.push_back(repr(p));
+    }
+    return "[" + join(items, ", ") + "]";
+}
+
+template <class Kind>
+std::vector<Kind> convertParts(const std::vector<std::string>& parts, const std::string& shown);
+
+template <>
+std::vector<std::string> convertParts<std::string>(const std::vector<std::string>& parts, const std::string&) {
+    return parts;
+}
+
+template <>
+std::vector<std::int64_t> convertParts<std::int64_t>(const std::vector<std::string>& parts, const std::string& shown) {
+    std::vector<std::int64_t> out;
+    for (const std::string& p : parts) {
+        std::optional<std::int64_t> v;
+        try {
+            v = core::tryPythonInt(p);
+        } catch (const std::exception&) {
+            v.reset();
+        }
+        if (!v) {
+            throw BuildError("cannot read " + shown);
+        }
+        out.push_back(*v);
+    }
+    return out;
+}
+
+// _parse_pair(parts, kind); `shown` is repr(value)
+template <class Kind>
+std::vector<Kind> parsePair(std::vector<std::string> parts, const std::string& shown) {
+    if (parts.size() == 1) {
+        parts.push_back(parts[0]);
+    }
+    if (parts.size() != 2) {
+        throw BuildError("expected two values (strand 1, strand 2), got " + shown);
+    }
+    return convertParts<Kind>(parts, shown);
+}
+
+template <class Kind>
+std::vector<Kind> parseIds(std::string_view value, int count) {
+    const std::vector<std::string> parts = splitParts(value);
+    const std::string shown = repr(value);
+    if (count == 2) {
+        return parsePair<Kind>(parts, shown);
+    }
+    if (parts.size() == 3) {
+        return convertParts<Kind>(parts, shown);
+    }
+    if (parts.size() > 3) {
+        throw BuildError("expected three values (strand 1, 2, 3), got " + shown);
+    }
+    // two parts: _parse_pair(list) shows the list; one part: _parse_pair(str) splits it again
+    std::vector<Kind> two = parts.size() == 2 ? parsePair<Kind>(parts, listRepr(parts))
+                                              : parsePair<Kind>(splitParts(parts[0]), repr(parts[0]));
+    if constexpr (std::is_same_v<Kind, std::string>) {
+        for (const char c : std::string_view("CDEFGHIJKLMNOPQRSTUVWXYZ")) {
+            const std::string id(1, c);
+            if (std::find(two.begin(), two.end(), id) == two.end()) {
+                two.push_back(id);
+                break;
+            }
+        }
+    } else {
+        two.push_back(1);
+    }
+    return two;
+}
+
+}  // namespace
+
+// --- public: templates ---------------------------------------------------------------------------
+
+std::vector<TemplateAtom> helixTemplate(std::string_view base, bool withHydrogens) {
+    return templateAtoms(checkedBase(base), withHydrogens).items;
+}
+
+std::span<const std::string_view> baseAtomNames(char base) {
+    switch (base) {
+        case 'A':
+            return kBaseA;
+        case 'C':
+            return kBaseC;
+        case 'G':
+            return kBaseG;
+        case 'U':
+            return kBaseU;
+        default:
+            return {};
+    }
+}
+
+std::span<const std::string_view> baseHydrogenNames(char base) {
+    switch (base) {
+        case 'A':
+            return kHNamesA;
+        case 'C':
+            return kHNamesC;
+        case 'G':
+            return kHNamesG;
+        case 'U':
+            return kHNamesU;
+        default:
+            return {};
+    }
+}
+
+std::span<const std::string_view> sugarHydrogenNames() {
+    return kSugarHNames;
+}
+
+// --- public: sequences ---------------------------------------------------------------------------
+
+ParsedSequence parseSequence(std::string_view text, std::string_view what) {
+    const std::string raw = strip(text);
+    std::u32string seq;
+    if (!raw.empty()) {
+        std::u32string s = core::decodeUtf8(upperAscii(raw));
+        std::replace(s.begin(), s.end(), U'’', U'\'');
+        // re.sub(r"^5'?-?|-?3'?$", "", s)
+        std::u32string kept;
+        std::size_t p = 0;
+        while (p < s.size()) {
+            if (p == 0 && s[0] == U'5') {
+                std::size_t q = 1;
+                if (q < s.size() && s[q] == U'\'') {
+                    ++q;
+                }
+                if (q < s.size() && s[q] == U'-') {
+                    ++q;
+                }
+                p = q;
+                continue;
+            }
+            const std::u32string tail = s.substr(p);
+            if (tail == U"-3'" || tail == U"-3" || tail == U"3'" || tail == U"3") {
+                break;
+            }
+            kept += s[p];
+            ++p;
+        }
+        for (const char32_t c : kept) {
+            if (c != U'-' && !core::isPythonSpace(c)) {
+                seq += c;
+            }
+        }
+    }
+    ParsedSequence out;
+    if (seq.find(U'T') != std::u32string::npos) {
+        std::replace(seq.begin(), seq.end(), U'T', U'U');
+        out.notes.push_back(std::string(what) + ": T read as U (RNA)");
+    }
+    std::set<char32_t> bad;
+    for (const char32_t c : seq) {
+        if (c != U'A' && c != U'C' && c != U'G' && c != U'U') {
+            bad.insert(c);
+        }
+    }
+    if (!bad.empty()) {
+        std::vector<std::string> letters;
+        for (const char32_t c : bad) {
+            letters.push_back(core::encodeUtf8(std::u32string(1, c)));
+        }
+        throw BuildError(std::string(what) + ": invalid letter(s) " + join(letters, ", ") + " (RNA: A, C, G, U)");
+    }
+    if (seq.empty()) {
+        throw BuildError(std::string(what) + " is empty");
+    }
+    out.sequence = core::encodeUtf8(seq);
+    return out;
+}
+
+std::string complement(std::string_view sequence) {
+    std::string out;
+    for (auto it = sequence.rbegin(); it != sequence.rend(); ++it) {
+        out += complementBase(*it);
+    }
+    return out;
+}
+
+std::string checkPairing(std::optional<std::string_view> pairing) {
+    const std::string_view given = pairing && !pairing->empty() ? *pairing : std::string_view("wc");
+    const std::string value = lower(strip(given));
+    if (std::find(kPairings.begin(), kPairings.end(), value) == kPairings.end()) {
+        throw BuildError("unknown pairing " + repr(*pairing) + " (choose from " + join(kPairings, ", ") + ")");
+    }
+    return value;
+}
+
+std::optional<std::string> checkTriplex(std::optional<std::string_view> triplex) {
+    const std::string value = lower(strip(triplex ? *triplex : std::string_view()));
+    if (value.empty() || value == "none" || value == "no") {
+        return std::nullopt;
+    }
+    if (std::find(kTriplexMotifs.begin(), kTriplexMotifs.end(), value) == kTriplexMotifs.end()) {
+        throw BuildError("unknown triplex motif " + repr(*triplex) + " (choose from none, " +
+                         join(kTriplexMotifs, ", ") + ")");
+    }
+    return value;
+}
+
+std::string helixKind(std::optional<std::string_view> pairing, std::optional<std::string_view> triplex) {
+    const std::string p = checkPairing(pairing);
+    const std::optional<std::string> motif = checkTriplex(triplex);
+    if (motif) {
+        return *motif + " triplex";
+    }
+    if (p == "wc") {
+        return "A-form";
+    }
+    return std::string(parallel(p) ? "parallel" : "antiparallel") + " " + std::string(pairingLw(p));
+}
+
+std::string autoPartner(std::string_view sequence, std::string_view pairing) {
+    std::string mapped;
+    for (const char b : sequence) {
+        mapped += autoPartnerBase(pairing, b);
+    }
+    return parallel(pairing) ? mapped : reversed(mapped);
+}
+
+ResolvedPartner resolvePartner(std::string_view sequence, std::optional<std::string_view> partner,
+                               std::optional<std::string_view> pairingName) {
+    const std::string pairing = checkPairing(pairingName);
+    ParsedSequence parsed = parseSequence(sequence);
+    const std::string mode = partner ? strip(*partner) : std::string("auto");
+    if (mode.empty()) {
+        throw BuildError("type the partner sequence (5'->3'), or choose the Watson-Crick complement or a "
+                         "single strand");
+    }
+    ResolvedPartner out{parsed.sequence, std::nullopt, parsed.notes};
+    const std::string m = lower(mode);
+    if (m == "none") {
+        return out;
+    }
+    if (m == "auto") {
+        if (pairing == "wc") {
+            out.partner = complement(out.sequence);
+            out.notes.push_back("partner strand: Watson-Crick complement");
+            return out;
+        }
+        out.partner = autoPartner(out.sequence, pairing);
+        out.notes.push_back("partner strand: " + std::string(pairingLw(pairing)) + " partners of strand 1 (" +
+                            autoPartnerText(pairing) + "), " + (parallel(pairing) ? "parallel" : "antiparallel"));
+        return out;
+    }
+    ParsedSequence other = parseSequence(mode, "partner");
+    for (std::string& note : other.notes) {
+        out.notes.push_back(std::move(note));
+    }
+    if (other.sequence.size() != out.sequence.size()) {
+        throw BuildError("the partner has " + std::to_string(other.sequence.size()) + " nucleotides but the sequence has " +
+                         std::to_string(out.sequence.size()) +
+                         "; an explicit partner must have the same length (5'->3')");
+    }
+    out.partner = other.sequence;
+    return out;
+}
+
+ResolvedThird resolveThird(std::string_view sequence, std::optional<std::string_view> third, std::string_view motif) {
+    const std::string mode = strip(third && !third->empty() ? *third : std::string_view("auto"));
+    const bool par = motif == "hoogsteen";
+    if (motif != "hoogsteen" && motif != "reverse-hoogsteen") {
+        throw std::invalid_argument("resolveThird: unknown motif " + std::string(motif));
+    }
+    if (lower(mode) == "auto") {
+        std::string mapped;
+        for (const char b : sequence) {
+            mapped += autoThirdBase(motif, b);
+        }
+        return {par ? mapped : reversed(mapped),
+                {std::string("third strand: ") + (par ? "U·A, C+·G" : "A·A, G·G") + " on the strand-1 purines, " +
+                 (par ? "parallel" : "antiparallel") + " to strand 1"}};
+    }
+    ParsedSequence other = parseSequence(mode, "third strand");
+    if (other.sequence.size() != sequence.size()) {
+        throw BuildError("the third strand has " + std::to_string(other.sequence.size()) +
+                         " nucleotides but the sequence has " + std::to_string(sequence.size()) +
+                         "; it must have the same length (5'->3')");
+    }
+    return {other.sequence, other.notes};
+}
+
+std::vector<std::string> pairTypes(std::string_view sequence, std::string_view partner) {
+    std::vector<std::string> out;
+    const std::size_t n = std::min(sequence.size(), partner.size());
+    for (std::size_t k = 0; k < n; ++k) {
+        const char a = sequence[k];
+        const char b = partner[partner.size() - 1 - k];
+        const std::string pair{a, b};
+        if (pair == "AU" || pair == "UA" || pair == "GC" || pair == "CG") {
+            out.emplace_back("wc");
+        } else if (pair == "GU" || pair == "UG") {
+            out.emplace_back("wobble");
+        } else {
+            out.emplace_back("mismatch");
+        }
+    }
+    return out;
+}
+
+std::vector<PairKind> pairingKinds(std::string_view sequence, std::string_view other,
+                                   std::optional<std::string_view> pairingName) {
+    const std::string pairing = checkPairing(pairingName);
+    const std::string partners = parallel(pairing) ? std::string(other) : reversed(other);
+    std::vector<PairKind> out;
+    const std::size_t n = std::min(sequence.size(), partners.size());
+    if (pairing == "wc") {
+        const std::vector<std::string> kinds = pairTypes(sequence, other);
+        for (std::size_t k = 0; k < std::min(n, kinds.size()); ++k) {
+            out.push_back({sequence[k], partners[k], kinds[k]});
+        }
+        return out;
+    }
+    for (std::size_t k = 0; k < n; ++k) {
+        out.push_back({sequence[k], partners[k], canonical(pairing, sequence[k], partners[k]) ? "canonical" : "mismatch"});
+    }
+    return out;
+}
+
+std::vector<PairKind> triplexKinds(std::string_view sequence, std::string_view third, std::string_view motif) {
+    const std::string partners = motif == "hoogsteen" ? std::string(third) : reversed(third);
+    std::vector<PairKind> out;
+    for (std::size_t k = 0; k < std::min(sequence.size(), partners.size()); ++k) {
+        out.push_back({sequence[k], partners[k], canonical(motif, sequence[k], partners[k]) ? "canonical" : "mismatch"});
+    }
+    return out;
+}
+
+std::span<const PairHbond> pairHbonds(std::string_view rule, char a, char b) {
+    for (const HbondEntry& entry : hbondTable()) {
+        if (entry.rule == rule && entry.a == a && entry.b == b) {
+            return entry.bonds;
+        }
+    }
+    return {};
+}
+
+namespace {
+
+std::string pairText(std::size_t k, char a, char b) {
+    return std::to_string(k + 1) + ":" + std::string(1, a) + "·" + std::string(1, b);
+}
+
+// _pairing_messages
+void pairingMessages(std::string_view seq, std::string_view other, std::string_view pairing,
+                     std::vector<HelixMessage>& out) {
+    const std::vector<PairKind> kinds = pairingKinds(seq, other, pairing);
+    const std::string lw(pairingLw(pairing));
+    std::size_t good = 0;
+    std::vector<std::string> mism, pyr;
+    bool gc = false;
+    for (std::size_t k = 0; k < kinds.size(); ++k) {
+        const PairKind& p = kinds[k];
+        if (p.kind != "mismatch") {
+            ++good;
+            const std::string ab{p.first, p.partner};
+            gc = gc || (pairing == "hoogsteen" && (ab == "GC" || ab == "CG"));
+        } else {
+            mism.push_back(pairText(k, p.first, p.partner));
+        }
+        if (p.first == 'C' || p.first == 'U') {
+            pyr.push_back(pairText(k, p.first, p.partner));
+        }
+    }
+    out.push_back({"info", std::string(pairingLabel(pairing)) + ": " + std::to_string(seq.size()) + " pairs, " +
+                               std::to_string(good) + " canonical " + lw + ", " + std::to_string(kinds.size() - good) +
+                               " mismatched"});
+    if (!mism.empty()) {
+        const std::string_view ref = referencePair(pairing);
+        out.push_back({"warning", "mismatched pairs (no " + lw + " pair) start from the reference " +
+                                      std::string(1, ref[0]) + "·" + std::string(1, ref[1]) +
+                                      " pair, are moved off the bases they would hit and are reported: " +
+                                      firstEight(mism)});
+    }
+    if ((pairing == "hoogsteen" || pairing == "reverse-hoogsteen") && !pyr.empty()) {
+        out.push_back({"warning", "strand 1 must be the purine strand: a Hoogsteen pair needs the Hoogsteen edge of a "
+                                  "strand-1 purine, so these pairs are built as mismatches: " +
+                                      firstEight(pyr)});
+    }
+    if (gc) {
+        out.push_back({"info", "G·C+ Hoogsteen pairs need N3-protonated cytosine (C+); written as plain C "
+                               "(protonate or restrain for the simulation)"});
+    }
+}
+
+}  // namespace
+
+std::vector<HelixMessage> checkHelix(std::string_view sequence, std::optional<std::string_view> partner,
+                                     std::optional<std::string_view> pairingName,
+                                     std::optional<std::string_view> triplex, std::optional<std::string_view> third) {
+    std::string pairing;
+    std::optional<std::string> motif;
+    ResolvedPartner resolved;
+    ResolvedThird thirdStrand;
+    try {
+        pairing = checkPairing(pairingName);
+        motif = checkTriplex(triplex);
+        resolved = resolvePartner(sequence, partner, pairing);
+        if (!resolved.partner && (pairing != "wc" || motif)) {
+            throw BuildError(!motif ? "a single strand has no pairing: choose a partner strand (or pairing wc)"
+                                    : "a triplex needs the Watson-Crick duplex: choose a partner strand");
+        }
+        if (motif && pairing != "wc") {
+            throw BuildError("a triplex is built on the Watson-Crick duplex: choose pairing wc");
+        }
+        if (motif) {
+            thirdStrand = resolveThird(resolved.sequence, third, *motif);
+        }
+    } catch (const BuildError& error) {
+        return {{"error", error.what()}};
+    }
+    const std::string& seq = resolved.sequence;
+    std::vector<HelixMessage> out;
+    for (const std::string& note : resolved.notes) {
+        out.push_back({"info", note});
+    }
+    if (!resolved.partner) {
+        out.push_back({"info", "single strand of " + std::to_string(seq.size()) + " nucleotides in the A-form helix geometry"});
+        return out;
+    }
+    const std::string& other = *resolved.partner;
+    const std::string mode = lower(strip(partner && !partner->empty() ? *partner : std::string_view("auto")));
+    const bool explicitPartner = mode != "auto" && mode != "none";
+    if (pairing != "wc") {
+        pairingMessages(seq, other, pairing, out);
+        if (explicitPartner && other == autoPartner(seq, pairing)) {
+            out.push_back({"info", "the explicit partner is the " + std::string(pairingLw(pairing)) +
+                                       " partner strand of 'auto'"});
+        }
+        return out;
+    }
+    if (motif) {
+        for (const std::string& note : thirdStrand.notes) {
+            out.push_back({"info", note});
+        }
+        const std::vector<PairKind> kinds = triplexKinds(seq, thirdStrand.sequence, *motif);
+        std::size_t good = 0;
+        std::vector<std::string> mism;
+        bool cgc = false;
+        for (std::size_t k = 0; k < kinds.size(); ++k) {
+            if (kinds[k].kind == "canonical") {
+                ++good;
+                cgc = cgc || (*motif == "hoogsteen" && kinds[k].first == 'G' && kinds[k].partner == 'C');
+            } else {
+                mism.push_back(pairText(k, kinds[k].partner, kinds[k].first));
+            }
+        }
+        out.push_back({"info", "triplex (" + std::string(triplexLabel(*motif)) + "): " + std::to_string(good) +
+                                   " canonical base triple(s), " + std::to_string(kinds.size() - good) + " mismatched"});
+        if (!mism.empty()) {
+            out.push_back({"warning", "third-strand mismatches (no Hoogsteen-edge pair; strand-1 pyrimidines have "
+                                      "no purine Hoogsteen edge) start from the reference triple, are moved off the "
+                                      "bases they would hit and are reported: " +
+                                          firstEight(mism)});
+        }
+        if (cgc) {
+            out.push_back({"info", "C+·G-C triples need N3-protonated cytosine (C+) in the third strand; written "
+                                   "as plain C (protonate or restrain for the simulation)"});
+        }
+    }
+    const std::vector<std::string> kinds = pairTypes(seq, other);
+    const auto nWc = std::count(kinds.begin(), kinds.end(), "wc");
+    const auto nWob = std::count(kinds.begin(), kinds.end(), "wobble");
+    std::vector<std::string> mism;
+    for (std::size_t k = 0; k < kinds.size(); ++k) {
+        if (kinds[k] == "mismatch") {
+            mism.push_back(pairText(k, seq[k], other[seq.size() - 1 - k]));
+        }
+    }
+    out.push_back({"info", std::to_string(seq.size()) + " base pairs: " + std::to_string(nWc) + " Watson-Crick, " +
+                               std::to_string(nWob) + " G·U wobble, " + std::to_string(mism.size()) + " mismatched"});
+    if (explicitPartner && other == complement(seq)) {
+        out.push_back({"info", "the explicit partner is the Watson-Crick complement"});
+    }
+    if (!mism.empty()) {
+        out.push_back({"warning", "mismatched pairs keep the Watson-Crick frame (bases may collide; minimise "
+                                  "or remodel): " +
+                                      firstEight(mism)});
+    }
+    return out;
+}
+
+std::vector<std::string> parseChainIds(std::string_view value, int count) {
+    return parseIds<std::string>(value, count);
+}
+
+std::vector<std::int64_t> parseStartNumbers(std::string_view value, int count) {
+    return parseIds<std::int64_t>(value, count);
+}
+
+// --- public: Watson-Crick helices ------------------------------------------------------------------
+
+namespace {
+
+struct BuiltAtom {
+    std::string name;
+    Vec3 xyz;
+};
+
+// _strand_residue: one nucleotide in the helix frame
+std::vector<BuiltAtom> strandResidue(char base, int level, bool partner, bool five, bool three, bool phosphate5,
+                                     bool withHydrogens, bool wobble) {
+    Atoms t = templateAtoms(base, withHydrogens);
+    if (wobble) {
+        turnBase(t, base, wobbleTurn(base), withHydrogens);
+    }
+    std::vector<BuiltAtom> first, last;
+    if (five) {
+        if (phosphate5) {  // OP3 towards the O3' the previous residue would have
+            const Vec3 prevO3 = screw(t.at("O3'"), -1);
+            first.push_back({"OP3", t.at("P") + kPOp3 * unit(prevO3 - t.at("P"))});
+        } else {
+            if (withHydrogens) {
+                last.push_back({"HO5'", place(t.at("C4'"), t.at("C5'"), t.at("O5'"), kBondOH, 109.5, 180.0)});
+            }
+            for (const std::string_view name : {"P", "OP1", "OP2"}) {
+                t.erase(name);
+            }
+        }
+    }
+    if (three && withHydrogens) {
+        last.push_back({"HO3'", place(t.at("C4'"), t.at("C3'"), t.at("O3'"), kBondOH, 109.5, 180.0)});
+    }
+    std::vector<BuiltAtom> atoms = first;
+    for (const std::string_view name : kBackboneNames) {
+        if (const Vec3* v = t.find(name)) {
+            atoms.push_back({std::string(name), *v});
+        }
+    }
+    for (const std::string_view name : baseAtomNames(base)) {
+        if (const Vec3* v = t.find(name)) {
+            atoms.push_back({std::string(name), *v});
+        }
+    }
+    if (withHydrogens) {
+        for (const std::string_view name : kSugarHNames) {
+            atoms.push_back({std::string(name), t.at(name)});
+        }
+        for (const std::string_view name : baseHydrogenNames(base)) {
+            atoms.push_back({std::string(name), t.at(name)});
+        }
+    }
+    for (BuiltAtom& a : last) {
+        atoms.push_back(std::move(a));
+    }
+    for (BuiltAtom& a : atoms) {
+        a.xyz = screw(partner ? dyad(a.xyz) : a.xyz, level);
+    }
+    return atoms;
+}
+
+std::string elementOf(std::string_view name) {
+    const std::size_t k = name.find_first_not_of("0123456789");
+    return k == std::string_view::npos ? std::string() : std::string(name.substr(k, 1));
+}
+
+// _mismatch_notes: mismatched pairs whose bases collide (on the written, rounded coordinates)
+std::vector<std::string> mismatchNotes(const io::PdbStructure& s, const std::string& seq, const std::string& other,
+                                       const std::vector<std::string>& kinds) {
+    std::vector<std::string> out;
+    const std::size_t n = seq.size();
+    for (std::size_t k = 0; k < kinds.size(); ++k) {
+        if (kinds[k] != "mismatch") {
+            continue;
+        }
+        const io::PdbResidue& r1 = s.segments[0][k];
+        const io::PdbResidue& r2 = s.segments[1][n - 1 - k];
+        const auto inBase = [](const io::PdbAtom& a, char base) {
+            const auto names = baseAtomNames(base);
+            return std::find(names.begin(), names.end(), a.name) != names.end();
+        };
+        double d = std::numeric_limits<double>::infinity();
+        for (const io::PdbAtom& a : r1.atoms) {
+            if (!inBase(a, seq[k])) {
+                continue;
+            }
+            for (const io::PdbAtom& b : r2.atoms) {
+                if (!inBase(b, other[n - 1 - k])) {
+                    continue;
+                }
+                const std::array<double, 3> pa = a.xyz();
+                const std::array<double, 3> pb = b.xyz();
+                d = std::min(d, norm(Vec3{pa[0] - pb[0], pa[1] - pb[1], pa[2] - pb[2]}));
+            }
+        }
+        if (d < kClash) {
+            out.push_back("WARNING: mismatch " + r1.chain + ":" + std::to_string(r1.resseq) + " " + std::string(1, seq[k]) +
+                          " · " + r2.chain + ":" + std::to_string(r2.resseq) + " " + std::string(1, other[n - 1 - k]) +
+                          ": the bases collide (closest heavy atoms " + fixed(d, 1) + " Å)");
+        }
+    }
+    return out;
+}
+
+}  // namespace
+
+std::string buildHelix(std::string_view sequence, const HelixOptions& options, std::vector<std::string>* notes) {
+    const std::string pairing = checkPairing(options.pairing ? std::optional<std::string_view>(*options.pairing)
+                                                             : std::nullopt);
+    const std::optional<std::string> motif =
+        checkTriplex(options.triplex ? std::optional<std::string_view>(*options.triplex) : std::nullopt);
+    ResolvedPartner resolved = resolvePartner(
+        sequence, options.partner ? std::optional<std::string_view>(*options.partner) : std::nullopt, pairing);
+    const std::string chirality = upperAscii(strip(options.chirality.empty() ? std::string("D") : options.chirality));
+    if (chirality != "D" && chirality != "L") {
+        throw BuildError("chirality must be D or L, got " + repr(chirality));
+    }
+    const bool duplex = resolved.partner.has_value();
+    if (!duplex && pairing != "wc") {
+        throw BuildError("a single strand has no pairing: choose a partner strand (or pairing wc)");
+    }
+    if (motif && (!duplex || pairing != "wc")) {
+        throw BuildError("a triplex is built on the Watson-Crick duplex: choose a partner strand and pairing wc");
+    }
+    if (motif) {
+        ResolvedThird thirdStrand = resolveThird(
+            resolved.sequence, options.third ? std::optional<std::string_view>(*options.third) : std::nullopt, *motif);
+        resolved.notes.insert(resolved.notes.end(), thirdStrand.notes.begin(), thirdStrand.notes.end());
+    }
+    const int count = motif ? 3 : 2;
+    const std::vector<std::string> ids = parseChainIds(options.chains, count);
+    const std::vector<std::int64_t> firsts = parseStartNumbers(options.start, count);
+    for (const std::string& c : ids) {
+        if (core::characterCount(c) > 1) {
+            throw BuildError("chain ids must be single characters");
+        }
+    }
+    if (duplex && ids[0] == ids[1]) {
+        throw BuildError("the two strands need different chain ids");
+    }
+    if (motif && (ids[2] == ids[0] || ids[2] == ids[1])) {
+        throw BuildError("the three strands need different chain ids");
+    }
+    const bool chosen = options.scheme.has_value() && !options.scheme->empty();
+    const std::string scheme = chosen ? *options.scheme : std::string("rosetta");
+    if (std::find(kSchemes.begin(), kSchemes.end(), scheme) == kSchemes.end()) {
+        throw BuildError("unknown residue name scheme " + repr(scheme) + " (choose from " + join(kSchemes, ", ") + ")");
+    }
+    if (pairing != "wc" || motif) {
+        throw BuildError((motif ? "a triplex" : "pairing " + pairing) +
+                         " is built by the fitted helix builder (not available yet)");
+    }
+
+    const std::string& seq = resolved.sequence;
+    const std::size_t n = seq.size();
+    const std::vector<std::string> kinds = duplex ? pairTypes(seq, *resolved.partner) : std::vector<std::string>(n, "none");
+    const char hand = chirality[0];
+
+    io::PdbStructure s;
+    std::vector<Vec3> coords;
+    const auto addStrand = [&](const std::string& chain, std::int64_t first, const std::string& bases, bool partner) {
+        std::vector<io::PdbResidue> seg;
+        for (std::size_t j = 0; j < bases.size(); ++j) {
+            const std::size_t level = partner ? n - 1 - j : j;
+            io::PdbResidue res;
+            res.name = std::string(1, bases[j]);
+            res.chain = chain;
+            res.resseq = first + static_cast<std::int64_t>(j);
+            res.chirality = std::string(1, hand);
+            for (BuiltAtom& a : strandResidue(bases[j], static_cast<int>(level), partner, j == 0, j == bases.size() - 1,
+                                              options.phosphate5, options.hydrogens, kinds[level] == "wobble")) {
+                io::PdbAtom atom;
+                atom.record = "ATOM";
+                atom.name = a.name;
+                atom.element = elementOf(a.name);
+                res.atoms.push_back(std::move(atom));
+                coords.push_back(a.xyz);
+            }
+            seg.push_back(std::move(res));
+        }
+        s.segments.push_back(std::move(seg));
+    };
+    addStrand(ids[0], firsts[0], seq, false);
+    if (duplex) {  // strand 2 pairs residue n-1-j of strand 1 at the same level
+        addStrand(ids[1], firsts[1], *resolved.partner, true);
+    }
+    if (hand == 'L') {
+        for (Vec3& v : coords) {
+            v[0] *= -1.0;  // the mirror image: left-handed helix of L-nucleotides
+        }
+    }
+    if (options.center && !coords.empty()) {
+        double low = coords[0][2];
+        double high = coords[0][2];
+        for (const Vec3& v : coords) {
+            low = std::min(low, v[2]);
+            high = std::max(high, v[2]);
+        }
+        const double mid = 0.5 * (low + high);
+        for (Vec3& v : coords) {
+            v = Vec3{v[0] - 0.0, v[1] - 0.0, v[2] - mid};
+        }
+    }
+    std::size_t at = 0;
+    for (std::vector<io::PdbResidue>& seg : s.segments) {
+        for (io::PdbResidue& res : seg) {
+            for (io::PdbAtom& atom : res.atoms) {
+                atom.tail = io::newAtomTail(coords[at++]);
+            }
+        }
+    }
+
+    std::vector<std::string> out = resolved.notes;
+    std::vector<std::string> renamed;
+    for (std::string& note : detail::convertNames(s, scheme, options.terminals)) {
+        if (note.rfind("WARNING: 5'-terminal", 0) != 0) {
+            renamed.push_back(std::move(note));
+        }
+    }
+    if (!chosen) {
+        renamed = {"Residue names " +
+                   std::string(hand == 'D' ? "A, C, G, U" : "0A, 0C, 0G, 0U (the CCD L-ribonucleotides)") +
+                   ", ATOM records"};
+    }
+    out.insert(out.end(), renamed.begin(), renamed.end());
+    if (scheme == "pdb") {
+        for (std::string& note : detail::setRecords(s, "pdb")) {
+            out.push_back(std::move(note));
+        }
+    }
+    if (options.phosphate5 && scheme == "amber") {
+        out.emplace_back("WARNING: the Amber 5' units have no 5'-phosphate (tleap cannot type P/OP1/OP2/OP3 "
+                         "of A5/LA5 ...); build without the 5'-phosphate for tleap");
+    }
+    const std::string handText = hand == 'D' ? "right-handed, D" : "left-handed, L: mirror image";
+    const std::string what = duplex ? "duplex of " + std::to_string(n) + " base pairs"
+                                    : "single strand of " + std::to_string(n) + " nucleotides";
+    // D13: MDBridge names itself in the record
+    s.header = {"REMARK 951 MDBridge IDEAL A-FORM RNA (" + handText + "), " + what,
+                "REMARK 951 ARNOTT A-RNA FIBER MONOMER, TWIST " + fixed(kHelixTwist, 1) + " DEG, RISE " +
+                    fixed(kHelixRise, 2) + " A, HELIX AXIS Z",
+                "REMARK 951 STRAND " + ids[0] + " " + seq};
+    if (duplex) {
+        s.header.push_back("REMARK 951 STRAND " + ids[1] + " " + *resolved.partner);
+        for (std::string& note : mismatchNotes(s, seq, *resolved.partner, kinds)) {
+            out.push_back(std::move(note));
+        }
+        const auto wobbles = std::count(kinds.begin(), kinds.end(), "wobble");
+        if (wobbles) {
+            out.push_back(std::to_string(wobbles) +
+                          " G·U pair(s) built with an approximate wobble geometry (bases turned in their plane about "
+                          "C1'); minimise before production");
+        }
+    }
+    std::size_t atomCount = 0;
+    for (const auto& seg : s.segments) {
+        for (const auto& res : seg) {
+            atomCount += res.atoms.size();
+        }
+    }
+    out.push_back("Built an ideal A-form RNA " + what + " (" + handText + "): " + std::to_string(atomCount) + " atoms" +
+                  (options.hydrogens ? ", hydrogens included" : ", heavy atoms only"));
+    // CH-01: a residue number below -999 does not fit columns 23-26 (MDATK shifted every later column)
+    for (const auto& seg : s.segments) {
+        for (const auto& res : seg) {
+            if (res.resseq < -999) {
+                throw io::PdbError("residue number " + std::to_string(res.resseq) + " (" +
+                                   (res.chain.empty() ? std::string("_") : res.chain) +
+                                   ") does not fit the PDB columns (-999 to 9999)");
+            }
+        }
+    }
+    // CH-02: numbers above 9999 wrap (a PDB convention), now with renumber_residues' warning
+    std::int64_t highest = firsts[0];
+    if (duplex) {
+        highest = std::max(highest, firsts[1]);
+    }
+    if (highest + static_cast<std::int64_t>(n) - 1 > 9999) {
+        out.emplace_back("WARNING: residue numbers above 9999 wrap in the PDB columns");
+    }
+    std::string text = io::writePdb(s);
+    if (notes) {
+        notes->insert(notes->end(), out.begin(), out.end());
+    }
+    return text;
+}
+
+}  // namespace mdbridge::chem

@@ -1228,6 +1228,9 @@ with MDATK 0.0.4.1's: every difference is printed, and one that is not listed be
   A and C are unchanged (H61 cis to N1, H41 cis to N3, as MDATK). 0.1.1: not changed. *Tested:* the
   generator; `ReferenceTables.HydrogenPositionsAndChirality`; the chem expected data
   (builder_cases.json, builder_fitted_cases.json, dict_cases.json, the `build_*` / `dict_*` cases).
+  The builder's rules and pair tables (src/chem/helix.cpp `kHydG`, `chem::pairHbonds`):
+  `HelixCases.Templates` (guanine's template bit for bit), `HelixGeometry.NamesTerminalsHydrogensAndPhosphate`
+  (H22 nearer N1 and donating to the partner C's O2).
 - **CHD-02 The 4JRD helix frame** (owner-approved: decision D16 of docs/specs/m6-plan.md). MDATK's 4JRD nucleotide (`_JRD_NUCLEOTIDE`, used by every
   non-Watson-Crick pairing and triplex) is said to be in the frame of the 4JRD duplex's screw
   (fitted to A3-A11 / B2-B10, axis along z), but its z axis is 4.44° from that screw's axis
@@ -2874,6 +2877,9 @@ cases of `cli_parity.py`.
 - **CH-02 Wrapped numbers of built helices are reported** (not fixed). `build helix --start 9998,1`
   wrapped to `B   0` silently; the build notes end with the renumbering's "WARNING: residue numbers
   above 9999 wrap in the PDB columns". Cases: `helices` `start 9998,1`, `build_helix_start_wrap`.
+  *C++ (builder, W1-D):* `chem::buildHelix` (src/chem/helix.cpp) raises CH-01's `PDBError` and appends
+  CH-02's warning after the build notes; tests/chem/test_helix.cpp `HelixCases.WatsonCrickHelices`
+  (every `helices` case byte for byte), `HelixGeometry.NumbersOutsideThePdbColumns`.
 - **CH-03 `--combine-into` takes one character** (not fixed). `XY` was accepted, the notes said chain
   XY and the file had X; now `PDBError("chain ids must be single characters")`, as `restore_chains`.
   *Tested:* `pdbtools_cases.json` (`combine_chains` into `XY`, `clean` test call),
@@ -2956,6 +2962,8 @@ cases of `cli_parity.py`.
 - **D13 (milestone 6): the program named in written records** (as CMD-08): `REMARK 950 MDBridge
   BASE-PAIR ANNOTATION` and `REMARK 951 MDBridge IDEAL ...`; every other byte as MDATK writes it.
   Messages that name the program say `mdbridge` ('mdbridge pdb clean', 'mdbridge density fit --save').
+  *C++:* the Watson-Crick helix header (`chem::buildHelix`, `REMARK 951 MDBridge IDEAL A-FORM RNA`),
+  tests/chem/test_helix.cpp.
 - **D7 (milestone 6): PubChem**: `dict pubchem` reads the PUG REST root from
   `MDBRIDGE_PUBCHEM_URL` when it is set (default PubChem's); the command-line cases use a stand-in
   server on 127.0.0.1 (cli_parity.py `PubchemStandIn`).
