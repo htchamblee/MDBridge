@@ -23,6 +23,7 @@
 #include <QVBoxLayout>
 #include <QtTest>
 
+#include "gui/display_path.hpp"
 #include "gui/forms/field_factory.hpp"
 #include "gui/forms/field_widgets.hpp"
 #include "gui/forms/form_context.hpp"
@@ -253,7 +254,9 @@ void ProblemsTest::everyValidateProblemLandsOnItsField() {
             QCOMPARE(shown->location, core::describeField(p.field, &doc.project()));
             QListWidgetItem* item = host.row(p.field, p.message);
             QVERIFY2(item, what.c_str());
-            QCOMPARE(item->text(), toQString(p.location) + QLatin1Char('\n') + toQString(p.message));
+            // the row shows the message's paths natively (backslashes on Windows, WN-12)
+            QCOMPARE(item->text(),
+                     toQString(p.location) + QLatin1Char('\n') + app::gui::displayPathsIn(toQString(p.message)));
             QCOMPARE(item->data(ProblemsPanel::FieldRole).toString(), toQString(p.field));
             if (p.level != "error") {
                 continue;  // the layout warnings are at "layout.panels", the list editor of the slots

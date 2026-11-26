@@ -40,7 +40,10 @@ std::string readFile(const fs::path& path) {
 std::vector<std::string> lines(const std::string& text) {
     std::vector<std::string> out;
     std::istringstream in(text);
-    for (std::string line; std::getline(in, line);) out.push_back(line);
+    for (std::string line; std::getline(in, line);) {
+        if (!line.empty() && line.back() == '\r') line.pop_back();  // project files are CRLF on Windows
+        out.push_back(line);
+    }
     return out;
 }
 
