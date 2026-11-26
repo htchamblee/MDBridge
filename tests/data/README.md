@@ -499,7 +499,16 @@ cache manifest's path printed by `analyze` and the paths in cache files are comp
 generic form); `exit_only` cases compare the exit status alone (usage errors, and the six gzip
 errors `src/io/include/mdbridge/io/mrc.hpp` words differently); where MDATK crashes with a
 traceback (`stderr` null, `mdatk_crash` the exception), MDBridge must print `error: ...` and exit
-with 1. The same script compares a build with MDATK directly (CI's `parity` job, against the
+with 1. The chem commands of milestone 6 (`pdb clean / check / to-lrna / annotate`, `build helix /
+mutate / fit`, `dict list / smiles / finish / pubchem`, `density fit / simulate`, and `render` with a
+map and `auto_fit`) have their cases too, marked `pending` with the commands they `needs` (cli_parity.py
+`PENDING`; skipped when comparing and by the C++ test until the commands land): their inputs come from
+`build helix` run first, `chem/maps` and `chem/dictionaries`; MDATK runs with `improvements_chem.py`
+and the command line in `sys.argv` (the step log records it), the step log's `time` / `duration_s`
+are masked, and `dict pubchem` asks a stand-in PubChem on 127.0.0.1 (`MDBRIDGE_PUBCHEM_URL`, owner
+decision D7; `{pubchem}` in `env`). Cases with `fitted` (rebuilt helices: 0.05; density fits: 0.6)
+compare their texts with their decimal numbers within that absolute tolerance (D10) and keep files of
+any size as text. The same script compares a build with MDATK directly (CI's `parity` job, against the
 AppImage):
 
 ```bash
@@ -543,6 +552,40 @@ reproducible):
 
 ```bash
 /opt/mdbridge-venv/bin/python -I -B tests/parity/make_secstruct_cases.py /tmp/mdatk tests/data/chem
+```
+
+The chem module of milestone 6 (PDB hygiene, annotation, the structure builder, restraint
+dictionaries, the density fit; docs/specs/m6-plan.md 4.2) is checked against the other files of
+`chem/`, written by five generators that import MDATK's chem code with MDBridge's improvements patched
+in (`tests/parity/improvements_chem.py`: CH-01 ... CH-15, D7, D11 ... D13, NA-01's names; each item
+names the MDATK version whose design it follows). Their contents are described in each generator's
+docstring:
+
+| File | Generator | Content |
+|---|---|---|
+| `pdbtools_cases.json` | `make_pdbtools_cases.py` (pytest: MDATK's `tests/test_pdbtools.py` fixtures) | inputs; `scheme_name` of every base x hand x terminal x scheme; `chiral_volume` / `sugar_chirality`; `parse_ranges`; each PDB-tools function alone on the inputs (notes, residues, `write_pdb` where atoms or records change); `clean` over MDATK's test calls and an option grid |
+| `annotate_cases.json` | `make_annotate_cases.py` | built helices and crafted files; `annotate` with every option and engine (records, notes, text) |
+| `dict_cases.json`, `dictionaries/*.cif` | `make_dict_cases.py` (pytest: `tests/test_dictionaries.py`'s synthetic dictionaries) | `COMPONENTS`; `parse_smiles` (test strings, the components, a fuzzed set); `match_graph`; `check_smiles` / `identify_smiles`; `finish_dictionary` of synthetic acedrg / eLBOW dictionaries with every option; two dictionaries for `cli_parity.py`'s `dict finish` cases |
+| `builder_cases.json` | `make_builder_cases.py` | `check_helix` and the sequence functions; the A-form templates; Watson-Crick `build_helix` over its options; `mutate` and `parse_mutations` |
+| `builder_fitted_cases.json`, `maps/{helix_moved,strand_moved,strand_nan}.mrc` | `make_builder_cases.py` | the reference helix fits of the other pairings (start, the refined parameters `least_squares` reaches, cost, screw, torsions, contacts), `_pair_fit` of every canonical pair, the rebuilt helices (other pairings, triplexes: text, notes, heavy-atom coordinates), `fit_to_map` on the maps |
+| `density_fit_cases.json`, `maps/fit_*.mrc` | `make_density_fit_cases.py` (MDAnalysis: the demo frame) | `rotation_samples`, `_fft_size`, per model x map the `FitProblem`, CCs, flips, the coarse search's grid and peaks, `refine`, `fit_model` global and manual; errors |
+
+numpy's and OpenBLAS' kernels are pinned (`chem_common.py`, as `make_analysis_cases.py`). The
+least-squares closures, Powell's path in the density fits, Kabsch's SVD and the helices' 3 x 3
+products still depend on the CPU in the last bits, so `regenerate_all.py` compares these JSON files
+(not `pdbtools_cases.json`, pure Python) within the chem tolerance where their bytes differ
+(`FITTED`: numbers within a relative 1e-6, decimals inside strings within one unit of their last
+digit); the maps are made without BLAS products and compared byte for byte. The C++ tests compare
+fitted results with D10's tolerances (non-Watson-Crick helices: heavy-atom RMSD <= 0.01 Å, every
+atom <= 0.05 Å; fits: 0.5°, 0.2 Å, CC 1e-3; plan 4.1). To regenerate, with an MDATK checkout at
+`v0.0.4.1` (nothing is written into it):
+
+```bash
+/opt/mdbridge-venv/bin/python -I -B tests/parity/make_pdbtools_cases.py /tmp/mdatk tests/data/chem   # needs pytest
+/opt/mdbridge-venv/bin/python -I -B tests/parity/make_annotate_cases.py /tmp/mdatk tests/data/chem
+/opt/mdbridge-venv/bin/python -I -B tests/parity/make_dict_cases.py /tmp/mdatk tests/data/chem       # needs pytest
+/opt/mdbridge-venv/bin/python -I -B tests/parity/make_builder_cases.py /tmp/mdatk tests/data/chem
+/opt/mdbridge-venv/bin/python -I -B tests/parity/make_density_fit_cases.py /tmp/mdatk tests/data/chem
 ```
 
 The analysis module of milestone 3 (`src/analysis/`, tested by `tests/analysis/`) is checked against

@@ -1,0 +1,197 @@
+# electronic Ligand Builder and Optimisation Workbench (eLBOW)
+#   - a module of PHENIX
+#
+data_comp_list
+_chem_comp.id LIG
+_chem_comp.three_letter_code LIG
+_chem_comp.name 'Unknown                  '
+_chem_comp.group ligand
+_chem_comp.number_atoms_all 32
+_chem_comp.desc_level .
+#
+data_comp_LIG
+#
+loop_
+_chem_comp_atom.comp_id
+_chem_comp_atom.atom_id
+_chem_comp_atom.type_symbol
+_chem_comp_atom.type_energy
+_chem_comp_atom.partial_charge
+_chem_comp_atom.x
+_chem_comp_atom.y
+_chem_comp_atom.z
+LIG 'C01' C CT 0.000 0.0000 0.0000 0.0000
+LIG 'H01' H HT 0.000 0.0000 0.0000 0.0000
+LIG 'C02' C CT 0.000 0.0000 0.0000 0.0000
+LIG 'C03' C CT 0.000 0.0000 0.0000 0.0000
+LIG 'H02' H HT 0.000 0.0000 0.0000 0.0000
+LIG 'O01' O OT 0.000 0.0000 0.0000 0.0000
+LIG 'C04' C CT 0.000 0.0000 0.0000 0.0000
+LIG 'H03' H HT 0.000 0.0000 0.0000 0.0000
+LIG 'N01' N NT 0.000 0.0000 0.0000 0.0000
+LIG 'H04' H HT 0.000 0.0000 0.0000 0.0000
+LIG 'H05' H HT 0.000 0.0000 0.0000 0.0000
+LIG 'O02' O OT -0.710 0.0000 0.0000 0.0000
+LIG 'O03' O OT 0.000 0.0000 0.0000 0.0000
+LIG 'H06' H HT 0.000 0.0000 0.0000 0.0000
+LIG 'C05' C CT 0.000 0.0000 0.0000 0.0000
+LIG 'C06' C CT 0.000 0.0000 0.0000 0.0000
+LIG 'O04' O OT 0.000 0.0000 0.0000 0.0000
+LIG 'H07' H HT 0.000 0.0000 0.0000 0.0000
+LIG 'O05' O OT -0.710 0.0000 0.0000 0.0000
+LIG 'H08' H HT 0.000 0.0000 0.0000 0.0000
+LIG 'H09' H HT 0.000 0.0000 0.0000 0.0000
+LIG 'N02' N NT 0.000 0.0000 0.0000 0.0000
+LIG 'O06' O OT 0.000 0.0000 0.0000 0.0000
+LIG 'H10' H HT 0.000 0.0000 0.0000 0.0000
+LIG 'O07' O OT 0.000 0.0000 0.0000 0.0000
+LIG 'P01' P PT 0.000 0.0000 0.0000 0.0000
+LIG 'H11' H HT 0.000 0.0000 0.0000 0.0000
+LIG 'C07' C CT 0.000 0.0000 0.0000 0.0000
+LIG 'O08' O OT 0.000 0.0000 0.0000 0.0000
+LIG 'C08' C CT 0.000 0.0000 0.0000 0.0000
+LIG 'O09' O OT 0.000 0.0000 0.0000 0.0000
+LIG 'C09' C CT 0.000 0.0000 0.0000 0.0000
+loop_
+_chem_comp_bond.comp_id
+_chem_comp_bond.atom_id_1
+_chem_comp_bond.atom_id_2
+_chem_comp_bond.type
+_chem_comp_bond.value_dist
+_chem_comp_bond.value_dist_esd
+LIG 'C04' 'O09' single 1.200 0.020
+LIG 'C08' 'N01' single 1.201 0.020
+LIG 'C09' 'N02' single 1.202 0.020
+LIG 'C03' 'H02' single 1.203 0.020
+LIG 'N01' 'C09' single 1.204 0.020
+LIG 'N02' 'C06' single 1.205 0.020
+LIG 'C01' 'C07' single 1.206 0.020
+LIG 'C01' 'H11' single 1.207 0.020
+LIG 'C08' 'H10' single 1.208 0.020
+LIG 'C07' 'H01' single 1.209 0.020
+LIG 'C06' 'C02' single 1.210 0.020
+LIG 'O05' 'P01' single 1.211 0.020
+LIG 'O06' 'C08' single 1.212 0.020
+LIG 'C01' 'H05' single 1.213 0.020
+LIG 'C03' 'O03' single 1.214 0.020
+LIG 'O08' 'C01' single 1.215 0.020
+LIG 'C07' 'O06' single 1.216 0.020
+LIG 'C02' 'H03' single 1.217 0.020
+LIG 'N01' 'C05' single 1.218 0.020
+LIG 'O09' 'H09' single 1.219 0.020
+LIG 'C05' 'H07' single 1.220 0.020
+LIG 'C03' 'C04' single 1.221 0.020
+LIG 'P01' 'O07' double 1.222 0.020
+LIG 'C02' 'C05' double 1.223 0.020
+LIG 'N02' 'H08' single 1.224 0.020
+LIG 'C04' 'H06' single 1.225 0.020
+LIG 'C06' 'O01' double 1.226 0.020
+LIG 'C04' 'C08' single 1.227 0.020
+LIG 'P01' 'O02' single 1.228 0.020
+LIG 'O03' 'H04' single 1.229 0.020
+LIG 'P01' 'O08' single 1.230 0.020
+LIG 'C09' 'O04' double 1.231 0.020
+LIG 'C07' 'C03' single 1.232 0.020
+loop_
+_chem_comp_angle.comp_id
+_chem_comp_angle.atom_id_1
+_chem_comp_angle.atom_id_2
+_chem_comp_angle.atom_id_3
+_chem_comp_angle.value_angle
+_chem_comp_angle.value_angle_esd
+LIG 'C04' 'C08' 'H10' 109.5 3.0
+LIG 'C04' 'C08' 'N01' 109.5 3.0
+LIG 'C04' 'C08' 'O06' 109.5 3.0
+LIG 'H10' 'C08' 'N01' 109.5 3.0
+LIG 'H10' 'C08' 'O06' 109.5 3.0
+LIG 'N01' 'C08' 'O06' 109.5 3.0
+LIG 'N01' 'C09' 'N02' 109.5 3.0
+LIG 'N01' 'C09' 'O04' 109.5 3.0
+LIG 'N02' 'C09' 'O04' 109.5 3.0
+LIG 'C08' 'C04' 'C03' 109.5 3.0
+LIG 'C08' 'C04' 'H06' 109.5 3.0
+LIG 'C08' 'C04' 'O09' 109.5 3.0
+LIG 'C03' 'C04' 'H06' 109.5 3.0
+LIG 'C03' 'C04' 'O09' 109.5 3.0
+LIG 'H06' 'C04' 'O09' 109.5 3.0
+LIG 'C04' 'C03' 'C07' 109.5 3.0
+LIG 'C04' 'C03' 'H02' 109.5 3.0
+LIG 'C04' 'C03' 'O03' 109.5 3.0
+LIG 'C07' 'C03' 'H02' 109.5 3.0
+LIG 'C07' 'C03' 'O03' 109.5 3.0
+LIG 'H02' 'C03' 'O03' 109.5 3.0
+LIG 'C02' 'C06' 'N02' 109.5 3.0
+LIG 'C02' 'C06' 'O01' 109.5 3.0
+LIG 'N02' 'C06' 'O01' 109.5 3.0
+LIG 'C03' 'C07' 'C01' 109.5 3.0
+LIG 'C03' 'C07' 'H01' 109.5 3.0
+LIG 'C03' 'C07' 'O06' 109.5 3.0
+LIG 'C01' 'C07' 'H01' 109.5 3.0
+LIG 'C01' 'C07' 'O06' 109.5 3.0
+LIG 'H01' 'C07' 'O06' 109.5 3.0
+LIG 'C06' 'C02' 'C05' 109.5 3.0
+LIG 'C06' 'C02' 'H03' 109.5 3.0
+LIG 'C05' 'C02' 'H03' 109.5 3.0
+LIG 'C07' 'C01' 'H05' 109.5 3.0
+LIG 'C07' 'C01' 'H11' 109.5 3.0
+LIG 'C07' 'C01' 'O08' 109.5 3.0
+LIG 'H05' 'C01' 'H11' 109.5 3.0
+LIG 'H05' 'C01' 'O08' 109.5 3.0
+LIG 'H11' 'C01' 'O08' 109.5 3.0
+LIG 'C02' 'C05' 'H07' 109.5 3.0
+LIG 'C02' 'C05' 'N01' 109.5 3.0
+LIG 'H07' 'C05' 'N01' 109.5 3.0
+LIG 'C08' 'N01' 'C09' 109.5 3.0
+LIG 'C08' 'N01' 'C05' 109.5 3.0
+LIG 'C09' 'N01' 'C05' 109.5 3.0
+LIG 'C09' 'N02' 'C06' 109.5 3.0
+LIG 'C09' 'N02' 'H08' 109.5 3.0
+LIG 'C06' 'N02' 'H08' 109.5 3.0
+LIG 'C04' 'O09' 'H09' 109.5 3.0
+LIG 'C03' 'O03' 'H04' 109.5 3.0
+LIG 'C08' 'O06' 'C07' 109.5 3.0
+LIG 'C01' 'O08' 'P01' 109.5 3.0
+LIG 'O08' 'P01' 'O07' 109.5 3.0
+LIG 'O08' 'P01' 'O02' 109.5 3.0
+LIG 'O08' 'P01' 'O05' 109.5 3.0
+LIG 'O07' 'P01' 'O02' 109.5 3.0
+LIG 'O07' 'P01' 'O05' 109.5 3.0
+LIG 'O02' 'P01' 'O05' 109.5 3.0
+loop_
+_chem_comp_tor.comp_id
+_chem_comp_tor.id
+_chem_comp_tor.atom_id_1
+_chem_comp_tor.atom_id_2
+_chem_comp_tor.atom_id_3
+_chem_comp_tor.atom_id_4
+_chem_comp_tor.value_angle
+_chem_comp_tor.value_angle_esd
+_chem_comp_tor.period
+LIG alpha 'C01' 'O08' 'P01' 'O05' -60.0 10.0 3
+LIG nu0 'C07' 'O06' 'C08' 'C04' 0.0 10.0 1
+loop_
+_chem_comp_chir.comp_id
+_chem_comp_chir.id
+_chem_comp_chir.atom_id_centre
+_chem_comp_chir.atom_id_1
+_chem_comp_chir.atom_id_2
+_chem_comp_chir.atom_id_3
+_chem_comp_chir.volume_sign
+LIG chir_0 'C07' 'O06' 'C03' 'C01' positiv
+LIG chir_1 'C03' 'C07' 'O03' 'H02' negativ
+LIG chir_2 'C04' 'O09' 'C08' 'C03' positiv
+LIG chir_3 'C08' 'N01' 'O06' 'H10' positiv
+LIG chir_p 'P01' 'O08' 'O05' 'O02' both
+loop_
+_chem_comp_plane_atom.comp_id
+_chem_comp_plane_atom.plane_id
+_chem_comp_plane_atom.atom_id
+_chem_comp_plane_atom.dist_esd
+LIG plan-1 'N01' 0.020
+LIG plan-1 'C09' 0.020
+LIG plan-1 'O04' 0.020
+LIG plan-1 'N02' 0.020
+LIG plan-1 'C06' 0.020
+LIG plan-1 'O01' 0.020
+LIG plan-1 'C02' 0.020
+LIG plan-1 'C05' 0.020

@@ -65,6 +65,10 @@ Special cases handled here (tests/data/README.md):
   within a relative 1e-12 (an array's sha256 is ignored where its values agree).
   The JSON records of the render generators (tests/data/render/figures, charts, molecule) get
   the same comparison (MACHINE_DEPENDENT_JSON_UNDER: BLAS products of 3 x 3 rotations).
+  The chem generators' files (FITTED below: fitted helices, density fits, Kabsch, the helices' 3 x 3
+  products; kernels pinned by chem_common.py) get a looser comparison where their bytes differ:
+  numbers within a relative 1e-6 and the decimals inside strings (PDB coordinates, notes) within one
+  unit of their last printed digit.
   Everything else must match exactly.
 
 Committed files without a generator (NOT_GENERATED: the hand-made project files, the golden
@@ -157,6 +161,19 @@ MACHINE_DEPENDENT_JSON_UNDER = ("tests/data/render/figures/", "tests/data/render
                                 # make_density_shadow_cases.py: placement / view products, kabsch's SVD
                                 "tests/data/render/density_shadow/")
 FLOAT_TOLERANCE = 1e-12
+# The chem generators' fitted and BLAS-dependent outputs (milestone 6, docs/specs/m6-plan.md 4.1 and
+# risk 3; chem_common.py pins the kernels as make_analysis_cases.py does): least-squares closures of
+# the rebuilt helices, Powell's path in the density fits (it follows every CC, i.e. BLAS dot products),
+# Kabsch's SVD of the mutations and the helices' 3 x 3 products. Where their bytes differ they are
+# compared as JSON with the same structure: numbers (and float.hex() strings) within FITTED_TOLERANCE
+# (relative, at least that much absolute), and the decimal numbers inside strings (PDB coordinates,
+# CCs, angles and distances in notes) within one unit of their last printed digit (D10: "within their
+# printed rounding"; the PDB columns' 0.001 Å) with the rest of the string equal. The .mrc maps of the
+# builder and density-fit steps are compared byte for byte (made without BLAS products).
+FITTED = {f"tests/data/chem/{n}" for n in ("annotate_cases.json", "dict_cases.json", "builder_cases.json",
+                                            "builder_fitted_cases.json", "density_fit_cases.json")}
+FITTED_TOLERANCE = 1e-6
+DECIMAL_RE = re.compile(r"-?\d+\.(\d+)")
 HEX_FLOAT_RE = re.compile(r"^-?0x[0-9a-f]\.[0-9a-f]+p[+-][0-9]+$")  # float.hex() of a finite float
 
 # files a generator writes that are deliberately not kept (tests/data/README.md)
@@ -235,6 +252,9 @@ def case_step(name, script, out, **kw):
     return Step(name, f"tests/parity/{script}", lambda ctx: [M(ctx), d(ctx, out)], [f"{DATA}/{out}"], **kw)
 
 
+BUILDER_MAPS = ("helix_moved", "strand_moved", "strand_nan")  # make_builder_cases.py's maps
+DENSITY_FIT_MAPS = ("fit_helix", "fit_unrelated", "fit_partial", "fit_nan", "fit_strand", "fit_demo")
+
 # In the order of tests/data/README.md, dependencies first.
 STEPS = [
     Step("unicode_tables", "tools/gen_unicode_tables.py", lambda ctx: [], ["src/core/unicode_tables.inc"],
@@ -309,8 +329,23 @@ STEPS = [
     case_step("analysis", "make_analysis_cases.py", "analysis"),
     case_step("export", "make_export_cases.py", "io/pdb/export"),          # uses the loader's files
     case_step("maps", "make_map_cases.py", "io/maps"),
+    # milestone 6: the chem layer (W0-A; improvements_chem.py applied, docs/specs/m6-plan.md 4.2): the
+    # PDB tools, annotation, dictionaries (with the synthetic dictionaries cli reads), the structure
+    # builder (with the maps cli's build fit reads) and the density fit (the demo frame through
+    # MDAnalysis); their numbers are compared within the chem tolerance (FITTED)
+    Step("pdbtools", "tests/parity/make_pdbtools_cases.py", lambda ctx: [M(ctx), d(ctx, "chem")],
+         [f"{DATA}/chem/pdbtools_cases.json"], pytest=True),
+    Step("annotate", "tests/parity/make_annotate_cases.py", lambda ctx: [M(ctx), d(ctx, "chem")],
+         [f"{DATA}/chem/annotate_cases.json"]),
+    Step("dict", "tests/parity/make_dict_cases.py", lambda ctx: [M(ctx), d(ctx, "chem")],
+         [f"{DATA}/chem/dict_cases.json", f"{DATA}/chem/dictionaries"], pytest=True),
+    Step("builder", "tests/parity/make_builder_cases.py", lambda ctx: [M(ctx), d(ctx, "chem")],
+         [f"{DATA}/chem/builder_cases.json", f"{DATA}/chem/builder_fitted_cases.json"]
+         + [f"{DATA}/chem/maps/{n}.mrc" for n in BUILDER_MAPS]),
+    Step("density_fit", "tests/parity/make_density_fit_cases.py", lambda ctx: [M(ctx), d(ctx, "chem")],
+         [f"{DATA}/chem/density_fit_cases.json"] + [f"{DATA}/chem/maps/{n}.mrc" for n in DENSITY_FIT_MAPS]),
     # the commands of the command line on files the steps above wrote (demo system, loader, export
-    # and map files, the parameter log of projects/)
+    # and map files, the parameter log of projects/, the chem steps' maps and dictionaries)
     Step("cli", "tests/parity/cli_parity.py", lambda ctx: ["--mdatk", M(ctx), "--write", d(ctx, "cli/cli_cases.json")],
          [f"{DATA}/cli/cli_cases.json"]),
     case_step("rigid", "make_rigid_cases.py", "rigid"),
@@ -318,7 +353,8 @@ STEPS = [
          [f"{DATA}/analysis/distance_cases.json"]),
     case_step("citations", "make_citation_cases.py", "citations"),
     case_step("cif", "make_cif_cases.py", "io/cif", pytest=True),
-    case_step("secstruct", "make_secstruct_cases.py", "chem"),
+    Step("secstruct", "tests/parity/make_secstruct_cases.py", lambda ctx: [M(ctx), d(ctx, "chem")],
+         [f"{DATA}/chem/secstruct_cases.json"]),
     # milestone-3 spec probes (docs/specs/m3-rmsd.md, m3-universe-notes.md): read the demo system,
     # the loader's files and the trajectories written above
     Step("rmsd", "tests/parity/make_rmsd_cases.py", lambda ctx: [M(ctx), d(ctx, "analysis")],
@@ -456,6 +492,65 @@ def numerically_equal(old: bytes, new: bytes) -> tuple[bool, str]:
 
     problem = walk(a, b, "$")
     return (False, problem) if problem else (True, f"largest relative difference {worst[0]:.1e} ({worst[1]})")
+
+
+def _strings_close(x: str, y: str) -> bool:
+    """FITTED strings: equal but for decimal numbers within one unit of their last printed digit (the
+    spaces before a number may differ with its sign, as in PDB columns)."""
+    a, b = DECIMAL_RE.split(x), DECIMAL_RE.split(y)
+    if len(a) != len(b):
+        return False
+    xs, ys = [m.group(0) for m in DECIMAL_RE.finditer(x)], [m.group(0) for m in DECIMAL_RE.finditer(y)]
+    texts_a, texts_b = a[0::2], b[0::2]  # (split also returns the captured digits)
+    if [t.rstrip(" ") for t in texts_a[:-1]] + texts_a[-1:] != [t.rstrip(" ") for t in texts_b[:-1]] + texts_b[-1:]:
+        return False
+    for p, q in zip(xs, ys):
+        digits = len(p.split(".")[1])
+        if len(q.split(".")[1]) != digits or abs(float(p) - float(q)) > 1.000001 * 10.0 ** -digits:
+            return False
+    return True
+
+
+def fitted_equal(old: bytes, new: bytes) -> tuple[bool, str]:
+    """JSON documents equal within the chem tolerance (FITTED); the reason when not."""
+    try:
+        a, b = json.loads(old), json.loads(new)
+    except ValueError as exc:
+        return False, f"not JSON: {exc}"
+    count = [0]
+
+    def walk(x, y, path):
+        if isinstance(x, str) and isinstance(y, str) and HEX_FLOAT_RE.match(x) and HEX_FLOAT_RE.match(y):
+            x, y = float.fromhex(x), float.fromhex(y)
+        if isinstance(x, str) and isinstance(y, str):
+            if x == y:
+                return None
+            count[0] += 1
+            return None if _strings_close(x, y) else f"{path}: strings differ beyond the last digit"
+        if isinstance(x, bool) or isinstance(y, bool) or not isinstance(x, (int, float)) \
+                or not isinstance(y, (int, float)):
+            if type(x) is not type(y):
+                return f"{path}: {x!r} / {y!r}"
+            if isinstance(x, list):
+                if len(x) != len(y):
+                    return f"{path}: {len(x)} / {len(y)} entries"
+                return next((r for r in (walk(p, q, f"{path}[{i}]") for i, (p, q) in enumerate(zip(x, y))) if r), None)
+            if isinstance(x, dict):
+                if list(x) != list(y):
+                    return f"{path}: keys {list(x)} / {list(y)}"
+                return next((r for r in (walk(x[k], y[k], f"{path}.{k}") for k in x) if r), None)
+            return None if x == y else f"{path}: {x!r} / {y!r}"
+        if isinstance(x, int) and isinstance(y, int):
+            return None if x == y else f"{path}: {x} / {y}"
+        if math.isnan(x) or math.isnan(y) or math.isinf(x) or math.isinf(y):
+            return None if repr(x) == repr(y) else f"{path}: {x!r} / {y!r}"
+        if x != y:
+            count[0] += 1
+        diff = abs(x - y) / max(1.0, abs(x), abs(y))
+        return None if diff <= FITTED_TOLERANCE else f"{path}: {x!r} / {y!r} (relative {diff:.1e})"
+
+    problem = walk(a, b, "$")
+    return (False, problem) if problem else (True, f"{count[0]} values within the chem tolerance")
 
 
 def lines_of(text: str) -> list[str]:
@@ -662,7 +757,13 @@ def main(argv=None) -> int:
         old, new = read(os.path.join(ROOT, rel)), read(os.path.join(root, rel))
         if old == new or normalised(rel, old) == normalised(rel, new):
             continue
-        if rel in MACHINE_DEPENDENT or (rel.endswith(".json") and rel.startswith(MACHINE_DEPENDENT_JSON_UNDER)):
+        if rel in FITTED:
+            ok, why = fitted_equal(old, new)
+            if ok:
+                tolerated.append((rel, why))
+                continue
+            print(f"(fitted {rel}: beyond the chem tolerance at {why})")
+        elif rel in MACHINE_DEPENDENT or (rel.endswith(".json") and rel.startswith(MACHINE_DEPENDENT_JSON_UNDER)):
             ok, why = numerically_equal(old, new)
             if ok:
                 tolerated.append((rel, why))
@@ -674,8 +775,9 @@ def main(argv=None) -> int:
     if not args.only:
         print("not generated, not compared: " + ", ".join(NOT_GENERATED))
     for rel, why in tolerated:
+        within = "the chem tolerance (FITTED)" if rel in FITTED else f"{FLOAT_TOLERANCE:g}"
         print(f"TOLERATED    {rel}: not byte-identical on this CPU (machine-dependent), numbers within "
-              f"{FLOAT_TOLERANCE:g}; {why}")
+              f"{within}; {why}")
     for rel in unaccounted:
         print(f"NO GENERATOR {rel} (committed, but written by no step; list it in NOT_GENERATED)")
     for rel in missing:

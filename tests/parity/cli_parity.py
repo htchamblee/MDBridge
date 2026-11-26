@@ -159,26 +159,43 @@ GROUPS = json.dumps([
 
 
 def case(name, argv, inputs=None, setup=None, exit_only=False, before=None, env=None, executable=None,
-         render=False):
+         render=False, needs=None, fitted=None):
     """inputs: work-folder path -> file of tests/data copied there; setup: path -> text written there
     ({work}: the folder); before: command lines run first in the folder; env: environment variables
-    of the runs ({work}: the folder; "" counts as unset for MDATK); executable: setup files made
-    executable; render: a render / charts / preview case (figures and videos compared by their
-    metadata, see RENDER below)."""
+    of the runs ({work}: the folder, {pubchem}: the PubChem stand-in server; "" counts as unset for
+    MDATK); executable: setup files made executable; render: a render / charts / preview case
+    (figures and videos compared by their metadata, see RENDER below); needs: the command the case
+    needs (default: its own, "pdb", "build", "dict", "density fit" ...; also the commands of
+    `before`), which makes it pending while that command is in PENDING; fitted: an absolute tolerance
+    for the numbers in the case's texts (fitted outputs: FITTED below)."""
     out = {"name": name, "argv": argv, "inputs": dict(inputs or {}), "setup": dict(setup or {}),
            "exit_only": exit_only, "before": list(before or []), "env": dict(env or {}),
            "executable": list(executable or [])}
     if render:
         out["render"] = True
-    if argv[:1] and argv[0] in PENDING:
+    wanted = [needs] if needs else []
+    wanted += [command_of(a) for a in [argv, *out["before"]]]
+    pending = sorted({w for w in wanted if w in PENDING})
+    if pending:
+        out["needs"] = pending
         out["pending"] = True
+    if fitted is not None:
+        out["fitted"] = fitted
     return out
 
 
-# Commands MDBridge does not have yet (milestone 5, W0-E: demo D13, clean D12, citations D14): their
-# cases are written (--write) and skipped when comparing (unless --include-pending) and by
-# tests/cli/test_commands.cpp ("pending": true). Remove a command here when it lands.
-PENDING = set()
+def command_of(argv):
+    """The command of a command line as PENDING names it: 'pdb', 'density fit', 'analyze' ..."""
+    if argv[:1] == ["density"] and len(argv) > 1:
+        return f"density {argv[1]}"
+    return argv[0] if argv else ""
+
+
+# Commands MDBridge does not have yet (milestone 6: the chem commands, docs/specs/m6-plan.md 1.6):
+# their cases are written (--write) and skipped when comparing (unless --include-pending) and by
+# tests/cli/test_commands.cpp ("pending": true; "needs" lists the missing commands). Remove a command
+# here when it lands.
+PENDING = {"pdb", "build", "dict", "density fit", "density simulate"}
 
 
 # `list` without conda installations, and with a fake one: an installation whose base and three
@@ -539,6 +556,348 @@ def map_cases():
                         {f"maps/{name}": f"{MAPS}/{name}"}, exit_only=name in DEVIATIONS))
     return out
 
+# ---- the chem commands (milestone 6: pdb, build, dict, density fit / simulate; CHEM) --------------
+# docs/specs/m6-plan.md 1.6 and 4.2: MDATK's tests' command lines first, then one case per option,
+# errors and -p step-log entries. The PDB inputs are built by `build helix` (`before`), the maps by
+# tests/parity/make_builder_cases.py (tests/data/chem/maps) or by `density simulate`. MDBridge's chem
+# improvements are patched into MDATK (improvements_chem.py: CH-01 ... CH-15, D7, D11 ... D13). `dict
+# pubchem` asks a stand-in for PubChem on 127.0.0.1 (PubchemStandIn below, owner decision D7) whose
+# root URL the runs get in MDBRIDGE_PUBCHEM_URL. Fitted outputs (rebuilt helices, density fits) are
+# compared with a tolerance on their numbers (`fitted`: absolute, D10: 0.05 Å per atom for the
+# non-Watson-Crick helices, 0.6 for the fits, which covers 0.5° / 0.2 Å and CC 1e-3).
+CONECT_PDB = """ATOM      1  P     G A   1       2.314   1.777  -0.478  1.00  0.00           P
+ATOM      2  O5'   G A   1       2.994   2.142   0.923  1.00  0.00           O
+ATOM      3  C1'   G A   1       4.559   1.151   3.778  1.00  0.00           C
+TER       4        G A   1
+HETATM    5 MG    MG B   1      10.000  10.000  10.000  1.00  0.00          MG
+TER       6       MG B   1
+CONECT    1    2
+CONECT    2    1    3
+CONECT    5    9
+END
+"""
+P_PROJECT = 'format = "mdatk-project"\nnotes = "step log of the chem commands"\n'
+P = ["-p", "p.mdatk.toml"]
+P_SETUP = {"p.mdatk.toml": P_PROJECT}
+DUPLEX = [["build", "helix", "--seq", "GGCAUGCC", "-o", "duplex.pdb"]]
+L_DUPLEX = [["build", "helix", "--seq", "GGCAUGCC", "--chirality", "L", "-o", "l.pdb"]]
+H_DUPLEX = [["build", "helix", "--seq", "GGCAUCG", "--hydrogens", "-o", "h.pdb"]]
+P5 = [["build", "helix", "--seq", "GCAU", "--phosphate5", "--hydrogens", "-o", "p5.pdb"]]
+STRAND = [["build", "helix", "--seq", "GGCAU", "--partner", "none", "-o", "strand.pdb"]]
+ACEDRG = {"acedrg.cif": "chem/dictionaries/0A5_acedrg.cif"}  # make_dict_cases.py
+ELBOW = {"elbow.cif": "chem/dictionaries/0U3_elbow.cif"}
+STRAND_MAP = {"strand_moved.mrc": "chem/maps/strand_moved.mrc", "strand_nan.mrc": "chem/maps/strand_nan.mrc"}
+DENSITY_PROJECT = """format = "mdatk-project"
+
+[inputs]
+topology = "demo_dry.parm7"
+trajectories = ["demo_dry.nc"]
+step = 5
+
+[output]
+out_dir = "results"
+timestamp_files = false
+"""
+DP = ["-p", "demo.mdatk.toml"]
+SIMULATE = [["density", "simulate", *DP, "--resolution", "6", "-O", "sim.mrc", "-q"]]
+PUBCHEM_ENV = {"MDBRIDGE_PUBCHEM_URL": "{pubchem}", "no_proxy": "127.0.0.1,localhost", "NO_PROXY": "127.0.0.1,localhost"}
+D_ADENOSINE = "C1=NC(=C2C(=N1)N(C=N2)[C@H]3[C@@H]([C@@H]([C@H](O3)CO)O)O)N"  # tests/test_dictionaries.py
+L_ADENOSINE = "C1=NC(=C2C(=N1)N(C=N2)[C@@H]3[C@H]([C@H]([C@@H](O3)CO)O)O)N"
+# the stand-in's answers: (compound path, property) -> (HTTP status, body, seconds to wait first)
+PUBCHEM_ANSWERS = {
+    ("cid/1001", "SMILES"): (200, {"PropertyTable": {"Properties": [{"CID": 1001, "SMILES": L_ADENOSINE}]}}, 0),
+    ("name/L-adenosine", "SMILES"): (400, {"Fault": {"Code": "PUGREST.BadRequest"}}, 0),
+    ("name/L-adenosine", "IsomericSMILES"): (200, {"PropertyTable": {"Properties": [
+        {"CID": 1001, "IsomericSMILES": L_ADENOSINE}]}}, 0),
+    ("name/D-adenosine", "SMILES"): (200, {"PropertyTable": {"Properties": [{"CID": 60961, "SMILES": D_ADENOSINE}]}}, 0),
+    ("name/ethanol", "SMILES"): (200, {"PropertyTable": {"Properties": [{"CID": 702, "SMILES": "CCO"}]}}, 0),
+    ("cid/500", "SMILES"): (500, "server failure", 0),
+    ("name/garbage", "SMILES"): (200, "not json", 0),
+    ("name/empty", "SMILES"): (200, {"PropertyTable": {"Properties": [{"CID": 1}]}}, 0),
+    ("name/empty", "IsomericSMILES"): (200, {"PropertyTable": {"Properties": [{"CID": 1}]}}, 0),
+    ("name/slow", "SMILES"): (200, {"PropertyTable": {"Properties": [{"CID": 2, "SMILES": "C"}]}}, 3.0),
+}
+
+
+class PubchemStandIn:
+    """PUG REST on 127.0.0.1 for `dict pubchem` (D7): GET {root}/compound/<cid/N | name/NAME>/property/
+    <PROP>/JSON answers from PUBCHEM_ANSWERS, anything else 404. Started by main() when a selected case
+    uses {pubchem}; the cases name the root URL in MDBRIDGE_PUBCHEM_URL."""
+
+    def __init__(self):
+        import http.server
+        import threading
+        import urllib.parse
+        import time
+
+        answers = PUBCHEM_ANSWERS
+
+        class Handler(http.server.BaseHTTPRequestHandler):
+            def do_GET(self):  # noqa: N802 - http.server's name
+                path = urllib.parse.urlsplit(self.path).path
+                m = re.match(r"^/rest/pug/compound/((?:cid|name)/[^/]+)/property/([^/]+)/JSON$", path)
+                key = (urllib.parse.unquote(m.group(1)), m.group(2)) if m else None
+                status, body, wait = answers.get(key, (404, {"Fault": {"Code": "PUGREST.NotFound"}}, 0))
+                time.sleep(wait)
+                raw = (body if isinstance(body, str) else json.dumps(body)).encode("utf-8")
+                try:
+                    self.send_response(status)
+                    self.send_header("Content-Type", "application/json")
+                    self.send_header("Content-Length", str(len(raw)))
+                    self.end_headers()
+                    self.wfile.write(raw)
+                except OSError:  # the client gave up (the timeout case)
+                    pass
+
+            def log_message(self, *args):
+                pass
+
+        self.server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        self.server.daemon_threads = True
+        self.url = f"http://127.0.0.1:{self.server.server_address[1]}/rest/pug"
+        threading.Thread(target=self.server.serve_forever, daemon=True).start()
+
+    def close(self):
+        self.server.shutdown()
+        self.server.server_close()
+
+
+PUBCHEM = {"url": "http://127.0.0.1:9/rest/pug"}  # replaced by main() with the running stand-in's root
+
+
+def chem_case(name, argv, before=None, setup=None, inputs=None, **kw):
+    return case(name, argv, inputs, setup, before=before, **kw)
+
+
+def pdb_cases():
+    clean = ["pdb", "clean"]
+    return [
+        chem_case("pdb_clean_stdout", [*clean, "duplex.pdb"], DUPLEX),
+        chem_case("pdb_clean_amber_renumber", [*clean, "l.pdb", "--scheme", "amber", "--renumber", "-o", "out.pdb"],
+                  L_DUPLEX),
+        chem_case("pdb_clean_ccd_seqres_fasta", [*clean, "l.pdb", "--scheme", "ccd", "--seqres", "--fasta", "seq.fa",
+                                                 "-o", "out.pdb"], L_DUPLEX),
+        chem_case("pdb_clean_rosetta", [*clean, "l.pdb", "--scheme", "rosetta", "-o", "out.pdb"], L_DUPLEX),
+        chem_case("pdb_clean_pdb_records", [*clean, "l.pdb", "--scheme", "pdb", "--records", "keep", "-o", "out.pdb"],
+                  L_DUPLEX),
+        chem_case("pdb_clean_records_pdb", [*clean, "l.pdb", "--records", "pdb", "-o", "out.pdb"], L_DUPLEX),
+        chem_case("pdb_clean_no_terminal_names", [*clean, "duplex.pdb", "--scheme", "amber", "--no-terminal-names",
+                                                  "-o", "out.pdb"], DUPLEX),
+        chem_case("pdb_clean_keep_conect", [*clean, "c.pdb", "--keep-conect", "-o", "out.pdb"],
+                  setup={"c.pdb": CONECT_PDB}),
+        chem_case("pdb_clean_strip_conect", [*clean, "c.pdb", "-o", "out.pdb"], setup={"c.pdb": CONECT_PDB}),
+        chem_case("pdb_clean_keep_conect_repeated_serials", [*clean, "r.pdb", "--keep-conect", "-o", "out.pdb"],
+                  setup={"r.pdb": CONECT_PDB.replace("END\n", "") + CONECT_PDB.replace("CONECT", "REMARK")}),  # CH-04
+        chem_case("pdb_clean_no_detect", [*clean, "l.pdb", "--no-detect", "--scheme", "amber", "-o", "out.pdb"],
+                  L_DUPLEX),
+        chem_case("pdb_clean_l_ranges", [*clean, "duplex.pdb", "--l-ranges", "B", "--scheme", "amber", "-o", "out.pdb"],
+                  DUPLEX),
+        chem_case("pdb_clean_l_ranges_reversed", [*clean, "duplex.pdb", "--l-ranges", "A:4-1"], DUPLEX),  # CH-15
+        chem_case("pdb_clean_l_ranges_unreadable", [*clean, "duplex.pdb", "--l-ranges", "A:x"], DUPLEX),
+        chem_case("pdb_clean_chain_ids", [*clean, "duplex.pdb", "--chain-ids", "X,Y", "-o", "out.pdb"], DUPLEX),
+        chem_case("pdb_clean_chain_ids_count", [*clean, "duplex.pdb", "--chain-ids", "X"], DUPLEX),
+        chem_case("pdb_clean_assign_chains", [*clean, "duplex.pdb", "--assign-chains", "--split-segments", "-o",
+                                              "out.pdb"], DUPLEX),
+        chem_case("pdb_clean_chain_reference", [*clean, "duplex.pdb", "--chain-reference", "l.pdb", "--copy-numbers",
+                                                "-o", "out.pdb"], DUPLEX + L_DUPLEX),
+        chem_case("pdb_clean_chain_reference_missing", [*clean, "duplex.pdb", "--chain-reference", "nope.pdb"],
+                  DUPLEX),  # CH-13
+        chem_case("pdb_clean_split_at", [*clean, "duplex.pdb", "--split-at", "A:4", "--sort-chains", "-o", "out.pdb"],
+                  DUPLEX),
+        chem_case("pdb_clean_combine", [*clean, "duplex.pdb", "--combine", "A,B", "--combine-into", "Z", "--renumber",
+                                        "--per-chain", "-o", "out.pdb"], DUPLEX),
+        chem_case("pdb_clean_combine_into_two_letters", [*clean, "duplex.pdb", "--combine", "A,B", "--combine-into",
+                                                         "XY"], DUPLEX),  # CH-03
+        chem_case("pdb_clean_renumber_options", [*clean, "duplex.pdb", "--renumber", "--start", "5", "--per-chain",
+                                                 "--keep-gaps", "-o", "out.pdb"], DUPLEX),
+        chem_case("pdb_clean_renumber_below_columns", [*clean, "duplex.pdb", "--renumber", "--start=-2000"], DUPLEX),
+        chem_case("pdb_clean_renumber_wrap", [*clean, "duplex.pdb", "--renumber", "--start", "9995", "-o", "out.pdb"],
+                  DUPLEX),
+        chem_case("pdb_clean_strip_5p", [*clean, "p5.pdb", "--scheme", "amber", "--strip-5p", "-o", "out.pdb"], P5),
+        chem_case("pdb_clean_amber_phosphate_warning", [*clean, "p5.pdb", "--scheme", "amber", "-o", "out.pdb"], P5),
+        chem_case("pdb_clean_step_log", [*clean, "l.pdb", "--scheme", "amber", "-o", "out.pdb", *P], L_DUPLEX,
+                  P_SETUP),
+        chem_case("pdb_clean_missing", [*clean, "missing.pdb"]),  # CH-13
+        chem_case("pdb_clean_folder", [*clean, "."]),
+        chem_case("pdb_clean_not_pdb", [*clean, "x.txt"], setup={"x.txt": "nothing here\n"}),
+        chem_case("pdb_clean_bad_scheme", [*clean, "x.pdb", "--scheme", "charmm"], exit_only=True),
+        chem_case("pdb_check", ["pdb", "check", "l.pdb"], L_DUPLEX),
+        chem_case("pdb_check_l_ranges", ["pdb", "check", "duplex.pdb", "--l-ranges", "A:1-2"], DUPLEX),
+        chem_case("pdb_check_missing", ["pdb", "check", "missing.pdb"]),
+        chem_case("pdb_to_lrna", ["pdb", "to-lrna", "duplex.pdb", "A:3-4, B"], DUPLEX),
+        chem_case("pdb_to_lrna_ccd", ["pdb", "to-lrna", "duplex.pdb", "B", "--scheme", "ccd", "--no-terminal-names",
+                                      "-o", "out.pdb", *P], DUPLEX, P_SETUP),
+        chem_case("pdb_to_lrna_no_ranges", ["pdb", "to-lrna", "duplex.pdb"], DUPLEX, exit_only=True),
+        chem_case("pdb_annotate", ["pdb", "annotate", "duplex.pdb", "-o", "ann.pdb"], DUPLEX),
+        chem_case("pdb_annotate_l", ["pdb", "annotate", "l.pdb", "-o", "ann.pdb", "--engine", "builtin"], L_DUPLEX),
+        chem_case("pdb_annotate_barnaba", ["pdb", "annotate", "duplex.pdb", "-o", "ann.pdb", "--engine", "barnaba"],
+                  DUPLEX),  # CH-14
+        chem_case("pdb_annotate_options", ["pdb", "annotate", "duplex.pdb", "-o", "ann.pdb", "--no-pairs",
+                                           "--no-stacking", "--no-dotbracket"], DUPLEX),
+        chem_case("pdb_annotate_step_log", ["pdb", "annotate", "duplex.pdb", "-o", "ann.pdb", *P], DUPLEX, P_SETUP),
+        chem_case("pdb_annotate_missing", ["pdb", "annotate", "missing.pdb", "-o", "ann.pdb"]),  # CH-13
+        chem_case("pdb_annotate_no_output", ["pdb", "annotate", "duplex.pdb"], DUPLEX, exit_only=True),
+        chem_case("pdb_no_action", ["pdb"], exit_only=True),
+    ]
+
+
+def build_cases():
+    helix = ["build", "helix"]
+    return [
+        chem_case("build_helix", [*helix, "--seq", "GGCAUGCC", "-o", "h.pdb"]),
+        chem_case("build_helix_l", [*helix, "--seq", "GGCAUGCC", "--chirality", "L", "-o", "h.pdb"]),
+        chem_case("build_helix_single", [*helix, "--seq", "GGACU", "--partner", "none", "--chains", "C", "--start",
+                                         "10", "-o", "h.pdb"]),
+        chem_case("build_helix_mismatch", [*helix, "--seq", "GGCAU", "--partner", "AAGCU", "-o", "h.pdb"]),
+        chem_case("build_helix_wobble", [*helix, "--sequence", "GGUAGCC", "--partner", "GGUUAUC", "-o", "h.pdb"]),
+        chem_case("build_helix_amber", [*helix, "--seq", "GCAU", "--scheme", "amber", "--hydrogens", "--phosphate5",
+                                        "-o", "h.pdb"]),
+        chem_case("build_helix_ccd_no_terminals", [*helix, "--seq", "GCAU", "--chirality", "L", "--scheme", "ccd",
+                                                   "--no-terminal-names", "-o", "h.pdb"]),
+        chem_case("build_helix_chains_start", [*helix, "--seq", "GGCAU", "--chains", "X,Y", "--start=-5,20", "-o",
+                                               "h.pdb"]),
+        chem_case("build_helix_start_below_columns", [*helix, "--seq", "GGCAU", "--start=-1002,1", "-o", "h.pdb"]),
+        chem_case("build_helix_start_wrap", [*helix, "--seq", "GGCAU", "--start", "9998,1", "-o", "h.pdb"]),  # CH-02
+        chem_case("build_helix_hh", [*helix, "--seq", "AAAAAAAA", "--pairing", "hh", "-o", "h.pdb"], fitted=0.05),
+        chem_case("build_helix_reverse_wc", [*helix, "--seq", "GAUCAGUAGC", "--pairing", "reverse-wc", "-o", "h.pdb"],
+                  fitted=0.05),
+        chem_case("build_helix_triplex", [*helix, "--seq", "AAGAGAAGGA", "--triplex", "hoogsteen", "--chains", "P,Q,R",
+                                          "-o", "h.pdb"], fitted=0.05),
+        chem_case("build_helix_step_log", [*helix, "--seq", "GGCAU", "-o", "h.pdb", *P], setup=P_SETUP),
+        chem_case("build_helix_step_log_pairing", [*helix, "--seq", "AAGA", "--partner", "UUUU", "--pairing",
+                                                   "hoogsteen", "-o", "h.pdb", *P], setup=P_SETUP, fitted=0.05),
+        chem_case("build_helix_bad_sequence", [*helix, "--seq", "GGXCU", "-o", "h.pdb"]),
+        chem_case("build_helix_bad_partner", [*helix, "--seq", "GGACU", "--partner", "AGU", "-o", "h.pdb"]),
+        chem_case("build_helix_triplex_single", [*helix, "--seq", "AAGAG", "--partner", "none", "--triplex",
+                                                 "hoogsteen", "-o", "h.pdb"]),
+        chem_case("build_helix_same_chains", [*helix, "--seq", "GGC", "--chains", "A,A", "-o", "h.pdb"]),
+        chem_case("build_helix_no_output", [*helix, "--seq", "GGC"], exit_only=True),
+        chem_case("build_mutate", ["build", "mutate", "duplex.pdb", "A:2U", "-o", "m.pdb"], DUPLEX),
+        chem_case("build_mutate_hydrogens", ["build", "mutate", "h.pdb", "A:1C, A:4G", "-o", "m.pdb"], H_DUPLEX),  # D11
+        chem_case("build_mutate_options", ["build", "mutate", "duplex.pdb", "A:2U", "--no-compensatory", "--wobble",
+                                           "-o", "m.pdb"], DUPLEX),
+        chem_case("build_mutate_l", ["build", "mutate", "l.pdb", "B:3G", "-o", "m.pdb", *P], L_DUPLEX, P_SETUP),
+        chem_case("build_mutate_no_chain", ["build", "mutate", "s.pdb", "12G", "-o", "m.pdb"],
+                  [["build", "helix", "--seq", "GGCAUCGAUCGGAUC", "--partner", "none", "--chains", " ", "-o",
+                    "s.pdb"]]),  # CH-08: residue 12 of the blank chain
+        chem_case("build_mutate_no_chain_13", ["build", "mutate", "s.pdb", "13G", "-o", "m.pdb"],
+                  [["build", "helix", "--seq", "GGCAUCGAUCGGAUC", "--partner", "none", "--chains", " ", "-o",
+                    "s.pdb"]]),
+        chem_case("build_mutate_not_found", ["build", "mutate", "duplex.pdb", "A:99G", "-o", "m.pdb"], DUPLEX),
+        chem_case("build_mutate_bad_spec", ["build", "mutate", "duplex.pdb", "A5", "-o", "m.pdb"], DUPLEX),
+        chem_case("build_mutate_missing", ["build", "mutate", "missing.pdb", "A:2U", "-o", "m.pdb"]),  # CH-13
+        chem_case("build_fit_local", ["build", "fit", "strand.pdb", "strand_moved.mrc", "--resolution", "4",
+                                      "--search", "local", "-o", "fit.pdb"], STRAND, inputs=STRAND_MAP, fitted=0.6),
+        chem_case("build_fit_global", ["build", "fit", "strand.pdb", "strand_moved.mrc", "--resolution", "4", "--step",
+                                       "45", "-o", "fit.pdb", *P], STRAND, P_SETUP, STRAND_MAP, fitted=0.6),
+        chem_case("build_fit_nan_voxel", ["build", "fit", "strand.pdb", "strand_nan.mrc", "--resolution", "4",
+                                          "--search", "local", "-o", "fit.pdb"], STRAND, inputs=STRAND_MAP,
+                  fitted=0.6),  # CH-11
+        chem_case("build_fit_resolution_nan", ["build", "fit", "strand.pdb", "strand_moved.mrc", "--resolution", "nan",
+                                               "-o", "fit.pdb"], STRAND, inputs=STRAND_MAP),  # CH-10
+        chem_case("build_fit_resolution_zero", ["build", "fit", "strand.pdb", "strand_moved.mrc", "--resolution", "0",
+                                                "-o", "fit.pdb"], STRAND, inputs=STRAND_MAP),
+        chem_case("build_fit_missing_map", ["build", "fit", "strand.pdb", "nope.mrc", "--resolution", "4", "-o",
+                                            "fit.pdb"], STRAND),
+        chem_case("build_fit_missing_model", ["build", "fit", "nope.pdb", "strand_moved.mrc", "--resolution", "4",
+                                              "-o", "fit.pdb"], inputs=STRAND_MAP),  # CH-13
+        chem_case("build_fit_no_resolution", ["build", "fit", "strand.pdb", "strand_moved.mrc", "-o", "fit.pdb"],
+                  STRAND, inputs=STRAND_MAP, exit_only=True),
+        chem_case("build_no_action", ["build"], exit_only=True),
+    ]
+
+
+def dict_cases():
+    pub = ["dict", "pubchem"]
+    return [
+        chem_case("dict_list", ["dict", "list"]),
+        chem_case("dict_list_json", ["dict", "list", "--json"]),
+        chem_case("dict_smiles", ["dict", "smiles", "0A5"]),
+        chem_case("dict_smiles_leaving", ["dict", "smiles", "0g3"]),
+        chem_case("dict_smiles_unknown", ["dict", "smiles", "XYZ"]),
+        chem_case("dict_finish", ["dict", "finish", "acedrg.cif", "--code", "0A5", "-o", "0A5.cif"], inputs=ACEDRG),
+        chem_case("dict_finish_options", ["dict", "finish", "elbow.cif", "--code", "0U3", "-o", "0U3.cif", "--group",
+                                          "non-polymer", "--name", "my uridine", *P], setup=P_SETUP, inputs=ELBOW),
+        chem_case("dict_finish_keep_names", ["dict", "finish", "acedrg.cif", "--code", "XY1", "--keep-names", "-o",
+                                             "XY1.cif"], inputs=ACEDRG),
+        chem_case("dict_finish_folder", ["dict", "finish", "out", "--code", "0A5", "-o", "0A5.cif"],
+                  inputs={"out/x.cif": ACEDRG["acedrg.cif"]}),
+        chem_case("dict_finish_wrong_compound", ["dict", "finish", "acedrg.cif", "--code", "0G5", "-o", "0G5.cif"],
+                  inputs=ACEDRG),
+        chem_case("dict_finish_missing", ["dict", "finish", "nope.cif", "--code", "0A5", "-o", "0A5.cif"]),
+        chem_case("dict_finish_no_code", ["dict", "finish", "nope.cif", "-o", "x.cif"], exit_only=True),
+        chem_case("dict_pubchem_cid", [*pub, "1001"], env=PUBCHEM_ENV),
+        chem_case("dict_pubchem_old_property", [*pub, "L-adenosine", "--code", "0A5"], env=PUBCHEM_ENV),
+        chem_case("dict_pubchem_wrong_hand", [*pub, "D-adenosine", "--code", "0a5"], env=PUBCHEM_ENV),
+        chem_case("dict_pubchem_no_match", [*pub, "ethanol"], env=PUBCHEM_ENV),
+        chem_case("dict_pubchem_not_found", [*pub, "nothing"], env=PUBCHEM_ENV),
+        chem_case("dict_pubchem_server_error", [*pub, "500"], env=PUBCHEM_ENV),
+        chem_case("dict_pubchem_unreadable", [*pub, "garbage"], env=PUBCHEM_ENV),
+        chem_case("dict_pubchem_no_smiles", [*pub, "empty"], env=PUBCHEM_ENV),
+        chem_case("dict_pubchem_timeout", [*pub, "slow", "--timeout", "0.5"], env=PUBCHEM_ENV),
+        chem_case("dict_pubchem_empty_name", [*pub, " "], env=PUBCHEM_ENV),
+        # the error names the operating system's reason, which Qt words differently: exit status only
+        chem_case("dict_pubchem_unreachable", [*pub, "1001"], env={**PUBCHEM_ENV, "MDBRIDGE_PUBCHEM_URL":
+                                                                   "http://127.0.0.1:9/rest/pug"}, exit_only=True),
+        chem_case("dict_no_action", ["dict"], exit_only=True),
+    ]
+
+
+def density_chem_cases():
+    demo = {"demo.mdatk.toml": DENSITY_PROJECT}
+    fit = ["density", "fit", *DP]
+    sim = ["density", "simulate", *DP]
+    return [
+        chem_case("density_simulate", [*sim, "--resolution", "6", "-O", "sim.mrc"], inputs=DEMO, setup=demo),
+        chem_case("density_simulate_options", [*sim, "--resolution", "5", "--spacing", "2", "--frame", "3", "-O",
+                                               "sim5.mrc", "-q"], inputs=DEMO, setup=demo),
+        chem_case("density_simulate_missing_folder", [*sim, "--resolution", "5", "-O", "out/sim.mrc"], inputs=DEMO,
+                  setup=demo),
+        chem_case("density_simulate_spacing_negative", [*sim, "--resolution", "6", "--spacing", "-1", "-O", "s.mrc"],
+                  inputs=DEMO, setup=demo),  # CH-10
+        chem_case("density_simulate_resolution_nan", [*sim, "--resolution", "nan", "-O", "s.mrc"], inputs=DEMO,
+                  setup=demo),  # CH-10
+        chem_case("density_simulate_placed_without_fit", [*sim, "--resolution", "6", "--placed", "-O", "s.mrc"],
+                  inputs=DEMO, setup=demo),
+        chem_case("density_simulate_frame_outside", [*sim, "--resolution", "6", "--frame", "999", "-O", "s.mrc"],
+                  inputs=DEMO, setup=demo),
+        chem_case("density_simulate_no_resolution", [*sim, "-O", "s.mrc"], inputs=DEMO, setup=demo, exit_only=True),
+        chem_case("density_fit_manual", [*fit, "--map", "sim.mrc", "--resolution", "6", "--search", "manual",
+                                          "--frame", "3"], SIMULATE, demo, DEMO, fitted=0.6),
+        chem_case("density_fit_global", [*fit, "--map", "sim.mrc", "--resolution", "6", "--step", "45", "--frame",
+                                          "3", "--level", "1.5"], SIMULATE, demo, DEMO, fitted=0.6),
+        chem_case("density_fit_save", [*fit, "--map", "sim.mrc", "--resolution", "6", "--search", "manual", "--save"],
+                  SIMULATE, demo, DEMO, fitted=0.6),  # CH-12
+        chem_case("density_fit_save_as", [*fit, "--map", "sim.mrc", "--resolution", "6", "--search", "manual",
+                                          "--save", "other/placed.mdatk.toml"], SIMULATE, demo, DEMO,
+                  fitted=0.6),  # CH-12: Save As rebases
+        chem_case("density_fit_then_placed", [*sim, "--resolution", "6", "--placed", "-O", "placed.mrc"],
+                  SIMULATE + [[*fit, "--map", "sim.mrc", "--resolution", "6", "--search", "manual", "--save", "-q"]],
+                  demo, DEMO, fitted=0.6),
+        chem_case("density_fit_no_map", [*fit, "--resolution", "6"], inputs=DEMO, setup=demo),
+        chem_case("density_fit_resolution_nan", [*fit, "--map", "sim.mrc", "--resolution", "nan"], SIMULATE, demo,
+                  DEMO),  # CH-10
+        chem_case("density_fit_resolution_negative", [*fit, "--map", "sim.mrc", "--resolution", "-1"], SIMULATE, demo,
+                  DEMO),
+        chem_case("density_fit_missing_map", [*fit, "--map", "nope.mrc", "--resolution", "6"], inputs=DEMO,
+                  setup=demo),
+        chem_case("density_fit_save_without_project", ["density", "fit", *DEMO_RUN, "--map", "sim.mrc",
+                                                       "--resolution", "6", "--search", "manual", "--save"],
+                  SIMULATE, demo, DEMO),
+        chem_case("density_fit_bad_search", [*fit, "--search", "both"], inputs=DEMO, setup=demo, exit_only=True),
+        # render with a map and auto_fit: the fit before the video (Density fit: ... in the log, not M4's D9 warning)
+        case("render_density_auto_fit", ["render", *RP, "--no-charts"], DEMO,
+             {"demo.mdatk.toml": RENDER_PROJECT + '\n[density]\nmap_path = "sim.mrc"\nresolution = 6.0\n'
+                                                  'show = true\nauto_fit = true\nangular_step = 45.0\n',
+              "sim.mdatk.toml": DENSITY_PROJECT},
+             before=[["density", "simulate", "-p", "sim.mdatk.toml", "--resolution", "6", "-O", "sim.mrc", "-q"]],
+             render=True, needs="density fit", fitted=0.6),
+    ]
+
+
+def chem_cases():
+    return [*pdb_cases(), *build_cases(), *dict_cases(), *density_chem_cases()]
+
 
 CASES = [
     # ---- init / init-params
@@ -722,6 +1081,9 @@ CASES = [
 
     # ---- demo, clean, citations (milestone 5: D13, D12, D14)
     *demo_clean_citation_cases(),
+
+    # ---- pdb, build, dict, density fit / simulate (milestone 6, pending until they land)
+    *chem_cases(),
 ]
 
 STAMP_RE = re.compile(r"\d{4}-\d{2}-\d{2}_\d{6}")
@@ -746,7 +1108,9 @@ TRACEBACK = "Traceback (most recent call last):"
 NAMING = [("JSON presets are no longer supported; MDATK 0.0.4.1 uses TOML project files",
            "JSON presets are no longer supported; MDBridge uses TOML project files"),
           ("Run 'mdatk analyze' to list the keys of a system.", "Run 'mdbridge analyze' to list the keys of a system."),
-          ("\nNext: mdatk render -p ", "\nNext: mdbridge render -p "), ("   (or: mdatk gui ", "   (or: mdbridge gui ")]
+          ("\nNext: mdatk render -p ", "\nNext: mdbridge render -p "), ("   (or: mdatk gui ", "   (or: mdbridge gui "),
+          # the chem layer (improvements_chem.NAMING)
+          ("'mdatk pdb clean'", "'mdbridge pdb clean'"), ("'mdatk density fit --save'", "'mdbridge density fit --save'")]
 # the analysis cache: keys in names and messages, file names, the float tolerance of .npz arrays
 CACHE_KEY_RE = re.compile(r"-[0-9a-f]{16}(?=\)|(\.mdbridge)?\.(npz|json)\b)")
 MANIFEST_RE = re.compile(r"\b(MDATK|MDBridge)_cache\.json\b")
@@ -779,7 +1143,7 @@ def prepare(case_, folder):
 
 
 def case_env(case_, folder):
-    return {k: with_work(v, folder) for k, v in case_["env"].items()}
+    return {k: with_work(v, folder).replace("{pubchem}", PUBCHEM["url"]) for k, v in case_["env"].items()}
 
 
 def normalise(text, folder):
@@ -889,8 +1253,9 @@ def read_npz(data):
     return out
 
 
-def file_entry(rel, data, folder, mask=None):
-    """mask: a further normalisation of a text file's text (before a large file is hashed)."""
+def file_entry(rel, data, folder, mask=None, limit=LIMIT):
+    """mask: a further normalisation of a text file's text (before a large file is hashed); limit: the
+    largest text kept as text (None: any; the fitted cases' files are compared with a tolerance)."""
     if rel.endswith("/" + CLEAN_MARKER):  # clean's marker: as JSON, time / version / project masked
         return {"json": masked_cache_json(json.loads(data.decode("utf-8")), folder)}
     if is_cache_file(rel):
@@ -906,7 +1271,7 @@ def file_entry(rel, data, folder, mask=None):
     text = SAVED_RE.sub("saved = {time}", normalise(text, folder))
     if mask is not None:
         text = mask(text)
-    if len(text.encode("utf-8")) <= LIMIT:
+    if limit is None or len(text.encode("utf-8")) <= limit:
         return {"text": text}
     raw = text.encode("utf-8")
     return {"sha256": hashlib.sha256(raw).hexdigest(), "size": len(raw)}
@@ -978,11 +1343,17 @@ def render_file_entry(rel, data, full, folder):
                       lambda text: LOG_DURATION_RE.sub("duration_s = 0.0", LOG_TIME_RE.sub("time = {time}", text)))
 
 
-def written_entry(rel, datas, folder):
+def written_entry(rel, datas, folder, mask=None, limit=LIMIT):
     """file_entry, or {"several": [file_entry, ...]} (in a fixed order) for several cache entries."""
     if len(datas) == 1:
-        return file_entry(rel, datas[0], folder)
-    return {"several": sorted((file_entry(rel, d, folder) for d in datas), key=lambda e: json.dumps(e, sort_keys=True))}
+        return file_entry(rel, datas[0], folder, mask, limit)
+    return {"several": sorted((file_entry(rel, d, folder, mask, limit) for d in datas),
+                              key=lambda e: json.dumps(e, sort_keys=True))}
+
+
+def step_log_mask(text):
+    """The step log's time and duration masked."""
+    return LOG_DURATION_RE.sub("duration_s = 0.0", LOG_TIME_RE.sub("time = {time}", text))
 
 
 def result(case_, folder, code, stdout, stderr, before):
@@ -999,7 +1370,10 @@ def result(case_, folder, code, stdout, stderr, before):
                          else render_file_entry(rel, data[0], paths[rel], folder))
                    for rel, data in files.items()}
     else:
-        written = {rel: written_entry(rel, data, folder) for rel, data in files.items()}
+        # the chem cases (needs): the step log's time masked; fitted ones: texts kept whole
+        mask = step_log_mask if case_.get("needs") else None
+        limit = None if case_.get("fitted") is not None else LIMIT
+        written = {rel: written_entry(rel, data, folder, mask, limit) for rel, data in files.items()}
     return {"exit": code, "stdout": normalise(stdout, folder), "stderr": normalise(stderr, folder),
             "written": written,
             "before_exits": before,
@@ -1057,6 +1431,9 @@ def child(mdatk, jobs_file, results_file):
     import improvements_citations
 
     improvements_citations.apply_mdatk()  # MDBridge's citations (CIT-01, CIT-02; params and step logs)
+    import improvements_chem
+
+    improvements_chem.apply_cli()  # the chem layer's improvements (CH-01 ... CH-15, D7, D11 ... D13)
     from mdatk import cli
     import citations_command
 
@@ -1083,14 +1460,20 @@ def child(mdatk, jobs_file, results_file):
         jobs = json.load(fh)
     results = []
     start = os.getcwd()
-    for argv, folder, before, env in jobs:
-        saved = dict(os.environ)
+    for argv, folder, before, env, *rest in jobs:
+        saved, saved_argv = dict(os.environ), sys.argv
         os.environ.update(env)
         os.chdir(folder)
         try:
-            exits = [run(b)[0] for b in before]
+            set_argv = rest and rest[0]  # the chem commands log their command line (sys.argv) in the step log
+            exits = []
+            for b in before:
+                sys.argv = ["mdatk", *b] if set_argv else saved_argv
+                exits.append(run(b)[0])
+            sys.argv = ["mdatk", *argv] if set_argv else saved_argv
             results.append([*run(argv), exits])
         finally:
+            sys.argv = saved_argv
             os.chdir(start)
             os.environ.clear()
             os.environ.update(saved)
@@ -1103,7 +1486,7 @@ def run_mdatk(cases, root, mdatk, python):
     for c in cases:
         folder = os.path.join(root, "mdatk", c["name"])
         prepare(c, folder)
-        jobs.append([c["argv"], folder, c["before"], case_env(c, folder)])
+        jobs.append([c["argv"], folder, c["before"], case_env(c, folder), bool(c.get("needs"))])
     jobs_file, results_file = os.path.join(root, "jobs.json"), os.path.join(root, "results.json")
     with open(jobs_file, "w", encoding="utf-8") as fh:
         json.dump(jobs, fh)
@@ -1224,8 +1607,10 @@ def differences(c, expected, actual):
     if expected["stderr"] is None and not actual["stderr"].startswith("error: "):
         problems.append(f"MDATK crashed ({expected['mdatk_crash']}), MDBridge printed no error: "
                         f"{actual['stderr']!r}")
+    tolerance = c.get("fitted")
     for part in ("stdout", "stderr"):
-        if expected[part] is not None and expected[part] != actual[part]:
+        if expected[part] is not None and expected[part] != actual[part] and \
+                not (tolerance is not None and texts_close(expected[part], actual[part], tolerance)):
             problems.append(f"{part} differs\n{diff(expected[part], actual[part])}")
     for rel in sorted(set(expected["written"]) | set(actual["written"])):
         e, a = expected["written"].get(rel), actual["written"].get(rel)
@@ -1242,9 +1627,26 @@ def differences(c, expected, actual):
                     unused.remove(match)
             if len(es) != len(a.get("several", [a])):
                 problems.append(f"{rel}: {len(es)} files in MDATK, {len(a.get('several', [a]))} in MDBridge")
+        elif tolerance is not None and "text" in e and "text" in a:
+            if not texts_close(e["text"], a["text"], tolerance):
+                problems.append(f"{rel} differs beyond {tolerance:g}\n{diff(e['text'], a['text'])}")
         else:
             problems.extend(entry_differences(rel, e, a))
     return problems
+
+
+NUMBER_RE = re.compile(r"-?\d+\.\d+(?:e[-+]?\d+)?")
+
+
+def texts_close(expected, actual, tolerance):
+    """FITTED: the texts equal but for their decimal numbers, which differ by at most ``tolerance`` (an
+    absolute tolerance: D10's for the fitted cases). PDB columns: a coordinate field keeps its width."""
+    a, b = NUMBER_RE.split(expected), NUMBER_RE.split(actual)
+    # (the spaces before a number may differ with its sign: "  -0.001" / "   0.001" in PDB columns)
+    if len(a) != len(b) or [x.rstrip(" ") for x in a[:-1]] + a[-1:] != [x.rstrip(" ") for x in b[:-1]] + b[-1:]:
+        return False
+    return all(abs(float(x) - float(y)) <= tolerance
+               for x, y in zip(NUMBER_RE.findall(expected), NUMBER_RE.findall(actual)))
 
 
 def entry_differences(rel, e, a):
@@ -1300,8 +1702,16 @@ def main(argv=None):
     if found := system_conda():
         parser.error(f"{', '.join(found)} is on {SYSTEM_PATH}, the PATH of the cases: the cases without conda "
                      "would run it; take it off that PATH (CI: the step 'No conda on the system PATH')")
+    if args.mdbridge and not args.include_pending:  # MDBridge lacks their commands: MDATK need not run them
+        pending = [c["name"] for c in cases if c.get("pending")]
+        cases = [c for c in cases if not c.get("pending")]
+        if pending:
+            print(f"pending (commands MDBridge does not have yet, PENDING): {len(pending)} cases skipped")
     root = os.path.abspath(args.keep) if args.keep else tempfile.mkdtemp(prefix="cli_parity_")
     os.makedirs(root, exist_ok=True)
+    stand_in = PubchemStandIn() if any("{pubchem}" in v for c in cases for v in c["env"].values()) else None
+    if stand_in:
+        PUBCHEM["url"] = stand_in.url
     try:
         expected = run_mdatk(cases, root, args.mdatk, args.python)
         if args.write:
@@ -1314,10 +1724,6 @@ def main(argv=None):
             return 0
         # the program runs in each case's folder: a path relative to here would be looked up there
         exe = os.path.abspath(args.mdbridge) if os.path.dirname(args.mdbridge) else args.mdbridge
-        pending = [c["name"] for c in cases if c.get("pending") and not args.include_pending]
-        cases = [c for c in cases if c["name"] not in pending]
-        if pending:
-            print(f"pending (commands MDBridge does not have yet, PENDING): {len(pending)} cases skipped")
         actual = run_mdbridge(cases, root, [exe])
         failed = 0
         for c in cases:
@@ -1329,6 +1735,8 @@ def main(argv=None):
         print(f"{len(cases) - failed} of {len(cases)} cases give the same results in MDATK and MDBridge")
         return 1 if failed else 0
     finally:
+        if stand_in:
+            stand_in.close()
         if not args.keep:
             shutil.rmtree(root, ignore_errors=True)
 
