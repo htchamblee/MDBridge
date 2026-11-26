@@ -40,8 +40,8 @@ struct GuiCase {
     std::vector<std::string> needs;                              // "needs": features beyond this harness (W0-A cases)
 };
 
-// The entries of `c.needs` this harness does not support yet (it supports none of them: a case that
-// needs any is skipped, tests/data/README.md "gui").
+// The entries of `c.needs` this harness does not support yet (it runs "type" and "table"; a case
+// that needs anything else is skipped, tests/data/README.md "gui").
 std::vector<std::string> unsupportedNeeds(const GuiCase& c);
 
 // Every *.json under `dir` (recursively), sorted.
@@ -66,9 +66,28 @@ private:
 // there is none or more than one.
 QWidget* findField(QWidget* root, const QString& key);
 
-// Enters `value` into the widget as a user would (tests/data/README.md, action "set"). Throws
+// Enters `value` into the widget as a user would (tests/data/README.md, action "set"): drop-downs
+// choose the item whose project value (item data) is `value` (W0-A's cases), editable ones and text
+// fields get it typed (select all, type, Enter), check boxes are toggled with Space. Throws
 // CaseError for widget types and values it cannot enter.
 void setField(QWidget* widget, const core::Value& value);
+
+// Replaces the widget's text with `text` and commits it (action "type"): select all, type (""
+// deletes the selection, clearing the field), Enter; multi-line text is committed as on leaving
+// the field. Throws CaseError.
+void typeField(QWidget* widget, const QString& text);
+
+// "set" / "type" by key under `root`: the widget named `key`, else the list editor cell of that
+// field path ("groups.3.name", forms::findCell): the cell's editor opened (QTableView::edit), the
+// value entered there as above and Enter pressed; check cells are toggled with Space. Throws
+// CaseError.
+void setKey(QWidget* root, const QString& key, const core::Value& value);
+void typeKey(QWidget* root, const QString& key, const QString& text);
+
+// Action "table": in the list editor of `key` (its field path), "add" clicks <key>:add, "remove"
+// selects row `row` and clicks <key>:remove, "move" selects row `row` and clicks <key>:up (by < 0)
+// or <key>:down (by > 0), |by| times. Throws CaseError.
+void tableAction(QWidget* root, const QString& key, const std::string& what, int row, int by);
 
 // Saves `widget` as <dir>/<name>.png (the folder is made); returns the file. Throws CaseError.
 std::filesystem::path saveScreenshot(QWidget* widget, const std::filesystem::path& dir, const std::string& name);

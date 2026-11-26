@@ -4,6 +4,7 @@
 #include <iostream>
 #include <optional>
 #include <string>
+#include <vector>
 
 #include <QApplication>
 #include <QDragEnterEvent>
@@ -126,10 +127,16 @@ bool MainWindow::openProject(const std::filesystem::path& path, bool interactive
         const OpenedProject project = app::openProject(path);
         m_panel->showProject(project);
         m_projectPath = path;
-        m_project.reset();
+        m_documentOpen = false;
         try {
-            m_project = core::loadProject(path);
+            std::vector<std::string> warnings;
+            m_document.open(path, &warnings);  // paths as written (AP-06, D8)
+            m_documentOpen = true;
+            for (const std::string& warning : warnings) {
+                std::cerr << "mdbridge: " << warning << '\n';
+            }
         } catch (const std::exception& e) {  // shown, but cannot be saved
+            m_document.newProject();
             std::cerr << "mdbridge: " << e.what() << '\n';
         }
         setWindowTitle(tr("%1 - MDBridge").arg(toQString(core::pathToUtf8(path.filename()))));
@@ -149,13 +156,17 @@ bool MainWindow::openProject(const std::filesystem::path& path, bool interactive
 bool MainWindow::saveProject(const std::filesystem::path& path, bool interactive) {
     const std::filesystem::path target = path.empty() ? m_projectPath : path;
     QString problem;
-    if (!m_project) {
+    if (!m_documentOpen) {
         problem = tr("No project with readable settings is open.");
     } else if (target.empty()) {
         problem = tr("The project has no file yet.");
     } else {
         try {
-            core::saveProject(target, *m_project);
+            if (path.empty()) {  // Save: a parameter log is refused (Save as is needed)
+                m_document.save();
+            } else {
+                m_document.saveAs(target);
+            }
         } catch (const std::exception& e) {  // core::ProjectError, std::filesystem::filesystem_error
             problem = toQString(e.what());
         }

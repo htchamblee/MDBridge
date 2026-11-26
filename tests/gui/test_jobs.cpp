@@ -731,8 +731,11 @@ private slots:
         JobRunner runner(log.sink());
         QSignalSpy finished(&runner, &JobRunner::finished);
         std::atomic<long> written{0};
-        runner.start(QStringLiteral("Chatty"), [&written](const Reporter& reporter) {
-            for (long i = 0; i < 1000000; ++i) {
+        // floods until cancelled (a fixed count could end before the cancel on a fast machine); the
+        // deadline only keeps a broken cancel from hanging the test
+        const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(30);
+        runner.start(QStringLiteral("Chatty"), [&written, deadline](const Reporter& reporter) {
+            for (long i = 0; std::chrono::steady_clock::now() < deadline; ++i) {
                 reporter.checkCancel();
                 reporter.rawLog("cpptraj line " + std::to_string(i));
                 ++written;

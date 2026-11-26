@@ -391,7 +391,7 @@ transpose = true
 # Outputs: folders, video, charts, PDB frames
 [output]
 # Output folder (a relative path is relative to the project file)
-out_dir = "{case_dir}/MDATK_output"
+out_dir = "MDATK_output"
 # Cache of analyses and cleaned trajectories ("": <out_dir>/MDATK_cache)
 cache_dir = ""
 # Write MDATK_params_log.toml (settings, versions, cache keys, citations) next to the outputs

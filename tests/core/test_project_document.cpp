@@ -766,6 +766,8 @@ TEST(ProjectDocument, RelativePath) {
 #else
     EXPECT_EQ(relativePath("C:/a/b/c", "C:/a/b"), "c");
     EXPECT_EQ(relativePath("c:/a/x", "C:/a/b"), "../x");
+    EXPECT_EQ(relativePath("C:/Work/Proj/inputs/a.nc", "c:/work/proj"), "inputs/a.nc");  // names ignore case
+    EXPECT_EQ(relativePath("C:/work/Other/b", "C:/Work/proj"), "../Other/b");
     EXPECT_EQ(relativePath("D:/a", "C:/a"), std::nullopt);
     EXPECT_EQ(relativePath("//srv/share/x", "//srv/share/y"), "../x");
     EXPECT_EQ(relativePath("//srv/other/x", "//srv/share/y"), std::nullopt);

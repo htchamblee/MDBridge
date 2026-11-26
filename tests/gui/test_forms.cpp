@@ -32,6 +32,7 @@
 #include "gui/forms/list_editor.hpp"
 #include "mdbridge/core/clock.hpp"
 #include "mdbridge/core/json.hpp"
+#include "mdbridge/core/paths.hpp"
 #include "mdbridge/core/project_io.hpp"
 #include "mdbridge/core/project_file.hpp"
 #include "test_support.hpp"
@@ -223,6 +224,7 @@ private slots:
     void multiLineTextCommitsOnLeaving();
     void checkBoxesAndEditableCombos();
     void pathFieldsBrowseWithMdatksFilters();
+    void pickedPathsInsideTheProjectAreRelative();
     void listEditorRowsAndUndo();
     void tableCellsCommitOnFocusLossAndEnter();
     void valueWidgetsIgnoreTheMouseWheel();
@@ -673,6 +675,54 @@ void FormsTest::pathFieldsBrowseWithMdatksFilters() {
     external->browseButton()->click();
     QCOMPARE(text(doc, "inputs.external.0.path"), toStdString(QDir::toNativeSeparators("/a/e.dat")));
     QCOMPARE(text(doc, "inputs.external.0.x_unit"), std::string("ps"));
+    setFileDialogFunction(previous);
+}
+
+// Owner decision (D8 spirit): a file or folder picked inside the project's folder is stored relative
+// to it, '/'-separated, as a user would write it; outside it (or for a project without a file) the
+// picked path stays absolute. Either way the resolved project names the file picked.
+void FormsTest::pickedPathsInsideTheProjectAreRelative() {
+    TempDir dir;
+    fs::create_directories(dir / "inputs");
+    const auto inDir = [&](const char* name) { return QDir::cleanPath(toQString((dir / name).generic_string())); };
+    // the decision itself
+    core::ProjectDocument fresh;  // no file yet: absolute
+    QCOMPARE(pickedPathText(fresh, inDir("inputs/a.parm7")), QDir::toNativeSeparators(inDir("inputs/a.parm7")));
+    core::ProjectDocument doc;
+    doc.saveAs(dir / "p.mdatk.toml");
+    QCOMPARE(pickedPathText(doc, inDir("inputs/a.parm7")), QStringLiteral("inputs/a.parm7"));
+    QCOMPARE(pickedPathText(doc, inDir("a.nc")), QStringLiteral("a.nc"));
+    QCOMPARE(pickedPathText(doc, QDir::cleanPath(toQString(dir.path().generic_string()))), QStringLiteral("."));
+    QCOMPARE(pickedPathText(doc, inDir("~home.nc")), QStringLiteral("./~home.nc"));
+    const QString sibling = QDir::cleanPath(toQString(dir.path().generic_string()) + QStringLiteral("-other/b.nc"));
+    QCOMPARE(pickedPathText(doc, sibling), QDir::toNativeSeparators(sibling));  // a name prefix is not inside
+    const QString parent = QDir::cleanPath(toQString(dir.path().parent_path().generic_string()) + QStringLiteral("/c.nc"));
+    QCOMPARE(pickedPathText(doc, parent), QDir::toNativeSeparators(parent));
+    // through the widgets: a path field, a list of files, a list of records
+    Form form(doc);
+    const auto previous = setFileDialogFunction([&](QWidget*, const FileDialogRequest&) {
+        return QStringList{inDir("inputs/system.parm7")};
+    });
+    form.field<PathField>("inputs.topology")->browseButton()->click();
+    QCOMPARE(text(doc, "inputs.topology"), std::string("inputs/system.parm7"));
+    QCOMPARE(core::pathFromUtf8(doc.resolvedProject().inputs.topology).lexically_normal(),
+             (dir / "inputs" / "system.parm7").lexically_normal());
+    setFileDialogFunction([&](QWidget*, const FileDialogRequest&) { return QStringList{inDir("out")}; });
+    form.field<PathField>("output.out_dir")->browseButton()->click();
+    QCOMPARE(text(doc, "output.out_dir"), std::string("out"));
+    auto* trajectories = form.field<ListEditor>("inputs.trajectories");
+    const std::size_t count = doc.get("inputs.trajectories").size();
+    setFileDialogFunction([&](QWidget*, const FileDialogRequest&) { return QStringList{inDir("inputs/1.nc"), parent}; });
+    trajectories->browseButton()->click();
+    QCOMPARE(text(doc, "inputs.trajectories." + std::to_string(count)), std::string("inputs/1.nc"));
+    QCOMPARE(text(doc, "inputs.trajectories." + std::to_string(count + 1)), toStdString(QDir::toNativeSeparators(parent)));
+    setFileDialogFunction([&](QWidget*, const FileDialogRequest&) { return QStringList{inDir("e.dat")}; });
+    form.field<ListEditor>("inputs.external")->browseButton()->click();
+    QCOMPARE(text(doc, "inputs.external.0.path"), std::string("e.dat"));
+    // saved as written; Save as into another folder rebases them (D8)
+    doc.save();
+    const std::string saved = readFile(dir / "p.mdatk.toml");
+    QVERIFY(saved.find("topology = \"inputs/system.parm7\"") != std::string::npos);
     setFileDialogFunction(previous);
 }
 

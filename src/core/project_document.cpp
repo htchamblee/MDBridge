@@ -1556,8 +1556,14 @@ std::optional<std::string> relativePath(std::string_view path, std::string_view 
     const std::vector<std::string_view> pa = components(a);
     const std::vector<std::string_view> pb = components(b);
 #endif
+    // ntpath.relpath compares the components with normcase (Windows names ignore case; ASCII here)
+#ifdef _WIN32
+    const auto same = [](std::string_view x, std::string_view y) { return asciiLower(x) == asciiLower(y); };
+#else
+    const auto same = [](std::string_view x, std::string_view y) { return x == y; };
+#endif
     std::size_t common = 0;
-    while (common < pa.size() && common < pb.size() && pa[common] == pb[common]) {
+    while (common < pa.size() && common < pb.size() && same(pa[common], pb[common])) {
         ++common;
     }
     std::string out;

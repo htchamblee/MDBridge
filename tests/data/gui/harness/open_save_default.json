@@ -2,7 +2,7 @@
   "format": "mdbridge-gui-case",
   "version": 1,
   "description": "Open the default project (what mdatk init writes) and save it unchanged",
-  "source": "MDATK v0.0.4.1: Project.load + Project.save, what the window's Open and Save do without edits (tests/parity/make_gui_harness_cases.py)",
+  "source": "MDATK v0.0.4.1: Project.load + Project.save, what the window's Open and Save do without edits, with MDBridge's window improvements (paths as written, AP-06; tests/parity/make_gui_harness_cases.py, improvements_gui.py)",
   "clock": "2026-10-15T14:32:05",
   "files": {
     "default.mdatk.toml": "projects/default.mdatk.toml"

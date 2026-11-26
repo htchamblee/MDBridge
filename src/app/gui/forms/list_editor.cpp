@@ -8,7 +8,6 @@
 #include <QBrush>
 #include <QColor>
 #include <QComboBox>
-#include <QDir>
 #include <QHBoxLayout>
 #include <QHeaderView>
 #include <QItemSelectionModel>
@@ -544,7 +543,7 @@ void ListEditor::browse() {
     doc.beginGroup(toStdString(QStringLiteral("Add files to ") + label()));
     try {
         for (const QString& file : files) {
-            const core::Value text(toStdString(QDir::toNativeSeparators(file)));
+            const core::Value text(toStdString(pickedPathText(doc, file)));
             core::Value item = text;
             if (!spec().browseKey.empty()) {
                 item = newItem();

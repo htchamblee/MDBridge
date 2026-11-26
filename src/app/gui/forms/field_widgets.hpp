@@ -77,6 +77,13 @@ ColorDialogFunction setColorDialogFunction(ColorDialogFunction function);
 QStringList runFileDialog(QWidget* parent, const FileDialogRequest& request);
 QColor runColorDialog(QWidget* parent, const QColor& initial, const QString& title);
 
+// The text a path picked in a file dialog is stored as (owner decision, in the spirit of D8): when
+// the document has a file and `picked` lies inside its folder (the folder itself included), the
+// path relative to that folder with '/' separators, as a user would write it ("inputs/a.parm7",
+// "."; "./~x" for a name starting with '~', which would read as the home folder); else `picked`
+// with the platform's separators (outside the folder, another drive or share, a new project).
+QString pickedPathText(const core::ProjectDocument& document, const QString& picked);
+
 // ---- the base --------------------------------------------------------------------------------
 
 class FieldWidget : public QWidget {

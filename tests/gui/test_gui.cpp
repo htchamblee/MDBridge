@@ -25,9 +25,14 @@
 #include <QTest>
 #include <QVBoxLayout>
 
+#include "gui/forms/field_factory.hpp"
+#include "gui/forms/field_widgets.hpp"
+#include "gui/forms/form_context.hpp"
+#include "gui/forms/list_editor.hpp"
 #include "gui/main_window.hpp"
 #include "gui_harness.hpp"
 #include "mdbridge/core/paths.hpp"
+#include "mdbridge/core/project_document.hpp"
 
 namespace fs = std::filesystem;
 using namespace mdbridge;
@@ -57,6 +62,7 @@ class GuiTests : public QObject {
 private slots:
     void platform();
     void findsAndSetsFields();
+    void entersFormFieldsAndTableCells();
     void comparesTexts();
     void readsCaseFiles();
     void cases_data();
@@ -88,7 +94,9 @@ void GuiTests::findsAndSetsFields() {
     check->setChecked(true);
     auto* combo = new QComboBox;
     combo->setObjectName(QStringLiteral("inputs.time_unit"));
-    combo->addItems({QStringLiteral("ps"), QStringLiteral("ns"), QStringLiteral("us")});
+    for (const char* unit : {"ps", "ns", "us"}) {  // label and project value, as the pages' drop-downs
+        combo->addItem(QStringLiteral("%1 (label)").arg(QLatin1String(unit)), QString::fromLatin1(unit));
+    }
     auto* notes = new QPlainTextEdit(QStringLiteral("old notes"));
     notes->setObjectName(QStringLiteral("notes"));
     auto* button = new QPushButton(QStringLiteral("Add"));
@@ -110,7 +118,7 @@ void GuiTests::findsAndSetsFields() {
     guitest::setField(guitest::findField(&root, QStringLiteral("video.enabled")), false);
     QVERIFY(!check->isChecked());
     guitest::setField(guitest::findField(&root, QStringLiteral("inputs.time_unit")), "ns");
-    QCOMPARE(combo->currentText(), QStringLiteral("ns"));
+    QCOMPARE(combo->currentData().toString(), QStringLiteral("ns"));
     guitest::setField(guitest::findField(&root, QStringLiteral("notes")), "line 1\nline 2");
     QCOMPARE(notes->toPlainText(), QStringLiteral("line 1\nline 2"));
 
@@ -125,9 +133,89 @@ void GuiTests::findsAndSetsFields() {
     QCOMPARE(QString::fromStdString(errorOf([&] { guitest::findField(&root, QStringLiteral("notes")); })),
              QStringLiteral("2 widgets are named 'notes'"));
     QCOMPARE(QString::fromStdString(errorOf([&] { guitest::setField(combo, "fs"); })),
-             QStringLiteral("inputs.time_unit: the combo box has no item 'fs'"));
+             QStringLiteral("inputs.time_unit: the drop-down has no item whose value is 'fs'"));
+    QCOMPARE(QString::fromStdString(errorOf([&] { guitest::setField(combo, "ns (label)"); })),
+             QStringLiteral("inputs.time_unit: the drop-down has no item whose value is 'ns (label)'"));
+    // "type": "" clears the field
+    guitest::typeField(text, QString());
+    QCOMPARE(text->text(), QString());
+    guitest::typeField(notes, QString());
+    QCOMPARE(notes->toPlainText(), QString());
     QCOMPARE(QString::fromStdString(errorOf([&] { guitest::setField(check, 1); })),
              QStringLiteral("video.enabled: a check box takes true or false"));
+}
+
+// The harness on the real field widgets (W0-C) bound to a document (W0-B): "set" picks drop-down
+// items by project value, "type" with "" clears, table cells by field path, check cells with Space,
+// the list editors' rows by "table".
+void GuiTests::entersFormFieldsAndTableCells() {
+    core::ProjectDocument doc;  // the defaults: groups Target and Aptamer, two trajectories
+    app::forms::FormContext context(doc);
+    QWidget root;
+    auto* layout = new QVBoxLayout(&root);
+    for (const char* path : {"notes", "inputs.stop", "inputs.dt_ps", "inputs.time_unit", "visual.center_on", "groups",
+                             "inputs.trajectories", "visual.representations"}) {
+        app::forms::FieldWidget* field = app::forms::createFieldWidget(context, path, &root);
+        QVERIFY2(field, path);
+        layout->addWidget(field);
+    }
+    root.resize(700, 900);
+    root.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&root));
+    const auto text = [&](const char* path) { return QString::fromStdString(doc.text(path)); };
+
+    guitest::setKey(&root, QStringLiteral("inputs.time_unit"), "ns");
+    QCOMPARE(text("inputs.time_unit"), QStringLiteral("ns"));
+    guitest::typeKey(&root, QStringLiteral("inputs.stop"), QStringLiteral("250"));
+    QCOMPARE(text("inputs.stop"), QStringLiteral("250"));
+    guitest::typeKey(&root, QStringLiteral("inputs.stop"), QString());  // "" clears: unset
+    QCOMPARE(text("inputs.stop"), QString());
+    QVERIFY(doc.get("inputs.stop").isNull());
+    guitest::typeKey(&root, QStringLiteral("inputs.dt_ps"), QStringLiteral("0.0123456789"));
+    QCOMPARE(text("inputs.dt_ps"), QStringLiteral("0.0123456789"));
+    guitest::typeKey(&root, QStringLiteral("notes"), QStringLiteral("Edited.\nSecond line"));
+    QCOMPARE(text("notes"), QStringLiteral("Edited.\nSecond line"));
+    guitest::typeKey(&root, QStringLiteral("visual.center_on"), QStringLiteral("B:12"));
+    QCOMPARE(text("visual.center_on"), QStringLiteral("B:12"));
+
+    // rows and cells (tests/data/gui/pages/groups_page.json's steps)
+    guitest::tableAction(&root, QStringLiteral("groups"), "add", -1, 0);
+    QCOMPARE(doc.get("groups").size(), std::size_t{3});
+    guitest::setKey(&root, QStringLiteral("groups.2.name"), "Loop");
+    guitest::setKey(&root, QStringLiteral("groups.2.residues"), "A:20-25");
+    guitest::typeKey(&root, QStringLiteral("groups.2.color"), QStringLiteral("#aa22cc"));
+    QCOMPARE(text("groups.2.name"), QStringLiteral("Loop"));
+    QCOMPARE(text("groups.2.residues"), QStringLiteral("A:20-25"));
+    QCOMPARE(text("groups.2.color"), QStringLiteral("#aa22cc"));
+    guitest::typeKey(&root, QStringLiteral("groups.2.selection"), QString());
+    QCOMPARE(text("groups.2.selection"), QString());
+    guitest::tableAction(&root, QStringLiteral("groups"), "move", 2, -1);
+    QCOMPARE(text("groups.1.name"), QStringLiteral("Loop"));
+    guitest::tableAction(&root, QStringLiteral("groups"), "remove", 0, 0);
+    QCOMPARE(doc.get("groups").size(), std::size_t{2});
+    QCOMPARE(text("groups.0.name"), QStringLiteral("Loop"));
+    const std::size_t trajectories = doc.get("inputs.trajectories").size();
+    guitest::tableAction(&root, QStringLiteral("inputs.trajectories"), "add", -1, 0);
+    const QString last = QStringLiteral("inputs.trajectories.%1").arg(trajectories);
+    guitest::setKey(&root, last, "md3.nc");
+    QCOMPARE(QString::fromStdString(doc.text(last.toStdString())), QStringLiteral("md3.nc"));
+    guitest::tableAction(&root, QStringLiteral("visual.representations"), "add", -1, 0);
+    guitest::setKey(&root, QStringLiteral("visual.representations.0.style"), "licorice");  // a drop-down cell
+    QCOMPARE(text("visual.representations.0.style"), QStringLiteral("licorice"));
+    guitest::setKey(&root, QStringLiteral("visual.representations.0.sugars"), true);  // a check cell
+    QCOMPARE(text("visual.representations.0.sugars"), QStringLiteral("true"));
+    guitest::setKey(&root, QStringLiteral("visual.representations.0.sugars"), false);
+    QCOMPARE(text("visual.representations.0.sugars"), QStringLiteral("false"));
+
+    QCOMPARE(QString::fromStdString(errorOf([&] { guitest::setKey(&root, QStringLiteral("groups.9.name"), "x"); })),
+             QStringLiteral("no widget or table cell is named 'groups.9.name'"));
+    QCOMPARE(QString::fromStdString(errorOf([&] { guitest::tableAction(&root, QStringLiteral("groups"), "remove", 5, 0); })),
+             QStringLiteral("groups: there is no row 5 (2 rows)"));
+    QCOMPARE(QString::fromStdString(errorOf([&] { guitest::tableAction(&root, QStringLiteral("notes"), "add", -1, 0); })),
+             QStringLiteral("no list editor edits 'notes'"));
+    QCOMPARE(QString::fromStdString(
+                 errorOf([&] { guitest::setKey(&root, QStringLiteral("visual.representations.0.style"), "glow"); })),
+             QStringLiteral("visual.representations.0.style: the drop-down has no item whose value is 'glow'"));
 }
 
 void GuiTests::comparesTexts() {

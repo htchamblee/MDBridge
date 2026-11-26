@@ -2080,6 +2080,19 @@ after its field path. Deliberate differences from MDATK v0.0.4.1:
   reachable with Tab and has an accessible name. File dialogs are the platform's (D3) with MDATK's
   filters, each pattern also in lower and upper case (MDATK's match ignores case; Qt's dialogs do not on
   Linux). *Tested:* `valueWidgetsIgnoreTheMouseWheel`, `everyEditorIsNamedAndReachable`.
+- **FW-08: files picked inside the project folder are stored relative** (owner decision, in the spirit
+  of D8; MDATK 0.0.4.1 and 0.1.1 store the dialog's absolute path). A file or folder chosen with
+  *Browse…* (path fields and the list editors' Browse) that lies inside the folder of the project's
+  file, the folder itself included, is stored relative to it as a user would write it, with `/`
+  separators on every platform (`inputs/system.parm7`, `.`; `./~x.nc` for a name starting with `~`,
+  which would read as the home folder); a pick outside the folder (a parent or a sibling folder,
+  another drive or share on Windows) or in a project not saved yet stays absolute, with the platform's
+  separators. So a project folder that is moved or shared keeps working (AP-06), and Save as rebases
+  these paths like typed ones. The test is lexical: a pick through a symbolic link stays absolute; on
+  Windows letter case is ignored (ASCII letters; `relativePath` compares components as `ntpath.relpath`
+  does, which also makes Save as rebase `C:\Work\Proj` paths against `c:\work\proj` to the short form). *Tested:* `pickedPathsInsideTheProjectAreRelative`
+  (mdbridge_gui_forms_tests): the decision, path fields, lists of files and of records, resolution and
+  the saved file.
 
 ## Interface: jobs and the log (src/app/gui/jobs)
 

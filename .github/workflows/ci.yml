@@ -117,9 +117,11 @@ jobs:
         env:
           MDBRIDGE_REQUIRE_VULKAN: "1"  # the Vulkan tests run on lavapipe (mesa-vulkan-drivers), never skip
         run: |
-          # the GUI tests (mdbridge_gui_tests, offscreen platform) save their screenshots there
+          # the GUI tests (label gui: gui.cases, gui.forms, gui.jobs; offscreen platform) run with the
+          # rest; gui.cases saves its screenshots there
           export MDBRIDGE_GUI_SCREENSHOTS="$PWD/gui-test-screenshots"
           ctest --test-dir build/release --output-on-failure
+          ctest --test-dir build/release -L gui --no-tests=error -N  # the three GUI tests are there
 
       # the main window as the GUI tests drove it (tests/gui), for review; never compared
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
@@ -303,7 +305,7 @@ jobs:
 
       - name: Build, tests, zip and installer
         run: |
-          $env:MDBRIDGE_GUI_SCREENSHOTS = "$PWD\gui-test-screenshots"  # mdbridge_gui_tests (offscreen platform)
+          $env:MDBRIDGE_GUI_SCREENSHOTS = "$PWD\gui-test-screenshots"  # gui.cases (label gui with gui.forms, gui.jobs; offscreen)
           packaging\windows\build_windows.ps1 -QtDir "C:\Qt\$env:QT_VERSION\msvc2022_64" -Out dist -FFmpegRoot build\ffmpeg\prefix
 
       # the main window as the GUI tests drove it (tests/gui), for review; never compared
@@ -509,8 +511,11 @@ jobs:
 
       - name: Regenerate every data set and compare with the committed files
         run: |
+          # one interpreter for every step: MDAnalysis, numpy and scipy (also for the MDATK 0.1.1 steps
+          # mdatk_latest and edit_model, whose density checks import scipy), pytest, PyGObject / pycairo
+          venv="$RUNNER_TEMP/venv/bin/python"
           python tests/parity/regenerate_all.py --mdatk mdatk --mdatk-latest mdatk-latest \
-            --out "$RUNNER_TEMP/fresh" --python "$RUNNER_TEMP/venv/bin/python"
+            --out "$RUNNER_TEMP/fresh" --python "$venv" --pytest-python "$venv" --gui-python "$venv"
           test -z "$(git -C mdatk status --porcelain)"  # nothing was written into the checkouts
           test -z "$(git -C mdatk-latest status --porcelain)"
 

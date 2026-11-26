@@ -463,11 +463,11 @@ Result run(const std::vector<std::string>& argv, const RunOptions& options) {
     if (!started) {
         throw StartError(windowsErrorText(GetLastError(), program));
     }
-    Handle process(info.hProcess), thread(info.hThread);
+    Handle child(info.hProcess), childThread(info.hThread);
     if (job.h != nullptr) {
-        AssignProcessToJobObject(job.h, process.h);
+        AssignProcessToJobObject(job.h, child.h);
     }
-    ResumeThread(thread.h);
+    ResumeThread(childThread.h);
     writer.reset();  // the child holds the write end now
 
     Result result;
@@ -479,7 +479,7 @@ Result run(const std::vector<std::string>& argv, const RunOptions& options) {
             if (job.h != nullptr) {
                 TerminateJobObject(job.h, 1);
             } else {
-                TerminateProcess(process.h, 1);
+                TerminateProcess(child.h, 1);
             }
         }
         DWORD available = 0;
@@ -488,7 +488,7 @@ Result run(const std::vector<std::string>& argv, const RunOptions& options) {
             break;
         }
         if (available == 0) {
-            if (WaitForSingleObject(process.h, 0) == WAIT_OBJECT_0) {
+            if (WaitForSingleObject(child.h, 0) == WAIT_OBJECT_0) {
                 // the program ended; grandchildren may still hold the pipe: keep reading until it breaks
                 // unless nothing is left and the job is empty
                 JOBOBJECT_BASIC_ACCOUNTING_INFORMATION accounting{};
@@ -510,9 +510,9 @@ Result run(const std::vector<std::string>& argv, const RunOptions& options) {
             options.onOutput(std::string_view(buffer, got));
         }
     }
-    WaitForSingleObject(process.h, INFINITE);
+    WaitForSingleObject(child.h, INFINITE);
     DWORD code = 0;
-    GetExitCodeProcess(process.h, &code);
+    GetExitCodeProcess(child.h, &code);
     result.exitCode = static_cast<int>(code);
     return result;
 }

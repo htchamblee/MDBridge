@@ -4,12 +4,11 @@
 #include <cstdint>
 #include <filesystem>
 #include <memory>
-#include <optional>
 
 #include <QMainWindow>
 
 #include "background.hpp"
-#include "mdbridge/core/project.hpp"
+#include "mdbridge/core/project_document.hpp"
 #include "mdbridge/render/view.hpp"
 
 class QLabel;
@@ -35,14 +34,16 @@ public:
     // Shows the project; on failure tells the user (interactive) or prints the reason, and returns false.
     bool openProject(const std::filesystem::path& path, bool interactive = true);
 
-    // The opened project's settings as core::loadProject read them (nullptr before a project is
+    // The opened project's edit model (paths as the file has them, D8; nullptr before a project is
     // open, or when its settings could not be read), and its file.
-    const core::Project* project() const { return m_project ? &*m_project : nullptr; }
+    const core::ProjectDocument* document() const { return m_documentOpen ? &m_document : nullptr; }
+    core::ProjectDocument* document() { return m_documentOpen ? &m_document : nullptr; }
     const std::filesystem::path& projectPath() const { return m_projectPath; }
-    // Writes the opened project to `path` ("" = its own file) with core::saveProject (the step
-    // log of an existing file is kept); on failure tells the user (interactive) or prints the
-    // reason, and returns false. The save path of the GUI tests until the window's own Save and
-    // Save as (milestone 5, W1-A) call it.
+    // Saves the opened project's document to `path` ("" = its own file: ProjectDocument::save,
+    // the step log of the file kept, refused for a parameter log; else saveAs: relative paths
+    // rebased onto the file's folder); on failure
+    // tells the user (interactive) or prints the reason, and returns false. The save path of the
+    // GUI tests until the window's own Save and Save as (milestone 5, W1-A) call it.
     bool saveProject(const std::filesystem::path& path = {}, bool interactive = true);
 
     render::View* view() const { return m_view.get(); }
@@ -88,7 +89,8 @@ private:
     QLabel* m_viewLabel = nullptr;
     QProgressBar* m_progress = nullptr;
 
-    std::optional<core::Project> m_project;
+    core::ProjectDocument m_document;  // the opened project (W0-B edit model)
+    bool m_documentOpen = false;
     std::filesystem::path m_projectPath;
     std::shared_ptr<const render::MoleculeFrame> m_molecule;  // kept for a view chosen later
     bool m_loading = false;

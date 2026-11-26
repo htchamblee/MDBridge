@@ -2,24 +2,31 @@
 
 #include <algorithm>
 #include <charconv>
+#include <cstdint>
 #include <cstdlib>
 #include <fstream>
 #include <iterator>
 #include <memory>
 #include <sstream>
+#include <string>
+#include <string_view>
 #include <system_error>
 
 #include <QAbstractButton>
 #include <QAbstractSpinBox>
+#include <QApplication>
 #include <QComboBox>
 #include <QImage>
 #include <QLineEdit>
 #include <QPixmap>
 #include <QPlainTextEdit>
+#include <QTableView>
 #include <QTest>
 #include <QTextEdit>
 #include <QWidget>
 
+#include "gui/forms/field_widgets.hpp"
+#include "gui/forms/list_editor.hpp"
 #include "gui/main_window.hpp"
 #include "mdbridge/core/json.hpp"
 #include "mdbridge/core/paths.hpp"
@@ -147,11 +154,129 @@ QString typedText(const core::Value& value, const char* widgetType) {
 }
 
 void typeInto(QWidget* widget, const QString& text) {
+    if (text.isEmpty()) {
+        QTest::keyClick(widget, Qt::Key_Delete);  // the selection: the field is cleared
+        return;
+    }
     const QStringList lines = text.split(QLatin1Char('\n'));
     for (qsizetype k = 0; k < lines.size(); ++k) {
         if (k > 0) QTest::keyClick(widget, Qt::Key_Return);
         QTest::keyClicks(widget, lines[k]);
     }
+}
+
+// Select all, type `text` ("" clears), Enter: line edits, spin boxes, editable combo boxes.
+void typeLine(QWidget* widget, const QString& text) {
+    QWidget* target = widget;
+    if (auto* box = qobject_cast<QComboBox*>(widget)) {
+        box->lineEdit()->selectAll();
+        target = box->lineEdit();
+    } else if (auto* spin = qobject_cast<QAbstractSpinBox*>(widget)) {
+        spin->selectAll();
+    } else if (auto* edit = qobject_cast<QLineEdit*>(widget)) {
+        edit->selectAll();
+    }
+    typeInto(target, text);
+    QTest::keyClick(target, Qt::Key_Return);
+}
+
+// The item of a drop-down whose project value (item data) is `text`.
+void chooseItem(QComboBox* box, const QString& text, const std::string& name) {
+    const int index = box->findData(text);
+    if (index < 0) {
+        throw CaseError(name + ": the drop-down has no item whose value is '" + text.toStdString() + "'");
+    }
+    box->setCurrentIndex(index);
+    emit box->activated(index);  // as when a user picks the item
+}
+
+// Multi-line text is stored when the field is left: its field widget commits as then.
+void commitAsOnLeaving(QWidget* widget) {
+    for (QWidget* w = widget; w; w = w->parentWidget()) {
+        if (auto* field = qobject_cast<app::forms::FieldWidget*>(w)) {
+            field->commit();
+            return;
+        }
+    }
+    widget->clearFocus();
+}
+
+QList<QWidget*> widgetsNamed(QWidget* root, const QString& key) {
+    QList<QWidget*> found = root->findChildren<QWidget*>(key);
+    if (root->objectName() == key) {
+        found.prepend(root);
+    }
+    return found;
+}
+
+void processEvents() {
+    QApplication::processEvents();
+    QApplication::processEvents();  // the view stores a closed editor's data queued
+}
+
+// Opens the cell's editor, `enter`s into it, presses Enter and waits until the editor is closed.
+template <class Enter>
+void editCell(app::forms::ListEditor* list, const std::string& key, Enter&& enter) {
+    QTableView* view = list->view();
+    const QModelIndex index = list->cellIndex(key);
+    view->setFocus();
+    view->setCurrentIndex(index);
+    view->edit(index);
+    QWidget* editor = view->indexWidget(index);
+    if (!editor) {
+        throw CaseError(key + ": the table cell opened no editor");
+    }
+    enter(editor);
+    QTest::keyClick(editor, Qt::Key_Return);  // the delegate's filter on the editor commits and closes
+    if (!QTest::qWaitFor([&] { return !view->indexWidget(list->cellIndex(key)); }, 5000)) {
+        throw CaseError(key + ": the table cell's editor did not close on Enter");
+    }
+    processEvents();
+}
+
+void enterCellText(QWidget* editor, const QString& text, const std::string& key) {
+    if (auto* box = qobject_cast<QComboBox*>(editor)) {
+        if (!box->isEditable()) {
+            const int index = box->findData(text);
+            if (index < 0) {
+                throw CaseError(key + ": the drop-down has no item whose value is '" + text.toStdString() + "'");
+            }
+            box->setCurrentIndex(index);
+            return;
+        }
+        box->lineEdit()->selectAll();
+        typeInto(box->lineEdit(), text);
+        return;
+    }
+    if (auto* edit = qobject_cast<QLineEdit*>(editor)) {
+        edit->selectAll();
+        typeInto(edit, text);
+        return;
+    }
+    throw CaseError(key + ": cannot type into a " + std::string(editor->metaObject()->className()));
+}
+
+// A check cell: toggled with Space when its state differs.
+void toggleCell(app::forms::ListEditor* list, const std::string& key, bool wanted) {
+    const auto checked = [&] { return list->cellIndex(key).data(Qt::CheckStateRole).toInt() == Qt::Checked; };
+    if (checked() != wanted) {
+        list->view()->setFocus();
+        list->view()->setCurrentIndex(list->cellIndex(key));
+        QTest::keyClick(list->view(), Qt::Key_Space);
+        processEvents();
+    }
+    if (checked() != wanted) {
+        throw CaseError(key + ": pressing Space did not change the check cell");
+    }
+}
+
+// The cell of field path `key`; throws when neither a widget nor a cell has it.
+app::forms::CellLocation cellOf(QWidget* root, const QString& key) {
+    const app::forms::CellLocation cell = app::forms::findCell(root, key.toStdString());
+    if (!cell.editor) {
+        throw CaseError("no widget or table cell is named '" + key.toStdString() + "'");
+    }
+    return cell;
 }
 
 }  // namespace
@@ -223,7 +348,9 @@ GuiCase loadCase(const fs::path& file, const fs::path& casesDir) {
 }
 
 std::vector<std::string> unsupportedNeeds(const GuiCase& c) {
-    static const std::vector<std::string> supported;  // grows as the window and this runner do
+    // grows as the window and this runner do: "type" and "table" are run (their cases still need the
+    // settings pages of wave 1, and "start" / "lossless" / "snapshot", so they stay skipped)
+    static const std::vector<std::string> supported{"table", "type"};
     std::vector<std::string> out;
     for (const std::string& need : c.needs) {
         if (std::find(supported.begin(), supported.end(), need) == supported.end()) {
@@ -269,12 +396,7 @@ void setField(QWidget* widget, const core::Value& value) {
             QTest::keyClick(box->lineEdit(), Qt::Key_Return);
             return;
         }
-        const int index = box->findText(text);
-        if (index < 0) {
-            throw CaseError(name + ": the combo box has no item '" + text.toStdString() + "'");
-        }
-        box->setCurrentIndex(index);
-        emit box->activated(index);  // as when a user picks the item
+        chooseItem(box, text, name);
         return;
     }
     if (auto* edit = qobject_cast<QLineEdit*>(widget)) {
@@ -313,6 +435,111 @@ void setField(QWidget* widget, const core::Value& value) {
         return;
     }
     throw CaseError(name + ": cannot enter a value into a " + std::string(widget->metaObject()->className()));
+}
+
+void typeField(QWidget* widget, const QString& text) {
+    const std::string name = widget->objectName().toStdString();
+    if (qobject_cast<QLineEdit*>(widget) || qobject_cast<QAbstractSpinBox*>(widget)) {
+        typeLine(widget, text);
+        return;
+    }
+    if (auto* box = qobject_cast<QComboBox*>(widget); box && box->isEditable()) {
+        typeLine(widget, text);
+        return;
+    }
+    if (auto* plain = qobject_cast<QPlainTextEdit*>(widget)) {
+        plain->setFocus();
+        plain->selectAll();
+        typeInto(plain, text);
+        commitAsOnLeaving(plain);
+        return;
+    }
+    if (auto* rich = qobject_cast<QTextEdit*>(widget)) {
+        rich->setFocus();
+        rich->selectAll();
+        typeInto(rich, text);
+        commitAsOnLeaving(rich);
+        return;
+    }
+    throw CaseError(name + ": cannot type into a " + std::string(widget->metaObject()->className()));
+}
+
+void setKey(QWidget* root, const QString& key, const core::Value& value) {
+    if (!widgetsNamed(root, key).isEmpty()) {
+        setField(findField(root, key), value);
+        processEvents();
+        return;
+    }
+    const app::forms::CellLocation cell = cellOf(root, key);
+    const std::string name = key.toStdString();
+    if (cell.index.data(Qt::CheckStateRole).isValid()) {
+        const bool* wanted = value.get<bool>();
+        if (!wanted) {
+            throw CaseError(name + ": a check cell takes true or false");
+        }
+        toggleCell(cell.editor, name, *wanted);
+        return;
+    }
+    const QString text = typedText(value, "table cell");
+    editCell(cell.editor, name, [&](QWidget* editor) { enterCellText(editor, text, name); });
+}
+
+void typeKey(QWidget* root, const QString& key, const QString& text) {
+    if (!widgetsNamed(root, key).isEmpty()) {
+        typeField(findField(root, key), text);
+        processEvents();
+        return;
+    }
+    const app::forms::CellLocation cell = cellOf(root, key);
+    const std::string name = key.toStdString();
+    if (cell.index.data(Qt::CheckStateRole).isValid()) {
+        throw CaseError(name + ": a check cell takes no text (use \"set\")");
+    }
+    editCell(cell.editor, name, [&](QWidget* editor) { enterCellText(editor, text, name); });
+}
+
+void tableAction(QWidget* root, const QString& key, const std::string& what, int row, int by) {
+    app::forms::ListEditor* list = nullptr;
+    for (app::forms::ListEditor* e : root->findChildren<app::forms::ListEditor*>()) {
+        if (e->path() == key.toStdString()) {
+            list = e;
+        }
+    }
+    const std::string name = key.toStdString();
+    if (!list) {
+        throw CaseError("no list editor edits '" + name + "'");
+    }
+    const auto click = [&](const char* button) {
+        auto* b = qobject_cast<QAbstractButton*>(findField(root, key + QLatin1String(button)));
+        if (!b) {
+            throw CaseError(name + button + " is no button");
+        }
+        QTest::mouseClick(b, Qt::LeftButton);
+        processEvents();
+    };
+    const auto select = [&] {
+        if (row < 0 || row >= list->rowCount()) {
+            throw CaseError(name + ": there is no row " + std::to_string(row) + " (" + std::to_string(list->rowCount()) +
+                            " rows)");
+        }
+        list->selectRow(row);
+    };
+    if (what == "add") {
+        click(":add");
+    } else if (what == "remove") {
+        select();
+        click(":remove");
+    } else if (what == "move") {
+        if (by == 0) {
+            throw CaseError(name + ": 'by' must be -1 or +1");
+        }
+        select();
+        for (int k = 0; k < (by < 0 ? -by : by); ++k) {
+            click(by < 0 ? ":up" : ":down");
+        }
+    } else {
+        throw CaseError(name + ": 'do' must be \"add\", \"remove\" or \"move\", not '" + what + "'");
+    }
 }
 
 fs::path saveScreenshot(QWidget* widget, const fs::path& dir, const std::string& name) {
@@ -411,7 +638,19 @@ void CaseRunner::runAction(const core::Value& action) {
         if (!value) {
             throw CaseError("'value' is missing");
         }
-        setField(findField(&m_window, toQString(stringEntry(action, "key", what))), *value);
+        setKey(&m_window, toQString(stringEntry(action, "key", what)), *value);
+    } else if (what == "type") {
+        typeKey(&m_window, toQString(stringEntry(action, "key", what)), toQString(stringEntry(action, "text", what)));
+    } else if (what == "table") {
+        const auto integer = [&](std::string_view k, int fallback) {
+            const core::Value* v = action.find(k);
+            if (!v) return fallback;
+            const auto* i = v->get<std::int64_t>();
+            if (!i) throw CaseError("'" + std::string(k) + "' must be a whole number");
+            return static_cast<int>(*i);
+        };
+        tableAction(&m_window, toQString(stringEntry(action, "key", what)), stringEntry(action, "do", what),
+                    integer("row", -1), integer("by", 0));
     } else if (what == "click") {
         QWidget* widget = findField(&m_window, toQString(stringEntry(action, "key", what)));
         auto* button = qobject_cast<QAbstractButton*>(widget);

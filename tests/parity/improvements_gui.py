@@ -175,6 +175,12 @@ def options_problem(k, panel_type, text, exc):
 # ---------------------------------------------------------------------------------------------
 # AP-06: paths relative to the project folder
 
+def load_as_written(project_cls, PF, path):
+    """Project.load without resolve_paths (AP-06, D8): the project with its paths as the file has
+    them, what MDBridge's edit model opens. Also make_gui_harness_cases.py's open."""
+    return project_cls.from_dict(PF.read(path))
+
+
 def rebase(project, old_dir, new_dir):
     """Save as into another folder: every relative path (the fields MDATK's resolve_paths makes
     absolute, the planner steps' paths included) is rewritten relative to the new folder; absolute
@@ -315,8 +321,7 @@ def apply(app, W, config, PF, n_slots, harness):
 
     # --- AP-06: no absolute paths on load; Save as rebases ---------------------------------------
     def project_load(cls, path):
-        data = PF.read(path)
-        return cls.from_dict(data)
+        return load_as_written(cls, PF, path)
 
     config.Project.load = classmethod(project_load)
 

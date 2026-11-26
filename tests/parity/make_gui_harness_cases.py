@@ -12,13 +12,15 @@ Reads DATA_DIR/projects/default.mdatk.toml (make_projects.py) and writes to DATA
 What MDATK's window does on *Open* and *Save* without edits (``open_path``, ``save_project``,
 mdatk/gui/app.py) is ``Project.load(path)`` and ``project.save(path)`` (``collect()`` stores the
 widgets' values, which for this project are the loaded ones); this generator calls those two, so it
-needs no GTK. The action-script cases that drive MDATK's widgets come from make_gui_cases.py.
+needs no GTK, with MDBridge's window improvements of improvements_gui.py that apply to them: the
+open keeps the paths as the file has them (AP-06, D8: ``improvements_gui.load_as_written``, where
+MDATK's ``Project.load`` makes them absolute), so the expected file is what MDBridge's window
+writes. The action-script cases that drive MDATK's widgets come from make_gui_cases.py.
 
 The clock is fixed as in make_project_file_golden.py (2026-10-15T14:32:05, one second later on
-every call). The project's folder is a temporary one; its absolute path, which MDATK writes into
-the saved file (``Project.load`` makes paths absolute: AP-06 of docs/specs/m5-plan.md), is replaced
-by ``{case_dir}``, the placeholder the harness puts in for its own folder. MDATK's recent-projects
-list goes to a temporary XDG_CONFIG_HOME.
+every call). The project's folder is a temporary one; its absolute path, should the saved file
+contain it, is replaced by ``{case_dir}``, the placeholder the harness puts in for its own folder.
+MDATK's recent-projects list goes to a temporary XDG_CONFIG_HOME.
 """
 
 from __future__ import annotations
@@ -40,6 +42,11 @@ sys.path.insert(0, MDATK)
 
 from mdatk import projectfile as PF  # noqa: E402
 from mdatk.config import Project  # noqa: E402
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+if HERE not in sys.path:
+    sys.path.insert(0, HERE)
+import improvements_gui as IG  # noqa: E402
 
 CLOCK = real_dt.datetime(2026, 10, 15, 14, 32, 5)
 PLACEHOLDER = "{case_dir}"
@@ -73,7 +80,7 @@ def open_save(out: str, name: str, fixture: str, description: str) -> None:
         os.makedirs(work)
         path = os.path.join(work, base)
         shutil.copyfile(os.path.join(DATA, fixture), path)
-        Project.load(path).save(path)  # the window's open_path, then save_project
+        IG.load_as_written(Project, PF, path).save(path)  # the window's open_path, then save_project
         with open(path, encoding="utf-8") as f:
             text = f.read()
     expected = f"{name}.mdatk.toml"
@@ -83,7 +90,8 @@ def open_save(out: str, name: str, fixture: str, description: str) -> None:
         "version": 1,
         "description": description,
         "source": "MDATK v0.0.4.1: Project.load + Project.save, what the window's Open and Save do "
-                  "without edits (tests/parity/make_gui_harness_cases.py)",
+                  "without edits, with MDBridge's window improvements (paths as written, AP-06; "
+                  "tests/parity/make_gui_harness_cases.py, improvements_gui.py)",
         "clock": CLOCK.isoformat(),
         "files": {base: fixture},
         "actions": [

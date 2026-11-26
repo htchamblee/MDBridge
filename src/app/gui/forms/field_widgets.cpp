@@ -4,6 +4,8 @@
 #include <cmath>
 #include <cstdint>
 #include <exception>
+#include <optional>
+#include <string>
 #include <utility>
 
 #include <QAction>
@@ -12,6 +14,7 @@
 #include <QDir>
 #include <QEvent>
 #include <QFileDialog>
+#include <QFileInfo>
 #include <QFontDatabase>
 #include <QHBoxLayout>
 #include <QKeyEvent>
@@ -285,6 +288,20 @@ ColorDialogFunction setColorDialogFunction(ColorDialogFunction function) {
 }
 
 QStringList runFileDialog(QWidget* parent, const FileDialogRequest& request) { return fileDialogFunction()(parent, request); }
+
+QString pickedPathText(const core::ProjectDocument& document, const QString& picked) {
+    const QString native = QDir::toNativeSeparators(picked);
+    if (!document.hasPath() || picked.isEmpty()) {
+        return native;
+    }
+    const QString absolute = QDir::cleanPath(QFileInfo(picked).absoluteFilePath());
+    const std::optional<std::string> relative = core::relativePath(toStdString(absolute), document.folder());
+    if (!relative || *relative == ".." || relative->rfind("../", 0) == 0) {
+        return native;
+    }
+    const QString text = toQString(*relative);
+    return text.startsWith(QLatin1Char('~')) ? QStringLiteral("./") + text : text;
+}
 
 QColor runColorDialog(QWidget* parent, const QColor& initial, const QString& title) {
     return colorDialogFunction()(parent, initial, title);
@@ -612,7 +629,7 @@ void PathField::browse() {
     request.start = startOf(document(), m_edit->text());
     request.filters = nameFilters(spec());
     const QStringList picked = runFileDialog(window(), request);
-    if (!picked.isEmpty() && commitText(QDir::toNativeSeparators(picked.front()))) {
+    if (!picked.isEmpty() && commitText(pickedPathText(document(), picked.front()))) {
         setDirty(m_edit, false);
     }
 }
