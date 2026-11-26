@@ -1,7 +1,8 @@
 # chem: nucleic-acid chemistry ported from MDATK: PDB hygiene (pdbtools.cpp), secondary structure
 # (dot-bracket notation and the builtin base-pair detection), base-pair annotation (annotate.cpp),
 # SMILES, molecular graphs and the restraint dictionaries (smiles.cpp, dictionaries.cpp), the
-# structure builder's templates, sequence functions and Watson-Crick helices (helix.cpp), the
+# structure builder's templates, sequence functions and Watson-Crick helices (helix.cpp), base
+# mutations (mutate.cpp) and the fit of a model into a map (fit_to_map.cpp), the
 # rigid-body density fit (density_fit.cpp, on src/numerics) and the generated reference tables of
 # the builder and the restraint dictionaries (reference_tables.cpp: helix_tables.inc,
 # component_tables.inc from tools/gen_chem_tables.py), and the functions milestone 7's generators
@@ -11,8 +12,10 @@ add_library(mdbridge_chem STATIC
     annotate.cpp
     density_fit.cpp
     dictionaries.cpp
+    fit_to_map.cpp
     generator_api.cpp
     helix.cpp
+    mutate.cpp
     pdbtools.cpp
     reference_tables.cpp
     secstruct.cpp
@@ -26,9 +29,9 @@ mdbridge_target_warnings(mdbridge_chem)
 # (helix) reproduced bit for bit (numpy's and Python's order of operations), and the density fit's
 # numbers the same with every compiler: no contraction into fused multiply-adds
 if(MSVC)
-    set_source_files_properties(secstruct.cpp pdbtools.cpp dictionaries.cpp helix.cpp density_fit.cpp
-        PROPERTIES COMPILE_OPTIONS /fp:precise)
+    set_source_files_properties(secstruct.cpp pdbtools.cpp dictionaries.cpp helix.cpp density_fit.cpp mutate.cpp
+        fit_to_map.cpp PROPERTIES COMPILE_OPTIONS /fp:precise)
 else()
-    set_source_files_properties(secstruct.cpp pdbtools.cpp dictionaries.cpp helix.cpp density_fit.cpp
-        PROPERTIES COMPILE_OPTIONS -ffp-contract=off)
+    set_source_files_properties(secstruct.cpp pdbtools.cpp dictionaries.cpp helix.cpp density_fit.cpp mutate.cpp
+        fit_to_map.cpp PROPERTIES COMPILE_OPTIONS -ffp-contract=off)
 endif()
