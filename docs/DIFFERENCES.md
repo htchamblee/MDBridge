@@ -2145,16 +2145,61 @@ stays `validate()`'s, v0.0.4.1's blocking rules with MDBridge's fixes (owner dec
   or the widget.
   *Tested:* `rangeHintWarningsAreListed`.
 
-## Interface: the settings pages (src/app/gui/pages; milestone 5 W1-B)
+## Interface: the Structure view and Outputs pages (src/app/gui/pages; milestone 5 W1-C)
+
+The two pages keep MDATK v0.0.4.1's sections, field order, labels and hints (`gui/app.py`
+`_tab_visual`, `_representation_frame`, `_density_frame`, `_tab_outputs`; 0.1.1's are the same) as
+folding sections (`section:structure.orientation` ...). Deliberate differences:
+
+- **PG-01: the rotation sliders keep what they do not change** (AP-01). MDATK's three sliders
+  (-180 ... 180, step 0.5) stored all three angles from the sliders, so a stored -200 became -180
+  as soon as another axis moved. MDBridge's sliders work in thousandths of a degree (MDATK's
+  3-decimal storage rounding), store only the axis moved, and show a stored angle beyond the range
+  at the slider's end with its value text, the angle label (`format_angles`) and a warning flag
+  saying it is kept. A slider drag is one undo step ("Rotate structure", as the canvas's drag).
+  *Tested:* test_pages.cpp `rotationSlidersAndAngleLabel`, the case `pages/structure_page`.
+- **PG-02: chart formats as check boxes for every format** (AP-04 on the page; completes FW-03).
+  MDATK offered PNG / SVG / PDF and saved the ticked ones (`["jpg", "svg"]` -> `["svg"]`, none ->
+  `["png"]`). MDBridge offers every format the charts write (RN-11: PNG, SVG, PDF, JPG, TIF, EPS,
+  PS); entries the list has beyond them (`jpeg`, `tiff`, `.PDF` counts as PDF, `bogus`) keep a box of
+  their own, unsupported ones named `(not supported)` and flagged with the charts' message.
+  Ticking appends, unticking removes; the order and every other entry stay; no box ticked is stored
+  as `[]` (the charts then write PNG, MDATK's fallback). *Tested:* `chartFormatsKeepEveryEntry`, the
+  case `pages/outputs_page`.
+- **PG-03: MDBridge's chart styles offered** (AP-19, owner decision D5 of milestone 4). MDATK
+  listed `mdatk` and every Matplotlib style; the drop-down offers `mdatk` and `default`, and any
+  typed name is kept (the charts warn and use MDATK's look). *Tested:*
+  `chartStylesAreMdbridgesAndTypedNamesStay`.
+- **PG-04: density fit buttons for milestone 6** (owner decision D2). *Global search* and *Refine*
+  are shown disabled with "(comes with milestone 6)" in their tooltips; *Centre on model* needs the
+  reference frame on the canvas and is enabled by the window when it has it; *Clear* and the map-mode
+  toggle work. Choosing another map file forgets the placement of the previous map as MDATK does,
+  in the same undo step as the new name. *Tested:* `densityButtonsAndStatus`,
+  `anotherMapForgetsThePlacementInOneStep`.
+- **PG-05: texts that do not fit the side bar.** Qt's check boxes do not wrap: the parameter-log
+  check box reads "Write MDATK_params_log.toml" with the rest of MDATK's text as a hint below it; the
+  renderer's hint names the Vulkan renderer instead of VTK (AP-19, RN-20). *Tested:* the page
+  screenshots (`screenshots`, CI artifacts).
+- **PG-06: a focused field can be destroyed.** Closing a page while one of its fields had the
+  focus crashed (the editor's focus-out committed into the half-destroyed field widget);
+  `FieldWidget`'s destructor now disconnects its editors first. *Tested:* every page case of
+  `mdbridge_gui_tests` ends with a focused field.
+
+The GUI cases `pages/structure_page` and `pages/outputs_page` (and the AP cases that only touch these
+pages: `ap05_unknown_choice`, `ap07_empty_slots`) run against a test-only page host until the window
+has its pages (tests/gui/page_host.hpp, tests/data/README.md "gui"). The structure case's rotation
+is set as floats (`-30.0`; a slider holds no integers), so its expected file reads as MDATK's.
+
+## Interface: the Input, Residue groups and Analyses pages (src/app/gui/pages; milestone 5 W1-B)
 
 The *Input & cleaning*, *Residue groups* and *Analyses* pages lay out MDATK v0.0.4.1's
 (`gui/app.py` `_tab_input`, `_tab_groups`, `_tab_analyses`): the same sections, labels, field order,
 check box texts, tooltips and hints, built from the bound field widgets (FW-xx). The analysis group
 drop-downs list the current group names and follow every change of the groups, keeping their text
 (MDATK `_groups_changed`; `test_panel_group_dropdowns_and_auto_title`, the group part). Deliberate
-differences:
+differences (ids GP-xx; the page frame, sections and test host are W1-C's, PG-xx):
 
-- **PG-01: renaming a group renames its uses** (MDATK 0.0.10; follows 0.1.1's `commit_group_name`,
+- **GP-01: renaming a group renames its uses** (MDATK 0.0.10; follows 0.1.1's `commit_group_name`,
   `tests/test_groups_gui.py`). In v0.0.4.1 a group renamed in the table left every analysis, selection
   (`group:Aptamer`), representation, data key and the proximity set naming the old group, so the
   project failed validation. A name typed into the table renames the group through
@@ -2164,10 +2209,10 @@ differences:
   row's first name, or one of several rows of a name, is set without a cascade. Automatic panel titles
   follow with the layout page (W2-A). *Tested:* test_pages.cpp `renamingAGroupRenamesItEverywhere`,
   `badNamesAreRefused`.
-- **PG-02: removing a used group says where** (MDATK 0.1.1 `_report_removed_groups`). `Removed group
+- **GP-02: removing a used group says where** (MDATK 0.1.1 `_report_removed_groups`). `Removed group
   still in use, change these settings: Target in analyses.contacts.group_b, ...` (the settings keep
   naming it; validation flags them). *Tested:* `removingAUsedGroupSaysWhere`.
-- **PG-03: Groups from chains** (owner decision D15; MDATK 0.0.10 `chaingroups.py`, ported from 0.1.1
+- **GP-03: Groups from chains** (owner decision D15; MDATK 0.0.10 `chaingroups.py`, ported from 0.1.1
   as `src/app/chain_groups.cpp`). *Groups from chains* adds one group per polymer chain of the
   topology that no group selects yet (water and ions left out; chain IDs, else segment ids, else bonded
   fragments, else residues within 2 Å; the simplest residue spec that selects exactly the chain:
@@ -2180,21 +2225,17 @@ differences:
   undo step. MDATK 0.1.1's results for the same files are the expected ones (checked once with its
   code). *Tested:* `chainGroupsAsMdatkLatest`, `groupsFromChainsButton`,
   `choosingATopologyReplacesUntouchedDefaults`, `loadingAProjectDropsPendingReads`.
-- **PG-04: sections fold; Pick colour… without a selection.** Each section is a group box whose
-  title folds it (MDATK's frames do not fold); `revealField` opens the fold of the field it shows
-  (W1-D's problems list). *Pick colour…* with no group selected says `Select a group first.` in the
+- **GP-04: Pick colour… without a selection; the swatch in the cell.** *Pick colour…* with no group selected says `Select a group first.` in the
   status line instead of a dialog. The colour swatch is drawn in the colour cell (MDATK: a column of
   its own). *Tested:* `sectionsAndFields`, `pickColourWritesHex`, `revealFindsFieldsCellsAndRows`.
-- **PG-05: texts that named MDAnalysis or Barnaba.** The topology tooltip says `another topology`
+- **GP-05: texts that named MDAnalysis or Barnaba.** The topology tooltip says `another topology`
   (MDATK: `another MDAnalysis topology`; MDBridge reads the files itself); the base-pair engine offers
   the built-in engine only (AP-19). The group hint keeps MDATK's "raw MDAnalysis selection string":
   the selection language is MDAnalysis' grammar.
 
 *Run cleaning now* and *Inspect system* are the window's actions (W2-B; the page emits
 `runCleaningRequested` / `inspectSystemRequested`); *Detect* fills the conda environment as MDATK's
-`detect_conda` (`core::conda::findCpptrajEnvs`). A field widget deleted while its editor has the
-keyboard focus no longer receives that editor's `editingFinished` half destroyed (a crash when a page
-with a focused path field was closed). The GUI test data of `pages/analyses_page` now expects a number
+`detect_conda` (`core::conda::findCpptrajEnvs`). The GUI test data of `pages/analyses_page` now expects a number
 field of a float setting to store a float when an integer is entered (`angle_cutoff = 25.0`, as MDATK's
 `spin_float` and MDBridge's number fields do); `improvements_gui.on_set` had stored the case's integer.
 

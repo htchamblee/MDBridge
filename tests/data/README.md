@@ -980,12 +980,22 @@ lacks something a case `needs` skips the case and names what is missing):
 | `clock` | always set: every case starts at `2026-11-25T12:00:00` (MDATK reads the clock once per save) |
 | `items` | ids the case covers (`AP-01`, `D8` ...; `[]`: plain parity with MDATK) |
 | `mdatk_test` | the MDATK test (`tests/test_gui.py::...`) the case mirrors, or `""` |
-| `needs` | the actions and keys of this section the case uses (`canvas`, `save_as`, `new`, `close`, `table`, `type`, `toggle`, `snapshot`, `start`, `settings`, `answers`; `open_failure` when an `open` is expected to fail), so a runner can skip what it does not have yet (`mdbridge_gui_tests` runs `type` and `table` against the window; the cases of the pages it has, `pages/input_page`, `groups_page`, `analyses_page`, run in a test-only host of those pages, `tests/gui/page_host.hpp`, which also has `start`, `snapshot` and `lossless`: `outcome.snapshots` is compared there except `slots` and `density_status`, which need the layout and structure pages; `outcome.settings`, the recent list, needs the window) |
+| `needs` | the actions and keys of this section the case uses (`canvas`, `save_as`, `new`, `close`, `table`, `type`, `toggle`, `snapshot`, `start`, `settings`, `answers`; `open_failure` when an `open` is expected to fail), so a runner can skip what it does not have yet (`mdbridge_gui_tests` runs `type` and `table`; every case needing them also needs `start` and the settings pages of wave 1, so it is still skipped) |
 | `canvas` | `{"width": W, "height": H}`: the figure canvas widget's size in pixels (device pixel ratio 1); the figure is drawn at `scale = min(W / video.width, H / video.height)`, `int(video.width * scale)` x `int(video.height * scale)` pixels at `video.dpi * scale`, centred |
 | `settings` | path under tests/data of `$XDG_CONFIG_HOME/mdatk/settings.toml` before the start (`{case_dir}` in it: the case folder), or absent: no such file (D16, AP-17) |
 | `start` | `{"project": name}`: the window is started with `{case_dir}/name` (as `gui PATH`), before the first action; absent: started without a project |
 | `outcome` | MDBridge's expected outcome besides files (below) |
 | `mdatk` | the keys of `expected` / `outcome` whose MDATK value differs, with MDATK's value (`expected` paths point into `<case>/mdatk/`); `{}`: MDATK did the same. Never compared |
+
+Until the window has its settings pages (W1-A), `mdbridge_gui_tests` runs a case that needs more
+than the harness has on a test-only page host (`tests/gui/page_host.hpp`) when it can: the case
+starts with a project, needs only `start`, `lossless`, `type`, `table`, `snapshot` and `toggle`,
+and every key its actions and snapshots name is on a page `pages::createPages()` makes. The host
+opens the start project in a `ProjectDocument`, shows every page in a tab, runs `set`, `type`,
+`table`, `click`, `toggle`, `open`, `save`, `snapshot` (keys and `density_status`; compared with
+`outcome.snapshots`) and `screenshot`, and saves a screenshot of each page the case used. It does
+not check `log`, `outcome.settings` or the other window outcomes. The other cases are skipped with
+the reason.
 
 Placeholders, in expected files and in `outcome` texts: `{case_dir}` (the case folder, absolute)
 and `{config_dir}` (`$XDG_CONFIG_HOME`, a folder outside it). The environment of a run:

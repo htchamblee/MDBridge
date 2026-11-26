@@ -33,81 +33,80 @@ void setTableHeight(forms::FieldWidget* field, int height) {
 }  // namespace
 
 InputPage::InputPage(forms::FormContext& context, QWidget* parent)
-    : SettingsPage(context, QStringLiteral("input"), QStringLiteral("Input & cleaning"), parent) {
+    : FormPage(context, QStringLiteral("input"), QStringLiteral("Input & cleaning"), parent) {
     // ---- Project notes
     Section* notes = addSection(QStringLiteral("notes"), tr("Project notes"));
-    forms::FieldWidget* text = field("notes", tr("Project notes"));
+    forms::FieldWidget* text = fieldAs("notes", tr("Project notes"));
     setTextHeight(text, 54);
-    notes->addWide(text);
-    notes->addWide(hintLabel(tr("Free text saved in the project file (aims, decisions, to-dos). The steps you "
+    notes->form()->addWide(text);
+    notes->form()->addWide(makeHint(tr("Free text saved in the project file (aims, decisions, to-dos). The steps you "
                                 "run are logged there too (menu → Project log).")));
 
     // ---- Input files
     Section* files = addSection(QStringLiteral("files"), tr("Input files"));
-    files->add(tr("Topology"), field("inputs.topology", tr("Topology")),
+    files->form()->add(tr("Topology"), fieldAs("inputs.topology", tr("Topology")),
                tr("Amber .parm7 (preferred), cleaned PDB or another topology"));
-    forms::FieldWidget* trajectories = field("inputs.trajectories", tr("Trajectories"));
+    forms::FieldWidget* trajectories = fieldAs("inputs.trajectories", tr("Trajectories"));
     setTableHeight(trajectories, 90);
-    files->add(tr("Trajectories"), trajectories,
+    files->form()->add(tr("Trajectories"), trajectories,
                tr("Amber NetCDF .nc (preferred), DCD, XTC, ... (several files are concatenated)"));
 
     // ---- Frames, time and external data
     Section* frames = addSection(QStringLiteral("frames"), tr("Frames, time and external data"));
     const QString frameHint = tr("0-based frames of the (cleaned) trajectory; stop is exclusive (blank = last)");
-    frames->addRow(tr("Start / stop / step"),
-                   {field("inputs.start", tr("Start"), frameHint), field("inputs.stop", tr("Stop"), frameHint),
-                    field("inputs.step", tr("Step"), frameHint)},
+    frames->form()->addRow(tr("Start / stop / step"),
+                   {fieldAs("inputs.start", tr("Start"), frameHint), fieldAs("inputs.stop", tr("Stop"), frameHint),
+                    fieldAs("inputs.step", tr("Step"), frameHint)},
                    frameHint);
-    frames->add(tr("Time step override (ps)"), field("inputs.dt_ps", tr("Time step override (ps)")),
+    frames->form()->add(tr("Time step override (ps)"), fieldAs("inputs.dt_ps", tr("Time step override (ps)")),
                 tr("Leave blank to use the trajectory's time stamps"));
-    frames->add(tr("Display time unit"), field("inputs.time_unit", tr("Display time unit")));
-    forms::FieldWidget* external = field("inputs.external", tr("External data (CSV/text)"));
+    frames->form()->add(tr("Display time unit"), fieldAs("inputs.time_unit", tr("Display time unit")));
+    forms::FieldWidget* external = fieldAs("inputs.external", tr("External data (CSV/text)"));
     setTableHeight(external, 90);
-    frames->add(tr("External data (CSV/text)"), external,
+    frames->form()->add(tr("External data (CSV/text)"), external,
                 tr("Extra traces (e.g. cpptraj .dat files) interpolated onto the analysed frames"));
 
     // ---- Trajectory cleaning (cpptraj)
     Section* cl = addSection(QStringLiteral("cleaning"), tr("Trajectory cleaning (cpptraj)"));
-    cl->addWide(field("cleaning.enabled", tr("Strip and clean the trajectory with cpptraj before analysis")));
-    cl->add(tr("cpptraj executable"), field("cleaning.cpptraj_path", tr("cpptraj executable")),
+    cl->form()->addWide(fieldAs("cleaning.enabled", tr("Strip and clean the trajectory with cpptraj before analysis")));
+    cl->form()->add(tr("cpptraj executable"), fieldAs("cleaning.cpptraj_path", tr("cpptraj executable")),
             tr("Name on PATH or absolute path"));
-    m_detect = pageButton(QStringLiteral("cleaning.detect"), tr("Detect"),
+    m_detect = makeButton(tr("Detect"), QStringLiteral("cleaning.detect"),
                           tr("Find environments that contain bin/cpptraj"));
-    cl->addRow(tr("Conda environment"), {field("cleaning.conda_env", tr("Conda environment")), m_detect},
+    cl->form()->addRow(tr("Conda environment"), {fieldAs("cleaning.conda_env", tr("Conda environment")), m_detect},
                tr("Activated for every cpptraj call (conda run -n <env> cpptraj); a name or a path"));
-    cl->add(tr("conda executable"), field("cleaning.conda_exe", tr("conda executable")),
+    cl->form()->add(tr("conda executable"), fieldAs("cleaning.conda_exe", tr("conda executable")),
             tr("Blank: found automatically (conda, mamba or micromamba)"));
-    cl->add(tr("Solvent mask"), field("cleaning.solvent_mask", tr("Solvent mask")));
-    cl->add(tr("Ion mask"), field("cleaning.ion_mask", tr("Ion mask")), tr("Mg2+ is kept by default"));
-    cl->add(tr("Extra strip mask"), field("cleaning.extra_strip_mask", tr("Extra strip mask")));
-    cl->addRow(tr("Imaging"), {field("cleaning.autoimage", tr("autoimage, anchor")),
-                               field("cleaning.autoimage_anchor", tr("Autoimage anchor"))});
-    cl->addRow(tr("Fitting"), {field("cleaning.fit", tr("rms fit, mask")), field("cleaning.fit_mask", tr("Fit mask"))});
-    cl->addRow(tr("Fit reference"), {field("cleaning.fit_reference", tr("Fit reference")),
-                                     field("cleaning.reference_frame", tr("Reference frame"))});
-    cl->add(tr("Reference file"), field("cleaning.reference_file", tr("Reference file")));
-    cl->addWide(field("cleaning.remove_box_after_fit",
+    cl->form()->add(tr("Solvent mask"), fieldAs("cleaning.solvent_mask", tr("Solvent mask")));
+    cl->form()->add(tr("Ion mask"), fieldAs("cleaning.ion_mask", tr("Ion mask")), tr("Mg2+ is kept by default"));
+    cl->form()->add(tr("Extra strip mask"), fieldAs("cleaning.extra_strip_mask", tr("Extra strip mask")));
+    cl->form()->addRow(tr("Imaging"), {fieldAs("cleaning.autoimage", tr("autoimage, anchor")),
+                               fieldAs("cleaning.autoimage_anchor", tr("Autoimage anchor"))});
+    cl->form()->addRow(tr("Fitting"), {fieldAs("cleaning.fit", tr("rms fit, mask")), fieldAs("cleaning.fit_mask", tr("Fit mask"))});
+    cl->form()->addRow(tr("Fit reference"), {fieldAs("cleaning.fit_reference", tr("Fit reference")),
+                                     fieldAs("cleaning.reference_frame", tr("Reference frame"))});
+    cl->form()->add(tr("Reference file"), fieldAs("cleaning.reference_file", tr("Reference file")));
+    cl->form()->addWide(fieldAs("cleaning.remove_box_after_fit",
                       tr("Remove box information after fitting (a rotated box cannot be stored in NetCDF)")));
     const QString trajinHint = tr("1-based cpptraj trajin arguments");
-    cl->addRow(tr("trajin start / stop / offset"),
-               {field("cleaning.start", tr("trajin start"), trajinHint), field("cleaning.stop", tr("trajin stop"), trajinHint),
-                field("cleaning.offset", tr("trajin offset"), trajinHint)},
+    cl->form()->addRow(tr("trajin start / stop / offset"),
+               {fieldAs("cleaning.start", tr("trajin start"), trajinHint), fieldAs("cleaning.stop", tr("trajin stop"), trajinHint),
+                fieldAs("cleaning.offset", tr("trajin offset"), trajinHint)},
                trajinHint);
-    forms::FieldWidget* extra = field("cleaning.extra_commands", tr("Extra cpptraj commands"));
+    forms::FieldWidget* extra = fieldAs("cleaning.extra_commands", tr("Extra cpptraj commands"));
     setTextHeight(extra, 50);
-    cl->add(tr("Extra cpptraj commands"), extra, tr("Advanced: inserted before trajout"));
+    cl->form()->add(tr("Extra cpptraj commands"), extra, tr("Advanced: inserted before trajout"));
     auto* buttons = new QWidget;
     auto* row = new QHBoxLayout(buttons);
     row->setContentsMargins(0, 0, 0, 0);
-    m_runCleaning = pageButton(QStringLiteral("cleaning.run"), tr("Run cleaning now"));
+    m_runCleaning = makeButton(tr("Run cleaning now"), QStringLiteral("cleaning.run"));
     m_runCleaning->setIcon(style()->standardIcon(QStyle::SP_MediaPlay));
-    m_inspect = pageButton(QStringLiteral("cleaning.inspect"), tr("Inspect system"),
+    m_inspect = makeButton(tr("Inspect system"), QStringLiteral("cleaning.inspect"),
                            tr("Print atom/residue/frame counts and check residue groups"));
     row->addWidget(m_runCleaning);
     row->addWidget(m_inspect);
     row->addStretch(1);
-    cl->addWide(buttons);
-    finish();
+    cl->form()->addWide(buttons);
 
     connect(m_detect, &QPushButton::clicked, this, [this] { detectConda(); });
     connect(m_runCleaning, &QPushButton::clicked, this, &InputPage::runCleaningRequested);
@@ -134,6 +133,15 @@ QString InputPage::detectConda() {
     }
     emit logMessage(tr("Conda environments with cpptraj: %1").arg(forms::toQString(found)));
     return name;
+}
+
+forms::FieldWidget* InputPage::fieldAs(const std::string& path, const QString& label, const QString& hint) {
+    return field(path, [&](forms::FieldSpec& spec) {
+        spec.label = label;
+        if (spec.hint.isEmpty()) {
+            spec.hint = hint;
+        }
+    });
 }
 
 }  // namespace mdbridge::app::pages

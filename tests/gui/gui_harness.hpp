@@ -3,9 +3,7 @@
 // files written compared with tests/data/gui, widgets found by objectName (field widgets use their
 // project key), screenshots for CI artifacts (never compared).
 
-#include <cstddef>
 #include <filesystem>
-#include <memory>
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -18,10 +16,6 @@
 #include "mdbridge/core/value.hpp"
 
 class QWidget;
-
-namespace mdbridge::core {
-class ProjectDocument;
-}
 
 namespace mdbridge::app {
 class MainWindow;
@@ -44,47 +38,13 @@ struct GuiCase {
     core::Array actions;                                         // tables with "action"
     std::vector<std::pair<std::string, std::string>> expected;  // case-folder name, path under the data folder
     std::vector<std::string> needs;                              // "needs": features beyond this harness (W0-A cases)
-    std::string startProject;  // "start": {"project": name}, opened before the first action ("" = none)
-    core::Value outcome;       // "outcome" (Null when absent): snapshots compared by compareSnapshots
+    std::string start;     // "start.project": the project the window starts with ("" none)
+    core::Value outcome;   // "outcome" as read (Null when absent)
 };
 
-// What a case runs against: the main window, or a test-only host of some pages (tests/gui/page_host)
-// while the window does not have them yet.
-class CaseHost {
-public:
-    virtual ~CaseHost() = default;
-    virtual QWidget* widget() = 0;
-    virtual bool openProject(const std::filesystem::path& path) = 0;
-    // "" = the document's own file
-    virtual bool saveProject(const std::filesystem::path& path) = 0;
-    // The project and its preview finished loading.
-    virtual bool settled() const = 0;
-    virtual core::ProjectDocument* document() = 0;
-    // Stores text typed but not committed (before a snapshot or a save, as MDATK's collect()).
-    virtual void commitPendingEdits() {}
-    // Before an action on `key`: show the page of the field (a window shows one page at a time).
-    virtual void reveal(const QString& key) { (void)key; }
-    // The page shown ("input" ...; "" when the host has no pages).
-    virtual QString currentPage() const { return {}; }
-    // The host has the layout page's slot editors (snapshot "slots").
-    virtual bool hasSlotEditors() const { return false; }
-};
-
-// A recorded snapshot (action "snapshot"): its action index and the values of its keys (JSON
-// values with the project file's types, as tests/data/README.md "gui" describes `outcome`).
-struct Snapshot {
-    std::size_t action = 0;
-    core::Value record;  // {"action", "values" | "error", "page", "modified"}
-};
-
-// Every difference between the recorded snapshots and the case's outcome.snapshots ("" when equal);
-// parts the host cannot record (slot editors, density status) are listed in `skipped`.
-std::string compareSnapshots(const GuiCase& c, const std::vector<Snapshot>& recorded, std::vector<std::string>* skipped);
-
-// The entries of `c.needs` this harness does not support yet (against the main window it runs
-// "type" and "table"; a case that needs anything else is skipped, tests/data/README.md "gui").
-// `extra`: what the host supports besides (the page host: "start", "snapshot", "lossless").
-std::vector<std::string> unsupportedNeeds(const GuiCase& c, const std::vector<std::string>& extra = {});
+// The entries of `c.needs` this harness does not support yet (it runs "type" and "table"; a case
+// that needs anything else is skipped, tests/data/README.md "gui").
+std::vector<std::string> unsupportedNeeds(const GuiCase& c);
 
 // Every *.json under `dir` (recursively), sorted.
 std::vector<std::filesystem::path> findCases(const std::filesystem::path& dir);
@@ -110,8 +70,13 @@ QWidget* findField(QWidget* root, const QString& key);
 
 // Enters `value` into the widget as a user would (tests/data/README.md, action "set"): drop-downs
 // choose the item whose project value (item data) is `value` (W0-A's cases), editable ones and text
-// fields get it typed (select all, type, Enter), check boxes are toggled with Space. Throws
-// CaseError for widget types and values it cannot enter.
+// fields get it typed (select all, type, Enter; a list of strings typed as "a, b"), check boxes are
+// toggled with Space, sliders moved to the value (times their "mdbridgeScale" property). A list
+// value entered into a widget that is none of these goes to its parts: check boxes with an
+// "mdbridgeChoice" property are ticked for the values listed and unticked for the others (unticks
+// first, then ticks in the list's order: output.charts.formats), else item k goes to the child
+// named "<key>.k" (the rotation sliders "visual.rotation.0" ...). Throws CaseError for widget types
+// and values it cannot enter.
 void setField(QWidget* widget, const core::Value& value);
 
 // Replaces the widget's text with `text` and commits it (action "type"): select all, type (""
@@ -149,29 +114,20 @@ class CaseRunner {
 public:
     CaseRunner(app::MainWindow& window, std::filesystem::path caseDir, std::filesystem::path screenshots,
                std::string caseName);
-    CaseRunner(CaseHost& host, std::filesystem::path caseDir, std::filesystem::path screenshots, std::string caseName);
-    ~CaseRunner();
 
-    // Opens the case's "start" project (throws CaseError when it cannot be opened).
-    void start(const GuiCase& c);
     void run(const core::Array& actions);
     void runAction(const core::Value& action);
 
     const std::vector<std::filesystem::path>& screenshots() const { return m_shots; }
-    const std::vector<Snapshot>& snapshots() const { return m_snapshots; }
 
 private:
     void waitUntilLoaded(int timeoutMs);
-    void snapshot(const core::Value& action);
 
-    std::unique_ptr<CaseHost> m_ownHost;  // the window's adapter
-    CaseHost& m_host;
+    app::MainWindow& m_window;
     std::filesystem::path m_caseDir;
     std::filesystem::path m_screenshotDir;
     std::string m_caseName;
     std::vector<std::filesystem::path> m_shots;
-    std::vector<Snapshot> m_snapshots;
-    std::size_t m_action = 0;
 };
 
 // Copies the case's files into `caseDir` (which must exist). Throws CaseError.

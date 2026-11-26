@@ -14,7 +14,7 @@
 #include <QTimer>
 
 #include "chain_groups.hpp"
-#include "gui/pages/settings_page.hpp"
+#include "gui/pages/form_page.hpp"
 
 class QLabel;
 class QPushButton;
@@ -29,7 +29,7 @@ class ListEditor;
 
 namespace mdbridge::app::pages {
 
-class GroupsPage : public SettingsPage {
+class GroupsPage : public FormPage {
     Q_OBJECT
 
 public:
@@ -59,11 +59,15 @@ public:
     static constexpr int kTopologySettleMs = 500;
 
 signals:
+    // A line for the window's log ("WARNING: ..." for problems), as MDATK's append_log.
+    void logMessage(const QString& text);
     void statusChanged(const QString& text);
     // A chain read finished (applied, refused or dropped).
     void chainsDone();
 
 private:
+    // field() with `label` (check box text, accessible name) and `hint` as tooltip when the spec has none.
+    forms::FieldWidget* fieldAs(const std::string& path, const QString& label, const QString& hint = {});
     void message(const QString& text, bool error = false, const QString& detail = {});
     void onDocumentChanged(const core::DocumentChange& change);
     void topologySettled();

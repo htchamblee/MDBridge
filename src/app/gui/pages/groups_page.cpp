@@ -8,8 +8,10 @@
 #include <utility>
 
 #include <QApplication>
+#include <QColor>
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QPalette>
 #include <QPointer>
 #include <QPushButton>
 #include <QStyle>
@@ -49,11 +51,11 @@ QString readingText(const std::string& path) {
 }  // namespace
 
 GroupsPage::GroupsPage(forms::FormContext& context, QWidget* parent)
-    : SettingsPage(context, QStringLiteral("groups"), QStringLiteral("Residue groups"), parent) {
+    : FormPage(context, QStringLiteral("groups"), QStringLiteral("Residue groups"), parent) {
     Section* s = addSection(QStringLiteral("groups"), tr("Residue groups"));
-    m_list = qobject_cast<forms::ListEditor*>(field("groups", tr("Residue groups")));
+    m_list = qobject_cast<forms::ListEditor*>(fieldAs("groups", tr("Residue groups")));
     m_list->view()->setMinimumHeight(180);
-    m_pick = pageButton(QStringLiteral("groups:pick_colour"), tr("Pick colour…"), tr("Pick the selected group's colour"));
+    m_pick = makeButton(tr("Pick colour…"), QStringLiteral("groups:pick_colour"), tr("Pick the selected group's colour"));
     m_pick->setIcon(style()->standardIcon(QStyle::SP_DialogApplyButton));
     m_list->addButton(m_pick);
     m_list->setCellEditHandler([this](int row, const std::string& key, const QString& text) {
@@ -63,30 +65,29 @@ GroupsPage::GroupsPage(forms::FormContext& context, QWidget* parent)
         commitGroupName(row, text);
         return true;  // stored, or refused with a message: never stored as plain text
     });
-    s->addWide(m_list);
+    s->form()->addWide(m_list);
 
     auto* chainsRow = new QWidget;
     auto* row = new QHBoxLayout(chainsRow);
     row->setContentsMargins(0, 0, 0, 0);
-    m_chains = pageButton(QStringLiteral("groups:from_chains"), tr("Groups from chains"),
+    m_chains = makeButton(tr("Groups from chains"), QStringLiteral("groups:from_chains"),
                           tr("Add one group per chain of the topology (water and ions left out); existing groups "
                              "are kept"));
     m_chains->setIcon(style()->standardIcon(QStyle::SP_FileDialogNewFolder));
     row->addWidget(m_chains);
     row->addStretch(1);
-    s->addWide(chainsRow);
+    s->form()->addWide(chainsRow);
     m_status = new QLabel;
     m_status->setObjectName(QStringLiteral("groups:status"));
     m_status->setWordWrap(true);
     m_status->setTextInteractionFlags(Qt::TextSelectableByMouse | Qt::TextSelectableByKeyboard);
-    s->addWide(m_status);
-    s->addWide(hintLabel(tr(
+    s->form()->addWide(m_status);
+    s->form()->addWide(makeHint(tr(
         "Residues accept ranges such as “1-40, 45, 50-60” or chain/segment-qualified “A:1-40”. A "
         "selection is a raw MDAnalysis selection string. Anywhere a selection is expected you can refer to a group "
         "as group:<Name> (e.g. “group:Aptamer and name P”). Group names must not contain spaces. Renaming "
         "a group (Enter or leaving the cell) renames it everywhere the project uses it. Choosing a topology fills "
         "empty or untouched default groups with one group per chain.")));
-    finish();
 
     m_names = names();
     m_topologyTimer.setSingleShot(true);
@@ -319,6 +320,15 @@ void GroupsPage::chainsReady(std::uint64_t request, const std::string& topology,
         message(forms::toQString(merge.summary(forms::toStdString(name))), false, joined(merge.references));
     }
     emit chainsDone();
+}
+
+forms::FieldWidget* GroupsPage::fieldAs(const std::string& path, const QString& label, const QString& hint) {
+    return field(path, [&](forms::FieldSpec& spec) {
+        spec.label = label;
+        if (spec.hint.isEmpty()) {
+            spec.hint = hint;
+        }
+    });
 }
 
 }  // namespace mdbridge::app::pages

@@ -2,13 +2,15 @@
 // The Input & cleaning page (MDATK v0.0.4.1 gui/app.py _tab_input): project notes, input files,
 // frames / time / external data, trajectory cleaning with cpptraj.
 
-#include "gui/pages/settings_page.hpp"
+#include <string>
+
+#include "gui/pages/form_page.hpp"
 
 class QPushButton;
 
 namespace mdbridge::app::pages {
 
-class InputPage : public SettingsPage {
+class InputPage : public FormPage {
     Q_OBJECT
 
 public:
@@ -23,6 +25,8 @@ public:
     QString detectConda();
 
 signals:
+    // A line for the window's log ("WARNING: ..." for problems), as MDATK's append_log.
+    void logMessage(const QString& text);
     // The window's actions (milestone 5 W2-B): *Run cleaning now* and *Inspect system*.
     void runCleaningRequested();
     void inspectSystemRequested();
@@ -30,6 +34,8 @@ signals:
     void information(const QString& text, const QString& detail);
 
 private:
+    // field() with `label` (check box text, accessible name) and `hint` as tooltip when the spec has none.
+    forms::FieldWidget* fieldAs(const std::string& path, const QString& label, const QString& hint = {});
     QPushButton* m_detect = nullptr;
     QPushButton* m_runCleaning = nullptr;
     QPushButton* m_inspect = nullptr;

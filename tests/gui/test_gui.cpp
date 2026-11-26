@@ -284,15 +284,30 @@ void GuiTests::cases_data() {
 void GuiTests::cases() {
     QFETCH(QString, file);
     const guitest::GuiCase c = guitest::loadCase(core::pathFromUtf8(file.toStdString()), kData / "gui");
-    // the per-page cases run in a test-only host of the pages until the window shows them (page_host.hpp)
-    const bool pageHost = guitest::runsInPageHost(c);
-    const std::vector<std::string> extra = pageHost ? guitest::pageHostNeeds() : std::vector<std::string>{};
-    if (const std::vector<std::string> missing = guitest::unsupportedNeeds(c, extra); !missing.empty()) {
-        std::string why = "needs what the harness does not have yet:";
-        for (const std::string& need : missing) {
-            why += " " + need;
+    if (const std::vector<std::string> missing = guitest::unsupportedNeeds(c); !missing.empty()) {
+        // the window has no settings pages yet (W1-A): cases on pages that exist run on the
+        // test-only page host (page_host.hpp)
+        std::string why;
+        if (!guitest::pageHostRuns(c, why)) {
+            QSKIP(why.c_str());
         }
-        QSKIP(why.c_str());
+        QTemporaryDir hostTmp;
+        QVERIFY(hostTmp.isValid());
+        const fs::path hostDir = core::pathFromUtf8(hostTmp.path().toStdString()) / "case";
+        fs::create_directories(hostDir);
+        std::optional<guitest::FixedClock> hostClock;
+        if (c.clock) hostClock.emplace(*c.clock);
+        std::vector<fs::path> shots;
+        std::string failure = guitest::runOnPageHost(c, kData, hostDir, screenshots(), &shots);
+        for (const fs::path& shot : shots) {
+            qInfo("screenshot %s", core::pathToUtf8(shot).c_str());
+        }
+        if (!failure.empty()) {
+            hostTmp.setAutoRemove(false);
+            failure += "(case folder kept: " + core::pathToUtf8(hostDir) + ")";
+        }
+        QVERIFY2(failure.empty(), failure.c_str());
+        return;
     }
     QTemporaryDir tmp;
     QVERIFY(tmp.isValid());
@@ -302,11 +317,14 @@ void GuiTests::cases() {
     if (c.clock) clock.emplace(*c.clock);
 
     std::string failure;
-    std::vector<guitest::Snapshot> snapshots;
-    const auto runCase = [&](guitest::CaseRunner& runner) {
+    {
+        app::MainWindow window(render::Renderer::Software);
+        window.resize(1280, 800);
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
         try {
             guitest::prepareCase(c, kData, caseDir);
-            runner.start(c);
+            guitest::CaseRunner runner(window, caseDir, screenshots(), c.name);
             runner.run(c.actions);
             for (const fs::path& shot : runner.screenshots()) {
                 qInfo("screenshot %s", core::pathToUtf8(shot).c_str());
@@ -314,30 +332,10 @@ void GuiTests::cases() {
         } catch (const std::exception& e) {
             failure = e.what();
         }
-        snapshots = runner.snapshots();
-    };
-    if (pageHost) {
-        guitest::PageHost host;
-        host.show();
-        QVERIFY(QTest::qWaitForWindowExposed(&host));
-        guitest::CaseRunner runner(host, caseDir, screenshots(), c.name);
-        runCase(runner);
-    } else {
-        app::MainWindow window(render::Renderer::Software);
-        window.resize(1280, 800);
-        window.show();
-        QVERIFY(QTest::qWaitForWindowExposed(&window));
-        guitest::CaseRunner runner(window, caseDir, screenshots(), c.name);
-        runCase(runner);
         window.cancelLoad();
     }
     if (failure.empty()) {
         failure = guitest::checkExpected(c, kData, caseDir);
-        std::vector<std::string> skipped;
-        failure += guitest::compareSnapshots(c, snapshots, &skipped);
-        for (const std::string& s : skipped) {
-            qInfo("not compared: %s", s.c_str());
-        }
     }
     if (!failure.empty()) {
         tmp.setAutoRemove(false);

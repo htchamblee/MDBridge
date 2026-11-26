@@ -4,11 +4,12 @@
 // group drop-downs (free text with suggestions) list the project's current group names and follow
 // every change of the groups (MDATK _groups_changed / set_combo_entry_items).
 
+#include <string>
 #include <vector>
 
 #include <QStringList>
 
-#include "gui/pages/settings_page.hpp"
+#include "gui/pages/form_page.hpp"
 
 namespace mdbridge::core {
 struct DocumentChange;
@@ -20,7 +21,7 @@ class EditableComboField;
 
 namespace mdbridge::app::pages {
 
-class AnalysesPage : public SettingsPage {
+class AnalysesPage : public FormPage {
     Q_OBJECT
 
 public:
@@ -32,6 +33,8 @@ public:
     QStringList groupChoices() const;
 
 private:
+    // field() with `label` (check box text, accessible name) and `hint` as tooltip when the spec has none.
+    forms::FieldWidget* fieldAs(const std::string& path, const QString& label, const QString& hint = {});
     forms::EditableComboField* groupCombo(const char* analysis, const char* side);
     void updateGroupChoices();
 
