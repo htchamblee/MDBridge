@@ -472,7 +472,10 @@ cpptraj on PATH, impossible arguments, `--run` as a render case) and `clean` and
 `analyze` / `export-pdb` with a fake cpptraj (a shell script that copies the inputs to the outputs)
 run directly, from `--cpptraj`, `$AMBERHOME` or a fake `conda run` (`--conda-env`, detected), reuse,
 `--force`, changed settings, `--verbose`, every error; the script's time stamp, the marker's time and
-the cleaning key are normalised. The render cases' figures and videos are recorded by metadata only (PNG size, JPEG / TIFF kind, SVG
+the cleaning key are normalised. The cases run with `PATH=/usr/bin:/bin` and must find no conda,
+mamba or micromamba there (cli_parity.py refuses to run otherwise; CI removes the link GitHub's
+Ubuntu runners put in /usr/bin); per-user library caches under the cases' `home/.cache` (fontconfig)
+are not compared. The render cases' figures and videos are recorded by metadata only (PNG size, JPEG / TIFF kind, SVG
 and PDF page size in points, PostScript bounding box, ffprobe's video metadata without the codec
 name and faststart; the parameter log as its run's `outputs` and `timestamp`; the step log in the
 project file with `time` / `duration_s` masked), with MDBridge's rendering improvements patched into

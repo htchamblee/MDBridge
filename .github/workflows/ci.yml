@@ -448,6 +448,15 @@ jobs:
           sudo apt-get install -y --no-install-recommends ffmpeg
           ffmpeg -version | head -n 1
 
+      # GitHub's Ubuntu runners link their Miniconda (/usr/share/miniconda) into /usr/bin: the cases of
+      # tests/parity/cli_parity.py without a conda of their own (PATH /usr/bin:/bin) must find none
+      - name: No conda on the system PATH
+        run: |
+          for tool in conda mamba micromamba; do
+            if found="$(PATH=/usr/bin:/bin command -v "$tool")"; then ls -l "$found"; sudo rm -f "$found"; fi
+          done
+          if PATH=/usr/bin:/bin command -v conda mamba micromamba; then exit 1; fi
+
       - name: init, info, list, analyze, export-pdb, render, charts, preview and density info print and write what MDATK prints and writes
         run: |
           (cd work && ../dist/MDBridge-*-x86_64.AppImage --appimage-extract > /dev/null)  # once, not per run
@@ -514,6 +523,15 @@ jobs:
           "$RUNNER_TEMP/venv/bin/python" -m pip check
           "$RUNNER_TEMP/venv/bin/python" -m pip freeze
           ffmpeg -version | head -n 1
+
+      # GitHub's Ubuntu runners link their Miniconda (/usr/share/miniconda) into /usr/bin: the cases of
+      # tests/parity/cli_parity.py without a conda of their own (PATH /usr/bin:/bin) must find none
+      - name: No conda on the system PATH
+        run: |
+          for tool in conda mamba micromamba; do
+            if found="$(PATH=/usr/bin:/bin command -v "$tool")"; then ls -l "$found"; sudo rm -f "$found"; fi
+          done
+          if PATH=/usr/bin:/bin command -v conda mamba micromamba; then exit 1; fi
 
       - name: Regenerate every data set and compare with the committed files
         run: |

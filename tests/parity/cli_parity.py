@@ -41,6 +41,9 @@ Normalised on both sides before comparing (the only differences allowed):
   * the cleaning's generated script time stamp and marker time -> {time}, the cleaning key (it
     hashes the inputs' mtimes) in cleaned/<key> folders, the marker and the manifest -> {key};
   * MDAnalysis' hidden XTC / TRR offset caches (.NAME_offsets.npz / .lock) are not files of the run;
+    nor are the per-user caches of system libraries under the cases' HOME (home/.cache: the
+    fontconfig cache of the AppImage's fallback fontconfig on a host that lacks one of the fallback
+    libraries, a Mesa shader cache);
   * MDATK messages that MDBridge words with its own name (NAMING) are adapted;
   * MDBridge's documented improvements (docs/DIFFERENCES.md, improvements_cli.py) are applied to
     MDATK: patched in-process (validation, --frames / --set index messages, the RMSD reference-frame
@@ -724,6 +727,7 @@ CASES = [
 STAMP_RE = re.compile(r"\d{4}-\d{2}-\d{2}_\d{6}")
 SAVED_RE = re.compile(r"^saved = \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?$", re.M)
 OFFSETS_RE = re.compile(r"^\..+_offsets\.(npz|lock)$")
+USER_CACHE = "home/.cache/"  # $XDG_CACHE_HOME of the cases' HOME ({work}/home, NO_CONDA): libraries' caches
 FINISHED_RE = re.compile(r"Finished in [0-9.]+ s")
 # the run's first log line names the program (pipeline.py PROJECT_TITLE / MDBridge's name) and version
 PROGRAM_RE = re.compile(r"^(Molecular Dynamic Analysis Tool Kit \(MDATK\) 0\.0\.4\.1|MDBridge \S+) - output directory",
@@ -802,6 +806,8 @@ def collect(case_, folder, paths=None):
                 continue
             full = os.path.join(here, name)
             rel = os.path.relpath(full, folder).replace(os.sep, "/")
+            if rel.startswith(USER_CACHE):
+                continue
             with open(full, "rb") as fh:
                 data = fh.read()
             if rel in case_["inputs"]:
@@ -1256,6 +1262,13 @@ def diff(expected, actual):
     return "\n".join(list(lines)[:40])
 
 
+def system_conda():
+    """conda / mamba / micromamba on the cases' system PATH: MDATK and MDBridge would run it in the
+    cases that have no conda of their own (clean_conda_env_missing), making the results the
+    machine's (GitHub's Ubuntu runners link their Miniconda into /usr/bin)."""
+    return [found for name in ("conda", "mamba", "micromamba") if (found := shutil.which(name, path=SYSTEM_PATH))]
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--mdatk", help="checkout of MDATK v0.0.4.1")
@@ -1279,6 +1292,9 @@ def main(argv=None):
         return 0
     if not args.mdatk or bool(args.mdbridge) == bool(args.write):
         parser.error("give --mdatk and one of --mdbridge / --write")
+    if found := system_conda():
+        parser.error(f"{', '.join(found)} is on {SYSTEM_PATH}, the PATH of the cases: the cases without conda "
+                     "would run it; take it off that PATH (CI: the step 'No conda on the system PATH')")
     root = os.path.abspath(args.keep) if args.keep else tempfile.mkdtemp(prefix="cli_parity_")
     os.makedirs(root, exist_ok=True)
     try:
