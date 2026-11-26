@@ -944,6 +944,92 @@ its case folder and names it.
 |---|---|---|
 | `harness/` | `open_save_default`: the default project (`projects/default.mdatk.toml`) opened and saved unchanged, and the file MDATK v0.0.4.1 writes for that (its window's Open and Save without edits are `Project.load` + `Project.save`; checked once against the GTK window itself under Xvfb: same bytes) | `python3 -I -B tests/parity/make_gui_harness_cases.py <MDATK checkout> tests/data` |
 
+### gui: the per-page, AP and canvas cases (milestone 5, W0-A)
+
+`tests/parity/make_gui_cases.py` (step `gui` of `regenerate_all.py`) drives MDATK v0.0.4.1's GTK 3
+window (`mdatk/gui/app.py`) headless under Xvfb through the same kind of action script and records
+what it wrote and showed. The cases are in `gui/<topic>/` (`roundtrip`, `pages`, `ap`, `canvas`):
+`<case>.json`, its input files in `<case>/in/`, the expected files in `<case>/out/` and MDATK's own
+files, where they differ, in `<case>/mdatk/`. MDBridge's deliberate fixes of the window (AP-xx of
+`docs/specs/m5-plan.md` section 4, `docs/DIFFERENCES.md` "Interface") are applied on the test side
+by `tests/parity/improvements_gui.py`, so `expected` and `outcome` are MDBridge's behaviour (as in
+the other generators, MDATK also runs with MDBridge's earlier improvements: `render_common.setup`,
+unknown project keys kept by PRJ-09 / D9). The format is the one above, extended (a runner that
+lacks something a case `needs` skips the case and names what is missing):
+
+| Key | Content |
+|---|---|
+| `clock` | always set: every case starts at `2026-11-25T12:00:00` (MDATK reads the clock once per save) |
+| `items` | ids the case covers (`AP-01`, `D8` ...; `[]`: plain parity with MDATK) |
+| `mdatk_test` | the MDATK test (`tests/test_gui.py::...`) the case mirrors, or `""` |
+| `needs` | the actions and keys of this section the case uses (`canvas`, `save_as`, `new`, `close`, `table`, `type`, `toggle`, `snapshot`, `start`, `settings`, `answers`), so a runner can skip what it does not have yet |
+| `canvas` | `{"width": W, "height": H}`: the figure canvas widget's size in pixels (device pixel ratio 1); the figure is drawn at `scale = min(W / video.width, H / video.height)`, `int(video.width * scale)` x `int(video.height * scale)` pixels at `video.dpi * scale`, centred |
+| `settings` | path under tests/data of `$XDG_CONFIG_HOME/mdatk/settings.toml` before the start (`{case_dir}` in it: the case folder), or absent: no such file (D16, AP-17) |
+| `start` | `{"project": name}`: the window is started with `{case_dir}/name` (as `gui PATH`), before the first action; absent: started without a project |
+| `outcome` | MDBridge's expected outcome besides files (below) |
+| `mdatk` | the keys of `expected` / `outcome` whose MDATK value differs, with MDATK's value (`expected` paths point into `<case>/mdatk/`); `{}`: MDATK did the same. Never compared |
+
+Placeholders, in expected files and in `outcome` texts: `{case_dir}` (the case folder, absolute)
+and `{config_dir}` (`$XDG_CONFIG_HOME`, a folder outside it). The environment of a run:
+`XDG_CONFIG_HOME` = `{config_dir}`, `HOME` an empty folder, no cpptraj or conda installation found,
+the current folder = the case folder.
+
+Fields are addressed by project key (the widget's `objectName`): `analyses.contacts.cutoff`. List
+items take their index: `groups.1.color`, `visual.representations.0.size`,
+`inputs.trajectories.2`, `inputs.external.0.columns`, `analyses.rmsd.targets.0.selection`; the
+slot editors of the layout page are `layout.panels.N.<field>`, fields `type`, `data`, `group_a`,
+`group_b`, `more`, `title`, `options` (slot N, 0-based, whether or not it holds a panel yet).
+
+Actions added or extended:
+
+| Action | Keys | What the user does |
+|---|---|---|
+| `set` | `key`, `value` | as above; `value` is the project value: drop-downs choose the item whose project value (item data) is `value` (ids outside the list are allowed: AP-05), spin boxes and sliders take numbers (integers for integer fields), colour buttons a colour picked (`"#rrggbb"`, or any text: AP-03), check boxes `true` / `false`, list-valued fields a list of strings (`output.charts.formats`, `visual.structure_groups`), `visual.rotation` `[x, y, z]` (the three sliders), table cells their text, slot editors their choice (`.group_a` `""` = "(analysis default)") |
+| `type` | `key`, `text` | replaces a text field's text with `text` and commits it (Enter / leaving the field): line edits, optional numbers (`inputs.stop`), comma lists, notes, table cells, the slot editors' `more`, `title`, `options` |
+| `table` | `key`, `do`, `row`, `by` | list editors (`groups`, `inputs.trajectories`, `inputs.external`, `analyses.rmsd.targets`, `visual.representations`): `"add"` (a row with the editor's defaults at the end), `"remove"` (row `row`), `"move"` (row `row` by `by` = -1 / +1) |
+| `click` | `key` | also `density.centre_on_model`, `density.clear`, `structure.reset_orientation`, `structure.reset_view` |
+| `toggle` | `key`, `value` | a toggle button: `density.move_with_mouse` (map mode of the canvas) |
+| `wait` | | as above; MDATK's side presses *Load real frame* when the project's topology exists (MDBridge loads it by itself) |
+| `canvas.drag` | `from`, `path` or `to`, `shift` | press the left button at `from`, move, release. Points are `{"slot": N, "at": [fx, fy]}`: fractions of slot N's hit rectangle (the panel's drawn extent: axes, labels, colour bars; an empty slot's grid cell) from its top-left corner, y down. `path`: the motion events, each `[dx, dy]` pixels from the press point, released at the last; `to`: one motion to that point, released there. `shift`: Shift held throughout |
+| `canvas.wheel` | `at`, `notches` | wheel turns over `at`, one event per entry: `1` up (zoom x 1.15), `-1` down |
+| `canvas.double_click` | `at` | opens the slot's editor on the layout page |
+| `new`, `close` | `answers` | *New project (defaults)*; closing the window |
+| `open`, `save` | `answers` | as above (`open` may now fail: the error is in `outcome.dialogs`) |
+| `save_as` | `name`, `answers` | *Save as…*, `name` typed in the file dialog (relative to the case folder, with or without `.mdatk.toml`: AP-11) |
+| `snapshot` | `keys`, `slots`, `page`, `density_status`, `modified` | records the state into `outcome.snapshots` (below) |
+
+`answers`: `"overwrite": "replace" | "cancel"` (a chosen file exists), `"unsaved": "save" |
+"discard" | "cancel"` (unsaved changes before New, Open or closing: AP-13), `"name"` (typed when
+*Save* asks for a file). A question without an answer gets the first choice. Before a canvas action
+the canvas shows the figure of all earlier actions (pending redraws done; MDATK's 120 / 250 ms
+timers do not matter). A press moved at least 4 pixels (|dx| + |dy|) is a drag; below the title
+strip (top 12 %) of the structure panel it rotates (0.5° per pixel), in map mode it moves the map
+(Shift: rotates it), anywhere else or with Shift it moves the panel onto the slot under the release.
+
+`outcome`:
+
+| Key | Content |
+|---|---|
+| `log` | the lines the window's log got from the start on (MDATK's `... ready.` line left out); `{case_dir}` for the case folder |
+| `stderr` | lines printed on stderr (MDATK's start-up load warning, AP-12) |
+| `dialogs` | `{"action": k, "kind": "error" or "info", "text", "detail"}` per message dialog (`action`: index into `actions`, -1 the start) |
+| `questions` | `{"action": k, "kind": "overwrite" or "unsaved", "path", "answer"}` per question asked |
+| `snapshots` | `{"action": k, "values": {key: value}}` (project values as the window would save them, JSON with the project file's types; `"error"` instead when the settings are invalid), with `slots`: per slot editor `{"frame", "type", "data", "choices": [[id, label], ...], "group_a", "group_b", "group_a_enabled", "group_b_enabled", "more", "title", "options"}`; `page`: the page shown (`input`, `groups`, `analyses`, `structure`, `layout`, `outputs`); `density_status`; `modified` |
+| `canvas` | per canvas action `{"action": k, "slots": [[x, y, w, h], ...], "structure_slot": n, "events": [[kind, x, y], ...]}` (kinds `press`, `motion`, `release`, `scroll`, `double`): MDATK's hit rectangles and the pointer positions the action resolved to, for checking a runner's geometry |
+| `uncaught` | `{"action": k, "error"}` per exception a handler let escape (MDATK: AP-09) |
+| `settings` | path under tests/data of the expected settings file afterwards (absent: none) |
+
+Files are compared as text; snapshot values that come from the canvas (rotation, zoom, density
+placement) within 1e-9 relative, everything else exactly. The generator needs GTK 3 with its
+introspection data, PyGObject and pycairo for its Python (pinned in
+`tests/parity/requirements-gui.txt`, built against the system's GTK: `libgirepository-2.0-dev`,
+`libcairo2-dev`, `gir1.2-gtk-3.0`) and Xvfb (started by the generator when `DISPLAY` is unset). It
+runs every case twice in child processes, as MDATK and with `improvements_gui.py`:
+
+```bash
+python -I -B tests/parity/make_gui_cases.py /tmp/mdatk tests/data
+```
+
 ## Checking that the data is reproducible
 
 `tests/parity/regenerate_all.py` runs every generator above (and `tools/gen_*.py`) in this order
