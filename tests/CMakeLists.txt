@@ -54,8 +54,8 @@ target_compile_definitions(mdbridge_io_tests PRIVATE MDBRIDGE_TEST_DATA="${CMAKE
 mdbridge_target_warnings(mdbridge_io_tests)
 gtest_discover_tests(mdbridge_io_tests DISCOVERY_MODE PRE_TEST)
 
-# chem: secondary structure (dot-bracket, builtin base pairs) as MDATK computes it
-add_executable(mdbridge_chem_tests chem/test_secstruct.cpp chem/test_reference_tables.cpp)
+# chem: secondary structure (dot-bracket, builtin base pairs) and the density fit as MDATK computes them
+add_executable(mdbridge_chem_tests chem/test_density_fit.cpp chem/test_secstruct.cpp chem/test_reference_tables.cpp)
 target_include_directories(mdbridge_chem_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/core")
 target_link_libraries(mdbridge_chem_tests PRIVATE mdbridge::chem GTest::gtest_main)
 target_compile_definitions(mdbridge_chem_tests PRIVATE MDBRIDGE_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data")

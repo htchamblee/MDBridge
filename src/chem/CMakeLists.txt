@@ -1,19 +1,21 @@
 # chem: nucleic-acid chemistry ported from MDATK (secondary structure: dot-bracket notation and the
 # builtin base-pair detection) and the generated reference tables of the builder and the restraint
 # dictionaries (reference_tables.cpp: helix_tables.inc, component_tables.inc from
-# tools/gen_chem_tables.py). Residue names come from io's parseResidueName.
+# tools/gen_chem_tables.py), and the rigid-body density fit (density_fit.cpp, on src/numerics).
+# Residue names come from io's parseResidueName.
 add_library(mdbridge_chem STATIC
+    density_fit.cpp
     reference_tables.cpp
     secstruct.cpp)
 add_library(mdbridge::chem ALIAS mdbridge_chem)
 target_include_directories(mdbridge_chem PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
-target_link_libraries(mdbridge_chem PUBLIC mdbridge::core PRIVATE mdbridge::io)
+target_link_libraries(mdbridge_chem PUBLIC mdbridge::core mdbridge::io PRIVATE mdbridge::numerics)
 target_compile_features(mdbridge_chem PUBLIC cxx_std_20)
 mdbridge_target_warnings(mdbridge_chem)
-# distances reproduced bit for bit (numpy's order of operations): no contraction into fused
-# multiply-adds
+# distances reproduced bit for bit (numpy's order of operations), and the density fit's numbers the
+# same with every compiler: no contraction into fused multiply-adds
 if(MSVC)
-    set_source_files_properties(secstruct.cpp PROPERTIES COMPILE_OPTIONS /fp:precise)
+    set_source_files_properties(secstruct.cpp density_fit.cpp PROPERTIES COMPILE_OPTIONS /fp:precise)
 else()
-    set_source_files_properties(secstruct.cpp PROPERTIES COMPILE_OPTIONS -ffp-contract=off)
+    set_source_files_properties(secstruct.cpp density_fit.cpp PROPERTIES COMPILE_OPTIONS -ffp-contract=off)
 endif()
