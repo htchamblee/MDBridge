@@ -16,6 +16,7 @@ add_executable(mdbridge_core_tests
     core/test_ntpath.cpp
     core/test_panels.cpp
     core/test_project_file.cpp
+    core/test_project_document.cpp
     core/test_project_io.cpp
     core/test_progress.cpp
     core/test_project_model.cpp

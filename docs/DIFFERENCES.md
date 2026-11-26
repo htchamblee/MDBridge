@@ -1795,6 +1795,87 @@ axis). Deliberate differences from MDATK's GUI:
   waits until the structure and the preview are drawn and reports what was shown (renderer,
   `molecule`, pixel `coverage`, the preview's size, load problems) as JSON (MDATK had no such check).
 
+## Interface: the edit model (src/core/project_document.cpp, problems.cpp; milestone 5 W0-B)
+
+MDATK's GUI binds its widgets straight to the `Project` dataclasses (gui/widgets.py `Binder`) and
+saves whatever the widgets hold. MDBridge's GUI binds to `core::ProjectDocument` by field path
+(`analyses.contacts.cutoff`, `layout.panels.2.options`), a Qt-free model tested on every compiler.
+Its deliberate differences from MDATK v0.0.4.1:
+
+- **ED-01: lossless fields** (milestone 5 AP-01 .. AP-05; MDATK 0.1.1 has the same bugs). MDATK's
+  spin buttons clamped loaded values to their ranges (`contacts.cutoff` 25 saved as 20, `visual.zoom`
+  0.01 as 0.05), optional numbers went through `%g` (`inputs.dt_ps` 0.0123456789 saved as 0.0123457),
+  colour buttons rewrote colours (`tab:orange` and `#ff000080` saved as `#000000`, `gold` as
+  `#ffd700`), chart formats were three check boxes (`["jpg", "svg"]` saved as `["svg"]`) and combos
+  replaced values not in their lists. The document holds exactly what was read: no value is clamped,
+  rounded or replaced; numbers show as the project writer writes them (shortest round trip), colours
+  and choices are text, lists stay lists; giving a field the text it shows changes nothing, so a field
+  the user does not edit is saved back as read. Ranges are the checks' business (ED-03). *Tested:*
+  test_project_document.cpp `EveryFieldGivenItsOwnTextChangesNothing` (every field of every fixture
+  project and MDATK 0.1.1 file: no change, no undo step), `ValuesMdatksWidgetsRewroteAreKept` (the
+  values above, saved byte for byte).
+- **ED-02: paths as written; Save As rebases them** (AP-06, owner decision D8). MDATK's GUI wrote
+  every path absolute on save (`topology = "demo.parm7"` became `/home/.../demo/demo.parm7`), so a
+  moved or shared project folder broke after one save. The document keeps paths as the file has them
+  (relative to the project's folder, `~`, absolute) and gives the resolved project (what
+  `loadProject` reads) to runs; Save As to another folder rewrites the relative paths (the ones
+  `resolvePaths` resolves, planner files and path settings included) so that they still name the same
+  files (`inputs/a.parm7` saved from /p into /q is `../p/inputs/a.parm7`; another Windows drive: the
+  absolute path); the undo steps are rebased too. *Tested:* `PathsStayAsWritten`,
+  `SaveAsRebasesRelativePaths`, `RelativePath`.
+- **ED-03: located problems** (AP-10; the presentation of MDATK 0.0.10, `mdatk/problems.py` and
+  `config.py` `problems()` of 0.1.1). Every line of `validate()` (which stays MDATK v0.0.4.1's
+  blocking rules with MDBridge's fixes, owner decision D7) is also a `Problem` with its field path,
+  page and location ("Analyses › Hydrogen bonds › Group A"), in 0.1.1's words where 0.1.1 has the same
+  check (`unknown residue group 'X' (defined: Aptamer, Target); did you mean ...?` for v0.0.4.1's
+  `contacts: unknown residue group 'X'.`; "Residue group names must be unique: 'A' is also the name of
+  group 1."); the command line keeps printing `validate()`'s lines. Field and location are 0.1.1's
+  for every problem both have. *Tested:* `ProblemsOfEveryValidateCaseAreLocated` (every
+  validate_cases.json input: one problem per validate() line, each on an existing field; against
+  MDATK 0.1.1's `problems()` of the same inputs, data/edit-model, tests/parity/make_edit_model_cases.py),
+  `DescribeAsMdatkLatest` (describe() of 64 fields), `DocumentProblemsUseResolvedPaths`.
+- **ED-04: form errors in words** (AP-10). MDATK showed Python's texts (`inputs.stop: invalid literal
+  for int() with base 10: 'x'`, `panel options '{bad': Expecting property name ...`). A field given text
+  it cannot hold is refused with a located message and keeps its value: "Input & cleaning › Frames ›
+  Stop: 'x' is not a whole number", "'4,5' is not a number", "'maybe' is not true or false", "Options:
+  not valid JSON: ...", "options must be a JSON object"; values of the wrong type set by path give the
+  project file's messages ("expected a number, got 'far'"). *Tested:* `TextOfFields`, `GetAndSetByPath`.
+- **ED-05: undo, redo and a modified flag** (owner decisions D5, D6; AP-13). MDATK has neither. Every
+  edit and canvas action is one undo step holding a snapshot of the whole project (a drag is one step:
+  `beginGroup` / `endGroup`, `cancelGroup` restores the state before it), at most 200 steps, not saved.
+  The project counts as modified while it differs from the last opened or saved state (undoing back to
+  it clears the flag). *Tested:* `UndoAndRedo`, `GroupsAreOneStep`, `UndoKeepsAtMostTheLimit`,
+  `EditAndListeners`, `ListItems`.
+- **ED-06: renaming a residue group renames its uses** (MDATK 0.0.10; follows 0.1.1's
+  `Project.rename_group`, `group_references`, `selections.rename_group_tokens`). In v0.0.4.1 a renamed
+  group left every analysis, selection, panel and chart that used the old name pointing at nothing.
+  Fields holding a group name (analysis groups, representation groups, groups shown), selections that
+  are the name or a list of group names, analysis instances in data keys
+  (`contacts@Aptamer+Target/atom_pairs`) and `group:<name>` tokens in any other text (planner settings
+  and panel options included) follow the rename; `group:<name>er`, other groups and the notes stay; the
+  changed fields are returned (as field paths; 0.1.1 writes `groups[1].selection`). Keys MDBridge keeps
+  without knowing them (PRJ-09) are written back unchanged, also by a rename. *Tested:*
+  `RenameGroupAsMdatkLatest` (14 rename and 5 reference cases: the changed fields, errors and resulting
+  project are 0.1.1's), `RenameGroupIsOneStep`.
+- **ED-07: a later MDATK's file keeps its comments** (owner decision D9, with PRJ-09). MDBridge writes
+  v0.0.4.1's comments, so saving a file of MDATK 0.1.1 replaced 0.1.1's comments (`# RNAdo's plan and
+  script wizard`, the options of step types 0.0.4.1 lacks) with older or no ones. For a file whose
+  `mdatk_version` is later than 0.0.4.1 (which a save keeps), each entry the file had keeps the comment
+  above it in the file; entries it did not have get MDBridge's. Such a file comes back byte for byte;
+  the only exception is the blank line MDATK's log move leaves at the end of a project file, which
+  MDATK's own next save drops too (golden/split.resaved.mdatk.toml). *Tested:*
+  `EveryMdatkProjectRoundTripsByteForByte` (all 18 project files MDATK 0.0.4.1 and 0.1.1 wrote, open ->
+  save without an edit: byte for byte, step logs and log files untouched, the resolved project equal to
+  `loadProject`'s), `LaterMdatkCommentsAreKept` (an edit changes its line only; recovery copies keep
+  them), `HandMadeProjectsKeepTheirValues`.
+- **ED-08: recovery copies and external changes** (owner decision D6; MDATK 0.0.11 notices other
+  programs' saves). The document can write a recovery copy (a project file with `recovery_of` and
+  `recovery_folder` entries, written atomically into `<mdbridge config>/recovery/`; the project file is
+  never written without Save), list the copies and reopen one (modified, at its original path, paths
+  rebased when its folder differs). `changedOnDisk()` tells whether the project file's settings changed
+  since it was opened or saved (a step log appended by a run is no change). *Tested:* `RecoveryCopies`,
+  `ChangedOnDisk`.
+
 ## Planned (from the improvement register; add each entry here when it lands)
 
 None: every FIX and ASK item of the improvement register (docs/IMPROVEMENTS.md) has landed

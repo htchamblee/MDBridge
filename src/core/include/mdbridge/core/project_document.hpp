@@ -20,6 +20,10 @@
 // made absolute, as loadProject() gives it, for running. Save keeps them; Save As to another folder
 // rebases the relative ones so that they still name the same files.
 //
+// Comments: a save writes MDBridge's comments (MDATK 0.0.4.1's), except for a file a later MDATK
+// wrote (its mdatk_version is kept, PRJ-09): there each entry the file had keeps the comment the file
+// had above it, so such a file comes back byte for byte.
+//
 // Undo (owner decision D5): every change is one step holding a snapshot of the whole project
 // (Project values are small); beginGroup / endGroup make a drag one step. Undo is not saved.
 //
@@ -40,6 +44,7 @@
 #include "mdbridge/core/problems.hpp"
 #include "mdbridge/core/project.hpp"
 #include "mdbridge/core/project_file.hpp"
+#include "mdbridge/core/toml_writer.hpp"
 #include "mdbridge/core/value.hpp"
 
 namespace mdbridge::core {
@@ -101,15 +106,19 @@ private:
 // FreeTable, FreeValue): numbers as the project writer writes them (shortest round trip: 4.5,
 // 25.0, 1e-05, nan, inf), unset optionals as "", booleans "true" / "false", lists of text as
 // "a, b" (MDATK's comma-separated fields), lists of numbers as "0.0, 90.0, 0.0", free-form tables
-// as JSON ("" for an empty one: MDATK's slot options field), free values as JSON. Throws FieldError
-// for Records, Record and NumberRows ("<path> has no text form") and for paths that name nothing.
+// as JSON ("" for an empty one: MDATK's slot options field), free values that are strings as they
+// are and other free values as JSON. Throws FieldError for Records, Record and NumberRows ("'<path>'
+// has no text form") and for paths that name nothing ("no setting '<path>'").
 std::string fieldText(const Project& project, std::string_view path);
 
 // The value `text` means for `path` (what setText would store), or FieldError with the message
 // of a form error (AP-10): "'x' is not a whole number", "'x' is not a number", "'maybe' is not
 // true or false", "not valid JSON: Expecting value: line 1 column 1 (char 0)", "options must be a
-// JSON object". Surrounding whitespace is ignored for numbers; "" is unset for optionals and the
-// empty list / table for lists and tables; text fields take the text as it is.
+// JSON object". Surrounding whitespace is ignored for numbers and booleans (true / false in any
+// case); "" is unset for optional numbers and booleans, and for an optional text that is unset (a
+// set "" stays ""); lists split at commas (items stripped, empty ones dropped); "" is the empty
+// table; a free value that is a string takes the text as it is, others parse as JSON; text fields
+// take the text as it is.
 Value parseFieldText(const Project& project, std::string_view path, std::string_view text);
 
 // ---- changes ---------------------------------------------------------------------------------
@@ -137,6 +146,8 @@ struct DocumentChange {
 };
 
 // ---- the document ----------------------------------------------------------------------------
+
+struct RecoveryFile;
 
 class ProjectDocument {
 public:
@@ -186,8 +197,13 @@ public:
     void save();
     // Saves to `path` and makes it the document's file. Relative paths are rebased from folder()
     // to the new file's folder (rebasePaths), in the undo steps too; with the same folder nothing
-    // changes. The new file gets the old file's step log only if it is the same file.
+    // changes. As Project.save, the step log written is the target file's own (none for a new
+    // file): the old file's log stays with it.
     void saveAs(const std::filesystem::path& path);
+
+    // The comments a save writes (for saveProject / projectText): empty (projectDoc's) unless the
+    // project says a later MDATK wrote it, then the opened file's own above the entries it had.
+    TomlDocFunction comments() const;
 
     // True when the file changed on disk since it was opened or saved here (size, time or bytes
     // differ; also when it was deleted). False for a new project.
@@ -275,6 +291,10 @@ private:
         std::string label;
     };
 
+    friend void openRecovery(ProjectDocument& document, const RecoveryFile& recovery,
+                             std::vector<std::string>* warnings);
+
+    void assign(Project project, std::filesystem::path path, bool modified, FileKind kind);
     void commit(Project next, std::string_view label);
     void notify(DocumentChange change);
     void rememberDisk();
@@ -298,6 +318,9 @@ private:
     std::optional<std::uintmax_t> m_diskSize;
     std::filesystem::file_time_type m_diskTime{};
     std::string m_diskBytes;
+    // the comment above each entry of the opened file (key: path without list indices, planner
+    // settings with "@<tool>"), written again while the project says a later MDATK wrote it
+    std::vector<std::pair<std::string, std::string>> m_fileComments;
 };
 
 // ---- residue groups --------------------------------------------------------------------------

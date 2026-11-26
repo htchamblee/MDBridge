@@ -21,7 +21,9 @@ add_library(mdbridge_core STATIC
     ntpath.cpp
     paths.cpp
     progress.cpp
+    problems.cpp
     project.cpp
+    project_document.cpp
     project_file.cpp
     project_io.cpp
     project_model.inc

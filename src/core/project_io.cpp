@@ -446,14 +446,14 @@ std::string writtenMdatkVersion(const Project& project) {
     return std::string(kMdatkReference);
 }
 
-std::string projectText(const Project& project, std::string_view logFile) {
+std::string projectText(const Project& project, std::string_view logFile, const TomlDocFunction& doc) {
     Table data = metaEntries(logFile, writtenMdatkVersion(project));
     Value settings = toPlain(project);
     for (auto& entry : *settings.get<Table>()) {
         data.push_back(std::move(entry));
     }
     const std::vector<std::string> header(kProjectHeader.begin(), kProjectHeader.end());
-    return dumpToml(Value(std::move(data)), projectDoc, header);
+    return dumpToml(Value(std::move(data)), doc ? doc : TomlDocFunction(projectDoc), header);
 }
 
 Project loadProject(const fs::path& path, std::vector<std::string>* warnings) {
@@ -464,7 +464,7 @@ Project loadProject(const fs::path& path, std::vector<std::string>* warnings) {
     return project;
 }
 
-void saveProject(const fs::path& path, const Project& project) {
+void saveProject(const fs::path& path, const Project& project, const TomlDocFunction& doc) {
     detail::rejectJson(path);
     if (isParamsLog(path)) {
         throw ProjectError(detail::displayPath(path) +
@@ -473,7 +473,7 @@ void saveProject(const fs::path& path, const Project& project) {
     fs::create_directories(pathFromUtf8(detail::absoluteDirectory(path)));
     detail::ProjectLock lock(path);
     const auto [logPart, logFile] = existingLog(path);
-    std::string text = projectText(project, logFile);
+    std::string text = projectText(project, logFile, doc);
     if (!logPart.empty()) {
         text += "\n";
         text += logPart;

@@ -1,13 +1,27 @@
 #pragma once
 // Internals shared by the project-file sources (project_file.cpp, project_io.cpp, step_log.cpp,
-// settings.cpp); not installed.
+// settings.cpp, problems.cpp, project_document.cpp); not installed.
 
 #include <filesystem>
 #include <memory>
 #include <string>
 #include <string_view>
+#include <vector>
+
+namespace mdbridge::core {
+struct Problem;
+struct Project;
+class Value;
+}  // namespace mdbridge::core
 
 namespace mdbridge::core::detail {
+
+// The checks of validate() as located problems (field, message, check, level; no location), one per
+// validate() line in its order (project.cpp; problems.cpp adds the locations).
+std::vector<Problem> checkProblems(const Project& project);
+
+// describe(field) with the items named from the project's plain data (may be null).
+std::string describeField(std::string_view field, const Value* plain);
 
 // A path as UTF-8 text, for messages ("{path}" in MDATK's messages is the path as given).
 std::string displayPath(const std::filesystem::path& path);

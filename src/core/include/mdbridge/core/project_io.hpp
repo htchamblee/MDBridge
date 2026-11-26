@@ -19,6 +19,7 @@
 
 #include "mdbridge/core/project.hpp"
 #include "mdbridge/core/project_file.hpp"
+#include "mdbridge/core/toml_writer.hpp"
 #include "mdbridge/core/value.hpp"
 
 namespace mdbridge::core {
@@ -33,12 +34,14 @@ Project loadProject(const std::filesystem::path& path, std::vector<std::string>*
 // ("<path> is the parameter log of a run; save the project under another name"), and
 // std::filesystem::filesystem_error when the file cannot be written. The step log and log_file of
 // an existing file are kept.
-void saveProject(const std::filesystem::path& path, const Project& project);
+// `doc` gives the comments (projectDoc when empty; ProjectDocument passes the comments a later
+// MDATK wrote into the file it opened).
+void saveProject(const std::filesystem::path& path, const Project& project, const TomlDocFunction& doc = {});
 
 // The settings part of a project file: the 3-line header, format, format_version, mdatk_version
 // (writtenMdatkVersion), saved (clockNow()), log_file, then toPlain(project), every entry with its
-// comment.
-std::string projectText(const Project& project, std::string_view logFile = {});
+// comment (doc, or projectDoc when empty).
+std::string projectText(const Project& project, std::string_view logFile = {}, const TomlDocFunction& doc = {});
 
 // The mdatk_version a save writes: project.mdatkVersion when it is a later version than
 // kMdatkReference ("0.1.1" is kept), else kMdatkReference ("0.0.4.1"; also for "" and texts that
