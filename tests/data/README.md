@@ -504,14 +504,18 @@ errors `src/io/include/mdbridge/io/mrc.hpp` words differently); where MDATK cras
 traceback (`stderr` null, `mdatk_crash` the exception), MDBridge must print `error: ...` and exit
 with 1. The chem commands of milestone 6 (`pdb clean / check / to-lrna / annotate`, `build helix /
 mutate / fit`, `dict list / smiles / finish / pubchem`, `density fit / simulate`, and `render` with a
-map and `auto_fit`) have their cases too, marked `pending` with the commands they `needs` (cli_parity.py
-`PENDING`; skipped when comparing and by the C++ test until the commands land): their inputs come from
+map and `auto_fit`) have their cases too; each records the chem commands it `needs`, and a case is
+marked `pending` while one of them is in cli_parity.py's `PENDING` (skipped when comparing and by the
+C++ test; since milestone 6 W2-C only `build helix pairings`, the other pairings and triplexes of
+W2-A): their inputs come from
 `build helix` run first, `chem/maps` and `chem/dictionaries`; MDATK runs with `improvements_chem.py`
 and the command line in `sys.argv` (the step log records it), the step log's `time` / `duration_s`
 are masked, and `dict pubchem` asks a stand-in PubChem on 127.0.0.1 (`MDBRIDGE_PUBCHEM_URL`, owner
 decision D7; `{pubchem}` in `env`). Cases with `fitted` (rebuilt helices: 0.05; density fits: 0.6)
-compare their texts with their decimal numbers within that absolute tolerance (D10) and keep files of
-any size as text. numpy's and OpenBLAS' kernels are pinned (`chem_common.pin_kernels`, as in the chem
+compare their texts with their decimal numbers within that absolute tolerance (D10) and the white
+space between them free, keep files of any size as text, and keep maps as their header (`{"map":
+...}`, cli_parity.py `map_summary`), compared the same way. tests/cli/test_commands.cpp runs the
+`dict pubchem` cases with its own stand-in transport (the same answers). numpy's and OpenBLAS' kernels are pinned (`chem_common.pin_kernels`, as in the chem
 generators): with other kernels the least-squares closures of the non-Watson-Crick and triplex builds
 land on other solutions, up to 0.8 Å apart (CI run 45882807857; `OPENBLAS_CORETYPE=Haswell` on the
 reference machine), which no tolerance covers; pinning changed only the fitted cases. The same script compares a build with MDATK directly (CI's `parity` job, against the

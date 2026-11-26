@@ -8,7 +8,9 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <filesystem>
 #include <map>
 #include <optional>
@@ -505,7 +507,7 @@ std::vector<std::string> npzDifferences(const Value& expected, const fs::path& p
 }
 
 // cli_parity.py texts_close (FITTED): equal but for their decimal numbers, which differ by at most
-// `tolerance`; the spaces before a number may differ with its sign (PDB columns).
+// `tolerance`, and for white space between them.
 bool textsClose(const std::string& expected, const std::string& actual, double tolerance) {
     static const std::regex number{R"(-?\d+(?:\.\d+(?:e[-+]?\d+)?|e[-+]?\d+))"};  // 0.25, 1.9e-05, 7e-06
     struct Split {
@@ -529,10 +531,20 @@ bool textsClose(const std::string& expected, const std::string& actual, double t
     if (a.parts.size() != b.parts.size()) {
         return false;
     }
-    const auto rstripSpaces = [](const std::string& t) { return t.substr(0, t.find_last_not_of(' ') + 1); };
-    for (std::size_t i = 0; i + 1 < a.parts.size(); ++i) {  // x.rstrip(" ") (npos + 1 == 0: all spaces)
-        a.parts[i] = rstripSpaces(a.parts[i]);
-        b.parts[i] = rstripSpaces(b.parts[i]);
+    // white space between the numbers is not compared, nor a trailing comma before "]" (cli_parity.py
+    // texts_close: PDB columns, a TOML list on one line or one number per line)
+    const auto canon = [](const std::string& t) {
+        std::string out;
+        for (const char ch : t) {
+            if (ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r') continue;
+            if (ch == ']' && !out.empty() && out.back() == ',') out.pop_back();
+            out += ch;
+        }
+        return out;
+    };
+    for (std::size_t i = 0; i < a.parts.size(); ++i) {
+        a.parts[i] = canon(a.parts[i]);
+        b.parts[i] = canon(b.parts[i]);
     }
     if (a.parts != b.parts) {
         return false;
@@ -559,13 +571,42 @@ struct TextRules {
     std::optional<double> tolerance;
 };
 
-// The differences between one expected file entry (text, sha256, json, npz) and a file; [] when equal.
+// cli_parity.py map_summary: an MRC file's header as text
+std::string mapSummary(const std::string& data) {
+    const auto i32 = [&data](std::size_t word) {
+        std::int32_t v = 0;
+        std::memcpy(&v, data.data() + 4 * word, 4);
+        return static_cast<int>(v);
+    };
+    const auto f32 = [&data](std::size_t word) {
+        float v = 0;
+        std::memcpy(&v, data.data() + 4 * word, 4);
+        return static_cast<double>(v);
+    };
+    char text[512];
+    std::snprintf(text, sizeof text,
+                  "grid %d %d %d mode %d start %d %d %d sampling %d %d %d cell %.4f %.4f %.4f axes %d %d %d "
+                  "min %.6f max %.6f mean %.6f origin %.4f %.4f %.4f",
+                  i32(0), i32(1), i32(2), i32(3), i32(4), i32(5), i32(6), i32(7), i32(8), i32(9), f32(10), f32(11),
+                  f32(12), i32(16), i32(17), i32(18), f32(19), f32(20), f32(21), f32(49), f32(50), f32(51));
+    return text;
+}
+
+// The differences between one expected file entry (text, sha256, json, npz, map) and a file; [] when equal.
 std::vector<std::string> fileDifferences(const Value& expected, const fs::path& path, const Normaliser& normalise,
                                          const TextRules& rules = {}) {
     if (const Value* arrays = expected.find("npz")) {
         return npzDifferences(*arrays, path);
     }
     const std::string content = test::readFile(path);
+    if (const Value* map = expected.find("map")) {  // a fitted case's map: its header within the tolerance
+        if (content.size() < 1024) {
+            return {"is no MRC map"};
+        }
+        const std::string got = mapSummary(content);
+        const bool same = got == map->stringOr() || (rules.tolerance && textsClose(map->stringOr(), got, *rules.tolerance));
+        return same ? std::vector<std::string>{} : std::vector<std::string>{"differs: " + got};
+    }
     if (const Value* json = expected.find("json")) {
         const Value got = sortedEntries(maskedCacheJson(core::parseJson(content, core::pathToUtf8(path)), normalise));
         if (got != sortedEntries(*json)) {

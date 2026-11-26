@@ -57,7 +57,7 @@ some of it, **-** = missing.
 | `_sequence_chains`, `seqres_records`, `_compress`, `fasta` | :973-1027 | SEQRES (13 names per line) and FASTA (RNA / DNA / L-RNA / protein / mixed, L positions) | done (M6 W1-A: `chem::sequenceChains`, `seqresNames`, `seqresRecords`, `fasta`; CH-07) |
 | `CleanResult`, `clean` | :1030-1097 | the whole chain of operations in MDATK's order, stale REMARK 950 dropped, CONECT / 99 999-atom / SEQRES notes, record policy following the scheme | done (M6 W1-A: `chem::clean`, `PdbSource`; CH-04, CH-13) |
 | `summary` | :1100-1114 | `pdb check`'s JSON (chains, numbers, sequence, names, chirality counts, other residues, CONECT count, notes) | done (M6 W1-A: `chem::summary`, `chem::check`) |
-| `add_commands`, `clean_options`, `run`, `main` | :1117-1229 | the `clean`, `check`, `to-lrna` parsers and runner (also the stand-alone copy's `main`) | - (W2-C) |
+| `add_commands`, `clean_options`, `run`, `main` | :1117-1229 | the `clean`, `check`, `to-lrna` parsers and runner (also the stand-alone copy's `main`) | done (M6 W2-C: src/app/commands/chem_commands.cpp; the stand-alone copy: M7) |
 
 ### 1.2 Base pairs, dot-bracket and annotation (`secstruct.py`, `annotate.py`)
 
@@ -86,7 +86,7 @@ used: DIFFERENCES "No Barnaba".
 | Other pairings and triplexes | :693-1878 | PDB 4JRD nucleotide (:820-829, CC0), `PAIRINGS` (reverse-wc, hoogsteen, reverse-hoogsteen, hh) and triplex motifs, H-bond tables (:850-865), `_pair_fit` (least squares, :1010-1063), the reference helix fit `_helix_fit` (:1363-1375; `least_squares` from `_HELIX_START`, cached per kind), `_level_pose` (mismatches moved off, :1624-1669), `_close_levels` (joint closure: rigid levels + per-nucleotide torsions, sparse-Jacobian TRF with LSMR, contact terms refreshed with `cKDTree.query_pairs`, :1453-1581), contacts and geometry notes (`_close_contacts`, `_geometry_notes`, `_torsion_note`, :1746-1878), `_turn_terminal_hydroxyls` (:693-720) | - |
 | Mutations | :1881-2117 | `parse_mutations` (`A:5G`, `A:5>G`, `:5G`), `mutated_name` (scheme, hand, terminal kept), `_partners` (`PairDetector`), `_swap_base` (weighted Kabsch on C1' + glycosidic frame, B-factor / record from C1', altlocs merged, chirality re-checked), `mutate` (compensatory partners, `--wobble`, REMARK 950 dropped) | done (M6 W2-B: `chem::parseMutations`, `mutatedName`, `mutate`, src/chem/mutate.cpp; CH-08, CH-09) |
 | Rigid-body fit | :2120-2250 | `model_atoms` (heavy atoms, first altloc), `transform_pdb_text` (coordinates and ANISOU only), `fit_to_map` (global / local through `density.fit_model`; damaged columns rewritten through `write_pdb`), notes (CC, rotation, shift, CRYST1 kept) | done (M2: `io::transformPdbText`, `io::newAtomTail`; M6 W2-B: `chem::atomElement`, `modelAtoms`, `fitToMap`, src/chem/fit_to_map.cpp; CH-10) |
-| Command line | :2253-2324 | `helix` / `mutate` / `fit` parsers, `run` writes the output | - |
+| Command line | :2253-2324 | `helix` / `mutate` / `fit` parsers, `run` writes the output | done (M6 W2-C: chem_commands.cpp) |
 
 ### 1.4 Restraint dictionaries (`dictionaries.py`)
 
@@ -97,8 +97,8 @@ used: DIFFERENCES "No Barnaba".
 | mmCIF | :634-857 | tokens, `parse_cif`, `cif_value`, `write_cif` | done (M2: src/io/cif.cpp; tests/data/io/cif) |
 | Renaming | :857-1251 | `finish_dictionary` / `rename_dictionary`: component block, dictionary graph, heavy-atom isomorphism to the reference names, hydrogen naming (H5'/H5'' and H61/H62 from coordinates, `_hpos_cost`), phosphate protonation, chirality check from the dictionary's coordinates and `_chem_comp_chir`, leaving-atom removal (OP3 of the 3' variants), `_chem_comp` id / name / group, CCD-style input left unchanged | done (M6 W1-C: `chem::finishDictionary`; DIC-01, DIC-02) |
 | Files | :1254-1290 | `is_dictionary_file`, `find_dictionary` | done (M2: `io::isDictionaryFile`, `io::findDictionary`) |
-| PubChem | :1293-1339 | PUG REST lookup (`SMILES`, then `IsomericSMILES`), only on request | - |
-| Command line | :1342-1436 | `list [--json]`, `smiles CODE`, `finish INPUT... --code --output [--group --name --source-id --allow-protonation --keep-names]`, `pubchem COMPOUND [--code --timeout]` | - |
+| PubChem | :1293-1339 | PUG REST lookup (`SMILES`, then `IsomericSMILES`), only on request | done (M6 W2-C: src/app/commands/pubchem.cpp, Qt Network transport src/app/pubchem_qt.cpp; D7) |
+| Command line | :1342-1436 | `list [--json]`, `smiles CODE`, `finish INPUT... --code --output [--group --name --source-id --allow-protonation --keep-names]`, `pubchem COMPOUND [--code --timeout]` | done (M6 W2-C) |
 
 ### 1.5 Density fit and simulated maps (`density.py`, `pipeline.py`)
 
@@ -113,9 +113,9 @@ used: DIFFERENCES "No Barnaba".
 | `density_centroid`, `centre_transform` | :593-608 | the map's centre above a level; *Centre on model* | done (`numerics::densityCentroid`, W0-C, used by the window's *Centre on model*; M6 W1-E: `chem::centreTransform`) |
 | `fit_model` | :611-634 | global search, or refinement from a start (`manual` / `identity`) | done (W1-E: `chem::fitModel`, `chem::centreTransform`) |
 | shadow (`project_density`, `shadow_rgba`, ...) | :637-718 | the density shadow | done (M4: src/render/molecule/density_shadow.cpp, RN-30..33) |
-| `Pipeline.density_frame_atoms` | pipeline.py:365-390 | superposed atoms of the fit frame (the `atoms` and `trace` analyses on `ref` and the frame) and the reference anchor | part (M3 analyses; no fit-frame helper) |
-| `Pipeline.fit_density` | pipeline.py:392-436 | start (given, stored + anchor, or centred on the density), fit, store `transform`, `anchor`, `fit_cc`, `fit_info` | - |
-| `Pipeline.ensure_density_fit` | pipeline.py:438-455 | fit before rendering when a shown map has no placement (`auto_fit`); a failed fit is a warning | - (M4 D9: `WARNING: density map not drawn: no placement (run density fit)`, src/app/commands/render_pipeline.cpp:146-152) |
+| `Pipeline.density_frame_atoms` | pipeline.py:365-390 | superposed atoms of the fit frame (the `atoms` and `trace` analyses on `ref` and the frame) and the reference anchor | done (M6 W2-C: `app::densityFrameAtoms`, src/app/commands/density_pipeline.cpp) |
+| `Pipeline.fit_density` | pipeline.py:392-436 | start (given, stored + anchor, or centred on the density), fit, store `transform`, `anchor`, `fit_cc`, `fit_info` | done (M6 W2-C: `app::fitDensity`) |
+| `Pipeline.ensure_density_fit` | pipeline.py:438-455 | fit before rendering when a shown map has no placement (`auto_fit`); a failed fit is a warning | done (M6 W2-C: `app::ensureDensityFit` in `render` / `preview`; M4 D9's warning retired) |
 | `DensityParams`, `density_problems` | config.py:280-305, 578-600 | the `[density]` settings and their checks | done (M2 / M5: `core::Project`, src/core/project.cpp:633) |
 
 ### 1.6 Command line: MDATK commands vs MDBridge
@@ -129,16 +129,16 @@ errors print `error: <message>` with exit status 1 (cli.py:998-1020), usage erro
 
 | Command (cli.py) | Options (MDATK) | Step log | MDBridge |
 |---|---|---|---|
-| `pdb clean INPUT` (892-897; pdbtools.py:1117-1150) | `-o/--output` (default stdout), `--scheme {amber,ccd,rosetta,pdb}`, `--records {keep,rosetta,pdb}`, `--no-terminal-names`, `--keep-conect`, `--no-detect`, `--l-ranges`, `--chain-reference`, `--chain-ids`, `--assign-chains`, `--copy-numbers`, `--split-segments`, `--split-at`, `--combine`, `--combine-into`, `--sort-chains`, `--renumber`, `--start` (1), `--per-chain`, `--keep-gaps`, `--seqres`, `--strip-5p`, `--fasta FILE` | `pdb clean`, "PDB clean-up of NAME" | - |
-| `pdb check INPUT` | `--l-ranges` | none; JSON on stdout (`summary` + notes) | - |
-| `pdb to-lrna INPUT RANGES` | `--scheme` (amber), `--no-terminal-names`, `-o` | `pdb to-lrna` | - |
-| `pdb annotate INPUT` (898-909) | `-o` (required), `--no-pairs`, `--no-stacking`, `--no-dotbracket`, `--engine {auto,builtin,barnaba}` | `pdb annotate`, "Base-pair annotation of NAME", citation `barnaba` when used | - |
-| `build helix` (builder.py:2259-2287) | `--seq/--sequence` (required), `--partner` (auto), `--chirality {D,L}`, `--pairing {wc,reverse-wc,hoogsteen,reverse-hoogsteen,hh}`, `--triplex {none,hoogsteen,reverse-hoogsteen}`, `--third-strand/--third` (auto), `--chains` (A,B), `--start` (1,1), `--scheme`, `--no-terminal-names`, `--phosphate5`, `--hydrogens`, `-o` (required) | `build helix`, "Ideal A-form D-RNA helix SEQ" (`helix_kind`), citations `arnott-arna` (+ `pdb-4jrd` for other pairings) | - |
-| `build mutate INPUT MUTATIONS` | `--no-compensatory`, `--wobble`, `-o` | `build mutate`, "Mutation of NAME: MUTATIONS" | - |
-| `build fit INPUT MAP` | `--resolution` (required), `--search {global,local}`, `--step` (30), `-o`; prints `{"output", "cc"}` | `build fit`, "Rigid-body fit of NAME into MAP" | - |
-| `dict list` / `smiles` / `finish` / `pubchem` (cli.py:551-566) | section 1.4 | `finish` only: `dict finish`, "Restraint dictionary CODE", citation `ccd` | - |
-| `density fit` (cli.py:436-471, 870-879) | the analysis commands' project options (`_common`), `--map`, `--resolution`, `--level`, `--frame`, `--search {global,manual}`, `--step`, `--save [PRESET]`; JSON `{cc, start, info, transform[, saved]}` | none | - |
-| `density simulate` (cli.py:474-491, 880-886) | `_common`, `--resolution` (required), `--spacing`, `--frame`, `--placed`, `-O/--output` (required); JSON `{map, frame, atoms, grid_xyz, voxel_A, frame_of_reference}` | none | - |
+| `pdb clean INPUT` (892-897; pdbtools.py:1117-1150) | `-o/--output` (default stdout), `--scheme {amber,ccd,rosetta,pdb}`, `--records {keep,rosetta,pdb}`, `--no-terminal-names`, `--keep-conect`, `--no-detect`, `--l-ranges`, `--chain-reference`, `--chain-ids`, `--assign-chains`, `--copy-numbers`, `--split-segments`, `--split-at`, `--combine`, `--combine-into`, `--sort-chains`, `--renumber`, `--start` (1), `--per-chain`, `--keep-gaps`, `--seqres`, `--strip-5p`, `--fasta FILE` | `pdb clean`, "PDB clean-up of NAME" | done (M6 W2-C) |
+| `pdb check INPUT` | `--l-ranges` | none; JSON on stdout (`summary` + notes) | done (M6 W2-C) |
+| `pdb to-lrna INPUT RANGES` | `--scheme` (amber), `--no-terminal-names`, `-o` | `pdb to-lrna` | done (M6 W2-C) |
+| `pdb annotate INPUT` (898-909) | `-o` (required), `--no-pairs`, `--no-stacking`, `--no-dotbracket`, `--engine {auto,builtin,barnaba}` | `pdb annotate`, "Base-pair annotation of NAME", citation `barnaba` when used | done (M6 W2-C) |
+| `build helix` (builder.py:2259-2287) | `--seq/--sequence` (required), `--partner` (auto), `--chirality {D,L}`, `--pairing {wc,reverse-wc,hoogsteen,reverse-hoogsteen,hh}`, `--triplex {none,hoogsteen,reverse-hoogsteen}`, `--third-strand/--third` (auto), `--chains` (A,B), `--start` (1,1), `--scheme`, `--no-terminal-names`, `--phosphate5`, `--hydrogens`, `-o` (required) | `build helix`, "Ideal A-form D-RNA helix SEQ" (`helix_kind`), citations `arnott-arna` (+ `pdb-4jrd` for other pairings) | done (M6 W2-C; the other pairings and triplexes: W2-A) |
+| `build mutate INPUT MUTATIONS` | `--no-compensatory`, `--wobble`, `-o` | `build mutate`, "Mutation of NAME: MUTATIONS" | done (M6 W2-C) |
+| `build fit INPUT MAP` | `--resolution` (required), `--search {global,local}`, `--step` (30), `-o`; prints `{"output", "cc"}` | `build fit`, "Rigid-body fit of NAME into MAP" | done (M6 W2-C) |
+| `dict list` / `smiles` / `finish` / `pubchem` (cli.py:551-566) | section 1.4 | `finish` only: `dict finish`, "Restraint dictionary CODE", citation `ccd` | done (M6 W2-C) |
+| `density fit` (cli.py:436-471, 870-879) | the analysis commands' project options (`_common`), `--map`, `--resolution`, `--level`, `--frame`, `--search {global,manual}`, `--step`, `--save [PRESET]`; JSON `{cc, start, info, transform[, saved]}` | none | done (M6 W2-C) |
+| `density simulate` (cli.py:474-491, 880-886) | `_common`, `--resolution` (required), `--spacing`, `--frame`, `--placed`, `-O/--output` (required); JSON `{map, frame, atoms, grid_xyz, voxel_A, frame_of_reference}` | none | done (M6 W2-C) |
 | `density info MAP` | | | done (M2) |
 | `workflow restraints` (cli.py:983-992) | helix restraints for a parm7 | | milestone 7 (workflow) |
 

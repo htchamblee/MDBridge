@@ -71,7 +71,8 @@ only the commands it has).
 
 --write runs MDATK alone and writes the normalised results as the expected data of
 tests/cli/test_commands.cpp (tests/data/cli/cli_cases.json); tests/parity/regenerate_all.py runs it.
-Files up to 16 KiB are stored as text, larger ones as their SHA-256 and size; cache files as
+Files up to 16 KiB are stored as text, larger ones as their SHA-256 and size (the fitted cases': text
+of any size, maps as {"map": their header as text}, compared with the case's tolerance); cache files as
 {"json": masked value} and {"npz": [[name, dtype, shape, flat values as one line of JSON text], ...]}
 (floats as numbers, non-finite ones as "nan" / "inf" / "-inf"); several entries of one analysis
 with different keys as {"several": [...]}, matched in any order. Standard library only (the child
@@ -214,9 +215,8 @@ CHEM = {"pdb", "build", "build helix", "build helix pairings", "build mutate", "
         "density simulate"}
 # Commands MDBridge does not have yet: their cases are written (--write) and skipped when comparing
 # (unless --include-pending) and by tests/cli/test_commands.cpp ("pending": true). Remove a command
-# here when it lands: build mutate and build fit come with milestone 6 W2-B (mutations, fit into a
-# map), the other pairings and triplexes of build helix with W2-A.
-PENDING = {"build helix pairings", "build mutate", "build fit"}
+# here when it lands: the other pairings and triplexes of build helix come with milestone 6 W2-A.
+PENDING = {"build helix pairings"}
 
 
 # `list` without conda installations, and with a fake one: an installation whose base and three
@@ -1285,6 +1285,10 @@ def file_entry(rel, data, folder, mask=None, limit=LIMIT):
             return {"npz": [[name, dtype, shape, json.dumps(values, ensure_ascii=False, separators=(",", ":"))]
                             for name, dtype, shape, values in read_npz(data)]}
         return {"json": masked_cache_json(json.loads(data.decode("utf-8")), folder)}
+    if limit is None and rel.endswith(".mrc") and len(data) >= 1024:
+        # a fitted case's map (`density simulate --placed` after a fit): its header, compared with the
+        # fit's tolerance
+        return {"map": map_summary(data)}
     try:
         text = data.decode("utf-8")
     except UnicodeDecodeError:
@@ -1296,6 +1300,16 @@ def file_entry(rel, data, folder, mask=None, limit=LIMIT):
         return {"text": text}
     raw = text.encode("utf-8")
     return {"sha256": hashlib.sha256(raw).hexdigest(), "size": len(raw)}
+
+
+def map_summary(data):
+    """An MRC file's header as text: grid, start, cell, axis order, minimum / maximum / mean, origin
+    (tests/cli/test_commands.cpp mapSummary writes the same)."""
+    w = struct.unpack("<10i6f3i3f", data[:88])
+    origin = struct.unpack("<3f", data[196:208])
+    return ("grid %d %d %d mode %d start %d %d %d sampling %d %d %d cell %.4f %.4f %.4f axes %d %d %d "
+            "min %.6f max %.6f mean %.6f origin %.4f %.4f %.4f"
+            % (*w[0:10], *w[10:13], *w[16:19], *w[19:22], *origin))
 
 
 def mp4_info(path):
@@ -1648,9 +1662,10 @@ def differences(c, expected, actual):
                     unused.remove(match)
             if len(es) != len(a.get("several", [a])):
                 problems.append(f"{rel}: {len(es)} files in MDATK, {len(a.get('several', [a]))} in MDBridge")
-        elif tolerance is not None and "text" in e and "text" in a:
-            if not texts_close(e["text"], a["text"], tolerance):
-                problems.append(f"{rel} differs beyond {tolerance:g}\n{diff(e['text'], a['text'])}")
+        elif tolerance is not None and (("text" in e and "text" in a) or ("map" in e and "map" in a)):
+            key = "text" if "text" in e else "map"
+            if not texts_close(e[key], a[key], tolerance):
+                problems.append(f"{rel} differs beyond {tolerance:g}\n{diff(e[key], a[key])}")
         else:
             problems.extend(entry_differences(rel, e, a))
     return problems
@@ -1661,10 +1676,15 @@ NUMBER_RE = re.compile(r"-?\d+(?:\.\d+(?:e[-+]?\d+)?|e[-+]?\d+)")  # 0.25, 1.9e-
 
 def texts_close(expected, actual, tolerance):
     """FITTED: the texts equal but for their decimal numbers, which differ by at most ``tolerance`` (an
-    absolute tolerance: D10's for the fitted cases). PDB columns: a coordinate field keeps its width."""
+    absolute tolerance: D10's for the fitted cases), and for white space between them: a PDB coordinate
+    field keeps its width (the spaces before a number differ with its sign), and the project file
+    writes a list of numbers on one line or one number per line by the line's length (density.transform
+    of a fit), with a trailing comma in the second form."""
+    def canon(part):
+        return re.sub(r"\s+", "", part).replace(",]", "]")
+
     a, b = NUMBER_RE.split(expected), NUMBER_RE.split(actual)
-    # (the spaces before a number may differ with its sign: "  -0.001" / "   0.001" in PDB columns)
-    if len(a) != len(b) or [x.rstrip(" ") for x in a[:-1]] + a[-1:] != [x.rstrip(" ") for x in b[:-1]] + b[-1:]:
+    if len(a) != len(b) or [canon(x) for x in a] != [canon(x) for x in b]:
         return False
     return all(abs(float(x) - float(y)) <= tolerance
                for x, y in zip(NUMBER_RE.findall(expected), NUMBER_RE.findall(actual)))

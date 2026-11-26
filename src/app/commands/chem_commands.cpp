@@ -21,7 +21,9 @@
 #include "mdbridge/chem/annotate.hpp"
 #include "mdbridge/chem/density_fit.hpp"
 #include "mdbridge/chem/dictionaries.hpp"
+#include "mdbridge/chem/fit_to_map.hpp"
 #include "mdbridge/chem/helix.hpp"
+#include "mdbridge/chem/mutate.hpp"
 #include "mdbridge/chem/pdbtools.hpp"
 #include "mdbridge/core/citations.hpp"
 #include "mdbridge/core/errors.hpp"
@@ -382,12 +384,22 @@ int buildRun(ChemCommands::Arguments& a, Console& console, const std::vector<std
             o.triplex = a.triplex;
             o.third = a.third;
             text = chem::buildHelix(a.seq, o, &notes);
+        } else if (a.mutate->parsed()) {
+            chem::MutateOptions o;
+            o.compensatory = !a.noCompensatory;
+            o.wobble = a.wobble;
+            chem::MutateResult res = chem::mutate(pdbFile(a.buildInput), a.mutations, o);  // CH-13
+            text = std::move(res.text);
+            notes = std::move(res.notes);
         } else {
-            // CH-13: the input file is named when it is missing
-            (void)pdbFile(a.buildInput);
-            // milestone 6 W2-B: the mutations and the fit into a map (chem/mutate.hpp, chem/fit_map.hpp)
-            throw std::runtime_error(std::string(a.mutate->parsed() ? "build mutate" : "build fit") +
-                                     " is not available in this version of MDBridge yet");
+            chem::FitToMapOptions o;
+            o.search = a.fitSearch;
+            o.angularStep = a.fitStep;
+            chem::FitToMapResult res = chem::fitToMap(pdbFile(a.buildInput), core::pathFromUtf8(a.map),
+                                                      a.fitResolution.value_or(0.0), o);
+            text = std::move(res.text);
+            notes = std::move(res.notes);
+            cc = res.cc;
         }
         writeText(a.buildOutput, text);
         printNotes(console, "build", notes);

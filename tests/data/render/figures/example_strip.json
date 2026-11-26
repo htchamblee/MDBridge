@@ -29,7 +29,7 @@
  "dpi": 60,
  "watermark": "Example data – layout preview",
  "positions": [0,60,119],
- "improvements": ["D5","D8","D9","RN-01","RN-02","RN-03","RN-04","RN-05","RN-07","RN-08","RN-09","RN-10","RN-11","RN-12","RN-13","RN-14","RN-15","RN-16","RN-33","RN-40","RN-41","RN-42","RN-50","RN-51"],
+ "improvements": ["D5","D8","RN-01","RN-02","RN-03","RN-04","RN-05","RN-07","RN-08","RN-09","RN-10","RN-11","RN-12","RN-13","RN-14","RN-15","RN-16","RN-33","RN-40","RN-41","RN-42","RN-50","RN-51"],
  "frames": [
   {
    "pos": 0,
