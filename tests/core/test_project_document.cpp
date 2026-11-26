@@ -100,7 +100,9 @@ private:
 };
 
 DateTime savedStamp(const fs::path& path) {
-    const Value* saved = readProject(path).header.find("saved");
+    // the file must outlive `saved`, a pointer into its header (a temporary's would dangle)
+    const ProjectFile file = readProject(path);
+    const Value* saved = file.header.find("saved");
     return saved && saved->get<DateTime>() ? *saved->get<DateTime>() : DateTime{};
 }
 
