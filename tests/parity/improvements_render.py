@@ -37,7 +37,8 @@ Status of the items (see the plan for the full text):
   RN-16  renderer "vtk" means the GPU renderer (Vulkan), never VTK
   RN-17  video positions with a stride skip the last frame: kept (convention, no patch)
   D8     output.video.ffmpeg_path is not used (the bundled FFmpeg libraries): a note
-  D9     no density fit in milestone 4: "density map not drawn: no placement (run density fit)"
+  D9     retired in milestone 6 (W2-C): MDBridge fits a shown map without a placement before the video
+         or preview as MDATK does (ensure_density_fit), so nothing is patched
   RN-21 ... RN-25  residue shading, orientation and the example dataset: improvements_shading.py
   RN-40  sequence panel: an unusable per_row (negative, not a number) is a "No data" message
   RN-41  secondary panel: an unknown source is a "No data" message (MDATK: silently "dynamic")
@@ -56,7 +57,7 @@ Patched so far: RN-01, RN-04, RN-14 (the plot panels, W2-A; src/render/panels/pl
 RN-40 ... RN-42 (the sequence / secondary panels, W2-C; src/render/panels/seqpanels.cpp), RN-03,
 RN-08, RN-09, RN-16, RN-33 (the structure view, W2-B; src/render/panels/structure.cpp) and RN-01 (for
 the matrix charts too), RN-05, RN-10, RN-11, RN-50, D5 (the standalone charts, W2-D;
-src/render/panels/charts.cpp) and RN-02, RN-07 (the codec warnings), RN-12, RN-13, RN-15, D8, D9
+src/render/panels/charts.cpp) and RN-02, RN-07 (the codec warnings), RN-12, RN-13, RN-15, D8
 (the render, charts and preview commands, W3-B; src/app/commands/render_pipeline.cpp,
 src/render/panels/checks.cpp). The others are MDATK's behaviour until their chunk fills them in.
 
@@ -235,7 +236,6 @@ PATCHES = {
     "D5": "_d5_chart_styles",  # owner decision D5: the styles mdatk and default
     # the render, charts and preview commands (W3-B; src/app/commands/render_pipeline.cpp)
     "D8": "_d8_ffmpeg_path_not_used",  # owner decision D8: the bundled FFmpeg libraries
-    "D9": "_d9_no_density_fit",  # owner decision D9: no density fit in milestone 4
     # the structure view's centre warning names its setting (MDATK 0.1.x render/panels.py)
     "RN-51": "_rn51_centre_warning_names_its_setting",
 }
@@ -960,24 +960,6 @@ def _d8_ffmpeg_path_not_used():
             vp.ffmpeg_path = path
 
     pipeline_module.Pipeline.render_video = render_video
-
-
-def _d9_no_density_fit():
-    """A shown density map without a placement is not fitted (owner decision D9: no density fit in
-    milestone 4): "WARNING: density map not drawn: no placement (run density fit)" (with auto_fit
-    off MDATK's own warning)."""
-    from mdatk import pipeline as pipeline_module
-
-    def ensure_density_fit(self, reporter=None):
-        p = self.project
-        rep = reporter or self.reporter
-        if p.density_active() and len(p.density.transform) != 12:
-            if not p.density.auto_fit:
-                rep.log("WARNING: the density map has no placement and automatic fitting is off; it is not drawn")
-            else:
-                rep.log("WARNING: density map not drawn: no placement (run density fit)")
-
-    pipeline_module.Pipeline.ensure_density_fit = ensure_density_fit
 
 
 # PATCHES names the functions defined above (they follow the table)

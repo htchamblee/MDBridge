@@ -24,6 +24,7 @@
 #include "mdbridge/render/panels/charts.hpp"
 #include "mdbridge/render/panels/checks.hpp"
 #include "mdbridge/version.hpp"
+#include "density_pipeline.hpp"
 
 namespace mdbridge::app {
 
@@ -142,18 +143,6 @@ const render::FontSet& RenderPipeline::fonts() {
     return m_backend.fonts();
 }
 
-void RenderPipeline::densityWarning(const core::Reporter& reporter) const {
-    // ensure_density_fit; D9: no density fit in this version
-    const core::Project& p = project();
-    if (core::densityActive(p) && p.density.transform.size() != 12) {
-        if (!p.density.auto_fit) {
-            reporter.log("WARNING: the density map has no placement and automatic fitting is off; it is not drawn");
-        } else {
-            reporter.log("WARNING: density map not drawn: no placement (run density fit)");
-        }
-    }
-}
-
 std::string RenderPipeline::renderVideo(const core::Dataset& dataset, const core::Reporter* reporter) {
     const core::Reporter& rep = reporter ? *reporter : m_analyses.reporter();
     const core::Project& p = project();
@@ -163,12 +152,18 @@ std::string RenderPipeline::renderVideo(const core::Dataset& dataset, const core
         rep.log("Note: output.video.ffmpeg_path (" + p.output.video.ffmpeg_path +
                 ") is not used; MDBridge encodes with its bundled FFmpeg libraries");
     }
-    densityWarning(rep);
+    // ensure_density_fit: a shown map without a placement is fitted first (the first tenth of the
+    // progress), MDATK's render_video
+    const bool fit = core::densityActive(p) && p.density.transform.size() != 12;
+    if (fit) {
+        const core::Reporter first = rep.sub(0.0, 0.1);
+        ensureDensityFit(m_analyses, &first);
+    }
     if (!m_backend.renderVideo) {
         throw core::NamedError("VideoError", "video encoding is not available in this build");
     }
     startBackend();
-    return core::pathToUtf8(m_backend.renderVideo(dataset, p, path, rep));
+    return core::pathToUtf8(m_backend.renderVideo(dataset, p, path, fit ? rep.sub(0.1, 1.0) : rep));
 }
 
 std::vector<std::string> RenderPipeline::renderCharts(const core::Dataset& dataset, const core::Reporter* reporter) {
@@ -207,7 +202,7 @@ std::vector<std::string> RenderPipeline::exportPdbs(const core::Reporter* report
 
 std::string RenderPipeline::renderPreview(const core::Dataset& dataset, std::size_t pos, const std::string& path) {
     const core::Project& p = project();
-    densityWarning(m_analyses.reporter());
+    ensureDensityFit(m_analyses);
     requireFrames(dataset);
     if (const auto problem = render::panels::figureFileProblem(path)) throw core::ValueError(*problem);
     const std::string format = render::panels::figureFileFormat(path);

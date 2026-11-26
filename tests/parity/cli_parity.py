@@ -170,10 +170,11 @@ def case(name, argv, inputs=None, setup=None, exit_only=False, before=None, env=
     ({work}: the folder); before: command lines run first in the folder; env: environment variables
     of the runs ({work}: the folder, {pubchem}: the PubChem stand-in server; "" counts as unset for
     MDATK); executable: setup files made executable; render: a render / charts / preview case
-    (figures and videos compared by their metadata, see RENDER below); needs: the command the case
-    needs (default: its own, "pdb", "build", "dict", "density fit" ...; also the commands of
-    `before`), which makes it pending while that command is in PENDING; fitted: an absolute tolerance
-    for the numbers in the case's texts (fitted outputs: FITTED below)."""
+    (figures and videos compared by their metadata, see RENDER below); needs: the chem command the
+    case needs besides its own and those of `before` (CHEM: "pdb", "build helix", "dict", "density
+    fit" ...), recorded as "needs" (the step log's time is masked in their files) and making the case
+    pending while one of them is in PENDING; fitted: an absolute tolerance for the numbers in the
+    case's texts (fitted outputs: FITTED below)."""
     out = {"name": name, "argv": argv, "inputs": dict(inputs or {}), "setup": dict(setup or {}),
            "exit_only": exit_only, "before": list(before or []), "env": dict(env or {}),
            "executable": list(executable or [])}
@@ -181,27 +182,41 @@ def case(name, argv, inputs=None, setup=None, exit_only=False, before=None, env=
         out["render"] = True
     wanted = [needs] if needs else []
     wanted += [command_of(a) for a in [argv, *out["before"]]]
-    pending = sorted({w for w in wanted if w in PENDING})
-    if pending:
-        out["needs"] = pending
+    chem = sorted({w for w in wanted if w in CHEM})
+    if chem:
+        out["needs"] = chem
+    if any(w in PENDING for w in chem):
         out["pending"] = True
     if fitted is not None:
         out["fitted"] = fitted
     return out
 
 
+NON_WC = ("--pairing", "--triplex")
+
+
 def command_of(argv):
-    """The command of a command line as PENDING names it: 'pdb', 'density fit', 'analyze' ..."""
+    """The command of a command line as CHEM and PENDING name it: 'pdb', 'density fit', 'build helix',
+    'build helix pairings' (a pairing other than wc, or a triplex), 'analyze' ..."""
     if argv[:1] == ["density"] and len(argv) > 1:
         return f"density {argv[1]}"
+    if argv[:1] == ["build"] and len(argv) > 1:
+        if argv[1] == "helix":
+            options = {argv[i]: argv[i + 1] for i in range(len(argv) - 1) if argv[i] in NON_WC}
+            if options.get("--pairing", "wc") != "wc" or options.get("--triplex", "none") != "none":
+                return "build helix pairings"
+        return f"build {argv[1]}"
     return argv[0] if argv else ""
 
 
-# Commands MDBridge does not have yet (milestone 6: the chem commands, docs/specs/m6-plan.md 1.6):
-# their cases are written (--write) and skipped when comparing (unless --include-pending) and by
-# tests/cli/test_commands.cpp ("pending": true; "needs" lists the missing commands). Remove a command
-# here when it lands.
-PENDING = {"pdb", "build", "dict", "density fit", "density simulate"}
+# The chem commands (milestone 6, docs/specs/m6-plan.md 1.6): their cases record "needs".
+CHEM = {"pdb", "build", "build helix", "build helix pairings", "build mutate", "build fit", "dict", "density fit",
+        "density simulate"}
+# Commands MDBridge does not have yet: their cases are written (--write) and skipped when comparing
+# (unless --include-pending) and by tests/cli/test_commands.cpp ("pending": true). Remove a command
+# here when it lands: build mutate and build fit come with milestone 6 W2-B (mutations, fit into a
+# map), the other pairings and triplexes of build helix with W2-A.
+PENDING = {"build helix pairings", "build mutate", "build fit"}
 
 
 # `list` without conda installations, and with a fake one: an installation whose base and three
@@ -1641,7 +1656,7 @@ def differences(c, expected, actual):
     return problems
 
 
-NUMBER_RE = re.compile(r"-?\d+\.\d+(?:e[-+]?\d+)?")
+NUMBER_RE = re.compile(r"-?\d+(?:\.\d+(?:e[-+]?\d+)?|e[-+]?\d+)")  # 0.25, 1.9e-05, 7e-06
 
 
 def texts_close(expected, actual, tolerance):

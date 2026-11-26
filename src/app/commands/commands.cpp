@@ -48,7 +48,9 @@
 #include "mdbridge/io/pdb_export.hpp"
 #include "mdbridge/render/panels/charts.hpp"
 #include "mdbridge/render/panels/checks.hpp"
+#include "chem_commands.hpp"
 #include "citations.hpp"
+#include "command_support.hpp"
 #include "demo.hpp"
 #include "render_pipeline.hpp"
 
@@ -57,28 +59,12 @@ namespace mdbridge::app {
 namespace fs = std::filesystem;
 using core::Value;
 
-namespace {
-
-// The options MDATK's _common() adds to init, info and export-pdb.
-struct CommonArguments {
-    std::string params;
-    std::string top;
-    std::vector<std::string> traj;
-    std::string frames;
-    bool clean = false;
-    bool noClean = false;
-    std::string cpptraj;
-    std::string condaEnv;
-    std::string outDir;
-    std::string cacheDir;
-    std::vector<std::string> set;
-    bool quiet = false;
-    bool verbose = false;
-    CLI::Option* cleanOption = nullptr;
-    CLI::Option* noCleanOption = nullptr;
-};
-
-}  // namespace
+using detail::absolutePath;
+using detail::addCommon;
+using detail::CommonArguments;
+using detail::ConsoleReporter;
+using detail::lastWins;
+using detail::loadProject;
 
 struct CoreCommands::Arguments {
     CLI::App* demo = nullptr;
@@ -144,171 +130,6 @@ struct CoreCommands::Arguments {
 
 namespace {
 
-// A single-value option given more than once takes the last value, as argparse does.
-CLI::Option* lastWins(CLI::Option* option) { return option->multi_option_policy(CLI::MultiOptionPolicy::TakeLast); }
-
-void addCommon(CLI::App& command, CommonArguments& a) {
-    lastWins(command.add_option("--project,-p,--params", a.params,
-                                "project file (.mdatk.toml) or a run's MDATK_params_log.toml"));
-    lastWins(command.add_option("--top", a.top, "topology file (.parm7, .pdb, ...)"));
-    // nargs="+": a repeated --traj replaces the earlier list (each occurrence starts afresh)
-    command.add_option("--traj", a.traj, "trajectory file(s) (.nc, .dcd, ...)")->trigger_on_parse();
-    lastWins(command.add_option("--frames", a.frames, "frame selection start:stop:step (0-based, stop exclusive)"));
-    a.cleanOption = command.add_flag("--clean", a.clean, "enable cpptraj cleaning");
-    a.noCleanOption = command.add_flag("--no-clean", a.noClean, "disable cleaning");
-    lastWins(command.add_option("--cpptraj", a.cpptraj, "path to the cpptraj executable"));
-    lastWins(command.add_option(
-        "--conda-env", a.condaEnv,
-        "conda environment providing cpptraj (e.g. AmberTools26); cpptraj then runs via `conda run`"));
-    lastWins(command.add_option("--out-dir,-o", a.outDir, "output directory"));
-    lastWins(command.add_option("--cache-dir", a.cacheDir, "cache directory (default <out-dir>/MDATK_cache)"));
-    command.add_option("--set,-s", a.set, "override a parameter, e.g. analyses.contacts.cutoff=5 (repeatable)")
-        ->type_name("KEY=VALUE")
-        ->allow_extra_args(false);
-    command.add_flag("--quiet,-q", a.quiet, "only print the result");
-    command.add_flag("--verbose,-v", a.verbose, "also print full cpptraj output");
-}
-
-// os.path.abspath
-std::string absolutePath(const std::string& path) {
-#ifdef _WIN32
-    return core::pathToUtf8(fs::absolute(core::pathFromUtf8(path)).lexically_normal());
-#else
-    return core::posixpath::abspath(path, core::currentDirectory());
-#endif
-}
-
-// --clean / --no-clean (store_true / store_false into one destination): the last one given wins
-std::optional<bool> cleanChoice(const CLI::App& command, const CommonArguments& a) {
-    std::optional<bool> choice;
-    for (const CLI::Option* option : command.parse_order()) {
-        if (option == a.cleanOption) {
-            choice = true;
-        } else if (option == a.noCleanOption) {
-            choice = false;
-        }
-    }
-    return choice;
-}
-
-// load_project(args, resolve)
-core::Project loadProject(const CLI::App& command, const CommonArguments& a, bool resolve) {
-    if (!a.params.empty()) {  // Project.load's open(): Python's FileNotFoundError text
-        std::error_code ec;
-        if (!fs::exists(core::pathFromUtf8(a.params), ec)) {
-            throw fs::filesystem_error("open", core::pathFromUtf8(a.params),
-                                       std::make_error_code(std::errc::no_such_file_or_directory));
-        }
-    }
-    core::Project project = a.params.empty() ? core::Project{} : core::loadProject(core::pathFromUtf8(a.params));
-    if (!a.top.empty()) {
-        project.inputs.topology = absolutePath(a.top);
-    }
-    if (!a.traj.empty()) {
-        project.inputs.trajectories.clear();
-        for (const std::string& t : a.traj) {
-            project.inputs.trajectories.push_back(absolutePath(t));
-        }
-    }
-    if (!a.outDir.empty()) {
-        project.output.out_dir = absolutePath(a.outDir);
-    }
-    if (!a.cacheDir.empty()) {
-        project.output.cache_dir = absolutePath(a.cacheDir);
-    }
-    if (!a.cpptraj.empty()) {
-        project.cleaning.cpptraj_path = a.cpptraj;
-    }
-    if (!a.condaEnv.empty()) {
-        project.cleaning.conda_env = a.condaEnv;
-    }
-    if (const std::optional<bool> clean = cleanChoice(command, a)) {
-        project.cleaning.enabled = *clean;
-    }
-    if (!a.frames.empty()) {
-        std::vector<std::string> parts;  // (frames.split(":") + ["", "", ""])[:3]
-        std::size_t start = 0;
-        while (true) {
-            const std::size_t colon = a.frames.find(':', start);
-            parts.push_back(a.frames.substr(start, colon == std::string::npos ? std::string::npos : colon - start));
-            if (colon == std::string::npos) {
-                break;
-            }
-            start = colon + 1;
-        }
-        parts.resize(std::max<std::size_t>(parts.size(), 3));
-        // MDATK reports int()'s "invalid literal for int() with base 10: 'x'"; MDBridge names the option
-        const auto number = [&a](const std::string& text) {
-            try {
-                return core::pythonInt(text);
-            } catch (const core::ValueError&) {
-                throw core::ValueError("--frames: " + core::pythonStringRepr(a.frames) +
-                                       " is not a frame number or range");
-            }
-        };
-        project.inputs.start = parts[0].empty() ? 0 : number(parts[0]);
-        project.inputs.stop = parts[1].empty() ? std::nullopt : std::optional<std::int64_t>(number(parts[1]));
-        project.inputs.step = parts[2].empty() ? 1 : number(parts[2]);
-    }
-    for (const std::string& assignment : a.set) {
-        applyOverride(project, assignment);
-    }
-    if (resolve) {
-        core::resolvePaths(project, core::currentDirectory());
-    }
-    return project;
-}
-
-// The console reporter of MDATK's command line (make_reporter, ConsoleProgress).
-class ConsoleReporter {
-public:
-    ConsoleReporter(Console& console, bool quiet, bool verbose)
-        : m_console(console), m_quiet(quiet), m_verbose(verbose) {}
-
-    core::Reporter reporter() {
-        return core::Reporter([this](const std::string& text) { logLine(text); },
-                              [this](double fraction, const std::string& message) { progress(fraction, message); });
-    }
-
-private:
-    void logLine(const std::string& text) {
-        const bool detail = text.starts_with("    ") || text.starts_with("\t") || text.starts_with("|");
-        if ((m_verbose || !detail) && !m_quiet) {
-            m_console.err << (m_console.errIsTerminal ? "\r\033[K" : "") << text << '\n';
-            m_console.err.flush();
-        }
-    }
-
-    void progress(double fraction, const std::string& message) {
-        if (m_quiet) {
-            return;
-        }
-        const double now =
-            std::chrono::duration<double>(std::chrono::system_clock::now().time_since_epoch()).count();
-        if (fraction < 1.0 && fraction - m_last < 0.01 && now - m_lastTime < 2.0) {
-            return;
-        }
-        m_last = fraction;
-        m_lastTime = now;
-        char percent[32];
-        std::snprintf(percent, sizeof percent, "%5.1f", fraction * 100);
-        const std::string line = "[" + std::string(percent) + "%] " + message;
-        if (m_console.errIsTerminal) {
-            m_console.err << "\r\033[K" << line << (fraction >= 1.0 ? "\n" : "");
-        } else if (fraction >= 1.0) {
-            // MDATK also prints when int(fraction * 10) != int(self.last * 10), compared after
-            // self.last = fraction: never, so only final lines reach a file or a pipe
-            m_console.err << line << '\n';
-        }
-        m_console.err.flush();
-    }
-
-    Console& m_console;
-    bool m_quiet;
-    bool m_verbose;
-    double m_last = -1.0;
-    double m_lastTime = 0.0;
-};
 
 using analysis::PipelineError;
 
@@ -689,7 +510,8 @@ Console standardConsole() {
     return Console{std::cout, std::cerr, tty};
 }
 
-CoreCommands::CoreCommands(CLI::App& app, const RenderBackend* backend) : m_args(std::make_unique<Arguments>()) {
+CoreCommands::CoreCommands(CLI::App& app, const RenderBackend* backend, const NetworkBackend* network)
+    : m_args(std::make_unique<Arguments>()) {
     Arguments& a = *m_args;
     static const RenderBackend kNoBackend;
     a.backend = backend ? backend : &kNoBackend;
@@ -760,10 +582,14 @@ CoreCommands::CoreCommands(CLI::App& app, const RenderBackend* backend) : m_args
     lastWins(a.citations->add_option("--bibtex", a.bibtex, "write the references as BibTeX to FILE"))->type_name("FILE");
     a.citations->add_flag("--json", a.citationsJson, "print the keys and resources as JSON");
 
-    a.density = app.add_subcommand("density", "density maps (MRC / CCP4): header info");
+    a.density = app.add_subcommand("density", "density maps (MRC / CCP4): header info, rigid-body fit of the "
+                                              "model, simulated maps");
     a.density->require_subcommand(0, 1);
     a.densityInfo = a.density->add_subcommand("info", "print a map's grid, voxel size, origin and statistics");
     a.densityInfo->add_option("map", a.map, "MRC / CCP4 map (.mrc, .map, .ccp4; gzip-compressed too)")->required();
+
+    // density fit / simulate, pdb, build, dict (milestone 6)
+    m_chem = std::make_unique<detail::ChemCommands>(app, *a.density, network);
 }
 
 CoreCommands::~CoreCommands() = default;
@@ -772,11 +598,11 @@ std::optional<int> CoreCommands::run(Console& console) {
     Arguments& a = *m_args;
     const bool any = a.demo->parsed() || a.clean->parsed() || a.citations->parsed() || a.init->parsed() || a.info->parsed() || a.list->parsed() || a.analyze->parsed() ||
                      a.exportPdb->parsed() || a.density->parsed() || a.render->parsed() || a.charts->parsed() ||
-                     a.preview->parsed();
+                     a.preview->parsed() || m_chem->parsed();
     if (!any) {
         return std::nullopt;
     }
-    if (a.density->parsed() && !a.densityInfo->parsed()) {
+    if (a.density->parsed() && !a.densityInfo->parsed() && !m_chem->densityParsed()) {
         console.out << a.density->help();
         return 2;
     }
@@ -825,6 +651,9 @@ std::optional<int> CoreCommands::run(Console& console) {
         if (a.preview->parsed()) {
             return commandPreview(*a.preview, a, console);
         }
+        if (m_chem->parsed()) {
+            return m_chem->run(console, m_arguments);
+        }
         return commandDensityInfo(a.map, console);
     } catch (const core::Cancelled&) {
         console.err << "cancelled\n";
@@ -836,11 +665,13 @@ std::optional<int> CoreCommands::run(Console& console) {
     }
 }
 
-int runCoreCommandLine(int argc, const char* const* argv, Console& console, const RenderBackend* backend) {
+int runCoreCommandLine(int argc, const char* const* argv, Console& console, const RenderBackend* backend,
+                       const NetworkBackend* network) {
     CLI::App app("MDBridge: the MDATK commands of the core and io libraries (no interface)",
                  argc > 0 ? core::pathBasename(argv[0]) : "mdbridge");
     app.require_subcommand(0, 1);
-    CoreCommands commands(app, backend);
+    CoreCommands commands(app, backend, network);
+    commands.setArguments(std::vector<std::string>(argv + std::min(argc, 1), argv + argc));
     try {
         app.parse(argc, argv);
     } catch (const CLI::ParseError& error) {

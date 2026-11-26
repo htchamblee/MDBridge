@@ -4,12 +4,14 @@
 # structure builder's templates, sequence functions and Watson-Crick helices (helix.cpp), the
 # rigid-body density fit (density_fit.cpp, on src/numerics) and the generated reference tables of
 # the builder and the restraint dictionaries (reference_tables.cpp: helix_tables.inc,
-# component_tables.inc from tools/gen_chem_tables.py). Residue names come from io's
+# component_tables.inc from tools/gen_chem_tables.py), and the functions milestone 7's generators
+# call (generator_api.cpp). Residue names come from io's
 # parseResidueName, mmCIF from io's cif.
 add_library(mdbridge_chem STATIC
     annotate.cpp
     density_fit.cpp
     dictionaries.cpp
+    generator_api.cpp
     helix.cpp
     pdbtools.cpp
     reference_tables.cpp

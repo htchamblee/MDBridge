@@ -72,6 +72,9 @@ public:
     explicit Pipeline(core::Project project, core::Reporter reporter = core::Reporter());
 
     const core::Project& project() const { return m_project; }
+    // Replaces the project's density settings: where a density fit stores its placement (Pipeline.
+    // fit_density); nothing the pipeline caches depends on them.
+    void setDensity(core::DensityParams density) { m_project.density = std::move(density); }
     const core::Reporter& reporter() const { return m_reporter; }
     const CacheStore& cache() const { return m_cache; }
     // Worker threads of analyze()'s run (RunOptions::threads: 0, the default, for
