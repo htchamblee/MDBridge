@@ -400,6 +400,19 @@ if(MDBRIDGE_BUILD_APP)
     add_test(NAME gui.window COMMAND mdbridge_gui_window_tests)
     set_tests_properties(gui.window PROPERTIES LABELS gui ENVIRONMENT "QT_QPA_PLATFORM=offscreen" TIMEOUT 900)
 
+    # the settings pages Input & cleaning, Residue groups and Analyses (src/app/gui/pages, milestone 5
+    # W1-B): MDATK's sections and fields, the group drop-downs, group renames, Groups from chains
+    # (D15), reveal; a screenshot of each page (artifacts). Qt Test, offscreen.
+    add_executable(mdbridge_gui_group_pages_tests gui/test_group_pages.cpp gui/gui_harness.cpp gui/gui_harness.hpp
+                   gui/page_host.cpp gui/page_host.hpp)
+    set_target_properties(mdbridge_gui_group_pages_tests PROPERTIES AUTOMOC ON)
+    target_link_libraries(mdbridge_gui_group_pages_tests PRIVATE mdbridge_app mdbridge::render_panels_vulkan Qt6::Test)
+    target_compile_definitions(mdbridge_gui_group_pages_tests PRIVATE MDBRIDGE_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data"
+                               MDBRIDGE_GUI_SCREENSHOT_DIR="${CMAKE_BINARY_DIR}/gui-screenshots")
+    mdbridge_target_warnings(mdbridge_gui_group_pages_tests)
+    add_test(NAME gui.group_pages COMMAND mdbridge_gui_group_pages_tests)
+    set_tests_properties(gui.group_pages PROPERTIES LABELS gui ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
     # the interface's job runner and log view (src/app/gui/jobs; Qt Test, offscreen platform): job
     # texts, one job at a time, progress throttle, cancel paths, failures, close-while-running
     # (AP-14), a bounded batched log that keeps the event loop responsive under 10^6 lines
@@ -413,7 +426,7 @@ if(MDBRIDGE_BUILD_APP)
     # every GUI test program links mdbridge_app, which links the video encoder: the FFmpeg DLLs next to it
     if(WIN32 AND MDBRIDGE_VIDEO_RUNTIME_FILES)
         foreach(gui_test mdbridge_gui_tests mdbridge_gui_forms_tests mdbridge_gui_problems_tests mdbridge_gui_pages_tests
-                         mdbridge_gui_window_tests mdbridge_gui_jobs_tests)
+                         mdbridge_gui_window_tests mdbridge_gui_group_pages_tests mdbridge_gui_jobs_tests)
             add_custom_command(TARGET ${gui_test} POST_BUILD
                 COMMAND ${CMAKE_COMMAND} -E copy_if_different ${MDBRIDGE_VIDEO_RUNTIME_FILES} $<TARGET_FILE_DIR:${gui_test}>
                 VERBATIM)

@@ -7,6 +7,9 @@
 #include <QWidget>
 
 #include "gui/forms/form_context.hpp"
+#include "gui/pages/analyses_page.hpp"
+#include "gui/pages/groups_page.hpp"
+#include "gui/pages/input_page.hpp"
 #include "gui/pages/outputs_page.hpp"
 #include "gui/pages/placeholder_page.hpp"
 #include "gui/pages/structure_page.hpp"
@@ -20,16 +23,15 @@ struct PageEntry {
     std::function<QWidget*(forms::FormContext&)> make;
 };
 
+// MDATK's order (app.py:226-254). The Layout & panels page is a PlaceholderPage (every field of
+// the page from the model) until W2-A replaces its line.
 QWidget* placeholder(forms::FormContext& c, const char* id) { return new PlaceholderPage(c, QString::fromLatin1(id)); }
 
-// MDATK's order (app.py:226-254). A page not delivered yet is a PlaceholderPage (every field of
-// the page from the model) until its package replaces the line: input, groups, analyses (W1-B),
-// layout (W2-A).
 const std::vector<PageEntry>& entries() {
     static const std::vector<PageEntry> list{
-        {"input", [](forms::FormContext& c) { return placeholder(c, "input"); }},
-        {"groups", [](forms::FormContext& c) { return placeholder(c, "groups"); }},
-        {"analyses", [](forms::FormContext& c) { return placeholder(c, "analyses"); }},
+        {"input", [](forms::FormContext& c) -> QWidget* { return new InputPage(c); }},
+        {"groups", [](forms::FormContext& c) -> QWidget* { return new GroupsPage(c); }},
+        {"analyses", [](forms::FormContext& c) -> QWidget* { return new AnalysesPage(c); }},
         {"structure", [](forms::FormContext& c) -> QWidget* { return new StructurePage(c); }},
         {"layout", [](forms::FormContext& c) { return placeholder(c, "layout"); }},
         {"outputs", [](forms::FormContext& c) -> QWidget* { return new OutputsPage(c); }},

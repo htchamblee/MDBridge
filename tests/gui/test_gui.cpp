@@ -51,8 +51,7 @@ fs::path screenshots() { return guitest::screenshotDir(core::pathFromUtf8(MDBRID
 const char* pendingReason(const std::string& name) {
     static const std::vector<std::pair<std::string, const char*>> pending{
         {"ap/ap08_preset_round_trip", "the slot editors of the Layout & panels page (W2-A)"},
-        {"pages/analyses_page", "the Analyses page (W1-B)"},
-        {"pages/groups_page", "the Residue groups page and the slot editors (W1-B, W2-A)"},
+        {"pages/groups_page", "its snapshot of the slot editors (W2-A)"},
         {"pages/layout_page", "the Layout & panels page (W2-A)"},
     };
     for (const auto& [n, why] : pending) {

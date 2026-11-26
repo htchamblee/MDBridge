@@ -314,6 +314,7 @@ ListEditor::ListEditor(FormContext& context, std::string listPath, FieldSpec spe
     setEditor(m_view);
 
     auto* buttons = new QHBoxLayout;
+    m_buttonRow = buttons;
     buttons->setSpacing(4);
     const QString name = toQString(path());
     const auto pushButton = [&](const QString& text, const QString& id, QStyle::StandardPixmap icon, const QString& tip) {
@@ -356,6 +357,11 @@ ListEditor::ListEditor(FormContext& context, std::string listPath, FieldSpec spe
     }
     connect(&context, &FormContext::problemsChanged, m_model, &ListModel::problemsChanged);
     refresh();
+}
+
+void ListEditor::addButton(QWidget* button) {
+    button->setParent(this);
+    m_buttonRow->insertWidget(m_buttonRow->count() - 1, button);  // before the stretch
 }
 
 std::vector<ListColumn> ListEditor::columnsFor(const FieldSpec& spec) const {

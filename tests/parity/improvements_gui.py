@@ -669,6 +669,12 @@ def apply(app, W, config, PF, n_slots, harness):
 def on_set(binding):
     """A value the user chose in a field: it is what the field holds now (AP-01: no clamping)."""
     def after(value):
+        try:
+            shown = binding.get()
+        except (ValueError, TypeError):
+            shown = None
+        if isinstance(shown, float) and isinstance(value, int) and not isinstance(value, bool):
+            value = float(value)  # a number field of a float setting stores a float (spin_float), as MDBridge's
         binding.loaded = copy.deepcopy(value)
         try:
             binding.baseline = binding.get()

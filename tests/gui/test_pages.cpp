@@ -198,7 +198,10 @@ void PagesTest::valueWidgetsIgnoreTheMouseWheel() {
     }
     QVERIFY2(seen >= 30, qPrintable(QString::number(seen)));
     QVERIFY2(missing.isEmpty(), qPrintable(missing.join(QStringLiteral(", "))));
-    auto* structure = qobject_cast<StructurePage*>(pages[0].get());
+    StructurePage* structure = nullptr;
+    for (const auto& p : pages) {
+        if (auto* sp = qobject_cast<StructurePage*>(p.get())) structure = sp;
+    }
     QVERIFY(structure);
     QVERIFY(QTest::qWaitForWindowExposed(structure));
     auto* zoom = structure->findChild<QAbstractSpinBox*>(QStringLiteral("visual.zoom"));
