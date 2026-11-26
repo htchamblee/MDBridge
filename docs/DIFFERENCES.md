@@ -650,6 +650,19 @@ test_selections.cpp; cli_cases.json (`info_groups`); framework_cases.json (cache
   settings go to `$XDG_CONFIG_HOME/mdbridge/` (`core::mdbridgeConfigDir`); Windows keeps both in
   `%APPDATA%\MDBridge\`. *Tested:* test_project_io.cpp (RecentListKeepsOtherSettings: MDATK 0.1.1's
   text for the same file; ConfigFolders).
+- **PRJ-13: on Windows a save waits for a program reading the file.** Project files, parameter logs,
+  the settings file and recovery files are written to `<name>.tmp` and renamed over the file
+  (`os.replace` in MDATK 0.0.4.1 and 0.1.1, no retry). Windows refuses to replace a file while
+  another program has it (or the new file) open, even for a moment: a virus scanner, the search
+  indexer or a sync client reading the file just written makes the save fail with `rename: Access
+  is denied.` (seen in CI: GuiTests ap13_unsaved_changes, run 45790979168). MDBridge tries the
+  rename again for up to 2 s (10 ms, doubling to 100 ms) while Windows reports the file busy
+  (access denied, sharing or lock violation); after that, or on any other error, the save fails
+  with the system's message as before, and `<name>.tmp` is removed (MDATK leaves it). On Linux and
+  macOS a rename does not wait for readers: one try, as before. *Tested:* test_project_io.cpp
+  (ProjectSave.AFailedReplaceLeavesNoTemporaryFile on every platform; on Windows
+  WaitsForAProgramReadingTheFile, a handle sharing read, write and delete closed after 300 ms, and
+  GivesUpOnAFileHeldOpen, a handle without delete sharing held past the 2 s).
 - **RN-20: `visual.renderer = "vulkan"` is accepted** (owner decision D7, docs/specs/m4-plan.md).
   MDATK knows `auto`, `software` and `vtk` (VTK, optional); MDBridge's GPU renderer is Vulkan, so
   `vulkan` is a valid value besides them (`vtk` keeps meaning "the GPU renderer", RN-16), and the
@@ -2495,8 +2508,9 @@ has nothing to adopt: MDBridge does not fit maps yet (milestone 4 D9). Deliberat
 - **WA-06: the desktop through Qt.** *Open output folder* and *Open video* use
   `QDesktopServices::openUrl` (Explorer on Windows; the XDG portal or `xdg-open` on Linux) instead
   of MDATK's FileManager1 D-Bus call, `inode/directory` handler and `xdg-open` chain; the log line
-  is `Opened <path>` without MDATK's `(<how>)`. When nothing can open it: `Could not open the
-  folder` / `Could not open the video`. *Tested:* `ActionTests::openFolderAndVideo` (the opener
+  is `Opened <path>` without MDATK's `(<how>)`, the path with `/` separators as the output folder
+  is resolved (Windows path rules above; also for a video found by listing the folder). When
+  nothing can open it: `Could not open the folder` / `Could not open the video`. *Tested:* `ActionTests::openFolderAndVideo` (the opener
   replaced by the test).
 - **WA-07: the still fits the screen (AP-18).** MDATK scaled the still to a fixed 1 200 px width;
   MDBridge shows it at its own size when it fits and otherwise scales it, aspect kept, to 90 % of

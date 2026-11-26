@@ -50,7 +50,13 @@ namespace fs = std::filesystem;
 namespace {
 
 QString qs(const std::string& text) { return QString::fromUtf8(text.data(), static_cast<qsizetype>(text.size())); }
-QString display(const fs::path& path) { return qs(core::pathToUtf8(path)); }
+// A file of the output folder as the window shows it: '/' separators, as core::outDir and the
+// pipeline's outputs (the documented Windows path rules); a video found by listing the folder
+// would otherwise end in "\\MDATK_video_....mp4" on Windows. The same text on Linux and macOS.
+QString display(const fs::path& path) {
+    const std::u8string text = path.generic_u8string();
+    return QString::fromUtf8(reinterpret_cast<const char*>(text.data()), static_cast<qsizetype>(text.size()));
+}
 
 // What a re-render from the cache wrote.
 struct Rerendered {

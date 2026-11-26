@@ -61,7 +61,9 @@ std::size_t logStart(std::string_view text);
 // Throws std::filesystem::filesystem_error.
 void writeTextFile(const std::filesystem::path& path, std::string_view text, bool append = false);
 
-// Writes <path>.tmp and renames it over `path` (os.replace).
+// Writes <path>.tmp and renames it over `path` (os.replace). On Windows a rename refused because
+// another program holds either file open for a moment (a virus scanner, the indexer) is tried
+// again for up to 2 s (PRJ-13); when it still fails, <path>.tmp is removed and the error thrown.
 void replaceFile(const std::filesystem::path& path, std::string_view text);
 
 // projectfile._locked(path): the process-wide lock, and on POSIX flock() on .<name>.lock next to

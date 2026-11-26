@@ -4,12 +4,24 @@
 // test_config_selections.py that save or load files are ported.
 
 #include <algorithm>
+#include <chrono>
 #include <cstdlib>
 #include <stdexcept>
 #include <string>
+#include <thread>
 #include <vector>
 
 #include <gtest/gtest.h>
+
+#ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+#endif
 
 #include "mdbridge/core/hash.hpp"
 #include "mdbridge/core/paths.hpp"
@@ -677,3 +689,56 @@ TEST(ProjectCompat, MdatkVersionOfALaterMdatkIsKept) {
     saveProject(path, p);
     EXPECT_EQ(*readProject(path).header.find("mdatk_version"), Value("0.0.4.1"));
 }
+
+// PRJ-13: a save that cannot replace the file leaves the old file as it was and no <name>.tmp.
+TEST(ProjectSave, AFailedReplaceLeavesNoTemporaryFile) {
+    TempDir dir;
+    const fs::path path = dir / "p.mdatk.toml";
+    fs::create_directories(path / "inside");  // a folder of that name: the rename must fail
+    EXPECT_THROW(saveProject(path, Project{}), fs::filesystem_error);
+    EXPECT_TRUE(fs::is_directory(path / "inside"));
+    EXPECT_FALSE(fs::exists(dir / "p.mdatk.toml.tmp"));
+}
+
+#ifdef _WIN32
+// PRJ-13: another program reading the project while it is saved, as virus scanners and the search
+// indexer open files (sharing read, write and delete). Windows refuses to replace an open file;
+// the save waits for it (GuiTests ap13_unsaved_changes failed so in CI run 45790979168).
+TEST(ProjectSave, WaitsForAProgramReadingTheFile) {
+    TempDir dir;
+    const fs::path path = dir / "p.mdatk.toml";
+    saveProject(path, Project{});
+    const HANDLE held = CreateFileW(path.c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                                    nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+    ASSERT_NE(held, INVALID_HANDLE_VALUE);
+    std::thread release([held] {
+        std::this_thread::sleep_for(std::chrono::milliseconds(300));
+        CloseHandle(held);
+    });
+    Project q;
+    q.notes = "saved while another program read the file";
+    EXPECT_NO_THROW(saveProject(path, q));
+    release.join();
+    EXPECT_EQ(fromFile(path).notes, q.notes);
+    EXPECT_FALSE(fs::exists(dir / "p.mdatk.toml.tmp"));
+}
+
+// PRJ-13: a file held open (without delete sharing) for longer than the 2 s the save waits: the
+// save fails with the system's message and the file stays as it was.
+TEST(ProjectSave, GivesUpOnAFileHeldOpen) {
+    TempDir dir;
+    const fs::path path = dir / "p.mdatk.toml";
+    Project first;
+    first.notes = "first";
+    saveProject(path, first);
+    const HANDLE held = CreateFileW(path.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING,
+                                    FILE_ATTRIBUTE_NORMAL, nullptr);
+    ASSERT_NE(held, INVALID_HANDLE_VALUE);
+    const auto start = std::chrono::steady_clock::now();
+    EXPECT_THROW(saveProject(path, Project{}), fs::filesystem_error);
+    EXPECT_GE(std::chrono::steady_clock::now() - start, std::chrono::milliseconds(1900));
+    CloseHandle(held);
+    EXPECT_EQ(fromFile(path).notes, "first");
+    EXPECT_FALSE(fs::exists(dir / "p.mdatk.toml.tmp"));
+}
+#endif

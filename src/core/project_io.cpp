@@ -3,9 +3,11 @@
 #include <algorithm>
 #include <array>
 #include <cerrno>
+#include <chrono>
 #include <cstdio>
 #include <mutex>
 #include <system_error>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -218,7 +220,34 @@ void replaceFile(const fs::path& path, std::string_view text) {
     fs::path tmp = path;
     tmp += ".tmp";
     writeTextFile(tmp, text);
-    fs::rename(tmp, path);
+    // PRJ-13: on Windows, replacing a file fails ("Access is denied", "being used by another
+    // process") while another program holds it or the new file open for a moment: a virus
+    // scanner, the search indexer, a sync client. os.replace (MDATK) fails the save then; the
+    // rename is tried again for up to 2 s. On POSIX a rename does not wait for readers: one try.
+#ifdef _WIN32
+    constexpr auto kPatience = std::chrono::seconds(2);
+#else
+    constexpr auto kPatience = std::chrono::seconds(0);
+#endif
+    const auto deadline = std::chrono::steady_clock::now() + kPatience;
+    auto pause = std::chrono::milliseconds(10);
+    for (;;) {
+        std::error_code ec;
+        fs::rename(tmp, path, ec);
+        if (!ec) return;
+        const bool busy = ec == std::errc::permission_denied || ec == std::errc::device_or_resource_busy ||
+                          ec == std::errc::no_lock_available;
+        if (!busy || std::chrono::steady_clock::now() >= deadline) break;
+        std::this_thread::sleep_for(pause);
+        pause = std::min(pause * 2, std::chrono::milliseconds(100));
+    }
+    try {
+        fs::rename(tmp, path);  // the last try, with the standard library's own message
+    } catch (const fs::filesystem_error&) {
+        std::error_code ignored;
+        fs::remove(tmp, ignored);  // no stray <name>.tmp next to the project
+        throw;
+    }
 }
 
 struct ProjectLock::State {

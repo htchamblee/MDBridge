@@ -75,6 +75,13 @@ namespace {
 constexpr int kJobWait = 300000;  // ms: a job of these tests (the demo's analyses and video)
 
 QString qs(const fs::path& p) { return QString::fromStdString(core::pathToUtf8(p)); }
+// A file of the output folder as the window and the pipeline show it: '/' separators (core::outDir,
+// the documented Windows path rules), while f.outDir() / name and directory listings join with
+// std::filesystem's '\\' on Windows. The same as core::pathToUtf8(p) on Linux and macOS.
+std::string shown(const fs::path& p) {
+    const std::u8string text = p.generic_u8string();
+    return std::string(text.begin(), text.end());
+}
 
 bool videoBuild() { return render::video::videoEncodingAvailable(); }
 
@@ -365,7 +372,7 @@ void ActionTests::realFramePreviewAndRender() {
     const std::string detail = f.lastDialogDetail();
     QVERIFY(detail.find("Charts: ") != std::string::npos);
     QVERIFY(detail.find("PDB files: ") != std::string::npos);
-    QVERIFY(detail.find("Parameter log: " + core::pathToUtf8(f.outDir() / "MDATK_params_log.toml")) != std::string::npos);
+    QVERIFY(detail.find("Parameter log: " + shown(f.outDir() / "MDATK_params_log.toml")) != std::string::npos);
     QVERIFY(f.loggedStart("Render finished: "));
     QVERIFY(f.logged("--- Rendering ---"));
     QCOMPARE(w.jobRunner()->statusText(), QStringLiteral("Rendering: done"));
@@ -373,7 +380,7 @@ void ActionTests::realFramePreviewAndRender() {
         const std::vector<fs::path> videos = filesLike(f.outDir(), "MDATK_video_", ".mp4");
         QCOMPARE(videos.size(), std::size_t{1});
         QCOMPARE(f.actions().lastVideo(), videos.front());
-        QVERIFY(detail.rfind("Video: " + core::pathToUtf8(videos.front()), 0) == 0);
+        QVERIFY(detail.rfind("Video: " + shown(videos.front()), 0) == 0);
         const render::video::VideoProbe probe = render::video::probeVideo(videos.front());
         QCOMPARE(probe.width, 320);
         QCOMPARE(probe.height, 180);
@@ -466,7 +473,7 @@ void ActionTests::exportRerenderInspect() {
     QCOMPARE(f.lastDialogText(), std::string("PDB export finished"));
     const std::vector<fs::path> pdbs = filesLike(f.outDir(), "MDATK_frame_", ".pdb");
     QVERIFY(pdbs.size() >= 2);
-    for (const fs::path& p : pdbs) QVERIFY(f.lastDialogDetail().find(core::pathToUtf8(p)) != std::string::npos);
+    for (const fs::path& p : pdbs) QVERIFY(f.lastDialogDetail().find(shown(p)) != std::string::npos);
 
     // Re-render from the cache of a render
     w.document().set("output.pdb.enabled", false);
@@ -584,7 +591,7 @@ void ActionTests::openFolderAndVideo() {
     // nothing written yet
     w.action(QStringLiteral("open_output"))->trigger();
     QCOMPARE(f.lastDialogText(), std::string("The output directory does not exist yet."));
-    QCOMPARE(f.lastDialogDetail(), core::pathToUtf8(f.outDir()));
+    QCOMPARE(f.lastDialogDetail(), shown(f.outDir()));
     w.action(QStringLiteral("open_video"))->trigger();
     QCOMPARE(f.lastDialogText(), std::string("No video has been rendered yet."));
     QVERIFY(f.opened.empty());
@@ -603,11 +610,11 @@ void ActionTests::openFolderAndVideo() {
     w.action(QStringLiteral("open_output"))->trigger();
     QCOMPARE(f.opened.size(), std::size_t{1});
     QCOMPARE(f.opened.back(), QUrl::fromLocalFile(qs(f.outDir())));
-    QVERIFY(f.logged("Opened " + core::pathToUtf8(f.outDir())));
+    QVERIFY(f.logged("Opened " + shown(f.outDir())));
     w.action(QStringLiteral("open_video"))->trigger();
     QCOMPARE(f.opened.size(), std::size_t{2});
     QCOMPARE(f.opened.back(), QUrl::fromLocalFile(qs(newest)));
-    QVERIFY(f.logged("Opened " + core::pathToUtf8(newest)));
+    QVERIFY(f.logged("Opened " + shown(newest)));
     // the desktop cannot open it
     w.windowActions()->setUrlOpener([](const QUrl&) { return false; });
     w.action(QStringLiteral("open_video"))->trigger();
