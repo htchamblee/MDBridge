@@ -159,6 +159,15 @@ python3 -I -B tests/parity/python_cases.py /tmp/mdatk tests/data/python
 The generators fix the clocks (`saved`, entry times, durations), so their output is reproducible
 and equal to the committed files.
 
+`edit-model/edit_model_cases.json` holds what MDATK 0.1.1 does where the GUI's edit model
+(`mdbridge/core/project_document.hpp`, `problems.hpp`; `tests/core/test_project_document.cpp`) follows
+it: `Project.rename_group` and `group_references` on projects that refer to their groups in every way
+(changed locations, errors, `to_dict()` afterwards), `problems()` of every input of
+`project-model/validate_cases.json` (field, message, location; 0.1.1's selection checks left out, D7) and
+`problems.describe()` of fields with and without a project. Made by
+`python3 -I -B tests/parity/make_edit_model_cases.py <MDATK 0.1.1 checkout> tests/data/project-model/validate_cases.json tests/data/edit-model`
+(`--mdatk-latest`; numpy and scipy importable).
+
 `project-model/` holds what MDATK's parameter model (`mdatk/config.py`) computes, for
 `mdbridge/core/project.hpp` (`tests/core/test_project_model.cpp`, which also reuses
 `python/resolve_paths_cases.json` and `python/dirs_cases.json`). Values are tagged as in

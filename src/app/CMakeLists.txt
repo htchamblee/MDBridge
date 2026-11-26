@@ -7,6 +7,16 @@ add_library(mdbridge_app STATIC
     fonts_command.cpp
     fonts_command.hpp
     gui/background.hpp
+    gui/forms/field_factory.cpp
+    gui/forms/field_factory.hpp
+    gui/forms/field_spec.cpp
+    gui/forms/field_spec.hpp
+    gui/forms/field_widgets.cpp
+    gui/forms/field_widgets.hpp
+    gui/forms/form_context.cpp
+    gui/forms/form_context.hpp
+    gui/forms/list_editor.cpp
+    gui/forms/list_editor.hpp
     gui/gui.cpp
     gui/gui.hpp
     gui/main_window.cpp

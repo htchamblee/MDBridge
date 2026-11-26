@@ -14,12 +14,15 @@
 #include "mdbridge/core/naming.hpp"
 #include "mdbridge/core/ntpath.hpp"
 #include "mdbridge/core/paths.hpp"
+#include "mdbridge/core/problems.hpp"
 #include "mdbridge/core/project_file.hpp"
 #include "mdbridge/core/python.hpp"
 #include "mdbridge/core/rigid_transform.hpp"
 #include "mdbridge/core/step_types.hpp"
+#include "mdbridge/core/suggest.hpp"
 #include "mdbridge/core/text.hpp"
 #include "mdbridge/core/toml_writer.hpp"
+#include "project_internal.hpp"
 
 namespace mdbridge::core {
 
@@ -575,40 +578,79 @@ std::optional<std::string> rigidTransformProblem(std::span<const double> numbers
     return std::nullopt;
 }
 
-std::vector<std::string> densityProblems(const Project& project) {
-    const DensityParams& d = project.density;
+namespace {
+
+// A located problem: field, MDATK 0.1.1's message (`message`) and validate()'s line (`check`).
+struct Found {
+    std::vector<Problem>* out;
+
+    void add(std::string field, std::string check, std::string message = {}) const {
+        Problem p;
+        p.field = std::move(field);
+        p.message = message.empty() ? check : std::move(message);
+        p.check = std::move(check);
+        out->push_back(std::move(p));
+    }
+};
+
+std::vector<std::string> checksOf(const std::vector<Problem>& problems) {
     std::vector<std::string> out;
+    out.reserve(problems.size());
+    for (const Problem& p : problems) {
+        out.push_back(p.check);
+    }
+    return out;
+}
+
+// unknown_group_error(name, defined).message of MDATK 0.1.1
+std::string unknownGroupMessage(const std::string& name, const std::vector<std::string>& defined) {
+    const std::string list = joined(defined, ", ");
+    std::string message = "unknown residue group " + repr(name) + " (defined: " + (list.empty() ? "none" : list) + ")";
+    if (const auto guess = suggestName(name, defined)) {
+        message += "; did you mean " + repr(*guess) + "?";
+    }
+    return message;
+}
+
+void densityChecks(const Project& project, const Found& found) {
+    const DensityParams& d = project.density;
     if (d.map_path.empty()) {
-        return out;
+        return;
     }
     if (densityActive(project) && !exists(d.map_path)) {
-        out.push_back("Density map not found: " + d.map_path +
-                      " (untick 'show' to render without it)");
+        found.add("density.map_path", "Density map not found: " + d.map_path + " (untick 'show' to render without it)");
     }
     if (d.resolution <= 0) {
-        out.push_back("Density map resolution must be positive.");
+        found.add("density.resolution", "Density map resolution must be positive.");
     }
     if (!(0.0 <= d.opacity && d.opacity <= 1.0)) {
-        out.push_back("Density map opacity must be between 0 and 1.");
+        found.add("density.opacity", "Density map opacity must be between 0 and 1.");
     }
     if (!(5.0 <= d.angular_step && d.angular_step <= 45.0)) {
-        out.push_back("Density search angular step must be between 5 and 45 degrees.");
+        found.add("density.angular_step", "Density search angular step must be between 5 and 45 degrees.");
     }
     if (!oneOf(d.search, {"global", "manual"})) {
-        out.push_back("Unknown density fit start " + repr(d.search) + " (global or manual).");
+        found.add("density.search", "Unknown density fit start " + repr(d.search) + " (global or manual).");
     }
     if (!d.transform.empty()) {
         if (const auto problem = rigidTransformProblem(d.transform)) {
-            out.push_back("The stored density map placement is invalid (" + *problem +
-                          "); clear it or fit again.");
+            found.add("density.transform",
+                      "The stored density map placement is invalid (" + *problem + "); clear it or fit again.");
         }
     }
     const std::string frame = asciiLower(pythonStrip(d.fit_frame));
     if (!frame.empty() && frame != "ref" && !isDigitString(frame)) {
-        out.push_back("Density fit frame must be 'ref' or a frame number, not " +
-                      repr(d.fit_frame) + ".");
+        found.add("density.fit_frame",
+                  "Density fit frame must be 'ref' or a frame number, not " + repr(d.fit_frame) + ".");
     }
-    return out;
+}
+
+}  // namespace
+
+std::vector<std::string> densityProblems(const Project& project) {
+    std::vector<Problem> out;
+    densityChecks(project, Found{&out});
+    return checksOf(out);
 }
 
 namespace {
@@ -634,179 +676,193 @@ std::string rmsdDataKey(std::string_view label, std::size_t k) {
     return key.substr(first, key.find_last_not_of('_') - first + 1);
 }
 
-}  // namespace
-
-std::vector<std::string> analysisParameterProblems(const Project& project) {
-    std::vector<std::string> out;
+void analysisParameterChecks(const Project& project, const Found& found) {
     const AnalysisParams& a = project.analyses;
     // a cutoff, radius or tolerance: a finite number > 0 (NaN fails every comparison)
-    const auto positive = [&out](double value, std::string_view what) {
+    const auto positive = [&found](double value, const char* field, std::string_view what) {
         if (!(value > 0)) {
-            out.push_back(std::string(what) + " must be positive.");
+            found.add(field, std::string(what) + " must be positive.");
         } else if (!std::isfinite(value)) {
-            out.push_back(std::string(what) + " must be finite.");
+            found.add(field, std::string(what) + " must be finite.");
         }
         return value > 0 && std::isfinite(value);
     };
-    const auto angle = [&out](double value, std::string_view what) {
+    const auto angle = [&found](double value, const char* field, std::string_view what) {
         if (!(0 <= value && value <= 180)) {
-            out.push_back(std::string(what) + " must be between 0 and 180 degrees.");
+            found.add(field, std::string(what) + " must be between 0 and 180 degrees.");
         }
     };
-    positive(a.contacts.cutoff, "Contact cutoff");
-    positive(a.hbonds.distance_cutoff, "H-bond distance cutoff");
-    angle(a.hbonds.angle_cutoff, "H-bond angle cutoff");
-    const bool inner = positive(a.mg.inner_cutoff, "Mg inner-sphere cutoff");
-    const bool outer = positive(a.mg.outer_cutoff, "Mg outer-sphere cutoff");
+    positive(a.contacts.cutoff, "analyses.contacts.cutoff", "Contact cutoff");
+    positive(a.hbonds.distance_cutoff, "analyses.hbonds.distance_cutoff", "H-bond distance cutoff");
+    angle(a.hbonds.angle_cutoff, "analyses.hbonds.angle_cutoff", "H-bond angle cutoff");
+    const bool inner = positive(a.mg.inner_cutoff, "analyses.mg.inner_cutoff", "Mg inner-sphere cutoff");
+    const bool outer = positive(a.mg.outer_cutoff, "analyses.mg.outer_cutoff", "Mg outer-sphere cutoff");
     if (inner && outer && a.mg.inner_cutoff > a.mg.outer_cutoff) {
-        out.push_back("Mg inner-sphere cutoff must not exceed the outer-sphere cutoff.");
+        found.add("analyses.mg.inner_cutoff", "Mg inner-sphere cutoff must not exceed the outer-sphere cutoff.");
     }
-    positive(a.mg.angle_tolerance, "Mg angle tolerance");
-    positive(a.stacking.distance_cutoff, "Stacking distance cutoff");
-    angle(a.stacking.angle_cutoff, "Stacking angle cutoff");
-    positive(a.stacking.offset_cutoff, "Stacking offset cutoff");
-    positive(a.stacking.planarity_cutoff, "Stacking planarity cutoff");
-    positive(a.energy.cutoff, "Energy cutoff");
-    positive(a.energy.dielectric, "Energy dielectric constant");
-    positive(a.proximity_search_radius, "Proximity search radius");
+    positive(a.mg.angle_tolerance, "analyses.mg.angle_tolerance", "Mg angle tolerance");
+    positive(a.stacking.distance_cutoff, "analyses.stacking.distance_cutoff", "Stacking distance cutoff");
+    angle(a.stacking.angle_cutoff, "analyses.stacking.angle_cutoff", "Stacking angle cutoff");
+    positive(a.stacking.offset_cutoff, "analyses.stacking.offset_cutoff", "Stacking offset cutoff");
+    positive(a.stacking.planarity_cutoff, "analyses.stacking.planarity_cutoff", "Stacking planarity cutoff");
+    positive(a.energy.cutoff, "analyses.energy.cutoff", "Energy cutoff");
+    positive(a.energy.dielectric, "analyses.energy.dielectric", "Energy dielectric constant");
+    positive(a.proximity_search_radius, "analyses.proximity_search_radius", "Proximity search radius");
     const std::vector<RMSDTarget>& targets = a.rmsd.targets;
     for (std::size_t j = 1; j < targets.size(); ++j) {
         const std::string key = rmsdDataKey(targets[j].label, j);
         for (std::size_t i = 0; i < j; ++i) {
             if (rmsdDataKey(targets[i].label, i) == key) {
-                out.push_back("RMSD targets " + std::to_string(i + 1) + " and " + std::to_string(j + 1) +
+                found.add("analyses.rmsd.targets." + std::to_string(j) + ".label",
+                          "RMSD targets " + std::to_string(i + 1) + " and " + std::to_string(j + 1) +
                               " give the same data key " + repr(key) + "; rename one.");
                 break;
             }
         }
     }
-    return out;
 }
 
-std::vector<std::string> validate(const Project& project) {
-    std::vector<std::string> problems;
+}  // namespace
+
+std::vector<std::string> analysisParameterProblems(const Project& project) {
+    std::vector<Problem> out;
+    analysisParameterChecks(project, Found{&out});
+    return checksOf(out);
+}
+
+std::vector<Problem> detail::checkProblems(const Project& project) {
+    std::vector<Problem> problems;
+    const Found found{&problems};
     const InputParams& in = project.inputs;
     if (in.topology.empty()) {
-        problems.push_back("No topology file selected.");
+        found.add("inputs.topology", "No topology file selected.");
     } else if (!exists(in.topology)) {
-        problems.push_back("Topology file not found: " + in.topology);
+        found.add("inputs.topology", "Topology file not found: " + in.topology);
     }
     if (in.trajectories.empty()) {
-        problems.push_back("No trajectory file selected.");
+        found.add("inputs.trajectories", "No trajectory file selected.");
     }
     for (const std::string& t : in.trajectories) {
         if (!exists(t)) {
-            problems.push_back("Trajectory file not found: " + t);
+            found.add("inputs.trajectories", "Trajectory file not found: " + t);
         }
     }
     if (in.step < 1) {
-        problems.push_back("Frame step must be >= 1.");
+        found.add("inputs.step", "Frame step must be >= 1.");
     }
     // LD-04 (docs/DIFFERENCES.md): MDATK lets NaN and negative values through to the readers
     if (in.dt_ps && !(*in.dt_ps >= 0.0 && std::isfinite(*in.dt_ps))) {
-        problems.push_back("inputs.dt_ps must be positive (0: the trajectory's own time step).");
+        found.add("inputs.dt_ps", "inputs.dt_ps must be positive (0: the trajectory's own time step).");
     }
     const std::vector<std::string> names = groupNames(project);
-    std::vector<std::string> sorted = names;
-    std::sort(sorted.begin(), sorted.end());
-    if (std::adjacent_find(sorted.begin(), sorted.end()) != sorted.end()) {
-        problems.push_back("Residue group names must be unique.");
+    for (std::size_t k = 1; k < names.size(); ++k) {  // the first group whose name an earlier one has
+        const auto earlier = std::find(names.begin(), names.begin() + static_cast<std::ptrdiff_t>(k), names[k]);
+        if (earlier != names.begin() + static_cast<std::ptrdiff_t>(k)) {
+            found.add("groups." + std::to_string(k) + ".name", "Residue group names must be unique.",
+                      "Residue group names must be unique: " + repr(names[k]) + " is also the name of group " +
+                          std::to_string(earlier - names.begin() + 1) + ".");
+            break;
+        }
     }
-    for (const ResidueGroup& g : project.groups) {
+    for (std::size_t k = 0; k < project.groups.size(); ++k) {
+        const ResidueGroup& g = project.groups[k];
+        const std::string at = "groups." + std::to_string(k);
         if (pythonStrip(g.name).empty()) {
-            problems.push_back("Residue groups need a name.");
+            found.add(at + ".name", "Residue groups need a name.");
         } else if (!isPlainName(g.name)) {
-            problems.push_back("Group name " + repr(g.name) +
-                               " may only contain letters, digits, '_', '.' and '-' (no spaces).");
+            found.add(at + ".name",
+                      "Group name " + repr(g.name) + " may only contain letters, digits, '_', '.' and '-' (no spaces).");
         }
         if (pythonStrip(g.residues).empty() && pythonStrip(g.selection).empty()) {
-            problems.push_back("Group " + repr(g.name) + " has neither residues nor a selection.");
+            found.add(at + ".residues", "Group " + repr(g.name) + " has neither residues nor a selection.");
         }
     }
     const AnalysisParams& a = project.analyses;
-    const std::array<std::tuple<std::string_view, bool, const std::string*, const std::string*>, 5>
-        pairs{{{"contacts", a.contacts.enabled, &a.contacts.group_a, &a.contacts.group_b},
-               {"H-bonds", a.hbonds.enabled, &a.hbonds.group_a, &a.hbonds.group_b},
-               {"Mg", a.mg.enabled, &a.mg.group_a, &a.mg.group_b},
-               {"stacking", a.stacking.enabled, &a.stacking.group_a, &a.stacking.group_b},
-               {"energy", a.energy.enabled, &a.energy.group_a, &a.energy.group_b}}};
-    for (const auto& [label, enabled, groupA, groupB] : pairs) {
+    const std::array<std::tuple<std::string_view, std::string_view, bool, const std::string*, const std::string*>, 5>
+        pairs{{{"contacts", "contacts", a.contacts.enabled, &a.contacts.group_a, &a.contacts.group_b},
+               {"H-bonds", "hbonds", a.hbonds.enabled, &a.hbonds.group_a, &a.hbonds.group_b},
+               {"Mg", "mg", a.mg.enabled, &a.mg.group_a, &a.mg.group_b},
+               {"stacking", "stacking", a.stacking.enabled, &a.stacking.group_a, &a.stacking.group_b},
+               {"energy", "energy", a.energy.enabled, &a.energy.group_a, &a.energy.group_b}}};
+    for (const auto& [label, key, enabled, groupA, groupB] : pairs) {
         if (!enabled) {
             continue;
         }
         for (const std::string* name : {groupA, groupB}) {
             if (!name->empty() && !contains(names, *name)) {
-                problems.push_back(std::string(label) + ": unknown residue group " + repr(*name) +
-                                   ".");
+                found.add("analyses." + std::string(key) + (name == groupA ? ".group_a" : ".group_b"),
+                          std::string(label) + ": unknown residue group " + repr(*name) + ".",
+                          unknownGroupMessage(*name, names));
             }
         }
     }
-    for (std::string& problem : analysisParameterProblems(project)) {
-        problems.push_back(std::move(problem));
-    }
+    analysisParameterChecks(project, found);
     const VisualParams& v = project.visual;
     if (!oneOf(v.color_mode, {"chain", "groups", "proximity"})) {
-        problems.push_back("Unknown colour mode " + repr(v.color_mode) + ".");
+        found.add("visual.color_mode", "Unknown colour mode " + repr(v.color_mode) + ".");
     }
     if (!oneOf(v.glow_mode, {"none", "ever", "fade", "current"})) {
-        problems.push_back("Unknown glow mode " + repr(v.glow_mode) + ".");
+        found.add("visual.glow_mode", "Unknown glow mode " + repr(v.glow_mode) + ".");
     }
     for (std::size_t k = 0; k < v.representations.size(); ++k) {
         const RepSpec& rs = v.representations[k];
         const std::string head = "Representation " + std::to_string(k + 1) + ": ";
+        const std::string at = "visual.representations." + std::to_string(k);
         if (!oneOf(rs.style, kRepStyles)) {
-            problems.push_back(head + "unknown style " + repr(rs.style) + " (" +
-                               joined(kRepStyles, ", ") + ").");
+            found.add(at + ".style", head + "unknown style " + repr(rs.style) + " (" + joined(kRepStyles, ", ") + ").",
+                      "Unknown style " + repr(rs.style) + " (" + joined(kRepStyles, ", ") + ").");
         }
         if (!oneOf(rs.color, kRepColors)) {
-            problems.push_back(head + "unknown colouring " + repr(rs.color) + ".");
+            found.add(at + ".color", head + "unknown colouring " + repr(rs.color) + ".",
+                      "Unknown colouring " + repr(rs.color) + ".");
         }
         for (const std::string& name : rs.groups) {
             if (!contains(names, name)) {
-                problems.push_back(head + "unknown residue group " + repr(name) + ".");
+                found.add(at + ".groups", head + "unknown residue group " + repr(name) + ".",
+                          unknownGroupMessage(name, names));
             }
         }
         if (rs.size <= 0 || !(0 < rs.opacity && rs.opacity <= 1)) {
-            problems.push_back(head + "size must be positive and opacity in (0, 1].");
+            found.add(at + ".size", head + "size must be positive and opacity in (0, 1].",
+                      "Size must be positive and opacity in (0, 1].");
         }
     }
     // RN-20 (owner decision D7): "vulkan" is accepted besides MDATK's three ("vtk" means the GPU renderer)
     if (!oneOf(v.renderer, {"auto", "software", "vtk", "vulkan"})) {
-        problems.push_back("Unknown renderer " + repr(v.renderer) + " (auto, software, vtk or vulkan).");
+        found.add("visual.renderer", "Unknown renderer " + repr(v.renderer) + " (auto, software, vtk or vulkan).");
     }
     if (!(0.05 <= v.zoom && v.zoom <= 50)) {
-        problems.push_back("Structure zoom must be between 0.05 and 50.");
+        found.add("visual.zoom", "Structure zoom must be between 0.05 and 50.");
     }
     const BasePairParams& bp = a.basepairs;
     if (!oneOf(bp.engine, {"builtin", "barnaba"})) {
-        problems.push_back("Unknown base-pair engine " + repr(bp.engine) +
-                           " (builtin or barnaba).");
+        found.add("analyses.basepairs.engine", "Unknown base-pair engine " + repr(bp.engine) + " (builtin or barnaba).");
     }
     if (bp.stride < 1) {
-        problems.push_back("Base-pair stride must be at least 1.");
+        found.add("analyses.basepairs.stride", "Base-pair stride must be at least 1.");
     }
     if (!(2.0 <= bp.cutoff && bp.cutoff <= 5.0)) {
-        problems.push_back("Base-pair H-bond cutoff must be between 2.0 and 5.0 Å.");
+        found.add("analyses.basepairs.cutoff", "Base-pair H-bond cutoff must be between 2.0 and 5.0 Å.");
     }
     if (!oneOf(v.rep_rest, kRepRest)) {
-        problems.push_back("Unknown setting for residues without a representation " +
-                           repr(v.rep_rest) + " (trace or hide).");
+        found.add("visual.rep_rest",
+                  "Unknown setting for residues without a representation " + repr(v.rep_rest) + " (trace or hide).");
     }
     if (!oneOf(v.backbone_atom, {"P", "C4'"})) {
-        problems.push_back("The backbone atom of ribbons and cartoons must be P or C4'.");
+        found.add("visual.backbone_atom", "The backbone atom of ribbons and cartoons must be P or C4'.");
     }
     if (v.proximity_cutoff > a.proximity_search_radius) {
-        problems.push_back("Proximity cutoff exceeds the proximity search radius "
-                           "(raise analyses.proximity_search_radius).");
+        found.add("visual.proximity_cutoff",
+                  "Proximity cutoff exceeds the proximity search radius (raise analyses.proximity_search_radius).");
     }
-    for (std::string& problem : densityProblems(project)) {
-        problems.push_back(std::move(problem));
-    }
+    densityChecks(project, found);
     if (project.output.video.fps <= 0) {
-        problems.push_back("Video FPS must be positive.");
+        found.add("output.video.fps", "Video FPS must be positive.");
     }
     return problems;
 }
+
+std::vector<std::string> validate(const Project& project) { return checksOf(detail::checkProblems(project)); }
 
 std::vector<std::string> layoutWarnings(const Project& project) {
     const auto& panels = project.layout.panels;

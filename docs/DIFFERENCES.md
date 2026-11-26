@@ -1940,6 +1940,147 @@ with the run-time citations; the `citations` command's cases in `cli_parity.py` 
 AP-19's offered choices and AP-20 (drawing off the GUI thread) leave no trace in the recorded files
 and messages; their packages' Qt tests cover them.
 
+## Interface: the edit model (src/core/project_document.cpp, problems.cpp; milestone 5 W0-B)
+
+MDATK's GUI binds its widgets straight to the `Project` dataclasses (gui/widgets.py `Binder`) and
+saves whatever the widgets hold. MDBridge's GUI binds to `core::ProjectDocument` by field path
+(`analyses.contacts.cutoff`, `layout.panels.2.options`), a Qt-free model tested on every compiler.
+Its deliberate differences from MDATK v0.0.4.1:
+
+- **ED-01: lossless fields** (milestone 5 AP-01 .. AP-05; MDATK 0.1.1 has the same bugs). MDATK's
+  spin buttons clamped loaded values to their ranges (`contacts.cutoff` 25 saved as 20, `visual.zoom`
+  0.01 as 0.05), optional numbers went through `%g` (`inputs.dt_ps` 0.0123456789 saved as 0.0123457),
+  colour buttons rewrote colours (`tab:orange` and `#ff000080` saved as `#000000`, `gold` as
+  `#ffd700`), chart formats were three check boxes (`["jpg", "svg"]` saved as `["svg"]`) and combos
+  replaced values not in their lists. The document holds exactly what was read: no value is clamped,
+  rounded or replaced; numbers show as the project writer writes them (shortest round trip), colours
+  and choices are text, lists stay lists; giving a field the text it shows changes nothing, so a field
+  the user does not edit is saved back as read. Ranges are the checks' business (ED-03). *Tested:*
+  test_project_document.cpp `EveryFieldGivenItsOwnTextChangesNothing` (every field of every fixture
+  project and MDATK 0.1.1 file: no change, no undo step), `ValuesMdatksWidgetsRewroteAreKept` (the
+  values above, saved byte for byte).
+- **ED-02: paths as written; Save As rebases them** (AP-06, owner decision D8). MDATK's GUI wrote
+  every path absolute on save (`topology = "demo.parm7"` became `/home/.../demo/demo.parm7`), so a
+  moved or shared project folder broke after one save. The document keeps paths as the file has them
+  (relative to the project's folder, `~`, absolute) and gives the resolved project (what
+  `loadProject` reads) to runs; Save As to another folder rewrites the relative paths (the ones
+  `resolvePaths` resolves, planner files and path settings included) so that they still name the same
+  files (`inputs/a.parm7` saved from /p into /q is `../p/inputs/a.parm7`; another Windows drive: the
+  absolute path); the undo steps are rebased too. *Tested:* `PathsStayAsWritten`,
+  `SaveAsRebasesRelativePaths`, `RelativePath`.
+- **ED-03: located problems** (AP-10; the presentation of MDATK 0.0.10, `mdatk/problems.py` and
+  `config.py` `problems()` of 0.1.1). Every line of `validate()` (which stays MDATK v0.0.4.1's
+  blocking rules with MDBridge's fixes, owner decision D7) is also a `Problem` with its field path,
+  page and location ("Analyses › Hydrogen bonds › Group A"), in 0.1.1's words where 0.1.1 has the same
+  check (`unknown residue group 'X' (defined: Aptamer, Target); did you mean ...?` for v0.0.4.1's
+  `contacts: unknown residue group 'X'.`; "Residue group names must be unique: 'A' is also the name of
+  group 1."); the command line keeps printing `validate()`'s lines. Field and location are 0.1.1's
+  for every problem both have. *Tested:* `ProblemsOfEveryValidateCaseAreLocated` (every
+  validate_cases.json input: one problem per validate() line, each on an existing field; against
+  MDATK 0.1.1's `problems()` of the same inputs, data/edit-model, tests/parity/make_edit_model_cases.py),
+  `DescribeAsMdatkLatest` (describe() of 64 fields), `DocumentProblemsUseResolvedPaths`.
+- **ED-04: form errors in words** (AP-10). MDATK showed Python's texts (`inputs.stop: invalid literal
+  for int() with base 10: 'x'`, `panel options '{bad': Expecting property name ...`). A field given text
+  it cannot hold is refused with a located message and keeps its value: "Input & cleaning › Frames ›
+  Stop: 'x' is not a whole number", "'4,5' is not a number", "'maybe' is not true or false", "Options:
+  not valid JSON: ...", "options must be a JSON object"; values of the wrong type set by path give the
+  project file's messages ("expected a number, got 'far'"). *Tested:* `TextOfFields`, `GetAndSetByPath`.
+- **ED-05: undo, redo and a modified flag** (owner decisions D5, D6; AP-13). MDATK has neither. Every
+  edit and canvas action is one undo step holding a snapshot of the whole project (a drag is one step:
+  `beginGroup` / `endGroup`, `cancelGroup` restores the state before it), at most 200 steps, not saved.
+  The project counts as modified while it differs from the last opened or saved state (undoing back to
+  it clears the flag). *Tested:* `UndoAndRedo`, `GroupsAreOneStep`, `UndoKeepsAtMostTheLimit`,
+  `EditAndListeners`, `ListItems`.
+- **ED-06: renaming a residue group renames its uses** (MDATK 0.0.10; follows 0.1.1's
+  `Project.rename_group`, `group_references`, `selections.rename_group_tokens`). In v0.0.4.1 a renamed
+  group left every analysis, selection, panel and chart that used the old name pointing at nothing.
+  Fields holding a group name (analysis groups, representation groups, groups shown), selections that
+  are the name or a list of group names, analysis instances in data keys
+  (`contacts@Aptamer+Target/atom_pairs`) and `group:<name>` tokens in any other text (planner settings
+  and panel options included) follow the rename; `group:<name>er`, other groups and the notes stay; the
+  changed fields are returned (as field paths; 0.1.1 writes `groups[1].selection`). Keys MDBridge keeps
+  without knowing them (PRJ-09) are written back unchanged, also by a rename. *Tested:*
+  `RenameGroupAsMdatkLatest` (14 rename and 5 reference cases: the changed fields, errors and resulting
+  project are 0.1.1's), `RenameGroupIsOneStep`.
+- **ED-07: a later MDATK's file keeps its comments** (owner decision D9, with PRJ-09). MDBridge writes
+  v0.0.4.1's comments, so saving a file of MDATK 0.1.1 replaced 0.1.1's comments (`# RNAdo's plan and
+  script wizard`, the options of step types 0.0.4.1 lacks) with older or no ones. For a file whose
+  `mdatk_version` is later than 0.0.4.1 (which a save keeps), each entry the file had keeps the comment
+  above it in the file; entries it did not have get MDBridge's. Such a file comes back byte for byte;
+  the only exception is the blank line MDATK's log move leaves at the end of a project file, which
+  MDATK's own next save drops too (golden/split.resaved.mdatk.toml). *Tested:*
+  `EveryMdatkProjectRoundTripsByteForByte` (all 18 project files MDATK 0.0.4.1 and 0.1.1 wrote, open ->
+  save without an edit: byte for byte, step logs and log files untouched, the resolved project equal to
+  `loadProject`'s), `LaterMdatkCommentsAreKept` (an edit changes its line only; recovery copies keep
+  them), `HandMadeProjectsKeepTheirValues`.
+- **ED-08: recovery copies and external changes** (owner decision D6; MDATK 0.0.11 notices other
+  programs' saves). The document can write a recovery copy (a project file with `recovery_of` and
+  `recovery_folder` entries, written atomically into `<mdbridge config>/recovery/`; the project file is
+  never written without Save), list the copies and reopen one (modified, at its original path, paths
+  rebased when its folder differs). `changedOnDisk()` tells whether the project file's settings changed
+  since it was opened or saved (a step log appended by a run is no change). *Tested:* `RecoveryCopies`,
+  `ChangedOnDisk`.
+
+## Interface: the field widgets (src/app/gui/forms; milestone 5 W0-C)
+
+MDATK's pages are GTK widgets read and written by its `Binder` (gui/widgets.py) when the project is
+loaded and collected. MDBridge's field widgets are bound to `core::ProjectDocument` by field path:
+each shows the document's value, again after every change (undo, redo, open) without making an edit,
+and stores what the user enters as one undo step (text when editing finishes: Enter, leaving the
+field, or `FormContext::commitPendingEdits()` before a save; a pick at once). The editor is named
+after its field path. Deliberate differences from MDATK v0.0.4.1:
+
+- **FW-01: no clamping, ranges as hints** (AP-01; MDATK 0.1.1 still clamps). MDATK's spin buttons
+  rewrote loaded values to their ranges (`contacts.cutoff` 25 saved as 20, `video.width` 7682 as
+  7680). A number field holds any text of the field's type; MDATK's spin range is shown in the tooltip
+  ("Usual range: 0.5 to 20 (other values are kept)") and a value outside it is flagged as a warning,
+  never changed; the arrows step by MDATK's step, rounded to its digits (4.5 + 0.1 is 4.6), and stop at
+  the range's ends but never move a value that is already outside into it. Range errors of
+  `validate()` flag the field as errors. *Tested:* test_forms.cpp `numbersAreNeverClamped`,
+  `numberArrowsStepWithinTheRangeHint`.
+- **FW-02: every digit and every colour kept** (AP-02, AP-03; not fixed in 0.1.1). Optional numbers
+  show the project writer's shortest round-trip text (MDATK's `%g` saved `dt_ps` 0.0123456789 as
+  0.0123457). Colour fields are text with a swatch and a picker (MDATK: a GTK colour button that wrote
+  `tab:orange` and `#ff000080` as `#000000`, `gold` as `#ffd700`): any text is kept as typed, the
+  swatch shows what Matplotlib's grammar (RN-12) reads, text it cannot read is flagged with its
+  message (`Invalid RGBA argument: 'x'`); only a colour picked in the dialog is written `#rrggbb`.
+  *Tested:* `optionalNumbersKeepEveryDigit`, `coloursAreKeptAsTyped`.
+- **FW-03: lists and unknown choices kept** (AP-04, AP-05). A list field keeps every entry
+  (`formats = ["jpg", "svg"]`; a page's check boxes come with W1-C). A fixed combo shows a value it
+  does not offer as `<value> (unknown)`, flags it (with `validate()`'s message where it has one, else
+  as a warning) and never replaces it, also not by the previous project's choice; picking an item
+  stores the item's project value (the item data). Free-text combos (group names, palettes, codecs)
+  keep the text as typed: no completion and no case-insensitive swap for an item. Base-pair engine and
+  renderer offer MDBridge's choices (AP-19, RN-20). *Tested:* `chartFormatsAreKeptAsAList`,
+  `unknownChoicesAreKeptAndShown`, `checkBoxesAndEditableCombos`.
+- **FW-04: form errors and problems on the field** (AP-10; flags as MDATK 0.1.1's `set_flag`, colours
+  of its `FLAG_COLORS`). Text a field cannot hold is refused with its located message (`Input &
+  cleaning › Frames › Stop: 'x' is not a whole number`), stays shown and flagged (tinted, an icon at the
+  end of line edits, the message as tooltip and accessible description above the field's hint); the
+  document keeps its value; Esc shows the stored value again. The document's problems flag their
+  fields (recomputed once per change for all widgets) and tint list cells. *Tested:*
+  `formErrorsAreLocatedAndKeepTheValue`, `documentProblemsFlagTheirField`.
+- **FW-05: table cells commit on focus loss** (AP-15; adopts MDATK 0.1.0 608f322
+  `keep_edit_on_leave`). MDATK 0.0.4.1 dropped text typed into a table cell (groups, trajectories,
+  external data, RMSD targets) when the cell was left by a click. A cell is stored on Enter, when it
+  loses the focus (a click elsewhere, on a button of the editor) and before a save. Rows are the
+  document's items: added (with MDATK's defaults for the row), removed and moved as one undo step each,
+  a Browse… of several files as one step; rows without a name or selection are kept (MDATK dropped
+  them on collect) and flagged by the checks. *Tested:* `tableCellsCommitOnFocusLossAndEnter`,
+  `listEditorRowsAndUndo`, `pathFieldsBrowseWithMdatksFilters`.
+- **FW-06: load and save without an edit is the identity.** A form of every field of each of the 20
+  fixture projects (MDATK 0.0.4.1 and 0.1.1 files, hand-written ones), every field given Enter without
+  typing, saves the file back byte for byte with no undo step (MDATK: `test_widgets_roundtrip_project`
+  checks the demo only, and its widgets rewrote values, AP-01 .. AP-05). Only text the user types is
+  stored; a multi-line field shows a lone carriage return as a line break but writes it back unchanged
+  unless the text is edited. *Tested:* `everyFieldOfEveryFixtureSavesBackByteForByte`.
+- **FW-07: the mouse wheel and the keyboard** (MDATK 0.0.4 `test_value_widgets_ignore_the_mouse_wheel`,
+  owner decision D10). Spin boxes, combos and sliders ignore the wheel unless they have the keyboard
+  focus (MDATK ignored it always) and no longer take the focus from it; every editor and button is
+  reachable with Tab and has an accessible name. File dialogs are the platform's (D3) with MDATK's
+  filters, each pattern also in lower and upper case (MDATK's match ignores case; Qt's dialogs do not on
+  Linux). *Tested:* `valueWidgetsIgnoreTheMouseWheel`, `everyEditorIsNamedAndReachable`.
+
 ## Planned (from the improvement register; add each entry here when it lands)
 
 None: every FIX and ASK item of the improvement register (docs/IMPROVEMENTS.md) has landed

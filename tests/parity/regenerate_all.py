@@ -26,8 +26,9 @@ the two generators that import MDATK's tests (make_pdb_cases.py, make_cif_cases.
 too. --gui-python (default: PY) runs make_gui_cases.py, which drives MDATK's GTK 3 window: PY's
 packages plus PyGObject and pycairo built against the system's GTK 3 (tests/parity/requirements-gui.txt),
 and Xvfb on PATH unless DISPLAY is set. MDATK_CHECKOUT is a checkout of MDATK v0.0.4.1; nothing is written into it. MDATK_LATEST is MDATK
-0.1.1 (commit LATEST_COMMIT, read only), for the one step that records project files of a later MDATK
-(make_mdatk_latest_projects.py); without it that step is skipped and its files are not compared. FRESH_DIR must not
+0.1.1 (commit LATEST_COMMIT, read only), for the steps that record what a later MDATK does
+(make_mdatk_latest_projects.py, make_edit_model_cases.py); without it those steps are skipped and their
+files are not compared. FRESH_DIR must not
 exist or be empty. Standard library only.
 
 --only runs the named steps alone (see --list), on a tree seeded with the committed files the
@@ -274,6 +275,10 @@ STEPS = [
     Step("mdatk_latest", "tests/parity/make_mdatk_latest_projects.py",
          lambda ctx: [ctx["mdatk_latest"], d(ctx, "project-file/mdatk-0.1.1")], [f"{DATA}/project-file/mdatk-0.1.1"],
          latest=True),
+    # the GUI's edit model follows 0.1.1: group renames and references, located problems (milestone 5 W0-B)
+    Step("edit_model", "tests/parity/make_edit_model_cases.py",
+         lambda ctx: [ctx["mdatk_latest"], d(ctx, "project-model/validate_cases.json"), d(ctx, "edit-model")],
+         [f"{DATA}/edit-model"], latest=True),
     Step("step_type_cases", "tests/parity/make_step_type_cases.py", lambda ctx: [M(ctx), d(ctx, "step-types")],
          [f"{DATA}/step-types/{n}" for n in ("coerce_cases.json", "digit_cases.json", "normalise_cases.json",
                                              "requirements_cases.json", "setting_comments.json",

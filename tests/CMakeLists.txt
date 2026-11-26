@@ -3,6 +3,10 @@ set(BUILD_GMOCK OFF CACHE BOOL "" FORCE)
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)  # MSVC: the same runtime as MDBridge
 FetchContent_MakeAvailable(googletest)
 include(GoogleTest)
+if(MDBRIDGE_BUILD_APP)
+    # Qt Test, once, for every GUI test executable (mdbridge_gui_*_tests: label gui, offscreen platform)
+    find_package(Qt6 REQUIRED COMPONENTS Test)
+endif()
 
 # core: project files read exactly as MDATK reads them (fixtures in data/, see data/README.md)
 add_executable(mdbridge_core_tests
@@ -16,6 +20,7 @@ add_executable(mdbridge_core_tests
     core/test_ntpath.cpp
     core/test_panels.cpp
     core/test_project_file.cpp
+    core/test_project_document.cpp
     core/test_project_io.cpp
     core/test_progress.cpp
     core/test_project_model.cpp
@@ -338,7 +343,6 @@ if(MDBRIDGE_BUILD_APP)
     # the main window driven by action scripts (tests/data/gui, format in tests/data/README.md "gui"):
     # saved files against MDATK's, screenshots to $MDBRIDGE_GUI_SCREENSHOTS (default
     # <build>/gui-screenshots; CI artifacts, never compared). Qt Test on the offscreen platform.
-    find_package(Qt6 REQUIRED COMPONENTS Test)
     add_executable(mdbridge_gui_tests gui/test_gui.cpp gui/gui_harness.cpp gui/gui_harness.hpp)
     set_target_properties(mdbridge_gui_tests PROPERTIES AUTOMOC ON)
     target_link_libraries(mdbridge_gui_tests PRIVATE mdbridge_app mdbridge::render_panels_vulkan Qt6::Test)
@@ -352,4 +356,16 @@ if(MDBRIDGE_BUILD_APP)
     endif()
     add_test(NAME gui.cases COMMAND mdbridge_gui_tests)
     set_tests_properties(gui.cases PROPERTIES LABELS gui ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+    # the GUI's bound field widgets (src/app/gui/forms, milestone 5 W0-C): every field of the fixture
+    # projects loaded and saved without an edit byte for byte, edits, undo / redo, AP-01 .. AP-05,
+    # AP-15, the mouse wheel. Qt Test on the offscreen platform.
+    add_executable(mdbridge_gui_forms_tests gui/test_forms.cpp)
+    set_target_properties(mdbridge_gui_forms_tests PROPERTIES AUTOMOC ON)
+    target_include_directories(mdbridge_gui_forms_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/core")
+    target_link_libraries(mdbridge_gui_forms_tests PRIVATE mdbridge_app Qt6::Test)
+    target_compile_definitions(mdbridge_gui_forms_tests PRIVATE MDBRIDGE_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data")
+    mdbridge_target_warnings(mdbridge_gui_forms_tests)
+    add_test(NAME gui.forms COMMAND mdbridge_gui_forms_tests)
+    set_tests_properties(gui.forms PROPERTIES LABELS gui ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 endif()
