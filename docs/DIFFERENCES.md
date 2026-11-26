@@ -1184,6 +1184,62 @@ bump ("Analysis cache" above).
   `Shading.OneLetterNeedsABackbone`; the trace's `backbone` array in every analysis case. Expected
   data: tests/parity/improvements_nucleotides.py.
 
+## Chemistry reference data (src/chem/helix_tables.inc, component_tables.inc; milestone 6 W0-B)
+
+The structure builder's and the restraint dictionaries' tables come from primary sources in
+`data/sources/` (data/sources/ATTRIBUTION.md), not from MDATK's embedded copies, and
+`tools/gen_chem_tables.py` (step `chem_tables` of `tests/parity/regenerate_all.py`) compares them
+with MDATK 0.0.4.1's: every difference is printed, and one that is not listed below fails the step.
+
+- **Sources and what agrees** (owner decisions D5, D6 of docs/specs/m6-plan.md; not a difference
+  in behaviour). The Arnott A-RNA monomer (`builder.py` `_BACKBONE`, `_BASES`) is read from
+  nucgen.dat's `$ARNA` block as facts (Arnott, Hukins & Dover 1972; data/sources/helix): every
+  name, order and number equals MDATK's; OA / OB are OP1 / OP2 by the sign of every 4JRD phosphate.
+  The dictionaries' components 0A 0C 0G 0U (`dictionaries.py` `COMPONENTS`; MDATK names the CCP4
+  monomer library as its source) are taken from the wwPDB CCD (data/sources/ccd/ribonucleotide_*.tsv)
+  through two named steps that are MDATK's documented conventions: the standard residue's atom
+  names (the CCD's 0A calls H61 / H62 / H5'' HN6A / HN6 / H5', H5'A, matched by bonds and by
+  mirror-image position) and the deprotonated phosphate (HOP2, HOP3 removed, OP2 and OP3 charged
+  -1). The heavy atoms, elements, charges, bond orders, the hydrogens of each heavy atom, the names
+  and the L-ribose chirality signs (`L_CHIRALITY`, from the CCD's ideal coordinates) then equal
+  MDATK's, as do the CH2 rules (H5' pro-S in D, as IUPAC-IUB 1983's H5'1, mirrored in L) and the
+  amino rules of A and C. MDATK's 4JRD nucleotide is chain A residue 10 of PDB 4JRD to 0.0007 A
+  (data/sources/pdb). MDATK's comment that the CCD's descriptors and ideal coordinates of 0A ... 0U
+  describe the D enantiomer does not hold for the CCD read (2026-11-14: InChI `/m0/s1`, CIP S S R S,
+  L ideal coordinates); it concerns the monomer library's copies. *Tested:* the generator's checks;
+  tests/chem/test_reference_tables.cpp (bond lengths, the A-RNA O3'-P link of 1.59 A, compositions
+  and charges).
+- **CHD-01 Guanine's amino hydrogens H21 / H22.** MDATK puts H21 cis to N1 (the Watson-Crick
+  edge) and H22 on the N3 side: the builder's hydrogen rules (`_H_RULES["G"]`), so every built or
+  mutated G, and the dictionaries' naming rule (`COMPONENTS["0G"].hpos` `H21:N2,C2,N1,cis`), so a
+  finished 0G dictionary. The CCD's G and DG put H21 trans to N1 (on the N3 side) and H22 cis to
+  N1, in both their model and ideal coordinates, as does 0G's model (its ideal coordinates have
+  the pair the other way round, a CCD inconsistency the generator prints); deposited files differ
+  (the NMR entry 2KOC follows the CCD, 1ZIH MDATK). MDBridge follows the CCD, the PDB's own
+  definition of the names, per the owner's rule for data (primary source kept):
+  `kHydrogenPositions` has G / 0G H21 trans and H22 cis to N1. For the implementers (W1-C, W1-D,
+  W2-A): the builder places H22 on the N1 side and H21 on the N3 side, and the pair tables that
+  name the Watson-Crick-edge hydrogen of N2 (`_PAIR_HBONDS`: wc G·C, reverse-wc G·C, reverse-
+  Hoogsteen G·G) use H22; the parity generators patch MDATK the same way (improvements_chem.py).
+  A and C are unchanged (H61 cis to N1, H41 cis to N3, as MDATK). 0.1.1: not changed. *Tested:* the
+  generator; `ReferenceTables.HydrogenPositionsAndChirality`.
+- **CHD-02 The 4JRD helix frame.** MDATK's 4JRD nucleotide (`_JRD_NUCLEOTIDE`, used by every
+  non-Watson-Crick pairing and triplex) is said to be in the frame of the 4JRD duplex's screw
+  (fitted to A3-A11 / B2-B10, axis along z), but its z axis is 4.44° from that screw's axis
+  (Kabsch least squares of each residue onto the next: twist 41.748°, rise 3.792 Å, the numbers
+  MDATK rounds to 41.75 / 3.79), and the nucleotide is rounded to 0.001 Å / 0.01°. The frame's
+  origin is not derivable from the entry. In its frame the rigid duplex (nucleotide, screw, two-fold
+  about z) is 1.115 Å RMSD from 4JRD and links O3' to the next P at 1.77 Å; in the screw's frame
+  0.535 Å and 1.48 Å (crystal 1.60 Å). MDBridge's `kJrdNucleotide` is chain A residue 10 in the
+  screw's frame (z along the axis, strand 1 5'->3' towards -z, x through C1', which is at phi 0,
+  z 0), with `kJrdTwist` 41.748411° and `kJrdRise` 3.791704 Å, all computed by the generator from
+  4JRD and rounded to 1e-6 only. Consequences for W2-A: the non-Watson-Crick builds differ from
+  MDATK's by more than D10's tolerance, so their expected data comes from MDATK patched with these
+  tables (`gen_chem_tables.jrd_nucleotide()` in improvements_chem.py; `_HELIX_START` and
+  `_SCREW_PRIOR` are starting values the fits refine), and the `REMARK 951 NUCLEOTIDE OF PDB 4JRD,
+  TWIST` line of the hh helix prints 41.7 where MDATK prints 41.8. 0.1.1: not changed. *Tested:* the
+  generator (rigid equality, frame tilt, both RMSDs); `ReferenceTables.JrdNucleotideAndScrewCloseTheBackbone`.
+
 ## Rendering (milestone 4): overview
 
 Milestone 4 ports MDATK's presentation layer (`mdatk/render/`: figures, panels, charts, the

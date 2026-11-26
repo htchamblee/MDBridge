@@ -276,6 +276,10 @@ STEPS = [
     # Matplotlib's named colours, colour cycle and the bundled colormaps (milestone 4)
     Step("mpl_tables", "tools/gen_mpl_tables.py", lambda ctx: [], ["src/render/core/mpl_colors.inc"],
          flags=["-I", "-B"]),
+    # the builder's and the restraint dictionaries' reference tables (milestone 6 W0-B; CCD, Arnott
+    # A-RNA, PDB 4JRD), checked against MDATK's embedded tables
+    Step("chem_tables", "tools/gen_chem_tables.py", lambda ctx: [M(ctx)],
+         ["src/chem/helix_tables.inc", "src/chem/component_tables.inc"], flags=["-I", "-B"]),
     # project files: MDATK's own files (fixed clock), the hand-made ones, and what MDATK reads from them
     Step("projects", "tests/parity/make_projects.py", lambda ctx: ["--fixed-clock", d(ctx, "projects")],
          [f"{DATA}/projects/{n}" for n in ("default.mdatk.toml", "full.mdatk.toml", "split.mdatk.toml",

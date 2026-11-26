@@ -23,6 +23,20 @@ needs are kept:
   tools/gen_data_tables.py's protein list (force-field names such as ACE, NME, HYP that the CCD
   also defines). The list is computed from the committed force-field and PDB-format extracts
   (gen_data_tables.py is imported, so the other extracts must already exist).
+* ribonucleotide_components.tsv, ribonucleotide_atoms.tsv, ribonucleotide_bonds.tsv: the standard
+  ribonucleotides A, C, G, U and their mirror images, the L-ribonucleotides 0A, 0C, 0G, 0U (the
+  reference of MDATK's restraint dictionaries; tools/gen_chem_tables.py). Components: comp_id, name,
+  type, formula, formal charge, one-letter code, modification date and InChI. Atoms: every atom with
+  element, formal charge, aromatic / leaving flags, CIP label, ordinal, the model and ideal coordinates and
+  standard_atom_id / standard_ordinal, the matching atom of the standard residue of the same base
+  (for A ... U the atom itself). The match is the bond-graph match of match_atoms, which keeps the
+  CCD's names where they are the standard ones; the two hydrogens of a CH2 or NH2 group that the
+  CCD names its own way (0A's HN6 / HN6A, H5' / H5'A), which the bonds cannot tell apart, are named
+  by their position in the ideal coordinates (name_by_geometry: the sign of the chiral volume at
+  the CH2, mirrored for an L component; cis or trans to the ring atom for an NH2): HN6 / HN6A / H5' /
+  H5'A are the mirror images of H62 / H61 / H5'' / H5'. (The CCD's model and ideal coordinates do not
+  always agree on such pairs; tools/gen_chem_tables.py reports where.) Bonds: atom ids, order,
+  aromatic flag and ordinal.
 """
 
 from __future__ import annotations
@@ -79,6 +93,12 @@ def components(path: str):
                     if len(toks) == len(headers):
                         rows = atoms if headers[0].startswith("_chem_comp_atom.") else bonds
                         rows.append({h.split(".", 1)[1]: t for h, t in zip(headers, toks)})
+                elif headers and headers[0].startswith("_pdbx_chem_comp_descriptor."):
+                    toks = [unquote(t) for t in TOKEN.findall(line)]
+                    if len(toks) == len(headers):
+                        row = {h.split(".", 1)[1]: t for h, t in zip(headers, toks)}
+                        if row.get("type") == "InChI":
+                            comp["_inchi"] = row.get("descriptor", "")
                 continue
             if line.startswith("_chem_comp_bond."):
                 # A one-bond component lists its bond as key-value pairs, not as a loop.
@@ -173,6 +193,139 @@ def match_atoms(own, standard):
     return dict(mapping) if extend(0) else None
 
 
+RIBO_STANDARD = ("A", "C", "G", "U")
+RIBO_L = {"0A": "A", "0C": "C", "0G": "G", "0U": "U"}
+
+
+def _sub(a, b):
+    return [a[0] - b[0], a[1] - b[1], a[2] - b[2]]
+
+
+def _volume(c, a, b, d):
+    """Signed volume (a - c) . ((b - c) x (d - c))."""
+    u, v, w = _sub(a, c), _sub(b, c), _sub(d, c)
+    return (u[0] * (v[1] * w[2] - v[2] * w[1]) - u[1] * (v[0] * w[2] - v[2] * w[0])
+            + u[2] * (v[0] * w[1] - v[1] * w[0]))
+
+
+def _cis(h, x, a, b) -> bool:
+    """True when h and b are on the same side of the x-a bond (|torsion h-x-a-b| < 90 degrees)."""
+    xa = _sub(a, x)
+    n = sum(t * t for t in xa) ** 0.5
+    xa = [t / n for t in xa]
+
+    def perp(p, q):
+        d = _sub(p, q)
+        k = sum(s * t for s, t in zip(d, xa))
+        return [s - k * t for s, t in zip(d, xa)]
+    return sum(s * t for s, t in zip(perp(h, x), perp(b, a))) > 0
+
+
+def coordinates(atoms, kind):
+    """atom id -> [x, y, z] of the model ("model_Cartn_") or ideal ("pdbx_model_Cartn_", "_ideal")
+    coordinates, or None when an atom has none."""
+    pre, suf = ("model_Cartn_", "") if kind == "model" else ("pdbx_model_Cartn_", "_ideal")
+    try:
+        return {a["atom_id"]: [float(a[pre + k + suf]) for k in "xyz"] for a in atoms}
+    except (KeyError, ValueError):
+        return None
+
+
+def name_by_geometry(mapping, own, standard, own_xyz, std_xyz, mirror):
+    """Re-pair the hydrogens of each CH2 / NH2 group of a graph match whose names are not the standard
+    residue's (0A's HN6 / HN6A, H5' / H5'A) by position in the ideal coordinates: a hydrogen of a CH2 with
+    heavy neighbours A, B (standard order) gets the standard name whose signed volume V(X; A, B, H) has the
+    same sign (the opposite sign when the component is the mirror image); a hydrogen of an NH2 bonded to
+    A gets the standard name that is cis (trans) to the first other heavy neighbour of A. Raises when a
+    group's two positions do not differ in that sign."""
+    order, element, neighbours = own
+    s_order, s_element, s_neighbours = standard
+    inverse = {v: k for k, v in mapping.items()}
+    out = dict(mapping)
+    for x in order:
+        hs = sorted((n for n in neighbours[x] if element[n] == "H"), key=order.index)
+        if len(hs) != 2 or all(h in s_element for h in hs):
+            continue  # a pair that has the standard names keeps them
+        sx = mapping[x]
+        heavy = sorted((n for n in s_neighbours[sx] if s_element[n] != "H"), key=s_order.index)
+        std_h = sorted((n for n in s_neighbours[sx] if s_element[n] == "H"), key=s_order.index)
+        if len(heavy) == 2:  # sp3 CH2
+            a, b = heavy
+
+            def sig_std(h):
+                return _volume(std_xyz[sx], std_xyz[a], std_xyz[b], std_xyz[h]) > 0
+
+            def sig_own(h):
+                v = _volume(own_xyz[x], own_xyz[inverse[a]], own_xyz[inverse[b]], own_xyz[h]) > 0
+                return v != mirror
+        elif len(heavy) == 1:  # NH2 on a ring atom
+            a = heavy[0]
+            b = sorted((n for n in s_neighbours[a] if n != sx and s_element[n] != "H"), key=s_order.index)[0]
+
+            def sig_std(h):
+                return _cis(std_xyz[h], std_xyz[sx], std_xyz[a], std_xyz[b])
+
+            def sig_own(h):
+                return _cis(own_xyz[h], own_xyz[x], own_xyz[inverse[a]], own_xyz[inverse[b]])
+        else:
+            continue
+        if sig_std(std_h[0]) == sig_std(std_h[1]) or sig_own(hs[0]) == sig_own(hs[1]):
+            raise SystemExit(f"{x}: the two hydrogens are not told apart by their position")
+        for h in hs:
+            out[h] = next(s for s in std_h if sig_std(s) == sig_own(h))
+    return out
+
+
+def ribonucleotide_rows(blocks):
+    """(component rows, atom rows, bond rows) of A C G U and 0A 0C 0G 0U; blocks: comp_id -> (comp, atoms,
+    bonds). The L components are checked to be the mirror images of the standard ones (every CIP label
+    R <-> S, and the four sugar centres' signed volumes inverted)."""
+    comp_rows, atom_rows, bond_rows = [], [], []
+    for cid in RIBO_STANDARD + tuple(RIBO_L):
+        if cid not in blocks:
+            raise SystemExit(f"component {cid} not in the CCD")
+        comp, atoms, bonds = blocks[cid]
+        comp_rows.append((cid, comp.get("name", ""), comp.get("type", ""), comp.get("formula", ""),
+                          comp.get("pdbx_formal_charge", ""), comp.get("one_letter_code", ""),
+                          comp.get("pdbx_modified_date", ""), comp.get("_inchi", "")))
+        if cid in RIBO_L:
+            _, std_atoms, std_bonds = blocks[RIBO_L[cid]]
+            own, standard = atom_graph(atoms, bonds), atom_graph(std_atoms, std_bonds)
+            mapping = match_atoms(own, standard)
+            if mapping is None:
+                raise SystemExit(f"{cid}: atoms and bonds do not match {RIBO_L[cid]}")
+            own_xyz, std_xyz = coordinates(atoms, "ideal"), coordinates(std_atoms, "ideal")
+            mapping = name_by_geometry(mapping, own, standard, own_xyz, std_xyz, mirror=True)
+
+            std_by_id = {a["atom_id"]: a for a in std_atoms}
+            for a in atoms:
+                s = std_by_id[mapping[a["atom_id"]]]
+                pair = {a.get("pdbx_stereo_config", "N"), s.get("pdbx_stereo_config", "N")}
+                if pair not in ({"N"}, {"R", "S"}):
+                    raise SystemExit(f"{cid} {a['atom_id']}: not the mirror image of {s['atom_id']}")
+            for centre, (p, q, r) in (("C4'", ("O4'", "C3'", "C5'")), ("C3'", ("O3'", "C4'", "C2'")),
+                                      ("C2'", ("O2'", "C1'", "C3'")), ("C1'", ("O4'", "C2'", "C3'"))):
+                inv = {v: k for k, v in mapping.items()}
+                v_own = _volume(*(own_xyz[inv[n]] for n in (centre, p, q, r)))
+                v_std = _volume(*(std_xyz[n] for n in (centre, p, q, r)))
+                if v_own * v_std >= 0:
+                    raise SystemExit(f"{cid} {centre}: the ideal coordinates are not the mirror image")
+            ordinal = {a["atom_id"]: a["pdbx_ordinal"] for a in std_atoms}
+        else:
+            mapping = {a["atom_id"]: a["atom_id"] for a in atoms}
+            ordinal = {a["atom_id"]: a["pdbx_ordinal"] for a in atoms}
+        for a in atoms:
+            xyz = [a[k] for k in ("model_Cartn_x", "model_Cartn_y", "model_Cartn_z", "pdbx_model_Cartn_x_ideal",
+                                  "pdbx_model_Cartn_y_ideal", "pdbx_model_Cartn_z_ideal")]
+            atom_rows.append((cid, a["atom_id"], a["type_symbol"], a["charge"], a["pdbx_aromatic_flag"],
+                              a["pdbx_leaving_atom_flag"], a["pdbx_stereo_config"], a["pdbx_ordinal"],
+                              *xyz, mapping[a["atom_id"]], ordinal[mapping[a["atom_id"]]]))
+        for b in bonds:
+            bond_rows.append((cid, b["atom_id_1"], b["atom_id_2"], b["value_order"], b["pdbx_aromatic_flag"],
+                              b["pdbx_ordinal"]))
+    return comp_rows, atom_rows, bond_rows
+
+
 def protein_list() -> set[str]:
     spec = importlib.util.spec_from_file_location(
         "gen_data_tables", os.path.join(ROOT, "tools", "gen_data_tables.py"))
@@ -188,8 +341,11 @@ def main() -> int:
     extra = protein_list() - standard
     std_rows, mono_rows, hgcl_rows, extra_rows, ldna_rows = [], [], [], [], []
     d_dna, l_dna = {}, []
+    ribo = {}
     for comp, atoms, bonds in components(src):
         cid = comp.get("id", "")
+        if cid in RIBO_STANDARD or cid in RIBO_L:
+            ribo[cid] = (comp, atoms, bonds)
         if cid in ("DA", "DC", "DG", "DT"):
             d_dna[cid] = atom_graph(atoms, bonds)
         if (comp.get("type", "").upper() == "L-DNA LINKING" and comp.get("pdbx_release_status") == "REL"
@@ -218,7 +374,23 @@ def main() -> int:
             continue
         for a in atoms:
             ldna_rows.append((cid, letter, a["atom_id"], mapping[a["atom_id"]], a["type_symbol"]))
+    ribo_comps, ribo_atoms, ribo_bonds = ribonucleotide_rows(ribo)
     os.makedirs(OUT, exist_ok=True)
+    for name, header, rows in (  # in the components' own order (atom and bond ordinals)
+        ("ribonucleotide_components.tsv",
+         "comp_id\tname\ttype\tformula\tformal_charge\tone_letter_code\tmodified_date\tinchi", ribo_comps),
+        ("ribonucleotide_atoms.tsv",
+         "comp_id\tatom_id\telement\tcharge\taromatic_flag\tleaving_flag\tstereo_config\tordinal"
+         "\tmodel_x\tmodel_y\tmodel_z\tideal_x\tideal_y\tideal_z\tstandard_atom_id\tstandard_ordinal",
+         ribo_atoms),
+        ("ribonucleotide_bonds.tsv",
+         "comp_id\tatom_id_1\tatom_id_2\tvalue_order\taromatic_flag\tordinal", ribo_bonds),
+    ):
+        with open(os.path.join(OUT, name), "w", encoding="utf-8", newline="\n") as fh:
+            fh.write(header + "\n")
+            for r in rows:
+                fh.write("\t".join(r) + "\n")
+        print(name, len(rows))
     for name, header, rows in (
         ("standard_residue_atoms.tsv", "comp_id\tatom_id\talt_atom_id\telement\tbackbone_flag\tleaving_flag", std_rows),
         ("monatomic_components.tsv", "comp_id\tatom_id\telement\tcharge\tname", mono_rows),

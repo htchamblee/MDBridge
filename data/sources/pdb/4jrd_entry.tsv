@@ -1,0 +1,15 @@
+key	value
+_entry.id	4JRD
+_struct.title	Crystal structure of the parallel double-stranded helix of poly(A) RNA
+_exptl.method	X-RAY DIFFRACTION
+_refine.ls_d_res_high	1.00
+_pdbx_database_status.recvd_initial_deposition_date	2013-03-21
+_citation.title	Structure of the parallel duplex of poly(A) RNA: evaluation of a 50 year-old prediction.
+_citation.journal_abbrev	Angew.Chem.Int.Ed.Engl.
+_citation.journal_volume	52
+_citation.page_first	10370
+_citation.page_last	10373
+_citation.year	2013
+_citation.pdbx_database_id_DOI	10.1002/anie.201303461
+_citation.pdbx_database_id_PubMed	23813654
+_pdbx_audit_revision_history.revision_date (latest)	2024-02-28

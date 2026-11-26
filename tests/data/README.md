@@ -588,6 +588,19 @@ atom <= 0.05 Å; fits: 0.5°, 0.2 Å, CC 1e-3; plan 4.1). To regenerate, with an
 /opt/mdbridge-venv/bin/python -I -B tests/parity/make_density_fit_cases.py /tmp/mdatk tests/data/chem
 ```
 
+The chemistry reference tables of milestone 6 are not test data but are regenerated (and compared)
+by the same job: `tools/gen_chem_tables.py` writes `src/chem/helix_tables.inc` (the Arnott A-RNA
+monomer from `data/sources/helix`, the 4JRD nucleotide and screw from `data/sources/pdb`) and
+`src/chem/component_tables.inc` (the CCD's L-ribonucleotides 0A 0C 0G 0U from
+`data/sources/ccd/ribonucleotide_*.tsv`), pure Python and deterministic, and compares them with
+MDATK 0.0.4.1's embedded tables (`builder.py`, `dictionaries.py`): a difference that is not one of
+its documented ones (docs/DIFFERENCES.md CHD-01, CHD-02) fails the step. `tests/chem/test_reference_tables.cpp`
+checks the tables' chemistry (bond lengths, links, compositions).
+
+```bash
+python3 -I -B tools/gen_chem_tables.py /tmp/mdatk   # src/chem/helix_tables.inc, component_tables.inc
+```
+
 The analysis module of milestone 3 (`src/analysis/`, tested by `tests/analysis/`) is checked against
 the files of `analysis/`, written by six generators (in the order `regenerate_all.py` runs them):
 
