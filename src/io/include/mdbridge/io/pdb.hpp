@@ -82,6 +82,9 @@ PdbStructure readPdbText(std::string_view text);
 // core::ValueError for undecodable bytes ("'utf-8' codec can't decode byte 0xe9 in position 10:
 // invalid continuation byte").
 PdbStructure readPdbFile(const std::filesystem::path& path);
+// The text of a PDB file as readPdbFile reads it (strict UTF-8, the same errors), line ends as
+// stored (every consumer splits lines as Python's splitlines, for which they are alike).
+std::string readPdbFileText(const std::filesystem::path& path);
 
 // write_pdb(structure, strip_conect, seqres): "\n" line ends, every line right-stripped, final
 // "\n". `seqres`: per-chain residue-name lists for SEQRES records (which residues and names: the

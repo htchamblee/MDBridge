@@ -1378,6 +1378,10 @@ io::PdbStructure PdbSource::read() const {
     return m_isFile ? io::readPdbFile(m_path) : io::readPdbText(m_text);
 }
 
+std::string PdbSource::content() const {
+    return m_isFile ? io::readPdbFileText(m_path) : m_text;
+}
+
 std::string PdbSource::defaultTitle() const {
     if (!m_isFile) {
         return "structure";

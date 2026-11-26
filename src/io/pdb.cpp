@@ -928,8 +928,12 @@ std::vector<U32> fileLines(U32View text) {
 }  // namespace detail
 
 PdbStructure readPdbFile(const std::filesystem::path& path) {
+    return readPdbText(readPdbFileText(path));
+}
+
+std::string readPdbFileText(const std::filesystem::path& path) {
     // universal newlines turn \r\n and \r into \n, which splitlines treats alike
-    return readPdbText(toUtf8(decodeStrict(readBytes(path))));
+    return toUtf8(decodeStrict(readBytes(path)));
 }
 
 // --- writing

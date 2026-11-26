@@ -2941,6 +2941,17 @@ cases of `cli_parity.py`.
   (`test_pdbtools_mdatk.cpp`; the embedded-copy test comes with milestone 7, the command-line test's
   commands with W2-C). The generator's `clean` cases with a chain reference now record which input
   was the reference (one case named input 2 for input 0).
+- **W1-B: the base-pair annotation in C++** (`src/chem/annotate.cpp`, `chem/annotate.hpp`; milestone
+  6 W1-B). MDATK's `annotate.py` (section 1.2 of the plan) on io's PDB model with the builtin detector
+  the `basepairs` analysis uses (`chem::PairDetector`, unchanged; no code moved), D13 and CH-14 (D9):
+  `auto` and `barnaba` are the builtin engine (`engine` is always "builtin"), `barnaba` adds
+  "WARNING: Barnaba is not available in MDBridge; using the builtin detector" right after the read
+  notes, before the engine's notes; no STACK records; the stacking note without the pip hint. A file
+  is read through `PdbSource::file` (CH-13; its text through the new `io::readPdbFileText`, the same
+  strict UTF-8 as `io::readPdbFile`). Byte for byte with every case of `annotate_cases.json` (216
+  option cases and 5 Structure cases, `tests/chem/test_annotate.cpp`) and 8 counterparts of MDATK's
+  `tests/test_annotate.py` (the Barnaba tests check the builtin engine with the warning; the
+  command-line test checks the library call, the command and its step log come with W2-C).
 - **D13 (milestone 6): the program named in written records** (as CMD-08): `REMARK 950 MDBridge
   BASE-PAIR ANNOTATION` and `REMARK 951 MDBridge IDEAL ...`; every other byte as MDATK writes it.
   Messages that name the program say `mdbridge` ('mdbridge pdb clean', 'mdbridge density fit --save').

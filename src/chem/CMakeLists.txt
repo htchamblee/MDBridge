@@ -1,9 +1,10 @@
 # chem: nucleic-acid chemistry ported from MDATK: PDB hygiene (pdbtools.cpp), secondary structure
-# (dot-bracket notation and the builtin base-pair detection) and the generated reference tables of
+# (dot-bracket notation and the builtin base-pair detection), base-pair annotation (annotate.cpp) and the generated reference tables of
 # the builder and the restraint dictionaries (reference_tables.cpp: helix_tables.inc,
 # component_tables.inc from tools/gen_chem_tables.py). Residue names come from io's
 # parseResidueName.
 add_library(mdbridge_chem STATIC
+    annotate.cpp
     pdbtools.cpp
     reference_tables.cpp
     secstruct.cpp)

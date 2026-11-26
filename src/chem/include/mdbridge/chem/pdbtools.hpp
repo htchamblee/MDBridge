@@ -209,6 +209,8 @@ public:
     static PdbSource text(std::string text);
     static PdbSource file(std::filesystem::path path);
     io::PdbStructure read() const;
+    // the PDB text: the text given, or the file's (io::readPdbFileText; the same errors as read)
+    std::string content() const;
     // the FASTA title of clean without a title: the file's name without its extension; "structure"
     // for text
     std::string defaultTitle() const;
