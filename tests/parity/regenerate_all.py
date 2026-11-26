@@ -69,6 +69,12 @@ Special cases handled here (tests/data/README.md):
   products; kernels pinned by chem_common.py) get a looser comparison where their bytes differ:
   numbers within a relative 1e-6 and the decimals inside strings (PDB coordinates, notes) within one
   unit of their last printed digit.
+* The pinned kernels do not give the reference machine's bits on every CI runner (KERNEL_PROBE
+  below: the density fits' flips, a 3 x 3 product and LAPACK's eigh, moved by a few ulps on one).
+  There, and only there, the results that follow a path through such numbers (PATH_DEPENDENT: the
+  global density fits' evaluation counts, the least-squares closures of the non-Watson-Crick builds
+  and of their command-line cases) are compared for what does not depend on the path; this is
+  printed, and every other number is compared as above.
   Everything else must match exactly.
 
 Committed files without a generator (NOT_GENERATED: the hand-made project files, the golden
@@ -178,6 +184,34 @@ FITTED = {f"tests/data/chem/{n}" for n in ("annotate_cases.json", "dict_cases.js
 FITTED_TOLERANCE = 1e-6
 DECIMAL_RE = re.compile(r"-?\d+\.(\d+)")
 HEX_FLOAT_RE = re.compile(r"^-?0x[0-9a-f]\.[0-9a-f]+p[+-][0-9]+$")  # float.hex() of a finite float
+# Pinning does not give the reference machine's bits on every CI runner. On one (CI run 45898985841,
+# whose make_analysis_cases.py RMSDs with a fit selection also moved, as on the runner noted above)
+# make_density_fit_cases.py's flips moved by a few ulps (FitProblem.flips: rel.T @ rel over a model's
+# atoms and LAPACK's eigh, no iteration), while every other pinned number of the chem steps kept its
+# bits (libm's sin / cos, BLAS dot products, the FFTs, the 3 x 3 rotations, Kabsch, the reference
+# helix fits); OPENBLAS_CORETYPE, OPENBLAS_L2_SIZE, glibc's FMA / AVX-512 variants, the x87 precision
+# and buffer alignment did not reproduce it on the reference machine. Results that follow a path
+# through such numbers then move further:
+# * Powell's evaluation count of a global density fit (4423 / 4440, 5208 / 5159), its transform and
+#   CC staying within FITTED_TOLERANCE; compared within EVALUATIONS_TOLERANCE there, as the numerics
+#   tests compare SciPy's nfev without glibc (tests/numerics/test_optimize.cpp: 5 %);
+# * the least-squares closures of the non-Watson-Crick builds and triplexes: MDATK runs four passes
+#   of at most 40 evaluations with contact sets refreshed between them and loose LSMR tolerances
+#   (builder._CLOSE_PASSES, _CLOSE_LSMR; the same in 0.1.1), so a closure stops wherever its path has
+#   led (17 of the 24 rebuilt helices up to 2.8 Å apart, a close-contact note reworded). No tolerance
+#   covers that; there they are compared for what does not follow the path: inputs, record names,
+#   residues, chains and serial numbers, line and note counts, every other text with its numbers
+#   masked (_closure_problem). The command-line cases with "fitted" (cli_cases.json) get the same.
+# The probe: the flips of the fresh density_fit_cases.json equal the committed ones bit for bit
+# (None when the step did not run: everything is compared as before).
+KERNEL_PROBE = "tests/data/chem/density_fit_cases.json"
+CLI_CASES = "tests/data/cli/cli_cases.json"
+PATH_DEPENDENT = {"tests/data/chem/builder_fitted_cases.json", KERNEL_PROBE, CLI_CASES}
+EVALUATIONS_TOLERANCE = 0.05
+EVALUATIONS_PATH_RE = re.compile(r"\$\.problems\[\d+\]\.fit_model\[\d+\]\.evaluations")
+REBUILT_PATH_RE = re.compile(r"\$\.rebuilt\[\d+\]")
+NUMBER_RE = re.compile(r"[-+]?\d+(?:\.\d+)?")
+PDB_ATOM_PREFIXES = ("ATOM  ", "HETATM")
 
 # files a generator writes that are deliberately not kept (tests/data/README.md)
 DISCARDED = ["tests/data/project-file/golden/manifest.txt",
@@ -520,15 +554,116 @@ def _strings_close(x: str, y: str) -> bool:
     return True
 
 
-def fitted_equal(old: bytes, new: bytes) -> tuple[bool, str]:
-    """JSON documents equal within the chem tolerance (FITTED); the reason when not."""
+def _masked(text: str) -> str:
+    """A text with every number replaced and runs of spaces collapsed (a number's width may change)."""
+    return re.sub(r" +", " ", NUMBER_RE.sub("#", text))
+
+
+def _lines_problem(x: str, y: str, what: str) -> str | None:
+    """Texts of a path-dependent result (PATH_DEPENDENT): the same lines; PDB atom records with the
+    same columns 1-30 (record, serial, name, residue, chain, number) and 55- (occupancy, B, element);
+    every other line equal with its numbers masked, a close-contact note in either wording (it lists
+    the contacts the closure ends with)."""
+    a, b = x.split("\n"), y.split("\n")
+    if len(a) != len(b):
+        return f"{what}: {len(a)} / {len(b)} lines"
+    for i, (p, q) in enumerate(zip(a, b)):
+        if p.startswith(PDB_ATOM_PREFIXES) or q.startswith(PDB_ATOM_PREFIXES):
+            same = p[:30] == q[:30] and p[54:] == q[54:]
+        else:
+            same = _masked(p) == _masked(q) or ("close contact" in p and "close contact" in q)
+        if not same:
+            return f"{what} line {i + 1}: {p[:WIDTH]!r} / {q[:WIDTH]!r}"
+    return None
+
+
+def _closure_problem(x: dict, y: dict, path: str) -> str | None:
+    """A rebuilt helix of builder_fitted_cases.json where the closures' path differs: inputs equal,
+    text and notes as _lines_problem, heavy atoms with the same chain, residue and name."""
+    if list(x) != list(y):
+        return f"{path}: keys {list(x)} / {list(y)}"
+    for key in x:
+        if key == "text":
+            problem = _lines_problem(x[key], y[key], f"{path}.text")
+        elif key == "notes":
+            problem = (f"{path}.notes: {len(x[key])} / {len(y[key])} notes" if len(x[key]) != len(y[key])
+                       else _lines_problem("\n".join(x[key]), "\n".join(y[key]), f"{path}.notes"))
+        elif key == "heavy":
+            problem = None if [r[:3] for r in x[key]] == [r[:3] for r in y[key]] else f"{path}.heavy: other atoms"
+        else:
+            problem = None if x[key] == y[key] else f"{path}.{key}: {x[key]!r} / {y[key]!r}"
+        if problem:
+            return problem
+    return None
+
+
+def kernels_match(root: str) -> bool | None:
+    """KERNEL_PROBE: whether this machine's pinned kernels gave the reference machine's flips bit for
+    bit; None when the density fit step did not write its file."""
+    fresh = os.path.join(root, KERNEL_PROBE)
+    if not os.path.isfile(fresh):
+        return None
+    try:
+        a, b = json.loads(read(os.path.join(ROOT, KERNEL_PROBE))), json.loads(read(fresh))
+        return [p.get("flips") for p in a["problems"]] == [p.get("flips") for p in b["problems"]]
+    except (ValueError, KeyError, TypeError, AttributeError):
+        return None
+
+
+def cli_closures_equal(old: bytes, new: bytes) -> tuple[bool, str]:
+    """cli_cases.json where the pinned kernels differ (PATH_DEPENDENT): every case equal but the ones
+    with "fitted", whose stderr and written texts are compared as _lines_problem; the reason when not."""
+    try:
+        a, b = json.loads(old)["cases"], json.loads(new)["cases"]
+    except (ValueError, KeyError, TypeError) as exc:
+        return False, f"not the cases document: {exc}"
+    if [c.get("name") for c in a] != [c.get("name") for c in b]:
+        return False, "other cases"
+    loose = 0
+    for x, y in zip(a, b):
+        if x == y:
+            continue
+        name = x.get("name")
+        if "fitted" not in x or list(x) != list(y) \
+                or any(x[k] != y[k] for k in x if k not in ("stderr", "written")):
+            return False, f"case {name}"
+        problem = _lines_problem(x["stderr"], y["stderr"], f"{name} stderr")
+        if not problem and list(x["written"]) != list(y["written"]):
+            problem = f"{name}: written {list(x['written'])} / {list(y['written'])}"
+        for file in x["written"] if not problem else ():
+            p, q = x["written"][file], y["written"][file]
+            if list(p) != list(q) or any(p[k] != q[k] for k in p if k != "text"):
+                problem = f"{name} {file}"
+            elif "text" in p:
+                problem = _lines_problem(p["text"], q["text"], f"{name} {file}")
+            if problem:
+                break
+        if problem:
+            return False, problem
+        loose += 1
+    return True, f"{loose} fitted case(s) compared without their path-dependent numbers"
+
+
+def fitted_equal(old: bytes, new: bytes, path_dependent: bool = False) -> tuple[bool, str]:
+    """JSON documents equal within the chem tolerance (FITTED); with path_dependent (the pinned
+    kernels differ from the reference machine's, KERNEL_PROBE) evaluation counts within
+    EVALUATIONS_TOLERANCE and rebuilt helices as _closure_problem; the reason when not."""
     try:
         a, b = json.loads(old), json.loads(new)
     except ValueError as exc:
         return False, f"not JSON: {exc}"
     count = [0]
+    loose = [0]
 
     def walk(x, y, path):
+        if path_dependent and x != y:
+            if REBUILT_PATH_RE.fullmatch(path) and isinstance(x, dict) and isinstance(y, dict):
+                loose[0] += 1
+                return _closure_problem(x, y, path)
+            if EVALUATIONS_PATH_RE.fullmatch(path) and type(x) is int and type(y) is int:
+                loose[0] += 1
+                within = abs(x - y) <= EVALUATIONS_TOLERANCE * max(abs(x), abs(y))
+                return None if within else f"{path}: {x} / {y} (beyond {EVALUATIONS_TOLERANCE:.0%})"
         if isinstance(x, str) and isinstance(y, str) and HEX_FLOAT_RE.match(x) and HEX_FLOAT_RE.match(y):
             x, y = float.fromhex(x), float.fromhex(y)
         if isinstance(x, str) and isinstance(y, str):
@@ -559,7 +694,10 @@ def fitted_equal(old: bytes, new: bytes) -> tuple[bool, str]:
         return None if diff <= FITTED_TOLERANCE else f"{path}: {x!r} / {y!r} (relative {diff:.1e})"
 
     problem = walk(a, b, "$")
-    return (False, problem) if problem else (True, f"{count[0]} values within the chem tolerance")
+    if problem:
+        return False, problem
+    extra = f"; {loose[0]} path-dependent result(s) compared without their path" if loose[0] else ""
+    return True, f"{count[0]} values within the chem tolerance{extra}"
 
 
 def lines_of(text: str) -> list[str]:
@@ -762,16 +900,23 @@ def main(argv=None) -> int:
     missing = sorted(set(committed) - set(fresh))
     extra = sorted(set(fresh) - set(committed))
     differing, tolerated = [], []
+    other_kernels = kernels_match(root) is False  # PATH_DEPENDENT results compared without their path
     for rel in sorted(set(committed) & set(fresh)):
         old, new = read(os.path.join(ROOT, rel)), read(os.path.join(root, rel))
         if old == new or normalised(rel, old) == normalised(rel, new):
             continue
         if rel in FITTED:
-            ok, why = fitted_equal(old, new)
+            ok, why = fitted_equal(old, new, other_kernels and rel in PATH_DEPENDENT)
             if ok:
                 tolerated.append((rel, why))
                 continue
             print(f"(fitted {rel}: beyond the chem tolerance at {why})")
+        elif rel == CLI_CASES and other_kernels:
+            ok, why = cli_closures_equal(normalised(rel, old), normalised(rel, new))
+            if ok:
+                tolerated.append((rel, why))
+                continue
+            print(f"(path-dependent {rel}: differs at {why})")
         elif rel in MACHINE_DEPENDENT or (rel.endswith(".json") and rel.startswith(MACHINE_DEPENDENT_JSON_UNDER)):
             ok, why = numerically_equal(old, new)
             if ok:
@@ -783,10 +928,15 @@ def main(argv=None) -> int:
     print(f"\n{len(steps)} generators in {total:.0f} s; {len(committed)} committed files compared")
     if not args.only:
         print("not generated, not compared: " + ", ".join(NOT_GENERATED))
+    if other_kernels:
+        print(f"OTHER KERNELS this CPU's pinned kernels do not give the reference machine's bits (the flips of "
+              f"{KERNEL_PROBE} differ); path-dependent results ({', '.join(sorted(PATH_DEPENDENT))}) are "
+              f"compared without the numbers their path decides (regenerate_all.py KERNEL_PROBE)")
     for rel, why in tolerated:
-        within = "the chem tolerance (FITTED)" if rel in FITTED else f"{FLOAT_TOLERANCE:g}"
-        print(f"TOLERATED    {rel}: not byte-identical on this CPU (machine-dependent), numbers within "
-              f"{within}; {why}")
+        within = ("numbers within the chem tolerance (FITTED)" if rel in FITTED
+                  else "the other kernels' structure check (OTHER KERNELS)" if rel == CLI_CASES
+                  else f"numbers within {FLOAT_TOLERANCE:g}")
+        print(f"TOLERATED    {rel}: not byte-identical on this CPU (machine-dependent), {within}; {why}")
     for rel in unaccounted:
         print(f"NO GENERATOR {rel} (committed, but written by no step; list it in NOT_GENERATED)")
     for rel in missing:

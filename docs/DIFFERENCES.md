@@ -2860,7 +2860,15 @@ MDBridge's behaviour where it deliberately differs from MDATK v0.0.4.1 (docs/spe
 named; W3-C completes these entries with the C++ tests. *Tested (expected data):*
 `tests/parity/make_pdbtools_cases.py`, `make_annotate_cases.py`, `make_builder_cases.py`,
 `make_dict_cases.py`, `make_density_fit_cases.py` and the `pdb_*`, `build_*`, `dict_*`, `density_*`
-cases of `cli_parity.py`.
+cases of `cli_parity.py`. The regenerate job's own tolerance: on a CI runner whose pinned kernels do
+not reproduce the reference machine's density-fit flips bit for bit (CI run 45898985841: a few ulps),
+MDATK's path-dependent results are compared without the numbers their path decides (Powell's
+evaluation counts within 5 %, the non-Watson-Crick closures and their `build helix` cases by their
+records, names and texts with numbers masked; tests/data/README.md, regenerate_all.py
+`KERNEL_PROBE`). This is about reproducing MDATK's output, not about MDBridge: the closures stop after
+four passes of at most 40 evaluations (`_CLOSE_PASSES`, also in 0.1.1), so an ulp moves a rebuilt
+helix by up to 2.8 Å; W2-A's comparison of those helices (D10: 0.01 Å RMSD) has to take that into
+account (plan risk 1).
 
 - **CH-01 Residue numbers below -999** (not fixed in MDATK 0.1.1). `_id_columns` wrote `A-1002`, which
   shifted every later column and which MDATK's own reader then refused. MDBridge raises "residue number
