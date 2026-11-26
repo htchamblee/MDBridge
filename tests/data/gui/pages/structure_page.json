@@ -1,0 +1,258 @@
+{
+ "format": "mdbridge-gui-case",
+ "version": 1,
+ "description": "Structure view: orientation, representations, density, tags, appearance",
+ "source": "MDATK v0.0.4.1's GTK window driven by tests/parity/make_gui_cases.py, with MDBridge's window improvements (tests/parity/improvements_gui.py)",
+ "clock": "2026-11-25T12:00:00",
+ "items": [],
+ "mdatk_test": "tests/test_gui.py::test_representation_editor_and_3d_preview",
+ "needs": [
+  "lossless",
+  "snapshot",
+  "start",
+  "table",
+  "type"
+ ],
+ "canvas": {
+  "width": 960,
+  "height": 540
+ },
+ "files": {
+  "p.mdatk.toml": "projects/default.mdatk.toml"
+ },
+ "start": {
+  "project": "p.mdatk.toml"
+ },
+ "actions": [
+  {
+   "action": "set",
+   "key": "visual.rotation",
+   "value": [
+    15.5,
+    -30,
+    120.25
+   ]
+  },
+  {
+   "action": "set",
+   "key": "visual.zoom",
+   "value": 1.75
+  },
+  {
+   "action": "type",
+   "key": "visual.center_on",
+   "text": "B:12"
+  },
+  {
+   "action": "table",
+   "key": "visual.representations",
+   "do": "add"
+  },
+  {
+   "action": "set",
+   "key": "visual.representations.0.style",
+   "value": "licorice"
+  },
+  {
+   "action": "set",
+   "key": "visual.representations.0.groups",
+   "value": "Target"
+  },
+  {
+   "action": "set",
+   "key": "visual.representations.0.color",
+   "value": "element"
+  },
+  {
+   "action": "set",
+   "key": "visual.representations.0.size",
+   "value": 0.8
+  },
+  {
+   "action": "table",
+   "key": "visual.representations",
+   "do": "add"
+  },
+  {
+   "action": "set",
+   "key": "visual.representations.1.opacity",
+   "value": 0.5
+  },
+  {
+   "action": "set",
+   "key": "visual.representations.1.sugars",
+   "value": true
+  },
+  {
+   "action": "set",
+   "key": "visual.rep_rest",
+   "value": "hide"
+  },
+  {
+   "action": "set",
+   "key": "visual.backbone_atom",
+   "value": "C4'"
+  },
+  {
+   "action": "set",
+   "key": "density.level",
+   "value": 2.5
+  },
+  {
+   "action": "set",
+   "key": "density.color",
+   "value": "#336699"
+  },
+  {
+   "action": "set",
+   "key": "density.opacity",
+   "value": 0.4
+  },
+  {
+   "action": "set",
+   "key": "visual.label_every",
+   "value": 5
+  },
+  {
+   "action": "type",
+   "key": "visual.label_residues",
+   "text": "1, 12, 24"
+  },
+  {
+   "action": "set",
+   "key": "visual.structure_groups",
+   "value": [
+    "Aptamer"
+   ]
+  },
+  {
+   "action": "set",
+   "key": "visual.base_color",
+   "value": "#ffaa00"
+  },
+  {
+   "action": "set",
+   "key": "visual.glow_mode",
+   "value": "fade"
+  },
+  {
+   "action": "set",
+   "key": "visual.theme",
+   "value": "dark"
+  },
+  {
+   "action": "type",
+   "key": "visual.title",
+   "text": "Edited figure"
+  },
+  {
+   "action": "snapshot",
+   "keys": [
+    "visual",
+    "density"
+   ]
+  },
+  {
+   "action": "save"
+  }
+ ],
+ "expected": {
+  "p.mdatk.toml": "gui/pages/structure_page/out/p.mdatk.toml"
+ },
+ "log": [
+  "WARNING: Structure view › Orientation › Centre on: no residue of the structure view matches 'B:12'; using the model centre",
+  "Saved project {case_dir}/p.mdatk.toml"
+ ],
+ "outcome": {
+  "snapshots": [
+   {
+    "action": 23,
+    "values": {
+     "visual": {
+      "structure_groups": [
+       "Aptamer"
+      ],
+      "trace_atoms": "C4',CA",
+      "representations": [
+       {
+        "style": "licorice",
+        "groups": [
+         "Target"
+        ],
+        "color": "element",
+        "size": 0.8,
+        "opacity": 1.0,
+        "sugars": false
+       },
+       {
+        "style": "cartoon",
+        "groups": [],
+        "color": "auto",
+        "size": 1.0,
+        "opacity": 0.5,
+        "sugars": true
+       }
+      ],
+      "renderer": "auto",
+      "rep_rest": "hide",
+      "backbone_atom": "C4'",
+      "rep_hydrogens": false,
+      "show_ions": true,
+      "align_frames": true,
+      "rotation": [
+       15.5,
+       -30,
+       120.25
+      ],
+      "zoom": 1.75,
+      "center_on": "B:12",
+      "center_follow": false,
+      "color_mode": "groups",
+      "base_color": "#ffaa00",
+      "chain_palette": "tab10",
+      "proximity_set": "Target",
+      "proximity_cutoff": 4.0,
+      "proximity_color": "#e34948",
+      "glow_mode": "fade",
+      "glow_color": "#ffb000",
+      "fade_frames": 15,
+      "glow_strength": 1.0,
+      "ion_color": "#008300",
+      "line_width": 2.2,
+      "point_size": 22.0,
+      "depth_cue": true,
+      "theme": "dark",
+      "font_size": 11.0,
+      "show_time_label": true,
+      "label_every": 5,
+      "label_residues": "1, 12, 24",
+      "title": "Edited figure"
+     },
+     "density": {
+      "map_path": "",
+      "show": true,
+      "resolution": 5.0,
+      "level": 2.5,
+      "color": "#336699",
+      "opacity": 0.4,
+      "front": false,
+      "fit_frame": "ref",
+      "search": "global",
+      "angular_step": 30.0,
+      "auto_fit": true,
+      "transform": [],
+      "anchor": [],
+      "fit_cc": 0.0,
+      "fit_info": ""
+     }
+    }
+   }
+  ],
+  "settings": "gui/pages/structure_page/settings.after.toml"
+ },
+ "mdatk": {
+  "expected": {
+   "p.mdatk.toml": "gui/pages/structure_page/mdatk/p.mdatk.toml"
+  }
+ }
+}

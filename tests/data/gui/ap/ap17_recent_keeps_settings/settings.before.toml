@@ -1,0 +1,6 @@
+# MDATK user settings.
+
+# Recently used project files, newest first.
+recent = ["{case_dir}/p.mdatk.toml"]
+# RNAdo's Cat-proof mode: the keyboard is ignored (untick it with the mouse).
+cat_proof = true

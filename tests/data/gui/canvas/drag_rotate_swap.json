@@ -1,0 +1,728 @@
+{
+ "format": "mdbridge-gui-case",
+ "version": 1,
+ "description": "Drag in the structure panel rotates; dragging panel 2 onto 3 swaps them",
+ "source": "MDATK v0.0.4.1's GTK window driven by tests/parity/make_gui_cases.py, with MDBridge's window improvements (tests/parity/improvements_gui.py)",
+ "clock": "2026-11-25T12:00:00",
+ "items": [],
+ "mdatk_test": "tests/test_gui.py::test_drag_rotates_structure_and_swaps_panels",
+ "needs": [
+  "canvas",
+  "lossless",
+  "snapshot",
+  "start"
+ ],
+ "canvas": {
+  "width": 960,
+  "height": 540
+ },
+ "files": {
+  "demo_dry.nc": "io/trajectories/demo_dry.nc",
+  "demo_dry.parm7": "topology/demo_dry.parm7",
+  "p.mdatk.toml": "gui/canvas/drag_rotate_swap/in/p.mdatk.toml"
+ },
+ "start": {
+  "project": "p.mdatk.toml"
+ },
+ "actions": [
+  {
+   "action": "wait"
+  },
+  {
+   "action": "canvas.drag",
+   "from": {
+    "slot": 0,
+    "at": [
+     0.5,
+     0.5
+    ]
+   },
+   "path": [
+    [
+     40,
+     0
+    ]
+   ]
+  },
+  {
+   "action": "snapshot",
+   "keys": [
+    "visual.rotation"
+   ]
+  },
+  {
+   "action": "canvas.drag",
+   "from": {
+    "slot": 0,
+    "at": [
+     0.5,
+     0.6
+    ]
+   },
+   "path": [
+    [
+     4,
+     0
+    ],
+    [
+     10,
+     2
+    ],
+    [
+     20,
+     5
+    ],
+    [
+     40,
+     8
+    ],
+    [
+     60,
+     10
+    ]
+   ]
+  },
+  {
+   "action": "canvas.drag",
+   "from": {
+    "slot": 1,
+    "at": [
+     0.5,
+     0.5
+    ]
+   },
+   "to": {
+    "slot": 2,
+    "at": [
+     0.5,
+     0.5
+    ]
+   }
+  },
+  {
+   "action": "canvas.drag",
+   "from": {
+    "slot": 0,
+    "at": [
+     0.5,
+     0.05
+    ]
+   },
+   "to": {
+    "slot": 3,
+    "at": [
+     0.4,
+     0.6
+    ]
+   }
+  },
+  {
+   "action": "canvas.drag",
+   "from": {
+    "slot": 1,
+    "at": [
+     0.5,
+     0.5
+    ]
+   },
+   "path": [
+    [
+     1,
+     1
+    ],
+    [
+     2,
+     0
+    ]
+   ]
+  },
+  {
+   "action": "snapshot",
+   "keys": [
+    "visual.rotation",
+    "layout.panels"
+   ],
+   "slots": true
+  },
+  {
+   "action": "save"
+  }
+ ],
+ "expected": {
+  "p.mdatk.toml": "gui/canvas/drag_rotate_swap/out/p.mdatk.toml"
+ },
+ "log": [
+  "--- Loading preview ---",
+  "Reference frame loaded: 24 residues (raw files).",
+  "Swapped panels 2 and 3",
+  "Swapped panels 1 and 4",
+  "Saved project {case_dir}/p.mdatk.toml"
+ ],
+ "outcome": {
+  "snapshots": [
+   {
+    "action": 2,
+    "values": {
+     "visual.rotation": [
+      0.0,
+      20.0,
+      0.0
+     ]
+    }
+   },
+   {
+    "action": 7,
+    "values": {
+     "visual.rotation": [
+      7.202,
+      49.862,
+      3.724
+     ],
+     "layout.panels": [
+      {
+       "type": "heatmap",
+       "series": [
+        "contacts/per_residue_a"
+       ],
+       "title": "",
+       "options": {
+        "max_ticks": 6
+       }
+      },
+      {
+       "type": "timeseries",
+       "series": [
+        "hbonds/count"
+       ],
+       "title": "",
+       "options": {}
+      },
+      {
+       "type": "timeseries",
+       "series": [
+        "rmsd/Complex"
+       ],
+       "title": "RMSD",
+       "options": {}
+      },
+      {
+       "type": "structure",
+       "series": [],
+       "title": "Structure",
+       "options": {}
+      }
+     ]
+    },
+    "slots": [
+     {
+      "frame": "Slot 1 (large)",
+      "type": "heatmap",
+      "data": "contacts/per_residue_a",
+      "choices": [
+       [
+        "contacts/per_residue_a",
+        "Aptamer residue contacts with Target   [contacts/per_residue_a]"
+       ],
+       [
+        "contacts/per_residue_b",
+        "Target residue contacts with Aptamer   [contacts/per_residue_b]"
+       ],
+       [
+        "hbonds/per_residue_a",
+        "Aptamer residue H-bonds   [hbonds/per_residue_a]"
+       ],
+       [
+        "hbonds/per_residue_b",
+        "Target residue H-bonds   [hbonds/per_residue_b]"
+       ],
+       [
+        "mg/occupancy",
+        "Mg occupancy   [mg/occupancy]"
+       ],
+       [
+        "proximity/min_distance",
+        "Proximity to residue set: min_distance   [proximity/min_distance]"
+       ]
+      ],
+      "group_a": "",
+      "group_b": "",
+      "group_a_enabled": true,
+      "group_b_enabled": true,
+      "more": "",
+      "title": "",
+      "options": "{\"max_ticks\": 6}"
+     },
+     {
+      "frame": "Slot 2",
+      "type": "timeseries",
+      "data": "hbonds/count",
+      "choices": [
+       [
+        "contacts/atom_pairs",
+        "Aptamer–Target heavy-atom contacts   [contacts/atom_pairs]"
+       ],
+       [
+        "contacts/residue_pairs",
+        "Aptamer–Target residue contacts   [contacts/residue_pairs]"
+       ],
+       [
+        "contacts/q_native",
+        "Aptamer–Target fraction of native contacts (Q)   [contacts/q_native]"
+       ],
+       [
+        "energy/total",
+        "Aptamer–Target interaction energy   [energy/total]"
+       ],
+       [
+        "energy/elec",
+        "Aptamer–Target electrostatic energy   [energy/elec]"
+       ],
+       [
+        "energy/vdw",
+        "Aptamer–Target van der Waals energy   [energy/vdw]"
+       ],
+       [
+        "energy/net_force",
+        "Net force of Target on Aptamer   [energy/net_force]"
+       ],
+       [
+        "hbonds/count",
+        "Aptamer–Target H-bonds   [hbonds/count]"
+       ],
+       [
+        "mg/contacts",
+        "Mg–O inner-sphere contacts   [mg/contacts]"
+       ],
+       [
+        "mg/outer_contacts",
+        "Mg–O outer-sphere contacts   [mg/outer_contacts]"
+       ],
+       [
+        "mg/bridges",
+        "O–Mg–O bridges   [mg/bridges]"
+       ],
+       [
+        "mg/inter_bridges",
+        "Aptamer–Mg–Target bridges   [mg/inter_bridges]"
+       ],
+       [
+        "mg/bridging_ions",
+        "Bridging Mg ions (Aptamer–Target)   [mg/bridging_ions]"
+       ],
+       [
+        "mg/inner_residues",
+        "Residues with inner-sphere Mg   [mg/inner_residues]"
+       ],
+       [
+        "rmsd/Complex",
+        "RMSD Complex   [rmsd/Complex]"
+       ],
+       [
+        "rmsd/Backbone",
+        "RMSD Backbone   [rmsd/Backbone]"
+       ],
+       [
+        "stacking/count",
+        "π–π stacked pairs   [stacking/count]"
+       ],
+       [
+        "stacking/inter",
+        "Aptamer–Target stacked pairs   [stacking/inter]"
+       ],
+       [
+        "stacking/intra",
+        "Intra-group stacked pairs   [stacking/intra]"
+       ],
+       [
+        "basepairs/count",
+        "Base pairs   [basepairs/count]"
+       ]
+      ],
+      "group_a": "",
+      "group_b": "",
+      "group_a_enabled": true,
+      "group_b_enabled": true,
+      "more": "",
+      "title": "",
+      "options": ""
+     },
+     {
+      "frame": "Slot 3",
+      "type": "timeseries",
+      "data": "rmsd/Complex",
+      "choices": [
+       [
+        "contacts/atom_pairs",
+        "Aptamer–Target heavy-atom contacts   [contacts/atom_pairs]"
+       ],
+       [
+        "contacts/residue_pairs",
+        "Aptamer–Target residue contacts   [contacts/residue_pairs]"
+       ],
+       [
+        "contacts/q_native",
+        "Aptamer–Target fraction of native contacts (Q)   [contacts/q_native]"
+       ],
+       [
+        "energy/total",
+        "Aptamer–Target interaction energy   [energy/total]"
+       ],
+       [
+        "energy/elec",
+        "Aptamer–Target electrostatic energy   [energy/elec]"
+       ],
+       [
+        "energy/vdw",
+        "Aptamer–Target van der Waals energy   [energy/vdw]"
+       ],
+       [
+        "energy/net_force",
+        "Net force of Target on Aptamer   [energy/net_force]"
+       ],
+       [
+        "hbonds/count",
+        "Aptamer–Target H-bonds   [hbonds/count]"
+       ],
+       [
+        "mg/contacts",
+        "Mg–O inner-sphere contacts   [mg/contacts]"
+       ],
+       [
+        "mg/outer_contacts",
+        "Mg–O outer-sphere contacts   [mg/outer_contacts]"
+       ],
+       [
+        "mg/bridges",
+        "O–Mg–O bridges   [mg/bridges]"
+       ],
+       [
+        "mg/inter_bridges",
+        "Aptamer–Mg–Target bridges   [mg/inter_bridges]"
+       ],
+       [
+        "mg/bridging_ions",
+        "Bridging Mg ions (Aptamer–Target)   [mg/bridging_ions]"
+       ],
+       [
+        "mg/inner_residues",
+        "Residues with inner-sphere Mg   [mg/inner_residues]"
+       ],
+       [
+        "rmsd/Complex",
+        "RMSD Complex   [rmsd/Complex]"
+       ],
+       [
+        "rmsd/Backbone",
+        "RMSD Backbone   [rmsd/Backbone]"
+       ],
+       [
+        "stacking/count",
+        "π–π stacked pairs   [stacking/count]"
+       ],
+       [
+        "stacking/inter",
+        "Aptamer–Target stacked pairs   [stacking/inter]"
+       ],
+       [
+        "stacking/intra",
+        "Intra-group stacked pairs   [stacking/intra]"
+       ],
+       [
+        "basepairs/count",
+        "Base pairs   [basepairs/count]"
+       ]
+      ],
+      "group_a": "",
+      "group_b": "",
+      "group_a_enabled": true,
+      "group_b_enabled": false,
+      "more": "",
+      "title": "RMSD",
+      "options": ""
+     },
+     {
+      "frame": "Slot 4",
+      "type": "structure",
+      "data": null,
+      "choices": [],
+      "group_a": "",
+      "group_b": "",
+      "group_a_enabled": false,
+      "group_b_enabled": false,
+      "more": "",
+      "title": "Structure",
+      "options": ""
+     }
+    ]
+   }
+  ],
+  "canvas": [
+   {
+    "action": 1,
+    "slots": [
+     [
+      9.6,
+      9.600000000000023,
+      532.2902154607502,
+      471.05634765624995
+     ],
+     [
+      561.0902154607502,
+      2.2174750434028283,
+      337.60897491787534,
+      168.1352159288195
+     ],
+     [
+      578.5540826482502,
+      157.60831705729169,
+      320.14510773037534,
+      198.96875
+     ],
+     [
+      605.7207493149168,
+      369.57634548611105,
+      361.06770833333337,
+      160.82365451388893
+     ]
+    ],
+    "structure_slot": 0,
+    "events": [
+     [
+      "press",
+      275.74510773037514,
+      245.128173828125
+     ],
+     [
+      "motion",
+      315.74510773037514,
+      245.128173828125
+     ],
+     [
+      "release",
+      315.74510773037514,
+      245.128173828125
+     ]
+    ]
+   },
+   {
+    "action": 3,
+    "slots": [
+     [
+      9.6,
+      9.600000000000023,
+      532.2902154607502,
+      471.05634765624995
+     ],
+     [
+      561.0902154607502,
+      2.2174750434028283,
+      337.60897491787534,
+      168.1352159288195
+     ],
+     [
+      578.5540826482502,
+      157.60831705729169,
+      320.14510773037534,
+      198.96875
+     ],
+     [
+      605.7207493149168,
+      369.57634548611105,
+      361.06770833333337,
+      160.82365451388893
+     ]
+    ],
+    "structure_slot": 0,
+    "events": [
+     [
+      "press",
+      275.74510773037514,
+      292.23380859375
+     ],
+     [
+      "motion",
+      279.74510773037514,
+      292.23380859375
+     ],
+     [
+      "motion",
+      285.74510773037514,
+      294.23380859375
+     ],
+     [
+      "motion",
+      295.74510773037514,
+      297.23380859375
+     ],
+     [
+      "motion",
+      315.74510773037514,
+      300.23380859375
+     ],
+     [
+      "motion",
+      335.74510773037514,
+      302.23380859375
+     ],
+     [
+      "release",
+      335.74510773037514,
+      302.23380859375
+     ]
+    ]
+   },
+   {
+    "action": 4,
+    "slots": [
+     [
+      9.6,
+      9.600000000000023,
+      532.2902154607502,
+      471.05634765624995
+     ],
+     [
+      561.0902154607502,
+      2.2174750434028283,
+      337.60897491787534,
+      168.1352159288195
+     ],
+     [
+      578.5540826482502,
+      157.60831705729169,
+      320.14510773037534,
+      198.96875
+     ],
+     [
+      605.7207493149168,
+      369.57634548611105,
+      361.06770833333337,
+      160.82365451388893
+     ]
+    ],
+    "structure_slot": 0,
+    "events": [
+     [
+      "press",
+      729.8947029196879,
+      86.28508300781257
+     ],
+     [
+      "motion",
+      738.6266365134379,
+      257.0926920572917
+     ],
+     [
+      "release",
+      738.6266365134379,
+      257.0926920572917
+     ]
+    ]
+   },
+   {
+    "action": 5,
+    "slots": [
+     [
+      9.6,
+      9.670963541666652,
+      532.2910039445466,
+      470.9853841145833
+     ],
+     [
+      578.5548711320465,
+      -22.356201171874886,
+      320.14550197227345,
+      198.96875
+     ],
+     [
+      561.0910039445465,
+      182.276611328125,
+      337.60936915977345,
+      168.12338867187492
+     ],
+     [
+      605.7215377987131,
+      369.5999999999999,
+      361.06770833333337,
+      160.80000000000004
+     ]
+    ],
+    "structure_slot": 0,
+    "events": [
+     [
+      "press",
+      275.7455019722733,
+      33.22023274739582
+     ],
+     [
+      "motion",
+      750.1486211320465,
+      466.0799999999999
+     ],
+     [
+      "release",
+      750.1486211320465,
+      466.0799999999999
+     ]
+    ]
+   },
+   {
+    "action": 6,
+    "slots": [
+     [
+      9.600000000000001,
+      9.600000000000023,
+      527.3806308823531,
+      520.8
+     ],
+     [
+      646.1263512254902,
+      -22.332546657986086,
+      304.27364877450975,
+      198.96875000000006
+     ],
+     [
+      628.6624840379902,
+      182.2766113281251,
+      321.73751596200975,
+      168.1470431857638
+     ],
+     [
+      700.1263512254902,
+      369.62365451388894,
+      250.27364877450975,
+      111.03269314236107
+     ]
+    ],
+    "structure_slot": 3,
+    "events": [
+     [
+      "press",
+      798.263175612745,
+      77.15182834201394
+     ],
+     [
+      "motion",
+      799.263175612745,
+      78.15182834201394
+     ],
+     [
+      "motion",
+      800.263175612745,
+      77.15182834201394
+     ],
+     [
+      "release",
+      800.263175612745,
+      77.15182834201394
+     ]
+    ]
+   }
+  ],
+  "settings": "gui/canvas/drag_rotate_swap/settings.after.toml"
+ },
+ "mdatk": {
+  "expected": {
+   "p.mdatk.toml": "gui/canvas/drag_rotate_swap/mdatk/p.mdatk.toml"
+  }
+ }
+}

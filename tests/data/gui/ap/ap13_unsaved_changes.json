@@ -1,0 +1,157 @@
+{
+ "format": "mdbridge-gui-case",
+ "version": 1,
+ "description": "New, Open and closing with unsaved changes ask first",
+ "source": "MDATK v0.0.4.1's GTK window driven by tests/parity/make_gui_cases.py, with MDBridge's window improvements (tests/parity/improvements_gui.py)",
+ "clock": "2026-11-25T12:00:00",
+ "items": [
+  "AP-13",
+  "D6"
+ ],
+ "mdatk_test": "",
+ "needs": [
+  "answers",
+  "close",
+  "lossless",
+  "new",
+  "snapshot",
+  "start"
+ ],
+ "canvas": {
+  "width": 960,
+  "height": 540
+ },
+ "files": {
+  "other.mdatk.toml": "gui/ap/ap13_unsaved_changes/in/other.mdatk.toml",
+  "p.mdatk.toml": "gui/ap/ap13_unsaved_changes/in/p.mdatk.toml"
+ },
+ "start": {
+  "project": "p.mdatk.toml"
+ },
+ "actions": [
+  {
+   "action": "set",
+   "key": "analyses.contacts.cutoff",
+   "value": 6.0
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "modified": true
+  },
+  {
+   "action": "new",
+   "answers": {
+    "unsaved": "cancel"
+   }
+  },
+  {
+   "action": "snapshot",
+   "keys": [
+    "analyses.contacts.cutoff"
+   ]
+  },
+  {
+   "action": "open",
+   "path": "other.mdatk.toml",
+   "answers": {
+    "unsaved": "save"
+   }
+  },
+  {
+   "action": "snapshot",
+   "keys": [
+    "notes"
+   ],
+   "modified": true
+  },
+  {
+   "action": "set",
+   "key": "notes",
+   "value": "edited after opening"
+  },
+  {
+   "action": "close",
+   "answers": {
+    "unsaved": "discard"
+   }
+  }
+ ],
+ "expected": {
+  "p.mdatk.toml": "gui/ap/ap13_unsaved_changes/out/p.mdatk.toml"
+ },
+ "log": [
+  "Saved project {case_dir}/p.mdatk.toml",
+  "Opened project {case_dir}/other.mdatk.toml"
+ ],
+ "outcome": {
+  "questions": [
+   {
+    "action": 2,
+    "kind": "unsaved",
+    "path": "{case_dir}/p.mdatk.toml",
+    "answer": "cancel"
+   },
+   {
+    "action": 4,
+    "kind": "unsaved",
+    "path": "{case_dir}/p.mdatk.toml",
+    "answer": "save"
+   },
+   {
+    "action": 7,
+    "kind": "unsaved",
+    "path": "{case_dir}/other.mdatk.toml",
+    "answer": "discard"
+   }
+  ],
+  "snapshots": [
+   {
+    "action": 1,
+    "modified": true
+   },
+   {
+    "action": 3,
+    "values": {
+     "analyses.contacts.cutoff": 6.0
+    }
+   },
+   {
+    "action": 5,
+    "values": {
+     "notes": "keep me"
+    },
+    "modified": false
+   }
+  ],
+  "settings": "gui/ap/ap13_unsaved_changes/settings.after.toml"
+ },
+ "mdatk": {
+  "expected": {
+   "p.mdatk.toml": null
+  },
+  "log": [
+   "New project with default settings (unsaved).",
+   "Opened project {case_dir}/other.mdatk.toml"
+  ],
+  "questions": [],
+  "snapshots": [
+   {
+    "action": 1
+   },
+   {
+    "action": 3,
+    "values": {
+     "analyses.contacts.cutoff": 4.5
+    }
+   },
+   {
+    "action": 5,
+    "values": {
+     "notes": "keep me"
+    }
+   }
+  ],
+  "settings": "gui/ap/ap13_unsaved_changes/mdatk/settings.after.toml"
+ }
+}

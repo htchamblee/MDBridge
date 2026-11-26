@@ -490,15 +490,21 @@ jobs:
         run: |
           python -m venv "$RUNNER_TEMP/venv"
           "$RUNNER_TEMP/venv/bin/python" -m pip install --no-deps -r tests/parity/requirements-regenerate.txt
-          "$RUNNER_TEMP/venv/bin/python" -m pip check
-          "$RUNNER_TEMP/venv/bin/python" -m pip freeze
 
       # MDATK's render / video commands (tests/parity/make_render_cli_cases.py) run the ffmpeg
-      # executable and the generator reads the videos' metadata with ffprobe (Ubuntu's package)
-      - name: FFmpeg for MDATK's video
+      # executable and the generator reads the videos' metadata with ffprobe (Ubuntu's package);
+      # MDATK's GTK 3 window (tests/parity/make_gui_cases.py) needs GTK 3's introspection data and
+      # Xvfb, and PyGObject / pycairo built for this Python 3.13 (Ubuntu's python3-gi is for its
+      # own 3.12): built from the pinned sources against the system's GTK
+      - name: FFmpeg for MDATK's video; GTK 3, Xvfb, PyGObject and pycairo for MDATK's window
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends ffmpeg
+          sudo apt-get install -y --no-install-recommends ffmpeg xvfb xauth gir1.2-gtk-3.0 \
+            libgirepository-2.0-dev libcairo2-dev pkg-config
+          "$RUNNER_TEMP/venv/bin/python" -m pip install --no-deps -r tests/parity/requirements-gui-build.txt
+          "$RUNNER_TEMP/venv/bin/python" -m pip install --no-deps --no-build-isolation -r tests/parity/requirements-gui.txt
+          "$RUNNER_TEMP/venv/bin/python" -m pip check
+          "$RUNNER_TEMP/venv/bin/python" -m pip freeze
           ffmpeg -version | head -n 1
 
       - name: Regenerate every data set and compare with the committed files

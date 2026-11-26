@@ -1,0 +1,44 @@
+{
+ "format": "mdbridge-gui-case",
+ "version": 1,
+ "description": "A project whose step log is in a separate file: open, save unchanged",
+ "source": "MDATK v0.0.4.1's GTK window driven by tests/parity/make_gui_cases.py, with MDBridge's window improvements (tests/parity/improvements_gui.py)",
+ "clock": "2026-11-25T12:00:00",
+ "items": [],
+ "mdatk_test": "",
+ "needs": [
+  "lossless"
+ ],
+ "canvas": {
+  "width": 960,
+  "height": 540
+ },
+ "files": {
+  "split.log.toml": "projects/split.log.toml",
+  "split.mdatk.toml": "projects/split.mdatk.toml"
+ },
+ "actions": [
+  {
+   "action": "open",
+   "path": "split.mdatk.toml"
+  },
+  {
+   "action": "save"
+  }
+ ],
+ "expected": {
+  "split.mdatk.toml": "gui/roundtrip/open_save_split/out/split.mdatk.toml"
+ },
+ "log": [
+  "Opened project {case_dir}/split.mdatk.toml",
+  "Saved project {case_dir}/split.mdatk.toml"
+ ],
+ "outcome": {
+  "settings": "gui/roundtrip/open_save_split/settings.after.toml"
+ },
+ "mdatk": {
+  "expected": {
+   "split.mdatk.toml": "gui/roundtrip/open_save_split/mdatk/split.mdatk.toml"
+  }
+ }
+}

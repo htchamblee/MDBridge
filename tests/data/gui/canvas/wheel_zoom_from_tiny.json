@@ -1,0 +1,123 @@
+{
+ "format": "mdbridge-gui-case",
+ "version": 1,
+ "description": "The wheel zooms the stored zoom, not the clamped one shown",
+ "source": "MDATK v0.0.4.1's GTK window driven by tests/parity/make_gui_cases.py, with MDBridge's window improvements (tests/parity/improvements_gui.py)",
+ "clock": "2026-11-25T12:00:00",
+ "items": [
+  "AP-01"
+ ],
+ "mdatk_test": "",
+ "needs": [
+  "canvas",
+  "lossless",
+  "snapshot",
+  "start"
+ ],
+ "canvas": {
+  "width": 960,
+  "height": 540
+ },
+ "files": {
+  "demo_dry.nc": "io/trajectories/demo_dry.nc",
+  "demo_dry.parm7": "topology/demo_dry.parm7",
+  "p.mdatk.toml": "gui/canvas/wheel_zoom_from_tiny/in/p.mdatk.toml"
+ },
+ "start": {
+  "project": "p.mdatk.toml"
+ },
+ "actions": [
+  {
+   "action": "canvas.wheel",
+   "at": {
+    "slot": 0,
+    "at": [
+     0.5,
+     0.5
+    ]
+   },
+   "notches": [
+    1
+   ]
+  },
+  {
+   "action": "snapshot",
+   "keys": [
+    "visual.zoom"
+   ]
+  },
+  {
+   "action": "save"
+  }
+ ],
+ "expected": {
+  "p.mdatk.toml": "gui/canvas/wheel_zoom_from_tiny/out/p.mdatk.toml"
+ },
+ "log": [
+  "Saved project {case_dir}/p.mdatk.toml"
+ ],
+ "outcome": {
+  "snapshots": [
+   {
+    "action": 1,
+    "values": {
+     "visual.zoom": 0.05
+    }
+   }
+  ],
+  "canvas": [
+   {
+    "action": 0,
+    "slots": [
+     [
+      9.6,
+      9.600000000000023,
+      532.2902154607502,
+      471.05634765624995
+     ],
+     [
+      561.0902154607502,
+      2.2174750434028283,
+      337.60897491787534,
+      168.1352159288195
+     ],
+     [
+      578.5540826482502,
+      157.60831705729169,
+      320.14510773037534,
+      198.96875
+     ],
+     [
+      605.7207493149168,
+      369.57634548611105,
+      361.06770833333337,
+      160.82365451388893
+     ]
+    ],
+    "structure_slot": 0,
+    "events": [
+     [
+      "scroll",
+      275.74510773037514,
+      245.128173828125,
+      1
+     ]
+    ]
+   }
+  ],
+  "settings": "gui/canvas/wheel_zoom_from_tiny/settings.after.toml"
+ },
+ "mdatk": {
+  "expected": {
+   "p.mdatk.toml": "gui/canvas/wheel_zoom_from_tiny/mdatk/p.mdatk.toml"
+  },
+  "snapshots": [
+   {
+    "action": 1,
+    "values": {
+     "visual.zoom": 0.057499999999999996
+    }
+   }
+  ]
+ }
+}

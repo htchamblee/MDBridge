@@ -943,6 +943,7 @@ its case folder and names it.
 | Folder | Content | Made by |
 |---|---|---|
 | `harness/` | `open_save_default`: the default project (`projects/default.mdatk.toml`) opened and saved unchanged, and the file MDATK v0.0.4.1 writes for that (its window's Open and Save without edits are `Project.load` + `Project.save`; checked once against the GTK window itself under Xvfb: same bytes) | `python3 -I -B tests/parity/make_gui_harness_cases.py <MDATK checkout> tests/data` |
+| `roundtrip/`, `pages/`, `ap/`, `canvas/` | MDATK's GTK window driven by action scripts with MDBridge's window fixes (next section): open / save of the projects, edits of every page, the AP items, canvas drags, swaps, wheel zoom and map moves | `python -I -B tests/parity/make_gui_cases.py <MDATK checkout> tests/data` (step `gui`) |
 
 ### gui: the per-page, AP and canvas cases (milestone 5, W0-A)
 
@@ -962,7 +963,7 @@ lacks something a case `needs` skips the case and names what is missing):
 | `clock` | always set: every case starts at `2026-11-25T12:00:00` (MDATK reads the clock once per save) |
 | `items` | ids the case covers (`AP-01`, `D8` ...; `[]`: plain parity with MDATK) |
 | `mdatk_test` | the MDATK test (`tests/test_gui.py::...`) the case mirrors, or `""` |
-| `needs` | the actions and keys of this section the case uses (`canvas`, `save_as`, `new`, `close`, `table`, `type`, `toggle`, `snapshot`, `start`, `settings`, `answers`), so a runner can skip what it does not have yet |
+| `needs` | the actions and keys of this section the case uses (`canvas`, `save_as`, `new`, `close`, `table`, `type`, `toggle`, `snapshot`, `start`, `settings`, `answers`; `open_failure` when an `open` is expected to fail), so a runner can skip what it does not have yet |
 | `canvas` | `{"width": W, "height": H}`: the figure canvas widget's size in pixels (device pixel ratio 1); the figure is drawn at `scale = min(W / video.width, H / video.height)`, `int(video.width * scale)` x `int(video.height * scale)` pixels at `video.dpi * scale`, centred |
 | `settings` | path under tests/data of `$XDG_CONFIG_HOME/mdatk/settings.toml` before the start (`{case_dir}` in it: the case folder), or absent: no such file (D16, AP-17) |
 | `start` | `{"project": name}`: the window is started with `{case_dir}/name` (as `gui PATH`), before the first action; absent: started without a project |
@@ -1006,11 +1007,12 @@ timers do not matter). A press moved at least 4 pixels (|dx| + |dy|) is a drag; 
 strip (top 12 %) of the structure panel it rotates (0.5° per pixel), in map mode it moves the map
 (Shift: rotates it), anywhere else or with Shift it moves the panel onto the slot under the release.
 
-`outcome`:
+`log` (the key above) holds MDBridge's expected log: the lines the window's log got from the start
+on (MDATK's `... ready.` line left out; `{case_dir}` for the case folder); MDATK's own under
+`mdatk.log` where they differ. `outcome`:
 
 | Key | Content |
 |---|---|
-| `log` | the lines the window's log got from the start on (MDATK's `... ready.` line left out); `{case_dir}` for the case folder |
 | `stderr` | lines printed on stderr (MDATK's start-up load warning, AP-12) |
 | `dialogs` | `{"action": k, "kind": "error" or "info", "text", "detail"}` per message dialog (`action`: index into `actions`, -1 the start) |
 | `questions` | `{"action": k, "kind": "overwrite" or "unsaved", "path", "answer"}` per question asked |
@@ -1040,6 +1042,9 @@ runs it on every push with Python 3.13, MDATK `v0.0.4.1` and the environment pin
 ```bash
 python3 tests/parity/regenerate_all.py --mdatk /tmp/mdatk --out /tmp/fresh --python /tmp/regen/bin/python
 ```
+
+The step `gui` (make_gui_cases.py) needs PyGObject and pycairo too (`tests/parity/requirements-gui.txt`,
+built against the system's GTK 3; `--gui-python` names another interpreter for it) and Xvfb.
 
 `tools/gen_data_tables.py` runs first, on the committed `data/sources/` extracts copied into the
 fresh tree (they are inputs, cut from downloads by `tools/extract_ccd.py` and

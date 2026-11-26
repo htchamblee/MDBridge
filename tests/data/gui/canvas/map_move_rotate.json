@@ -1,0 +1,964 @@
+{
+ "format": "mdbridge-gui-case",
+ "version": 1,
+ "description": "Map mode: drag moves the density map, Shift + drag rotates it",
+ "source": "MDATK v0.0.4.1's GTK window driven by tests/parity/make_gui_cases.py, with MDBridge's window improvements (tests/parity/improvements_gui.py)",
+ "clock": "2026-11-25T12:00:00",
+ "items": [],
+ "mdatk_test": "tests/test_gui.py::test_density_map_fit_shadow_and_drag",
+ "needs": [
+  "canvas",
+  "lossless",
+  "snapshot",
+  "start",
+  "toggle"
+ ],
+ "canvas": {
+  "width": 960,
+  "height": 540
+ },
+ "files": {
+  "demo_dry.nc": "io/trajectories/demo_dry.nc",
+  "demo_dry.parm7": "topology/demo_dry.parm7",
+  "map.mrc": "render/inputs/demo_dry_map.mrc",
+  "p.mdatk.toml": "gui/canvas/map_move_rotate/in/p.mdatk.toml"
+ },
+ "start": {
+  "project": "p.mdatk.toml"
+ },
+ "actions": [
+  {
+   "action": "wait"
+  },
+  {
+   "action": "click",
+   "key": "density.centre_on_model"
+  },
+  {
+   "action": "snapshot",
+   "keys": [
+    "density"
+   ],
+   "density_status": true
+  },
+  {
+   "action": "toggle",
+   "key": "density.move_with_mouse",
+   "value": true
+  },
+  {
+   "action": "canvas.drag",
+   "from": {
+    "slot": 0,
+    "at": [
+     0.5,
+     0.5
+    ]
+   },
+   "path": [
+    [
+     10,
+     0
+    ],
+    [
+     20,
+     5
+    ],
+    [
+     30,
+     10
+    ]
+   ]
+  },
+  {
+   "action": "snapshot",
+   "keys": [
+    "density.fit_info"
+   ],
+   "density_status": true
+  },
+  {
+   "action": "canvas.drag",
+   "from": {
+    "slot": 0,
+    "at": [
+     0.5,
+     0.5
+    ]
+   },
+   "path": [
+    [
+     10,
+     0
+    ],
+    [
+     20,
+     0
+    ]
+   ],
+   "shift": true
+  },
+  {
+   "action": "toggle",
+   "key": "density.move_with_mouse",
+   "value": false
+  },
+  {
+   "action": "canvas.drag",
+   "from": {
+    "slot": 0,
+    "at": [
+     0.5,
+     0.5
+    ]
+   },
+   "path": [
+    [
+     0,
+     20
+    ]
+   ]
+  },
+  {
+   "action": "snapshot",
+   "keys": [
+    "visual.rotation",
+    "density"
+   ]
+  },
+  {
+   "action": "save"
+  },
+  {
+   "action": "click",
+   "key": "density.clear"
+  },
+  {
+   "action": "snapshot",
+   "keys": [
+    "density"
+   ],
+   "density_status": true
+  }
+ ],
+ "expected": {
+  "p.mdatk.toml": "gui/canvas/map_move_rotate/out/p.mdatk.toml"
+ },
+ "log": [
+  "--- Loading preview ---",
+  "Reference frame loaded: 24 residues (raw files).",
+  "Saved project {case_dir}/p.mdatk.toml"
+ ],
+ "outcome": {
+  "snapshots": [
+   {
+    "action": 2,
+    "values": {
+     "density": {
+      "map_path": "map.mrc",
+      "show": true,
+      "resolution": 6.0,
+      "level": 2.0,
+      "color": "#2a78d6",
+      "opacity": 0.45,
+      "front": false,
+      "fit_frame": "ref",
+      "search": "global",
+      "angular_step": 30.0,
+      "auto_fit": true,
+      "transform": [
+       1.0,
+       0.0,
+       0.0,
+       0.0,
+       1.0,
+       0.0,
+       0.0,
+       0.0,
+       1.0,
+       0.00291,
+       0.079861,
+       0.131544
+      ],
+      "anchor": [
+       [
+        15.474,
+        23.372,
+        15.184
+       ],
+       [
+        17.484,
+        17.764,
+        18.133
+       ],
+       [
+        19.807,
+        16.426,
+        21.028
+       ],
+       [
+        25.836,
+        15.906,
+        24.098
+       ],
+       [
+        27.945,
+        17.225,
+        27.215
+       ],
+       [
+        30.152,
+        20.755,
+        30.18
+       ],
+       [
+        29.649,
+        26.676,
+        33.209
+       ],
+       [
+        28.113,
+        28.723,
+        36.104
+       ],
+       [
+        22.888,
+        30.773,
+        39.113
+       ],
+       [
+        18.571,
+        29.46,
+        42.177
+       ],
+       [
+        16.669,
+        27.26,
+        45.053
+       ],
+       [
+        15.542,
+        23.337,
+        48.33
+       ],
+       [
+        30.602,
+        21.577,
+        46.542
+       ],
+       [
+        28.296,
+        17.811,
+        43.36
+       ],
+       [
+        26.317,
+        16.634,
+        40.625
+       ],
+       [
+        22.105,
+        15.769,
+        37.793
+       ],
+       [
+        16.631,
+        18.494,
+        34.434
+       ],
+       [
+        15.696,
+        20.764,
+        31.358
+       ],
+       [
+        16.033,
+        26.663,
+        28.33
+       ],
+       [
+        19.208,
+        29.644,
+        25.541
+       ],
+       [
+        21.709,
+        30.726,
+        22.526
+       ],
+       [
+        27.437,
+        29.253,
+        19.693
+       ],
+       [
+        29.172,
+        27.473,
+        16.448
+       ],
+       [
+        30.5,
+        21.637,
+        13.503
+       ]
+      ],
+      "fit_cc": 0.0,
+      "fit_info": "Centred on the model (not fitted)."
+     }
+    },
+    "density_status": "Centred on the model (not fitted)."
+   },
+   {
+    "action": 5,
+    "values": {
+     "density.fit_info": "Placed by hand (not fitted) - 'Refine' fits from here."
+    },
+    "density_status": "Placed by hand (not fitted) - 'Refine' fits from here."
+   },
+   {
+    "action": 9,
+    "values": {
+     "visual.rotation": [
+      10.0,
+      0.0,
+      0.0
+     ],
+     "density": {
+      "map_path": "map.mrc",
+      "show": true,
+      "resolution": 6.0,
+      "level": 2.0,
+      "color": "#2a78d6",
+      "opacity": 0.45,
+      "front": false,
+      "fit_frame": "ref",
+      "search": "global",
+      "angular_step": 30.0,
+      "auto_fit": true,
+      "transform": [
+       0.984808,
+       0.0,
+       -0.173648,
+       0.0,
+       1.0,
+       0.0,
+       0.173648,
+       0.0,
+       0.984808,
+       3.070859,
+       0.971863,
+       -3.85747
+      ],
+      "anchor": [
+       [
+        15.474,
+        23.372,
+        15.184
+       ],
+       [
+        17.484,
+        17.764,
+        18.133
+       ],
+       [
+        19.807,
+        16.426,
+        21.028
+       ],
+       [
+        25.836,
+        15.906,
+        24.098
+       ],
+       [
+        27.945,
+        17.225,
+        27.215
+       ],
+       [
+        30.152,
+        20.755,
+        30.18
+       ],
+       [
+        29.649,
+        26.676,
+        33.209
+       ],
+       [
+        28.113,
+        28.723,
+        36.104
+       ],
+       [
+        22.888,
+        30.773,
+        39.113
+       ],
+       [
+        18.571,
+        29.46,
+        42.177
+       ],
+       [
+        16.669,
+        27.26,
+        45.053
+       ],
+       [
+        15.542,
+        23.337,
+        48.33
+       ],
+       [
+        30.602,
+        21.577,
+        46.542
+       ],
+       [
+        28.296,
+        17.811,
+        43.36
+       ],
+       [
+        26.317,
+        16.634,
+        40.625
+       ],
+       [
+        22.105,
+        15.769,
+        37.793
+       ],
+       [
+        16.631,
+        18.494,
+        34.434
+       ],
+       [
+        15.696,
+        20.764,
+        31.358
+       ],
+       [
+        16.033,
+        26.663,
+        28.33
+       ],
+       [
+        19.208,
+        29.644,
+        25.541
+       ],
+       [
+        21.709,
+        30.726,
+        22.526
+       ],
+       [
+        27.437,
+        29.253,
+        19.693
+       ],
+       [
+        29.172,
+        27.473,
+        16.448
+       ],
+       [
+        30.5,
+        21.637,
+        13.503
+       ]
+      ],
+      "fit_cc": 0.0,
+      "fit_info": "Placed by hand (not fitted) - 'Refine' fits from here."
+     }
+    }
+   },
+   {
+    "action": 12,
+    "values": {
+     "density": {
+      "map_path": "map.mrc",
+      "show": true,
+      "resolution": 6.0,
+      "level": 2.0,
+      "color": "#2a78d6",
+      "opacity": 0.45,
+      "front": false,
+      "fit_frame": "ref",
+      "search": "global",
+      "angular_step": 30.0,
+      "auto_fit": true,
+      "transform": [],
+      "anchor": [],
+      "fit_cc": 0.0,
+      "fit_info": ""
+     }
+    },
+    "density_status": "Not placed yet: run a global search, or centre it and move it by hand."
+   }
+  ],
+  "canvas": [
+   {
+    "action": 4,
+    "slots": [
+     [
+      9.6,
+      9.600000000000023,
+      940.8,
+      520.8
+     ]
+    ],
+    "structure_slot": 0,
+    "events": [
+     [
+      "press",
+      480.0,
+      270.0
+     ],
+     [
+      "motion",
+      490.0,
+      270.0
+     ],
+     [
+      "motion",
+      500.0,
+      275.0
+     ],
+     [
+      "motion",
+      510.0,
+      280.0
+     ],
+     [
+      "release",
+      510.0,
+      280.0
+     ]
+    ]
+   },
+   {
+    "action": 6,
+    "slots": [
+     [
+      9.6,
+      9.600000000000023,
+      940.8,
+      520.8
+     ]
+    ],
+    "structure_slot": 0,
+    "events": [
+     [
+      "press",
+      480.0,
+      270.0
+     ],
+     [
+      "motion",
+      490.0,
+      270.0
+     ],
+     [
+      "motion",
+      500.0,
+      270.0
+     ],
+     [
+      "release",
+      500.0,
+      270.0
+     ]
+    ]
+   },
+   {
+    "action": 8,
+    "slots": [
+     [
+      9.6,
+      9.600000000000023,
+      940.8,
+      520.8
+     ]
+    ],
+    "structure_slot": 0,
+    "events": [
+     [
+      "press",
+      480.0,
+      270.0
+     ],
+     [
+      "motion",
+      480.0,
+      290.0
+     ],
+     [
+      "release",
+      480.0,
+      290.0
+     ]
+    ]
+   }
+  ],
+  "settings": "gui/canvas/map_move_rotate/settings.after.toml"
+ },
+ "mdatk": {
+  "expected": {
+   "p.mdatk.toml": "gui/canvas/map_move_rotate/mdatk/p.mdatk.toml"
+  },
+  "snapshots": [
+   {
+    "action": 2,
+    "values": {
+     "density": {
+      "map_path": "{case_dir}/map.mrc",
+      "show": true,
+      "resolution": 6.0,
+      "level": 2.0,
+      "color": "#2a78d6",
+      "opacity": 0.45,
+      "front": false,
+      "fit_frame": "ref",
+      "search": "global",
+      "angular_step": 30.0,
+      "auto_fit": true,
+      "transform": [
+       1.0,
+       0.0,
+       0.0,
+       0.0,
+       1.0,
+       0.0,
+       0.0,
+       0.0,
+       1.0,
+       0.00291,
+       0.079861,
+       0.131544
+      ],
+      "anchor": [
+       [
+        15.474,
+        23.372,
+        15.184
+       ],
+       [
+        17.484,
+        17.764,
+        18.133
+       ],
+       [
+        19.807,
+        16.426,
+        21.028
+       ],
+       [
+        25.836,
+        15.906,
+        24.098
+       ],
+       [
+        27.945,
+        17.225,
+        27.215
+       ],
+       [
+        30.152,
+        20.755,
+        30.18
+       ],
+       [
+        29.649,
+        26.676,
+        33.209
+       ],
+       [
+        28.113,
+        28.723,
+        36.104
+       ],
+       [
+        22.888,
+        30.773,
+        39.113
+       ],
+       [
+        18.571,
+        29.46,
+        42.177
+       ],
+       [
+        16.669,
+        27.26,
+        45.053
+       ],
+       [
+        15.542,
+        23.337,
+        48.33
+       ],
+       [
+        30.602,
+        21.577,
+        46.542
+       ],
+       [
+        28.296,
+        17.811,
+        43.36
+       ],
+       [
+        26.317,
+        16.634,
+        40.625
+       ],
+       [
+        22.105,
+        15.769,
+        37.793
+       ],
+       [
+        16.631,
+        18.494,
+        34.434
+       ],
+       [
+        15.696,
+        20.764,
+        31.358
+       ],
+       [
+        16.033,
+        26.663,
+        28.33
+       ],
+       [
+        19.208,
+        29.644,
+        25.541
+       ],
+       [
+        21.709,
+        30.726,
+        22.526
+       ],
+       [
+        27.437,
+        29.253,
+        19.693
+       ],
+       [
+        29.172,
+        27.473,
+        16.448
+       ],
+       [
+        30.5,
+        21.637,
+        13.503
+       ]
+      ],
+      "fit_cc": 0.0,
+      "fit_info": "Centred on the model (not fitted)."
+     }
+    },
+    "density_status": "Centred on the model (not fitted)."
+   },
+   {
+    "action": 5,
+    "values": {
+     "density.fit_info": "Placed by hand (not fitted) - 'Refine' fits from here."
+    },
+    "density_status": "Placed by hand (not fitted) - 'Refine' fits from here."
+   },
+   {
+    "action": 9,
+    "values": {
+     "visual.rotation": [
+      10.0,
+      0.0,
+      0.0
+     ],
+     "density": {
+      "map_path": "{case_dir}/map.mrc",
+      "show": true,
+      "resolution": 6.0,
+      "level": 2.0,
+      "color": "#2a78d6",
+      "opacity": 0.45,
+      "front": false,
+      "fit_frame": "ref",
+      "search": "global",
+      "angular_step": 30.0,
+      "auto_fit": true,
+      "transform": [
+       0.984808,
+       0.0,
+       -0.173648,
+       0.0,
+       1.0,
+       0.0,
+       0.173648,
+       0.0,
+       0.984808,
+       3.070859,
+       0.971863,
+       -3.85747
+      ],
+      "anchor": [
+       [
+        15.474,
+        23.372,
+        15.184
+       ],
+       [
+        17.484,
+        17.764,
+        18.133
+       ],
+       [
+        19.807,
+        16.426,
+        21.028
+       ],
+       [
+        25.836,
+        15.906,
+        24.098
+       ],
+       [
+        27.945,
+        17.225,
+        27.215
+       ],
+       [
+        30.152,
+        20.755,
+        30.18
+       ],
+       [
+        29.649,
+        26.676,
+        33.209
+       ],
+       [
+        28.113,
+        28.723,
+        36.104
+       ],
+       [
+        22.888,
+        30.773,
+        39.113
+       ],
+       [
+        18.571,
+        29.46,
+        42.177
+       ],
+       [
+        16.669,
+        27.26,
+        45.053
+       ],
+       [
+        15.542,
+        23.337,
+        48.33
+       ],
+       [
+        30.602,
+        21.577,
+        46.542
+       ],
+       [
+        28.296,
+        17.811,
+        43.36
+       ],
+       [
+        26.317,
+        16.634,
+        40.625
+       ],
+       [
+        22.105,
+        15.769,
+        37.793
+       ],
+       [
+        16.631,
+        18.494,
+        34.434
+       ],
+       [
+        15.696,
+        20.764,
+        31.358
+       ],
+       [
+        16.033,
+        26.663,
+        28.33
+       ],
+       [
+        19.208,
+        29.644,
+        25.541
+       ],
+       [
+        21.709,
+        30.726,
+        22.526
+       ],
+       [
+        27.437,
+        29.253,
+        19.693
+       ],
+       [
+        29.172,
+        27.473,
+        16.448
+       ],
+       [
+        30.5,
+        21.637,
+        13.503
+       ]
+      ],
+      "fit_cc": 0.0,
+      "fit_info": "Placed by hand (not fitted) - 'Refine' fits from here."
+     }
+    }
+   },
+   {
+    "action": 12,
+    "values": {
+     "density": {
+      "map_path": "{case_dir}/map.mrc",
+      "show": true,
+      "resolution": 6.0,
+      "level": 2.0,
+      "color": "#2a78d6",
+      "opacity": 0.45,
+      "front": false,
+      "fit_frame": "ref",
+      "search": "global",
+      "angular_step": 30.0,
+      "auto_fit": true,
+      "transform": [],
+      "anchor": [],
+      "fit_cc": 0.0,
+      "fit_info": ""
+     }
+    },
+    "density_status": "Not placed yet: run a global search, or centre it and move it by hand."
+   }
+  ]
+ }
+}

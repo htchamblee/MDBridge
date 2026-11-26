@@ -202,6 +202,17 @@ GuiCase loadCase(const fs::path& file, const fs::path& casesDir) {
     if (!actions || !actions->isArray()) {
         throw CaseError(where + ": 'actions' must be an array");
     }
+    if (const core::Value* needs = root.find("needs")) {
+        if (!needs->isArray()) {
+            throw CaseError(where + ": 'needs' must be an array of strings");
+        }
+        for (const core::Value& need : *needs->get<core::Array>()) {
+            if (!need.isString()) {
+                throw CaseError(where + ": 'needs' must be an array of strings");
+            }
+            c.needs.push_back(need.stringOr());
+        }
+    }
     c.actions = *actions->get<core::Array>();
     for (std::size_t k = 0; k < c.actions.size(); ++k) {
         if (!c.actions[k].isTable() || !c.actions[k].find("action") || !c.actions[k].find("action")->isString()) {
@@ -209,6 +220,17 @@ GuiCase loadCase(const fs::path& file, const fs::path& casesDir) {
         }
     }
     return c;
+}
+
+std::vector<std::string> unsupportedNeeds(const GuiCase& c) {
+    static const std::vector<std::string> supported;  // grows as the window and this runner do
+    std::vector<std::string> out;
+    for (const std::string& need : c.needs) {
+        if (std::find(supported.begin(), supported.end(), need) == supported.end()) {
+            out.push_back(need);
+        }
+    }
+    return out;
 }
 
 FixedClock::FixedClock(const core::DateTime& start) {

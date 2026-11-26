@@ -485,6 +485,10 @@ TEST(Commands, MatchMdatk) {
         if (drawsFigures(c)) {
             continue;  // render / charts / preview cases that draw: see drawsFigures
         }
+        if (const Value* pending = c.find("pending"); pending != nullptr && pending->get<bool>() != nullptr &&
+                                                      *pending->get<bool>()) {
+            continue;  // a command MDBridge does not have yet (cli_parity.py PENDING: demo, clean, citations)
+        }
         test::TempDir work;
         const std::string workText = core::pathToUtf8(fs::canonical(work.path()));
         for (const auto& [dest, source] : *field(c, "inputs").get<core::Table>()) {

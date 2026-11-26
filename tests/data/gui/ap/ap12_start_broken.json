@@ -1,0 +1,52 @@
+{
+ "format": "mdbridge-gui-case",
+ "version": 1,
+ "description": "The window started with a project that does not load",
+ "source": "MDATK v0.0.4.1's GTK window driven by tests/parity/make_gui_cases.py, with MDBridge's window improvements (tests/parity/improvements_gui.py)",
+ "clock": "2026-11-25T12:00:00",
+ "items": [
+  "AP-12"
+ ],
+ "mdatk_test": "",
+ "needs": [
+  "answers",
+  "start"
+ ],
+ "canvas": {
+  "width": 960,
+  "height": 540
+ },
+ "files": {
+  "broken.mdatk.toml": "projects/broken.mdatk.toml"
+ },
+ "start": {
+  "project": "broken.mdatk.toml"
+ },
+ "actions": [
+  {
+   "action": "save",
+   "answers": {
+    "name": "fresh"
+   }
+  }
+ ],
+ "expected": {
+  "fresh.mdatk.toml": "gui/ap/ap12_start_broken/out/fresh.mdatk.toml"
+ },
+ "log": [
+  "ERROR: Could not open {case_dir}/broken.mdatk.toml: {case_dir}/broken.mdatk.toml: not valid TOML: Illegal character '\\n' (at line 2, column 22)",
+  "These are the default settings instead (unsaved).",
+  "Saved project {case_dir}/fresh.mdatk.toml"
+ ],
+ "outcome": {
+  "stderr": [
+   "warning: could not load {case_dir}/broken.mdatk.toml: {case_dir}/broken.mdatk.toml: not valid TOML: Illegal character '\\n' (at line 2, column 22)"
+  ],
+  "settings": "gui/ap/ap12_start_broken/settings.after.toml"
+ },
+ "mdatk": {
+  "log": [
+   "Saved project {case_dir}/fresh.mdatk.toml"
+  ]
+ }
+}

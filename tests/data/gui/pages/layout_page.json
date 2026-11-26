@@ -1,0 +1,556 @@
+{
+ "format": "mdbridge-gui-case",
+ "version": 1,
+ "description": "Layout & panels: preset, slot types, data, groups, titles, more keys, options",
+ "source": "MDATK v0.0.4.1's GTK window driven by tests/parity/make_gui_cases.py, with MDBridge's window improvements (tests/parity/improvements_gui.py)",
+ "clock": "2026-11-25T12:00:00",
+ "items": [
+  "AP-07"
+ ],
+ "mdatk_test": "tests/test_gui.py::test_panel_group_dropdowns_and_auto_title",
+ "needs": [
+  "lossless",
+  "snapshot",
+  "start",
+  "type"
+ ],
+ "canvas": {
+  "width": 960,
+  "height": 540
+ },
+ "files": {
+  "p.mdatk.toml": "projects/default.mdatk.toml"
+ },
+ "start": {
+  "project": "p.mdatk.toml"
+ },
+ "actions": [
+  {
+   "action": "set",
+   "key": "layout.preset",
+   "value": "equal_4"
+  },
+  {
+   "action": "set",
+   "key": "layout.panels.1.type",
+   "value": "timeseries"
+  },
+  {
+   "action": "set",
+   "key": "layout.panels.1.data",
+   "value": "contacts/atom_pairs"
+  },
+  {
+   "action": "set",
+   "key": "layout.panels.1.group_a",
+   "value": "Target"
+  },
+  {
+   "action": "set",
+   "key": "layout.panels.1.group_b",
+   "value": "Aptamer"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "slots": true
+  },
+  {
+   "action": "type",
+   "key": "layout.panels.1.title",
+   "text": "My title"
+  },
+  {
+   "action": "set",
+   "key": "layout.panels.1.group_b",
+   "value": ""
+  },
+  {
+   "action": "set",
+   "key": "layout.panels.2.type",
+   "value": "secondary"
+  },
+  {
+   "action": "set",
+   "key": "layout.panels.3.type",
+   "value": "heatmap"
+  },
+  {
+   "action": "type",
+   "key": "layout.panels.3.options",
+   "text": "{\"max_ticks\": 5}"
+  },
+  {
+   "action": "type",
+   "key": "layout.panels.3.more",
+   "text": "hbonds/count"
+  },
+  {
+   "action": "snapshot",
+   "keys": [
+    "layout"
+   ],
+   "slots": true
+  },
+  {
+   "action": "save"
+  }
+ ],
+ "expected": {
+  "p.mdatk.toml": "gui/pages/layout_page/out/p.mdatk.toml"
+ },
+ "log": [
+  "Saved project {case_dir}/p.mdatk.toml"
+ ],
+ "outcome": {
+  "snapshots": [
+   {
+    "action": 5,
+    "slots": [
+     {
+      "frame": "Slot 1",
+      "type": "structure",
+      "data": null,
+      "choices": [],
+      "group_a": "",
+      "group_b": "",
+      "group_a_enabled": false,
+      "group_b_enabled": false,
+      "more": "",
+      "title": "Structure",
+      "options": ""
+     },
+     {
+      "frame": "Slot 2",
+      "type": "timeseries",
+      "data": "contacts/atom_pairs",
+      "choices": [
+       [
+        "contacts/atom_pairs",
+        "Aptamer–Target heavy-atom contacts   [contacts/atom_pairs]"
+       ],
+       [
+        "contacts/residue_pairs",
+        "Aptamer–Target residue contacts   [contacts/residue_pairs]"
+       ],
+       [
+        "contacts/q_native",
+        "Aptamer–Target fraction of native contacts (Q)   [contacts/q_native]"
+       ],
+       [
+        "energy/total",
+        "Aptamer–Target interaction energy   [energy/total]"
+       ],
+       [
+        "energy/elec",
+        "Aptamer–Target electrostatic energy   [energy/elec]"
+       ],
+       [
+        "energy/vdw",
+        "Aptamer–Target van der Waals energy   [energy/vdw]"
+       ],
+       [
+        "energy/net_force",
+        "Net force of Target on Aptamer   [energy/net_force]"
+       ],
+       [
+        "hbonds/count",
+        "Aptamer–Target H-bonds   [hbonds/count]"
+       ],
+       [
+        "mg/contacts",
+        "Mg–O inner-sphere contacts   [mg/contacts]"
+       ],
+       [
+        "mg/outer_contacts",
+        "Mg–O outer-sphere contacts   [mg/outer_contacts]"
+       ],
+       [
+        "mg/bridges",
+        "O–Mg–O bridges   [mg/bridges]"
+       ],
+       [
+        "mg/inter_bridges",
+        "Aptamer–Mg–Target bridges   [mg/inter_bridges]"
+       ],
+       [
+        "mg/bridging_ions",
+        "Bridging Mg ions (Aptamer–Target)   [mg/bridging_ions]"
+       ],
+       [
+        "mg/inner_residues",
+        "Residues with inner-sphere Mg   [mg/inner_residues]"
+       ],
+       [
+        "rmsd/Complex",
+        "RMSD Complex   [rmsd/Complex]"
+       ],
+       [
+        "rmsd/Backbone",
+        "RMSD Backbone   [rmsd/Backbone]"
+       ],
+       [
+        "stacking/count",
+        "π–π stacked pairs   [stacking/count]"
+       ],
+       [
+        "stacking/inter",
+        "Aptamer–Target stacked pairs   [stacking/inter]"
+       ],
+       [
+        "stacking/intra",
+        "Intra-group stacked pairs   [stacking/intra]"
+       ],
+       [
+        "basepairs/count",
+        "Base pairs   [basepairs/count]"
+       ]
+      ],
+      "group_a": "Target",
+      "group_b": "Aptamer",
+      "group_a_enabled": true,
+      "group_b_enabled": true,
+      "more": "",
+      "title": "Target–Aptamer heavy-atom contacts",
+      "options": ""
+     },
+     {
+      "frame": "Slot 3",
+      "type": "timeseries",
+      "data": "hbonds/count",
+      "choices": [
+       [
+        "contacts/atom_pairs",
+        "Aptamer–Target heavy-atom contacts   [contacts/atom_pairs]"
+       ],
+       [
+        "contacts/residue_pairs",
+        "Aptamer–Target residue contacts   [contacts/residue_pairs]"
+       ],
+       [
+        "contacts/q_native",
+        "Aptamer–Target fraction of native contacts (Q)   [contacts/q_native]"
+       ],
+       [
+        "energy/total",
+        "Aptamer–Target interaction energy   [energy/total]"
+       ],
+       [
+        "energy/elec",
+        "Aptamer–Target electrostatic energy   [energy/elec]"
+       ],
+       [
+        "energy/vdw",
+        "Aptamer–Target van der Waals energy   [energy/vdw]"
+       ],
+       [
+        "energy/net_force",
+        "Net force of Target on Aptamer   [energy/net_force]"
+       ],
+       [
+        "hbonds/count",
+        "Aptamer–Target H-bonds   [hbonds/count]"
+       ],
+       [
+        "mg/contacts",
+        "Mg–O inner-sphere contacts   [mg/contacts]"
+       ],
+       [
+        "mg/outer_contacts",
+        "Mg–O outer-sphere contacts   [mg/outer_contacts]"
+       ],
+       [
+        "mg/bridges",
+        "O–Mg–O bridges   [mg/bridges]"
+       ],
+       [
+        "mg/inter_bridges",
+        "Aptamer–Mg–Target bridges   [mg/inter_bridges]"
+       ],
+       [
+        "mg/bridging_ions",
+        "Bridging Mg ions (Aptamer–Target)   [mg/bridging_ions]"
+       ],
+       [
+        "mg/inner_residues",
+        "Residues with inner-sphere Mg   [mg/inner_residues]"
+       ],
+       [
+        "rmsd/Complex",
+        "RMSD Complex   [rmsd/Complex]"
+       ],
+       [
+        "rmsd/Backbone",
+        "RMSD Backbone   [rmsd/Backbone]"
+       ],
+       [
+        "stacking/count",
+        "π–π stacked pairs   [stacking/count]"
+       ],
+       [
+        "stacking/inter",
+        "Aptamer–Target stacked pairs   [stacking/inter]"
+       ],
+       [
+        "stacking/intra",
+        "Intra-group stacked pairs   [stacking/intra]"
+       ],
+       [
+        "basepairs/count",
+        "Base pairs   [basepairs/count]"
+       ]
+      ],
+      "group_a": "",
+      "group_b": "",
+      "group_a_enabled": true,
+      "group_b_enabled": true,
+      "more": "",
+      "title": "Inter-strand H-bonds",
+      "options": ""
+     },
+     {
+      "frame": "Slot 4",
+      "type": "contact_map",
+      "data": "contacts/map",
+      "choices": [
+       [
+        "contacts/map",
+        "Aptamer–Target contact map   [contacts/map]"
+       ],
+       [
+        "hbonds/map",
+        "Aptamer–Target H-bond map   [hbonds/map]"
+       ],
+       [
+        "stacking/map",
+        "Stacking map   [stacking/map]"
+       ],
+       [
+        "basepairs/map",
+        "Base pairs   [basepairs/map]"
+       ]
+      ],
+      "group_a": "",
+      "group_b": "",
+      "group_a_enabled": true,
+      "group_b_enabled": true,
+      "more": "",
+      "title": "",
+      "options": "{\"mode\": \"instant\", \"transpose\": true}"
+     }
+    ]
+   },
+   {
+    "action": 12,
+    "values": {
+     "layout": {
+      "preset": "equal_4",
+      "panels": [
+       {
+        "type": "structure",
+        "series": [],
+        "title": "Structure",
+        "options": {}
+       },
+       {
+        "type": "timeseries",
+        "series": [
+         "contacts@Target+Target/atom_pairs"
+        ],
+        "title": "My title",
+        "options": {}
+       },
+       {
+        "type": "secondary",
+        "series": [],
+        "title": "",
+        "options": {
+         "source": "dynamic",
+         "residues": "",
+         "dotbracket": ""
+        }
+       },
+       {
+        "type": "heatmap",
+        "series": [
+         "contacts/per_residue_a",
+         "hbonds/count"
+        ],
+        "title": "Aptamer residue contacts with Target",
+        "options": {
+         "max_ticks": 5
+        }
+       }
+      ]
+     }
+    },
+    "slots": [
+     {
+      "frame": "Slot 1",
+      "type": "structure",
+      "data": null,
+      "choices": [],
+      "group_a": "",
+      "group_b": "",
+      "group_a_enabled": false,
+      "group_b_enabled": false,
+      "more": "",
+      "title": "Structure",
+      "options": ""
+     },
+     {
+      "frame": "Slot 2",
+      "type": "timeseries",
+      "data": "contacts/atom_pairs",
+      "choices": [
+       [
+        "contacts/atom_pairs",
+        "Aptamer–Target heavy-atom contacts   [contacts/atom_pairs]"
+       ],
+       [
+        "contacts/residue_pairs",
+        "Aptamer–Target residue contacts   [contacts/residue_pairs]"
+       ],
+       [
+        "contacts/q_native",
+        "Aptamer–Target fraction of native contacts (Q)   [contacts/q_native]"
+       ],
+       [
+        "energy/total",
+        "Aptamer–Target interaction energy   [energy/total]"
+       ],
+       [
+        "energy/elec",
+        "Aptamer–Target electrostatic energy   [energy/elec]"
+       ],
+       [
+        "energy/vdw",
+        "Aptamer–Target van der Waals energy   [energy/vdw]"
+       ],
+       [
+        "energy/net_force",
+        "Net force of Target on Aptamer   [energy/net_force]"
+       ],
+       [
+        "hbonds/count",
+        "Aptamer–Target H-bonds   [hbonds/count]"
+       ],
+       [
+        "mg/contacts",
+        "Mg–O inner-sphere contacts   [mg/contacts]"
+       ],
+       [
+        "mg/outer_contacts",
+        "Mg–O outer-sphere contacts   [mg/outer_contacts]"
+       ],
+       [
+        "mg/bridges",
+        "O–Mg–O bridges   [mg/bridges]"
+       ],
+       [
+        "mg/inter_bridges",
+        "Aptamer–Mg–Target bridges   [mg/inter_bridges]"
+       ],
+       [
+        "mg/bridging_ions",
+        "Bridging Mg ions (Aptamer–Target)   [mg/bridging_ions]"
+       ],
+       [
+        "mg/inner_residues",
+        "Residues with inner-sphere Mg   [mg/inner_residues]"
+       ],
+       [
+        "rmsd/Complex",
+        "RMSD Complex   [rmsd/Complex]"
+       ],
+       [
+        "rmsd/Backbone",
+        "RMSD Backbone   [rmsd/Backbone]"
+       ],
+       [
+        "stacking/count",
+        "π–π stacked pairs   [stacking/count]"
+       ],
+       [
+        "stacking/inter",
+        "Aptamer–Target stacked pairs   [stacking/inter]"
+       ],
+       [
+        "stacking/intra",
+        "Intra-group stacked pairs   [stacking/intra]"
+       ],
+       [
+        "basepairs/count",
+        "Base pairs   [basepairs/count]"
+       ]
+      ],
+      "group_a": "Target",
+      "group_b": "",
+      "group_a_enabled": true,
+      "group_b_enabled": true,
+      "more": "",
+      "title": "My title",
+      "options": ""
+     },
+     {
+      "frame": "Slot 3",
+      "type": "secondary",
+      "data": null,
+      "choices": [],
+      "group_a": "",
+      "group_b": "",
+      "group_a_enabled": false,
+      "group_b_enabled": false,
+      "more": "",
+      "title": "",
+      "options": "{\"source\": \"dynamic\", \"residues\": \"\", \"dotbracket\": \"\"}"
+     },
+     {
+      "frame": "Slot 4",
+      "type": "heatmap",
+      "data": "contacts/per_residue_a",
+      "choices": [
+       [
+        "contacts/per_residue_a",
+        "Aptamer residue contacts with Target   [contacts/per_residue_a]"
+       ],
+       [
+        "contacts/per_residue_b",
+        "Target residue contacts with Aptamer   [contacts/per_residue_b]"
+       ],
+       [
+        "hbonds/per_residue_a",
+        "Aptamer residue H-bonds   [hbonds/per_residue_a]"
+       ],
+       [
+        "hbonds/per_residue_b",
+        "Target residue H-bonds   [hbonds/per_residue_b]"
+       ],
+       [
+        "mg/occupancy",
+        "Mg occupancy   [mg/occupancy]"
+       ],
+       [
+        "proximity/min_distance",
+        "Proximity to residue set: min_distance   [proximity/min_distance]"
+       ]
+      ],
+      "group_a": "",
+      "group_b": "",
+      "group_a_enabled": true,
+      "group_b_enabled": true,
+      "more": "hbonds/count",
+      "title": "Aptamer residue contacts with Target",
+      "options": "{\"max_ticks\": 5}"
+     }
+    ]
+   }
+  ],
+  "settings": "gui/pages/layout_page/settings.after.toml"
+ },
+ "mdatk": {
+  "expected": {
+   "p.mdatk.toml": "gui/pages/layout_page/mdatk/p.mdatk.toml"
+  }
+ }
+}

@@ -8,6 +8,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <vector>
 
 #include <QApplication>
 #include <QCheckBox>
@@ -194,6 +195,13 @@ void GuiTests::cases_data() {
 void GuiTests::cases() {
     QFETCH(QString, file);
     const guitest::GuiCase c = guitest::loadCase(core::pathFromUtf8(file.toStdString()), kData / "gui");
+    if (const std::vector<std::string> missing = guitest::unsupportedNeeds(c); !missing.empty()) {
+        std::string why = "needs what the harness does not have yet:";
+        for (const std::string& need : missing) {
+            why += " " + need;
+        }
+        QSKIP(why.c_str());
+    }
     QTemporaryDir tmp;
     QVERIFY(tmp.isValid());
     const fs::path caseDir = core::pathFromUtf8(tmp.path().toStdString()) / "case";

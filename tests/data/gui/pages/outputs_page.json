@@ -1,0 +1,169 @@
+{
+ "format": "mdbridge-gui-case",
+ "version": 1,
+ "description": "Outputs: locations, video, charts, frame PDBs",
+ "source": "MDATK v0.0.4.1's GTK window driven by tests/parity/make_gui_cases.py, with MDBridge's window improvements (tests/parity/improvements_gui.py)",
+ "clock": "2026-11-25T12:00:00",
+ "items": [],
+ "mdatk_test": "",
+ "needs": [
+  "snapshot",
+  "start",
+  "type"
+ ],
+ "canvas": {
+  "width": 960,
+  "height": 540
+ },
+ "files": {
+  "p.mdatk.toml": "projects/default.mdatk.toml"
+ },
+ "start": {
+  "project": "p.mdatk.toml"
+ },
+ "actions": [
+  {
+   "action": "type",
+   "key": "output.out_dir",
+   "text": "results"
+  },
+  {
+   "action": "set",
+   "key": "output.write_params_log",
+   "value": false
+  },
+  {
+   "action": "set",
+   "key": "output.video.width",
+   "value": 1280
+  },
+  {
+   "action": "set",
+   "key": "output.video.height",
+   "value": 720
+  },
+  {
+   "action": "set",
+   "key": "output.video.fps",
+   "value": 24
+  },
+  {
+   "action": "type",
+   "key": "output.video.codec",
+   "text": "libx265"
+  },
+  {
+   "action": "set",
+   "key": "output.charts.formats",
+   "value": [
+    "png",
+    "pdf"
+   ]
+  },
+  {
+   "action": "set",
+   "key": "output.charts.width",
+   "value": 6.5
+  },
+  {
+   "action": "type",
+   "key": "output.charts.style",
+   "text": "ggplot"
+  },
+  {
+   "action": "type",
+   "key": "output.charts.color",
+   "text": "tab:green"
+  },
+  {
+   "action": "type",
+   "key": "output.charts.series",
+   "text": "rmsd/Complex, hbonds/count"
+  },
+  {
+   "action": "set",
+   "key": "output.pdb.enabled",
+   "value": true
+  },
+  {
+   "action": "type",
+   "key": "output.pdb.frames",
+   "text": "0, 10, last"
+  },
+  {
+   "action": "snapshot",
+   "keys": [
+    "output"
+   ]
+  },
+  {
+   "action": "save"
+  }
+ ],
+ "expected": {
+  "p.mdatk.toml": "gui/pages/outputs_page/out/p.mdatk.toml"
+ },
+ "log": [
+  "Saved project {case_dir}/p.mdatk.toml"
+ ],
+ "outcome": {
+  "snapshots": [
+   {
+    "action": 13,
+    "values": {
+     "output": {
+      "out_dir": "results",
+      "cache_dir": "",
+      "video": {
+       "enabled": true,
+       "filename": "MDATK_video.mp4",
+       "fps": 24,
+       "width": 1280,
+       "height": 720,
+       "dpi": 120,
+       "codec": "libx265",
+       "crf": 20,
+       "frame_stride": 1,
+       "ffmpeg_path": "ffmpeg"
+      },
+      "charts": {
+       "enabled": true,
+       "series": [
+        "rmsd/Complex",
+        "hbonds/count"
+       ],
+       "include_heatmaps": false,
+       "formats": [
+        "png",
+        "pdf"
+       ],
+       "dpi": 300,
+       "width": 6.5,
+       "height": 4.5,
+       "style": "ggplot",
+       "color": "tab:green",
+       "line_width": 1.5,
+       "title": "",
+       "xlabel": "",
+       "ylabel": "",
+       "smoothing": 0,
+       "show_target": true,
+       "prefix": "MDATK_chart"
+      },
+      "pdb": {
+       "enabled": true,
+       "frames": "0, 10, last",
+       "times": "",
+       "selection": "",
+       "prefix": "MDATK_frame"
+      },
+      "write_params_log": false,
+      "timestamp_files": true
+     }
+    }
+   }
+  ],
+  "settings": "gui/pages/outputs_page/settings.after.toml"
+ },
+ "mdatk": {}
+}

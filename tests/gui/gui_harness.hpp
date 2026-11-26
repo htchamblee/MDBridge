@@ -37,7 +37,12 @@ struct GuiCase {
     std::vector<std::pair<std::string, std::string>> files;     // case-folder name, path under the data folder
     core::Array actions;                                         // tables with "action"
     std::vector<std::pair<std::string, std::string>> expected;  // case-folder name, path under the data folder
+    std::vector<std::string> needs;                              // "needs": features beyond this harness (W0-A cases)
 };
+
+// The entries of `c.needs` this harness does not support yet (it supports none of them: a case that
+// needs any is skipped, tests/data/README.md "gui").
+std::vector<std::string> unsupportedNeeds(const GuiCase& c);
 
 // Every *.json under `dir` (recursively), sorted.
 std::vector<std::filesystem::path> findCases(const std::filesystem::path& dir);

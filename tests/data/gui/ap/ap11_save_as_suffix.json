@@ -1,0 +1,82 @@
+{
+ "format": "mdbridge-gui-case",
+ "version": 1,
+ "description": "Save as with a name typed without .mdatk.toml over an existing file",
+ "source": "MDATK v0.0.4.1's GTK window driven by tests/parity/make_gui_cases.py, with MDBridge's window improvements (tests/parity/improvements_gui.py)",
+ "clock": "2026-11-25T12:00:00",
+ "items": [
+  "AP-11"
+ ],
+ "mdatk_test": "",
+ "needs": [
+  "answers",
+  "lossless",
+  "save_as",
+  "start"
+ ],
+ "canvas": {
+  "width": 960,
+  "height": 540
+ },
+ "files": {
+  "existing.mdatk.toml": "gui/ap/ap11_save_as_suffix/in/existing.mdatk.toml",
+  "p.mdatk.toml": "gui/ap/ap11_save_as_suffix/in/p.mdatk.toml"
+ },
+ "start": {
+  "project": "p.mdatk.toml"
+ },
+ "actions": [
+  {
+   "action": "set",
+   "key": "notes",
+   "value": "new text"
+  },
+  {
+   "action": "save_as",
+   "name": "existing",
+   "answers": {
+    "overwrite": "cancel"
+   }
+  },
+  {
+   "action": "save_as",
+   "name": "existing",
+   "answers": {
+    "overwrite": "replace"
+   }
+  }
+ ],
+ "expected": {
+  "existing.mdatk.toml": "gui/ap/ap11_save_as_suffix/out/existing.mdatk.toml"
+ },
+ "log": [
+  "Saved project {case_dir}/existing.mdatk.toml"
+ ],
+ "outcome": {
+  "questions": [
+   {
+    "action": 1,
+    "kind": "overwrite",
+    "path": "{case_dir}/existing.mdatk.toml",
+    "answer": "cancel"
+   },
+   {
+    "action": 2,
+    "kind": "overwrite",
+    "path": "{case_dir}/existing.mdatk.toml",
+    "answer": "replace"
+   }
+  ],
+  "settings": "gui/ap/ap11_save_as_suffix/settings.after.toml"
+ },
+ "mdatk": {
+  "expected": {
+   "existing.mdatk.toml": "gui/ap/ap11_save_as_suffix/mdatk/existing.mdatk.toml"
+  },
+  "log": [
+   "Saved project {case_dir}/existing.mdatk.toml",
+   "Saved project {case_dir}/existing.mdatk.toml"
+  ],
+  "questions": []
+ }
+}

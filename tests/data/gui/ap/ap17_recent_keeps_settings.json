@@ -1,0 +1,45 @@
+{
+ "format": "mdbridge-gui-case",
+ "version": 1,
+ "description": "Opening a project keeps the other keys of settings.toml",
+ "source": "MDATK v0.0.4.1's GTK window driven by tests/parity/make_gui_cases.py, with MDBridge's window improvements (tests/parity/improvements_gui.py)",
+ "clock": "2026-11-25T12:00:00",
+ "items": [
+  "AP-17",
+  "D16"
+ ],
+ "mdatk_test": "",
+ "needs": [
+  "lossless",
+  "settings",
+  "start"
+ ],
+ "canvas": {
+  "width": 960,
+  "height": 540
+ },
+ "files": {
+  "other.mdatk.toml": "gui/ap/ap17_recent_keeps_settings/in/other.mdatk.toml",
+  "p.mdatk.toml": "gui/ap/ap17_recent_keeps_settings/in/p.mdatk.toml"
+ },
+ "settings": "gui/ap/ap17_recent_keeps_settings/settings.before.toml",
+ "start": {
+  "project": "p.mdatk.toml"
+ },
+ "actions": [
+  {
+   "action": "open",
+   "path": "other.mdatk.toml"
+  }
+ ],
+ "expected": {},
+ "log": [
+  "Opened project {case_dir}/other.mdatk.toml"
+ ],
+ "outcome": {
+  "settings": "gui/ap/ap17_recent_keeps_settings/settings.after.toml"
+ },
+ "mdatk": {
+  "settings": "gui/ap/ap17_recent_keeps_settings/mdatk/settings.after.toml"
+ }
+}
