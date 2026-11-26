@@ -1876,6 +1876,66 @@ Its deliberate differences from MDATK v0.0.4.1:
   since it was opened or saved (a step log appended by a run is no change). *Tested:* `RecoveryCopies`,
   `ChangedOnDisk`.
 
+## Interface: the field widgets (src/app/gui/forms; milestone 5 W0-C)
+
+MDATK's pages are GTK widgets read and written by its `Binder` (gui/widgets.py) when the project is
+loaded and collected. MDBridge's field widgets are bound to `core::ProjectDocument` by field path:
+each shows the document's value, again after every change (undo, redo, open) without making an edit,
+and stores what the user enters as one undo step (text when editing finishes: Enter, leaving the
+field, or `FormContext::commitPendingEdits()` before a save; a pick at once). The editor is named
+after its field path. Deliberate differences from MDATK v0.0.4.1:
+
+- **FW-01: no clamping, ranges as hints** (AP-01; MDATK 0.1.1 still clamps). MDATK's spin buttons
+  rewrote loaded values to their ranges (`contacts.cutoff` 25 saved as 20, `video.width` 7682 as
+  7680). A number field holds any text of the field's type; MDATK's spin range is shown in the tooltip
+  ("Usual range: 0.5 to 20 (other values are kept)") and a value outside it is flagged as a warning,
+  never changed; the arrows step by MDATK's step, rounded to its digits (4.5 + 0.1 is 4.6), and stop at
+  the range's ends but never move a value that is already outside into it. Range errors of
+  `validate()` flag the field as errors. *Tested:* test_forms.cpp `numbersAreNeverClamped`,
+  `numberArrowsStepWithinTheRangeHint`.
+- **FW-02: every digit and every colour kept** (AP-02, AP-03; not fixed in 0.1.1). Optional numbers
+  show the project writer's shortest round-trip text (MDATK's `%g` saved `dt_ps` 0.0123456789 as
+  0.0123457). Colour fields are text with a swatch and a picker (MDATK: a GTK colour button that wrote
+  `tab:orange` and `#ff000080` as `#000000`, `gold` as `#ffd700`): any text is kept as typed, the
+  swatch shows what Matplotlib's grammar (RN-12) reads, text it cannot read is flagged with its
+  message (`Invalid RGBA argument: 'x'`); only a colour picked in the dialog is written `#rrggbb`.
+  *Tested:* `optionalNumbersKeepEveryDigit`, `coloursAreKeptAsTyped`.
+- **FW-03: lists and unknown choices kept** (AP-04, AP-05). A list field keeps every entry
+  (`formats = ["jpg", "svg"]`; a page's check boxes come with W1-C). A fixed combo shows a value it
+  does not offer as `<value> (unknown)`, flags it (with `validate()`'s message where it has one, else
+  as a warning) and never replaces it, also not by the previous project's choice; picking an item
+  stores the item's project value (the item data). Free-text combos (group names, palettes, codecs)
+  keep the text as typed: no completion and no case-insensitive swap for an item. Base-pair engine and
+  renderer offer MDBridge's choices (AP-19, RN-20). *Tested:* `chartFormatsAreKeptAsAList`,
+  `unknownChoicesAreKeptAndShown`, `checkBoxesAndEditableCombos`.
+- **FW-04: form errors and problems on the field** (AP-10; flags as MDATK 0.1.1's `set_flag`, colours
+  of its `FLAG_COLORS`). Text a field cannot hold is refused with its located message (`Input &
+  cleaning › Frames › Stop: 'x' is not a whole number`), stays shown and flagged (tinted, an icon at the
+  end of line edits, the message as tooltip and accessible description above the field's hint); the
+  document keeps its value; Esc shows the stored value again. The document's problems flag their
+  fields (recomputed once per change for all widgets) and tint list cells. *Tested:*
+  `formErrorsAreLocatedAndKeepTheValue`, `documentProblemsFlagTheirField`.
+- **FW-05: table cells commit on focus loss** (AP-15; adopts MDATK 0.1.0 608f322
+  `keep_edit_on_leave`). MDATK 0.0.4.1 dropped text typed into a table cell (groups, trajectories,
+  external data, RMSD targets) when the cell was left by a click. A cell is stored on Enter, when it
+  loses the focus (a click elsewhere, on a button of the editor) and before a save. Rows are the
+  document's items: added (with MDATK's defaults for the row), removed and moved as one undo step each,
+  a Browse… of several files as one step; rows without a name or selection are kept (MDATK dropped
+  them on collect) and flagged by the checks. *Tested:* `tableCellsCommitOnFocusLossAndEnter`,
+  `listEditorRowsAndUndo`, `pathFieldsBrowseWithMdatksFilters`.
+- **FW-06: load and save without an edit is the identity.** A form of every field of each of the 20
+  fixture projects (MDATK 0.0.4.1 and 0.1.1 files, hand-written ones), every field given Enter without
+  typing, saves the file back byte for byte with no undo step (MDATK: `test_widgets_roundtrip_project`
+  checks the demo only, and its widgets rewrote values, AP-01 .. AP-05). Only text the user types is
+  stored; a multi-line field shows a lone carriage return as a line break but writes it back unchanged
+  unless the text is edited. *Tested:* `everyFieldOfEveryFixtureSavesBackByteForByte`.
+- **FW-07: the mouse wheel and the keyboard** (MDATK 0.0.4 `test_value_widgets_ignore_the_mouse_wheel`,
+  owner decision D10). Spin boxes, combos and sliders ignore the wheel unless they have the keyboard
+  focus (MDATK ignored it always) and no longer take the focus from it; every editor and button is
+  reachable with Tab and has an accessible name. File dialogs are the platform's (D3) with MDATK's
+  filters, each pattern also in lower and upper case (MDATK's match ignores case; Qt's dialogs do not on
+  Linux). *Tested:* `valueWidgetsIgnoreTheMouseWheel`, `everyEditorIsNamedAndReachable`.
+
 ## Planned (from the improvement register; add each entry here when it lands)
 
 None: every FIX and ASK item of the improvement register (docs/IMPROVEMENTS.md) has landed

@@ -333,3 +333,18 @@ if(MDBRIDGE_BUILD_APP)
     endif()
     gtest_discover_tests(mdbridge_video_qt_tests DISCOVERY_MODE PRE_TEST)
 endif()
+
+if(MDBRIDGE_BUILD_APP)
+    # the GUI's bound field widgets (src/app/gui/forms, milestone 5 W0-C): every field of the fixture
+    # projects loaded and saved without an edit byte for byte, edits, undo / redo, AP-01 .. AP-05,
+    # AP-15, the mouse wheel. Qt Test on the offscreen platform.
+    find_package(Qt6 REQUIRED COMPONENTS Test)
+    add_executable(mdbridge_gui_forms_tests gui/test_forms.cpp)
+    set_target_properties(mdbridge_gui_forms_tests PROPERTIES AUTOMOC ON)
+    target_include_directories(mdbridge_gui_forms_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/core")
+    target_link_libraries(mdbridge_gui_forms_tests PRIVATE mdbridge_app Qt6::Test)
+    target_compile_definitions(mdbridge_gui_forms_tests PRIVATE MDBRIDGE_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data")
+    mdbridge_target_warnings(mdbridge_gui_forms_tests)
+    add_test(NAME gui.forms COMMAND mdbridge_gui_forms_tests)
+    set_tests_properties(gui.forms PROPERTIES LABELS gui ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+endif()
