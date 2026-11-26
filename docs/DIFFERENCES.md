@@ -1991,6 +1991,7 @@ which MDATK version's design it follows, and how it is tested.
 | FONT-01 ... FONT-03 | Rendering: fonts and text | IBM Plex Serif in the interface and figures, Plex Math fallback, Plex Mono |
 | CH-01 ... CH-15, D7, D13 | Chemistry: PDB tools, annotation, builder, dictionaries, density fit (expected data; D-numbers of docs/specs/m6-plan.md) | 01 residue numbers below -999, 02 wrapped numbers reported, 03 one-character `--combine-into`, 04 CONECT records that cannot be remapped, 05 2'-deoxy residues with RNA names (0.1.0), 06 chain ends bonded to unknown residues (0.1.0), 07 three-character SEQRES names (0.0.17), 08 mutation specs without a chain (0.1.0), 09 hydrogens of mutated bases (D11), 10 unusable resolutions and spacings, 11 non-finite voxels, 12 `density fit --save` keeps paths, 13 missing input files named, 14 no Barnaba (D9), 15 reversed ranges; D7 PubChem root, D13 program name in records, automatic density fit before rendering |
 | CHD-01, CHD-02 | Chemistry reference data | 01 guanine's H21 / H22 as the CCD (owner decision D15), 02 the fitted 4JRD screw frame, hh TWIST 41.7 (D16) |
+| DIC-01, DIC-02 | Chemistry: restraint dictionaries | 01 charges that are no finite number, 02 unbounded integers and full Unicode upper case; MDATK's SMILES checked against the CCD |
 | NU-01, NU-02 | Numerics | 01 pair search order and negative radii, 02 least_squares without LAPACK (iterates to rounding) |
 
 ## Interface: 3D view and figure preview (src/app/gui, src/app/commands/project_view.cpp, src/render/view.cpp, software_view.cpp)
@@ -2964,6 +2965,47 @@ cases of `cli_parity.py`.
 Fitted outputs are compared within tolerances (plan 4.1, D10): the rebuilt helices of the other
 pairings and triplexes, the density fits and their transforms; regenerate_all.py compares the chem
 JSON files within FITTED's tolerance where their bytes differ (tests/data/README.md).
+
+## Chemistry: restraint dictionaries (src/chem/dictionaries.cpp, smiles.cpp; milestone 6 W1-C)
+
+MDATK's `mdatk/dictionaries.py` (the same file in 0.1.1) ported: the components 0A 0C 0G 0U and their
+eight 5' / 3' variants (atoms, bonds, hydrogens, naming rules and L-ribose signs from the CCD extract,
+`reference_tables.hpp`; the nucleoside names and the twelve L SMILES are MDATK's own), the SMILES
+parser, molecular graphs and the deterministic graph matching (`MAX_MATCHES` 2 000 kept), the SMILES
+checks (`smilesMapping`, `checkSmiles`, `identifySmiles`) and `finishDictionary` /
+`renameDictionary` on M2's mmCIF reader and writer. Every case of `tests/parity/make_dict_cases.py`
+(`tests/data/chem/dict_cases.json`: the component table, 209 SMILES with their errors, 12 matches,
+238 checks, 17 identifications, 103 finished dictionaries) is equal: dictionary text byte for byte,
+notes, mappings and error messages. CHD-01 holds here too (0G's H22 cis to N1). Kept as MDATK writes
+it: the header line "renamed by MDATK dictionaries.py" (milestone 7 decides the embedded copies, plan
+4.5). *Tested:* `DictionaryCases.*` and `Dictionaries.*` (tests/chem/test_dictionaries.cpp, the
+counterparts of MDATK's tests named after them).
+
+- **MDATK's SMILES checked against the CCD** (W0-B left this to W1-C; not a difference in behaviour).
+  With the CCD's graph the twelve SMILES pass `check_smiles` without notes and give their own formula;
+  the CCD's own isomeric SMILES of 0A 0C 0G 0U (CACTVS and OpenEye descriptors of components.cif,
+  2026-11-14) are accepted for the parent and its 3' variant with the two phosphate-protonation notes
+  (the CCD's phosphate is neutral) and identified as exactly those two codes, so MDATK's L
+  configurations are the CCD's. RDKit 2026.09.2 (a scratch check, not a dependency): the eight
+  SMILES with a phosphate, neutralised, give the CCD's InChI exactly (`/m0/s1`); the four nucleoside
+  SMILES (5' variants) give the InChI of the CCD's SMILES with the phosphate cut off; the CIP labels
+  are S, S, R, S at C1', C2', C3', C4'. The one disagreement is no error: MDATK's adenine SMILES (0A, 0A3, 0A5) is the other Kekule
+  structure of the purine (C5=C6, N1=C2, N3=C4; the CCD has C5=C4, C6=N1, C2=N3), six bond orders
+  `_score` counts but that change no mapping (the match is unique up to OP2 / OP3). The SMILES are
+  kept, as `dict list` / `dict smiles` print them and acedrg / eLBOW read either form. *Tested:*
+  `Dictionaries.SmilesAgreeWithTheCcd`.
+- **DIC-01 Charges that are no finite number** (not fixed in MDATK 0.1.1). `_dictionary_graph` read
+  `_chem_comp_atom.charge` with `int(round(float(q)))`: `inf` (or `1e400`) ended the finish in an
+  uncaught `OverflowError: cannot convert float infinity to integer`. MDBridge reads a charge that is
+  not a finite number of at most 10^6 as no formal charge, as MDATK already does for NaN, `?` and
+  partial charges. *Tested:* `Dictionaries.NonFiniteChargesAreNoFormalCharges`.
+- **DIC-02 Unbounded integers and full Unicode upper case** (not fixed). Python reads hydrogen counts
+  and charges of any size in SMILES brackets (`[CH99999999999999999999]`) and upper-cases residue
+  codes with the full Unicode mapping (`ﬁ1` becomes the code `FI1`). MDBridge refuses a bracket count
+  or charge above 10^6 as "SMILES: cannot read the atom [...]" and upper-cases ASCII letters only, so a
+  code with other characters is refused as typed ("residue code '0é5': use 1-5 letters / digits";
+  MDATK prints '0É5'). *Tested:*
+  `Dictionaries.ResidueCodesAreCheckedAfterStrippingAndUpperCasing`.
 
 ## Numerics (src/numerics; milestone 6 W0-C)
 
