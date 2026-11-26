@@ -1,6 +1,7 @@
 #include "gui.hpp"
 
 #include <cstdlib>
+#include <exception>
 #include <iostream>
 #include <memory>
 #include <unordered_set>
@@ -19,6 +20,7 @@
 #include "mdbridge/render/text_qt.hpp"
 #include "mdbridge/version.hpp"
 #include "preview_widget.hpp"
+#include "script_runner.hpp"
 
 namespace mdbridge::app {
 
@@ -176,7 +178,7 @@ int runGui(const GuiOptions& options, int& argc, char** argv) {
         std::cerr << "mdbridge: the bundled fonts: " << e.what() << " (the system's font is used)\n";
     }
 
-    const bool checking = !options.screenshot.empty() || options.quitAfter > 0;
+    const bool checking = !options.screenshot.empty() || options.quitAfter > 0 || !options.script.empty();
     int code = 0;
     {
         MainWindow window(options.renderer);
@@ -246,6 +248,17 @@ int runGui(const GuiOptions& options, int& argc, char** argv) {
                     QApplication::exit(3);
                 }
             });
+        }
+        std::unique_ptr<ScriptRunner> script;
+        if (!options.script.empty()) {
+            try {
+                script = std::make_unique<ScriptRunner>(window, core::pathFromUtf8(options.script),
+                                                        core::pathFromUtf8(options.scriptOutput));
+            } catch (const std::exception& e) {
+                std::cerr << "mdbridge: " << e.what() << '\n';
+            }
+            // a script that cannot be read: exit code 2, through the usual end (the load is stopped)
+            QTimer::singleShot(0, &app, [&script] { QApplication::exit(script ? script->run() : 2); });
         }
         if (options.quitAfter > 0) {
             QTimer::singleShot(static_cast<int>(options.quitAfter * 1000), &app, &QApplication::quit);

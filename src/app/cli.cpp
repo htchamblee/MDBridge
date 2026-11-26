@@ -19,6 +19,7 @@
 #include "mdbridge/core/paths.hpp"
 #include "mdbridge/render/vulkan_probe.hpp"
 #include "mdbridge/version.hpp"
+#include "loaded_libraries.hpp"
 #include "project_summary.hpp"
 #include "render_backend_qt.hpp"
 #include "video/encoder.hpp"
@@ -55,6 +56,12 @@ void addGuiOptions(CLI::App& command, GuiArguments& args) {
         ->capture_default_str();
     command.add_option("--quit-after", args.options.quitAfter, "check: quit after this many seconds")
         ->check(CLI::NonNegativeNumber);
+    CLI::Option* script = command.add_option("--script", args.options.script,
+                                             "check: run this action script (JSON) in the window, print a report and quit");
+    command.add_option("--script-output", args.options.scriptOutput,
+                       "check: with --script, the folder for its screenshots (default: the script's folder)")
+        ->needs(script);
+    script->excludes("--screenshot");
 }
 
 int startGui(GuiArguments& args, int& argc, char** argv) {
@@ -95,7 +102,7 @@ int graphics(bool json) {
                                           {"api_version", render::vulkanVersionText(d.apiVersion)},
                                           {"meets_minimum", d.meetsMinimum()}});
         }
-        const core::Value data = core::Table{
+        core::Table data{
             {"required", required},
             {"loader_found", report.loaderFound},
             {"loader_version", report.loaderFound ? core::Value(render::vulkanVersionText(report.loaderVersion)) : core::Value()},
@@ -104,7 +111,12 @@ int graphics(bool json) {
             {"device", report.usable() ? core::Value(report.devices[static_cast<std::size_t>(report.chosen)].name) : core::Value()},
             {"problem", report.problem},
         };
-        std::cout << core::toJson(data) << '\n';
+#if defined(__linux__)
+        core::Array libraries;  // which copies the AppImage uses (packaging/smoke_test.py)
+        for (const std::string& lib : loadedLibraries()) libraries.push_back(lib);
+        data.emplace_back("libraries", std::move(libraries));
+#endif
+        std::cout << core::toJson(core::Value(std::move(data))) << '\n';
         return 0;
     }
     std::cout << "Vulkan loader  "

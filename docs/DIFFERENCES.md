@@ -2725,6 +2725,59 @@ differences:
   shown and stored at once (LE-02). *Tested:* `ProjectDocument.MergedChangesAreOneStep`,
   `SaveEndsAMergedBurst`, `CanvasTests::wheelBurstIsOneUndoStep`.
 
+## Packaging (packaging/; milestone 5 W3-B)
+
+- **PKG-01 The AppImage supplies only the fallback libraries the host lacks** (`packaging/linux/AppRun`,
+  `build_appimage.sh`). The AppImage carries copies of the desktop libraries Qt needs (OpenGL / EGL
+  dispatch, X11, xcb, fontconfig, freetype and what they need) for minimal and server installs.
+  MDATK 0.0.4.1 (and still 0.1.1, `_internal/fallback`) and MDBridge until now put the whole
+  fallback folder first on `LD_LIBRARY_PATH` as soon as the host lacked *one* of them, so the
+  bundled fontconfig, freetype, X11 and GL dispatch replaced the host's, although AppRun's own
+  comment said the host's copies must win (they belong to its graphics driver and font set-up).
+  Now each copy is in a folder of its own (`usr/lib/fallback/<name>/<name>`) and AppRun puts on the
+  library path only the folders of the libraries the host lacks (present: in the loader's cache,
+  `ldconfig -p`, a standard library folder or a folder of the caller's `LD_LIBRARY_PATH`), so the
+  host's copy of every other one still wins; nothing is written at start (the folders are in the
+  read-only image). The GL vendor-neutral dispatch libraries (glvnd: libGLdispatch, libGLX, libGL,
+  libEGL, libOpenGL, libGLES*; any member linuxdeploy put into `usr/lib` is moved to the fallback
+  set) are one unit, as their packages are built and shipped together: when the host lacks any
+  member the AppImage carries, the whole bundled set is supplied, else the host's whole set is used,
+  never a mix of the two builds. `MDBRIDGE_APPRUN_DEBUG=1` names the glvnd set, whose copy is used,
+  and the copies supplied. *Why:* a host with fontconfig and freetype but no GL library (Rocky Linux
+  9 with Xvfb lacks libEGL and fontconfig; containers with X11 but no Mesa) drew with the
+  AppImage's font stack and X11 instead of its own. *Tested:* reproduced in an Ubuntu 24.04
+  container with fontconfig, freetype, X11 and xcb but no GL / EGL: before, `graphics --json`
+  loaded fontconfig, freetype, X11, xcb and expat from `usr/lib/fallback`; now only the glvnd set
+  (libEGL, libGL, libGLX, libGLdispatch), the rest from `/lib`; with the host's libGL, libGLX and
+  libGLdispatch but no libEGL the whole bundled glvnd set is used. The smoke test checks every
+  AppImage run: `graphics --json` and the report of `gui --script` list the libraries the program
+  loaded (new: `libraries`, Linux); no fallback copy may be loaded for a library the host has,
+  except glvnd members, which must all come from the AppImage when the host lacks a member of the
+  set AppRun reports and all from the host otherwise; fontconfig, freetype, X11 and xcb must come
+  from the host when it has them. CI asserts the copies used (`--expect-fallback`): none on the
+  build machine; glvnd, X11, xcb, fontconfig and freetype on the bare Rocky Linux 9; the glvnd set
+  and fontconfig on that system once Xvfb is installed (it brings libGL but not libEGL).
+- **PKG-02 `gui --script FILE`: the window driven by an action script** (`src/app/gui/script_runner.*`;
+  new, MDATK has none). A JSON list of actions (wait, page, set, type, save, copy_project,
+  render_still, screenshot of the window or of every page) runs through the window as a user's
+  would (values typed into the field widgets, Enter; Save and Render still are the window's own
+  actions), questions are answered with their safe default and an error message fails the action;
+  a one-line JSON report and exit code 0 / 1. `--script-output DIR` takes the screenshots. *Why:*
+  the smoke test of finished builds (AppImage on Ubuntu and on a bare Rocky Linux 9 under Xvfb, the
+  installed Windows program) edits a field, saves, renders a still and photographs every page
+  (CI artifacts `gui-screenshots-<platform>`), which the GUI tests (offscreen, build tree) cannot
+  show for the shipped programs. *Tested:* `ScriptTests` (`gui.script`: exactly the edited line
+  changes on save, a screenshot per page, a failing action stops the script, malformed scripts are
+  refused) and `packaging/smoke_test.py --gui`.
+- **PKG-03 The Windows Start-menu entry is checked, no file association** (`packaging/windows/mdbridge.iss`,
+  CI job `windows`). As MDATK's installer (0.0.4.1 and 0.1.1), MDBridge's registers no file type:
+  Windows associates by the last extension only, so `*.mdatk.toml` could only be had by taking over
+  every `.toml` file. A project opens with *Open with* (or by dropping it on the window or the
+  shortcut): the program takes the file as its argument. *Tested:* CI reads the per-user Start-menu
+  entry the installer made, checks that it starts `bin\mdbridge-gui.exe` without arguments, starts
+  the entry itself (the interface must still run after 15 s), and runs its target with a project
+  argument (`smoke_test.py --gui-exe`: the window opens that project).
+
 ## Planned (from the improvement register; add each entry here when it lands)
 
 None: every FIX and ASK item of the improvement register (docs/IMPROVEMENTS.md) has landed

@@ -10,25 +10,72 @@ HERE="$(dirname "$(readlink -f "$0")")"
 MDBRIDGE="$HERE/usr/bin/mdbridge"
 
 # Minimal and server installs (a cluster node used over ssh -X, containers) may lack libraries that
-# Qt needs and every desktop has (OpenGL / EGL dispatch, X11, fontconfig). The AppImage carries
-# copies in usr/lib/fallback, used only when the host lacks one of them: on desktops the host's
-# copies must win, as they belong to its graphics driver.
+# Qt needs and every desktop has (OpenGL / EGL dispatch, X11, fontconfig, freetype and what they
+# need). The AppImage carries copies, each in a folder of its own (usr/lib/fallback/<name>/<name>),
+# and supplies only those the host lacks: each missing one's folder goes on the library path, the
+# others stay off it, so the host's copies win (they belong to its graphics driver and its font
+# set-up). The GL vendor-neutral dispatch libraries (glvnd: libGLdispatch, libGLX, libGL, libEGL,
+# libOpenGL, libGLES*) are one unit, as their packages are: when the host lacks any of the members
+# the AppImage carries, the whole bundled set is supplied, else the host's set is used. A library
+# counts as present when the dynamic loader's cache (ldconfig -p), a standard library folder or a
+# folder of the caller's LD_LIBRARY_PATH has it.
+# MDBRIDGE_APPRUN_DEBUG=1 lists on stderr which copies were supplied.
+host_libs=" $({ ldconfig -p 2>/dev/null || /sbin/ldconfig -p 2>/dev/null; } |
+    awk '/x86-64/ {printf "%s ", $1}') "
 host_has() {
-    { ldconfig -p 2>/dev/null || /sbin/ldconfig -p 2>/dev/null; } |
-        awk -v n="$1" '$1 == n && /x86-64/ {found = 1} END {exit !found}' && return 0
-    for d in /usr/lib64 /lib64 /usr/lib/x86_64-linux-gnu /lib/x86_64-linux-gnu; do
-        [ -e "$d/$1" ] && return 0
+    case "$host_libs" in *" $1 "*) return 0 ;; esac
+    old_ifs="$IFS"
+    IFS=:
+    for d in /usr/lib64 /lib64 /usr/lib/x86_64-linux-gnu /lib/x86_64-linux-gnu ${LD_LIBRARY_PATH:-}; do
+        if [ -n "$d" ] && [ -e "$d/$1" ]; then
+            IFS="$old_ifs"
+            return 0
+        fi
     done
+    IFS="$old_ifs"
     return 1
 }
-for lib in "$HERE"/usr/lib/fallback/*; do
-    [ -e "$lib" ] || continue
-    if ! host_has "$(basename "$lib")"; then
-        LD_LIBRARY_PATH="$HERE/usr/lib/fallback:$HERE/usr/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-        export LD_LIBRARY_PATH
-        break
+is_glvnd() {
+    case "$1" in
+        libGLdispatch.so.*|libGLX.so.*|libGL.so.*|libEGL.so.*|libOpenGL.so.*|libGLESv1_CM.so.*|libGLESv2.so.*) return 0 ;;
+    esac
+    return 1
+}
+glvnd_set=""
+glvnd_missing=""
+for dir in "$HERE"/usr/lib/fallback/*/; do
+    [ -d "$dir" ] || continue
+    lib="$(basename "$dir")"
+    if is_glvnd "$lib"; then
+        glvnd_set="$glvnd_set $lib"
+        host_has "$lib" || glvnd_missing=1
     fi
 done
+supplied=""
+fallback_path=""
+for dir in "$HERE"/usr/lib/fallback/*/; do
+    [ -d "$dir" ] || continue
+    lib="$(basename "$dir")"
+    if is_glvnd "$lib"; then
+        [ -n "$glvnd_missing" ] || continue
+    elif host_has "$lib"; then
+        continue
+    fi
+    supplied="$supplied $lib"
+    fallback_path="$fallback_path${fallback_path:+:}${dir%/}"
+done
+if [ -n "$fallback_path" ]; then
+    # the copies' own dependencies that the AppImage bundles anyway (usr/lib) resolve there
+    LD_LIBRARY_PATH="$fallback_path:$HERE/usr/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+    export LD_LIBRARY_PATH
+fi
+if [ -n "${MDBRIDGE_APPRUN_DEBUG:-}" ]; then
+    glvnd_source="the host's"
+    [ -n "$glvnd_missing" ] && glvnd_source="the AppImage's (the host lacks a member)"
+    echo "AppRun: glvnd set:${glvnd_set:- none}; used: $glvnd_source" >&2
+    echo "AppRun: fallback libraries supplied:${supplied:- none}" >&2
+fi
+unset host_libs supplied fallback_path dir lib old_ifs glvnd_set glvnd_missing glvnd_source
 
 # fontconfig (bundled as a fallback library above) without the host's configuration: the AppImage's
 # minimal one. Figures use MDBridge's compiled-in fonts and draw without a display in any case.

@@ -17,6 +17,11 @@ struct GuiOptions {
     std::string previewScreenshot;
     int screenshotFrames = 10;
     double quitAfter = 0;  // quit after this many seconds (0: run until closed)
+    // Check: run this action script (gui/script_runner.hpp) once the window is shown, print its
+    // report and quit (0: every action succeeded); screenshots into `scriptOutput` ("" = the
+    // script's folder).
+    std::string script;
+    std::string scriptOutput;
 };
 
 // Runs the interface; `argc` / `argv` go to QApplication (Qt's own options such as -platform).

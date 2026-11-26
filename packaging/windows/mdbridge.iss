@@ -6,7 +6,11 @@
 ; packaging\windows\build_windows.ps1 calls it with these values; <install tree> is what
 ; `cmake --install` wrote (bin\ with the programs, Qt and the MSVC runtime; licences beside it).
 ; Installs per user by default (no administrator rights needed); "Install for all users" is offered
-; in the setup dialog.
+; in the setup dialog. The Start-menu entry "MDBridge" starts bin\mdbridge-gui.exe, which opens a
+; project file given as its argument ("Open with", a file dropped on the shortcut). No file type is
+; registered, as in MDATK's installer: Windows associates by the last extension only, and claiming
+; .toml would take every TOML file (docs/DIFFERENCES.md PKG-03). CI checks the entry and its target
+; (.github/workflows/ci.yml, job windows; packaging/smoke_test.py --gui-exe).
 
 #ifndef AppVersion
   #define AppVersion "0.0.0"
