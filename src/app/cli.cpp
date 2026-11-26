@@ -5,6 +5,7 @@
 #include <iostream>
 #include <optional>
 #include <string>
+#include <vector>
 
 #include <CLI/CLI.hpp>
 
@@ -21,6 +22,7 @@
 #include "mdbridge/version.hpp"
 #include "loaded_libraries.hpp"
 #include "project_summary.hpp"
+#include "pubchem_qt.hpp"
 #include "render_backend_qt.hpp"
 #include "video/encoder.hpp"
 #include "video/probe.hpp"
@@ -215,8 +217,11 @@ int cliMain(int argc, char** argv) {
     probeVideoCmd->add_option("file", probeFile, "video file (.mp4)")->required();
 
     const RenderBackend renderBackend = qtRenderBackend(argv[0]);
-    // demo, init, info, list, clean, analyze, export-pdb, render, charts, preview, citations, density info
-    CoreCommands mdatkCommands(app, &renderBackend);
+    const NetworkBackend networkBackend = qtNetworkBackend();  // dict pubchem only (D7)
+    // demo, init, info, list, clean, analyze, export-pdb, render, charts, preview, citations,
+    // density info / fit / simulate, pdb, build, dict
+    CoreCommands mdatkCommands(app, &renderBackend, &networkBackend);
+    mdatkCommands.setArguments(std::vector<std::string>(utf8 + std::min(argc, 1), utf8 + argc));
 
     try {
         app.parse(argc, utf8);

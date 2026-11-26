@@ -58,7 +58,7 @@ if(MDBRIDGE_BUILD_APP)
     # libGLX.so.0, and libOpenGL.so.0 is missing on many systems; Qt itself needs libGL.so.1, which
     # every desktop has, so programs link that (MDBridge draws with Vulkan, not OpenGL)
     set(OpenGL_GL_PREFERENCE LEGACY)
-    find_package(Qt6 6.5 REQUIRED COMPONENTS Core Gui Svg Widgets)
+    find_package(Qt6 6.5 REQUIRED COMPONENTS Core Gui Network Svg Widgets)
     add_subdirectory(src/render)
     add_subdirectory(src/app)
 endif()

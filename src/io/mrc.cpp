@@ -3,6 +3,7 @@
 #include <zlib.h>
 
 #include <algorithm>
+#include <cerrno>
 #include <cmath>
 #include <cstring>
 #include <deque>
@@ -723,10 +724,13 @@ void writeMap(const fs::path& path, const DensityMap& map) {
         std::memcpy(&bits, &x, 4);
         put(bits);
     }
+    errno = 0;
     std::ofstream out(path, std::ios::binary | std::ios::trunc);
-    if (!out) {
+    if (!out) {  // open()'s reason, as Python's OSError names it ([Errno 2] for a missing folder)
+        const int reason = errno;
         throw fs::filesystem_error("cannot write file", path,
-                                   std::make_error_code(std::errc::permission_denied));
+                                   reason != 0 ? std::error_code(reason, std::generic_category())
+                                               : std::make_error_code(std::errc::permission_denied));
     }
     out.write(raw.data(), static_cast<std::streamsize>(raw.size()));
     if (!out) {

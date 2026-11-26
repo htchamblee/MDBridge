@@ -2,7 +2,7 @@
 // recording RenderBackend stands in for the program's QPainter writers and video loop, so what the
 // commands decide is tested here: MDATK's test_cli / test_pipeline (full run, time stamps, the
 // params log, the step log, re-rendering from the cache), and MDBridge's improvements (RN-02,
-// RN-11 ... RN-16, D8, D9; docs/DIFFERENCES.md "Rendering: the render, charts and preview
+// RN-11 ... RN-16, D8, the density fit before the video; docs/DIFFERENCES.md "Rendering: the render, charts and preview
 // commands"). The drawn files themselves are compared with MDATK's by tests/parity/cli_parity.py
 // (the render cases of tests/data/cli/cli_cases.json) against the `mdbridge` program.
 
@@ -302,23 +302,39 @@ TEST(RenderProblems, FigureFileFormats) {
               "chart format 'webp' is not supported (choose from png, svg, pdf, jpg, jpeg, tif, tiff, eps, ps)");
 }
 
-TEST_F(RenderCommands, FfmpegPathIsNotUsedAndTheDensityMapIsNotFitted) {  // D8, D9
+TEST_F(RenderCommands, FfmpegPathIsNotUsedAndTheDensityMapIsFitted) {  // D8, ensure_density_fit (M4 D9 retired)
     fs::copy_file(kData / "io" / "maps" / "files" / "crs_000.mrc", work.path() / "map.mrc");
     const CommandRun r = run({"render", "--no-charts", "-s", "output.video.ffmpeg_path=\"/opt/ffmpeg/bin/ffmpeg\"", "-s",
                        "density.map_path=\"map.mrc\""});
     ASSERT_EQ(r.exit, 0) << r.err;
     const std::size_t note = r.err.find("Note: output.video.ffmpeg_path (/opt/ffmpeg/bin/ffmpeg) is not used; MDBridge "
                                         "encodes with its bundled FFmpeg libraries\n");
-    const std::size_t warning = r.err.find("WARNING: density map not drawn: no placement (run density fit)\n");
+    const std::size_t fit = r.err.find("Density fit (global search) of frame ref into map.mrc at 5 \xc3\x85\n");
+    const std::size_t fitted = r.err.find("Density fit: global search, frame 0, 511 atoms, 5 \xc3\x85: CC ");
     const std::size_t video = r.err.find("Rendering video -> ");
     ASSERT_NE(note, std::string::npos) << r.err;
-    ASSERT_NE(warning, std::string::npos) << r.err;
-    EXPECT_LT(note, warning);
-    EXPECT_LT(warning, video);
+    ASSERT_NE(fit, std::string::npos) << r.err;
+    ASSERT_NE(fitted, std::string::npos) << r.err;
+    EXPECT_LT(note, fit);
+    EXPECT_LT(fitted, video);
+    EXPECT_EQ(r.err.find("no placement (run density fit)"), std::string::npos);  // milestone 4's D9 warning is gone
+    // the fit is not saved: the next render fits again
+    const CommandRun again = run({"render", "--no-charts", "-s", "density.map_path=\"map.mrc\""});
+    EXPECT_NE(again.err.find("Density fit (global search)"), std::string::npos);
+
     const CommandRun off = run({"render", "--no-charts", "-s", "density.map_path=\"map.mrc\"", "-s", "density.auto_fit=false"});
     EXPECT_NE(off.err.find("WARNING: the density map has no placement and automatic fitting is off; it is not drawn"),
               std::string::npos);
+    EXPECT_EQ(off.err.find("Density fit ("), std::string::npos);
     EXPECT_EQ(off.err.find("Note: output.video.ffmpeg_path"), std::string::npos);
+
+    // a fit that fails is a warning, and the video is drawn without the map
+    test::writeFile(work.path() / "bad.mrc", "not a map");
+    const CommandRun bad = run({"render", "--no-charts", "-s", "density.map_path=\"bad.mrc\""});
+    ASSERT_EQ(bad.exit, 0) << bad.err;
+    const std::size_t warning = bad.err.find("WARNING: density map not drawn: density map: ");
+    ASSERT_NE(warning, std::string::npos) << bad.err;
+    EXPECT_LT(warning, bad.err.find("Rendering video -> "));
 }
 
 TEST_F(RenderCommands, WithoutABackend) {

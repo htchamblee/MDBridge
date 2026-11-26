@@ -21,9 +21,8 @@
 //   D8     output.video.ffmpeg_path is not used (the bundled FFmpeg libraries encode); a project that
 //          names another executable gets the log line "Note: output.video.ffmpeg_path (P) is not
 //          used; MDBridge encodes with its bundled FFmpeg libraries"
-//   D9     a shown density map without a placement is not fitted (no density fit in this version):
-//          "WARNING: density map not drawn: no placement (run density fit)" (auto_fit on; with it
-//          off MDATK's own warning)
+//   (milestone 6: a shown density map without a placement is fitted first, MDATK's ensure_density_fit,
+//          density_pipeline.hpp; milestone 4's D9 warning is gone)
 //   environment  the params log's environment table is MDBridge's (program, platform, the
 //          backend's libraries), not Python's packages and `ffmpeg -version`
 
@@ -107,14 +106,14 @@ public:
     // output_path(name): `name` when absolute, else out_dir / name.
     std::filesystem::path outputPath(const std::string& name) const;
 
-    // render_video: D8 note, D9 warning, RN-02, the backend's renderVideo on
+    // render_video: RN-02, D8 note, ensure_density_fit, the backend's renderVideo on
     // out_dir / stamped(output.video.filename). Returns the path written.
     std::string renderVideo(const core::Dataset& dataset, const core::Reporter* reporter = nullptr);
     // render_charts: RN-02, render::charts::renderCharts into out_dir with the run's stamp.
     std::vector<std::string> renderCharts(const core::Dataset& dataset, const core::Reporter* reporter = nullptr);
     // export_pdbs: output.pdb's frames / times / selection of the analysis pipeline's system.
     std::vector<std::string> exportPdbs(const core::Reporter* reporter = nullptr);
-    // render_preview: D9 warning, RN-02, the figure at output.video's size and dpi, panels updated
+    // render_preview: ensure_density_fit, RN-02, the figure at output.video's size and dpi, panels updated
     // to `pos`, written to `path` (format from its extension; none: png, written as path + ".png").
     // Returns the path written.
     std::string renderPreview(const core::Dataset& dataset, std::size_t pos, const std::string& path);
@@ -128,7 +127,6 @@ public:
 private:
     void startBackend();
     const render::FontSet& fonts();
-    void densityWarning(const core::Reporter& reporter) const;
     RunOutputs runSteps(bool video, bool charts, bool pdb, bool forceAnalysis);
 
     analysis::Pipeline& m_analyses;

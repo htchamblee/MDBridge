@@ -66,8 +66,8 @@ child of cli_parity.py calls both). Each patch is listed with its id:
          41.7 (MDATK: 41.8); 0.1.1 not changed
   D7     dict pubchem asks MDBRIDGE_PUBCHEM_URL (the PUG REST root, default MDATK's PUBCHEM_REST) when
          that variable is set: the local stand-in server of cli_parity.py
-  D9(M4) `render` / `preview` fit a shown map without a placement again when auto_fit is on (MDATK's
-         ensure_density_fit; in the command line only: the milestone-4 render generators keep D9)
+  D9(M4) retired: `render` / `preview` fit a shown map without a placement again when auto_fit is on
+         (MDATK's own ensure_density_fit; improvements_render.py no longer patches it)
   D12    unknown residues pass through (v0.0.4.1) plus CH-06: nothing to patch
   D13    REMARK 950 MDBridge BASE-PAIR ANNOTATION / REMARK 951 MDBridge IDEAL ...; every other byte as
          MDATK writes it
@@ -645,27 +645,6 @@ def apply_cli():
             D.map_level, D.centre_transform = level, centre
 
     pipeline.Pipeline.fit_density = fit_density_finite
-
-    # the density fit before rendering (auto_fit) is back: MDATK 0.0.4.1's ensure_density_fit in place
-    # of milestone 4's D9 stand-in (improvements_render._d9_no_density_fit, which the milestone-4
-    # generators still apply; W2-C retires it there)
-    def ensure_density_fit(self, reporter=None):
-        from mdatk.progress import Cancelled
-
-        p = self.project
-        rep = reporter or self.reporter
-        if p.density_active() and len(p.density.transform) != 12:
-            if not p.density.auto_fit:
-                rep.log("WARNING: the density map has no placement and automatic fitting is off; it is not drawn")
-                return
-            try:
-                self.fit_density(reporter=reporter)
-            except Cancelled:
-                raise
-            except (pipeline.PipelineError, OSError, ValueError) as exc:
-                rep.log(f"WARNING: density map not drawn: {exc}")
-
-    pipeline.Pipeline.ensure_density_fit = ensure_density_fit
 
     cli.cmd_density_fit = _cmd_density_fit
     simulate = cli.cmd_density_simulate

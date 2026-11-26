@@ -70,13 +70,15 @@ add_library(mdbridge_app STATIC
     gui/script_runner.hpp
     project_summary.cpp
     project_summary.hpp
+    pubchem_qt.cpp
+    pubchem_qt.hpp
     render_backend_qt.cpp
     render_backend_qt.hpp)
 set_target_properties(mdbridge_app PROPERTIES AUTOMOC ON)
 target_include_directories(mdbridge_app PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 target_link_libraries(mdbridge_app
     PUBLIC mdbridge::core mdbridge::render Qt6::Widgets
-    PRIVATE mdbridge::analysis mdbridge::commands mdbridge::io mdbridge::numerics mdbridge::render_panels mdbridge::render_panels_vulkan
+    PRIVATE Qt6::Network mdbridge::analysis mdbridge::commands mdbridge::io mdbridge::numerics mdbridge::render_panels mdbridge::render_panels_vulkan
             mdbridge::video CLI11::CLI11)
 mdbridge_target_warnings(mdbridge_app)
 

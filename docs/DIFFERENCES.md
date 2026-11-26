@@ -1951,11 +1951,12 @@ figures are compared by tests/render). Differences:
   and the setting stays in project files. A project naming another executable gets the log line `Note: output.video.ffmpeg_path (P) is not
   used; MDBridge encodes with its bundled FFmpeg libraries` and its video (MDATK: `error: ffmpeg not
   executable at P`). *Tested:* cli_cases.json (`render_ffmpeg_path`),
-  `RenderCommands.FfmpegPathIsNotUsedAndTheDensityMapIsNotFitted`.
-- **Density maps without a placement (owner decision D9).** MDBridge has no density fit yet: a
-  shown map without a stored placement is not fitted before the video or the preview but reported,
-  `WARNING: density map not drawn: no placement (run density fit)` (with `auto_fit` off MDATK's own
-  warning). *Tested:* `RenderCommands.FfmpegPathIsNotUsedAndTheDensityMapIsNotFitted`.
+  `RenderCommands.FfmpegPathIsNotUsedAndTheDensityMapIsFitted`.
+- **Density maps without a placement (owner decision D9 of milestone 4, retired in milestone 6).**
+  Milestone 4 had no density fit and reported `WARNING: density map not drawn: no placement (run
+  density fit)`; since milestone 6 (W2-C) a shown map without a placement is fitted before the video
+  or the preview as MDATK does (`auto_fit`; see "Chemistry ... Automatic density fit before
+  rendering"). *Tested:* `RenderCommands.FfmpegPathIsNotUsedAndTheDensityMapIsFitted`.
 - **Codec warnings (RN-07).** The video's codec choice warns in MDBridge's words (see "Video
   encoding"): `WARNING: video: codec libx264 is not bundled (GPL); using libsvtav1 (AV1)` for the
   default codec, `WARNING: video: encoder nosuchcodec is not available; using libsvtav1` (MDATK:
@@ -2914,11 +2915,24 @@ account (plan risk 1).
   `pdbtools_cases.json`, `tests/io/test_pdb.cpp`.
 - **CH-08 Mutation specs without a chain read the whole number** (follows MDATK 0.1.0,
   `_MUTATION_RE`): `15G` is residue 15 of the blank chain, not residue 5 of chain 1.
+  *C++ (W2-B):* `chem::parseMutations` (src/chem/mutate.cpp) matches 0.1.0's expression by hand on
+  code points (Python's Unicode `\s` / `\d`, so `é:5G` and `A:5Ag` read as MDATK reads them; bases
+  A C G U as in 0.0.4.1, T stays an error). A residue number beyond 64 bits, which Python reads and
+  then does not find, is "cannot read mutation ...". *Tested:* every `parse_mutations` case and the
+  `blank` mutations of `builder_cases.json` (tests/chem/test_mutate.cpp `MutationCases.*`),
+  `Mutations.OptionsAndErrors`.
 - **CH-09 Mutated bases get hydrogens when the old base had them** (owner decision D11; beyond 0.1.1).
   MDATK dropped the old base's hydrogens and added a heavy-atom base, a mixed model. The new base's
   hydrogens come from the builder's ideal templates (`_H_RULES` order, after the heavy atoms, the same
   glycosidic-frame fit), with the note "replaced N hydrogen(s) of the old base (...) with M of the new
   base (...) at ideal positions".
+  *C++ (W2-B):* `chem::mutate` takes the new base from `chem::helixTemplate(base, true)` (W1-D's
+  templates, so guanine's H21 / H22 as CHD-01 names them) and moves its heavy atoms and, when the old
+  base had hydrogens, `baseHydrogenNames(base)` with the one Kabsch fit; a model without hydrogens
+  gets none. *Tested:* the `helix_h` and `l_ccd_h` mutations of `builder_cases.json` byte for byte,
+  `Mutations.KeepTheFrameAndCompensate` (MDATK's test with the hydrogens checked: bond lengths, order
+  after the heavy atoms, the same atom set as a helix built with the new sequence),
+  `Mutations.HydrogensOnlyWhereThereWereAndUnknownAtomsKept`.
 - **CH-10 Unusable resolutions and spacings are refused first** (density.py unchanged in 0.1.1). A NaN
   resolution or a negative spacing ended in numpy's `negative dimensions are not allowed`. `build fit`
   and `density fit`: a non-finite `--resolution` gives "the resolution must be a positive number of Å"
@@ -2940,7 +2954,11 @@ account (plan risk 1).
   MDATK saved every path absolute; the project file is written with its paths as it had them and the
   fit's density settings, a relative `--map` relative to the project folder, and `--save OTHER` rebases
   the relative paths (Save As). Without `--project` (a new file from `--top` / `--traj`) MDATK's save is
-  kept.
+  kept. In C++ the command opens the project in the edit model (`core::ProjectDocument`), sets the
+  density fields in one edit and saves (`save()`, or `saveAs()` for another file, which rebases), so
+  the file is what the analysis window writes. *Tested:* cli_cases.json `density_fit_save`,
+  `density_fit_save_as`, `density_fit_then_placed` (MDATK patched by improvements_chem.py
+  `_save_as_written`).
 - **CH-13 Missing input files are named** (not fixed). A name that is not a file was parsed as PDB text
   ("no ATOM/HETATM records found ..."); the commands report "[Errno 2] No such file or directory:
   'x.pdb'" (a folder: "[Errno 21] Is a directory") for their inputs and `--chain-reference`; PDB text
@@ -2948,7 +2966,10 @@ account (plan risk 1).
   that cannot be opened throws `std::filesystem::filesystem_error`, which the commands report as
   above); text is never taken for a path, so `clean` of text without a title names its FASTA
   entries `structure` (MDATK used the text as a file name when it had no newline). *Tested:*
-  `test_models_header_trailer_and_anisou`, `test_clean_end_to_end_from_path`.
+  `test_models_header_trailer_and_anisou`, `test_clean_end_to_end_from_path`; on the command line
+  cli_cases.json `pdb_clean_missing`, `pdb_clean_folder`, `pdb_check_missing`,
+  `pdb_annotate_missing`, `pdb_clean_chain_reference_missing`, `build_mutate_missing`,
+  `build_fit_missing_model`.
 - **CH-14 No Barnaba** (owner decision D9; DIFFERENCES "No Barnaba"). `pdb annotate`'s `auto` is the
   builtin engine; `--engine barnaba` runs it with "WARNING: Barnaba is not available in MDBridge; using
   the builtin detector"; the stacking note has no `pip install barnaba` hint; no STACK records, no
@@ -2975,6 +2996,26 @@ account (plan risk 1).
   option cases and 5 Structure cases, `tests/chem/test_annotate.cpp`) and 8 counterparts of MDATK's
   `tests/test_annotate.py` (the Barnaba tests check the builtin engine with the warning; the
   command-line test checks the library call, the command and its step log come with W2-C).
+- **W2-B: base mutations and the fit to a map in C++** (`src/chem/mutate.cpp`, `chem/mutate.hpp`,
+  `src/chem/fit_to_map.cpp`, `chem/fit_to_map.hpp`; milestone 6 W2-B). MDATK's `parse_mutations`,
+  `mutated_name`, `_partners` (W1-B's `chem::PairDetector`), `_swap_base`, `mutate`, `_atom_element`,
+  `model_atoms` and `fit_to_map` (section 1.3 of the plan; `transform_pdb_text` is M2's
+  `io::transformPdbText`, the fit W1-E's `chem::fitModel`) with CH-08, CH-09, CH-10 and CH-11. The
+  Kabsch rotation of `mdatk.spatial.kabsch` (weights 2, 2, 1, 1 on C1' and the glycosidic frame) is
+  computed with MDBridge's own `core::svd3x3` where MDATK called LAPACK; the other arithmetic in
+  NumPy's order. The text of a fit is the input with only the coordinates changed; an input whose atom
+  records lack fixed-column coordinates (ChimeraX lines the reader repairs, columns shifted) is
+  rewritten through `chem::writePdb` with CONECT kept and ANISOU dropped, as MDATK does. *Tested:*
+  tests/chem/test_mutate.cpp: all 32 `mutate` cases of `builder_cases.json` byte for byte (the test
+  accepts a coordinate within 0.0011 Å where Kabsch's last bits would flip a rounded digit, and counts
+  such lines: none), the fits of `builder_fitted_cases.json` within D10 (coordinates within 0.002 Å
+  of MDATK's, CC within 1e-3, notes equal), and the counterparts of MDATK's
+  `test_mutations_keep_the_frame_and_compensate` (with CH-09), `test_l_rna_mutation_keeps_l_names_and_chirality`,
+  `test_mutation_options_and_errors`, `test_global_fit_recovers_the_pose`,
+  `test_local_fit_and_anisou_rotation` and the DNA-partner and altloc part of
+  `test_negative_start_empty_partner_dna_partner_and_altlocs`. `make_builder_cases.py` gained one fit
+  case (`shifted`: the fused residue field one column wide, an ANISOU and a CONECT record) for the
+  rewrite path, which none of the recorded cases reached.
 - **D13 (milestone 6): the program named in written records** (as CMD-08): `REMARK 950 MDBridge
   BASE-PAIR ANNOTATION` and `REMARK 951 MDBridge IDEAL ...`; every other byte as MDATK writes it.
   Messages that name the program say `mdbridge` ('mdbridge pdb clean', 'mdbridge density fit --save').
@@ -2982,9 +3023,54 @@ account (plan risk 1).
   tests/chem/test_helix.cpp.
 - **D7 (milestone 6): PubChem**: `dict pubchem` reads the PUG REST root from
   `MDBRIDGE_PUBCHEM_URL` when it is set (default PubChem's); the command-line cases use a stand-in
-  server on 127.0.0.1 (cli_parity.py `PubchemStandIn`).
-- **Automatic density fit before rendering** (lifts milestone 4's D9 in the command-line cases):
-  a shown map without a placement is fitted when `auto_fit` is on, as MDATK does (`render_density_auto_fit`).
+  server on 127.0.0.1 (cli_parity.py `PubchemStandIn`). In C++ the request logic and MDATK's messages
+  are the commands library's (`app::fetchPubchemSmiles`, src/app/commands/pubchem.cpp) and the
+  transport is the `mdbridge` program's Qt Network (src/app/pubchem_qt.cpp: the system's proxy
+  settings, the loopback never proxied, the timeout for the whole request where urllib's applied to
+  each socket operation); `chem` never touches the network, and a program without the transport
+  (`mdbridge_commands_cli`) says "PubChem lookups need the mdbridge program". Where MDATK crashed on
+  an answer whose `Properties` are no list of objects (a TypeError / AttributeError traceback),
+  MDBridge reports "PubChem returned an unreadable answer". The request names MDBridge in its
+  User-Agent ("MDBridge dict pubchem"; MDATK: "MDATK dictionaries.py"). *Tested:* the 11
+  `dict_pubchem_*` cases of cli_cases.json against the `mdbridge` program and the Python stand-in
+  (cli_parity.py), and in-process with tests/cli/test_commands.cpp's own stand-in transport
+  (`pubchemStandIn`: the same answers; "Connection refused" for any other root).
+- **Automatic density fit before rendering** (milestone 6 W2-C; retires milestone 4's D9): a shown
+  map without a placement is fitted before the video (the first tenth of its progress) and the preview
+  when `auto_fit` is on, MDATK's `ensure_density_fit` (src/app/commands/density_pipeline.cpp); a failed
+  fit is "WARNING: density map not drawn: <reason>" and the figure is drawn without the map. The
+  placement is not saved. improvements_render.py no longer patches it (`_d9_no_density_fit` is gone,
+  so the render data no longer lists D9). *Tested:* cli_cases.json `render_density_auto_fit`,
+  `RenderCommands.FfmpegPathIsNotUsedAndTheDensityMapIsFitted`.
+- **W2-C: the chem commands** (`src/app/commands/chem_commands.cpp`, `density_pipeline.cpp`,
+  `pubchem.cpp`; milestone 6 W2-C). `pdb clean / check / to-lrna / annotate`, `build helix / mutate /
+  fit`, `dict list / smiles / finish / pubchem` and `density fit / simulate` with MDATK's options,
+  defaults, notes (stderr, prefixed `pdbtools:`, `annotate:`, `build:`, `dictionaries:`), output files,
+  JSON (`pdb check`, `dict list --json`, `build fit`, `density fit` / `simulate`, printed as
+  `json.dumps(indent=2)`: `core::toJsonAscii`) and step-log entries (step, title, the command line as
+  `" ".join(sys.argv[1:])`, files, summary, citations `arnott1972` / + `pdb-4jrd` for `build helix`,
+  `ccd` for `dict finish`). `Pipeline.density_frame_atoms` / `fit_density` / `ensure_density_fit` are
+  `app::densityFrameAtoms`, `fitDensity`, `ensureDensityFit` (for the analysis window's buttons too,
+  W3-A). Differences beyond the CH items: a group without its action prints its help and gives 2 (as
+  MDATK); numbers read as Python's `float()` / `int()` (`nan`, `1_000`); a map that cannot be written
+  names the operating system's reason (`io::writeMap`: "[Errno 2] No such file or directory" for a
+  missing folder, where it said "Permission denied" for every failure). The non-Watson-Crick pairings
+  and triplexes of `build helix` come with W2-A (their 5 cases are pending in cli_parity.py).
+  *Tested:* every non-pending case of cli_cases.json (421 against the `mdbridge` program with Qt and
+  FFmpeg; in-process by `Commands.MatchMdatk` those that draw nothing, with the step log's time masked
+  and the fitted cases' numbers within their tolerance), which include the command lines of MDATK's
+  `test_cli_and_step_log` tests of test_pdbtools.py, test_annotate.py, test_builder.py,
+  test_dictionaries.py and the `density` CLI test of test_density.py. The fitted cases compare their
+  texts with the numbers within the tolerance and the white space between them free (a TOML list of
+  numbers is written on one line or one per line by its length), and their maps by their headers
+  (cli_parity.py `map_summary`).
+- **The generators' chem API** (`chem/generator_api.hpp`, milestone 6 W2-C; plan 4.4): the functions
+  MDATK's planner steps call (`parseRanges`, `readModel` = read_pdb + assign_chirality + convert_names,
+  `readAnnotation` = refine.py's `read_annotation`, `lwKind`, the builder's sequence functions, the
+  dictionary components, `checkSmiles`, `parseSmiles`) as value-in / value-out functions for milestone 7's
+  Lua binding; `parse_mutations` is `chem::parseMutations` (W2-B), `fetch_pubchem_smiles` the
+  program's (D7). *Tested:* tests/chem/test_generator_api.cpp (`check_helix`, `resolve_partner`,
+  `pair_types` of builder_cases.json; models and annotations the builder and `annotate` write).
 
 Fitted outputs are compared within tolerances (plan 4.1, D10): the rebuilt helices of the other
 pairings and triplexes, the density fits and their transforms; regenerate_all.py compares the chem

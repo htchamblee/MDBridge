@@ -1,4 +1,5 @@
-// The MDATK commands of the command line (init, info, list, analyze, export-pdb, density info), run
+// The MDATK commands of the command line (init, info, list, analyze, export-pdb, density, and the
+// chem commands pdb, build, dict with a PubChem stand-in), run
 // in-process on the inputs of tests/data/cli/cli_cases.json and compared with what MDATK v0.0.4.1
 // printed and wrote there (tests/parity/cli_parity.py --write; normalised the same way: {work},
 // {time}, {stamp}, the analysis cache's {manifest} and {key}, its files compared by meaning).
@@ -7,7 +8,9 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <filesystem>
 #include <map>
 #include <optional>
@@ -32,6 +35,7 @@
 #include "mdbridge/core/project.hpp"
 #include "mdbridge/core/project_file.hpp"
 #include "mdbridge/core/text.hpp"
+#include "pubchem.hpp"
 #include "test_support.hpp"
 
 namespace mdbridge {
@@ -64,6 +68,82 @@ struct CommandRun {
     std::string err;
 };
 
+// ---- the PubChem stand-in (cli_parity.py PubchemStandIn, PUBCHEM_ANSWERS; owner decision D7) ----
+
+// The root URL the cases' {pubchem} stands for; nothing listens there: the stand-in transport answers.
+constexpr const char* kPubchemStandIn = "http://pubchem.stand-in/rest/pug";
+
+std::string jsonText(const Value& v) { return core::toJson(v, 0); }
+
+// GET {root}/compound/<cid/N | name/NAME>/property/<PROP>/JSON as cli_parity.py's server answers it
+app::HttpReply pubchemStandIn(const std::string& url, const app::HttpHeaders& headers, double timeoutSeconds) {
+    bool acceptsJson = false;
+    for (const auto& [name, value] : headers) acceptsJson = acceptsJson || (name == "Accept" && value == "application/json");
+    EXPECT_TRUE(acceptsJson) << url;
+    app::HttpReply reply;
+    if (!url.starts_with(kPubchemStandIn)) {
+        reply.outcome = app::HttpReply::Outcome::Failed;
+        reply.error = "Connection refused";
+        return reply;
+    }
+    const std::string adenosineL = "C1=NC(=C2C(=N1)N(C=N2)[C@@H]3[C@H]([C@H]([C@@H](O3)CO)O)O)N";
+    const std::string adenosineD = "C1=NC(=C2C(=N1)N(C=N2)[C@H]3[C@@H]([C@@H]([C@H](O3)CO)O)O)N";
+    const auto properties = [](const Value& entry) {
+        return jsonText(Value(core::Table{{"PropertyTable", core::Table{{"Properties", core::Array{entry}}}}}));
+    };
+    struct Answer {
+        int status;
+        std::string body;
+        double wait;
+    };
+    const std::map<std::pair<std::string, std::string>, Answer> answers{
+        {{"cid/1001", "SMILES"}, {200, properties(core::Table{{"CID", 1001}, {"SMILES", adenosineL}}), 0}},
+        {{"name/L-adenosine", "SMILES"}, {400, jsonText(core::Table{{"Fault", core::Table{{"Code", "PUGREST.BadRequest"}}}}), 0}},
+        {{"name/L-adenosine", "IsomericSMILES"},
+         {200, properties(core::Table{{"CID", 1001}, {"IsomericSMILES", adenosineL}}), 0}},
+        {{"name/D-adenosine", "SMILES"}, {200, properties(core::Table{{"CID", 60961}, {"SMILES", adenosineD}}), 0}},
+        {{"name/ethanol", "SMILES"}, {200, properties(core::Table{{"CID", 702}, {"SMILES", "CCO"}}), 0}},
+        {{"cid/500", "SMILES"}, {500, "server failure", 0}},
+        {{"name/garbage", "SMILES"}, {200, "not json", 0}},
+        {{"name/empty", "SMILES"}, {200, properties(core::Table{{"CID", 1}}), 0}},
+        {{"name/empty", "IsomericSMILES"}, {200, properties(core::Table{{"CID", 1}}), 0}},
+        {{"name/slow", "SMILES"}, {200, properties(core::Table{{"CID", 2}, {"SMILES", "C"}}), 3.0}},
+    };
+    static const std::regex path{R"(^/compound/((?:cid|name)/[^/]+)/property/([^/]+)/JSON$)"};
+    std::smatch m;
+    const std::string rest = url.substr(std::string(kPubchemStandIn).size());
+    Answer answer{404, jsonText(core::Table{{"Fault", core::Table{{"Code", "PUGREST.NotFound"}}}}), 0};
+    if (std::regex_match(rest, m, path)) {
+        std::string compound = m[1].str();  // urllib.parse.unquote
+        std::string unquoted;
+        for (std::size_t i = 0; i < compound.size(); ++i) {
+            if (compound[i] == '%' && i + 2 < compound.size()) {
+                unquoted += static_cast<char>(std::stoi(compound.substr(i + 1, 2), nullptr, 16));
+                i += 2;
+            } else {
+                unquoted += compound[i];
+            }
+        }
+        if (const auto it = answers.find({unquoted, m[2].str()}); it != answers.end()) answer = it->second;
+    }
+    if (answer.wait > timeoutSeconds) {
+        reply.outcome = app::HttpReply::Outcome::TimedOut;
+        return reply;
+    }
+    static const std::map<int, std::string> reasons{{200, "OK"}, {400, "Bad Request"}, {404, "Not Found"},
+                                                    {500, "Internal Server Error"}};
+    reply.outcome = app::HttpReply::Outcome::Answered;
+    reply.status = answer.status;
+    reply.reason = reasons.at(answer.status);
+    reply.body = answer.body;
+    return reply;
+}
+
+const app::NetworkBackend& pubchemNetwork() {
+    static const app::NetworkBackend network{&pubchemStandIn};
+    return network;
+}
+
 // The command line in `folder` (the working directory meanwhile).
 CommandRun runIn(const fs::path& folder, const std::vector<std::string>& args, bool terminal = false) {
     std::vector<const char*> argv{"mdbridge"};
@@ -77,7 +157,8 @@ CommandRun runIn(const fs::path& folder, const std::vector<std::string>& args, b
     fs::current_path(folder);
     CommandRun run;
     try {
-        run.exit = app::runCoreCommandLine(static_cast<int>(argv.size()), argv.data(), console);
+        run.exit = app::runCoreCommandLine(static_cast<int>(argv.size()), argv.data(), console, nullptr,
+                                           &pubchemNetwork());
     } catch (...) {
         fs::current_path(previous);
         throw;
@@ -425,12 +506,107 @@ std::vector<std::string> npzDifferences(const Value& expected, const fs::path& p
     return problems;
 }
 
-// The differences between one expected file entry (text, sha256, json, npz) and a file; [] when equal.
-std::vector<std::string> fileDifferences(const Value& expected, const fs::path& path, const Normaliser& normalise) {
+// cli_parity.py texts_close (FITTED): equal but for their decimal numbers, which differ by at most
+// `tolerance`, and for white space between them.
+bool textsClose(const std::string& expected, const std::string& actual, double tolerance) {
+    static const std::regex number{R"(-?\d+(?:\.\d+(?:e[-+]?\d+)?|e[-+]?\d+))"};  // 0.25, 1.9e-05, 7e-06
+    struct Split {
+        std::vector<std::string> parts;
+        std::vector<double> numbers;
+    };
+    const auto split = [](const std::string& text) {
+        Split out;
+        std::size_t last = 0;
+        for (auto it = std::sregex_iterator(text.begin(), text.end(), number); it != std::sregex_iterator(); ++it) {
+            const std::size_t at = static_cast<std::size_t>(it->position());
+            out.parts.push_back(text.substr(last, at - last));
+            out.numbers.push_back(std::stod(it->str()));
+            last = at + static_cast<std::size_t>(it->length());
+        }
+        out.parts.push_back(text.substr(last));
+        return out;
+    };
+    Split a = split(expected);
+    Split b = split(actual);
+    if (a.parts.size() != b.parts.size()) {
+        return false;
+    }
+    // white space between the numbers is not compared, nor a trailing comma before "]" (cli_parity.py
+    // texts_close: PDB columns, a TOML list on one line or one number per line)
+    const auto canon = [](const std::string& t) {
+        std::string out;
+        for (const char ch : t) {
+            if (ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r') continue;
+            if (ch == ']' && !out.empty() && out.back() == ',') out.pop_back();
+            out += ch;
+        }
+        return out;
+    };
+    for (std::size_t i = 0; i < a.parts.size(); ++i) {
+        a.parts[i] = canon(a.parts[i]);
+        b.parts[i] = canon(b.parts[i]);
+    }
+    if (a.parts != b.parts) {
+        return false;
+    }
+    for (std::size_t i = 0; i < a.numbers.size(); ++i) {
+        if (!(std::abs(a.numbers[i] - b.numbers[i]) <= tolerance)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+// cli_parity.py step_log_mask: the step log's time and duration (the chem cases, "needs")
+std::string stepLogMasked(const std::string& text) {
+    static const std::regex time{R"((^|\n)time = \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(?=\n|$))"};
+    static const std::regex duration{R"((^|\n)duration_s = [0-9.e+-]+(?=\n|$))"};
+    return std::regex_replace(std::regex_replace(text, time, "$1time = {time}"), duration, "$1duration_s = 0.0");
+}
+
+// How a case's texts are compared: the step log masked (chem cases), numbers within a tolerance
+// (fitted cases).
+struct TextRules {
+    bool logMask = false;
+    std::optional<double> tolerance;
+};
+
+// cli_parity.py map_summary: an MRC file's header as text
+std::string mapSummary(const std::string& data) {
+    const auto i32 = [&data](std::size_t word) {
+        std::int32_t v = 0;
+        std::memcpy(&v, data.data() + 4 * word, 4);
+        return static_cast<int>(v);
+    };
+    const auto f32 = [&data](std::size_t word) {
+        float v = 0;
+        std::memcpy(&v, data.data() + 4 * word, 4);
+        return static_cast<double>(v);
+    };
+    char text[512];
+    std::snprintf(text, sizeof text,
+                  "grid %d %d %d mode %d start %d %d %d sampling %d %d %d cell %.4f %.4f %.4f axes %d %d %d "
+                  "min %.6f max %.6f mean %.6f origin %.4f %.4f %.4f",
+                  i32(0), i32(1), i32(2), i32(3), i32(4), i32(5), i32(6), i32(7), i32(8), i32(9), f32(10), f32(11),
+                  f32(12), i32(16), i32(17), i32(18), f32(19), f32(20), f32(21), f32(49), f32(50), f32(51));
+    return text;
+}
+
+// The differences between one expected file entry (text, sha256, json, npz, map) and a file; [] when equal.
+std::vector<std::string> fileDifferences(const Value& expected, const fs::path& path, const Normaliser& normalise,
+                                         const TextRules& rules = {}) {
     if (const Value* arrays = expected.find("npz")) {
         return npzDifferences(*arrays, path);
     }
     const std::string content = test::readFile(path);
+    if (const Value* map = expected.find("map")) {  // a fitted case's map: its header within the tolerance
+        if (content.size() < 1024) {
+            return {"is no MRC map"};
+        }
+        const std::string got = mapSummary(content);
+        const bool same = got == map->stringOr() || (rules.tolerance && textsClose(map->stringOr(), got, *rules.tolerance));
+        return same ? std::vector<std::string>{} : std::vector<std::string>{"differs: " + got};
+    }
     if (const Value* json = expected.find("json")) {
         const Value got = sortedEntries(maskedCacheJson(core::parseJson(content, core::pathToUtf8(path)), normalise));
         if (got != sortedEntries(*json)) {
@@ -439,9 +615,10 @@ std::vector<std::string> fileDifferences(const Value& expected, const fs::path& 
         return {};
     }
     if (validUtf8(content)) {
-        const std::string got = normalise.file(content);
+        const std::string got = rules.logMask ? stepLogMasked(normalise.file(content)) : normalise.file(content);
         if (const Value* t = expected.find("text")) {
-            return got == t->stringOr() ? std::vector<std::string>{} : std::vector<std::string>{"differs:\n" + got};
+            const bool same = got == t->stringOr() || (rules.tolerance && textsClose(t->stringOr(), got, *rules.tolerance));
+            return same ? std::vector<std::string>{} : std::vector<std::string>{"differs:\n" + got};
         }
         if (core::sha256Hex(got) != text(expected, "sha256") ||
             static_cast<std::int64_t>(got.size()) != *field(expected, "size").get<std::int64_t>()) {
@@ -493,7 +670,7 @@ TEST(Commands, MatchMdatk) {
         }
         if (const Value* pending = c.find("pending"); pending != nullptr && pending->get<bool>() != nullptr &&
                                                       *pending->get<bool>()) {
-            continue;  // a command MDBridge does not have yet (cli_parity.py PENDING: demo, clean, citations)
+            continue;  // a command MDBridge does not have yet (cli_parity.py PENDING)
         }
         test::TempDir work;
         const std::string workText = core::pathToUtf8(fs::canonical(work.path()));
@@ -514,8 +691,18 @@ TEST(Commands, MatchMdatk) {
         }
         ScopedEnvironment environment;
         for (const auto& [variable, value] : *field(c, "env").get<core::Table>()) {
-            environment.set(variable, replaceAll(value.stringOr(), "{work}", workText));
+            environment.set(variable, replaceAll(replaceAll(value.stringOr(), "{work}", workText), "{pubchem}",
+                                                 kPubchemStandIn));
         }
+        TextRules rules;
+        rules.logMask = c.find("needs") != nullptr;
+        if (const Value* fitted = c.find("fitted")) {
+            rules.tolerance = fitted->get<double>() ? *fitted->get<double>()
+                                                    : static_cast<double>(*fitted->get<std::int64_t>());
+        }
+        const auto sameText = [&rules](const std::string& got, const std::string& expected) {
+            return got == expected || (rules.tolerance && textsClose(expected, got, *rules.tolerance));
+        };
         const auto arguments = [](const Value& list) {
             std::vector<std::string> args;
             for (const Value& a : *list.get<core::Array>()) {
@@ -536,11 +723,13 @@ TEST(Commands, MatchMdatk) {
             continue;
         }
         EXPECT_EQ(result.exit, *field(c, "exit").get<std::int64_t>()) << result.err;
-        EXPECT_EQ(normalise(result.out), text(c, "stdout"));
+        if (!sameText(normalise(result.out), text(c, "stdout"))) {
+            EXPECT_EQ(normalise(result.out), text(c, "stdout"));
+        }
         if (field(c, "stderr").isNull()) {
             // MDATK crashed with a traceback (mdatk_crash): MDBridge reports the error instead
             EXPECT_TRUE(result.err.starts_with("error: ")) << text(c, "mdatk_crash") << " / " << result.err;
-        } else {
+        } else if (!sameText(normalise(result.err), text(c, "stderr"))) {
             EXPECT_EQ(normalise(result.err), text(c, "stderr"));
         }
 
@@ -593,7 +782,7 @@ TEST(Commands, MatchMdatk) {
             for (const Value& e : entries) {
                 std::vector<std::string> problems;
                 const auto match = std::find_if(unused.begin(), unused.end(), [&](const fs::path& p) {
-                    problems = fileDifferences(e, p, normalise);
+                    problems = fileDifferences(e, p, normalise, rules);
                     return problems.empty();
                 });
                 if (match == unused.end()) {
@@ -670,7 +859,8 @@ TEST(Commands, OnlyTheseCommandsAreOffered) {
         names.push_back(sub->get_name());
     }
     EXPECT_EQ(names, (std::vector<std::string>{"demo", "init", "info", "list", "clean", "analyze", "export-pdb",
-                                               "render", "charts", "preview", "citations", "density"}));
+                                               "render", "charts", "preview", "citations", "density", "pdb",
+                                               "build", "dict"}));
     const std::string help = root.help();
     EXPECT_EQ(help.find("workflow"), std::string::npos);
 }
@@ -679,6 +869,10 @@ TEST(Commands, UsageErrorsExitWith2) {
     test::TempDir work;
     EXPECT_EQ(runIn(work.path(), {"init"}).exit, 2);
     EXPECT_EQ(runIn(work.path(), {"density"}).exit, 2);
+    EXPECT_EQ(runIn(work.path(), {"pdb"}).exit, 2);
+    EXPECT_EQ(runIn(work.path(), {"build"}).exit, 2);
+    EXPECT_EQ(runIn(work.path(), {"dict"}).exit, 2);
+    EXPECT_EQ(runIn(work.path(), {"density", "fit", "--resolution", "x"}).exit, 2);
     EXPECT_EQ(runIn(work.path(), {"demo"}).exit, 2);
     EXPECT_EQ(runIn(work.path(), {"demo", "d", "--n-frames", "x"}).exit, 2);
     EXPECT_EQ(runIn(work.path(), {"clean", "--force=x"}).exit, 2);
