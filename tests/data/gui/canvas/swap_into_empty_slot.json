@@ -1,0 +1,209 @@
+{
+ "format": "mdbridge-gui-case",
+ "version": 1,
+ "description": "A panel dragged onto an empty slot",
+ "source": "MDATK v0.0.4.1's GTK window driven by tests/parity/make_gui_cases.py, with MDBridge's window improvements (tests/parity/improvements_gui.py)",
+ "clock": "2026-11-25T12:00:00",
+ "items": [
+  "AP-07"
+ ],
+ "mdatk_test": "",
+ "needs": [
+  "canvas",
+  "lossless",
+  "snapshot",
+  "start"
+ ],
+ "canvas": {
+  "width": 960,
+  "height": 540
+ },
+ "files": {
+  "demo_dry.nc": "io/trajectories/demo_dry.nc",
+  "demo_dry.parm7": "topology/demo_dry.parm7",
+  "p.mdatk.toml": "gui/canvas/swap_into_empty_slot/in/p.mdatk.toml"
+ },
+ "start": {
+  "project": "p.mdatk.toml"
+ },
+ "actions": [
+  {
+   "action": "canvas.drag",
+   "from": {
+    "slot": 1,
+    "at": [
+     0.5,
+     0.5
+    ]
+   },
+   "to": {
+    "slot": 3,
+    "at": [
+     0.5,
+     0.5
+    ]
+   }
+  },
+  {
+   "action": "snapshot",
+   "keys": [
+    "layout.panels"
+   ]
+  },
+  {
+   "action": "save"
+  }
+ ],
+ "expected": {
+  "p.mdatk.toml": "gui/canvas/swap_into_empty_slot/out/p.mdatk.toml"
+ },
+ "log": [
+  "Swapped panels 2 and 4",
+  "Saved project {case_dir}/p.mdatk.toml"
+ ],
+ "outcome": {
+  "snapshots": [
+   {
+    "action": 1,
+    "values": {
+     "layout.panels": [
+      {
+       "type": "structure",
+       "series": [],
+       "title": "Structure",
+       "options": {}
+      },
+      {
+       "type": "timeseries",
+       "series": [
+        "contacts/atom_pairs"
+       ],
+       "title": "",
+       "options": {}
+      },
+      {
+       "type": "timeseries",
+       "series": [
+        "contacts/atom_pairs"
+       ],
+       "title": "",
+       "options": {}
+      },
+      {
+       "type": "timeseries",
+       "series": [
+        "rmsd/Complex"
+       ],
+       "title": "RMSD",
+       "options": {}
+      }
+     ]
+    }
+   }
+  ],
+  "canvas": [
+   {
+    "action": 0,
+    "slots": [
+     [
+      9.6,
+      9.600000000000023,
+      430.06806640624995,
+      247.49269205729166
+     ],
+     [
+      458.86806640625,
+      9.600000000000023,
+      491.53193359374995,
+      297.2363444010416
+     ],
+     [
+      0.0,
+      270.0,
+      480.0,
+      270.0
+     ],
+     [
+      480.0,
+      270.0,
+      480.0,
+      270.0
+     ]
+    ],
+    "structure_slot": 0,
+    "events": [
+     [
+      "press",
+      704.634033203125,
+      158.21817220052083
+     ],
+     [
+      "motion",
+      720.0,
+      405.0
+     ],
+     [
+      "release",
+      720.0,
+      405.0
+     ]
+    ]
+   }
+  ],
+  "settings": "gui/canvas/swap_into_empty_slot/settings.after.toml"
+ },
+ "mdatk": {
+  "expected": {
+   "p.mdatk.toml": "gui/canvas/swap_into_empty_slot/mdatk/p.mdatk.toml"
+  },
+  "canvas": [
+   {
+    "action": 0,
+    "slots": [
+     [
+      63.600000000000016,
+      9.600000000000023,
+      403.06806640624995,
+      201.0208658854167
+     ],
+     [
+      485.8680664062501,
+      9.600000000000023,
+      464.5319335937499,
+      250.7645182291667
+     ],
+     [
+      9.600000000000001,
+      241.27449544270837,
+      457.06806640624995,
+      301.671875
+     ],
+     [
+      493.3319335937501,
+      241.27449544270837,
+      457.0680664062499,
+      301.671875
+     ]
+    ],
+    "structure_slot": 0,
+    "events": [
+     [
+      "press",
+      718.134033203125,
+      134.98225911458337
+     ],
+     [
+      "motion",
+      721.865966796875,
+      392.11043294270837
+     ],
+     [
+      "release",
+      721.865966796875,
+      392.11043294270837
+     ]
+    ]
+   }
+  ]
+ }
+}

@@ -1,12 +1,14 @@
 #pragma once
-// The commands of MDATK's `mdatk` command line that the libraries support so far: init
-// (init-params), info, list, analyze, export-pdb, render, charts, preview and density info. Names,
-// options, defaults, output, files and exit codes are MDATK v0.0.4.1's (mdatk/cli.py); MDATK's other
-// commands (clean, density fit / simulate, pdb, build, dict, workflow, demo) follow with later
-// milestones and are not offered until then. render, charts and preview draw with a RenderBackend
-// (render_pipeline.hpp) that the program passes (the Qt one in the `mdbridge` program); without
-// one they fail with "figures cannot be drawn by this program". `analyze` keeps MDBridge's own cache
-// (mdbridge/analysis/cache.hpp) and does not clean with cpptraj (mdbridge/analysis/pipeline.hpp).
+// The commands of MDATK's `mdatk` command line that the libraries support so far: demo, init
+// (init-params), info, list, clean, analyze, export-pdb, render, charts, preview and density info,
+// and MDBridge's citations (D14: the references of a project's settings and cached results).
+// Names, options, defaults, output, files and exit codes are MDATK v0.0.4.1's (mdatk/cli.py);
+// MDATK's other commands (density fit / simulate, pdb, build, dict, workflow) follow with later
+// milestones and are not offered until then. render, charts, preview and demo --run draw with a
+// RenderBackend (render_pipeline.hpp) that the program passes (the Qt one in the `mdbridge`
+// program); without one they fail with "figures cannot be drawn by this program". `analyze` keeps
+// MDBridge's own cache (mdbridge/analysis/cache.hpp); cleaning runs cpptraj as MDATK does
+// (mdbridge/analysis/cleaning.hpp).
 //
 // This library needs no Qt: the `mdbridge` program adds these commands to its own (gui, project,
 // graphics), and the tests run them in-process.

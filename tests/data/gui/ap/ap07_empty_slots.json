@@ -1,0 +1,49 @@
+{
+ "format": "mdbridge-gui-case",
+ "version": 1,
+ "description": "A 4-slot preset with 2 panels is saved with 2",
+ "source": "MDATK v0.0.4.1's GTK window driven by tests/parity/make_gui_cases.py, with MDBridge's window improvements (tests/parity/improvements_gui.py)",
+ "clock": "2026-11-25T12:00:00",
+ "items": [
+  "AP-07"
+ ],
+ "mdatk_test": "",
+ "needs": [
+  "lossless",
+  "start"
+ ],
+ "canvas": {
+  "width": 960,
+  "height": 540
+ },
+ "files": {
+  "p.mdatk.toml": "gui/ap/ap07_empty_slots/in/p.mdatk.toml"
+ },
+ "start": {
+  "project": "p.mdatk.toml"
+ },
+ "actions": [
+  {
+   "action": "set",
+   "key": "visual.zoom",
+   "value": 1.2
+  },
+  {
+   "action": "save"
+  }
+ ],
+ "expected": {
+  "p.mdatk.toml": "gui/ap/ap07_empty_slots/out/p.mdatk.toml"
+ },
+ "log": [
+  "Saved project {case_dir}/p.mdatk.toml"
+ ],
+ "outcome": {
+  "settings": "gui/ap/ap07_empty_slots/settings.after.toml"
+ },
+ "mdatk": {
+  "expected": {
+   "p.mdatk.toml": "gui/ap/ap07_empty_slots/mdatk/p.mdatk.toml"
+  }
+ }
+}

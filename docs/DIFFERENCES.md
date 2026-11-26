@@ -710,6 +710,72 @@ test_selections.cpp; cli_cases.json (`info_groups`); framework_cases.json (cache
   (init_options_twice, analyze_options_twice, export_options_twice).
 - JSON presets: `init` with a `.json` preset reports that MDBridge uses TOML project files.
 
+## Demo, cleaning and citations commands (src/app/commands/demo.cpp, citations.cpp; src/analysis/cleaning.cpp; src/core/process.cpp)
+
+`demo` is a port of MDATK's `mdatk/demo.py` and writes MDATK's files byte for byte for the same
+arguments (demo.parm7, demo.nc; demo.mdatk.toml apart from `saved`): numpy's `default_rng(7)`
+(normal, `shuffle`), numpy's evaluation order without fused multiply-adds, scipy's KD-tree queries
+as exact searches. `clean` and the cleaning inside `analyze`, `render` and `export-pdb` are a port of
+`mdatk/cleaning/cpptraj.py` and `conda.py`: the same cpptraj script (byte for byte apart from the
+time stamp of its first line), folder (`<cache>/cleaned/<key>` or `cleaning.output_dir`), file
+names, marker `MDATK_clean.json`, `conda run` command lines and messages, so MDATK and MDBridge reuse
+each other's cleaned files. MDATK 0.1.1's demo.py, cpptraj.py and conda.py are unchanged from
+0.0.4.1; its pipeline change is adopted (CMD-05). *Tested:* cli_cases.json (`demo_*`, `clean_*`,
+`analyze_clean*`, `export_clean`, `demo_run` against the Qt program; tests/parity/cli_parity.py runs
+a fake cpptraj and a fake `conda run`), tests/cli/test_cleaning.cpp.
+
+- **CMD-01: `demo` refuses impossible arguments before writing anything.** `--n-frames 0` (MDATK:
+  `error: [Errno 5] trying to go over trajectory limit` after writing demo.parm7), a negative count
+  (`negative dimensions are not allowed`) and a time step that is not a positive finite number
+  (MDATK writes a trajectory whose frames are all at 0 ps, go back in time or are at NaN ps, and a
+  project with the PDB time `nanps`) give `the demo needs at least one frame (--n-frames 0)` and
+  `the time between frames must be a positive number of ps (--dt 0.0)`; the library's sequence
+  (not a command option) must have at least four of A, C, G, U (MDATK: KeyError or IndexError).
+  Not fixed in MDATK 0.1.1. *Tested:* cli_cases.json (demo_no_frames, demo_negative_frames,
+  demo_bad_dt; tests/parity/improvements_cli.py patches MDATK's build_demo the same way),
+  `Demo.RefusesImpossibleArguments`.
+- **CMD-02: the demo's hint names MDBridge:** `Next: mdbridge render -p d/demo.mdatk.toml   (or:
+  mdbridge gui d/demo.mdatk.toml)`. The files keep MDATK's texts (the parm7 title `MDATK synthetic
+  RNA aptamer/target demo`, the notes `... written by 'mdatk demo' ...`) so that they are MDATK's
+  byte for byte. *Tested:* cli_cases.json (NAMING in cli_parity.py), `Demo.Command`.
+- **CMD-03: cancelling cleaning stops cpptraj at once, with its children.** MDATK checks the cancel
+  flag between reads of cpptraj's output, so a cancel waits until cpptraj next prints (it is silent
+  for long stretches of a large trajectory), and `terminate()` ends `conda run` but not the cpptraj
+  it started. MDBridge's process runner (src/core/process.hpp, also for the planner's scripts in
+  milestone 7) polls every 50 ms, starts the program in its own process group (Windows: a job
+  object) and ends the whole group: SIGTERM, SIGKILL after 10 s (Windows: at once, as Python's
+  terminate()). *Tested:* `Process.CancelEndsTheProcessGroup`, `Cleaning.Cancel`.
+- **CMD-04: cpptraj's output is decoded line by line.** MDATK decodes each 4 KiB chunk on its own,
+  so a UTF-8 character split between two reads becomes two U+FFFD; MDBridge decodes whole lines
+  (invalid bytes still become U+FFFD) and writes cpptraj.log with the bytes cpptraj wrote (MDATK:
+  the decoded text; the same file for UTF-8 output). *Tested:* `Process.LineSplitter`.
+- **CMD-05: cleaned files are matched by their key everywhere** (MDATK 0.1.0, pipeline.py
+  `cleaned_if_available`): previews and the interface's structure view use cleaned files only when
+  the marker names the key of the current inputs and settings, also in a folder given as
+  `cleaning.output_dir` (MDATK 0.0.4.1 used any cleaned files found there). Previews never start
+  cpptraj. *Tested:* `Cleaning.OutputDirNeedsTheKey`, `ProjectView.CleaningWithoutCleanedFilesShowsTheRawFiles`.
+- **CMD-06: `mdbridge citations [common options] [--bibtex FILE] [--json]`** (new; owner decision
+  D14, AP-16; specification on MDATK's functions: tests/parity/citations_command.py). The project:
+  `-p` and the overrides of every analysis command. Cited: the settings' resources (as MDATK's About
+  dialog: `project_resources`, `keys_for`) followed by the run-time references of the cached results
+  (meta `citation_keys` of the analyses the cache manifest's last run lists; none when one of them
+  is missing; CIT-06, `core::citations::withRunKeys`). Text (default): MDATK's About text,
+  `Resources this project uses (N references; each generated script lists only its own):`, a blank
+  line, per resource `<name>[ - <note>]` and its references indented by four spaces and a blank
+  line; then, when the cache adds references, `Recorded by the cached results of the last run:` and
+  those references; without any: `This project uses no external resource with a reference yet.`
+  `--json`: `{"keys", "settings_keys", "run_keys" (the cache's, unfiltered), "resources": [{"id",
+  "name", "note", "keys"}]}` (indent 2, non-ASCII as it is). `--bibtex FILE` writes the BibTeX
+  entries and prints `Wrote N references to FILE` (with `--json`, the JSON instead); nothing to cite:
+  `Nothing to cite yet: The project uses no external resource with a reference.` and no file.
+  *Tested:* cli_cases.json (`citations_*`), `Citations.SettingsAndRunKeys`, `Citations.Command`.
+- **CMD-07: programs started from the AppImage get the user's environment** (as MDATK's frozen
+  build: `frozen.child_env`): `LD_LIBRARY_PATH` and `PATH` entries inside `$APPDIR` and a
+  `FONTCONFIG_FILE` there are left out, so cpptraj and conda do not load the AppImage's libraries.
+  *Tested:* `Process.ChildEnvironmentLeavesTheAppImageOut`.
+- The parameter log's `[run.inputs.cleaning]` holds `key`, `script`, `log` and `reused`, as MDATK's
+  (MDBridge wrote `key` and `reused = true` alone while it could only reuse MDATK's cleaned files).
+
 ## Citations (src/core/citations.cpp, src/core/citation_data.inc)
 
 Owner decision (2026-11-25): a method is cited by the people who originated it, not by one
@@ -1794,6 +1860,85 @@ axis). Deliberate differences from MDATK's GUI:
 - **Screenshots for checks.** `mdbridge gui PROJECT --screenshot PNG [--preview-screenshot PNG]`
   waits until the structure and the preview are drawn and reports what was shown (renderer,
   `molecule`, pixel `coverage`, the preview's size, load problems) as JSON (MDATK had no such check).
+
+## Interface: the analysis window (milestone 5, AP items; tests/data/gui)
+
+The expected behaviour of MDBridge's analysis window is MDATK v0.0.4.1's GTK window driven by action
+scripts (`tests/parity/make_gui_cases.py`, tests/data/README.md "gui") with these fixes applied on
+the test side (`tests/parity/improvements_gui.py`); each case keeps MDATK's own result under `mdatk`.
+The window itself lands in milestone 5's waves 1 and 2 (docs/specs/m5-plan.md section 6); the C++ GUI
+tests (`mdbridge_gui_tests`) replay the cases. *Tested:* the case named after each item, in
+`tests/data/gui/<topic>/` (`roundtrip`, `pages`, `ap`, `canvas`).
+
+- **AP-01: no clamping on load.** MDATK's spin boxes and sliders clamp a loaded value to their range,
+  so opening and saving rewrote valid settings (`contacts.cutoff` 25 -> 20, `hbonds.angle_cutoff`
+  60 -> 90, `energy.cutoff` 60 -> 50, `video.width` 7682 -> 7680, `visual.zoom` 0.01 -> 0.05, a
+  rotation of -200 -> -180). MDBridge's fields hold any value of the setting's type; a field the user
+  did not change saves its loaded value verbatim (the whole window round-trips losslessly), a value
+  typed beyond the range is kept and left to validation, and the wheel zoom multiplies the stored
+  zoom (within MDATK's wheel limits 0.05 ... 50). Values the user or the canvas sets keep MDATK's
+  storage rounding (rotation, representation size / opacity, map opacity: 3 decimals). *Why:* opening
+  a file must not change it. Not fixed in 0.1.1. *Tested:* `roundtrip/lossy_values`,
+  `ap/ap01_set_out_of_range`, `canvas/wheel_zoom_from_tiny`, every `roundtrip/open_save_*`.
+- **AP-02: optional numbers keep every digit.** MDATK showed `inputs.dt_ps` and
+  `energy.target_value` with `%g` and saved what it showed (0.0123456789 -> 0.0123457, -1234567.5 ->
+  -1234570). MDBridge shows and stores the shortest round-trip text. Not fixed in 0.1.1. *Tested:*
+  `roundtrip/lossy_values`, `ap/ap02_typed_numbers`.
+- **AP-03: colour fields keep their text.** MDATK's colour buttons parse with GDK and write
+  `#rrggbb`: Matplotlib colours MDATK itself accepts became black (`tab:orange`, `#ff000080`) or were
+  rewritten (`gold` -> `#ffd700`). MDBridge keeps the text; its picker writes `#rrggbb`. Not fixed in
+  0.1.1. *Tested:* `roundtrip/lossy_values`.
+- **AP-04: chart formats as set.** Three check boxes saved `["jpg", "svg"]` as `["svg"]`. MDBridge
+  keeps the list (validation flags unknown entries). Not fixed in 0.1.1. *Tested:*
+  `roundtrip/lossy_values`.
+- **AP-05 / AP-19: unknown drop-down values stay.** A stored value outside a drop-down's list was
+  saved as the previous project's choice (`visual.renderer = "vulkan"` -> `"software"`) or as `""`.
+  MDBridge keeps it (shown as unknown and flagged). *Tested:* `ap/ap05_unknown_choice`,
+  `roundtrip/lossy_values`.
+- **AP-06: paths written as the file had them (owner decision D8).** MDATK's window made every path
+  absolute on load and saved them so (`topology = "/home/.../system.parm7"`), which broke a project
+  folder that is moved or shared. MDBridge writes relative paths relative (to the project's folder);
+  *Save as* into another folder rebases them (`data/system.parm7` -> `../data/system.parm7` for a copy
+  in `sub/`); absolute and `~` paths stay. The paths it reads are resolved against the project's
+  folder as before. Not fixed in 0.1.1. *Tested:* `roundtrip/relative_paths`, every round trip.
+- **AP-07: empty slots stay empty.** A 4-slot preset with 2 panels was saved with 4 (two untitled
+  `contacts/atom_pairs` series). MDBridge saves the panels there are; a slot becomes a panel when its
+  editor is changed (and so do the slots before it, which are positional) or a panel is dragged onto
+  it. *Tested:* `ap/ap07_empty_slots`, `canvas/swap_into_empty_slot`, `pages/layout_page`.
+- **AP-08: a smaller preset keeps the panels.** equal_4 -> single dropped panels 2 ... 4 at once
+  and for good. MDBridge keeps them (rendering warns `layout single has 1 slots; ignoring 5 extra
+  panel(s)`, as M4's render does) and a larger preset shows them again. *Tested:*
+  `ap/ap08_preset_round_trip`, `roundtrip/open_save_full` (6 panels on 4 slots: MDATK dropped two).
+- **AP-09: swaps and preset changes with invalid options are refused.** MDATK raised out of the
+  signal handler (the swap silently not done, a traceback on the terminal). MDBridge logs `Panels not
+  swapped; fix this first: <located message>` (MDATK 0.1.0, c6d8d15) and, for a preset change, `Grid
+  preset not changed; fix this first: ...` with the preset put back. *Tested:* `ap/ap09_swap_bad_options`.
+- **AP-10: located form errors.** MDATK named Python's errors with the field path (`inputs.stop:
+  invalid literal for int() with base 10: 'x'`, `layout: panel options '{bad': Expecting ...`).
+  MDBridge names the place as MDATK 0.0.10's `problems.py` does (`Input & cleaning › Frames › Stop:
+  'x' is not a whole number`, `... › Target value: 'low' is not a number`, `Layout & panels › Panel 1
+  (Structure) › Options: '{bad' is not valid JSON: <json's message>` or `... is not a JSON object`);
+  0.1.1 still has the Python texts for numbers, so MDBridge follows its locations and words the
+  reasons. *Tested:* `ap/ap10_form_errors`, `ap/ap09_swap_bad_options`.
+- **AP-11: Save as asks about the final name.** MDATK appended `.mdatk.toml` after the overwrite
+  question, so an existing `name.mdatk.toml` was replaced unasked. MDBridge asks about the final name
+  (MDATK 0.1.0, 172df88). *Tested:* `ap/ap11_save_as_suffix`.
+- **AP-12: a start-up load error is shown in the window.** MDATK printed `warning: could not load
+  ...` on stderr only. MDBridge also logs `ERROR: Could not open <path>: <reason>` and `These are the
+  default settings instead (unsaved).` (MDATK 0.1.0, 13d4fea). *Tested:* `ap/ap12_start_broken`.
+- **AP-13: unsaved changes are not lost unasked (owner decision D6).** MDATK's New, Open and closing
+  discarded edits. MDBridge asks Save / Discard / Cancel when the project differs from what was last
+  loaded or saved. *Tested:* `ap/ap13_unsaved_changes`.
+- **AP-17: the recent list keeps the settings file's other keys.** MDATK 0.0.4.1 rewrote
+  `settings.toml` with `recent` only, deleting newer MDATK's keys (0.0.14's `cat_proof`). MDBridge
+  keeps every other key (MDATK 0.0.14) and writes atomically. *Tested:* `ap/ap17_recent_keeps_settings`.
+- **AP-18: dialog details in full.** MDATK cut message details at 3 000 characters. *Tested:* the
+  recorded dialogs (`detail` uncut).
+
+AP-14 (closing during a job), AP-15 (table edits committed on focus loss), AP-16 (About and BibTeX
+with the run-time citations; the `citations` command's cases in `cli_parity.py` cover the keys),
+AP-19's offered choices and AP-20 (drawing off the GUI thread) leave no trace in the recorded files
+and messages; their packages' Qt tests cover them.
 
 ## Planned (from the improvement register; add each entry here when it lands)
 

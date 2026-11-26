@@ -180,7 +180,8 @@ std::optional<std::string_view> batchQtPlatform() {
 }
 
 bool drawsWithoutWindow(std::string_view command) {
-    return command == "render" || command == "charts" || command == "preview" || command == "fonts";
+    return command == "render" || command == "charts" || command == "preview" || command == "fonts" ||
+           command == "demo";  // demo --run renders
 }
 
 }  // namespace mdbridge::render

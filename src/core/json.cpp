@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <charconv>
 #include <cmath>
+#include <cstdint>
 #include <cstdio>
 #include <limits>
 #include <optional>
@@ -621,6 +622,29 @@ std::string pythonStringRepr(const std::string& text) {
 
 Value parseJson(std::string_view text, std::string_view source) {
     return JsonParser(text, source).parse();
+}
+
+std::string toJsonAscii(const Value& value, int indent) {
+    const std::string text = toJson(value, indent);
+    std::string out;
+    out.reserve(text.size());
+    const auto escape = [&out](std::uint32_t code) {
+        char buffer[16];
+        std::snprintf(buffer, sizeof buffer, "\\u%04x", static_cast<unsigned>(code));
+        out += buffer;
+    };
+    for (char32_t c : decodeUtf8Surrogateescape(text)) {
+        const auto code = static_cast<std::uint32_t>(c);
+        if (code < 0x7f) {
+            out += static_cast<char>(code);
+        } else if (code < 0x10000) {
+            escape(code);
+        } else {
+            escape(0xd800 + ((code - 0x10000) >> 10));
+            escape(0xdc00 + ((code - 0x10000) & 0x3ff));
+        }
+    }
+    return out;
 }
 
 }  // namespace mdbridge::core

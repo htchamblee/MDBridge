@@ -1,0 +1,74 @@
+{
+ "format": "mdbridge-gui-case",
+ "version": 1,
+ "description": "A stored renderer the drop-down does not list stays after another project",
+ "source": "MDATK v0.0.4.1's GTK window driven by tests/parity/make_gui_cases.py, with MDBridge's window improvements (tests/parity/improvements_gui.py)",
+ "clock": "2026-11-25T12:00:00",
+ "items": [
+  "AP-05",
+  "AP-19"
+ ],
+ "mdatk_test": "",
+ "needs": [
+  "lossless",
+  "snapshot",
+  "start"
+ ],
+ "canvas": {
+  "width": 960,
+  "height": 540
+ },
+ "files": {
+  "other.mdatk.toml": "gui/ap/ap05_unknown_choice/in/other.mdatk.toml",
+  "p.mdatk.toml": "gui/ap/ap05_unknown_choice/in/p.mdatk.toml"
+ },
+ "start": {
+  "project": "p.mdatk.toml"
+ },
+ "actions": [
+  {
+   "action": "open",
+   "path": "other.mdatk.toml"
+  },
+  {
+   "action": "snapshot",
+   "keys": [
+    "visual.renderer"
+   ]
+  },
+  {
+   "action": "save"
+  }
+ ],
+ "expected": {
+  "other.mdatk.toml": "gui/ap/ap05_unknown_choice/out/other.mdatk.toml"
+ },
+ "log": [
+  "Opened project {case_dir}/other.mdatk.toml",
+  "Saved project {case_dir}/other.mdatk.toml"
+ ],
+ "outcome": {
+  "snapshots": [
+   {
+    "action": 1,
+    "values": {
+     "visual.renderer": "vulkan"
+    }
+   }
+  ],
+  "settings": "gui/ap/ap05_unknown_choice/settings.after.toml"
+ },
+ "mdatk": {
+  "expected": {
+   "other.mdatk.toml": "gui/ap/ap05_unknown_choice/mdatk/other.mdatk.toml"
+  },
+  "snapshots": [
+   {
+    "action": 1,
+    "values": {
+     "visual.renderer": "software"
+    }
+   }
+  ]
+ }
+}

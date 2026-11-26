@@ -1,0 +1,111 @@
+{
+ "format": "mdbridge-gui-case",
+ "version": 1,
+ "description": "Settings that do not parse: the save is refused with located messages",
+ "source": "MDATK v0.0.4.1's GTK window driven by tests/parity/make_gui_cases.py, with MDBridge's window improvements (tests/parity/improvements_gui.py)",
+ "clock": "2026-11-25T12:00:00",
+ "items": [
+  "AP-10",
+  "AP-18"
+ ],
+ "mdatk_test": "",
+ "needs": [
+  "lossless",
+  "snapshot",
+  "start",
+  "type"
+ ],
+ "canvas": {
+  "width": 960,
+  "height": 540
+ },
+ "files": {
+  "p.mdatk.toml": "projects/default.mdatk.toml"
+ },
+ "start": {
+  "project": "p.mdatk.toml"
+ },
+ "actions": [
+  {
+   "action": "type",
+   "key": "inputs.stop",
+   "text": "x"
+  },
+  {
+   "action": "type",
+   "key": "analyses.energy.target_value",
+   "text": "low"
+  },
+  {
+   "action": "save"
+  },
+  {
+   "action": "snapshot",
+   "keys": [
+    "inputs.stop"
+   ]
+  },
+  {
+   "action": "type",
+   "key": "inputs.stop",
+   "text": ""
+  },
+  {
+   "action": "type",
+   "key": "analyses.energy.target_value",
+   "text": ""
+  },
+  {
+   "action": "save"
+  }
+ ],
+ "expected": {
+  "p.mdatk.toml": "gui/ap/ap10_form_errors/out/p.mdatk.toml"
+ },
+ "log": [
+  "ERROR: Some settings are invalid: Input & cleaning › Frames › Stop: 'x' is not a whole number",
+  "Analyses › Intermolecular energy › Target value: 'low' is not a number",
+  "Saved project {case_dir}/p.mdatk.toml"
+ ],
+ "outcome": {
+  "dialogs": [
+   {
+    "action": 2,
+    "kind": "error",
+    "text": "Some settings are invalid",
+    "detail": "Input & cleaning › Frames › Stop: 'x' is not a whole number\nAnalyses › Intermolecular energy › Target value: 'low' is not a number"
+   }
+  ],
+  "snapshots": [
+   {
+    "action": 3,
+    "error": "Input & cleaning › Frames › Stop: 'x' is not a whole number\nAnalyses › Intermolecular energy › Target value: 'low' is not a number"
+   }
+  ],
+  "settings": "gui/ap/ap10_form_errors/settings.after.toml"
+ },
+ "mdatk": {
+  "expected": {
+   "p.mdatk.toml": "gui/ap/ap10_form_errors/mdatk/p.mdatk.toml"
+  },
+  "log": [
+   "ERROR: Some settings are invalid: inputs.stop: invalid literal for int() with base 10: 'x'",
+   "analyses.energy.target_value: could not convert string to float: 'low'",
+   "Saved project {case_dir}/p.mdatk.toml"
+  ],
+  "dialogs": [
+   {
+    "action": 2,
+    "kind": "error",
+    "text": "Some settings are invalid",
+    "detail": "inputs.stop: invalid literal for int() with base 10: 'x'\nanalyses.energy.target_value: could not convert string to float: 'low'"
+   }
+  ],
+  "snapshots": [
+   {
+    "action": 3,
+    "error": "inputs.stop: invalid literal for int() with base 10: 'x'\nanalyses.energy.target_value: could not convert string to float: 'low'"
+   }
+  ]
+ }
+}

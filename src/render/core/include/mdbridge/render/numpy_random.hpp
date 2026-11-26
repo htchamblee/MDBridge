@@ -7,12 +7,14 @@
 // pcg64.c; PCG by Melissa O'Neill, MIT), random_standard_normal (ziggurat, derived from Julia, MIT),
 // random_uniform, random_bounded_uint64_fill and the Lemire bounded integers
 // (src/distributions/distributions.c), Generator.uniform / normal / integers (_generator.pyx,
-// _bounded_integers.pyx.in). Copyright (c) 2005-2017 NumPy Developers; Copyright (c) 2019 Kevin
+// _bounded_integers.pyx.in), random_interval and Generator.shuffle. Copyright (c) 2005-2017 NumPy Developers; Copyright (c) 2019 Kevin
 // Sheppard; BSD-3-Clause / NCSA. Licence texts: packaging/licenses/numpy-random-LICENSE.txt.
 // Changes from numpy: C++ API for scalar parameters only; 128-bit arithmetic emulated with two
 // 64-bit words (numpy's PCG_EMULATED_128BIT_MATH path) on every compiler.
 
+#include <cstddef>
 #include <cstdint>
+#include <utility>
 #include <vector>
 
 namespace mdbridge::render {
@@ -49,6 +51,23 @@ public:
     // core::ValueError("low >= high") (numpy's message; with endpoint "low > high").
     std::int64_t integers(std::int64_t low, std::int64_t high, bool endpoint = false);
     std::vector<std::int64_t> integerArray(std::int64_t low, std::int64_t high, std::size_t count, bool endpoint = false);
+    // random_interval(max) (distributions.c): a value in [0, max] by rejection from the smallest
+    // bit mask covering max (32-bit draws for max < 2^32).
+    std::uint64_t randomInterval(std::uint64_t max);
+    // Generator.shuffle(x) of an array with more than one dimension: rows i = n-1 ... 1 swapped
+    // with row randomInterval(i) (none when equal). `rowSize` values per row of `values`.
+    template <class T>
+    void shuffleRows(std::vector<T>& values, std::size_t rowSize) {
+        const std::size_t rows = rowSize == 0 ? 0 : values.size() / rowSize;
+        for (std::size_t i = rows; i-- > 1;) {
+            const auto j = static_cast<std::size_t>(randomInterval(i));
+            if (i != j) {
+                for (std::size_t c = 0; c < rowSize; ++c) {
+                    std::swap(values[j * rowSize + c], values[i * rowSize + c]);
+                }
+            }
+        }
+    }
 
 private:
     std::uint64_t boundedUint64(std::uint64_t off, std::uint64_t rng);

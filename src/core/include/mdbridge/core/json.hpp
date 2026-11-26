@@ -15,6 +15,11 @@ namespace mdbridge::core {
 // indent < 0 gives the compact form of json.dumps(value, ensure_ascii=False).
 std::string toJson(const Value& value, int indent = 2);
 
+// json.dumps(value, indent=indent) with ensure_ascii (Python's default): toJson with every
+// character beyond ASCII and DEL as \uXXXX (surrogate pairs beyond U+FFFF, bytes that are not
+// UTF-8 as \udcXX). What MDATK prints on the command line and writes with json.dump.
+std::string toJsonAscii(const Value& value, int indent = 2);
+
 // Python's repr() of a float: the shortest text that reads back as the same number, in fixed
 // notation for exponents -4 to 15 and with ".0" for integral values (1.0, 0.0001, 1e-05, 1e+16).
 std::string pythonFloatRepr(double value);

@@ -2,7 +2,8 @@
 """Regenerate every committed reference file and compare it with the committed one, byte for byte.
 
     python3 tests/parity/regenerate_all.py --mdatk MDATK_CHECKOUT --out FRESH_DIR \\
-        [--mdatk-latest MDATK_LATEST] [--python PY] [--pytest-python PY] [--only STEP ...] [--list]
+        [--mdatk-latest MDATK_LATEST] [--python PY] [--pytest-python PY] [--gui-python PY]
+        [--only STEP ...] [--list]
 
 Runs every generator of tests/data/README.md (tests/parity/*.py and tools/gen_*.py) in the
 documented order into FRESH_DIR, a new folder tree that mirrors the repository: FRESH_DIR/tests/data
@@ -22,7 +23,9 @@ PY (default: this interpreter) runs the generators; it needs Python 3.13 (textwr
 and the Unicode tables depend on the version), MDAnalysis 2.11.0, numpy and scipy (MDATK's
 dependencies, at the versions of the reference environment). --pytest-python (default: PY) runs
 the two generators that import MDATK's tests (make_pdb_cases.py, make_cif_cases.py) and needs pytest
-too. MDATK_CHECKOUT is a checkout of MDATK v0.0.4.1; nothing is written into it. MDATK_LATEST is MDATK
+too. --gui-python (default: PY) runs make_gui_cases.py, which drives MDATK's GTK 3 window: PY's
+packages plus PyGObject and pycairo built against the system's GTK 3 (tests/parity/requirements-gui.txt),
+and Xvfb on PATH unless DISPLAY is set. MDATK_CHECKOUT is a checkout of MDATK v0.0.4.1; nothing is written into it. MDATK_LATEST is MDATK
 0.1.1 (commit LATEST_COMMIT, read only), for the one step that records project files of a later MDATK
 (make_mdatk_latest_projects.py); without it that step is skipped and its files are not compared. FRESH_DIR must not
 exist or be empty. Standard library only.
@@ -163,7 +166,7 @@ OFFSETS_RE = re.compile(r"^\..+_offsets\.(npz|lock)$")  # MDAnalysis' hidden XTC
 
 class Step:
     def __init__(self, name, script, args, outputs, *, flags=("-I", "-B"), pytest=False, cwd=None,
-                 mdatk_path=False, before=None, after=None, latest=False):
+                 mdatk_path=False, before=None, after=None, latest=False, gui=False):
         self.name = name
         self.script = script          # relative to the root of the tree
         self.args = args              # function(ctx) -> list of arguments
@@ -175,6 +178,7 @@ class Step:
         self.before = before
         self.after = after
         self.latest = latest          # runs on MDATK_LATEST (--mdatk-latest), not on v0.0.4.1
+        self.gui = gui                # runs with --gui-python (GTK 3, PyGObject, pycairo; Xvfb)
 
 
 def d(ctx, rel=""):
@@ -196,6 +200,17 @@ def remove(*rel):
             full = os.path.join(ctx["root"], path)
             if os.path.exists(full):
                 os.remove(full)
+    return run
+
+
+def copy_committed(*rel):
+    """Committed inputs a step reads that an earlier, skipped step would have written."""
+    def run(ctx):
+        for path in rel:
+            full = os.path.join(ctx["root"], path)
+            if not os.path.exists(full):
+                os.makedirs(os.path.dirname(full), exist_ok=True)
+                shutil.copyfile(os.path.join(ROOT, path), full)
     return run
 
 
@@ -333,6 +348,15 @@ STEPS = [
     case_step("density_shadow", "make_density_shadow_cases.py", "render/density_shadow"),
     # milestone 4: residue shading, orientation, the example dataset and numpy's PCG64 (W0-H)
     case_step("shading", "make_shading_cases.py", "render/shading"),
+    # milestone 5: the GUI test harness' own open -> save case (W0-F; the projects written above)
+    Step("gui_harness", "tests/parity/make_gui_harness_cases.py", lambda ctx: [M(ctx), d(ctx)],
+         [f"{DATA}/gui/harness"]),
+    # milestone 5: MDATK's GTK window driven by action scripts (W0-A; under Xvfb, which it starts
+    # when DISPLAY is unset): open / save of the projects above, per page edits, the AP items, canvas
+    # actions on the demo files; reads the committed MDATK 0.1.1 file when mdatk_latest was skipped
+    Step("gui", "tests/parity/make_gui_cases.py", lambda ctx: [M(ctx), d(ctx)],
+         [f"{DATA}/gui/{topic}" for topic in ("roundtrip", "pages", "ap", "canvas")], gui=True,
+         before=copy_committed(f"{DATA}/project-file/mdatk-0.1.1/plan.mdatk.toml")),
 ]
 
 
@@ -507,7 +531,7 @@ def prepare(root: str, steps: list[Step], only: bool) -> None:
 
 def run_step(step: Step, ctx: dict, logs: str) -> tuple[bool, float]:
     root = ctx["root"]
-    python = ctx["pytest_python"] if step.pytest else ctx["python"]
+    python = ctx["pytest_python"] if step.pytest else ctx["gui_python"] if step.gui else ctx["python"]
     env = dict(os.environ)
     env.pop("PYTHONPATH", None)
     env["LC_ALL"] = "C.UTF-8"
@@ -553,6 +577,9 @@ def main(argv=None) -> int:
                         help="interpreter of the generators: Python 3.13 with MDAnalysis 2.11.0, numpy, scipy")
     parser.add_argument("--pytest-python", help="interpreter with pytest too, for make_pdb_cases.py and "
                                                 "make_cif_cases.py (default: --python)")
+    parser.add_argument("--gui-python", help="interpreter with GTK 3's PyGObject and pycairo too "
+                                             "(tests/parity/requirements-gui.txt), for make_gui_cases.py "
+                                             "(default: --python)")
     parser.add_argument("--only", nargs="+", metavar="STEP", help="run these steps only (see --list)")
     parser.add_argument("--max-diff-lines", type=int, default=40, help="diff lines shown per file")
     parser.add_argument("--list", action="store_true", help="list the steps and their outputs")
@@ -598,8 +625,8 @@ def main(argv=None) -> int:
     os.makedirs(logs)
     prepare(root, steps, bool(args.only))
     ctx = {"root": root, "mdatk": mdatk, "mdatk_latest": mdatk_latest, "python": args.python,
-           "pytest_python": args.pytest_python or args.python}
-    for key in ("python", "pytest_python"):
+           "pytest_python": args.pytest_python or args.python, "gui_python": args.gui_python or args.python}
+    for key in ("python", "pytest_python", "gui_python"):
         version = subprocess.run([ctx[key], "-I", "-c", "import sys; print(sys.version.split()[0])"],
                                  capture_output=True, text=True)
         print(f"{key.replace('_', ' ')}: {ctx[key]} (Python {version.stdout.strip() or '?'})")

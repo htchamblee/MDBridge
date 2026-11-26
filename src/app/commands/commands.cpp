@@ -1,13 +1,16 @@
-// MDATK's commands (mdatk/cli.py cmd_init, cmd_info, cmd_list, cmd_analyze, cmd_export_pdb,
-// cmd_render, cmd_charts, cmd_preview, cmd_density_info and the parts of load_project,
-// make_reporter and Pipeline they use; the outputs in render_pipeline.cpp).
+// MDATK's commands (mdatk/cli.py cmd_demo, cmd_init, cmd_info, cmd_list, cmd_clean, cmd_analyze,
+// cmd_export_pdb, cmd_render, cmd_charts, cmd_preview, cmd_density_info and the parts of
+// load_project, make_reporter and Pipeline they use; the outputs in render_pipeline.cpp), and
+// MDBridge's `citations` (D14).
 #include "commands.hpp"
 
 #include <algorithm>
+#include <cerrno>
 #include <chrono>
 #include <cstdint>
 #include <cstdio>
 #include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <optional>
 #include <stdexcept>
@@ -45,6 +48,8 @@
 #include "mdbridge/io/pdb_export.hpp"
 #include "mdbridge/render/panels/charts.hpp"
 #include "mdbridge/render/panels/checks.hpp"
+#include "citations.hpp"
+#include "demo.hpp"
 #include "render_pipeline.hpp"
 
 namespace mdbridge::app {
@@ -76,6 +81,9 @@ struct CommonArguments {
 }  // namespace
 
 struct CoreCommands::Arguments {
+    CLI::App* demo = nullptr;
+    CLI::App* clean = nullptr;
+    CLI::App* citations = nullptr;
     CLI::App* init = nullptr;
     CLI::App* info = nullptr;
     CLI::App* list = nullptr;
@@ -87,6 +95,18 @@ struct CoreCommands::Arguments {
     CLI::App* charts = nullptr;
     CLI::App* preview = nullptr;
     const RenderBackend* backend = nullptr;
+
+    std::string demoOutDir;
+    std::int64_t demoFrames = 120;
+    double demoDt = 10.0;
+    bool demoNoSolvent = false, demoRun = false, demoQuiet = false;
+
+    CommonArguments cleanCommon;
+    bool cleanForce = false;
+
+    CommonArguments citationsCommon;
+    std::string bibtex;
+    bool citationsJson = false;
 
     CommonArguments initCommon;
     std::string initOutput;
@@ -173,6 +193,13 @@ std::optional<bool> cleanChoice(const CLI::App& command, const CommonArguments& 
 
 // load_project(args, resolve)
 core::Project loadProject(const CLI::App& command, const CommonArguments& a, bool resolve) {
+    if (!a.params.empty()) {  // Project.load's open(): Python's FileNotFoundError text
+        std::error_code ec;
+        if (!fs::exists(core::pathFromUtf8(a.params), ec)) {
+            throw fs::filesystem_error("open", core::pathFromUtf8(a.params),
+                                       std::make_error_code(std::errc::no_such_file_or_directory));
+        }
+    }
     core::Project project = a.params.empty() ? core::Project{} : core::loadProject(core::pathFromUtf8(a.params));
     if (!a.top.empty()) {
         project.inputs.topology = absolutePath(a.top);
@@ -427,21 +454,9 @@ int commandExportPdb(CLI::App& command, const CoreCommands::Arguments& a, Consol
     const std::string outDir = core::outDir(project);
     fs::create_directories(core::pathFromUtf8(outDir));
 
-    // Pipeline.export_pdbs(): universe() (resolve_inputs, load_universe), frames, atoms, files
-    if (project.cleaning.enabled) {
-        throw PipelineError(
-            "cleaning with cpptraj is not available in MDBridge yet: turn it off (--no-clean or "
-            "cleaning.enabled = false) and give the cleaned files as --top / --traj");
-    }
-    reporter.progress(1.0, "inputs ready");
-    core::System system = io::loadSystem(core::pathFromUtf8(project.inputs.topology),
-                                         toPaths(project.inputs.trajectories), project.inputs.dt_ps);
-    for (const std::string& warning : system.warnings) {
-        reporter.log("WARNING: " + warning);
-    }
-    if (!system.trajectory) {
-        throw core::ValueError("No trajectory loaded into Universe");
-    }
+    // Pipeline.export_pdbs(): universe() (resolve_inputs with cleaning, load_universe), frames, atoms, files
+    analysis::Pipeline pipeline(project, reporter);
+    core::System& system = pipeline.system();
     const std::vector<std::int64_t> frames = core::framesFromSpecs(
         *system.trajectory, pdb.frames, pdb.times, project.inputs.time_unit, project.inputs.dt_ps);
     if (frames.empty()) {
@@ -572,6 +587,85 @@ int commandPreview(CLI::App& command, const CoreCommands::Arguments& a, Console&
     return 0;
 }
 
+// cmd_render with the project file alone (cmd_demo --run: _render_namespace)
+int renderProject(const CLI::App& command, const std::string& projectPath, bool quiet, const RenderBackend& backend,
+                  Console& console) {
+    CommonArguments common;
+    common.params = projectPath;
+    common.quiet = quiet;
+    ConsoleReporter consoleReporter(console, common.quiet, common.verbose);
+    analysis::Pipeline pipeline(loadProject(command, common, true), consoleReporter.reporter());
+    RenderPipeline render(pipeline, backend, core::pathFromUtf8(common.params));
+    const RunOutputs outputs = render.run(std::nullopt, std::nullopt, std::nullopt, false);
+    console.out << jsonForConsole(outputs.summary()) << '\n';
+    return 0;
+}
+
+int commandDemo(const CLI::App& command, const CoreCommands::Arguments& a, Console& console) {
+    DemoOptions options;
+    options.frames = a.demoFrames;
+    options.dtPs = a.demoDt;
+    options.solvent = !a.demoNoSolvent;
+    const DemoFiles files = buildDemo(a.demoOutDir, options);
+    console.out << "Synthetic system written to " << absolutePath(a.demoOutDir) << ":\n";
+    for (const auto& [key, path] : files.entries()) {
+        console.out << "  " << padded(key, 10) << ' ' << path << '\n';
+    }
+    if (a.demoRun) {
+        console.out.flush();
+        return renderProject(command, files.project, a.demoQuiet, *a.backend, console);
+    }
+    console.out << "Next: mdbridge render -p " << files.project << "   (or: mdbridge gui " << files.project << ")\n";
+    return 0;
+}
+
+int commandClean(CLI::App& command, const CoreCommands::Arguments& a, Console& console) {
+    core::Project project = loadProject(command, a.cleanCommon, true);
+    project.cleaning.enabled = true;
+    ConsoleReporter consoleReporter(console, a.cleanCommon.quiet, a.cleanCommon.verbose);
+    analysis::Pipeline pipeline(std::move(project), consoleReporter.reporter());
+    const analysis::ResolvedInputs& res = pipeline.resolveInputs(nullptr, a.cleanForce);
+    const std::optional<analysis::CleanResult>& c = res.cleaned;
+    console.out << jsonForConsole(core::Table{{"topology", res.topology},
+                                              {"trajectory", textArray(res.trajectories)},
+                                              {"script", c ? Value(c->script) : Value()},
+                                              {"log", c ? Value(c->log) : Value()},
+                                              {"reused", c ? Value(c->reused) : Value()}})
+                << '\n';
+    return 0;
+}
+
+// MDBridge's citations (D14; tests/parity/citations_command.py)
+int commandCitations(CLI::App& command, const CoreCommands::Arguments& a, Console& console) {
+    const core::Project project = loadProject(command, a.citationsCommon, true);
+    const ProjectCitations citations = projectCitations(project);
+    if (!a.bibtex.empty()) {
+        if (citations.keys.empty()) {
+            console.out << "Nothing to cite yet: The project uses no external resource with a reference.\n";
+            return 0;
+        }
+        std::ofstream out(core::pathFromUtf8(a.bibtex), std::ios::binary | std::ios::trunc);
+        if (!out) {
+            throw fs::filesystem_error("cannot write the BibTeX file", core::pathFromUtf8(a.bibtex),
+                                       std::error_code(errno, std::generic_category()));
+        }
+        out << core::citations::bibtex(citations.keys);
+        out.close();
+        if (!out) {
+            throw fs::filesystem_error("cannot write the BibTeX file", core::pathFromUtf8(a.bibtex),
+                                       std::make_error_code(std::errc::io_error));
+        }
+    }
+    if (a.citationsJson) {
+        console.out << core::toJson(citationJson(citations), 2) << '\n';
+    } else if (!a.bibtex.empty()) {
+        console.out << "Wrote " << citations.keys.size() << " references to " << a.bibtex << '\n';
+    } else {
+        console.out << citationText(citations);
+    }
+    return 0;
+}
+
 int commandList(Console& console) {
     printList(console.out);
     return 0;
@@ -600,6 +694,14 @@ CoreCommands::CoreCommands(CLI::App& app, const RenderBackend* backend) : m_args
     static const RenderBackend kNoBackend;
     a.backend = backend ? backend : &kNoBackend;
 
+    a.demo = app.add_subcommand("demo", "write a synthetic RNA aptamer/target system and project file");
+    a.demo->add_option("out_dir", a.demoOutDir, "folder for demo.parm7, demo.nc and demo.mdatk.toml")->required();
+    lastWins(a.demo->add_option("--n-frames", a.demoFrames, "number of frames"))->capture_default_str();
+    lastWins(a.demo->add_option("--dt", a.demoDt, "ps between frames"))->capture_default_str();
+    a.demo->add_flag("--no-solvent", a.demoNoSolvent, "omit water / Na+ (no cleaning needed)");
+    a.demo->add_flag("--run", a.demoRun, "render the demo immediately");
+    a.demo->add_flag("--quiet,-q", a.demoQuiet, "only print the result");
+
     a.init = app.add_subcommand("init", "write a project file with default settings");
     a.init->alias("init-params");
     a.init->add_option("output", a.initOutput, "project file to write (.mdatk.toml)")->required();
@@ -610,6 +712,10 @@ CoreCommands::CoreCommands(CLI::App& app, const RenderBackend* backend) : m_args
     addCommon(*a.info, a.infoCommon);
 
     a.list = app.add_subcommand("list", "list analyses, panel types and layout presets");
+
+    a.clean = app.add_subcommand("clean", "run (or reuse) cpptraj stripping/imaging/fitting");
+    addCommon(*a.clean, a.cleanCommon);
+    a.clean->add_flag("--force", a.cleanForce, "re-run cpptraj even if cached");
 
     a.analyze = app.add_subcommand("analyze", "compute (or load cached) analyses");
     addCommon(*a.analyze, a.analyzeCommon);
@@ -649,6 +755,11 @@ CoreCommands::CoreCommands(CLI::App& app, const RenderBackend* backend) : m_args
     lastWins(a.preview->add_option("--output", a.output, "image path (.png/.svg/.pdf)"));
     a.preview->add_flag("--from-cache", a.previewFromCache, "use the analyses of the cache manifest");
 
+    a.citations = app.add_subcommand("citations", "list the references a project's settings and results cite");
+    addCommon(*a.citations, a.citationsCommon);
+    lastWins(a.citations->add_option("--bibtex", a.bibtex, "write the references as BibTeX to FILE"))->type_name("FILE");
+    a.citations->add_flag("--json", a.citationsJson, "print the keys and resources as JSON");
+
     a.density = app.add_subcommand("density", "density maps (MRC / CCP4): header info");
     a.density->require_subcommand(0, 1);
     a.densityInfo = a.density->add_subcommand("info", "print a map's grid, voxel size, origin and statistics");
@@ -659,7 +770,7 @@ CoreCommands::~CoreCommands() = default;
 
 std::optional<int> CoreCommands::run(Console& console) {
     Arguments& a = *m_args;
-    const bool any = a.init->parsed() || a.info->parsed() || a.list->parsed() || a.analyze->parsed() ||
+    const bool any = a.demo->parsed() || a.clean->parsed() || a.citations->parsed() || a.init->parsed() || a.info->parsed() || a.list->parsed() || a.analyze->parsed() ||
                      a.exportPdb->parsed() || a.density->parsed() || a.render->parsed() || a.charts->parsed() ||
                      a.preview->parsed();
     if (!any) {
@@ -681,6 +792,15 @@ std::optional<int> CoreCommands::run(Console& console) {
         ~RestoreSink() { core::setLogSink(sink); }
     } restore{previous};
     try {
+        if (a.demo->parsed()) {
+            return commandDemo(*a.demo, a, console);
+        }
+        if (a.clean->parsed()) {
+            return commandClean(*a.clean, a, console);
+        }
+        if (a.citations->parsed()) {
+            return commandCitations(*a.citations, a, console);
+        }
         if (a.init->parsed()) {
             return commandInit(*a.init, a.initCommon, a.initOutput, a.overwrite, console);
         }
@@ -767,28 +887,7 @@ void printList(std::ostream& out) {
 
 // ---- Python's texts --------------------------------------------------------------------------
 
-std::string jsonForConsole(const Value& value) {
-    const std::string text = core::toJson(value, 2);
-    std::string out;
-    out.reserve(text.size());
-    const auto escape = [&out](std::uint32_t code) {
-        char buffer[16];
-        std::snprintf(buffer, sizeof buffer, "\\u%04x", static_cast<unsigned>(code));
-        out += buffer;
-    };
-    for (char32_t c : core::decodeUtf8Surrogateescape(text)) {
-        const auto code = static_cast<std::uint32_t>(c);
-        if (code < 0x7f) {
-            out += static_cast<char>(code);
-        } else if (code < 0x10000) {
-            escape(code);
-        } else {
-            escape(0xd800 + ((code - 0x10000) >> 10));
-            escape(0xdc00 + ((code - 0x10000) & 0x3ff));
-        }
-    }
-    return out;
-}
+std::string jsonForConsole(const Value& value) { return core::toJsonAscii(value, 2); }
 
 std::string pythonErrorText(const std::exception& error) {
     if (dynamic_cast<const fs::filesystem_error*>(&error) != nullptr) {

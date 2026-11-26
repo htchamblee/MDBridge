@@ -1,0 +1,44 @@
+{
+ "format": "mdbridge-gui-case",
+ "version": 1,
+ "description": "A project file of MDATK 0.1.1 (planner keys 0.0.4.1 does not know)",
+ "source": "MDATK v0.0.4.1's GTK window driven by tests/parity/make_gui_cases.py, with MDBridge's window improvements (tests/parity/improvements_gui.py)",
+ "clock": "2026-11-25T12:00:00",
+ "items": [
+  "D9"
+ ],
+ "mdatk_test": "",
+ "needs": [
+  "lossless",
+  "start"
+ ],
+ "canvas": {
+  "width": 960,
+  "height": 540
+ },
+ "files": {
+  "p.mdatk.toml": "project-file/mdatk-0.1.1/plan.mdatk.toml"
+ },
+ "start": {
+  "project": "p.mdatk.toml"
+ },
+ "actions": [
+  {
+   "action": "save"
+  }
+ ],
+ "expected": {
+  "p.mdatk.toml": "gui/roundtrip/open_save_mdatk_0_1_1/out/p.mdatk.toml"
+ },
+ "log": [
+  "Saved project {case_dir}/p.mdatk.toml"
+ ],
+ "outcome": {
+  "settings": "gui/roundtrip/open_save_mdatk_0_1_1/settings.after.toml"
+ },
+ "mdatk": {
+  "expected": {
+   "p.mdatk.toml": "gui/roundtrip/open_save_mdatk_0_1_1/mdatk/p.mdatk.toml"
+  }
+ }
+}

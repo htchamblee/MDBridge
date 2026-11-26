@@ -1,0 +1,88 @@
+{
+ "format": "mdbridge-gui-case",
+ "version": 1,
+ "description": "Values typed beyond the spin ranges are kept (validation flags them)",
+ "source": "MDATK v0.0.4.1's GTK window driven by tests/parity/make_gui_cases.py, with MDBridge's window improvements (tests/parity/improvements_gui.py)",
+ "clock": "2026-11-25T12:00:00",
+ "items": [
+  "AP-01"
+ ],
+ "mdatk_test": "",
+ "needs": [
+  "lossless",
+  "snapshot",
+  "start"
+ ],
+ "canvas": {
+  "width": 960,
+  "height": 540
+ },
+ "files": {
+  "p.mdatk.toml": "projects/default.mdatk.toml"
+ },
+ "start": {
+  "project": "p.mdatk.toml"
+ },
+ "actions": [
+  {
+   "action": "set",
+   "key": "analyses.contacts.cutoff",
+   "value": 25.0
+  },
+  {
+   "action": "set",
+   "key": "analyses.hbonds.angle_cutoff",
+   "value": 60.0
+  },
+  {
+   "action": "set",
+   "key": "output.video.width",
+   "value": 7682
+  },
+  {
+   "action": "snapshot",
+   "keys": [
+    "analyses.contacts.cutoff",
+    "analyses.hbonds.angle_cutoff",
+    "output.video.width"
+   ]
+  },
+  {
+   "action": "save"
+  }
+ ],
+ "expected": {
+  "p.mdatk.toml": "gui/ap/ap01_set_out_of_range/out/p.mdatk.toml"
+ },
+ "log": [
+  "Saved project {case_dir}/p.mdatk.toml"
+ ],
+ "outcome": {
+  "snapshots": [
+   {
+    "action": 3,
+    "values": {
+     "analyses.contacts.cutoff": 25.0,
+     "analyses.hbonds.angle_cutoff": 60.0,
+     "output.video.width": 7682
+    }
+   }
+  ],
+  "settings": "gui/ap/ap01_set_out_of_range/settings.after.toml"
+ },
+ "mdatk": {
+  "expected": {
+   "p.mdatk.toml": "gui/ap/ap01_set_out_of_range/mdatk/p.mdatk.toml"
+  },
+  "snapshots": [
+   {
+    "action": 3,
+    "values": {
+     "analyses.contacts.cutoff": 20.0,
+     "analyses.hbonds.angle_cutoff": 90.0,
+     "output.video.width": 7680
+    }
+   }
+  ]
+ }
+}

@@ -1,0 +1,174 @@
+{
+ "format": "mdbridge-gui-case",
+ "version": 1,
+ "description": "A swap or preset change while slot options are no JSON object",
+ "source": "MDATK v0.0.4.1's GTK window driven by tests/parity/make_gui_cases.py, with MDBridge's window improvements (tests/parity/improvements_gui.py)",
+ "clock": "2026-11-25T12:00:00",
+ "items": [
+  "AP-09",
+  "AP-10"
+ ],
+ "mdatk_test": "",
+ "needs": [
+  "canvas",
+  "lossless",
+  "start",
+  "type"
+ ],
+ "canvas": {
+  "width": 960,
+  "height": 540
+ },
+ "files": {
+  "p.mdatk.toml": "projects/full.mdatk.toml"
+ },
+ "start": {
+  "project": "p.mdatk.toml"
+ },
+ "actions": [
+  {
+   "action": "type",
+   "key": "layout.panels.0.options",
+   "text": "{bad"
+  },
+  {
+   "action": "canvas.drag",
+   "from": {
+    "slot": 1,
+    "at": [
+     0.5,
+     0.5
+    ]
+   },
+   "to": {
+    "slot": 2,
+    "at": [
+     0.5,
+     0.5
+    ]
+   }
+  },
+  {
+   "action": "set",
+   "key": "layout.preset",
+   "value": "equal_4"
+  },
+  {
+   "action": "type",
+   "key": "layout.panels.0.options",
+   "text": "[1, 2]"
+  },
+  {
+   "action": "save"
+  },
+  {
+   "action": "type",
+   "key": "layout.panels.0.options",
+   "text": ""
+  },
+  {
+   "action": "save"
+  }
+ ],
+ "expected": {
+  "p.mdatk.toml": "gui/ap/ap09_swap_bad_options/out/p.mdatk.toml"
+ },
+ "log": [
+  "Preview not updated: Layout & panels › Panel 1 (Structure) › Options: '{bad' is not valid JSON: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)",
+  "Panels not swapped; fix this first: Layout & panels › Panel 1 (Structure) › Options: '{bad' is not valid JSON: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)",
+  "Grid preset not changed; fix this first: Layout & panels › Panel 1 (Structure) › Options: '{bad' is not valid JSON: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)",
+  "Preview not updated: Layout & panels › Panel 1 (Structure) › Options: '[1, 2]' is not a JSON object",
+  "ERROR: Some settings are invalid: Layout & panels › Panel 1 (Structure) › Options: '[1, 2]' is not a JSON object",
+  "WARNING: layout large_plus_3 has 4 slots; ignoring 2 extra panel(s)",
+  "Saved project {case_dir}/p.mdatk.toml"
+ ],
+ "outcome": {
+  "dialogs": [
+   {
+    "action": 4,
+    "kind": "error",
+    "text": "Some settings are invalid",
+    "detail": "Layout & panels › Panel 1 (Structure) › Options: '[1, 2]' is not a JSON object"
+   }
+  ],
+  "canvas": [
+   {
+    "action": 1,
+    "slots": [
+     [
+      4.8,
+      4.800000000000068,
+      581.812556317232,
+      516.9833333333332
+     ],
+     [
+      599.412556317232,
+      4.800000000000068,
+      322.6562781586156,
+      172.99569769965268
+     ],
+     [
+      603.412556317232,
+      188.59569769965276,
+      318.6562781586156,
+      173.9956976996528
+     ],
+     [
+      617.7458896505653,
+      374.39139539930557,
+      304.3229448252822,
+      160.8086046006944
+     ]
+    ],
+    "structure_slot": 0,
+    "events": [
+     [
+      "press",
+      760.7406953965398,
+      91.29784884982641
+     ],
+     [
+      "motion",
+      762.7406953965398,
+      275.59354654947913
+     ],
+     [
+      "release",
+      762.7406953965398,
+      275.59354654947913
+     ]
+    ]
+   }
+  ],
+  "settings": "gui/ap/ap09_swap_bad_options/settings.after.toml"
+ },
+ "mdatk": {
+  "expected": {
+   "p.mdatk.toml": "gui/ap/ap09_swap_bad_options/mdatk/p.mdatk.toml"
+  },
+  "log": [
+   "Preview not updated: layout: panel options '{bad': Expecting property name enclosed in double quotes: line 1 column 2 (char 1)",
+   "Preview not updated: layout: panel options '[1, 2]': options must be a JSON object",
+   "ERROR: Some settings are invalid: layout: panel options '[1, 2]': options must be a JSON object",
+   "Saved project {case_dir}/p.mdatk.toml"
+  ],
+  "dialogs": [
+   {
+    "action": 4,
+    "kind": "error",
+    "text": "Some settings are invalid",
+    "detail": "layout: panel options '[1, 2]': options must be a JSON object"
+   }
+  ],
+  "uncaught": [
+   {
+    "action": 1,
+    "error": "ValueError: panel options '{bad': Expecting property name enclosed in double quotes: line 1 column 2 (char 1)"
+   },
+   {
+    "action": 2,
+    "error": "ValueError: panel options '{bad': Expecting property name enclosed in double quotes: line 1 column 2 (char 1)"
+   }
+  ]
+ }
+}

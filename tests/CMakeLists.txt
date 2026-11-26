@@ -102,9 +102,10 @@ gtest_discover_tests(mdbridge_analysis_tests DISCOVERY_MODE PRE_TEST TEST_SUFFIX
                      TEST_FILTER "-${mdbridge_runner_free_filter}"
                      PROPERTIES ENVIRONMENT "MDBRIDGE_THREADS=1")
 
-# app/commands: MDATK's init, info, list, analyze, export-pdb and density info, run in-process
-# against what MDATK printed and wrote (data/cli, tests/parity/cli_parity.py); no Qt needed
-add_executable(mdbridge_cli_tests cli/test_commands.cpp)
+# app/commands: MDATK's demo, init, info, list, clean, analyze, export-pdb and density info, run
+# in-process against what MDATK printed and wrote (data/cli, tests/parity/cli_parity.py), and the demo,
+# cleaning, process runner and citations on their own (cli/test_cleaning.cpp); no Qt needed
+add_executable(mdbridge_cli_tests cli/test_commands.cpp cli/test_cleaning.cpp)
 target_include_directories(mdbridge_cli_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/core")
 target_link_libraries(mdbridge_cli_tests PRIVATE mdbridge::commands GTest::gtest_main)
 target_compile_definitions(mdbridge_cli_tests PRIVATE MDBRIDGE_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data")
@@ -113,7 +114,7 @@ gtest_discover_tests(mdbridge_cli_tests DISCOVERY_MODE PRE_TEST)
 
 # render, charts and preview with a recording backend (the drawing is the Qt program's: cli_parity.py)
 # and the interface's project data without Qt (src/app/commands/project_view.cpp)
-add_executable(mdbridge_render_cli_tests cli/test_render_commands.cpp cli/test_project_view.cpp)
+add_executable(mdbridge_render_cli_tests cli/test_render_commands.cpp cli/test_project_view.cpp cli/test_demo_commands.cpp)
 target_include_directories(mdbridge_render_cli_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/core")
 target_link_libraries(mdbridge_render_cli_tests PRIVATE mdbridge::commands GTest::gtest_main)
 target_compile_definitions(mdbridge_render_cli_tests PRIVATE MDBRIDGE_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data"
@@ -331,4 +332,24 @@ if(MDBRIDGE_BUILD_APP)
             VERBATIM)
     endif()
     gtest_discover_tests(mdbridge_video_qt_tests DISCOVERY_MODE PRE_TEST)
+endif()
+
+if(MDBRIDGE_BUILD_APP)
+    # the main window driven by action scripts (tests/data/gui, format in tests/data/README.md "gui"):
+    # saved files against MDATK's, screenshots to $MDBRIDGE_GUI_SCREENSHOTS (default
+    # <build>/gui-screenshots; CI artifacts, never compared). Qt Test on the offscreen platform.
+    find_package(Qt6 REQUIRED COMPONENTS Test)
+    add_executable(mdbridge_gui_tests gui/test_gui.cpp gui/gui_harness.cpp gui/gui_harness.hpp)
+    set_target_properties(mdbridge_gui_tests PROPERTIES AUTOMOC ON)
+    target_link_libraries(mdbridge_gui_tests PRIVATE mdbridge_app mdbridge::render_panels_vulkan Qt6::Test)
+    target_compile_definitions(mdbridge_gui_tests PRIVATE MDBRIDGE_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data"
+                               MDBRIDGE_GUI_SCREENSHOT_DIR="${CMAKE_BINARY_DIR}/gui-screenshots")
+    mdbridge_target_warnings(mdbridge_gui_tests)
+    if(WIN32 AND MDBRIDGE_VIDEO_RUNTIME_FILES)
+        add_custom_command(TARGET mdbridge_gui_tests POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different ${MDBRIDGE_VIDEO_RUNTIME_FILES} $<TARGET_FILE_DIR:mdbridge_gui_tests>
+            VERBATIM)
+    endif()
+    add_test(NAME gui.cases COMMAND mdbridge_gui_tests)
+    set_tests_properties(gui.cases PROPERTIES LABELS gui ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 endif()

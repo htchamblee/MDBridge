@@ -1,0 +1,49 @@
+{
+ "format": "mdbridge-gui-case",
+ "version": 1,
+ "description": "Values the widgets of MDATK cannot show survive open and save",
+ "source": "MDATK v0.0.4.1's GTK window driven by tests/parity/make_gui_cases.py, with MDBridge's window improvements (tests/parity/improvements_gui.py)",
+ "clock": "2026-11-25T12:00:00",
+ "items": [
+  "AP-01",
+  "AP-02",
+  "AP-03",
+  "AP-04",
+  "AP-05",
+  "AP-19"
+ ],
+ "mdatk_test": "",
+ "needs": [
+  "lossless",
+  "start"
+ ],
+ "canvas": {
+  "width": 960,
+  "height": 540
+ },
+ "files": {
+  "p.mdatk.toml": "gui/roundtrip/lossy_values/in/p.mdatk.toml"
+ },
+ "start": {
+  "project": "p.mdatk.toml"
+ },
+ "actions": [
+  {
+   "action": "save"
+  }
+ ],
+ "expected": {
+  "p.mdatk.toml": "gui/roundtrip/lossy_values/out/p.mdatk.toml"
+ },
+ "log": [
+  "Saved project {case_dir}/p.mdatk.toml"
+ ],
+ "outcome": {
+  "settings": "gui/roundtrip/lossy_values/settings.after.toml"
+ },
+ "mdatk": {
+  "expected": {
+   "p.mdatk.toml": "gui/roundtrip/lossy_values/mdatk/p.mdatk.toml"
+  }
+ }
+}

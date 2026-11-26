@@ -1,0 +1,55 @@
+{
+ "format": "mdbridge-gui-case",
+ "version": 1,
+ "description": "Optional numbers keep every digit typed",
+ "source": "MDATK v0.0.4.1's GTK window driven by tests/parity/make_gui_cases.py, with MDBridge's window improvements (tests/parity/improvements_gui.py)",
+ "clock": "2026-11-25T12:00:00",
+ "items": [
+  "AP-02"
+ ],
+ "mdatk_test": "",
+ "needs": [
+  "lossless",
+  "start",
+  "type"
+ ],
+ "canvas": {
+  "width": 960,
+  "height": 540
+ },
+ "files": {
+  "p.mdatk.toml": "projects/default.mdatk.toml"
+ },
+ "start": {
+  "project": "p.mdatk.toml"
+ },
+ "actions": [
+  {
+   "action": "type",
+   "key": "inputs.dt_ps",
+   "text": "0.0123456789"
+  },
+  {
+   "action": "type",
+   "key": "analyses.energy.target_value",
+   "text": "-1234567.5"
+  },
+  {
+   "action": "save"
+  }
+ ],
+ "expected": {
+  "p.mdatk.toml": "gui/ap/ap02_typed_numbers/out/p.mdatk.toml"
+ },
+ "log": [
+  "Saved project {case_dir}/p.mdatk.toml"
+ ],
+ "outcome": {
+  "settings": "gui/ap/ap02_typed_numbers/settings.after.toml"
+ },
+ "mdatk": {
+  "expected": {
+   "p.mdatk.toml": "gui/ap/ap02_typed_numbers/mdatk/p.mdatk.toml"
+  }
+ }
+}

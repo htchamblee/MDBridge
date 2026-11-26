@@ -1,0 +1,45 @@
+{
+ "format": "mdbridge-gui-case",
+ "version": 1,
+ "description": "A run's parameter log opens as an unsaved project; Save asks for a name",
+ "source": "MDATK v0.0.4.1's GTK window driven by tests/parity/make_gui_cases.py, with MDBridge's window improvements (tests/parity/improvements_gui.py)",
+ "clock": "2026-11-25T12:00:00",
+ "items": [
+  "AP-06",
+  "AP-11"
+ ],
+ "mdatk_test": "",
+ "needs": [
+  "answers"
+ ],
+ "canvas": {
+  "width": 960,
+  "height": 540
+ },
+ "files": {
+  "MDATK_params_log.toml": "projects/MDATK_params_log.toml"
+ },
+ "actions": [
+  {
+   "action": "open",
+   "path": "MDATK_params_log.toml"
+  },
+  {
+   "action": "save",
+   "answers": {
+    "name": "replay"
+   }
+  }
+ ],
+ "expected": {
+  "replay.mdatk.toml": "gui/roundtrip/open_params_log/out/replay.mdatk.toml"
+ },
+ "log": [
+  "Loaded the settings of the run logged in {case_dir}/MDATK_params_log.toml (save them as a project to keep them)",
+  "Saved project {case_dir}/replay.mdatk.toml"
+ ],
+ "outcome": {
+  "settings": "gui/roundtrip/open_params_log/settings.after.toml"
+ },
+ "mdatk": {}
+}

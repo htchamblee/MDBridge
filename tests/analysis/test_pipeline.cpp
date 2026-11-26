@@ -583,33 +583,27 @@ TEST(Pipeline, CancellationStoresNothing) {
 }
 
 TEST(Pipeline, CleaningWithoutCleanedFiles) {
+    // without cleaned files the pipeline runs cpptraj (tests/cli/test_cleaning.cpp); here one that
+    // does not exist: CpptrajError before anything is written
     TempDir work;
     core::Project project = demoProject(work);
     project.cleaning.enabled = true;
-    Pipeline pipe(project);
-    const std::string key =
-        analysis::cleaningKey(project.cleaning, project.inputs.topology, project.inputs.trajectories);
+    project.cleaning.cpptraj_path = generic(work / "no" / "cpptraj");
     try {
-        pipe.analyze(std::vector<std::string>{"rmsd"});
+        Pipeline(project).analyze(std::vector<std::string>{"rmsd"});
         ADD_FAILURE();
-    } catch (const analysis::PipelineError& e) {
-        const std::string what = e.what();
-        EXPECT_EQ(0u, what.find("cleaning with cpptraj is not available in MDBridge yet: no cleaned trajectory for "
-                                "these inputs and settings in "))
-            << what;
-        EXPECT_NE(std::string::npos, what.find("cleaned"));
-        EXPECT_NE(std::string::npos, what.find(key + "; turn it off (--no-clean or cleaning.enabled = false) and give "
-                                                     "the cleaned files as --top / --traj"))
-            << what;
+    } catch (const analysis::CpptrajError& e) {
+        EXPECT_EQ("cpptraj not executable at " + project.cleaning.cpptraj_path, std::string(e.what()));
     }
-    // a marker for other settings does not count
+    // a marker for other settings does not count: cpptraj would run
     const fs::path out = work / "cleaned";
     fs::create_directories(out);
     fs::copy_file(kData / "topology" / "demo_dry.parm7", out / "MDATK_cleaned.parm7");
     fs::copy_file(kData / "io" / "trajectories" / "demo_dry.nc", out / "MDATK_cleaned.nc");
     writeFile(out / "MDATK_clean.json", "{\"key\": \"0000000000000000\"}");
     project.cleaning.output_dir = generic(out);
-    EXPECT_THROW(Pipeline(project).analyze(std::vector<std::string>{"rmsd"}), analysis::PipelineError);
+    EXPECT_THROW(Pipeline(project).analyze(std::vector<std::string>{"rmsd"}), analysis::CpptrajError);
+    EXPECT_TRUE(Pipeline(project).cleanedIfAvailable().cleaningKey.empty());
     project.inputs.topology = generic(work / "missing.parm7");
     try {
         Pipeline(project).analyze(std::vector<std::string>{"rmsd"});

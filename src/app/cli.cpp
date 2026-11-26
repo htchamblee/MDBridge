@@ -203,7 +203,7 @@ int cliMain(int argc, char** argv) {
     probeVideoCmd->add_option("file", probeFile, "video file (.mp4)")->required();
 
     const RenderBackend renderBackend = qtRenderBackend(argv[0]);
-    // init, info, list, analyze, export-pdb, render, charts, preview, density info
+    // demo, init, info, list, clean, analyze, export-pdb, render, charts, preview, citations, density info
     CoreCommands mdatkCommands(app, &renderBackend);
 
     try {

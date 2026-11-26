@@ -6,6 +6,7 @@ add_library(mdbridge_analysis STATIC
     basepairs.cpp
     builtin.hpp
     cache.cpp
+    cleaning.cpp
     common.cpp
     contacts.cpp
     context.cpp

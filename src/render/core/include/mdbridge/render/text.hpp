@@ -94,7 +94,7 @@ private:
 // without a display (ssh, batch jobs, containers) whatever DISPLAY / WAYLAND_DISPLAY or a desktop's
 // QT_QPA_PLATFORM say; nullopt on Windows and macOS, whose native platforms need no display server.
 std::optional<std::string_view> batchQtPlatform();
-// The commands that draw without a window.
+// The commands that draw without a window (also `demo`, for `demo --run`).
 bool drawsWithoutWindow(std::string_view command);
 
 }  // namespace mdbridge::render

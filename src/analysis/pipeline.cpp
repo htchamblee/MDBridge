@@ -6,15 +6,13 @@
 #include "mdbridge/analysis/pipeline.hpp"
 
 #include <algorithm>
-#include <cctype>
 #include <filesystem>
-#include <fstream>
-#include <iterator>
 #include <map>
 #include <set>
 #include <stdexcept>
 
 #include "mdbridge/analysis/analysis.hpp"
+#include "mdbridge/analysis/cleaning.hpp"
 #include "mdbridge/analysis/context.hpp"
 #include "mdbridge/analysis/registry.hpp"
 #include "mdbridge/core/hash.hpp"
@@ -24,9 +22,6 @@
 #include "mdbridge/core/python.hpp"
 #include "mdbridge/io/external.hpp"
 #include "mdbridge/io/loader.hpp"
-#ifdef _WIN32
-#include "mdbridge/core/ntpath.hpp"
-#endif
 
 namespace mdbridge::analysis {
 
@@ -35,23 +30,6 @@ using core::Table;
 using core::Value;
 
 namespace {
-
-// os.path.join: the folders are absolute in generic form ('/' separators) on every platform and the
-// names relative, so '/' joins them.
-std::string joinPath(const std::string& dir, std::string_view name) { return core::posixpath::join(dir, name); }
-
-std::string absolute(const std::string& path) {
-#ifdef _WIN32
-    return core::ntpath::abspath(path, core::currentDirectory());
-#else
-    return core::posixpath::abspath(path, core::currentDirectory());
-#endif
-}
-
-bool exists(const std::string& path) {
-    std::error_code ec;
-    return !path.empty() && fs::exists(core::pathFromUtf8(path), ec);
-}
 
 // Set-or-append of a table entry (a Python dict assignment).
 void setEntry(Table& table, const std::string& key, Value value) {
@@ -71,12 +49,6 @@ Table* tableEntry(Table& table, std::string_view key) {
         }
     }
     return nullptr;
-}
-
-std::string lower(std::string text) {
-    std::transform(text.begin(), text.end(), text.begin(),
-                   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-    return text;
 }
 
 // load_external(specs, dataset), its errors as "external data: <message>"
@@ -193,8 +165,8 @@ void Pipeline::check() const {
     }
 }
 
-const ResolvedInputs& Pipeline::resolveInputs(const core::Reporter* reporter) {
-    if (m_inputs) {
+const ResolvedInputs& Pipeline::resolveInputs(const core::Reporter* reporter, bool forceClean) {
+    if (m_inputs && !forceClean) {
         return *m_inputs;
     }
     const core::Reporter& rep = reporter ? *reporter : m_reporter;
@@ -202,51 +174,26 @@ const ResolvedInputs& Pipeline::resolveInputs(const core::Reporter* reporter) {
     ResolvedInputs inputs;
     if (p.cleaning.enabled) {
         rep.log("Cleaning trajectory with cpptraj ...");
-        // clean(): the inputs must exist, then a previous result with the same key is reused
-        if (!exists(p.inputs.topology)) {
-            throw core::NamedError("CpptrajError", "topology not found: " + p.inputs.topology);
-        }
-        for (const std::string& t : p.inputs.trajectories) {
-            if (!exists(t)) {
-                throw core::NamedError("CpptrajError", "trajectory not found: " + t);
-            }
-        }
-        const std::string key = cleaningKey(p.cleaning, p.inputs.topology, p.inputs.trajectories);
-        const std::string outDir = absolute(p.cleaning.output_dir.empty()
-                                                ? joinPath(joinPath(core::cacheDir(p), "cleaned"), key)
-                                                : p.cleaning.output_dir);
-        const std::string ext = lower(core::posixpath::splitext(p.inputs.topology).second);
-        const bool parm7 = ext == ".parm7" || ext == ".prmtop" || ext == ".top";
-        const std::string topology = joinPath(outDir, parm7 ? kCleanedParm7 : kCleanedReference);
-        const std::string trajectory = joinPath(outDir, kCleanedTrajectory);
-        const std::string marker = joinPath(outDir, kCleaningMarker);
-        bool reused = false;
-        if (exists(marker) && exists(topology) && exists(trajectory)) {
-            try {
-                std::ifstream in(core::pathFromUtf8(marker), std::ios::binary);
-                const std::string text((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
-                const Value info = core::parseJson(text, marker);
-                const Value* stored = info.isTable() ? info.find("key") : nullptr;
-                reused = stored && stored->isString() && *stored->get<std::string>() == key;
-            } catch (const std::exception&) {
-                reused = false;  // an unreadable marker counts as none
-            }
-        }
-        if (!reused) {
-            throw PipelineError("cleaning with cpptraj is not available in MDBridge yet: no cleaned trajectory "
-                                "for these inputs and settings in " + outDir +
-                                "; turn it off (--no-clean or cleaning.enabled = false) and give the cleaned files "
-                                "as --top / --traj");
-        }
-        rep.rawLog("Reusing cleaned trajectory from " + outDir);
-        inputs = {topology, {trajectory}, key};
+        CleanResult res = clean(p.cleaning, p.inputs.topology, p.inputs.trajectories, core::cacheDir(p), rep, forceClean);
+        inputs = {res.topology, {res.trajectory}, res.key, std::move(res)};
     } else {
-        inputs = {p.inputs.topology, p.inputs.trajectories, {}};
+        inputs = {p.inputs.topology, p.inputs.trajectories, {}, std::nullopt};
     }
     m_inputs = std::move(inputs);
     m_system.reset();
     rep.progress(1.0, "inputs ready");
     return *m_inputs;
+}
+
+ResolvedInputs Pipeline::cleanedIfAvailable() const {
+    const core::Project& p = m_project;
+    if (p.cleaning.enabled) {
+        if (std::optional<CleanResult> res =
+                analysis::cleanedIfAvailable(p.cleaning, p.inputs.topology, p.inputs.trajectories, core::cacheDir(p))) {
+            return {res->topology, {res->trajectory}, res->key, std::nullopt};
+        }
+    }
+    return {p.inputs.topology, p.inputs.trajectories, {}, std::nullopt};
 }
 
 core::System& Pipeline::system() {

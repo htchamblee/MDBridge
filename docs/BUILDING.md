@@ -57,8 +57,9 @@ libxkbcommon-x11`). Useful options: `-DMDBRIDGE_WARNINGS_AS_ERRORS=ON` (as in CI
 `-DMDBRIDGE_BUILD_APP=OFF` (only the Qt-free libraries - `core`, `io`, `analysis`, the render core
 and panels, molecule geometry, software and offscreen Vulkan renderers, video encoder - the command
 line's MDATK commands and their tests: no Qt needed; `build/tests/mdbridge_commands_cli` then offers
-`init`, `info`, `list`, `analyze`, `export-pdb` and `density info` for `tests/parity/cli_parity.py
---mdbridge`; `render`, `charts` and `preview` need the Qt build).
+`demo`, `init`, `info`, `list`, `clean`, `analyze`, `export-pdb`, `citations` and `density info` for
+`tests/parity/cli_parity.py --mdbridge`; `render`, `charts`, `preview` and `demo --run` need the Qt
+build).
 
 ### AppImage
 
@@ -149,6 +150,12 @@ Installed packages can be used instead with `-DMDBRIDGE_USE_SYSTEM_DEPS=ON` (zli
 - `ctest`: unit tests of `core` (every fixture in `tests/data/projects` must read exactly as MDATK
   reads it: `tests/data/expected`), of the Vulkan probe, and a check that the committed SPIR-V
   matches the shader sources.
+- GUI tests (`ctest -L gui`, program `tests/mdbridge_gui_tests`, Qt Test, part of Qt's `qtbase`):
+  the main window driven by the action scripts of `tests/data/gui` (format: `tests/data/README.md`,
+  "gui"), the saved files compared with MDATK's, on the `offscreen` platform (no display needed;
+  `MDBRIDGE_GUI_TEST_PLATFORM=xcb` shows the window). Screenshots go to `$MDBRIDGE_GUI_SCREENSHOTS`
+  (default `<build>/gui-screenshots`); CI uploads them as `gui-test-screenshots-linux` / `-windows`.
+  Run one case: `mdbridge_gui_tests cases:harness/open_save_default`.
 - `packaging/smoke_test.py EXE [--gui]`: a finished build as users get it (AppImage, install tree
   or `mdbridge.exe`): command line, project files against MDATK's reading, the figure fonts, a
   `render` of the demo project (an AV1 video read back with `mdbridge probe-video` and, when it is

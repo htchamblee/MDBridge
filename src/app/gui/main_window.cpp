@@ -49,6 +49,9 @@ MainWindow::MainWindow(render::Renderer renderer, QWidget* parent) : QMainWindow
     m_splitter->addWidget(m_right);
     m_preview = new PreviewWidget(m_right);
     m_right->addWidget(m_preview);
+    // object names for the GUI tests (tests/gui); field widgets will use their project key
+    m_panel->setObjectName(QStringLiteral("projectPanel"));
+    m_preview->setObjectName(QStringLiteral("preview"));
     setCentralWidget(m_splitter);
 
     m_progress = new QProgressBar(this);
@@ -96,6 +99,7 @@ void MainWindow::setView(render::ViewChoice choice) {
     m_fallbackReason = choice.fallbackReason;
 
     m_container = QWidget::createWindowContainer(m_view->window(), m_right);
+    m_container->setObjectName(QStringLiteral("view3d"));
     m_container->setMinimumSize(320, 240);
     m_container->setFocusPolicy(Qt::StrongFocus);
     m_container->setToolTip(tr("Drag to rotate, scroll to zoom, double-click to reset the view"));
@@ -121,6 +125,13 @@ bool MainWindow::openProject(const std::filesystem::path& path, bool interactive
     try {
         const OpenedProject project = app::openProject(path);
         m_panel->showProject(project);
+        m_projectPath = path;
+        m_project.reset();
+        try {
+            m_project = core::loadProject(path);
+        } catch (const std::exception& e) {  // shown, but cannot be saved
+            std::cerr << "mdbridge: " << e.what() << '\n';
+        }
         setWindowTitle(tr("%1 - MDBridge").arg(toQString(core::pathToUtf8(path.filename()))));
         statusBar()->showMessage(tr("Opened %1").arg(toQString(core::pathToUtf8(path))), 5000);
         startLoad(path);
@@ -133,6 +144,34 @@ bool MainWindow::openProject(const std::filesystem::path& path, bool interactive
         }
         return false;
     }
+}
+
+bool MainWindow::saveProject(const std::filesystem::path& path, bool interactive) {
+    const std::filesystem::path target = path.empty() ? m_projectPath : path;
+    QString problem;
+    if (!m_project) {
+        problem = tr("No project with readable settings is open.");
+    } else if (target.empty()) {
+        problem = tr("The project has no file yet.");
+    } else {
+        try {
+            core::saveProject(target, *m_project);
+        } catch (const std::exception& e) {  // core::ProjectError, std::filesystem::filesystem_error
+            problem = toQString(e.what());
+        }
+    }
+    if (!problem.isEmpty()) {
+        if (interactive) {
+            QMessageBox::warning(this, tr("Cannot save the project"), problem);
+        } else {
+            std::cerr << "mdbridge: " << problem.toStdString() << '\n';
+        }
+        return false;
+    }
+    m_projectPath = target;
+    setWindowTitle(tr("%1 - MDBridge").arg(toQString(core::pathToUtf8(target.filename()))));
+    statusBar()->showMessage(tr("Saved %1").arg(toQString(core::pathToUtf8(target))), 5000);
+    return true;
 }
 
 namespace {
