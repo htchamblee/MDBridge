@@ -5,3 +5,5 @@ tests/data/** -text
 *.png binary
 *.ico binary
 *.ttf binary
+# vendored third-party code keeps its exact bytes (third_party/ducc0/SHA256SUMS)
+third_party/** -text

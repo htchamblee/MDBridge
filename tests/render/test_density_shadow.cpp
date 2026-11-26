@@ -23,7 +23,7 @@
 #include "mdbridge/core/value.hpp"
 #include "mdbridge/io/mrc.hpp"
 #include "mdbridge/render/molecule/density_shadow.hpp"
-#include "mdbridge/render/molecule/ndimage.hpp"
+#include "mdbridge/numerics/ndimage.hpp"
 
 namespace mdbridge::render::molecule {
 namespace {
@@ -120,18 +120,18 @@ TEST(DensityShadow, AffineTransformMatchesScipy) {
     for (const Value& c : cases) {
         const auto s = numbers(at(c, "shape"));
         const auto o = numbers(at(c, "output_shape"));
-        const Shape3 shape = {static_cast<std::size_t>(s[0]), static_cast<std::size_t>(s[1]),
+        const numerics::Shape3 shape = {static_cast<std::size_t>(s[0]), static_cast<std::size_t>(s[1]),
                               static_cast<std::size_t>(s[2])};
-        const Shape3 outShape = {static_cast<std::size_t>(o[0]), static_cast<std::size_t>(o[1]),
+        const numerics::Shape3 outShape = {static_cast<std::size_t>(o[0]), static_cast<std::size_t>(o[1]),
                                  static_cast<std::size_t>(o[2])};
         std::vector<float> data;
         for (double x : numbers(at(c, "data"))) {
             data.push_back(static_cast<float>(x));
         }
         const auto mv = numbers(at(c, "matrix"));
-        const Matrix3 m = {{{mv[0], mv[1], mv[2]}, {mv[3], mv[4], mv[5]}, {mv[6], mv[7], mv[8]}}};
+        const numerics::Matrix3 m = {{{mv[0], mv[1], mv[2]}, {mv[3], mv[4], mv[5]}, {mv[6], mv[7], mv[8]}}};
         const auto ov = numbers(at(c, "offset"));
-        const auto out = affineTransformLinearConstant(data, shape, m, {ov[0], ov[1], ov[2]}, outShape,
+        const auto out = numerics::affineTransformLinearConstant(data, shape, m, {ov[0], ov[1], ov[2]}, outShape,
                                                        number(at(c, "cval")));
         // float32 results: scipy's arithmetic order is followed, so they agree to the last bit or so
         expectValues(out, numbers(at(c, "output")), 1e-6, str(at(c, "name")));
@@ -140,7 +140,7 @@ TEST(DensityShadow, AffineTransformMatchesScipy) {
 
 TEST(DensityShadow, AffineTransformChecksTheShape) {
     const std::vector<float> data(5, 1.0f);
-    EXPECT_THROW(affineTransformLinearConstant(data, {1, 2, 3}, Matrix3{}, {0, 0, 0}, {1, 1, 1}),
+    EXPECT_THROW(numerics::affineTransformLinearConstant(data, {1, 2, 3}, numerics::Matrix3{}, {0, 0, 0}, {1, 1, 1}),
                  std::invalid_argument);
 }
 

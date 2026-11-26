@@ -60,9 +60,10 @@ Each module is a library with a C++ API; only `app` depends on Qt widgets.
 |---|---|---|
 | `core` | data model (topology, coordinates, selections, residue groups), `.mdatk.toml` project file, step log, citations, settings | - |
 | `io` | trajectory/topology readers, NetCDF/parm7, PDB read/write, MRC/CCP4 maps, mmCIF dictionaries | core |
-| `chem` | PDB hygiene (L-RNA detection, naming schemes, chains, renumbering), base pairs, dot-bracket, annotation, helix builder, mutations, dictionary renaming | core, io |
+| `numerics` | the SciPy pieces MDATK uses, ported (ndimage filters and interpolation, Powell / Brent, `least_squares` TRF with LSMR, `cKDTree.query_pairs`) or vendored (SciPy's ducc0 FFT, `third_party/ducc0`), and `density_centroid` | core, io |
+| `chem` | PDB hygiene (L-RNA detection, naming schemes, chains, renumbering), base pairs, dot-bracket, annotation, helix builder, mutations, dictionary renaming | core, io, numerics |
 | `analysis` | RMSD, contacts, H-bonds, Mg/O-Mg-O, stacking, energy, trace/proximity; parallel over frames; result cache | core, io, chem |
-| `render` | Vulkan scene (trace, cartoon, licorice, surfaces, density shadow), panels and charts, video encoding; usable headless for batch videos | core, analysis |
+| `render` | Vulkan scene (trace, cartoon, licorice, surfaces, density shadow), panels and charts, video encoding; usable headless for batch videos | core, analysis, numerics |
 | `workflow` | planner model, step types and checks; generators written in Lua and loaded from `.lua` files (users can add steps) | core, chem |
 | `app` | Qt GUI and the CLI: two thin front ends over the same libraries | all |
 

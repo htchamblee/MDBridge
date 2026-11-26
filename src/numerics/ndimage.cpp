@@ -1,7 +1,8 @@
-// Gaussian filtering (mode "constant") and order-1 interpolation (mode "nearest") as
+// Gaussian filtering (modes "constant" and "reflect") and order-1 interpolation (modes "nearest" and
+// "constant") as
 // scipy.ndimage computes them, ported from SciPy 1.18.1: _gaussian_kernel1d / gaussian_filter1d /
 // gaussian_filter / uniform_filter1d (scipy/ndimage/_filters.py), NI_Correlate1D,
-// NI_UniformFilter1D and their line buffers
+// NI_UniformFilter1D and their line buffers (NI_ExtendLine)
 // (scipy/ndimage/src/ni_filters.c, ni_support.c), NI_GeometricTransform's interpolation (its
 // matrix path for affine_transform, scipy/ndimage/_interpolation.py) and map_coordinate
 // (src/ni_interpolation.c) and get_spline_interpolation_weights (src/ni_splines.c),
@@ -37,11 +38,12 @@
 // POSSIBILITY OF SUCH DAMAGE.
 //
 // Only the paths MDATK uses are ported (order-0 kernels, which are symmetric; order-1
-// interpolation in mode "nearest" for map_coordinates and mode "constant" for affine_transform). The
+// interpolation in modes "nearest" and "constant" for map_coordinates and mode "constant" for
+// affine_transform). The
 // kernel's normalising sum is numpy's pairwise sum (core/detail/numpy_sum.hpp). Built without
 // floating-point contraction, so that every product and sum rounds as in scipy.
 
-#include "mdbridge/render/molecule/ndimage.hpp"
+#include "mdbridge/numerics/ndimage.hpp"
 
 #include <cmath>
 #include <cstdint>
@@ -49,7 +51,7 @@
 
 #include "mdbridge/core/detail/numpy_sum.hpp"
 
-namespace mdbridge::render::molecule {
+namespace mdbridge::numerics {
 
 std::vector<double> gaussianKernel1d(double sigma, std::size_t radius) {
     const double sigma2 = sigma * sigma;
@@ -67,8 +69,52 @@ std::vector<double> gaussianKernel1d(double sigma, std::size_t radius) {
     return phi;
 }
 
+namespace {
+
+// NI_ExtendLine: the `before` values ahead of the line and the `after` values behind it, in a buffer
+// that holds the line at buffer[before .. before + length)
+void extendLine(double* buffer, std::size_t length, std::size_t before, std::size_t after, ExtendMode mode,
+                double cval) {
+    double* first = buffer + before;
+    double* last = first + length;
+    if (mode == ExtendMode::Constant) {
+        for (double* p = buffer; p < first; ++p) {
+            *p = cval;
+        }
+        for (double* p = last; p < last + after; ++p) {
+            *p = cval;
+        }
+        return;
+    }
+    // reflect: d c b a | a b c d | d c b a, continued from the values already written
+    const double* src = first;
+    double* dst = first - 1;
+    std::size_t sizeBefore = before;
+    while (sizeBefore != 0 && src < last) {
+        *dst-- = *src++;
+        --sizeBefore;
+    }
+    src = last - 1;
+    while (sizeBefore-- != 0) {
+        *dst-- = *src--;
+    }
+    src = last - 1;
+    dst = last;
+    std::size_t sizeAfter = after;
+    while (sizeAfter != 0 && src >= first) {
+        *dst++ = *src--;
+        --sizeAfter;
+    }
+    src = first;
+    while (sizeAfter-- != 0) {
+        *dst++ = *src++;
+    }
+}
+
+}  // namespace
+
 void gaussianFilter1d(std::vector<float>& data, const Shape3& shape, std::size_t axis, double sigma, double truncate,
-                      double cval) {
+                      double cval, ExtendMode mode) {
     if (axis > 2) {
         throw std::invalid_argument("gaussianFilter1d: axis must be 0, 1 or 2");
     }
@@ -101,6 +147,7 @@ void gaussianFilter1d(std::vector<float>& data, const Shape3& shape, std::size_t
         for (std::size_t i = 0; i < length; ++i) {
             line[radius + i] = static_cast<double>(data[start + i * stride]);
         }
+        extendLine(line.data(), length, radius, radius, mode, cval);
         const double* in = line.data() + radius;
         for (std::size_t i = 0; i < length; ++i) {
             const double* p = in + i;
@@ -119,6 +166,15 @@ void gaussianFilter(std::vector<float>& data, const Shape3& shape, double sigma,
     }
     for (std::size_t axis = 0; axis < 3; ++axis) {
         gaussianFilter1d(data, shape, axis, sigma, truncate, cval);
+    }
+}
+
+void gaussianFilter(std::vector<float>& data, const Shape3& shape, const std::array<double, 3>& sigma, ExtendMode mode,
+                    double truncate, double cval) {
+    for (std::size_t axis = 0; axis < 3; ++axis) {
+        if (sigma[axis] > 1e-15) {
+            gaussianFilter1d(data, shape, axis, sigma[axis], truncate, cval, mode);
+        }
     }
 }
 
@@ -211,20 +267,9 @@ bool linearAxisConstant(double coordinate, std::size_t length, LinearAxis& out) 
 
 }  // namespace detail
 
-double affineSampleLinearConstant(std::span<const float> data, const Shape3& shape, const Matrix3& matrix,
-                                  const std::array<double, 3>& offset, std::size_t i, std::size_t j, std::size_t k,
-                                  double cval) {
-    const double o[3] = {static_cast<double>(i), static_cast<double>(j), static_cast<double>(k)};
-    detail::LinearAxis axes[3];
-    for (std::size_t h = 0; h < 3; ++h) {
-        double tmp = offset[h];
-        tmp += o[0] * matrix[h][0];
-        tmp += o[1] * matrix[h][1];
-        tmp += o[2] * matrix[h][2];
-        if (!detail::linearAxisConstant(tmp, shape[h], axes[h])) {
-            return cval;
-        }
-    }
+namespace {
+
+double interpolateLinear(std::span<const float> data, const Shape3& shape, const detail::LinearAxis (&axes)[3]) {
     const auto ny = static_cast<std::ptrdiff_t>(shape[1]);
     const auto nx = static_cast<std::ptrdiff_t>(shape[2]);
     double t = 0.0;
@@ -241,6 +286,53 @@ double affineSampleLinearConstant(std::span<const float> data, const Shape3& sha
         }
     }
     return t;
+}
+
+}  // namespace
+
+double mapCoordinatesLinearConstant(std::span<const float> data, const Shape3& shape, double z, double y, double x,
+                                    double cval) {
+    const double c[3] = {z, y, x};
+    detail::LinearAxis axes[3];
+    for (std::size_t h = 0; h < 3; ++h) {
+        if (!detail::linearAxisConstant(c[h], shape[h], axes[h])) {
+            return cval;
+        }
+    }
+    return interpolateLinear(data, shape, axes);
+}
+
+std::vector<float> mapCoordinatesLinearConstant(std::span<const float> data, const Shape3& shape,
+                                                std::span<const double> zyx, double cval) {
+    if (data.size() != shape[0] * shape[1] * shape[2]) {
+        throw std::invalid_argument("mapCoordinatesLinearConstant: data does not match the shape");
+    }
+    if (zyx.size() % 3 != 0) {
+        throw std::invalid_argument("mapCoordinatesLinearConstant: coordinates come in threes (z, y, x)");
+    }
+    std::vector<float> out(zyx.size() / 3);
+    for (std::size_t p = 0; p < out.size(); ++p) {
+        out[p] = static_cast<float>(
+            mapCoordinatesLinearConstant(data, shape, zyx[3 * p], zyx[3 * p + 1], zyx[3 * p + 2], cval));
+    }
+    return out;
+}
+
+double affineSampleLinearConstant(std::span<const float> data, const Shape3& shape, const Matrix3& matrix,
+                                  const std::array<double, 3>& offset, std::size_t i, std::size_t j, std::size_t k,
+                                  double cval) {
+    const double o[3] = {static_cast<double>(i), static_cast<double>(j), static_cast<double>(k)};
+    detail::LinearAxis axes[3];
+    for (std::size_t h = 0; h < 3; ++h) {
+        double tmp = offset[h];
+        tmp += o[0] * matrix[h][0];
+        tmp += o[1] * matrix[h][1];
+        tmp += o[2] * matrix[h][2];
+        if (!detail::linearAxisConstant(tmp, shape[h], axes[h])) {
+            return cval;
+        }
+    }
+    return interpolateLinear(data, shape, axes);
 }
 
 std::vector<float> affineTransformLinearConstant(std::span<const float> data, const Shape3& shape, const Matrix3& matrix,
@@ -261,4 +353,4 @@ std::vector<float> affineTransformLinearConstant(std::span<const float> data, co
     return out;
 }
 
-}  // namespace mdbridge::render::molecule
+}  // namespace mdbridge::numerics

@@ -2918,6 +2918,48 @@ Fitted outputs are compared within tolerances (plan 4.1, D10): the rebuilt helic
 pairings and triplexes, the density fits and their transforms; regenerate_all.py compares the chem
 JSON files within FITTED's tolerance where their bytes differ (tests/data/README.md).
 
+## Numerics (src/numerics; milestone 6 W0-C)
+
+The SciPy pieces of MDATK's density fit and helix builder (docs/specs/m6-plan.md section 6, owner
+decisions D3 and D4), tested against SciPy 1.18.1 on the cases of
+`tests/parity/make_numerics_cases.py` (`tests/data/numerics/numerics_cases.json`;
+`tests/numerics/test_*.cpp`). `scipy.fft.rfftn` / `irfftn` run SciPy's own FFT (ducc0 0.40.0,
+vendored in `third_party/ducc0`; SciPy 1.18.1 uses ducc0, the successor of pocketfft, not pocketfft
+itself) and equal SciPy's bit for bit, for any thread count. Powell's method and Brent's line search
+(`src/numerics/powell.cpp`) give SciPy's iterates bit for bit on the recorded objectives (the test
+allows 1e-9). The Gaussian filter (now also mode "reflect" and one sigma per axis) and
+`map_coordinates` (now also mode "constant" with a cval) of `src/numerics/ndimage.cpp`, moved from
+`src/render/molecule`, give SciPy's float32 values (within an ulp where the kernel's `exp` rounds
+differently). `density_centroid` moved from `src/render/panels` unchanged (its finite-voxel rule is
+WA-08's). MDATK 0.1.1 uses the same SciPy calls with the same options. The differences:
+
+- **NU-01: pair search order and negative radii.** `cKDTree.query_pairs(r)` returns a Python set
+  (or, with `output_type="ndarray"`, an array in an order that depends on the tree), and squares the
+  radius internally, so a negative radius found the pairs within |r|. `numerics::queryPairs`
+  returns the same pairs sorted by (i, j), and nothing for a negative radius; non-finite points
+  raise cKDTree's `data must be finite, check for nan or inf values`. *Why:* callers' results
+  (MDATK's closure residuals follow the pair order) should not depend on a tree's layout, and a
+  negative radius is no radius. *Tested:* `Pairs.SameSetAsCKDTree` (random points, a unit lattice at
+  exactly r = 1 and sqrt(2), duplicates, a sparse spread), `Pairs.BruteForceAgreesAndOddInputs`.
+- **NU-02: least_squares without LAPACK.** The trust region reflective method
+  (`src/numerics/least_squares.cpp`, `lsmr.cpp`: no bounds, linear loss, 2-point finite differences,
+  dense or with `jac_sparsity` and SciPy's column groups, `x_scale` as numbers or "jac", LSMR's
+  `tr_options`) follows SciPy's code, but the SVD of tr_solver "exact" is MDBridge's one-sided Jacobi,
+  the QR of the LSMR subspace its own Householder reflections, `np.roots` of the subspace's quartic
+  its own real-root search (bracketing and Newton steps instead of the companion matrix's
+  eigenvalues), and BLAS sums are taken in index order. The iterates therefore agree with SciPy's to
+  rounding, not bit for bit, and the finite differences amplify rounding: a step of sqrt(eps) turns
+  an ulp in a residual into about 1e-8 relative in the next Jacobian. *Why:* LAPACK and OpenBLAS are
+  not dependencies (their kernels differ per CPU anyway). *Tested:* `LeastSquares.IteratesMatchScipy`:
+  every iterate, the solution, cost, residuals, gradient, nfev, njev, status and message, within
+  1e-9 or four times the spread of SciPy's own iterates when its residuals move by an ulp (recorded
+  by the generator; at most 2.4e-8 relative on the smooth cases), with 1 and 3 Jacobian threads; one
+  case whose path SciPy itself changes under an ulp (LSMR with tolerances 1e-5) is held to the same
+  minimum (cost within 1e-6). `LeastSquares.LsmrMatchesScipy`, `ColumnGroupsAndPermutations`
+  (numpy's `RandomState(0).permutation`, ported, and `group_columns` exactly) and
+  `RealRootsOfTheSubspaceQuartic` (np.roots' real roots within 1e-12, multiple roots excepted)
+  test the pieces.
+
 ## Planned (from the improvement register; add each entry here when it lands)
 
 None: every FIX and ASK item of the improvement register (docs/IMPROVEMENTS.md) has landed

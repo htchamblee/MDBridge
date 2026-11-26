@@ -33,7 +33,7 @@ built here from plain arrays. Writes into OUT_DIR:
                    style's, as in styles.json); depth_range along a fixed axis
   ndimage.json     scipy.ndimage.gaussian_filter1d / gaussian_filter (mode "constant") and
                    map_coordinates (order 1, mode "nearest") on float32 arrays, as surface.py calls
-                   them (the C++ port of these is in src/render/molecule/ndimage.cpp)
+                   them (the C++ port of these is in src/numerics/ndimage.cpp)
 
 Numbers are written as repr() of the float (exact). numpy's and OpenBLAS' kernels are pinned before
 numpy is imported, as make_analysis_cases.py pins them (the spline weights go through a small

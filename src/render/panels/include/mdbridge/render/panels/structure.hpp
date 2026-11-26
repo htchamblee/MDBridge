@@ -97,11 +97,6 @@ inline constexpr std::string_view kNoGpuRendererNote =
 // io::mapLevel's value when all are; NaN when none is.
 double finiteMapLevel(const io::DensityMap& map, double sigmas);
 
-// density_centroid(map, level) (mdatk/density.py): the centre (Å) of the map density above
-// `level` (non-finite voxels carry none); the centre of the map box when nothing is above it. With
-// the model centre it gives MDATK's centre_transform (the window's *Centre on model*).
-core::Vec3 densityCentroid(const io::DensityMap& map, double level);
-
 // A density-map placement made by hand on the frame a structure panel shows (MDATK's
 // _on_map_moved, centre_density): `d` gets the transform (12 numbers, model -> map), the anchor
 // (`model`, the panel's modelPoints of that frame, rounded as project files store them), fit_cc 0

@@ -29,7 +29,7 @@
 #include <utility>
 #include <variant>
 
-#include "mdbridge/render/molecule/ndimage.hpp"
+#include "mdbridge/numerics/ndimage.hpp"
 
 namespace mdbridge::render::molecule {
 namespace {
@@ -1034,9 +1034,9 @@ double discNorm(double sig, double rad) {
                 static_cast<double>(xx * xx + yy * yy) <= r2 ? 1.0f : 0.0f;
         }
     }
-    const Shape3 shape{1, side, side};
-    gaussianFilter1d(d, shape, 1, sig, 2.5);
-    gaussianFilter1d(d, shape, 2, sig, 2.5);
+    const numerics::Shape3 shape{1, side, side};
+    numerics::gaussianFilter1d(d, shape, 1, sig, 2.5);
+    numerics::gaussianFilter1d(d, shape, 2, sig, 2.5);
     float peak = -std::numeric_limits<float>::infinity();
     for (float v : d) {
         peak = npMax(peak, v);
@@ -1095,7 +1095,7 @@ void gaussian2d(std::vector<float>& data, std::size_t rows, std::size_t cols, do
             }
             std::vector<float> block(d.begin() + static_cast<std::ptrdiff_t>(a * nc),
                                      d.begin() + static_cast<std::ptrdiff_t>(b * nc));
-            gaussianFilter1d(block, Shape3{1, b - a, nc}, 2, sigma, 2.5);
+            numerics::gaussianFilter1d(block, numerics::Shape3{1, b - a, nc}, 2, sigma, 2.5);
             std::copy(block.begin(), block.end(), d.begin() + static_cast<std::ptrdiff_t>(a * nc));
         });
     };
@@ -1184,8 +1184,8 @@ void antialias(RgbaImage& out, std::int64_t x0, std::int64_t x1, std::int64_t y0
         });
     };
     // axis 0, then axis 1 (lines are independent)
-    lines(w, [&](std::size_t c) { uniformFilter1dLine(a.data() + c, w, h, 3, t.data() + c); });
-    lines(h, [&](std::size_t r) { uniformFilter1dLine(t.data() + r * w, 1, w, 3, a3.data() + r * w); });
+    lines(w, [&](std::size_t c) { numerics::uniformFilter1dLine(a.data() + c, w, h, 3, t.data() + c); });
+    lines(h, [&](std::size_t r) { numerics::uniformFilter1dLine(t.data() + r * w, 1, w, 3, a3.data() + r * w); });
     lines(static_cast<std::size_t>(y1 - y0), [&](std::size_t row) {
         const std::int64_t y = y0 + static_cast<std::int64_t>(row);
         for (std::int64_t x = x0; x < x1; ++x) {

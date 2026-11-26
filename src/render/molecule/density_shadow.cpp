@@ -18,7 +18,7 @@
 
 #include "mdbridge/analysis/spatial.hpp"
 #include "mdbridge/core/errors.hpp"
-#include "mdbridge/render/molecule/ndimage.hpp"
+#include "mdbridge/numerics/ndimage.hpp"
 
 namespace mdbridge::render::molecule {
 
@@ -133,7 +133,7 @@ std::optional<Shadow> project(const io::DensityMap& map, std::span<const float> 
         bIdx[i] = (off[i] - map.origin[i]) / map.voxel[i];
     }
     // output axes (w, v, u) with spacing `step`; the map array's axes are (z, y, x)
-    Matrix3 m{};
+    numerics::Matrix3 m{};
     for (int outAx = 0; outAx < 3; ++outAx) {
         for (int inAx = 0; inAx < 3; ++inAx) {
             m[inAx][outAx] = aIdx[2 - inAx][2 - outAx] * step;
@@ -145,8 +145,9 @@ std::optional<Shadow> project(const io::DensityMap& map, std::span<const float> 
         idx0[i] = aIdx[i][0] * viewStart[0] + aIdx[i][1] * viewStart[1] + aIdx[i][2] * viewStart[2] + bIdx[i];
     }
     const std::array<double, 3> offset = {idx0[2], idx0[1], idx0[0]};
-    const Shape3 shape = {static_cast<std::size_t>(map.shapeXyz[2]), static_cast<std::size_t>(map.shapeXyz[1]),
-                          static_cast<std::size_t>(map.shapeXyz[0])};
+    const numerics::Shape3 shape = {static_cast<std::size_t>(map.shapeXyz[2]),
+                                    static_cast<std::size_t>(map.shapeXyz[1]),
+                                    static_cast<std::size_t>(map.shapeXyz[0])};
 
     // vol = affine_transform(...) as float32, img = vol.sum(axis=0): depth slices added in order
     Shadow out;
@@ -155,9 +156,9 @@ std::optional<Shadow> project(const io::DensityMap& map, std::span<const float> 
     out.image.assign(out.rows * out.cols, 0.0f);
     for (std::size_t v = 0; v < out.rows; ++v) {
         for (std::size_t u = 0; u < out.cols; ++u) {
-            float acc = static_cast<float>(affineSampleLinearConstant(data, shape, m, offset, 0, v, u));
+            float acc = static_cast<float>(numerics::affineSampleLinearConstant(data, shape, m, offset, 0, v, u));
             for (std::size_t w = 1; w < static_cast<std::size_t>(nw); ++w) {
-                acc += static_cast<float>(affineSampleLinearConstant(data, shape, m, offset, w, v, u));
+                acc += static_cast<float>(numerics::affineSampleLinearConstant(data, shape, m, offset, w, v, u));
             }
             out.image[v * out.cols + u] = acc;
         }

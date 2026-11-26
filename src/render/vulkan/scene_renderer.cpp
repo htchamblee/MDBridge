@@ -29,7 +29,7 @@
 #include <utility>
 #include <variant>
 
-#include "mdbridge/render/molecule/ndimage.hpp"
+#include "mdbridge/numerics/ndimage.hpp"
 #include "mdbridge/render/vulkan/pipeline.hpp"
 #include "shaders/spirv.hpp"
 
@@ -558,9 +558,9 @@ double discNorm(double sig, double rad) {
                 static_cast<double>(xx * xx + yy * yy) <= r2 ? 1.0f : 0.0f;
         }
     }
-    const molecule::Shape3 shape{1, side, side};
-    molecule::gaussianFilter1d(d, shape, 1, sig, 2.5);
-    molecule::gaussianFilter1d(d, shape, 2, sig, 2.5);
+    const numerics::Shape3 shape{1, side, side};
+    numerics::gaussianFilter1d(d, shape, 1, sig, 2.5);
+    numerics::gaussianFilter1d(d, shape, 2, sig, 2.5);
     float peak = -std::numeric_limits<float>::infinity();
     for (float v : d) {
         peak = npMax(peak, v);
@@ -621,7 +621,7 @@ Plan makePlan(const std::vector<Colored>& items, const molecule::Viewport& vp, c
         if (radius > 4096) {
             throw std::runtime_error("3D view zoomed in too far for the Vulkan renderer's glow");
         }
-        for (double v : molecule::gaussianKernel1d(sig, radius)) {
+        for (double v : numerics::gaussianKernel1d(sig, radius)) {
             p.weights.push_back(f32(v));
         }
         u.radius = static_cast<std::int32_t>(radius);

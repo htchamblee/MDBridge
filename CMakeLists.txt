@@ -42,6 +42,7 @@ endif()
 
 add_subdirectory(src/core)
 add_subdirectory(src/io)
+add_subdirectory(src/numerics)  # scipy.ndimage / fft / optimize / spatial pieces MDATK uses; no Qt
 add_subdirectory(src/chem)
 add_subdirectory(src/analysis)
 add_subdirectory(src/render/core)  # the render module's Qt-free part

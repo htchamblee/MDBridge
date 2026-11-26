@@ -21,7 +21,8 @@ add_library(mdbridge_render_panels STATIC
 add_library(mdbridge::render_panels ALIAS mdbridge_render_panels)
 target_include_directories(mdbridge_render_panels PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_link_libraries(mdbridge_render_panels PUBLIC mdbridge::render_core mdbridge::render_molecule mdbridge::io mdbridge::core
-    PRIVATE mdbridge::chem)  # chem: dot-bracket (secondary panel); io: density maps (structure view)
+    PRIVATE mdbridge::chem mdbridge::numerics)  # chem: dot-bracket (secondary panel); io: density maps (structure
+                                                # view); numerics: density_centroid
 target_compile_features(mdbridge_render_panels PUBLIC cxx_std_20)
 mdbridge_target_warnings(mdbridge_render_panels)
 # the residue panels' and the structure view's arithmetic rounds as numpy rounds it: no contraction

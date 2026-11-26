@@ -1,10 +1,13 @@
 #pragma once
-// The pieces of scipy.ndimage that MDATK's molecular surface uses, on 3-D float32 arrays in C order
-// ([z, y, x], shape {nz, ny, nx}), rounded as scipy rounds them: gaussian_filter1d /
-// gaussian_filter with mode "constant" (separable correlation in double precision, each pass
-// stored as float32), uniform_filter1d with mode "constant" (the software renderer's edge
-// anti-aliasing), map_coordinates with order 1 and mode "nearest", and affine_transform with
-// order 1 and mode "constant" (the density shadow). Ported from SciPy 1.18.1
+// The pieces of scipy.ndimage that MDATK uses, on 3-D float32 arrays in C order ([z, y, x], shape
+// {nz, ny, nx}), rounded as scipy rounds them: gaussian_filter1d / gaussian_filter with mode
+// "constant" (the molecular surface) or "reflect" (scipy's default: the density fit's low-pass
+// filters), one sigma or one per axis (separable correlation in double precision, each pass stored as
+// float32), uniform_filter1d with mode "constant" (the software renderer's edge anti-aliasing),
+// map_coordinates with order 1 and mode "nearest" (surface normals) or mode "constant" with a cval
+// (mdatk/density.py's sample_map), and affine_transform with order 1 and mode "constant" (the density
+// shadow). Moved here from render/molecule (milestone 6) so that chem's density fit can use it.
+// Ported from SciPy 1.18.1
 // (scipy/ndimage/_filters.py, src/ni_filters.c, src/ni_interpolation.c, src/ni_splines.c; BSD
 // licence, see ndimage.cpp and THIRD_PARTY_NOTICES.md).
 
@@ -13,7 +16,7 @@
 #include <span>
 #include <vector>
 
-namespace mdbridge::render::molecule {
+namespace mdbridge::numerics {
 
 using Shape3 = std::array<std::size_t, 3>;
 
@@ -21,15 +24,25 @@ using Shape3 = std::array<std::size_t, 3>;
 // -radius..radius, normalised by its (numpy pairwise) sum.
 std::vector<double> gaussianKernel1d(double sigma, std::size_t radius);
 
-// gaussian_filter1d(data, sigma, axis, mode="constant", cval, truncate) in place: radius
+// How a filter extends a line beyond its ends (scipy.ndimage's `mode`): "constant" (cval) or
+// "reflect" (d c b a | a b c d | d c b a; the reflection repeats for kernels longer than the line).
+enum class ExtendMode { Constant, Reflect };
+
+// gaussian_filter1d(data, sigma, axis, mode, cval, truncate) in place: radius
 // int(truncate * sigma + 0.5).
 void gaussianFilter1d(std::vector<float>& data, const Shape3& shape, std::size_t axis, double sigma,
-                      double truncate = 4.0, double cval = 0.0);
+                      double truncate = 4.0, double cval = 0.0, ExtendMode mode = ExtendMode::Constant);
 
 // gaussian_filter(data, sigma, mode="constant", cval, truncate) in place: the 1-D filter along
 // axes 0, 1, 2 (none when sigma <= 1e-15).
 void gaussianFilter(std::vector<float>& data, const Shape3& shape, double sigma, double truncate = 4.0,
                     double cval = 0.0);
+
+// gaussian_filter(data, sigma=[s0, s1, s2], mode, cval, truncate) in place: the 1-D filter along each
+// axis whose sigma is above 1e-15, axes in order (MDATK: sigma per axis = a length over the voxel
+// size of that axis, mode "reflect").
+void gaussianFilter(std::vector<float>& data, const Shape3& shape, const std::array<double, 3>& sigma,
+                    ExtendMode mode, double truncate = 4.0, double cval = 0.0);
 
 // uniform_filter1d(line, size, mode="constant", cval) of one line of `length` values `stride` apart:
 // NI_UniformFilter1D's running sum in double, each value stored as float32 into `out` (same
@@ -41,6 +54,18 @@ void uniformFilter1dLine(const float* in, std::size_t stride, std::size_t length
 // `value(i)` gives the array value at flat index i, so the array need not exist (e.g. gradients).
 template <class F>
 float mapCoordinatesLinearNearest(const F& value, const Shape3& shape, double z, double y, double x);
+
+// map_coordinates(data, [[z], [y], [x]], order=1, mode="constant", cval, prefilter=False) at one
+// point, before the float32 rounding of a float32 input: cval when a coordinate is below 0, above
+// length - 1 or NaN along any axis (checked in axis order), else the order-1 interpolation in double
+// precision (NaN data propagate). MDATK's sample_map passes cval = NaN to mark points outside the map.
+double mapCoordinatesLinearConstant(std::span<const float> data, const Shape3& shape, double z, double y, double x,
+                                    double cval = 0.0);
+
+// map_coordinates as above for n points (coordinates [z0, y0, x0, z1, ...]), each result stored as
+// float32 as scipy stores them for a float32 input.
+std::vector<float> mapCoordinatesLinearConstant(std::span<const float> data, const Shape3& shape,
+                                                std::span<const double> zyx, double cval = 0.0);
 
 // affine_transform(data, matrix, offset, output_shape, order=1, mode="constant", cval,
 // prefilter=False) for a 3 x 3 matrix (row-major): output[o] = the order-1 interpolation of data at
@@ -95,4 +120,4 @@ float mapCoordinatesLinearNearest(const F& value, const Shape3& shape, double z,
     return static_cast<float>(t);
 }
 
-}  // namespace mdbridge::render::molecule
+}  // namespace mdbridge::numerics
