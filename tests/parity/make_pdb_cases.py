@@ -7,8 +7,9 @@ into the checkout. The output is reproducible (fixed random seeds). Writes pdb_c
 
   read        read_pdb of PDB text: the structure (header, segments, atoms with xyz, coords(),
               label, trailer, CONECT, MODEL, notes, chain_ids) or the error, and write_pdb of it
-              with CONECT stripped / kept and with SEQRES records (the chains MDATK's hygiene
-              passes, given as data); MDATK's test fixtures, ChimeraX damage, models, ANISOU /
+              with CONECT stripped / kept and with SEQRES records (the chains and three-character
+              names MDATK's hygiene passes, given as data), or the error of writing it
+              ("write_error"); MDATK's test fixtures, ChimeraX damage, models, ANISOU /
               SIGATM / SIGUIJ, MASTER, records after END, CONECT variants, serial and residue
               number wraps, lower-case records, Unicode, line ends, broken fields, random mutations
   files       read_pdb of a file (bytes as hex): strict UTF-8, universal newlines
@@ -18,7 +19,10 @@ into the checkout. The output is reproducible (fixed random seeds). Writes pdb_c
   transform   builder.transform_pdb_text (ANISOU included), or None / the error
   tail        builder._tail, or the error
 
-Floats are float.hex() strings; errors are {"type": class name, "message": str(exc)}.
+Floats are float.hex() strings; errors are {"type": class name, "message": str(exc)}. MDBridge's
+chem improvements are applied (improvements_chem.py, which includes NA-01's names): CH-01 (a residue
+number below -999 is a write error) and CH-07 (SEQRES names have three characters) change what
+write_pdb gives here.
 """
 
 import importlib.util
@@ -41,7 +45,10 @@ from mdatk import annotate, builder  # noqa: E402
 from mdatk import pdbtools as pt  # noqa: E402
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import improvements_chem  # noqa: E402  (CH-01, CH-07 in write_pdb; NA-01's names)
 import improvements_nucleotides  # noqa: E402  (NA-01: the L-DNA names of parse_residue_name)
+
+improvements_chem.apply_mdatk()
 
 spec = importlib.util.spec_from_file_location("mdatk_test_pdbtools",
                                               os.path.join(CHECKOUT, "tests", "test_pdbtools.py"))
@@ -92,11 +99,15 @@ def read_case(text):
         case["error"] = error(exc)
         return case
     case["structure"] = structure_dict(s)
-    case["write"] = pt.write_pdb(s)
+    try:
+        case["write"] = pt.write_pdb(s)
+    except pt.PDBError as exc:  # CH-01
+        case["write_error"] = error(exc)
+        return case
     conect = pt.write_pdb(s, strip_conect=False)
     if conect != case["write"]:
         case["write_conect"] = conect  # else equal to "write"
-    case["seqres_chains"] = [[c, [r.name for r in rs]] for c, rs in pt._sequence_chains(s).items()]
+    case["seqres_chains"] = [[c, names] for c, names in pt._mdbridge_seqres_names(s)[0].items()]  # CH-07
     case["write_seqres"] = pt.write_pdb(s, strip_conect=False, seqres=True)
     return case
 

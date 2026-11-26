@@ -137,6 +137,10 @@ TEST(Pdb, ReadAndWrite) {
         }
         const io::PdbStructure s = io::readPdbText(input);
         expectStructure(s, *c.find("structure"), context);
+        if (const core::Value* error = c.find("write_error")) {  // CH-01
+            expectError([&] { io::writePdb(s); }, *error, context);
+            continue;
+        }
         EXPECT_EQ(io::writePdb(s), text(c, "write")) << context;
         const core::Value* conect = c.find("write_conect");
         EXPECT_EQ(io::writePdb(s, false), conect ? str(*conect) : text(c, "write")) << context;
@@ -146,6 +150,25 @@ TEST(Pdb, ReadAndWrite) {
         }
         EXPECT_EQ(io::writePdb(s, false, chains), text(c, "write_seqres")) << context;
     }
+}
+
+// CH-01: numbers below -999 do not fit columns 23-26 (MDATK wrote "A-1002" and shifted the line);
+// CH-07: SEQRES names have three characters (chem::seqresNames chooses them)
+TEST(Pdb, WriteRefusesWhatDoesNotFitTheColumns) {
+    io::PdbStructure s = io::readPdbText(
+        "ATOM      1  P     G A-999       1.000   2.000   3.000  1.00  0.00           P\n");
+    EXPECT_NE(io::writePdb(s).find("G A-999"), std::string::npos);
+    s.segments[0][0].resseq = -1002;
+    try {
+        io::writePdb(s);
+        ADD_FAILURE() << "no error";
+    } catch (const io::PdbError& e) {
+        EXPECT_STREQ(e.what(), "residue number -1002 (A) does not fit the PDB columns (-999 to 9999)");
+    }
+    s.segments[0][0].resseq = 12345;
+    EXPECT_NE(io::writePdb(s).find("G A2345"), std::string::npos);  // MDATK's wrap
+    EXPECT_EQ(io::seqresLines({{"A", {"G", "0DC"}}}), std::vector<std::string>{"SEQRES   1 A    2    G 0DC"});
+    EXPECT_THROW(io::seqresLines({{"A", {"G", "LDC3"}}}), io::PdbError);
 }
 
 TEST(Pdb, ReadFile) {

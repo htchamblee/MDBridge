@@ -311,7 +311,10 @@ kept (`write_conect`, when it differs) and with SEQRES records of `seqres_chains
 `read_pdb` of files (bytes as hex: line ends, BOM, invalid UTF-8); `residue_names` —
 `parse_residue_name` of every name of up to three characters over an alphabet; `insert` —
 `annotate._insert_records`; `transform` — `builder.transform_pdb_text` (rotations, translations,
-ANISOU, line ends, limits); `tail` — `builder._tail`. Floats are `float.hex()` strings.
+ANISOU, line ends, limits); `tail` — `builder._tail`. Floats are `float.hex()` strings. MDATK runs
+with MDBridge's chem improvements (`improvements_chem.py`): CH-01 makes a residue number below -999
+a write error (`write_error`) and names it when a line MDATK wrote that way is read; CH-07 gives
+`seqres_chains` the three-character SEQRES names of `chem::seqresNames`.
 
 `io/pdb/export/` holds the PDB files MDATK's frame export writes (`mdatk.io.pdb_export.export_frames`
 through MDAnalysis 2.11.0's PDBWriter), for `src/io/pdb_export.cpp` (`tests/io/test_pdb_export.cpp`):
@@ -566,7 +569,7 @@ docstring:
 
 | File | Generator | Content |
 |---|---|---|
-| `pdbtools_cases.json` | `make_pdbtools_cases.py` (pytest: MDATK's `tests/test_pdbtools.py` fixtures) | inputs; `scheme_name` of every base x hand x terminal x scheme; `chiral_volume` / `sugar_chirality`; `parse_ranges`; each PDB-tools function alone on the inputs (notes, residues, `write_pdb` where atoms or records change); `clean` over MDATK's test calls and an option grid |
+| `pdbtools_cases.json` | `make_pdbtools_cases.py` (pytest: MDATK's `tests/test_pdbtools.py` fixtures) | inputs; `scheme_name` of every base x hand x terminal x scheme; `chiral_volume` / `sugar_chirality`; `parse_ranges`; each PDB-tools function alone on the inputs (notes, residues, `write_pdb` where atoms or records change); `clean` over MDATK's test calls and an option grid. Read by `tests/chem/test_pdbtools.cpp` (every case byte for byte) |
 | `annotate_cases.json` | `make_annotate_cases.py` | built helices and crafted files; `annotate` with every option and engine (records, notes, text) |
 | `dict_cases.json`, `dictionaries/*.cif` | `make_dict_cases.py` (pytest: `tests/test_dictionaries.py`'s synthetic dictionaries) | `COMPONENTS`; `parse_smiles` (test strings, the components, a fuzzed set); `match_graph`; `check_smiles` / `identify_smiles`; `finish_dictionary` of synthetic acedrg / eLBOW dictionaries with every option; two dictionaries for `cli_parity.py`'s `dict finish` cases |
 | `builder_cases.json` | `make_builder_cases.py` | `check_helix` and the sequence functions; the A-form templates; Watson-Crick `build_helix` over its options; `mutate` and `parse_mutations` |

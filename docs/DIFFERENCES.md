@@ -2863,26 +2863,39 @@ cases of `cli_parity.py`.
   -1002 (A) does not fit the PDB columns (-999 to 9999)" before anything is written (`pdb clean
   --renumber --start=-2000`, `build helix --start=-1002,1`); numbers above 9999 keep MDATK's wrap.
   Cases: `clean` input 16, `helices` `start -1002,1`, `pdb_clean_renumber_below_columns`,
-  `build_helix_start_below_columns`.
+  `build_helix_start_below_columns`. The check is in the writer (`io::writePdb`, so every path that
+  writes PDB text has it). Reading a line MDATK wrote that way (`A-1234`, the coordinates one column
+  to the right) gives "line 1: residue number -1234 does not fit the PDB columns (-999 to 9999); the
+  later columns are shifted" instead of MDATK's "line 1: unreadable coordinates" (only when the
+  shifted columns hold coordinates). *Tested:* `tests/io/test_pdb.cpp` (`pdb_cases.json`, now
+  generated with improvements_chem; `WriteRefusesWhatDoesNotFitTheColumns`), `tests/chem/
+  test_pdbtools.cpp`, `test_renumber_residues` in `test_pdbtools_mdatk.cpp`.
 - **CH-02 Wrapped numbers of built helices are reported** (not fixed). `build helix --start 9998,1`
   wrapped to `B   0` silently; the build notes end with the renumbering's "WARNING: residue numbers
   above 9999 wrap in the PDB columns". Cases: `helices` `start 9998,1`, `build_helix_start_wrap`.
 - **CH-03 `--combine-into` takes one character** (not fixed). `XY` was accepted, the notes said chain
   XY and the file had X; now `PDBError("chain ids must be single characters")`, as `restore_chains`.
+  *Tested:* `pdbtools_cases.json` (`combine_chains` into `XY`, `clean` test call),
+  `test_split_and_combine_chains`.
 - **CH-04 CONECT records that cannot be remapped are reported** (not fixed). With repeated input
   serials `--keep-conect` dropped every CONECT record while the note said they were kept; the note is
   "WARNING: dropped N CONECT records: the input's atom serials repeat, so they cannot be remapped".
+  *Tested:* `clean` of input 9, `test_conect_strip_and_remap`.
 - **CH-05 2'-deoxy residues with RNA names are DNA** (follows MDATK 0.1.0, `pdbtools._nucleotide`).
   CHARMM's ADE / CYT / GUA and pre-2007 A / C / G on a sugar with C2' and no O2' were renamed as RNA;
-  they are DNA and keep their names.
+  they are DNA and keep their names. *Tested:* inputs 12 and 13 of `pdbtools_cases.json`.
 - **CH-06 A chain end bonded to an unknown residue is no end** (follows MDATK 0.1.0, `_terminals` /
   `_bonded_on`, without its LINK records). A nucleotide whose O3' / P is within 2.0 Å of a PSU or
   5'-GTP beside it in the segment keeps its internal name and gets no 5'-phosphate warning.
+  *Tested:* input 11 of `pdbtools_cases.json` (`chem::segmentTerminals`).
 - **CH-07 SEQRES names have three characters** (follows MDATK 0.0.17, `_seqres_names`, its notes).
   Longer nucleotide names (LDA5 ...) and MDATK's Amber-style L-DNA LDx are written as their CCD
   component (0DA ...), other long names as UNK with a WARNING. The M2 writer `io::seqresLines` and
   io/pdb/pdb_cases.json still record 0.0.4.1's four-character SEQRES of the crafted `LONG` residue:
-  W1-A changes both (make_pdb_cases.py then applies improvements_chem).
+  W1-A changed both: `chem::seqresNames` chooses the names and `io::seqresLines` refuses a name of
+  more than three characters (`PdbError`), and make_pdb_cases.py applies improvements_chem, so
+  `seqres_chains` holds the three-character names. *Tested:* inputs 14 and 15 of
+  `pdbtools_cases.json`, `tests/io/test_pdb.cpp`.
 - **CH-08 Mutation specs without a chain read the whole number** (follows MDATK 0.1.0,
   `_MUTATION_RE`): `15G` is residue 15 of the blank chain, not residue 5 of chain 1.
 - **CH-09 Mutated bases get hydrogens when the old base had them** (owner decision D11; beyond 0.1.1).
@@ -2908,13 +2921,37 @@ cases of `cli_parity.py`.
 - **CH-13 Missing input files are named** (not fixed). A name that is not a file was parsed as PDB text
   ("no ATOM/HETATM records found ..."); the commands report "[Errno 2] No such file or directory:
   'x.pdb'" (a folder: "[Errno 21] Is a directory") for their inputs and `--chain-reference`; PDB text
-  given to the library is unchanged.
+  given to the library is unchanged. In C++ an input is `chem::PdbSource::text` or `::file` (a file
+  that cannot be opened throws `std::filesystem::filesystem_error`, which the commands report as
+  above); text is never taken for a path, so `clean` of text without a title names its FASTA
+  entries `structure` (MDATK used the text as a file name when it had no newline). *Tested:*
+  `test_models_header_trailer_and_anisou`, `test_clean_end_to_end_from_path`.
 - **CH-14 No Barnaba** (owner decision D9; DIFFERENCES "No Barnaba"). `pdb annotate`'s `auto` is the
   builtin engine; `--engine barnaba` runs it with "WARNING: Barnaba is not available in MDBridge; using
   the builtin detector"; the stacking note has no `pip install barnaba` hint; no STACK records, no
   barnaba citation.
 - **CH-15 Reversed residue ranges are errors** (not fixed). `A:4-1` matched nothing ("the L ranges
-  match no nucleotide"); now `PDBError("residue range A:4-1 ends before it starts")`.
+  match no nucleotide"); now `PDBError("residue range A:4-1 ends before it starts")`. A residue
+  number beyond 64 bits in a range (Python reads any size) is "cannot read residue range ...".
+  *Tested:* `ranges` of `pdbtools_cases.json`, `test_parse_ranges`.
+- **W1-A: the PDB tools in C++** (`src/chem/pdbtools.cpp`, `chem/pdbtools.hpp`; milestone 6 W1-A).
+  Every function of MDATK's `pdbtools.py` (section 1.1 of the plan) with CH-01, CH-03 ... CH-07,
+  CH-13 and CH-15; byte for byte with every case of `pdbtools_cases.json`
+  (`tests/chem/test_pdbtools.cpp`) and 31 counterparts of MDATK's `tests/test_pdbtools.py`
+  (`test_pdbtools_mdatk.cpp`; the embedded-copy test comes with milestone 7, the command-line test's
+  commands with W2-C). The generator's `clean` cases with a chain reference now record which input
+  was the reference (one case named input 2 for input 0).
+- **W1-B: the base-pair annotation in C++** (`src/chem/annotate.cpp`, `chem/annotate.hpp`; milestone
+  6 W1-B). MDATK's `annotate.py` (section 1.2 of the plan) on io's PDB model with the builtin detector
+  the `basepairs` analysis uses (`chem::PairDetector`, unchanged; no code moved), D13 and CH-14 (D9):
+  `auto` and `barnaba` are the builtin engine (`engine` is always "builtin"), `barnaba` adds
+  "WARNING: Barnaba is not available in MDBridge; using the builtin detector" right after the read
+  notes, before the engine's notes; no STACK records; the stacking note without the pip hint. A file
+  is read through `PdbSource::file` (CH-13; its text through the new `io::readPdbFileText`, the same
+  strict UTF-8 as `io::readPdbFile`). Byte for byte with every case of `annotate_cases.json` (216
+  option cases and 5 Structure cases, `tests/chem/test_annotate.cpp`) and 8 counterparts of MDATK's
+  `tests/test_annotate.py` (the Barnaba tests check the builtin engine with the warning; the
+  command-line test checks the library call, the command and its step log come with W2-C).
 - **D13 (milestone 6): the program named in written records** (as CMD-08): `REMARK 950 MDBridge
   BASE-PAIR ANNOTATION` and `REMARK 951 MDBridge IDEAL ...`; every other byte as MDATK writes it.
   Messages that name the program say `mdbridge` ('mdbridge pdb clean', 'mdbridge density fit --save').

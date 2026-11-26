@@ -10,7 +10,9 @@ child of cli_parity.py calls both). Each patch is listed with its id:
   CH-01  residue numbers below -999 do not fit columns 23-26: PDBError "residue number -1002 (A)
          does not fit the PDB columns (-999 to 9999)" when the record is written (pdbtools
          _id_columns, so `pdb clean`, `build helix`, `build mutate` alike); numbers above 9999 keep
-         MDATK's wrap
+         MDATK's wrap. Reading a line MDATK wrote that way ("A-1234" and the coordinates one column
+         to the right) says so: "line 1: residue number -1234 does not fit the PDB columns (-999 to
+         9999); the later columns are shifted" instead of "line 1: unreadable coordinates"
   CH-02  build_helix notes "WARNING: residue numbers above 9999 wrap in the PDB columns" (the
          renumbering's warning) when a strand runs past 9999; appended after the build notes
   CH-03  combine_chains(into=...) with more than one character: PDBError("chain ids must be single
@@ -271,6 +273,21 @@ def _patch_pdbtools():
         return id_columns(res)
 
     pt._id_columns = _id_columns
+
+    parse_atom = pt._parse_atom
+
+    def _parse_atom(line, lineno):  # CH-01 when reading: what MDATK wrote for such numbers
+        try:
+            return parse_atom(line, lineno)
+        except pt.PDBError as exc:
+            padded = line.ljust(80)
+            if (str(exc) == f"line {lineno}: unreadable coordinates" and re.fullmatch(r"-[0-9]{4}", padded[22:27])
+                    and pt._coords_ok(padded[28:77])):
+                raise pt.PDBError(f"line {lineno}: residue number {int(padded[22:27])} does not fit the PDB columns "
+                                  "(-999 to 9999); the later columns are shifted") from None
+            raise
+
+    pt._parse_atom = _parse_atom
 
     combine = pt.combine_chains
 
