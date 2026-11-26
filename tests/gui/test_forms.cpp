@@ -70,7 +70,9 @@ private:
 };
 
 core::DateTime savedStamp(const fs::path& path) {
-    const core::Value* saved = core::readProject(path).header.find("saved");
+    // the file must outlive `saved`, a pointer into its header (a temporary's would dangle)
+    const core::ProjectFile file = core::readProject(path);
+    const core::Value* saved = file.header.find("saved");
     if (saved && saved->get<core::DateTime>()) {
         return *saved->get<core::DateTime>();
     }
