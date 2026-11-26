@@ -147,6 +147,9 @@ MACHINE_DEPENDENT = {
     "tests/data/render/molecule_geometry/styles.json",
     "tests/data/render/molecule_geometry/scenes.json",
     "tests/data/render/molecule_geometry/ndimage.json",
+    # make_numerics_cases.py: least_squares' and lsmr's BLAS dot products and LAPACK's SVD / QR /
+    # eigenvalues (np.roots), pinned like make_analysis_cases.py; the FFT and Powell parts are exact
+    "tests/data/numerics/numerics_cases.json",
 }
 # The JSON records of the render generators (make_figure_cases.py, make_chart_cases.py,
 # make_molecule_cases.py): view rotations and the trace's projection go through BLAS products
@@ -314,6 +317,8 @@ STEPS = [
     Step("cli", "tests/parity/cli_parity.py", lambda ctx: ["--mdatk", M(ctx), "--write", d(ctx, "cli/cli_cases.json")],
          [f"{DATA}/cli/cli_cases.json"]),
     case_step("rigid", "make_rigid_cases.py", "rigid"),
+    # milestone 6: SciPy's FFT, ndimage, Powell, least_squares and cKDTree pairs (no MDATK)
+    Step("numerics", "tests/parity/make_numerics_cases.py", lambda ctx: [d(ctx, "numerics")], [f"{DATA}/numerics"]),
     Step("distances", "tests/parity/make_distance_cases.py", lambda ctx: [M(ctx), d(ctx, "analysis")],
          [f"{DATA}/analysis/distance_cases.json"]),
     case_step("citations", "make_citation_cases.py", "citations"),

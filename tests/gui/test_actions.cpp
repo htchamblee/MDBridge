@@ -62,6 +62,7 @@
 #include "mdbridge/core/project_document.hpp"
 #include "mdbridge/core/rigid_transform.hpp"
 #include "mdbridge/io/mrc.hpp"
+#include "mdbridge/numerics/density.hpp"
 #include "mdbridge/render/example.hpp"
 #include "mdbridge/render/panels/structure.hpp"
 #include "mdbridge/render/shading.hpp"
@@ -565,7 +566,7 @@ void ActionTests::centreOnModel() {
     // rotation: identity; translation: density centre - model centre
     for (int k = 0; k < 9; ++k) QCOMPARE(d.transform[static_cast<std::size_t>(k)], k % 4 == 0 ? 1.0 : 0.0);
     const io::DensityMap read = io::readMap(mapFile);
-    const core::Vec3 c = render::panels::densityCentroid(read, render::panels::finiteMapLevel(read, d.level));
+    const core::Vec3 c = numerics::densityCentroid(read, render::panels::finiteMapLevel(read, d.level));
     QVERIFY(std::abs(c[0] - 40.0) < 1e-6 && std::abs(c[1] + 20.0) < 1e-6 && std::abs(c[2] - 15.0) < 1e-6);
     // model centre + translation = density centre: the anchor's mean is near the model centre
     QVERIFY(std::isfinite(d.transform[9]) && std::isfinite(d.transform[10]) && std::isfinite(d.transform[11]));

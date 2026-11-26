@@ -873,7 +873,7 @@ section 3):
 | `styles.json` | one case per line: a style (cartoon, ribbon, tube, licorice, vdw, surf, trace) on a system, frame, residue mask, size, sugars, spline samples and backbone atom: `drawn()` and the `DrawList` (meshes, spheres, sticks) |
 | `surface.json` | `density_grid` (shape, origin, the float32 values for small grids), `surface_nets` and `gaussian_surface` (with each vertex's nearest atom and its distance, for ties) of small point sets and demo residues |
 | `scenes.json` | `MoleculeScene` with `residue_masks`, `fill_rest` ("trace" / "hide") and `frame(xyz, residue_rgb)`: the specs and masks, `drawn()`, per item its kind, owners, atoms / roles, radii, colours and opacity, and `depth_range` |
-| `ndimage.json` | scipy's `gaussian_filter1d` / `gaussian_filter` (mode "constant") and `map_coordinates` (order 1, mode "nearest") on float32 arrays, for the port in `src/render/molecule/ndimage.cpp` |
+| `ndimage.json` | scipy's `gaussian_filter1d` / `gaussian_filter` (mode "constant") and `map_coordinates` (order 1, mode "nearest") on float32 arrays, for the port in `src/numerics/ndimage.cpp` |
 
 Floats are `repr()` (exact). numpy's and OpenBLAS' kernels are pinned as in
 `make_analysis_cases.py` (the spline weights use a small matmul, the Gaussian kernel `np.exp`);
@@ -1078,6 +1078,25 @@ runs every case twice in child processes, as MDATK and with `improvements_gui.py
 python -I -B tests/parity/make_gui_cases.py /tmp/mdatk tests/data
 ```
 
+## numerics: SciPy's numerics (milestone 6, W0-C)
+
+`tests/parity/make_numerics_cases.py` runs SciPy 1.18.1 and numpy 2.5.5 alone (no MDATK), for
+`src/numerics` (`tests/numerics/test_fft.cpp`, `test_ndimage.cpp`, `test_optimize.cpp`,
+`test_pairs.cpp`; docs/DIFFERENCES.md "Numerics"):
+
+| File | Content |
+|---|---|
+| `numerics_cases.json` | `fft`: SHA-256 of `rfftn` / `irfftn` of formula arrays (and of MDATK's correlation product and a raw half spectrum), every value for small shapes (C++: bit for bit, any thread count); `next_fast_len`; `gaussian` (per-axis sigma, modes "reflect" / "constant") and `map_coords` (order 1, mode "constant", cval 0 / 1.5 / NaN) of float32 arrays; `powell` and `brent` runs of named objectives with every iterate (C++: within 1e-9; they agree bit for bit); `least_squares` runs (dense and sparse, x_scale, diff_step, max_nfev, LSMR options) with every iterate and `ulp_spread`, SciPy's own movement when its residuals move by an ulp (C++: within 1e-9 or four times that); `chain_sparsity`; `permutations` (`RandomState(0).permutation`) and `groups` (`group_columns`); `lsmr`; `roots` (np.roots' real roots); `pairs` (`cKDTree.query_pairs`, sorted) |
+
+The arrays come from `value(i) = ((i * 2654435761) mod 2^32) / 2^32 - 0.5` (exact), the objectives
+from `math` and fixed-order arithmetic, so the C++ test rebuilds them. `least_squares`, `lsmr` and
+`roots` go through BLAS and LAPACK: the generator pins their kernels as `make_analysis_cases.py` does,
+and `regenerate_all.py` compares the file as JSON within a relative 1e-12 where its bytes differ:
+
+```bash
+/opt/mdbridge-venv/bin/python -I -B tests/parity/make_numerics_cases.py tests/data/numerics
+```
+
 ## Checking that the data is reproducible
 
 `tests/parity/regenerate_all.py` runs every generator above (and `tools/gen_*.py`) in this order
@@ -1114,7 +1133,8 @@ other kernels. The JSON files under `render/figures/`, `render/charts/` and `ren
 compared the same way (section "Rendering").
 
 other kernels. Likewise `render/molecule_geometry/styles.json`, `scenes.json` and `ndimage.json`
-(pinned kernels; a small matmul and `np.exp`).
+(pinned kernels; a small matmul and `np.exp`), and `numerics/numerics_cases.json` (least_squares'
+BLAS sums and LAPACK's SVD, QR and eigenvalues).
 The random rotations of `io/pdb/pdb_cases.json` are written out in `make_pdb_cases.py` for the same
 reason. `--list` shows the steps; `--only STEP ...` reruns some of them.
 

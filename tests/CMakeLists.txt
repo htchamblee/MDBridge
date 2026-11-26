@@ -63,6 +63,26 @@ mdbridge_target_warnings(mdbridge_chem_tests)
 gtest_discover_tests(mdbridge_chem_tests DISCOVERY_MODE PRE_TEST)
 
 
+# numerics: the SciPy pieces of src/numerics (FFT, ndimage, Powell, least_squares, pairs) against
+# SciPy 1.18.1 (data/numerics, tests/parity/make_numerics_cases.py)
+add_executable(mdbridge_numerics_tests
+    numerics/numerics_cases.hpp
+    numerics/test_fft.cpp
+    numerics/test_ndimage.cpp
+    numerics/test_optimize.cpp
+    numerics/test_pairs.cpp)
+target_include_directories(mdbridge_numerics_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/core")
+target_link_libraries(mdbridge_numerics_tests PRIVATE mdbridge::numerics GTest::gtest_main)
+target_compile_definitions(mdbridge_numerics_tests PRIVATE MDBRIDGE_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data")
+mdbridge_target_warnings(mdbridge_numerics_tests)
+# the objectives round as the generator's Python does: no contraction into fused multiply-adds
+if(MSVC)
+    target_compile_options(mdbridge_numerics_tests PRIVATE /fp:precise)
+else()
+    target_compile_options(mdbridge_numerics_tests PRIVATE -ffp-contract=off)
+endif()
+gtest_discover_tests(mdbridge_numerics_tests DISCOVERY_MODE PRE_TEST)
+
 # analysis: the framework (registry, instance ids, labels, cache keys, runner, common helpers) as
 # MDATK computes it (data/analysis, tests/parity/make_analysis_framework_cases.py), the analyses
 # against MDATK's runs (tests/parity/make_analysis_cases.py), MDATK's spatial helpers
@@ -434,7 +454,7 @@ if(MDBRIDGE_BUILD_APP)
     # the video parts), screenshots of the result dialogs. Qt Test, offscreen.
     add_executable(mdbridge_gui_actions_tests gui/test_actions.cpp gui/gui_harness.cpp gui/gui_harness.hpp)
     set_target_properties(mdbridge_gui_actions_tests PROPERTIES AUTOMOC ON)
-    target_link_libraries(mdbridge_gui_actions_tests PRIVATE mdbridge_app mdbridge::commands mdbridge::io mdbridge::video
+    target_link_libraries(mdbridge_gui_actions_tests PRIVATE mdbridge_app mdbridge::commands mdbridge::io mdbridge::numerics mdbridge::video
                           mdbridge::render_panels mdbridge::render_panels_vulkan Qt6::Test)
     target_compile_definitions(mdbridge_gui_actions_tests PRIVATE MDBRIDGE_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data"
                                MDBRIDGE_GUI_SCREENSHOT_DIR="${CMAKE_BINARY_DIR}/gui-screenshots")

@@ -18,6 +18,11 @@ and checked against its SHA-512 (`cmake/Dependencies.cmake`): toml++, CLI11, the
 zlib and GoogleTest. Nothing is installed on the system. The Vulkan *loader* is not needed to build: the
 program loads the user's at run time.
 
+One dependency is vendored instead: the FFT that SciPy 1.18.1 runs (ducc0 0.40.0, BSD-3-Clause),
+copied unmodified from SciPy's source release into `third_party/ducc0` by `tools/vendor_ducc0.py`
+and compiled with the numerics library. CMake checks every file against
+`third_party/ducc0/SHA256SUMS` when it configures, so an edited copy stops the build.
+
 ### Getting Qt
 
 Qt is not fetched (building it per checkout would take an hour). Any of:

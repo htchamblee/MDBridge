@@ -24,7 +24,7 @@
 #include "mdbridge/core/project.hpp"
 #include "mdbridge/core/value.hpp"
 #include "mdbridge/render/molecule/geometry.hpp"
-#include "mdbridge/render/molecule/ndimage.hpp"
+#include "mdbridge/numerics/ndimage.hpp"
 #include "mdbridge/render/molecule/scene.hpp"
 #include "mdbridge/render/molecule/surface.hpp"
 #include "mdbridge/render/molecule/topology.hpp"
@@ -853,15 +853,15 @@ TEST(MoleculeGeometryParity, NdimageMatchesScipy) {
         const double sigma = number(at(c, "sigma"));
         const double truncate = number(at(c, "truncate"));
         const auto radius = static_cast<std::size_t>(truncate * sigma + 0.5);
-        expectDoubles(gaussianKernel1d(sigma, radius), at(c, "kernel"), "kernel", 1e-16);
-        gaussianFilter1d(x, {1, 1, x.size()}, 2, sigma, truncate);
+        expectDoubles(numerics::gaussianKernel1d(sigma, radius), at(c, "kernel"), "kernel", 1e-16);
+        numerics::gaussianFilter1d(x, {1, 1, x.size()}, 2, sigma, truncate);
         expectDoubles(std::vector<double>(x.begin(), x.end()), at(c, "output"), "filter1d", 0.0);
     }
     for (const Value& c : list(at(data, "filter3d"))) {
         const std::vector<std::int64_t> s = ints(at(c, "shape"));
         const std::vector<double> in = doubles(at(c, "input"));
         std::vector<float> x = toFloat32(in);
-        gaussianFilter(x, {static_cast<std::size_t>(s[0]), static_cast<std::size_t>(s[1]), static_cast<std::size_t>(s[2])},
+        numerics::gaussianFilter(x, {static_cast<std::size_t>(s[0]), static_cast<std::size_t>(s[1]), static_cast<std::size_t>(s[2])},
                        number(at(c, "sigma")), 3.0);
         expectDoubles(std::vector<double>(x.begin(), x.end()), at(c, "output"), "filter3d", 0.0);
     }
@@ -871,9 +871,9 @@ TEST(MoleculeGeometryParity, NdimageMatchesScipy) {
         const std::vector<float> x = toFloat32(in);
         const std::vector<Vec3> pts = vec3s(at(c, "points"));
         std::vector<double> got;
-        const Shape3 shape{static_cast<std::size_t>(s[0]), static_cast<std::size_t>(s[1]), static_cast<std::size_t>(s[2])};
+        const numerics::Shape3 shape{static_cast<std::size_t>(s[0]), static_cast<std::size_t>(s[1]), static_cast<std::size_t>(s[2])};
         for (const Vec3& p : pts) {
-            got.push_back(mapCoordinatesLinearNearest([&](std::size_t i) { return x[i]; }, shape, p[0], p[1], p[2]));
+            got.push_back(numerics::mapCoordinatesLinearNearest([&](std::size_t i) { return x[i]; }, shape, p[0], p[1], p[2]));
         }
         expectDoubles(got, at(c, "output"), "map_coordinates", 0.0);
     }

@@ -36,6 +36,7 @@
 #include "mdbridge/core/selections.hpp"
 #include "mdbridge/io/loader.hpp"
 #include "mdbridge/io/mrc.hpp"
+#include "mdbridge/numerics/density.hpp"
 #include "mdbridge/render/example.hpp"
 #include "mdbridge/render/panels/build.hpp"
 #include "mdbridge/render/panels/checks.hpp"
@@ -462,7 +463,8 @@ void WindowActions::centreOnModel() {
         m_window.showError(QStringLiteral("Cannot read the density map"), qs(pythonErrorText(e)));
         return;
     }
-    const core::Vec3 density = render::panels::densityCentroid(*map, render::panels::finiteMapLevel(*map, collected->density.level));
+    const core::Vec3 density =
+        numerics::densityCentroid(*map, render::panels::finiteMapLevel(*map, collected->density.level));
     core::RigidTransform t;
     t.translation = {density[0] - (*centre)[0], density[1] - (*centre)[1], density[2] - (*centre)[2]};
     const std::vector<double> transform = t.toList();

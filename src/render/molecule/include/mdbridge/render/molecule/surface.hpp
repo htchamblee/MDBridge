@@ -20,7 +20,7 @@
 #include <vector>
 
 #include "mdbridge/render/molecule/geometry.hpp"
-#include "mdbridge/render/molecule/ndimage.hpp"
+#include "mdbridge/numerics/ndimage.hpp"
 
 namespace mdbridge::render::molecule {
 
@@ -29,7 +29,7 @@ inline constexpr double kMaxSurfaceGridPoints = 67108864.0;  // 2^26 (about 0.25
 // Summed unit Gaussians on a grid [z, y, x] with `spacing` (Å).
 struct DensityGrid {
     std::vector<float> values;  // C order, shape {nz, ny, nx}
-    Shape3 shape{};
+    numerics::Shape3 shape{};
     Vec3 origin{};  // Å, (x, y, z) of grid point [0, 0, 0]
     double spacing = 1.0;
 };

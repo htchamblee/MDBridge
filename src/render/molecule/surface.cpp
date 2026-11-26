@@ -105,7 +105,7 @@ DensityGrid densityGrid(std::span<const Vec3> xyz, double spacing, double sigma,
     acc.clear();
     acc.shrink_to_fit();
     const double s = sigma / h;
-    gaussianFilter(grid.values, grid.shape, s, 3.0, 0.0);
+    numerics::gaussianFilter(grid.values, grid.shape, s, 3.0, 0.0);
     const auto norm = static_cast<float>(std::pow(2 * std::numbers::pi * s * s, 1.5));
     for (float& v : grid.values) {
         v *= norm;
@@ -260,8 +260,8 @@ GaussianSurface gaussianSurface(std::span<const Vec3> xyz, double spacing, doubl
         float g[3];
         for (std::size_t k = 0; k < 3; ++k) {  // components x, y, z = gradients along axes 2, 1, 0
             const std::size_t axis = 2 - k;
-            g[k] = -mapCoordinatesLinearNearest([&](std::size_t i) { return gradient(axis, i); }, grid.shape, c[0],
-                                                c[1], c[2]);
+            g[k] = -numerics::mapCoordinatesLinearNearest([&](std::size_t i) { return gradient(axis, i); },
+                                                          grid.shape, c[0], c[1], c[2]);
         }
         const float len = std::max(std::sqrt((g[0] * g[0] + g[1] * g[1]) + g[2] * g[2]), floor_norm);
         out.normals.push_back({static_cast<double>(g[0] / len), static_cast<double>(g[1] / len),
