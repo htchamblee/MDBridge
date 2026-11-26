@@ -221,8 +221,9 @@ struct TickStyle {
     bool tick1 = true, tick2 = false, label1 = true, label2 = false;
     Rgba color{0.0, 0.0, 0.0, 1.0};
     Rgba labelColor{0.0, 0.0, 0.0, 1.0};
-    double labelSize = 10.0;  // points
-    double length = 3.5;      // points
+    double labelSize = 10.0;                             // points
+    std::vector<std::string> labelFamily{"sans-serif"};  // the tick labels' font family list
+    double length = 3.5;                                 // points
     double width = 0.8;
     double pad = 3.5;  // between tick and label (xtick.major.pad); the label sits length + pad away
     double rotation = 0.0;

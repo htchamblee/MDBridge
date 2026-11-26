@@ -338,6 +338,8 @@ void residueTicks(Axes& a, AxisDirection d, const std::vector<std::string>& labe
     }
     if (d == AxisDirection::X) a.setXTicks(std::move(locs), std::move(names));
     else a.setYTicks(std::move(locs), std::move(names));
+    // residue labels (one-letter code and number) in the sequence font, IBM Plex Mono (FONT-03)
+    (d == AxisDirection::X ? a.xaxis : a.yaxis).ticks.labelFamily = {"monospace"};
 }
 
 // cb.outline.set_edgecolor(grid); cb.ax.tick_params(colors=muted, labelcolor=ink2, labelsize=0.75 x font)

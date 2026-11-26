@@ -15,8 +15,8 @@ renamed (OFL condition 3).
 | `IBMPlexSerif-Italic.ttf` | figures, interface | `@ibm/plex-serif@2.0.0` | `ibm-plex-serif.zip` | same | `d28aa63cf618439712d6b459c5649af1d6d789cb911994f2357f1ce44128f163` |
 | `IBMPlexSerif-BoldItalic.ttf` | figures, interface | `@ibm/plex-serif@2.0.0` | `ibm-plex-serif.zip` | same | `e33c9d0a692bb26c9c1ece4a35fd2a351317f5a60009d0e9945ae30d0297bf42` |
 | `IBMPlexMath-Regular.ttf` | fallback for missing glyphs (figures and interface) | `@ibm/plex-math@1.1.0` | `ibm-plex-math.zip` | `ibm-plex-math/fonts/complete/ttf/` | `10d07a23cb322725f83ca51748a4c7a61cf14caf2c4d880d793c65d3a1402533` |
-| `IBMPlexMono-Regular.ttf` | interface fixed-width text (logs, multi-line fields) | `@ibm/plex-mono@2.5.0` | `ibm-plex-mono.zip` | `ibm-plex-mono/fonts/complete/ttf/` | `7c6fbddca4b700be918f5f6183d9bd4464fa427fe435f0b480d77fe2bb8c5a43` |
-| `IBMPlexMono-Bold.ttf` | interface fixed-width text | `@ibm/plex-mono@2.5.0` | `ibm-plex-mono.zip` | same | `74e5eedcfa4596497d34e19023cabdabd3a8c852b903007a5654a59591a72ffb` |
+| `IBMPlexMono-Regular.ttf` | sequence text in figures; interface fixed-width text (logs, multi-line fields) | `@ibm/plex-mono@2.5.0` | `ibm-plex-mono.zip` | `ibm-plex-mono/fonts/complete/ttf/` | `7c6fbddca4b700be918f5f6183d9bd4464fa427fe435f0b480d77fe2bb8c5a43` |
+| `IBMPlexMono-Bold.ttf` | sequence letters in figures (bold); interface fixed-width text | `@ibm/plex-mono@2.5.0` | `ibm-plex-mono.zip` | same | `74e5eedcfa4596497d34e19023cabdabd3a8c852b903007a5654a59591a72ffb` |
 
 The release assets (downloaded 2026-11-26):
 
@@ -44,11 +44,11 @@ files).
   is in Plex Serif itself (checked over all non-ASCII characters in `src/`, the text cases'
   strings and MDATK's figure labels; `tests/render/test_text.cpp`). No character was found that
   neither font has.
-- **IBM Plex Mono** (Regular, Bold): fixed-width text needs a monospace font (the log view's
-  aligned columns, TOML and command fields); Plex Mono has the same unambiguous I / l / 1.
-  Figures do not use it: MDATK's "monospace" sequence letters are single centred letters, drawn in
-  Plex Serif like the rest (docs/DIFFERENCES.md FONT-01). Plex Mono lacks Greek (ε, σ appear in
-  some labels, never in fixed-width text); Plex Math is its fallback too.
+- **IBM Plex Mono** (Regular, Bold): sequence text (the sequence and secondary-structure panels'
+  letters, residue tick labels; docs/DIFFERENCES.md FONT-03) and the interface's fixed-width text
+  (the log view's aligned columns, TOML and command fields); Plex Mono has the same unambiguous
+  I / l / 1. It lacks Greek (ε, σ appear in some labels and log lines); Plex Math is its fallback
+  too.
 
 DejaVu (the files Matplotlib 3.11.2 ships) was bundled until this change and is gone: nothing needs
 it any more.

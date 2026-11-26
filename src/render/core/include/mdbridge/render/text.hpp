@@ -1,8 +1,9 @@
 #pragma once
 // The figure fonts: the IBM Plex faces MDBridge bundles (data/fonts, unmodified files of IBM's
-// releases, data/sources/fonts/README.md): IBM Plex Serif for all text, IBM Plex Math as the one
-// fallback for the characters Plex Serif lacks (superscript + / -, ...), IBM Plex Mono for the
-// interface's fixed-width text only; how Matplotlib's font properties choose among the Serif faces,
+// releases, data/sources/fonts/README.md): IBM Plex Serif for all text, IBM Plex Mono for sequence
+// text (one-letter residue codes and residue tick labels; the interface's fixed-width text too),
+// IBM Plex Math as the one fallback for the characters they lack (superscript + / -, Greek in Plex
+// Mono, ...); how Matplotlib's font properties choose among the faces,
 // point / pixel conversion, and the Qt platform the batch commands use. No Qt: the Qt side
 // (text_qt.hpp) registers the same files from the program's resources and draws the glyph runs of
 // font.hpp.
@@ -25,10 +26,11 @@
 
 namespace mdbridge::render {
 
-// The figure faces: IBM Plex Serif Regular (labels, ticks, titles, legends, MDATK's "monospace"
-// sequence letters), Bold, Italic (the sequence panels' chain notes) and Bold Italic.
-enum class FontFace : std::uint8_t { Regular, Bold, Italic, BoldItalic };
-inline constexpr std::size_t kFontFaceCount = 4;
+// The figure faces: IBM Plex Serif Regular (labels, ticks, titles, legends), Bold, Italic (the
+// sequence panels' chain notes) and Bold Italic; IBM Plex Mono Regular and Bold for sequence text
+// (MDATK's "monospace" sequence letters, residue tick labels; FONT-03).
+enum class FontFace : std::uint8_t { Regular, Bold, Italic, BoldItalic, Mono, MonoBold };
+inline constexpr std::size_t kFontFaceCount = 6;
 
 // A bundled font file: data/fonts/<file>, Qt resource kFontResourcePrefix + file.
 struct BundledFile {
@@ -43,6 +45,7 @@ struct BundledFont : BundledFile {
     FontFace face = FontFace::Regular;
     int weight = 400;  // Matplotlib / CSS weight: 400 or 700
     bool italic = false;
+    bool monospace = false;
 };
 
 // The figure faces in registry order (also the order the font choice breaks ties in).
@@ -51,17 +54,16 @@ const BundledFont& bundledFont(FontFace face);
 // IBM Plex Math: the fallback of every figure face (and of the interface's fonts) for the
 // characters they have no glyph for.
 const BundledFile& fallbackFont();
-// IBM Plex Mono Regular and Bold: the interface's fixed-width text (logs, multi-line fields); not
-// used in figures.
-std::span<const BundledFile> interfaceMonoFonts();
 inline constexpr std::string_view kFontResourcePrefix = ":/mdbridge/fonts/";
 // IBM's release tags of the bundled files (github.com/IBM/plex)
 inline constexpr std::string_view kPlexSerifRelease = "@ibm/plex-serif@2.0.0";
 inline constexpr std::string_view kPlexMathRelease = "@ibm/plex-math@1.1.0";
 inline constexpr std::string_view kPlexMonoRelease = "@ibm/plex-mono@2.5.0";
 // The family the figures use whatever family a text asks for (Matplotlib's generic families
-// sans-serif, serif and monospace list it first; unknown families fall back to it).
+// sans-serif and serif list it first; unknown families fall back to it), and the one of sequence
+// text (first in the generic family monospace).
 inline constexpr std::string_view kFigureFamily = "IBM Plex Serif";
+inline constexpr std::string_view kSequenceFamily = "IBM Plex Mono";
 
 // Matplotlib's weight names (font_manager.weight_dict: "normal" 400, "bold" 700, "light" 200 ...)
 // or a number 1..1000 as text; nullopt for anything else.
@@ -69,7 +71,8 @@ std::optional<int> fontWeight(std::string_view name);
 
 // The bundled face Matplotlib's font manager (FontManager.findfont) picks for font properties when
 // only the bundled faces are installed and its font lists are MDBridge's (IBM Plex Serif first in
-// font.sans-serif, font.serif and font.monospace; tests/parity/improvements_fonts.py): its score over
+// font.sans-serif and font.serif, IBM Plex Mono first in font.monospace;
+// tests/parity/improvements_fonts.py): its score over
 // family (generic names sans-serif / sans / monospace / serif / cursive / fantasy, or names;
 // case-insensitive), style ("normal", "italic", "oblique") and weight, the first face with the lowest
 // score, and its fallback to IBM Plex Serif when no family matches.

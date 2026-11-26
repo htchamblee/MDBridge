@@ -46,7 +46,7 @@
      {
       "id": "ax0",
       "position_px": [37.5,3604.4799999999996,223.5,28835.84],
-      "tight_px": [-129.5,3480.521666666666,363.125,28896.59],
+      "tight_px": [-127.50000000000001,3480.521666666666,363.125,28896.59],
       "facecolor": [0.9882352941176471,0.9882352941176471,0.984313725490196,1.0],
       "visible": true,
       "axison": true,
@@ -58,7 +58,7 @@
       "spines": {"left":{"visible":true,"color":[0.7647058823529411,0.7607843137254902,0.7176470588235294,1.0],"lw":0.8},"right":{"visible":false,"color":[0.0,0.0,0.0,1.0],"lw":0.8},"bottom":{"visible":true,"color":[0.7647058823529411,0.7607843137254902,0.7176470588235294,1.0],"lw":0.8},"top":{"visible":false,"color":[0.0,0.0,0.0,1.0],"lw":0.8}},
       "xaxis": {"label":{"text":"Time (ns)","color":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"size":9.9,"extent_px":[39.0,3480.521666666666,222.0,3521.771666666666]},"scale":"linear","inverted":false,"visible":true,"ticks":[[0.0,"0.0",true,false],[0.2,"0.2",true,false]],"tick_style":{"tick1":true,"tick2":false,"label1":true,"label2":false,"color":[0.5372549019607843,0.5294117647058824,0.5058823529411764,1.0],"length":3.0,"width":0.6,"labelcolor":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"labelsize":9.35,"rotation":0.0,"gridOn":false,"grid":{"color":[0.6901960784313725,0.6901960784313725,0.6901960784313725,1.0],"lw":0.8,"ls":"-"}},"offset_text":"","locator":{"class":"AutoLocator","nbins":"auto","steps":[1.0,2.0,2.5,5.0,10.0],"integer":false,"min_n_ticks":2,"symmetric":false,"prune":null,"tick_space":1,"auto_nbins":1},"formatter":{"class":"ScalarFormatter","offset":0.0,"orderOfMagnitude":0,"format":"%1.1f","useMathText":false,"useOffset":true}},
       "yaxis": {
-       "label": {"text":"Residue","color":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"size":9.9,"extent_px":[-129.5,16142.9725,-88.25,16297.3475]},
+       "label": {"text":"Residue","color":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"size":9.9,"extent_px":[-127.50000000000001,16142.9725,-86.25,16297.3475]},
        "scale": "linear",
        "inverted": true,
        "visible": true,

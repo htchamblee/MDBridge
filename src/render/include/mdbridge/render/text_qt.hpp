@@ -50,8 +50,9 @@ QStringList registerBundledFonts();
 QFont figureFont(FontFace face, double pixels, const QPaintDevice& device, bool fallbackGlyphs = false);
 
 // The interface's fonts (registerBundledFonts first): IBM Plex Serif, and IBM Plex Mono for
-// fixed-width text (logs, multi-line fields), each with IBM Plex Math as the next family for the
-// characters it lacks; at `pointSize` points (Qt's default size when <= 0).
+// fixed-width text (logs, multi-line fields) and any sequence or dot-bracket text (FONT-03), each
+// with IBM Plex Math as the next family for the characters it lacks; at `pointSize` points (Qt's
+// default size when <= 0).
 QFont interfaceFont(double pointSize = 0);
 QFont interfaceFixedFont(double pointSize = 0);
 

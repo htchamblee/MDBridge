@@ -362,6 +362,7 @@ Figure matrixChart(const core::Dataset& dataset, const core::Project& project, c
         names.push_back(m.rowLabels[static_cast<std::size_t>(i)]);
     }
     a.setYTicks(std::move(locs), std::move(names));
+    a.yaxis.ticks.labelFamily = {"monospace"};  // residue labels in the sequence font (FONT-03)
     tickParams(a.yaxis, {std::nullopt, std::nullopt, 8.0, std::nullopt, std::nullopt, std::nullopt});
     a.xaxis.label.text = !cp.xlabel.empty() ? cp.xlabel : dataset.timeLabelFor(project.inputs.time_unit);
     a.yaxis.label.text = "Residue";

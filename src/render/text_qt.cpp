@@ -73,9 +73,6 @@ QStringList registerBundledFonts() {
         add(f, set.font(f.face).data());
     }
     add(fallbackFont(), set.fallback().data());
-    for (const BundledFile& f : interfaceMonoFonts()) {
-        add(f, checkedFont(f, resourceBytes(f.file)).data());
-    }
     families = found;
     return families;
 }
@@ -87,6 +84,7 @@ QFont figureFont(FontFace face, double pixels, const QPaintDevice& device, bool 
     QFont font(QString::fromUtf8(family.data(), static_cast<qsizetype>(family.size())));
     font.setWeight(f.weight >= 700 && !fallbackGlyphs ? QFont::Bold : QFont::Normal);
     font.setStyle(f.italic && !fallbackGlyphs ? QFont::StyleItalic : QFont::StyleNormal);
+    font.setFixedPitch(f.monospace && !fallbackGlyphs);
     font.setPointSizeF(qtPointSize(pixels, device.logicalDpiY() > 0 ? device.logicalDpiY() : 96));
     font.setHintingPreference(QFont::PreferNoHinting);
     font.setStyleStrategy(QFont::StyleStrategy(QFont::NoFontMerging | QFont::PreferAntialias));
@@ -111,7 +109,7 @@ QFont interfaceFont(double pointSize) {
 }
 
 QFont interfaceFixedFont(double pointSize) {
-    const BundledFile& mono = interfaceMonoFonts().front();
+    const BundledFont& mono = bundledFont(FontFace::Mono);
     QFont font(qstring(mono.family));
     font.setFamilies({qstring(mono.family), qstring(fallbackFont().family)});
     font.setStyleHint(QFont::Monospace);

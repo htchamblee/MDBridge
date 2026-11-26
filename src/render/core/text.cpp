@@ -32,17 +32,16 @@ constexpr std::array<BundledFont, kFontFaceCount> kFonts{{
     {{"IBMPlexSerif-BoldItalic.ttf", "IBM Plex Serif", "Bold Italic", "Version 3.006",
       "e33c9d0a692bb26c9c1ece4a35fd2a351317f5a60009d0e9945ae30d0297bf42"},
      FontFace::BoldItalic, 700, true},
+    {{"IBMPlexMono-Regular.ttf", "IBM Plex Mono", "Regular", "Version 2.005",
+      "7c6fbddca4b700be918f5f6183d9bd4464fa427fe435f0b480d77fe2bb8c5a43"},
+     FontFace::Mono, 400, false, true},
+    {{"IBMPlexMono-Bold.ttf", "IBM Plex Mono", "Bold", "Version 2.005",
+      "74e5eedcfa4596497d34e19023cabdabd3a8c852b903007a5654a59591a72ffb"},
+     FontFace::MonoBold, 700, false, true},
 }};
 
 constexpr BundledFile kFallback{"IBMPlexMath-Regular.ttf", "IBM Plex Math", "Regular", "Version 1.000",
                                 "10d07a23cb322725f83ca51748a4c7a61cf14caf2c4d880d793c65d3a1402533"};
-
-constexpr std::array<BundledFile, 2> kMono{{
-    {"IBMPlexMono-Regular.ttf", "IBM Plex Mono", "Regular", "Version 2.005",
-     "7c6fbddca4b700be918f5f6183d9bd4464fa427fe435f0b480d77fe2bb8c5a43"},
-    {"IBMPlexMono-Bold.ttf", "IBM Plex Mono", "Bold", "Version 2.005",
-     "74e5eedcfa4596497d34e19023cabdabd3a8c852b903007a5654a59591a72ffb"},
-}};
 
 std::string lower(std::string_view s) {
     std::string out(s);
@@ -55,14 +54,14 @@ std::string lower(std::string_view s) {
 }
 
 // Matplotlib's rcParams defaults for the generic families (font.sans-serif, ...), with IBM Plex
-// Serif first in sans-serif, serif and monospace (MDBridge's figures draw them all in it;
+// Serif first in sans-serif and serif and IBM Plex Mono first in monospace (MDBridge's figures;
 // tests/parity/improvements_fonts.py gives Matplotlib the same lists)
 const std::vector<std::string_view>* aliasList(std::string_view generic) {
     static const std::vector<std::string_view> sans{
         kFigureFamily, "DejaVu Sans", "Bitstream Vera Sans", "Computer Modern Sans Serif", "Lucida Grande", "Verdana",
         "Geneva", "Lucid", "Arial", "Helvetica", "Avant Garde", "sans-serif"};
     static const std::vector<std::string_view> mono{
-        kFigureFamily, "DejaVu Sans Mono", "Bitstream Vera Sans Mono", "Computer Modern Typewriter", "Andale Mono",
+        kSequenceFamily, "DejaVu Sans Mono", "Bitstream Vera Sans Mono", "Computer Modern Typewriter", "Andale Mono",
         "Nimbus Mono L", "Courier New", "Courier", "Fixed", "Terminal", "monospace"};
     static const std::vector<std::string_view> serif{
         kFigureFamily, "DejaVu Serif", "Bitstream Vera Serif", "Computer Modern Roman", "New Century Schoolbook",
@@ -132,7 +131,6 @@ const BundledFont& bundledFont(FontFace face) { return kFonts[static_cast<std::s
 
 const BundledFile& fallbackFont() { return kFallback; }
 
-std::span<const BundledFile> interfaceMonoFonts() { return kMono; }
 
 std::optional<int> fontWeight(std::string_view name) {
     static constexpr std::pair<std::string_view, int> kWeights[] = {

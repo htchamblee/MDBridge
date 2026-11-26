@@ -1,18 +1,19 @@
 """What Matplotlib 3.11.2 (as MDATK v0.0.4.1 uses it) does with the IBM Plex fonts MDBridge bundles
-(data/fonts) when it is configured as MDBridge draws (improvements_fonts.py: the IBM Plex Serif
-faces only, Plex Serif first in the generic font lists, IBM Plex Math as the fallback font), for
+(data/fonts) when it is configured as MDBridge draws (improvements_fonts.py: the IBM Plex Serif and
+Plex Mono faces only, Plex Serif first in the sans-serif / serif lists, Plex Mono first in the
+monospace list, IBM Plex Math as the fallback font), for
 src/render/core/font.cpp and text.cpp (tests/render/test_text.cpp).
 
     /opt/mdbridge-venv/bin/python -I -B make_text_cases.py OUT_DIR
 
 Writes OUT_DIR/text_cases.json with the sections:
 
-  fonts      every bundled file (the four figure faces, the fallback, the interface's two Plex Mono
-             faces) with its role: file name, sha256 (IBM's release file, checked by
-             improvements_fonts.path), family and style as FreeType reports them, the name table's
-             version, units per em, ascender, descender, glyph count. Matplotlib's FreeType version
-             is recorded too.
-  choice     the face Matplotlib's font manager picks (font_manager.findfont) among the four
+  fonts      every bundled file (the six figure faces: four Plex Serif, two Plex Mono for
+             sequences and the interface's fixed-width text; the fallback) with its role: file
+             name, sha256 (IBM's release file, checked by improvements_fonts.path), family and
+             style as FreeType reports them, the name table's version, units per em, ascender,
+             descender, glyph count. Matplotlib's FreeType version is recorded too.
+  choice     the face Matplotlib's font manager picks (font_manager.findfont) among the six
              figure faces (in data/fonts' registry order; the machine's fonts left out, so the
              result is the same everywhere) for font properties: family lists (generic names,
              the Plex and DejaVu names, unknown families), weight (names and numbers) and style
@@ -61,8 +62,8 @@ from matplotlib.backends.backend_agg import RendererAgg  # noqa: E402
 
 OUT = os.path.abspath(sys.argv[1])
 FILES = [f for f, *_ in improvements_fonts.FACES]  # the figure faces, registry order
-ROLES = ([(f, "figures") for f in FILES] + [(improvements_fonts.FALLBACK[0], "fallback")] +
-         [(f, "interface fixed-width") for f, *_ in improvements_fonts.INTERFACE_MONO])
+ROLES = ([(f, "sequences, interface fixed-width" if fam == improvements_fonts.SEQUENCE_FAMILY else "figures, interface")
+          for f, fam, *_ in improvements_fonts.FACES] + [(improvements_fonts.FALLBACK[0], "fallback")])
 
 STRINGS = [
     "", " ", "  ", "lp", "Hello World", "Time (ns)", "Time (µs)", "RMSD (Å)", "RMSD to frame 0 (Å)",
@@ -77,6 +78,8 @@ STRINGS = [
     # them, Plex Math alone
     "Cl⁻", "Ca²⁺", "Zn²⁺ and Mn²⁺", "Na⁺ / K⁺", "AV⁺fi", "⁺⁻", "⁺", "x⁺⁻y (Å)", "Ions: Mg²⁺, Cl⁻",
     "I l 1 | Il1",
+    # sequence text (IBM Plex Mono faces): one-letter sequences, residue labels, dot-bracket
+    "GCAUGCAUGC", "A:G15", "((((...))))..", "ACGU acgu",
 ]
 # (points, dpi): MDATK's font sizes (10 by default, x 0.6 ... 1.3) at the dpi of videos, charts and
 # previews, and two non-integer dpi (FreeType takes the integer part)
@@ -106,7 +109,8 @@ def fonts_section():
 def choice_section():
     manager = fm.fontManager  # the figure faces only, in registry order (improvements_fonts.apply)
     assert [os.path.basename(e.fname) for e in manager.ttflist] == FILES
-    families = [["sans-serif"], ["IBM Plex Serif"], ["monospace"], ["DejaVu Sans"], ["Unknown Family"],
+    families = [["sans-serif"], ["IBM Plex Serif"], ["monospace"], ["IBM Plex Mono"], ["DejaVu Sans"],
+                ["Unknown Family"], ["DejaVu Sans Mono", "serif"],
                 ["sans"], ["serif"], ["Unknown Family", "monospace"], ["Arial", "IBM Plex Serif"],
                 ["ibm plex serif", "sans-serif"], ["cursive"], ["fantasy"], ["IBM Plex Math"]]
     weights = ["normal", "bold", "light", "ultralight", "medium", "semibold", "demibold", "demi", "heavy",

@@ -1044,12 +1044,13 @@ def child(mdatk, jobs_file, results_file):
     matplotlib.rcdefaults()  # no matplotlibrc of the machine (/etc/matplotlibrc may name other fonts)
     import improvements_fonts
 
-    improvements_fonts.apply()  # MDBridge's figure fonts: IBM Plex Serif, IBM Plex Math fallback (FONT-01, FONT-02)
+    improvements_fonts.apply()  # MDBridge's figure fonts (FONT-01 ... FONT-03)
     import improvements_render
     from mdatk import density
 
     map_level = density.map_level
     improvements_render.apply_mdatk()  # MDBridge's rendering improvements (render, charts, preview)
+    improvements_fonts.apply_mdatk()  # residue tick labels in the sequence font (FONT-03)
     # RN-33 (the structure view's finite-voxel contour level) is the structure panel's; `density
     # info` reports MDATK's level_2sigma (no render case shows a map)
     density.map_level = map_level

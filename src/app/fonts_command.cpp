@@ -52,12 +52,10 @@ int fontsCommand(const char* program, bool json, const std::string& renderPath) 
                                         {"qt_family", info.family().toStdString()}});
         };
         for (const render::BundledFont& f : render::bundledFonts()) {
-            face(f, "figures", render::figureFont(f.face, 13.888888, image));
+            face(f, f.monospace ? "sequences, interface fixed-width" : "figures, interface",
+                 render::figureFont(f.face, 13.888888, image));
         }
         face(render::fallbackFont(), "fallback", render::figureFont(render::FontFace::Regular, 13.888888, image, true));
-        for (const render::BundledFile& f : render::interfaceMonoFonts()) {
-            face(f, "interface fixed-width", render::interfaceFixedFont(10));
-        }
         for (const render::BundledFont& f : render::bundledFonts()) {
             for (const char* text : kSamples) {
                 const render::TextLayout t = set.layout(f.face, text, 10.0, 100.0);

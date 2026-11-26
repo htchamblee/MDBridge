@@ -83,6 +83,7 @@ Text tickLabelText(const Axis& axis, const std::string& label, bool second) {
     Text t;
     t.text = label;
     t.font.size = axis.ticks.labelSize;
+    t.font.family = axis.ticks.labelFamily;
     t.color = axis.ticks.labelColor;
     t.rotation = axis.ticks.rotation;
     t.coords = Coords::Pixels;

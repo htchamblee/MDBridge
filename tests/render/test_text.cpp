@@ -66,12 +66,9 @@ TEST(BundledFonts, AreTheReleaseFiles) {
     EXPECT_EQ(str(at(data(), "matplotlib")), "3.11.2");
     std::vector<std::pair<const render::BundledFile*, std::string>> files;
     for (const render::BundledFont& f : render::bundledFonts()) {
-        files.emplace_back(&f, "figures");
+        files.emplace_back(&f, f.monospace ? "sequences, interface fixed-width" : "figures, interface");
     }
     files.emplace_back(&render::fallbackFont(), "fallback");
-    for (const render::BundledFile& f : render::interfaceMonoFonts()) {
-        files.emplace_back(&f, "interface fixed-width");
-    }
     const Array& expected = list(at(data(), "fonts"));
     ASSERT_EQ(expected.size(), files.size());
     for (std::size_t i = 0; i < expected.size(); ++i) {
@@ -97,7 +94,7 @@ TEST(BundledFonts, AreTheReleaseFiles) {
     }
     for (const render::BundledFont& f : render::bundledFonts()) {
         EXPECT_EQ(render::bundledFont(f.face).file, f.file);
-        EXPECT_EQ(fonts().font(f.face).family(), render::kFigureFamily);
+        EXPECT_EQ(fonts().font(f.face).family(), f.monospace ? render::kSequenceFamily : render::kFigureFamily);
     }
     EXPECT_EQ(fonts().fallback().family(), "IBM Plex Math");
 }
@@ -135,7 +132,9 @@ TEST(FontChoice, AsMatplotlibsFontManager) {
         ++n;
     }
     EXPECT_GT(n, 900);
-    EXPECT_EQ(render::chooseFace("monospace", "normal", 700), FontFace::Bold);  // MDATK's sequence letters
+    EXPECT_EQ(render::chooseFace("monospace", "normal", 700), FontFace::MonoBold);  // MDATK's sequence letters
+    EXPECT_EQ(render::chooseFace("monospace", "normal", 400), FontFace::Mono);      // residue tick labels (FONT-03)
+    EXPECT_EQ(render::chooseFace("monospace", "italic", 400), FontFace::Mono);      // no italic Plex Mono
     EXPECT_EQ(render::chooseFace("sans-serif", "italic", 400), FontFace::Italic);
     EXPECT_EQ(render::chooseFace("sans-serif", "oblique", 700), FontFace::BoldItalic);
     EXPECT_EQ(render::chooseFace("DejaVu Sans", "normal", 400), FontFace::Regular);  // MDATK's default family
@@ -175,8 +174,8 @@ TEST(TextMetrics, AsMatplotlibUnhinted) {
         // Matplotlib's default hinting (MDATK's figures) rounds each glyph to the pixel grid
         const Array& hinted = list(at(c, "hinted"));
         const double glyphs = static_cast<double>(std::max<std::size_t>(xs.size(), 1));
-        EXPECT_LE(std::abs(t.width() - num(hinted[0])), std::max(0.7 * glyphs, 1.0));  // one glyph: up to 0.91 px
-        EXPECT_LE(std::abs(t.height() - num(hinted[1])), 2.0);
+        EXPECT_LE(std::abs(t.width() - num(hinted[0])), std::max(0.7 * glyphs, 1.0));  // one glyph: up to 0.81 px
+        EXPECT_LE(std::abs(t.height() - num(hinted[1])), 2.1);  // 2.02 px: Plex Mono Bold, Å at 18 px
         EXPECT_LE(std::abs(t.descent() - num(hinted[2])), 1.5);
         ++n;
     }
@@ -193,6 +192,12 @@ TEST(TextMetrics, LayoutDetails) {
     EXPECT_TRUE(empty.glyphs.empty());
     EXPECT_EQ(empty.width(), 0);
     // ligature: "fi" is one glyph whose cluster is the 'f'
+    // monospace: every glyph the same advance, no kerning; Greek from the fallback
+    const render::TextLayout mono = fonts().layout(FontFace::MonoBold, "AVWi", 10, 100);
+    EXPECT_EQ(mono.advance, 4 * fonts().layout(FontFace::MonoBold, "A", 10, 100).advance);
+    const render::TextLayout greek = fonts().layout(FontFace::Mono, "\u03b5", 10, 100);
+    ASSERT_EQ(greek.glyphs.size(), 1u);
+    EXPECT_TRUE(greek.glyphs[0].fallback);
     const render::TextLayout fi = fonts().layout(FontFace::Regular, "afi", 10, 100);
     ASSERT_EQ(fi.glyphs.size(), 2u);
     EXPECT_EQ(fi.glyphs[1].cluster, 1u);

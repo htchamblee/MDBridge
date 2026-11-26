@@ -159,8 +159,8 @@
      },
      {
       "id": "ax1",
-      "position_px": [444.33243627415453,321.98772222222226,636.9794460778988,540.2475],
-      "tight_px": [403.77401960748784,289.43,636.9794460778988,555.84],
+      "position_px": [444.33243627415453,321.9877222222222,636.9794460778988,540.2475],
+      "tight_px": [403.77401960748784,289.42999999999995,636.9794460778988,555.84],
       "facecolor": [0.9882352941176471,0.9882352941176471,0.984313725490196,1.0],
       "visible": true,
       "axison": true,
@@ -171,7 +171,7 @@
       "titles": {"left":{"id":"ax1/title_left","kind":"text","zorder":3.0,"visible":true,"alpha":null,"animated":false,"text":"RMSD","xy":[0.0,1.0],"coords":"other","ha":"left","va":"baseline","color":[0.043137254901960784,0.043137254901960784,0.043137254901960784,1.0],"size":11.0,"weight":"normal","style":"normal","family":["sans-serif"],"rotation":0.0,"clip_on":true,"wrap":false,"extent_px":[444.33243627415453,544.0761111111111,477.33243627415453,555.84]}},
       "spines": {"left":{"visible":true,"color":[0.7647058823529411,0.7607843137254902,0.7176470588235294,1.0],"lw":0.8},"right":{"visible":false,"color":[0.0,0.0,0.0,1.0],"lw":0.8},"bottom":{"visible":true,"color":[0.7647058823529411,0.7607843137254902,0.7176470588235294,1.0],"lw":0.8},"top":{"visible":false,"color":[0.0,0.0,0.0,1.0],"lw":0.8}},
       "xaxis": {
-       "label": {"text":"Time (ns)","color":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"size":9.9,"extent_px":[516.1559411760267,289.43,565.1559411760267,300.75925]},
+       "label": {"text":"Time (ns)","color":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"size":9.9,"extent_px":[516.1559411760267,289.42999999999995,565.1559411760267,300.75924999999995]},
        "scale": "linear",
        "inverted": false,
        "visible": true,
@@ -182,7 +182,7 @@
        "formatter": {"class":"ScalarFormatter","offset":0.0,"orderOfMagnitude":0,"format":"%1.2f","useMathText":false,"useOffset":true}
       },
       "yaxis": {
-       "label": {"text":"RMSD Complex (Å)","color":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"size":9.9,"extent_px":[403.77401960748784,382.2269861111111,418.10326960748785,480.0082361111111]},
+       "label": {"text":"RMSD Complex (Å)","color":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"size":9.9,"extent_px":[403.77401960748784,382.22698611111105,418.10326960748785,480.00823611111105]},
        "scale": "linear",
        "inverted": false,
        "visible": true,
@@ -202,8 +202,8 @@
      },
      {
       "id": "ax2",
-      "position_px": [725.9989959148553,321.98772222222226,918.646005718599,540.2475],
-      "tight_px": [692.1823292481886,289.43,918.646005718599,555.84],
+      "position_px": [725.9989959148553,321.9877222222222,918.646005718599,540.2475],
+      "tight_px": [692.1823292481886,289.42999999999995,918.646005718599,555.84],
       "facecolor": [0.9882352941176471,0.9882352941176471,0.984313725490196,1.0],
       "visible": true,
       "axison": true,
@@ -214,7 +214,7 @@
       "titles": {"left":{"id":"ax2/title_left","kind":"text","zorder":3.0,"visible":true,"alpha":null,"animated":false,"text":"Inter-strand H-bonds","xy":[0.0,1.0],"coords":"other","ha":"left","va":"baseline","color":[0.043137254901960784,0.043137254901960784,0.043137254901960784,1.0],"size":11.0,"weight":"normal","style":"normal","family":["sans-serif"],"rotation":0.0,"clip_on":true,"wrap":false,"extent_px":[725.9989959148553,544.0761111111111,846.9208709148553,555.84]}},
       "spines": {"left":{"visible":true,"color":[0.7647058823529411,0.7607843137254902,0.7176470588235294,1.0],"lw":0.8},"right":{"visible":false,"color":[0.0,0.0,0.0,1.0],"lw":0.8},"bottom":{"visible":true,"color":[0.7647058823529411,0.7607843137254902,0.7176470588235294,1.0],"lw":0.8},"top":{"visible":false,"color":[0.0,0.0,0.0,1.0],"lw":0.8}},
       "xaxis": {
-       "label": {"text":"Time (ns)","color":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"size":9.9,"extent_px":[797.8225008167271,289.43,846.8225008167271,300.75925]},
+       "label": {"text":"Time (ns)","color":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"size":9.9,"extent_px":[797.8225008167271,289.42999999999995,846.8225008167271,300.75924999999995]},
        "scale": "linear",
        "inverted": false,
        "visible": true,
@@ -225,7 +225,7 @@
        "formatter": {"class":"ScalarFormatter","offset":0.0,"orderOfMagnitude":0,"format":"%1.2f","useMathText":false,"useOffset":true}
       },
       "yaxis": {
-       "label": {"text":"Aptamer–Target H-bonds","color":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"size":9.9,"extent_px":[692.1823292481886,364.6801111111111,702.7698292481886,497.5551111111111]},
+       "label": {"text":"Aptamer–Target H-bonds","color":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"size":9.9,"extent_px":[692.1823292481886,364.68011111111105,702.7698292481886,497.55511111111105]},
        "scale": "linear",
        "inverted": false,
        "visible": true,
@@ -245,8 +245,8 @@
      },
      {
       "id": "ax3",
-      "position_px": [444.33243627415453,38.71772222222222,636.9794460778988,256.97749999999996],
-      "tight_px": [421.3810473852656,15.766333333333332,636.9794460778988,272.57],
+      "position_px": [444.33243627415453,38.71772222222222,636.9794460778988,256.9774999999999],
+      "tight_px": [422.3810473852656,16.766333333333332,636.9794460778988,272.56999999999994],
       "facecolor": [0.9882352941176471,0.9882352941176471,0.984313725490196,1.0],
       "visible": true,
       "axison": true,
@@ -254,7 +254,7 @@
       "ylim": [11.5,-0.5],
       "aspect": "auto",
       "zorder": 0.0,
-      "titles": {"left":{"id":"ax3/title_left","kind":"text","zorder":3.0,"visible":true,"alpha":null,"animated":false,"text":"Aptamer–Target contact map","xy":[0.0,1.0],"coords":"other","ha":"left","va":"baseline","color":[0.043137254901960784,0.043137254901960784,0.043137254901960784,1.0],"size":11.0,"weight":"normal","style":"normal","family":["sans-serif"],"rotation":0.0,"clip_on":true,"wrap":false,"extent_px":[444.33243627415453,260.8061111111111,607.8168112741546,272.57]}},
+      "titles": {"left":{"id":"ax3/title_left","kind":"text","zorder":3.0,"visible":true,"alpha":null,"animated":false,"text":"Aptamer–Target contact map","xy":[0.0,1.0],"coords":"other","ha":"left","va":"baseline","color":[0.043137254901960784,0.043137254901960784,0.043137254901960784,1.0],"size":11.0,"weight":"normal","style":"normal","family":["sans-serif"],"rotation":0.0,"clip_on":true,"wrap":false,"extent_px":[444.33243627415453,260.806111111111,607.8168112741546,272.56999999999994]}},
       "spines": {"left":{"visible":true,"color":[0.7647058823529411,0.7607843137254902,0.7176470588235294,1.0],"lw":0.8},"right":{"visible":false,"color":[0.0,0.0,0.0,1.0],"lw":0.8},"bottom":{"visible":true,"color":[0.7647058823529411,0.7607843137254902,0.7176470588235294,1.0],"lw":0.8},"top":{"visible":false,"color":[0.0,0.0,0.0,1.0],"lw":0.8}},
       "xaxis": {"label":{"text":"","color":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"size":9.9,"extent_px":null},"scale":"linear","inverted":false,"visible":true,"ticks":[[0.0,"G1",true,false],[1.0,"C2",true,false],[2.0,"A3",true,false],[3.0,"U4",true,false],[4.0,"G5",true,false],[5.0,"G6",true,false],[6.0,"C7",true,false],[7.0,"A8",true,false],[8.0,"U9",true,false],[9.0,"C10",true,false],[10.0,"G11",true,false],[11.0,"A12",true,false]],"tick_style":{"tick1":true,"tick2":false,"label1":true,"label2":false,"color":[0.5372549019607843,0.5294117647058824,0.5058823529411764,1.0],"length":3.0,"width":0.6,"labelcolor":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"labelsize":7.15,"rotation":90.0,"gridOn":false,"grid":{"color":[0.8823529411764706,0.8784313725490196,0.8509803921568627,1.0],"lw":0.6,"ls":"-"}},"offset_text":"","locator":{"class":"FixedLocator","locs":[0.0,1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0,10.0,11.0],"nbins":null},"formatter":{"class":"FuncFormatter"}},
       "yaxis": {
@@ -274,8 +274,8 @@
      },
      {
       "id": "ax4",
-      "position_px": [640.8323862739736,70.78880718961301,648.5382666661235,224.9064150326092],
-      "tight_px": [640.8323862739736,65.40682802294634,679.7132666661236,224.9064150326092],
+      "position_px": [640.8323862739736,70.78880718961298,648.5382666661235,224.90641503260917],
+      "tight_px": [640.8323862739736,65.40682802294631,679.7132666661236,224.90641503260917],
       "facecolor": [1.0,1.0,1.0,1.0],
       "visible": true,
       "axison": true,
@@ -287,7 +287,7 @@
       "spines": {"left":{"visible":false,"color":[0.0,0.0,0.0,1.0],"lw":0.8},"right":{"visible":false,"color":[0.0,0.0,0.0,1.0],"lw":0.8},"bottom":{"visible":false,"color":[0.0,0.0,0.0,1.0],"lw":0.8},"top":{"visible":false,"color":[0.0,0.0,0.0,1.0],"lw":0.8},"outline":{"visible":true,"color":[0.8823529411764706,0.8784313725490196,0.8509803921568627,1.0],"lw":0.8}},
       "xaxis": {"label":{"text":"","color":[0.0,0.0,0.0,1.0],"size":10.0,"extent_px":null},"scale":"linear","inverted":false,"visible":true,"ticks":[],"tick_style":{"tick1":true,"tick2":false,"label1":true,"label2":false,"color":[0.5372549019607843,0.5294117647058824,0.5058823529411764,1.0],"length":3.5,"width":0.8,"labelcolor":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"labelsize":8.25,"rotation":0.0,"gridOn":false,"grid":{"color":[0.6901960784313725,0.6901960784313725,0.6901960784313725,1.0],"lw":0.8,"ls":"-"}},"offset_text":"","locator":{"class":"FixedLocator","locs":[],"nbins":null},"formatter":{"class":"ScalarFormatter","offset":0.0,"orderOfMagnitude":0,"format":"","useMathText":false,"useOffset":true}},
       "yaxis": {
-       "label": {"text":"count","color":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"size":8.8,"extent_px":[670.3021555550124,135.39448611111112,679.7132666661236,160.30073611111112]},
+       "label": {"text":"count","color":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"size":8.8,"extent_px":[670.3021555550124,135.39448611111106,679.7132666661236,160.30073611111106]},
        "scale": "linear",
        "inverted": false,
        "visible": true,
@@ -316,8 +316,8 @@
      },
      {
       "id": "ax5",
-      "position_px": [725.9989959148553,38.71772222222222,918.646005718599,256.97749999999996],
-      "tight_px": [703.0476070259664,6.159999999999998,918.646005718599,272.57],
+      "position_px": [725.9989959148553,38.71772222222222,918.646005718599,256.9774999999999],
+      "tight_px": [704.0476070259664,6.159999999999998,918.646005718599,272.56999999999994],
       "facecolor": [0.9882352941176471,0.9882352941176471,0.984313725490196,1.0],
       "visible": true,
       "axison": true,
@@ -325,7 +325,7 @@
       "ylim": [23.5,-0.5],
       "aspect": "auto",
       "zorder": 0.0,
-      "titles": {"left":{"id":"ax5/title_left","kind":"text","zorder":3.0,"visible":true,"alpha":null,"animated":false,"text":"Mg occupancy","xy":[0.0,1.0],"coords":"other","ha":"left","va":"baseline","color":[0.043137254901960784,0.043137254901960784,0.043137254901960784,1.0],"size":11.0,"weight":"normal","style":"normal","family":["sans-serif"],"rotation":0.0,"clip_on":true,"wrap":false,"extent_px":[725.9989959148553,260.8061111111111,806.1239959148553,272.57]}},
+      "titles": {"left":{"id":"ax5/title_left","kind":"text","zorder":3.0,"visible":true,"alpha":null,"animated":false,"text":"Mg occupancy","xy":[0.0,1.0],"coords":"other","ha":"left","va":"baseline","color":[0.043137254901960784,0.043137254901960784,0.043137254901960784,1.0],"size":11.0,"weight":"normal","style":"normal","family":["sans-serif"],"rotation":0.0,"clip_on":true,"wrap":false,"extent_px":[725.9989959148553,260.806111111111,806.1239959148553,272.56999999999994]}},
       "spines": {"left":{"visible":true,"color":[0.7647058823529411,0.7607843137254902,0.7176470588235294,1.0],"lw":0.8},"right":{"visible":false,"color":[0.0,0.0,0.0,1.0],"lw":0.8},"bottom":{"visible":true,"color":[0.7647058823529411,0.7607843137254902,0.7176470588235294,1.0],"lw":0.8},"top":{"visible":false,"color":[0.0,0.0,0.0,1.0],"lw":0.8}},
       "xaxis": {
        "label": {"text":"Time (ns)","color":[0.3215686274509804,0.3176470588235294,0.3058823529411765,1.0],"size":9.9,"extent_px":[797.8225008167271,6.159999999999998,846.8225008167271,17.48925]},
@@ -358,8 +358,8 @@
      },
      {
       "id": "ax6",
-      "position_px": [922.4989459146739,70.7888071896141,930.2048263068235,224.9064150326081],
-      "tight_px": [922.4989459146739,70.7888071896141,993.6909374179346,224.9064150326081],
+      "position_px": [922.4989459146739,70.78880718961406,930.2048263068235,224.90641503260807],
+      "tight_px": [922.4989459146739,70.78880718961406,993.6909374179346,224.90641503260807],
       "facecolor": [1.0,1.0,1.0,1.0],
       "visible": true,
       "axison": true,

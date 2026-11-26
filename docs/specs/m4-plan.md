@@ -425,8 +425,9 @@ W3-B (D8, D9, D12), W3-C (D13), the image parity bar (D10).
   vector output) — not JKQtPlotter (LGPL) and never Qt Charts / Qt Graphs / QCustomPlot (GPL).
 - **D4 Fonts**: recommend bundling DejaVu Sans / Mono (Matplotlib's fonts) for all figures; user
   fonts later as an option. *Superseded in milestone 5 by the owner's font decision:* IBM Plex
-  Serif for figures and the interface, IBM Plex Math as the one fallback, IBM Plex Mono for the
-  interface's fixed-width text (docs/DIFFERENCES.md FONT-01, FONT-02; data/sources/fonts/README.md).
+  Serif for figures and the interface, IBM Plex Mono for sequence text and the interface's
+  fixed-width text, IBM Plex Math as the one fallback (docs/DIFFERENCES.md FONT-01 ... FONT-03;
+  data/sources/fonts/README.md).
 - **D5 `output.charts.style`**: recommend `mdatk` plus Matplotlib's `default` look; other style
   names warn and use MDATK chrome (as MDATK does for unknown styles).
 - **D6 `visual.chain_palette`**: recommend porting Matplotlib's qualitative (tab10/20, Set1-3,

@@ -108,7 +108,7 @@ def setup(checkout: str, collect: bool = True) -> None:
     matplotlib.rcdefaults()  # no matplotlibrc of the machine (MDATK uses the defaults)
     import improvements_fonts
 
-    improvements_fonts.apply()  # MDBridge's figure fonts (FONT-01, FONT-02): IBM Plex Serif, Plex Math fallback
+    improvements_fonts.apply()  # MDBridge's figure fonts (FONT-01 ... FONT-03)
 
     import independent_tables
 
@@ -149,6 +149,7 @@ def setup(checkout: str, collect: bool = True) -> None:
     import improvements_citations
 
     improvements_citations.apply_mdatk()  # MDBridge's citations (CIT-01, CIT-02; params and step logs)
+    improvements_fonts.apply_mdatk()  # residue tick labels in the sequence font (FONT-03)
 
 
 # --- JSON -----------------------------------------------------------------------------------------
