@@ -195,7 +195,8 @@ double dihedral(const Vec& a, const Vec& b, const Vec& c, const Vec& d) {
     const Vec w = {b2[0] - s2 * b1[0], b2[1] - s2 * b1[1], b2[2] - s2 * b1[2]};
     return std::atan2(dot(crossv(b1, v), w), dot(v, w)) * 180.0 / 3.14159265358979323846;
 }
-double chiralVolume(const Vec& centre, const Vec& a, const Vec& b, const Vec& c) {
+// the signed volume (a - centre) . ((b - centre) x (c - centre)), independent of chem::chiralVolume
+double tripleVolume(const Vec& centre, const Vec& a, const Vec& b, const Vec& c) {
     return dot(sub(a, centre), crossv(sub(b, centre), sub(c, centre)));
 }
 
@@ -480,7 +481,7 @@ TEST_P(IdealDuplex, Geometry) {
                     (centre.b != "N" && !c.count(std::string(centre.b))) || !c.count(std::string(centre.c))) {
                     continue;
                 }
-                const double v = chiralVolume(atom(centre.centre), atom(centre.a), atom(centre.b), atom(centre.c));
+                const double v = tripleVolume(atom(centre.centre), atom(centre.a), atom(centre.b), atom(centre.c));
                 EXPECT_GT(v * centre.sign * sign, 0.5) << r.label() << " " << centre.centre;
             }
         }
@@ -613,7 +614,7 @@ TEST(HelixGeometry, NamesTerminalsHydrogensAndPhosphate) {
         }
     }
     // PDB v3 prochiral names on the D sugar: positive volume C5'(O5', C4', H5')
-    EXPECT_GT(chiralVolume(g5.at("C5'"), g5.at("O5'"), g5.at("C4'"), g5.at("H5'")), 0.0);
+    EXPECT_GT(tripleVolume(g5.at("C5'"), g5.at("O5'"), g5.at("C4'"), g5.at("H5'")), 0.0);
     // CHD-01: guanine's H21 trans to N1 (N3 side), H22 cis to N1 (Watson-Crick edge)
     EXPECT_LT(dist(g5.at("H22"), g5.at("N1")), dist(g5.at("H21"), g5.at("N1")));
     EXPECT_LT(dist(g5.at("H21"), g5.at("N3")), dist(g5.at("H22"), g5.at("N3")));

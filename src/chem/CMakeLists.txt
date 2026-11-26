@@ -11,7 +11,6 @@ add_library(mdbridge_chem STATIC
     density_fit.cpp
     dictionaries.cpp
     helix.cpp
-    pdb_names.cpp
     pdbtools.cpp
     reference_tables.cpp
     secstruct.cpp

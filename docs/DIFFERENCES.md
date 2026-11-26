@@ -2877,8 +2877,9 @@ cases of `cli_parity.py`.
 - **CH-02 Wrapped numbers of built helices are reported** (not fixed). `build helix --start 9998,1`
   wrapped to `B   0` silently; the build notes end with the renumbering's "WARNING: residue numbers
   above 9999 wrap in the PDB columns". Cases: `helices` `start 9998,1`, `build_helix_start_wrap`.
-  *C++ (builder, W1-D):* `chem::buildHelix` (src/chem/helix.cpp) raises CH-01's `PDBError` and appends
-  CH-02's warning after the build notes; tests/chem/test_helix.cpp `HelixCases.WatsonCrickHelices`
+  *C++ (builder, W1-D):* `chem::buildHelix` (src/chem/helix.cpp) names and records its residues with
+  W1-A's `chem::convertNames` / `chem::setRecords`, gets CH-01's `PDBError` from `io::writePdb` (no
+  check of its own) and appends CH-02's warning after the build notes; tests/chem/test_helix.cpp `HelixCases.WatsonCrickHelices`
   (every `helices` case byte for byte), `HelixGeometry.NumbersOutsideThePdbColumns`.
 - **CH-03 `--combine-into` takes one character** (not fixed). `XY` was accepted, the notes said chain
   XY and the file had X; now `PDBError("chain ids must be single characters")`, as `restore_chains`.

@@ -17,6 +17,7 @@
 #include <string_view>
 #include <vector>
 
+#include "mdbridge/chem/pdbtools.hpp"
 #include "mdbridge/io/pdb.hpp"
 
 namespace mdbridge::chem {
@@ -32,11 +33,11 @@ inline constexpr double kHelixRise = 2.81;   // Angstrom per residue
 inline constexpr std::array<std::string_view, 5> kPairings = {"wc", "reverse-wc", "hoogsteen", "reverse-hoogsteen",
                                                               "hh"};
 inline constexpr std::array<std::string_view, 2> kTriplexMotifs = {"hoogsteen", "reverse-hoogsteen"};
-inline constexpr std::array<std::string_view, 4> kSchemes = {"amber", "ccd", "rosetta", "pdb"};
+// The residue-name schemes are chem::kSchemes (chem/pdbtools.hpp).
 
 // --- templates -----------------------------------------------------------------------------------
 
-using Vec3 = std::array<double, 3>;
+// Vec3: chem::Vec3 (chem/pdbtools.hpp)
 
 struct TemplateAtom {
     std::string name;

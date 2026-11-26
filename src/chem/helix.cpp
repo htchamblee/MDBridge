@@ -25,11 +25,11 @@
 #include <utility>
 #include <vector>
 
+#include "mdbridge/chem/pdbtools.hpp"
 #include "mdbridge/chem/reference_tables.hpp"
 #include "mdbridge/core/json.hpp"
 #include "mdbridge/core/python.hpp"
 #include "mdbridge/core/text.hpp"
-#include "pdb_names.hpp"
 
 namespace mdbridge::chem {
 
@@ -1314,7 +1314,7 @@ std::string buildHelix(std::string_view sequence, const HelixOptions& options, s
 
     std::vector<std::string> out = resolved.notes;
     std::vector<std::string> renamed;
-    for (std::string& note : detail::convertNames(s, scheme, options.terminals)) {
+    for (std::string& note : convertNames(s, scheme, {}, options.terminals)) {
         if (note.rfind("WARNING: 5'-terminal", 0) != 0) {
             renamed.push_back(std::move(note));
         }
@@ -1326,7 +1326,7 @@ std::string buildHelix(std::string_view sequence, const HelixOptions& options, s
     }
     out.insert(out.end(), renamed.begin(), renamed.end());
     if (scheme == "pdb") {
-        for (std::string& note : detail::setRecords(s, "pdb")) {
+        for (std::string& note : setRecords(s, "pdb")) {
             out.push_back(std::move(note));
         }
     }
@@ -1362,16 +1362,7 @@ std::string buildHelix(std::string_view sequence, const HelixOptions& options, s
     }
     out.push_back("Built an ideal A-form RNA " + what + " (" + handText + "): " + std::to_string(atomCount) + " atoms" +
                   (options.hydrogens ? ", hydrogens included" : ", heavy atoms only"));
-    // CH-01: a residue number below -999 does not fit columns 23-26 (MDATK shifted every later column)
-    for (const auto& seg : s.segments) {
-        for (const auto& res : seg) {
-            if (res.resseq < -999) {
-                throw io::PdbError("residue number " + std::to_string(res.resseq) + " (" +
-                                   (res.chain.empty() ? std::string("_") : res.chain) +
-                                   ") does not fit the PDB columns (-999 to 9999)");
-            }
-        }
-    }
+    // CH-01: a residue number below -999 is refused by io::writePdb (below), before anything is written
     // CH-02: numbers above 9999 wrap (a PDB convention), now with renumber_residues' warning
     std::int64_t highest = firsts[0];
     if (duplex) {

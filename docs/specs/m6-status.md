@@ -15,7 +15,19 @@ Known fragile result for W2-A: MDATK's non-WC / triplex least-squares closures a
 (~0.8 Å spread from the BLAS kernel choice alone, far beyond D10's tolerance). Treat it as a
 fragile result to fix, not to copy; options go to the owner before W2-A finishes.
 
-## Wave 1: in progress
+## Wave 1: done (pending CI)
 
-W1-A PDB hygiene, W1-C dictionaries, W1-D Watson-Crick helix, W1-E density fit; W1-B annotation
-after W1-A.
+Integrated on `m6-w1-integ` (merges of W1-A/W1-B, W1-C, W1-D, W1-E): PDB hygiene
+(`chem::pdbtools`: CH-01, CH-03..07, CH-13, CH-15), base-pair annotation (`chem::annotate`: CH-14,
+D13), restraint dictionaries and SMILES (`chem::dictionaries`, `chem::smiles`: DIC-01, DIC-02), the
+Watson-Crick helix builder (`chem::buildHelix`: CH-01, CH-02, CHD-01, D13) and the rigid-body
+density fit (`chem::FitProblem`, `fitModel`: CH-10, CH-11, D2; several threads). At the merge the
+builder's temporary adapter (src/chem/pdb_names) gave way to W1-A's `chem::convertNames` /
+`chem::setRecords`, and its own CH-01 check to `io::writePdb`'s (the same message); `chem::kSchemes`
+is defined once (chem/pdbtools.hpp). The command lines (`pdb`, `build`, `dict`, `density fit /
+simulate`) stay pending for W2-C.
+
+## Wave 2: next
+
+W2-A other pairings and triplexes (the fragile closures above first), W2-B mutations and fit-to-map,
+W2-C commands and pipeline.
