@@ -9,24 +9,21 @@ Reports kept for reference (`docs/reports/`):
   adopted items are in the fix wave).
 - `2026-11-25-mdatk-bug-report.md`: 85 bugs still present in MDATK 0.1.1, handed to the MDATK side.
 
-## Wave 0 (started, then stopped for a usage limit before any code was written)
+## Wave 0: done (CI green at 183f698)
 
-All six packages restart from the plan (section 6); nothing was lost. Notes the packages gathered:
+Edit model (`core::ProjectDocument`, problems), field widgets (`src/app/gui/forms/`), job runner
+and log view (`src/app/gui/jobs/`), `demo` / `clean` / `citations` (with the process runner in
+`src/core/process`, cleaning in `src/analysis/cleaning`), GUI parity generators
+(`make_gui_cases.py`, 34 cases, skipped until their pages exist) and the GUI test harness
+(`mdbridge_gui_tests`, `gui.forms`, `gui.jobs`). Owner decision: cpptraj scripts name MDBridge
+(CMD-08).
 
-- **W0-B edit model:** commit the documented header first. Lossless numbers need the original text
-  of each loaded field kept until the user edits it (the typed structs hold doubles). The rename
-  cascade ports MDATK 0.1.1's `Project.rename_group`.
-- **W0-C field widgets:** start after W0-B's header.
-- **W0-D jobs and log:** follow MDATK 0.1.1 (`gui/jobs.py`, `logpanel.py`, close handling in
-  `app.py` / `rnado.py`): progress throttled to 0.5 % steps; the log keeps at most 6000 lines and
-  trims to 5000, appends in batches every 40 ms of at most 2000 lines with a note counting skipped
-  lines; on close ask, stop the job, wait up to 15 s.
-- **W0-E commands:** byte-identical `demo` output depends on numpy's random numbers, scipy's
-  nearest-neighbour search, numpy rounding and the NetCDF writer layout; check the existing
-  `numpy_random` and parm7 / NetCDF writers first.
-- **W0-A / W0-F:** W0-A defines the action-script JSON first (actions open, set, save, canvas
-  paths) so W0-F can consume it. `MainWindow` has no save yet: the harness needs a save hook calling
-  `core::saveProject`, with `core::setClock` for fixed time stamps.
+Known issue for W3 (packaging): when the host lacks one of the AppImage's fallback libraries,
+AppRun puts the whole `usr/lib/fallback` folder first on LD_LIBRARY_PATH, so Rocky's fontconfig,
+freetype, harfbuzz and GL replace the host's; only the missing libraries should be supplied.
 
-Next: run the packages, verify each against its acceptance column, merge, regenerate, full ctest
-with app + FFmpeg + Vulkan, cli_parity, push; then waves 1-3.
+## Wave 1: in progress
+
+W1-A window shell, W1-B pages 1 (Input & cleaning, Residue groups, Analyses), W1-C pages 2
+(Structure view, Outputs), W1-D problems. Then wave 2 (layout page + canvas editor, actions) and
+wave 3 (docs, accessibility, Windows checks, packaging fix above).
