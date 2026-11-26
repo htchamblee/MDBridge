@@ -152,13 +152,16 @@ private slots:
         connect(&runner, &JobRunner::statusChanged, this,
                 [&texts](double, const QString& text) { texts.append(text); });
         QSignalSpy finished(&runner, &JobRunner::finished);
-        // 10 000 steps of 0.01 % over about 0.5 s: MDATK's throttle shows one per 0.5 % at most
+        // 10 000 steps of 0.01 % over about 0.5 s: MDATK's throttle shows one per 0.5 % at most.
+        // Paced by the clock, not by sleep_for(50us): on Windows every sleep lasts at least one
+        // scheduler tick (up to 15.6 ms), which made this job take minutes there
         runner.start(
             QStringLiteral("Counting"),
             [](const Reporter& reporter) {
+                const auto begin = std::chrono::steady_clock::now();
                 for (int i = 1; i <= 10000; ++i) {
                     reporter.progress(i / 10000.0, "frame");
-                    std::this_thread::sleep_for(50us);
+                    while (std::chrono::steady_clock::now() - begin < i * 50us) std::this_thread::yield();
                 }
             },
             [] {});

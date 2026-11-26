@@ -3,8 +3,11 @@
 # Linux wheels, and Ubuntu's python3-gi / python3-cairo are built for its own Python 3.12 only, so
 # both are built from source against the system's GTK 3 (Ubuntu 24.04: libgirepository-2.0-dev,
 # libcairo2-dev, pkg-config, gir1.2-gtk-3.0; xvfb to run them), with the pinned build tools of
-# requirements-gui-build.txt:
+# requirements-gui-build.txt, pycairo first (PyGObject's build needs its installed header), with the
+# venv's bin on PATH (meson-python runs "meson" from it):
+#   PATH="<venv>/bin:$PATH"
 #   python -m pip install --no-deps -r tests/parity/requirements-gui-build.txt
+#   python -m pip install --no-deps --no-build-isolation -c tests/parity/requirements-gui.txt pycairo
 #   python -m pip install --no-deps --no-build-isolation -r tests/parity/requirements-gui.txt
 pycairo==1.28.0
 PyGObject==3.52.3

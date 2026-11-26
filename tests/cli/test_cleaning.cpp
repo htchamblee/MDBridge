@@ -67,6 +67,13 @@ CommandRun runIn(const fs::path& folder, const std::vector<std::string>& args) {
 
 std::string utf8(const fs::path& p) { return core::pathToUtf8(p); }
 
+// the separator os.path.join puts between the demo's folder and its files ('\\' on Windows, ntpath)
+#ifdef _WIN32
+constexpr const char* kJoin = "\\";
+#else
+constexpr const char* kJoin = "/";
+#endif
+
 // ---- demo ---------------------------------------------------------------------------------------
 
 TEST(Demo, DrySystemIsMdatksByteForByte) {
@@ -77,7 +84,7 @@ TEST(Demo, DrySystemIsMdatksByteForByte) {
     options.frames = 24;
     options.solvent = false;
     const app::DemoFiles files = app::buildDemo(utf8(work / "d"), options);
-    EXPECT_EQ(files.topology, utf8(work / "d") + "/demo.parm7");
+    EXPECT_EQ(files.topology, utf8(work / "d") + kJoin + "demo.parm7");
     EXPECT_EQ(files.entries().size(), 4u);
     EXPECT_EQ(files.entries()[3].second, files.project);
     EXPECT_TRUE(test::readFile(work / "d" / "demo.parm7") == test::readFile(kData / "topology" / "demo_dry.parm7"));
@@ -144,13 +151,21 @@ TEST(Demo, Command) {
     test::TempDir work;
     const CommandRun run = runIn(work.path(), {"demo", "sub/d", "--n-frames", "3", "--no-solvent"});
     EXPECT_EQ(run.exit, 0) << run.err;
-    EXPECT_EQ(run.out, "Synthetic system written to " + utf8(fs::canonical(work.path()) / "sub" / "d") +
-                           ":\n"
-                           "  topology   sub/d/demo.parm7\n"
-                           "  trajectory sub/d/demo.nc\n"
-                           "  project    sub/d/demo.mdatk.toml\n"
-                           "  preset     sub/d/demo.mdatk.toml\n"
-                           "Next: mdbridge render -p sub/d/demo.mdatk.toml   (or: mdbridge gui sub/d/demo.mdatk.toml)\n");
+    // os.path.abspath of the working folder as the process sees it: on Windows the folder as given
+    // (8.3 short names such as RUNNER~1 are not expanded, unlike fs::canonical), with '\\'
+#ifdef _WIN32
+    const std::string outDir = utf8(fs::absolute(work.path() / "sub" / "d").lexically_normal());
+#else
+    const std::string outDir = utf8(fs::canonical(work.path()) / "sub" / "d");
+#endif
+    const std::string d = std::string("sub/d") + kJoin;
+    EXPECT_EQ(run.out, "Synthetic system written to " + outDir + ":\n" +
+                           "  topology   " + d + "demo.parm7\n" +
+                           "  trajectory " + d + "demo.nc\n" +
+                           "  project    " + d + "demo.mdatk.toml\n" +
+                           "  preset     " + d + "demo.mdatk.toml\n" +
+                           "Next: mdbridge render -p " + d + "demo.mdatk.toml   (or: mdbridge gui " + d +
+                           "demo.mdatk.toml)\n");
     // --run without a renderer (this test's command line has none): the demo is written, render fails
     // (the counterpart of MDATK's test_cli_demo_render_and_tools is in test_demo_commands.cpp)
     const CommandRun rendered = runIn(work.path(), {"demo", "r", "--n-frames", "2", "--no-solvent", "--run", "-q"});

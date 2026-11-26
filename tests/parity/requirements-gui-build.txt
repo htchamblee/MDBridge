@@ -1,6 +1,9 @@
 # The build tools of PyGObject and pycairo (tests/parity/requirements-gui.txt), pinned; installed
-# first, then those two are built with --no-build-isolation against these:
+# first, then those two are built with --no-build-isolation against these, pycairo first (PyGObject's
+# build needs its installed header), with the venv's bin on PATH (meson-python runs "meson" from it):
+#   PATH="<venv>/bin:$PATH"
 #   python -m pip install --no-deps -r tests/parity/requirements-gui-build.txt
+#   python -m pip install --no-deps --no-build-isolation -c tests/parity/requirements-gui.txt pycairo
 #   python -m pip install --no-deps --no-build-isolation -r tests/parity/requirements-gui.txt
 meson==1.11.2
 meson-python==0.21.1

@@ -24370,7 +24370,7 @@
     "demo_dry.nc": "io/trajectories/demo_dry.nc"
    },
    "setup": {
-    "miniforge/condabin/conda": "#!/bin/sh\n# fake conda run --no-capture-output -p PREFIX PROGRAM ARGS...\nshift 3\nprefix=\"$1\"\nshift\nprogram=\"$1\"\nshift\nexec \"$prefix/bin/$program\" \"$@\"\n",
+    "miniforge/condabin/conda": "#!/bin/sh\n# fake conda run --no-capture-output -p PREFIX PROGRAM ARGS...\nshift 3\nprefix=\"$1\"\nshift\nprogram=\"$1\"\nshift\n# a missing program is reported here, not by exec, whose message depends on the shell behind /bin/sh\n# (dash on Ubuntu, bash on Rocky)\nif [ ! -x \"$prefix/bin/$program\" ]; then\n    echo \"conda run: $prefix/bin/$program: not found\" >&2\n    exit 127\nfi\nexec \"$prefix/bin/$program\" \"$@\"\n",
     "miniforge/envs/AmberTools26/bin/cpptraj": "#!/bin/sh\n# fake cpptraj -i SCRIPT\nscript=\"$2\"\nparm=$(sed -n 's/^parm \"\\(.*\\)\"$/\\1/p' \"$script\")\ntraj=$(sed -n 's/^trajin \"\\([^\"]*\\)\".*/\\1/p' \"$script\" | head -n 1)\nparmout=$(sed -n 's/.* parmout \"\\([^\"]*\\)\"$/\\1/p; s/^parmwrite out \"\\([^\"]*\\)\"$/\\1/p' \"$script\")\nnc=$(sed -n 's/^trajout \"\\([^\"]*\\)\" netcdf$/\\1/p' \"$script\")\npdb=$(sed -n 's/^trajout \"\\([^\"]*\\)\" pdb onlyframes 1$/\\1/p' \"$script\")\n[ -n \"$parmout\" ] && cp \"$parm\" \"$parmout\"\ncp \"$traj\" \"$nc\"\nprintf 'REMARK fake reference\\nEND\\n' > \"$pdb\"\nprintf 'CPPTRAJ: Trajectory Analysis. V6.29.0 (fake)\\nINPUT: Reading input from %s\\n  0%% 25%% 50%% 75%% 100%% Complete.\\nTIME: Total execution time: 0.0 seconds.\\n' \"$(basename \"$script\")\"\n"
    },
    "exit_only": false,
@@ -24467,7 +24467,7 @@
     "demo_dry.nc": "io/trajectories/demo_dry.nc"
    },
    "setup": {
-    "miniforge/condabin/conda": "#!/bin/sh\n# fake conda run --no-capture-output -p PREFIX PROGRAM ARGS...\nshift 3\nprefix=\"$1\"\nshift\nprogram=\"$1\"\nshift\nexec \"$prefix/bin/$program\" \"$@\"\n",
+    "miniforge/condabin/conda": "#!/bin/sh\n# fake conda run --no-capture-output -p PREFIX PROGRAM ARGS...\nshift 3\nprefix=\"$1\"\nshift\nprogram=\"$1\"\nshift\n# a missing program is reported here, not by exec, whose message depends on the shell behind /bin/sh\n# (dash on Ubuntu, bash on Rocky)\nif [ ! -x \"$prefix/bin/$program\" ]; then\n    echo \"conda run: $prefix/bin/$program: not found\" >&2\n    exit 127\nfi\nexec \"$prefix/bin/$program\" \"$@\"\n",
     "miniforge/envs/AmberTools26/bin/cpptraj": "#!/bin/sh\n# fake cpptraj -i SCRIPT\nscript=\"$2\"\nparm=$(sed -n 's/^parm \"\\(.*\\)\"$/\\1/p' \"$script\")\ntraj=$(sed -n 's/^trajin \"\\([^\"]*\\)\".*/\\1/p' \"$script\" | head -n 1)\nparmout=$(sed -n 's/.* parmout \"\\([^\"]*\\)\"$/\\1/p; s/^parmwrite out \"\\([^\"]*\\)\"$/\\1/p' \"$script\")\nnc=$(sed -n 's/^trajout \"\\([^\"]*\\)\" netcdf$/\\1/p' \"$script\")\npdb=$(sed -n 's/^trajout \"\\([^\"]*\\)\" pdb onlyframes 1$/\\1/p' \"$script\")\n[ -n \"$parmout\" ] && cp \"$parm\" \"$parmout\"\ncp \"$traj\" \"$nc\"\nprintf 'REMARK fake reference\\nEND\\n' > \"$pdb\"\nprintf 'CPPTRAJ: Trajectory Analysis. V6.29.0 (fake)\\nINPUT: Reading input from %s\\n  0%% 25%% 50%% 75%% 100%% Complete.\\nTIME: Total execution time: 0.0 seconds.\\n' \"$(basename \"$script\")\"\n"
    },
    "exit_only": false,
@@ -24566,7 +24566,7 @@
     "demo_dry.nc": "io/trajectories/demo_dry.nc"
    },
    "setup": {
-    "miniforge/condabin/conda": "#!/bin/sh\n# fake conda run --no-capture-output -p PREFIX PROGRAM ARGS...\nshift 3\nprefix=\"$1\"\nshift\nprogram=\"$1\"\nshift\nexec \"$prefix/bin/$program\" \"$@\"\n",
+    "miniforge/condabin/conda": "#!/bin/sh\n# fake conda run --no-capture-output -p PREFIX PROGRAM ARGS...\nshift 3\nprefix=\"$1\"\nshift\nprogram=\"$1\"\nshift\n# a missing program is reported here, not by exec, whose message depends on the shell behind /bin/sh\n# (dash on Ubuntu, bash on Rocky)\nif [ ! -x \"$prefix/bin/$program\" ]; then\n    echo \"conda run: $prefix/bin/$program: not found\" >&2\n    exit 127\nfi\nexec \"$prefix/bin/$program\" \"$@\"\n",
     "miniforge/envs/AmberTools26/bin/cpptraj": "#!/bin/sh\n# fake cpptraj -i SCRIPT\nscript=\"$2\"\nparm=$(sed -n 's/^parm \"\\(.*\\)\"$/\\1/p' \"$script\")\ntraj=$(sed -n 's/^trajin \"\\([^\"]*\\)\".*/\\1/p' \"$script\" | head -n 1)\nparmout=$(sed -n 's/.* parmout \"\\([^\"]*\\)\"$/\\1/p; s/^parmwrite out \"\\([^\"]*\\)\"$/\\1/p' \"$script\")\nnc=$(sed -n 's/^trajout \"\\([^\"]*\\)\" netcdf$/\\1/p' \"$script\")\npdb=$(sed -n 's/^trajout \"\\([^\"]*\\)\" pdb onlyframes 1$/\\1/p' \"$script\")\n[ -n \"$parmout\" ] && cp \"$parm\" \"$parmout\"\ncp \"$traj\" \"$nc\"\nprintf 'REMARK fake reference\\nEND\\n' > \"$pdb\"\nprintf 'CPPTRAJ: Trajectory Analysis. V6.29.0 (fake)\\nINPUT: Reading input from %s\\n  0%% 25%% 50%% 75%% 100%% Complete.\\nTIME: Total execution time: 0.0 seconds.\\n' \"$(basename \"$script\")\"\n"
    },
    "exit_only": false,
@@ -24586,13 +24586,13 @@
    ],
    "exit": 1,
    "stdout": "",
-   "stderr": "Cleaning trajectory with cpptraj ...\ncpptraj script written to {work}/MDATK_output/MDATK_cache/cleaned/{key}/cpptraj.in:\n{work}/miniforge/condabin/conda: 8: exec: Nope/bin/cpptraj: not found\nerror: cpptraj failed with exit code 127; see {work}/MDATK_output/MDATK_cache/cleaned/{key}/cpptraj.log\n",
+   "stderr": "Cleaning trajectory with cpptraj ...\ncpptraj script written to {work}/MDATK_output/MDATK_cache/cleaned/{key}/cpptraj.in:\nconda run: Nope/bin/cpptraj: not found\nerror: cpptraj failed with exit code 127; see {work}/MDATK_output/MDATK_cache/cleaned/{key}/cpptraj.log\n",
    "written": {
     "MDATK_output/MDATK_cache/cleaned/{key}/cpptraj.in": {
      "text": "# Generated by {program} on {time}\nparm \"{work}/demo_dry.parm7\"\ntrajin \"{work}/demo_dry.nc\" 1 last 1\nstrip (:WAT,HOH,TIP3,SOL,T3P,T4P,SPC)|(:Na+,Cl-,K+,NA,CL,K,Na,Cl,SOD,CLA,POT) parmout \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.parm7\"\nautoimage\nbox nobox\nrms MDATKfit @P,C4' first mass\ntrajout \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned.nc\" netcdf\ntrajout \"{work}/MDATK_output/MDATK_cache/cleaned/{key}/MDATK_cleaned_ref.pdb\" pdb onlyframes 1\nrun\nquit\n"
     },
     "MDATK_output/MDATK_cache/cleaned/{key}/cpptraj.log": {
-     "text": "{work}/miniforge/condabin/conda: 8: exec: Nope/bin/cpptraj: not found\n"
+     "text": "conda run: Nope/bin/cpptraj: not found\n"
     }
    },
    "before_exits": [],

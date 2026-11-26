@@ -232,6 +232,12 @@ prefix="$1"
 shift
 program="$1"
 shift
+# a missing program is reported here, not by exec, whose message depends on the shell behind /bin/sh
+# (dash on Ubuntu, bash on Rocky)
+if [ ! -x "$prefix/bin/$program" ]; then
+    echo "conda run: $prefix/bin/$program: not found" >&2
+    exit 127
+fi
 exec "$prefix/bin/$program" "$@"
 """
 CPPTRAJ_ON_PATH = {"bin/cpptraj": FAKE_CPPTRAJ}
