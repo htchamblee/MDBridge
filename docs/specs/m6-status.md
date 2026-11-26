@@ -15,19 +15,16 @@ Known fragile result for W2-A: MDATK's non-WC / triplex least-squares closures a
 (~0.8 Å spread from the BLAS kernel choice alone, far beyond D10's tolerance). Treat it as a
 fragile result to fix, not to copy; options go to the owner before W2-A finishes.
 
-## Wave 1: done (pending CI)
+## Wave 1: done (CI green at 8d75a4a)
 
-Integrated on `m6-w1-integ` (merges of W1-A/W1-B, W1-C, W1-D, W1-E): PDB hygiene
-(`chem::pdbtools`: CH-01, CH-03..07, CH-13, CH-15), base-pair annotation (`chem::annotate`: CH-14,
-D13), restraint dictionaries and SMILES (`chem::dictionaries`, `chem::smiles`: DIC-01, DIC-02), the
-Watson-Crick helix builder (`chem::buildHelix`: CH-01, CH-02, CHD-01, D13) and the rigid-body
-density fit (`chem::FitProblem`, `fitModel`: CH-10, CH-11, D2; several threads). At the merge the
-builder's temporary adapter (src/chem/pdb_names) gave way to W1-A's `chem::convertNames` /
-`chem::setRecords`, and its own CH-01 check to `io::writePdb`'s (the same message); `chem::kSchemes`
-is defined once (chem/pdbtools.hpp). The command lines (`pdb`, `build`, `dict`, `density fit /
-simulate`) stay pending for W2-C.
+PDB hygiene (`chem/pdbtools.hpp`), annotation (`chem/annotate.hpp`), dictionaries and SMILES
+(`chem/dictionaries.hpp`, `chem/smiles.hpp`), the Watson-Crick helix builder (`chem/helix.hpp`) and
+the density fit (`chem/density_fit.hpp`); each matches its recorded MDATK cases (byte for byte or
+within D10). The regenerate job has a kernel probe: on runners whose pinned kernels give other bits,
+MDATK's path-dependent chem results (density-fit evaluation counts, non-WC closures) are compared
+structurally (interim; tighten once W2-A makes the non-WC builds well-conditioned).
 
-## Wave 2: next
+## Wave 2: in progress
 
-W2-A other pairings and triplexes (the fragile closures above first), W2-B mutations and fit-to-map,
-W2-C commands and pipeline.
+W2-B mutations and fit-to-map, W2-C commands and pipeline. W2-A (other pairings and triplexes) waits
+for the conditioning investigation and the owner's decision.
