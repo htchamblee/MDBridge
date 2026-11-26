@@ -102,6 +102,13 @@ double finiteMapLevel(const io::DensityMap& map, double sigmas);
 // the model centre it gives MDATK's centre_transform (the window's *Centre on model*).
 core::Vec3 densityCentroid(const io::DensityMap& map, double level);
 
+// A density-map placement made by hand on the frame a structure panel shows (MDATK's
+// _on_map_moved, centre_density): `d` gets the transform (12 numbers, model -> map), the anchor
+// (`model`, the panel's modelPoints of that frame, rounded as project files store them), fit_cc 0
+// and `fitInfo`. The window's map drags and *Centre on model* store their placements with it.
+void storeDensityPlacement(core::DensityParams& d, std::span<const double> transform, std::span<const Vec3d> model,
+                           std::string fitInfo);
+
 // The legend label of the ions (RN-08) from the trace's meta["ion_labels"] ("MG25", "NA101",
 // "K+3", ...): "Mg²⁺", "Na⁺", "K⁺", "Ca²⁺", "Zn²⁺", "Mn²⁺", "Cl⁻" for one element, "Ions" for
 // several or unknown ones (and without labels).
@@ -124,6 +131,12 @@ public:
     // the next update.
     void setFast(bool on);
     bool fast() const { return m_fast; }
+    // The renderer of the 3D layer while fast() (the GUI's GPU renderer while dragging); nullptr:
+    // the panel's own renderer.
+    void setFastRenderer(std::shared_ptr<const StageRenderer> renderer);
+    // A new visual.zoom without rebuilding the figure (the GUI's mouse wheel): the data window and
+    // the shadow; the artists move at the next update.
+    void setZoom(Figure& fig, double zoom);
     // set_density_transform: a new map placement (12 numbers, model -> map). Throws
     // core::ValueError for unusable numbers (RigidTransform::fromList).
     void setDensityTransform(Figure& fig, std::span<const double> values);
@@ -192,6 +205,7 @@ private:
     void residueTags(Figure& fig);
     void legend(Figure& fig);
     void fitAspect(Figure& fig);
+    void dataWindow();
     void updateDensity(Figure& fig);
     bool densityAnimated() const;
     void followDensity(Figure& fig, std::size_t pos);
@@ -215,6 +229,8 @@ private:
     std::vector<bool> m_finite;  // frames x residues: the trace point is finite
     Artists m_art;
     bool m_fast = false;
+    double m_zoom = 1.0;
+    std::shared_ptr<const StageRenderer> m_fastRenderer;
     std::optional<std::size_t> m_pos;
     std::shared_ptr<const StageRendererFactory> m_renderers;
     bool m_hasLegend = false;

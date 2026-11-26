@@ -9,8 +9,9 @@
 //               About MDBridge)
 //   page bar    six page buttons (Ctrl+1 .. Ctrl+6), the canvas hint, Refresh (F5)
 //   side bar    520 px: the page title and the page (pages/page_registry.hpp) in a scroll area
-//   canvas      the figure preview (the layout editor and its structure panel as the 3D view come
-//               with W2-A; the separate 3D view of M1 / M4 is gone, D4)
+//   canvas      the figure canvas (PreviewWidget): MDATK's layout editor, its structure panel the
+//               3D view (rotate, zoom, map moves in place; the separate 3D view of M1 / M4 is gone,
+//               D4); each drag is one undo step
 //   log         jobs::LogView, folded with Ctrl+L
 //   action bar  Render (Ctrl+R), Cancel, progress, Open output folder, Open video (the jobs and
 //               desktop actions: actions/window_actions.hpp, W2-B)
@@ -68,6 +69,11 @@ namespace problems {
 class ProblemsPanel;
 }
 
+namespace pages {
+class LayoutPage;
+class StructurePage;
+}  // namespace pages
+
 class PreviewWidget;
 class Prompter;
 class TextDialog;
@@ -77,8 +83,8 @@ class MainWindow : public QMainWindow {
     Q_OBJECT
 
 public:
-    // `renderer`: the 3D renderer the structure panel will draw with (W2-A); kept for it and shown
-    // by Graphics….
+    // `renderer`: the 3D renderer of the canvas's structure panel while dragging (Auto / Vulkan: the
+    // GPU renderer when this machine has a GPU, D4; Software: never the GPU), shown by Graphics….
     explicit MainWindow(render::Renderer renderer = render::Renderer::Auto, QWidget* parent = nullptr);
     ~MainWindow() override;
 
@@ -226,6 +232,7 @@ private:
     void dropRecovery();
     void watchFile();
     void startLoad();
+    void connectCanvas();
     void schedulePreview();
     void updatePreview();
     QString ask(const QString& kind, const QString& path, const QString& title, const QString& text,
@@ -276,6 +283,12 @@ private:
     bool m_warningsKnown = false;
     Background m_background{this};
     core::LogSink m_previousSink;
+
+    // the canvas (W2-A)
+    pages::LayoutPage* m_layoutPage = nullptr;
+    pages::StructurePage* m_structurePage = nullptr;
+    bool m_canvasEdit = false;            // the document change comes from the canvas, which shows it
+    std::shared_ptr<void> m_gpu;          // render::panels::GpuStageRenderers while it may be used
 };
 
 }  // namespace mdbridge::app

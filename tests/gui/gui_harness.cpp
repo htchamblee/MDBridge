@@ -19,16 +19,19 @@
 #include <QAbstractSpinBox>
 #include <QApplication>
 #include <QComboBox>
+#include <QCoreApplication>
 #include <QFont>
 #include <QImage>
 #include <QLabel>
 #include <QLineEdit>
+#include <QMouseEvent>
 #include <QPixmap>
 #include <QPlainTextEdit>
 #include <QStringList>
 #include <QTableView>
 #include <QTest>
 #include <QTextEdit>
+#include <QWheelEvent>
 #include <QWidget>
 
 #include "gui/forms/field_widgets.hpp"
@@ -40,6 +43,7 @@
 #include "mdbridge/core/settings.hpp"
 #include "mdbridge/render/text.hpp"
 #include "mdbridge/render/text_qt.hpp"
+#include "gui/pages/layout_page.hpp"
 #include "gui/preview_widget.hpp"
 
 namespace fs = std::filesystem;
@@ -379,6 +383,14 @@ GuiCase loadCase(const fs::path& file, const fs::path& casesDir) {
         if (!outcome->isTable()) throw CaseError(where + ": 'outcome' must be an object");
         c.outcome = *outcome;
     }
+    if (const core::Value* canvas = root.find("canvas")) {
+        const core::Value* w = canvas->isTable() ? canvas->find("width") : nullptr;
+        const core::Value* h = canvas->isTable() ? canvas->find("height") : nullptr;
+        if (!w || !h || !w->get<std::int64_t>() || !h->get<std::int64_t>()) {
+            throw CaseError(where + ": 'canvas' must be {\"width\": W, \"height\": H}");
+        }
+        c.canvas = std::pair<int, int>(static_cast<int>(*w->get<std::int64_t>()), static_cast<int>(*h->get<std::int64_t>()));
+    }
     c.actions = *actions->get<core::Array>();
     for (std::size_t k = 0; k < c.actions.size(); ++k) {
         if (!c.actions[k].isTable() || !c.actions[k].find("action") || !c.actions[k].find("action")->isString()) {
@@ -393,8 +405,7 @@ bool GuiCase::needsAny(std::string_view need) const {
 }
 
 std::vector<std::string> unsupportedNeeds(const GuiCase& c) {
-    // grows as the window and this runner do (the canvas actions come with W2-A)
-    static const std::vector<std::string> supported{"answers", "close",    "lossless", "new",  "open_failure",
+    static const std::vector<std::string> supported{"answers", "canvas", "close", "lossless", "new", "open_failure",
                                                     "save_as", "settings", "snapshot", "start", "table",
                                                     "toggle", "type"};
     std::vector<std::string> out;
@@ -799,9 +810,19 @@ void CaseRunner::start(const std::string& project) {
     m_prompter.action = -1;
     m_prompter.answers = core::Value();
     m_window.startWith(m_caseDir / core::pathFromUtf8(project));
+    waitForPreview();
+}
+
+// As the generator's flush() after the window is shown: the first drawing is done (and its
+// warnings known) before the first action.
+void CaseRunner::waitForPreview() {
+    if (!QTest::qWaitFor([this] { return m_window.isHidden() || m_window.previewSettled(); }, 30000)) {
+        throw CaseError("the preview did not settle in 30 s");
+    }
 }
 
 void CaseRunner::run(const core::Array& actions) {
+    waitForPreview();
     for (std::size_t k = 0; k < actions.size(); ++k) {
         m_index = static_cast<int>(k);
         m_current = actions[k];
@@ -892,12 +913,154 @@ void CaseRunner::runAction(const core::Value& action) {
         if (m_current.isNull()) m_current = action;
         if (optionalString(action, "path").empty()) m_window.save();
         else m_window.saveAs();
+    } else if (what.rfind("canvas.", 0) == 0) {
+        canvasAction(action, what);
     } else if (what == "screenshot") {
         const std::string widgetName = optionalString(action, "widget");
         QWidget* widget = widgetName.empty() ? static_cast<QWidget*>(&m_window) : findField(&m_window, toQString(widgetName));
         m_shots.push_back(saveScreenshot(widget, m_screenshotDir, m_caseName + "-" + stringEntry(action, "name", what)));
     } else {
         throw CaseError("unknown action (tests/data/README.md, \"gui\", lists the actions)");
+    }
+}
+
+// ---- canvas actions ---------------------------------------------------------------------------
+
+namespace {
+
+double number(const core::Value& v) {
+    if (const auto* i = v.get<std::int64_t>()) return static_cast<double>(*i);
+    if (const auto* d = v.get<double>()) return *d;
+    throw CaseError("a number was expected");
+}
+
+void sendMouse(QWidget* widget, QEvent::Type type, const QPointF& at, Qt::MouseButton button, Qt::MouseButtons buttons,
+               Qt::KeyboardModifiers modifiers) {
+    QMouseEvent event(type, at, widget->mapToGlobal(at), button, buttons, modifiers);
+    QCoreApplication::sendEvent(widget, &event);
+}
+
+}  // namespace
+
+void CaseRunner::canvasAction(const core::Value& action, const std::string& what) {
+    app::PreviewWidget* canvas = m_window.preview();
+    if (!QTest::qWaitFor([&] { return m_window.previewSettled() && canvas->current(); }, 30000)) {
+        throw CaseError("the canvas shows no figure");
+    }
+    const std::vector<QRectF> rects = canvas->slotRects();
+    // MDATK's record of this action, if the case has one
+    const core::Value* record = nullptr;
+    if (const auto* records = m_canvasRecords.get<core::Array>()) {
+        for (const core::Value& r : *records) {
+            const core::Value* a = r.find("action");
+            if (a && a->get<std::int64_t>() && *a->get<std::int64_t>() == m_index) record = &r;
+        }
+    }
+    if (record) {
+        const core::Value* hit = record->find("slots");
+        const auto* list = hit ? hit->get<core::Array>() : nullptr;
+        if (!list || list->size() != rects.size()) {
+            throw CaseError("the canvas has " + std::to_string(rects.size()) + " slots, MDATK's had " +
+                            std::to_string(list ? list->size() : 0));
+        }
+        const core::Value* structure = record->find("structure_slot");
+        if (structure && structure->get<std::int64_t>() && *structure->get<std::int64_t>() != canvas->structureSlot()) {
+            throw CaseError("the structure panel is in slot " + std::to_string(canvas->structureSlot()) + ", MDATK's in " +
+                            std::to_string(*structure->get<std::int64_t>()));
+        }
+        for (std::size_t k = 0; k < rects.size(); ++k) {
+            const core::Array& r = *(*list)[k].get<core::Array>();
+            const QRectF m(number(r[0]), number(r[1]), number(r[2]), number(r[3]));
+            const QRectF& o = rects[k];
+            const double d = std::max({std::abs(m.left() - o.left()), std::abs(m.top() - o.top()),
+                                       std::abs(m.right() - o.right()), std::abs(m.bottom() - o.bottom())});
+            if (d > 3.0) {
+                std::ostringstream note;
+                note << m_caseName << " action " << m_index << " slot " << k << ": hit area differs from MDATK's by " << d
+                     << " px (MDATK " << m.x() << ", " << m.y() << ", " << m.width() << ", " << m.height() << "; here " << o.x()
+                     << ", " << o.y() << ", " << o.width() << ", " << o.height() << ")";
+                m_geometryNotes.push_back(note.str());
+            }
+        }
+    }
+    const auto point = [&](const core::Value& spec) {
+        const core::Value* slot = spec.find("slot");
+        const core::Value* at = spec.find("at");
+        if (!slot || !slot->get<std::int64_t>() || !at || !at->isArray() || at->get<core::Array>()->size() != 2) {
+            throw CaseError("a point is {\"slot\": N, \"at\": [fx, fy]}");
+        }
+        const auto k = static_cast<std::size_t>(*slot->get<std::int64_t>());
+        if (k >= rects.size()) throw CaseError("the canvas has no slot " + std::to_string(k));
+        const QRectF& r = rects[k];
+        const core::Array& f = *at->get<core::Array>();
+        return QPointF(r.x() + number(f[0]) * r.width(), r.y() + number(f[1]) * r.height());
+    };
+    // the events: MDATK's positions, else resolved here as make_gui_cases.py resolves them
+    struct Event {
+        std::string kind;
+        QPointF at;
+        int notches = 0;
+    };
+    std::vector<Event> events;
+    if (record) {
+        for (const core::Value& e : *record->find("events")->get<core::Array>()) {
+            const core::Array& a = *e.get<core::Array>();
+            Event ev{a[0].stringOr(), QPointF(number(a[1]), number(a[2])), 0};
+            if (a.size() > 3) ev.notches = static_cast<int>(number(a[3]));
+            events.push_back(ev);
+        }
+    } else if (what == "canvas.wheel") {
+        const QPointF at = point(*action.find("at"));
+        for (const core::Value& n : *action.find("notches")->get<core::Array>()) {
+            events.push_back({"scroll", at, static_cast<int>(number(n))});
+        }
+    } else if (what == "canvas.double_click") {
+        const QPointF at = point(*action.find("at"));
+        for (const char* kind : {"press", "release", "press", "double", "release"}) events.push_back({kind, at, 0});
+    } else if (what == "canvas.drag") {
+        const QPointF from = point(*action.find("from"));
+        events.push_back({"press", from, 0});
+        if (const core::Value* to = action.find("to")) {
+            events.push_back({"motion", point(*to), 0});
+        } else {
+            for (const core::Value& d : *action.find("path")->get<core::Array>()) {
+                const core::Array& xy = *d.get<core::Array>();
+                events.push_back({"motion", from + QPointF(number(xy[0]), number(xy[1])), 0});
+            }
+        }
+        events.push_back({"release", events.back().at, 0});
+    } else {
+        throw CaseError("unknown canvas action");
+    }
+    const core::Value* shift = action.find("shift");
+    const Qt::KeyboardModifiers mods = shift && shift->get<bool>() && *shift->get<bool>() ? Qt::ShiftModifier : Qt::NoModifier;
+    bool shotTaken = false;
+    for (const Event& e : events) {
+        if (e.kind == "press") {
+            sendMouse(canvas, QEvent::MouseButtonPress, e.at, Qt::LeftButton, Qt::LeftButton, mods);
+        } else if (e.kind == "double") {
+            sendMouse(canvas, QEvent::MouseButtonDblClick, e.at, Qt::LeftButton, Qt::LeftButton, mods);
+        } else if (e.kind == "motion") {
+            sendMouse(canvas, QEvent::MouseMove, e.at, Qt::NoButton, Qt::LeftButton, mods);
+        } else if (e.kind == "release") {
+            if (!shotTaken && !canvas->dragMode().isEmpty()) {
+                // a mid-drag frame (CI artifact): the highlight and label of a panel drag
+                QCoreApplication::processEvents();
+                m_shots.push_back(saveScreenshot(canvas, m_screenshotDir,
+                                                 m_caseName + "-drag-" + std::to_string(m_index)));
+                shotTaken = true;
+            }
+            sendMouse(canvas, QEvent::MouseButtonRelease, e.at, Qt::LeftButton, Qt::NoButton, mods);
+        } else if (e.kind == "scroll") {
+            QWheelEvent wheel(e.at, canvas->mapToGlobal(e.at), QPoint(), QPoint(0, 120 * e.notches), Qt::NoButton, mods,
+                              Qt::NoScrollPhase, false);
+            QCoreApplication::sendEvent(canvas, &wheel);
+            if (!QTest::qWaitFor([this] { return m_window.previewSettled(); }, 30000)) {
+                throw CaseError("the canvas did not settle after a wheel turn");
+            }
+        } else {
+            throw CaseError("unknown canvas event '" + e.kind + "'");
+        }
     }
 }
 
@@ -964,9 +1127,6 @@ void RecordingPrompter::printError(const QString& line) { stderrLines.push_back(
 
 void CaseRunner::snapshot(const core::Value& action) {
     core::Table rec{{"action", static_cast<std::int64_t>(m_index)}};
-    if (action.find("slots")) {
-        throw CaseError("snapshots of the slot editors need the Layout & panels page (W2-A)");
-    }
     app::forms::FormContext& context = m_window.formContext();
     context.commitPendingEdits();
     if (const core::Value* keys = action.find("keys"); keys && keys->isArray() && !keys->get<core::Array>()->empty()) {
@@ -979,6 +1139,32 @@ void CaseRunner::snapshot(const core::Value& action) {
             }
             rec.emplace_back("values", core::Value(std::move(values)));
         }
+    }
+    if (const core::Value* editors = action.find("slots"); editors && editors->get<bool>() && *editors->get<bool>()) {
+        app::pages::LayoutPage* layout = nullptr;
+        for (const app::MainWindow::Page& page : m_window.pages()) {
+            if (auto* l = qobject_cast<app::pages::LayoutPage*>(page.widget)) layout = l;
+        }
+        if (!layout) throw CaseError("the window has no Layout & panels page");
+        core::Array out;
+        const auto text = [](const QString& t) { return core::Value(t.toStdString()); };
+        for (int k = 0; k < layout->slotCount(); ++k) {
+            const app::pages::LayoutPage::SlotState st = layout->slotState(k);
+            core::Array choices;
+            for (const auto& [id, label] : st.choices) choices.emplace_back(core::Array{text(id), text(label)});
+            out.emplace_back(core::Table{{"frame", text(st.frame)},
+                                         {"type", text(st.type)},
+                                         {"data", st.data ? text(*st.data) : core::Value()},
+                                         {"choices", core::Value(std::move(choices))},
+                                         {"group_a", text(st.groupA)},
+                                         {"group_b", text(st.groupB)},
+                                         {"group_a_enabled", st.groupAEnabled},
+                                         {"group_b_enabled", st.groupBEnabled},
+                                         {"more", text(st.more)},
+                                         {"title", text(st.title)},
+                                         {"options", text(st.options)}});
+        }
+        rec.emplace_back("slots", core::Value(std::move(out)));
     }
     if (const core::Value* page = action.find("page"); page && page->get<bool>() && *page->get<bool>()) {
         rec.emplace_back("page", m_window.currentPage().toStdString());

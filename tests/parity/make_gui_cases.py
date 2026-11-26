@@ -1014,6 +1014,8 @@ def worker(kind, mdatk, data, cases_file, out_file):
         else:
             raise ValueError(f"unknown action {name}")
         if state["win"] is not None:
+            if improved:
+                IG.after_action(state["win"])
             flush(state["win"])
 
     def snapshot_files(folder):

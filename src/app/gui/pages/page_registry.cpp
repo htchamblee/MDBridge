@@ -10,6 +10,7 @@
 #include "gui/pages/analyses_page.hpp"
 #include "gui/pages/groups_page.hpp"
 #include "gui/pages/input_page.hpp"
+#include "gui/pages/layout_page.hpp"
 #include "gui/pages/outputs_page.hpp"
 #include "gui/pages/placeholder_page.hpp"
 #include "gui/pages/structure_page.hpp"
@@ -23,9 +24,7 @@ struct PageEntry {
     std::function<QWidget*(forms::FormContext&)> make;
 };
 
-// MDATK's order (app.py:226-254). The Layout & panels page is a PlaceholderPage (every field of
-// the page from the model) until W2-A replaces its line.
-QWidget* placeholder(forms::FormContext& c, const char* id) { return new PlaceholderPage(c, QString::fromLatin1(id)); }
+// MDATK's order (app.py:226-254).
 
 const std::vector<PageEntry>& entries() {
     static const std::vector<PageEntry> list{
@@ -33,7 +32,7 @@ const std::vector<PageEntry>& entries() {
         {"groups", [](forms::FormContext& c) -> QWidget* { return new GroupsPage(c); }},
         {"analyses", [](forms::FormContext& c) -> QWidget* { return new AnalysesPage(c); }},
         {"structure", [](forms::FormContext& c) -> QWidget* { return new StructurePage(c); }},
-        {"layout", [](forms::FormContext& c) { return placeholder(c, "layout"); }},
+        {"layout", [](forms::FormContext& c) -> QWidget* { return new LayoutPage(c); }},
         {"outputs", [](forms::FormContext& c) -> QWidget* { return new OutputsPage(c); }},
     };
     return list;

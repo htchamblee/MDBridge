@@ -222,6 +222,16 @@ core::Vec3 densityCentroid(const io::DensityMap& map, double level) {
     return map.indexToXyz({cx / total, cy / total, cz / total});
 }
 
+void storeDensityPlacement(core::DensityParams& d, std::span<const double> transform, std::span<const Vec3d> model,
+                           std::string fitInfo) {
+    std::vector<core::Vec3> points(model.begin(), model.end());
+    d.transform.assign(transform.begin(), transform.end());
+    d.anchor.clear();
+    for (const core::Vec3& p : core::anchorPoints(points)) d.anchor.push_back({p[0], p[1], p[2]});
+    d.fit_cc = 0.0;
+    d.fit_info = std::move(fitInfo);
+}
+
 // ---- the 3D layer ---------------------------------------------------------------------------------
 
 struct StructurePanel::Stage {
@@ -326,11 +336,8 @@ void StructurePanel::setup(Figure& fig) {
     }
     radius = std::max(radius, 1.0);
     m_radius = radius;
-    const double zoom = v.zoom;
-    const double half = radius / std::max(zoom, 0.05);  // MDATK's "view"; zoom > 1 shows a smaller window
-    const double pad = 0.06 * half + 2.0 / std::max(zoom, 1.0);
-    m_dataLo = {-half - pad, -half - pad};
-    m_dataHi = {half + pad, half + pad};
+    m_zoom = v.zoom;
+    dataWindow();
     Axes& a = ax(fig);
     a.setXLim(m_dataLo[0], m_dataHi[0]);
     a.setYLim(m_dataLo[1], m_dataHi[1]);
@@ -503,6 +510,28 @@ void StructurePanel::setRotation(Figure& fig, std::span<const double> angles) {
 }
 
 void StructurePanel::setFast(bool on) { m_fast = on; }
+
+void StructurePanel::setFastRenderer(std::shared_ptr<const StageRenderer> renderer) { m_fastRenderer = std::move(renderer); }
+
+void StructurePanel::dataWindow() {
+    const double half = m_radius / std::max(m_zoom, 0.05);  // MDATK's "view"; zoom > 1 shows a smaller window
+    const double pad = 0.06 * half + 2.0 / std::max(m_zoom, 1.0);
+    m_dataLo = {-half - pad, -half - pad};
+    m_dataHi = {half + pad, half + pad};
+}
+
+void StructurePanel::setZoom(Figure& fig, double zoom) {
+    if (!ok()) {
+        return;
+    }
+    m_zoom = zoom;
+    dataWindow();
+    ax(fig).setXLim(m_dataLo[0], m_dataHi[0]);
+    ax(fig).setYLim(m_dataLo[1], m_dataHi[1]);
+    fitAspect(fig);
+    updateDensity(fig);
+}
+
 
 // ---- density map shadow --------------------------------------------------------------------------
 
@@ -825,7 +854,8 @@ void StructurePanel::renderStage(Figure& fig) {
     vp.height = h;
     vp.zrange = {m_zmin, m_zmax};
     try {
-        molecule::RgbaImage img = st.renderer->render(st.items, vp, stageShading(pos),
+        const StageRenderer& renderer = m_fast && m_fastRenderer ? *m_fastRenderer : *st.renderer;
+        molecule::RgbaImage img = renderer.render(st.items, vp, stageShading(pos),
                                                       m_fast ? molecule::RenderQuality::Fast : molecule::RenderQuality::High);
         st.failed = false;
         im.rows = static_cast<int>(img.height);
@@ -1099,7 +1129,7 @@ void StructurePanel::drawFrame(Figure& fig, std::size_t pos) {
             cx /= static_cast<double>(rows.size());
             cy /= static_cast<double>(rows.size());
         }
-        const double push = 0.07 * m_radius / std::max(v.zoom, 0.05) + 1.5;
+        const double push = 0.07 * m_radius / std::max(m_zoom, 0.05) + 1.5;
         for (std::size_t t = 0; t < m_art.tags.size(); ++t) {
             const auto k = static_cast<std::size_t>(m_tagRows[t]);
             Text& text = artist<Text>(fig, m_art.tags[t]);

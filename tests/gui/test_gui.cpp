@@ -3,6 +3,7 @@
 // the saved files compared with MDATK's, screenshots for CI artifacts. Qt Test on the "offscreen"
 // platform (Linux and Windows, no display), the software 3D view.
 
+#include <algorithm>
 #include <cstdlib>
 #include <exception>
 #include <memory>
@@ -30,6 +31,7 @@
 #include "gui/forms/form_context.hpp"
 #include "gui/forms/list_editor.hpp"
 #include "gui/main_window.hpp"
+#include "gui/preview_widget.hpp"
 #include "gui_harness.hpp"
 #include "mdbridge/core/paths.hpp"
 #include "gui/jobs/log_view.hpp"
@@ -45,20 +47,6 @@ namespace {
 const fs::path kData = core::pathFromUtf8(MDBRIDGE_TEST_DATA);
 
 fs::path screenshots() { return guitest::screenshotDir(core::pathFromUtf8(MDBRIDGE_GUI_SCREENSHOT_DIR)); }
-
-// Cases whose needs the harness has but whose pages are still placeholders (pages/page_registry.cpp):
-// skipped, naming the package that delivers what they need, until it does.
-const char* pendingReason(const std::string& name) {
-    static const std::vector<std::pair<std::string, const char*>> pending{
-        {"ap/ap08_preset_round_trip", "the slot editors of the Layout & panels page (W2-A)"},
-        {"pages/groups_page", "its snapshot of the slot editors (W2-A)"},
-        {"pages/layout_page", "the Layout & panels page (W2-A)"},
-    };
-    for (const auto& [n, why] : pending) {
-        if (n == name) return why;
-    }
-    return nullptr;
-}
 
 template <class F>
 std::string errorOf(F&& f) {
@@ -371,9 +359,6 @@ void GuiTests::cases() {
         }
         QSKIP(why.c_str());
     }
-    if (const char* pending = pendingReason(c.name)) {
-        QSKIP(pending);
-    }
     QTemporaryDir tmp;
     QVERIFY(tmp.isValid());
     const fs::path root = core::pathFromUtf8(tmp.path().toStdString());
@@ -404,13 +389,21 @@ void GuiTests::cases() {
         if (failure.empty()) {
             app::MainWindow window(render::Renderer::Software);
             window.resize(1320, 920);
+            if (c.canvas) {  // the figure canvas at MDATK's size (its geometry, the map drags' pixels -> Å)
+                window.preview()->setFixedSize(c.canvas->first, c.canvas->second);
+                window.resize(std::max(1320, c.canvas->first + 600), std::max(920, c.canvas->second + 420));
+            }
             window.show();
             QVERIFY(QTest::qWaitForWindowExposed(&window));
             try {
                 runner.emplace(window, caseDir, screenshots(), c.name);
                 runner->setOpenMayFail(c.needsAny("open_failure"));
+                if (c.outcome.isTable()) {
+                    if (const core::Value* records = c.outcome.find("canvas")) runner->setCanvasRecords(*records);
+                }
                 if (!c.start.empty()) runner->start(c.start);
                 runner->run(c.actions);
+                for (const std::string& note : runner->geometryNotes()) qInfo("%s", note.c_str());
                 for (const fs::path& shot : runner->screenshots()) {
                     qInfo("screenshot %s", core::pathToUtf8(shot).c_str());
                 }

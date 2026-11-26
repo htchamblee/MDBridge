@@ -1969,11 +1969,9 @@ project has no file yet`, `Nothing to cite yet`, the project log's `time  step  
 lines) and the suggested file names (`<project_name or MDATK>.mdatk.toml`,
 `<project_name>_citations.bib`). Deliberate differences:
 
-- **WN-01: layout (D4).** No separate 3D view (above). The canvas is milestone 4's read-only preview
-  until W2-A's editor; it redraws 120 ms after a change (MDATK's debounce) and with *Refresh* (F5).
-  *Load real frame* is gone (the reference frame loads by itself). The Layout & panels page is a
-  placeholder built from the model (`pages/placeholder_page.cpp`: every field of the page, one
-  folding section per part) until W2-A. Qt's Fusion style in the system's light or dark scheme
+- **WN-01: layout (D4).** No separate 3D view (above). The canvas is MDATK's layout editor (LE-01 ..
+  LE-09 below); it redraws 120 ms after a change (MDATK's debounce) and with *Refresh* (F5).
+  *Load real frame* is gone (the reference frame loads by itself). The Layout & panels page is W2-A's. Qt's Fusion style in the system's light or dark scheme
   (D3). *Tested:* `WindowTests::layoutAndShortcuts`, `pagesAndSections`, `screenshots`.
 - **WN-02: shortcuts (D11).** MDATK's Ctrl+O, Ctrl+S, Ctrl+Shift+S, Ctrl+R (Ctrl+P, Ctrl+Shift+W
   reserved for the planner and wizard) plus Ctrl+N, Ctrl+W (*Close project*), Ctrl+Q, Ctrl+Z /
@@ -2459,6 +2457,77 @@ a render leave no video and no temporary file (`cancelMidRender`, `closeDuringRe
 the smoke test `smokeDemoFromWindow` (Create demo system…, Ctrl+R, the 120-frame 1080p video probed,
 charts, PDBs and the params log written). Screenshots of the result dialogs are CI artifacts
 (`result-*.png`).
+
+## Interface: the canvas and the Layout & panels page (src/app/gui/preview_widget.cpp, gui/pages/layout_page.cpp; milestone 5 W2-A)
+
+MDATK v0.0.4.1's WYSIWYG canvas (`gui/canvas.py`) and its Layout & panels page (`gui/app.py`
+`_tab_layout`, `_slot_editor`, `_read_slots`): the figure with example data at the widget's size
+(the video's aspect, `dpi * scale`, panels at 35 % of the example time axis), slot hit areas from each
+panel's tight box (its axes and the twin axes of its cell; an empty slot's grid cell), a press that
+moves 4 pixels is a drag; in the structure panel below its title strip (12 %) a drag rotates (0.5° per
+pixel, `orientation::drag`), in map mode it moves the density map (Shift: rotates it; transform,
+anchor, `fit_info` "Placed by hand (not fitted) - 'Refine' fits from here." stored as MDATK's
+`_on_map_moved` does, through `render::panels::storeDensityPlacement`, which *Centre on model* uses
+too); anywhere else, on the title strip or with Shift it drags the panel (the source tinted, the target
+outlined dashed, the panel type at the pointer) and the release swaps (`Swapped panels i and j`); a
+double-click opens the slot's editor; the wheel over the structure zooms x 1.15 per notch within 0.05
+... 50; cursors grab / all-scroll / move (Qt's open hand, size-all, drag-move). The slot editors as
+MDATK's: panel type, data key labelled `<label>   [<key>]`, the residue groups with *(analysis
+default)* building the instance key, more keys, a title that follows the data until one is typed (a
+new type always gets its own; the default titles count as automatic), options as JSON, MDATK's
+default options for new sequence / secondary panels; *Render still* of a frame (W2-B's job). Deliberate
+differences:
+
+- **LE-01: the structure panel is the 3D view (owner decision D4 as amended).** Rotation, zoom and map
+  moves change the structure panel of the figure already built (`StructurePanel::setRotation`,
+  `setZoom` (new), `nudgeDensity`) and recompose only its moving artists over the static background
+  (MDATK's blitting), at fast quality while dragging and at full quality on release or 250 ms after
+  the last slider change (MDATK's timings). While dragging, its 3D layer is drawn by the Vulkan
+  renderer when the machine has a GPU (`GpuStageRenderers`, not a CPU driver such as lavapipe;
+  `StructurePanel::setFastRenderer`, new), else by the software renderer; *Graphics…* names the
+  renderer the window was started with. *Tested:* `CanvasTests::dragRotatesAndSwapsPanels`,
+  `rotationRedrawsOnlyTheStructure`; every canvas case of tests/data/gui/canvas.
+- **LE-02 (AP-20): nothing is drawn on the interface thread.** MDATK built and drew the figure in GTK's
+  main loop and rebuilt the whole figure for every wheel notch. MDBridge builds and draws on a worker
+  (as M4's preview); interactive changes are queued and applied in order on the worker, so no step of
+  a drag is lost and the picture keeps up; a zoom shows at once in the structure panel and the full
+  figure follows debounced. *Tested:* `rotationRedrawsOnlyTheStructure` (no rebuild for a rotation),
+  `canvas/wheel_zoom`.
+- **LE-03: one drag is one undo step (D5).** MDATK had no undo. A rotation or map drag is one step of
+  the edit model (`beginGroup` / `endGroup`; the step ends once every move of the drag has been drawn
+  and stored); Esc during a drag puts the project back as it was before it. *Tested:*
+  `CanvasTests::dragIsOneUndoStepAndEscCancels`.
+- **LE-04: the canvas keeps MDATK's own angles during a drag.** As MDATK, the angles of a drag are
+  accumulated unrounded and stored rounded to 3 decimals (the sliders'); a new figure starts from the
+  stored angles. So the saved rotation of a mouse path equals MDATK's. *Tested:* `canvas/drag_rotate_swap`.
+- **LE-05 (AP-07, AP-08, AP-09, AP-10 on this page).** Empty slots stay empty until edited or
+  dropped onto (filling the empty slots before them with what their editors show); a smaller preset
+  keeps the panels beyond its slots; swaps and preset changes are refused while a slot's options do not
+  parse (`Panels not swapped; fix this first: ...`, `Grid preset not changed; fix this first: ...`
+  with the preset put back, as MDATK 0.1.0); options that do not parse are a located form error
+  (`Layout & panels › Panel 1 (Structure) › Options: '{bad' is not valid JSON: <json's message>`, `...
+  is not a JSON object`), the stored options stay, and `Preview not updated: <that>` is logged as
+  MDATK's refresh did. *Tested:* `ap/ap07_empty_slots`, `ap/ap08_preset_round_trip`,
+  `ap/ap09_swap_bad_options`, `canvas/swap_into_empty_slot`, `pages/layout_page`.
+- **LE-06: the data labels name the settings as they are.** MDATK relabelled a slot's Data drop-down
+  only when it rebuilt the editors (a group table change, a preset change), so choosing another group
+  for an analysis left `Aptamer–Target …` in it; MDBridge's editors refresh their labels after every
+  change (selections and titles stay). *Tested:* `pages/groups_page` (improvements_gui.py
+  `after_action`).
+- **LE-07: automatic titles follow a group rename (MDATK 0.1.1 `_adopt_project`).** Renaming a group
+  retitles, in the same undo step, the panels whose title was their data's label (or a default title
+  of a panel whose keys the rename changed); typed titles stay. *Tested:*
+  `CanvasTests::titlesFollowAGroupRename`.
+- **LE-08: the reference frame is not announced in the log.** MDATK logged `--- Loading preview ---`
+  and `Reference frame loaded: N residues (raw files).` for its *Load real frame* button; MDBridge loads
+  the frame by itself and names it in the status bar (WN-01), so its log has neither line
+  (improvements_gui.py). *Tested:* `canvas/drag_rotate_swap`, `canvas/map_move_rotate`.
+- **LE-09: the GUI tests replay MDATK's pointer positions.** The canvas cases record MDATK's hit
+  rectangles and the positions each action resolved to (`outcome.canvas`); `mdbridge_gui_tests` sends
+  its events there (the canvas at the case's size), so a drag is MDATK's mouse path whatever this
+  canvas's geometry, and prints where the hit areas differ by more than 3 px (the heat map's tight box
+  is about 10 px wider on the right than Matplotlib's: an open render-core item, no effect on what the
+  cases store). A mid-drag frame of every drag is saved as a screenshot (CI artifact).
 
 ## Planned (from the improvement register; add each entry here when it lands)
 

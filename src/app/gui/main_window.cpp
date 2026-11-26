@@ -1,11 +1,13 @@
 #include "main_window.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cerrno>
 #include <chrono>
 #include <exception>
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -40,6 +42,7 @@
 #include <QScrollBar>
 #include <QStackedWidget>
 #include <QStatusBar>
+#include <QThreadPool>
 #include <QToolBar>
 #include <QToolButton>
 #include <QVBoxLayout>
@@ -55,6 +58,8 @@
 #include "gui/jobs/job_runner.hpp"
 #include "gui/jobs/log_view.hpp"
 #include "gui/pages/form_page.hpp"
+#include "gui/pages/layout_page.hpp"
+#include "gui/pages/structure_page.hpp"
 #include "gui/problems/problems_panel.hpp"
 #include "mdbridge/core/citations.hpp"
 #include "mdbridge/core/json.hpp"
@@ -62,7 +67,10 @@
 #include "mdbridge/core/problems.hpp"
 #include "mdbridge/core/project_file.hpp"
 #include "mdbridge/core/project_io.hpp"
+#include "mdbridge/core/python.hpp"
 #include "mdbridge/core/settings.hpp"
+#include "mdbridge/render/panels/structure.hpp"
+#include "mdbridge/render/panels/vulkan_stage.hpp"
 #include "mdbridge/render/shading.hpp"
 #include "mdbridge/render/vulkan_probe.hpp"
 #include "mdbridge/version.hpp"
@@ -253,6 +261,7 @@ MainWindow::MainWindow(render::Renderer renderer, QWidget* parent)
             m_warningsKnown = true;
         }
     });
+    connectCanvas();
     connect(m_jobs, &jobs::JobRunner::errorReported, this, [this](const QString& text, const QString& detail) {
         prompter().message(this, MessageKind::Error, text, detail);
     });
@@ -283,6 +292,11 @@ MainWindow::MainWindow(render::Renderer renderer, QWidget* parent)
 
 MainWindow::~MainWindow() {
     cancelLoad();
+    if (m_gpu) {  // the GPU check and the canvas's drawing end before the device goes
+        m_preview->setFastStageRenderer(nullptr);
+        QThreadPool::globalInstance()->waitForDone();
+        m_gpu.reset();
+    }
     m_previewTimer.stop();
     m_reloadTimer.stop();
     // the field widgets go before their FormContext (a member, destroyed before QWidget's children)
@@ -773,7 +787,18 @@ void MainWindow::onDocumentChanged(const core::DocumentChange& change) {
         if (!change.fields.empty()) schedulePreview();  // Save as rebased paths
         return;
     }
-    schedulePreview();
+    if (m_canvasEdit) {
+        // the canvas shows it already (AP-20: no rebuild of the figure for a drag)
+    } else if (!change.fields.empty() && std::all_of(change.fields.begin(), change.fields.end(), [](const std::string& f) {
+                   return f.rfind("visual.rotation", 0) == 0;
+               })) {
+        // the sliders (or undo): the structure panel turns, the figure is not rebuilt (AP-20)
+        const std::vector<double>& r = m_document.project().visual.rotation;
+        if (r.size() == 3) m_preview->setRotation({r[0], r[1], r[2]});
+        else schedulePreview();
+    } else {
+        schedulePreview();
+    }
     for (const char* part : {"inputs", "cleaning", "groups"}) {
         if (change.affects(part)) {
             m_reloadTimer.start();
@@ -1386,6 +1411,97 @@ void MainWindow::startLoad() {
                          statusBar()->showMessage(message);
                          emit projectLoaded();
                      });
+}
+
+// ---- the canvas (W2-A) ------------------------------------------------------------------------------
+
+namespace {
+
+// Sets m_canvasEdit while the canvas's own change is stored.
+struct CanvasEdit {
+    explicit CanvasEdit(bool& flag) : flag(flag), was(flag) { flag = true; }
+    ~CanvasEdit() { flag = was; }
+    CanvasEdit(const CanvasEdit&) = delete;
+    CanvasEdit& operator=(const CanvasEdit&) = delete;
+    bool& flag;
+    bool was;
+};
+
+constexpr const char* kPlacedByHand = "Placed by hand (not fitted) - 'Refine' fits from here.";
+
+}  // namespace
+
+void MainWindow::connectCanvas() {
+    for (const Page& page : m_pages) {
+        if (auto* layout = qobject_cast<pages::LayoutPage*>(page.widget)) m_layoutPage = layout;
+        if (auto* structure = qobject_cast<pages::StructurePage*>(page.widget)) m_structurePage = structure;
+    }
+    // D4: the GPU renderer draws the structure panel's 3D layer while dragging when there is a GPU
+    if (m_renderer != render::Renderer::Software) {
+        auto gpu = std::make_shared<render::panels::GpuStageRenderers>(render::panels::GpuStageOptions{});
+        m_gpu = gpu;
+        m_background.run(
+            [gpu]() -> std::shared_ptr<const render::panels::StageRenderer> {
+                try {
+                    if (gpu->usable() && !gpu->cpuDevice()) return gpu->factory()->choose("vulkan").renderer;
+                } catch (const std::exception&) {
+                }
+                return nullptr;
+            },
+            [this](std::shared_ptr<const render::panels::StageRenderer> renderer) {
+                if (renderer) m_preview->setFastStageRenderer(std::move(renderer));
+            });
+    }
+    // a drag is one undo step (D5)
+    connect(m_preview, &PreviewWidget::dragStarted, this, [this](const QString& mode) {
+        m_document.beginGroup(mode == QStringLiteral("rotate") ? "Rotate structure"
+                              : mode == QStringLiteral("map") ? "Move density map"
+                                                               : "Rotate density map");
+    });
+    connect(m_preview, &PreviewWidget::dragFinished, this, [this] {
+        const CanvasEdit edit(m_canvasEdit);
+        if (m_document.inGroup()) m_document.endGroup();
+    });
+    connect(m_preview, &PreviewWidget::dragCancelled, this, [this] {
+        if (m_document.inGroup()) m_document.cancelGroup();  // Esc: the project as before the drag
+    });
+    connect(m_preview, &PreviewWidget::rotated, this, [this](const std::array<double, 3>& angles) {
+        const CanvasEdit edit(m_canvasEdit);
+        core::Array stored;  // the sliders' 3 decimals (MDATK)
+        for (const double a : angles) stored.emplace_back(core::pythonRound(a, 3));
+        m_document.set("visual.rotation", core::Value(std::move(stored)), "Rotate structure");
+    });
+    connect(m_preview, &PreviewWidget::mapMoved, this, [this](const std::vector<double>& transform) {
+        // MDATK's _on_map_moved: the placement belongs to the frame shown on the canvas
+        const CanvasEdit edit(m_canvasEdit);
+        m_document.edit("Move density map", [&](core::Project& p) {
+            render::panels::storeDensityPlacement(p.density, transform, m_preview->structureModel(), kPlacedByHand);
+        });
+    });
+    connect(m_preview, &PreviewWidget::zoomRequested, this, [this](double factor) {
+        // the stored zoom (AP-01: not the one a spin box shows), within MDATK's wheel limits
+        const double zoom = std::min(50.0, std::max(0.05, m_document.project().visual.zoom * factor));
+        m_preview->setZoom(zoom);
+        m_document.set("visual.zoom", core::Value(zoom), "Zoom the structure");
+    });
+    connect(m_preview, &PreviewWidget::swapRequested, this, [this](int from, int to) {
+        if (m_layoutPage) m_layoutPage->swapPanels(from, to);
+    });
+    connect(m_preview, &PreviewWidget::slotActivated, this,
+            [this](int slot) { openSection(QStringLiteral("layout"), QStringLiteral("slot%1").arg(slot + 1)); });
+    if (m_layoutPage) {
+        connect(m_layoutPage, &pages::LayoutPage::logLine, this, &MainWindow::appendLog);
+        connect(m_layoutPage, &pages::LayoutPage::previewNotUpdated, this, [this](const QString& problem) {
+            appendLog(tr("Preview not updated: %1").arg(problem));
+            // the next drawing's warnings are news again (MDATK logs those of each redraw)
+            m_lastWarnings.clear();
+            m_warningsKnown = true;
+        });
+        connect(m_layoutPage, &pages::LayoutPage::previewRequested, this, &MainWindow::refreshPreview);
+    }
+    if (m_structurePage) {
+        connect(m_structurePage, &pages::StructurePage::mapModeChanged, m_preview, &PreviewWidget::setMapMode);
+    }
 }
 
 }  // namespace mdbridge::app

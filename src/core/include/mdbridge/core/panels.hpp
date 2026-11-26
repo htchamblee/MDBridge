@@ -35,6 +35,10 @@ struct LayoutPreset {
     std::span<const double> heightRatios;  // relative row heights; empty: equal rows
 };
 
+// The slots of a preset (Qt code, where `slots` is a macro, includes this header with the macro
+// pushed away and reads the slots through this).
+inline std::span<const LayoutSlot> presetSlots(const LayoutPreset& preset) { return preset.slots; }
+
 // PANEL_TYPES in registration order: structure, timeseries, dual_axis, heatmap, contact_map,
 // sequence, secondary.
 std::span<const PanelType> panelTypes();

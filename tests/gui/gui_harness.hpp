@@ -45,6 +45,7 @@ struct GuiCase {
     std::string settings;                    // "settings": settings.toml before the start (path under tests/data)
     std::optional<std::vector<std::string>> log;  // "log": the log lines expected
     core::Value outcome;                     // "outcome" (a table; Null without one)
+    std::optional<std::pair<int, int>> canvas;  // "canvas": the figure canvas's size in pixels
 
     bool needsAny(std::string_view need) const;
 };
@@ -162,6 +163,13 @@ public:
     void runAction(const core::Value& action);
     // "open" may fail (the case needs "open_failure"): its error is a recorded dialog then.
     void setOpenMayFail(bool may) { m_openMayFail = may; }
+    // MDATK's canvas records of the case (outcome.canvas: hit rectangles and the pointer positions
+    // each canvas action resolved to): the canvas actions send their events at those positions, so
+    // that the drags are MDATK's mouse paths whatever this canvas's geometry; without a record the
+    // points are resolved from this canvas's hit areas.
+    void setCanvasRecords(const core::Value& records) { m_canvasRecords = records; }
+    // Where this canvas's hit areas differ from MDATK's by more than a few pixels (one line each).
+    const std::vector<std::string>& geometryNotes() const { return m_geometryNotes; }
 
     const std::vector<std::filesystem::path>& screenshots() const { return m_shots; }
     const RecordingPrompter& prompter() const { return m_prompter; }
@@ -169,7 +177,9 @@ public:
 
 private:
     void waitUntilLoaded(int timeoutMs);
+    void waitForPreview();
     void snapshot(const core::Value& action);
+    void canvasAction(const core::Value& action, const std::string& what);
     QStringList dialogAnswer(const app::forms::FileDialogRequest& request) const;
 
     app::MainWindow& m_window;
@@ -178,6 +188,8 @@ private:
     core::Value m_current;  // the action being run
     int m_index = -1;
     bool m_openMayFail = false;
+    core::Value m_canvasRecords;
+    std::vector<std::string> m_geometryNotes;
     app::forms::FileDialogFunction m_previousDialog;
     std::filesystem::path m_caseDir;
     std::filesystem::path m_screenshotDir;

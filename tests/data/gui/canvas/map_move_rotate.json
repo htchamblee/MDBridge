@@ -145,8 +145,6 @@
   "p.mdatk.toml": "gui/canvas/map_move_rotate/out/p.mdatk.toml"
  },
  "log": [
-  "--- Loading preview ---",
-  "Reference frame loaded: 24 residues (raw files).",
   "Saved project {case_dir}/p.mdatk.toml"
  ],
  "outcome": {
@@ -610,6 +608,11 @@
   "expected": {
    "p.mdatk.toml": "gui/canvas/map_move_rotate/mdatk/p.mdatk.toml"
   },
+  "log": [
+   "--- Loading preview ---",
+   "Reference frame loaded: 24 residues (raw files).",
+   "Saved project {case_dir}/p.mdatk.toml"
+  ],
   "snapshots": [
    {
     "action": 2,

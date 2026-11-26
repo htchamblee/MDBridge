@@ -152,8 +152,6 @@
   "p.mdatk.toml": "gui/canvas/drag_rotate_swap/out/p.mdatk.toml"
  },
  "log": [
-  "--- Loading preview ---",
-  "Reference frame loaded: 24 residues (raw files).",
   "Swapped panels 2 and 3",
   "Swapped panels 1 and 4",
   "Saved project {case_dir}/p.mdatk.toml"
@@ -723,6 +721,13 @@
  "mdatk": {
   "expected": {
    "p.mdatk.toml": "gui/canvas/drag_rotate_swap/mdatk/p.mdatk.toml"
-  }
+  },
+  "log": [
+   "--- Loading preview ---",
+   "Reference frame loaded: 24 residues (raw files).",
+   "Swapped panels 2 and 3",
+   "Swapped panels 1 and 4",
+   "Saved project {case_dir}/p.mdatk.toml"
+  ]
  }
 }

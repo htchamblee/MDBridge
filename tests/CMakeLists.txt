@@ -358,6 +358,17 @@ if(MDBRIDGE_BUILD_APP)
     add_test(NAME gui.cases COMMAND mdbridge_gui_tests)
     set_tests_properties(gui.cases PROPERTIES LABELS gui ENVIRONMENT "${MDBRIDGE_QT_TEST_ENVIRONMENT}")
 
+    # the figure canvas as layout editor and 3D view and the Layout & panels page (src/app/gui
+    # preview_widget.cpp, pages/layout_page.cpp; milestone 5 W2-A): MDATK's canvas tests, one undo
+    # step per drag, Esc, AP-20, the titles after a group rename
+    add_executable(mdbridge_gui_canvas_tests gui/test_canvas.cpp)
+    set_target_properties(mdbridge_gui_canvas_tests PROPERTIES AUTOMOC ON)
+    target_link_libraries(mdbridge_gui_canvas_tests PRIVATE mdbridge_app mdbridge::analysis mdbridge::render_panels_vulkan Qt6::Test)
+    target_compile_definitions(mdbridge_gui_canvas_tests PRIVATE MDBRIDGE_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data")
+    mdbridge_target_warnings(mdbridge_gui_canvas_tests)
+    add_test(NAME gui.canvas COMMAND mdbridge_gui_canvas_tests)
+    set_tests_properties(gui.canvas PROPERTIES LABELS gui ENVIRONMENT "${MDBRIDGE_QT_TEST_ENVIRONMENT}")
+
     # the GUI's bound field widgets (src/app/gui/forms, milestone 5 W0-C): every field of the fixture
     # projects loaded and saved without an edit byte for byte, edits, undo / redo, AP-01 .. AP-05,
     # AP-15, the mouse wheel. Qt Test on the offscreen platform.

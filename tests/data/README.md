@@ -980,16 +980,18 @@ lacks something a case `needs` skips the case and names what is missing):
 | `clock` | always set: every case starts at `2026-11-25T12:00:00` (MDATK reads the clock once per save) |
 | `items` | ids the case covers (`AP-01`, `D8` ...; `[]`: plain parity with MDATK) |
 | `mdatk_test` | the MDATK test (`tests/test_gui.py::...`) the case mirrors, or `""` |
-| `needs` | the actions and keys of this section the case uses (`canvas`, `save_as`, `new`, `close`, `table`, `type`, `toggle`, `snapshot`, `start`, `settings`, `answers`; `open_failure` when an `open` is expected to fail), so a runner can skip what it does not have yet (`mdbridge_gui_tests` runs all but `canvas`, below) |
+| `needs` | the actions and keys of this section the case uses (`canvas`, `save_as`, `new`, `close`, `table`, `type`, `toggle`, `snapshot`, `start`, `settings`, `answers`; `open_failure` when an `open` is expected to fail), so a runner can skip what it does not have yet (`mdbridge_gui_tests` runs them all, below) |
 | `canvas` | `{"width": W, "height": H}`: the figure canvas widget's size in pixels (device pixel ratio 1); the figure is drawn at `scale = min(W / video.width, H / video.height)`, `int(video.width * scale)` x `int(video.height * scale)` pixels at `video.dpi * scale`, centred |
 | `settings` | path under tests/data of `$XDG_CONFIG_HOME/mdatk/settings.toml` before the start (`{case_dir}` in it: the case folder), or absent: no such file (D16, AP-17) |
 | `start` | `{"project": name}`: the window is started with `{case_dir}/name` (as `gui PATH`), before the first action; absent: started without a project |
 | `outcome` | MDBridge's expected outcome besides files (below) |
 | `mdatk` | the keys of `expected` / `outcome` whose MDATK value differs, with MDATK's value (`expected` paths point into `<case>/mdatk/`); `{}`: MDATK did the same. Never compared |
 
-`mdbridge_gui_tests` runs every case against the window (`app::MainWindow`, W1-A): it supports
-every need but `canvas` (W2-A); a case whose snapshot names `slots` (the Layout & panels page's slot
-editors, W2-A) is skipped with that reason (the list in tests/gui/test_gui.cpp). Each case gets an
+`mdbridge_gui_tests` runs every case against the window (`app::MainWindow`, W1-A, W2-A); the figure
+canvas gets the case's `canvas` size, and the canvas actions send their mouse events at the positions
+of MDATK's record of the same action (`outcome.canvas`), resolving points from this canvas's hit areas
+only for an action without a record (hit areas that differ from MDATK's by more than 3 px are
+printed, not failed). Each case gets an
 environment of its own (`XDG_CONFIG_HOME` and `APPDATA` = `{config_dir}`, `HOME` an empty folder,
 the case folder current), the `settings` file is written first, the window is started with
 `start.project` (`MainWindow::startWith`, as `gui PATH`), questions are answered from `answers`

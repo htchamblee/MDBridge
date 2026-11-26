@@ -27,6 +27,7 @@
 #include "gui/pages/input_page.hpp"
 #include "gui/pages/outputs_page.hpp"
 #include "gui/pages/structure_page.hpp"
+#include "gui/preview_widget.hpp"
 #include "mdbridge/analysis/pipeline.hpp"
 #include "mdbridge/core/json.hpp"
 #include "mdbridge/core/paths.hpp"
@@ -82,6 +83,7 @@ WindowActions::WindowActions(MainWindow& window)
     connectPages();
 
     connect(&window, &MainWindow::projectLoaded, this, &WindowActions::updateCentre);
+    connect(window.preview(), &PreviewWidget::drawn, this, &WindowActions::updateCentre);
     connect(&window.formContext(), &forms::FormContext::documentChanged, this, &WindowActions::updateCentre);
     updateCentre();
 }
@@ -418,7 +420,9 @@ void WindowActions::openVideo() {
 // ---- Centre on model ---------------------------------------------------------------------------------
 
 bool WindowActions::centreAvailable() const {
-    return m_window.structurePreview() != nullptr && !m_window.document().project().density.map_path.empty();
+    // the reference frame shown in the canvas's structure panel (W2-A), and a map
+    return m_window.structurePreview() != nullptr && m_window.preview()->structureCentre().has_value() &&
+           !m_window.document().project().density.map_path.empty();
 }
 
 void WindowActions::updateCentre() {
@@ -431,28 +435,10 @@ void WindowActions::updateCentre() {
 void WindowActions::centreOnModel() {
     std::optional<core::Project> collected = collect(false, false, tr("Invalid parameters"));
     if (!collected) return;
-    const std::shared_ptr<const render::StructurePreview> preview = m_window.structurePreview();
     // the structure panel of the figure the canvas shows (the example dataset on the reference frame)
-    std::optional<core::Vec3> centre;
-    std::vector<core::Vec3> points;
-    if (preview) {
-        try {
-            const core::Dataset example = render::exampleDataset(*collected, preview.get());
-            render::panels::BuiltFigure built =
-                render::panels::buildFigure(example, *collected, render::bundledFontSet(), 320, 180, 40.0);
-            for (const auto& panel : built.panels) {
-                const auto* st = dynamic_cast<const render::panels::StructurePanel*>(panel.get());
-                if (st && st->ok()) {
-                    centre = st->center();
-                    points = st->modelPoints(0);
-                    break;
-                }
-            }
-        } catch (const std::exception& e) {
-            m_window.showError(tr("Cannot draw this layout"), QString::fromUtf8(e.what()));
-            return;
-        }
-    }
+    const std::optional<core::Vec3> centre =
+        m_window.structurePreview() ? m_window.preview()->structureCentre() : std::nullopt;
+    const std::vector<render::Vec3d>& points = m_window.preview()->structureModel();
     if (!centre) {
         m_window.showInfo(QStringLiteral("Load the real reference frame first"),
                           tr("The window loads it from the input files (see the status bar) and shows it in the "
@@ -470,15 +456,9 @@ void WindowActions::centreOnModel() {
     core::RigidTransform t;
     t.translation = {density[0] - (*centre)[0], density[1] - (*centre)[1], density[2] - (*centre)[2]};
     const std::vector<double> transform = t.toList();
-    std::vector<std::vector<double>> anchor;
-    for (const core::Vec3& p : core::anchorPoints(points)) anchor.push_back({p[0], p[1], p[2]});
     m_window.document().edit("Centre the map on the model", [&](core::Project& p) {
-        p.density.transform = transform;
-        p.density.anchor = anchor;
-        p.density.fit_cc = 0.0;
-        p.density.fit_info = "Centred on the model (not fitted).";
+        render::panels::storeDensityPlacement(p.density, transform, points, "Centred on the model (not fitted).");
     });
-    m_window.appendLog(QStringLiteral("Density map centred on the model (not fitted)."));
 }
 
 }  // namespace mdbridge::app

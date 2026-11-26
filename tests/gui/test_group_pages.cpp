@@ -150,8 +150,8 @@ void GroupPagesTests::pagesInMdatksOrder() {
     core::ProjectDocument doc;
     forms::FormContext context(doc);
     std::vector<QWidget*> pages = pages::createPages(context);
-    QCOMPARE(pages.size(), std::size_t{6});  // layout: a placeholder until W2-A
-    QVERIFY(pages::isPlaceholder(pages[4]));
+    QCOMPARE(pages.size(), std::size_t{6});
+    for (QWidget* page : pages) QVERIFY(!pages::isPlaceholder(page));  // every page its own (W2-A: layout)
     const char* ids[] = {"input", "groups", "analyses"};
     const char* titles[] = {"Input & cleaning", "Residue groups", "Analyses"};
     for (std::size_t k = 0; k < 3; ++k) {

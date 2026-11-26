@@ -1,4 +1,5 @@
 #include "gui/pages/groups_page.hpp"
+#include "gui/pages/layout_page.hpp"
 
 #include <algorithm>
 #include <exception>
@@ -156,7 +157,23 @@ bool GroupsPage::commitGroupName(int row, const QString& text) {
                                 : tr("Renamed %1 → %2").arg(forms::toQString(old), forms::toQString(name)));
             return true;
         }
-        const std::vector<std::string> refs = doc.renameGroup(old, name);
+        // one step: the rename and the automatic panel titles that follow it (MDATK 0.1.1)
+        const core::Project before = doc.project();
+        std::vector<std::string> refs;
+        doc.beginGroup("Rename group " + old);
+        try {
+            refs = doc.renameGroup(old, name);
+            core::Project next = doc.project();
+            const std::vector<std::string> titles = retitleAutomaticPanels(next, before, refs);
+            if (!titles.empty()) {
+                doc.edit("Retitle panels", [&](core::Project& p) { p = next; });
+                refs.insert(refs.end(), titles.begin(), titles.end());
+            }
+        } catch (...) {
+            doc.cancelGroup();
+            throw;
+        }
+        doc.endGroup();
         done();
         message((refs.size() == 1 ? tr("Renamed %1 → %2 in %3 place") : tr("Renamed %1 → %2 in %3 places"))
                     .arg(forms::toQString(old), forms::toQString(name), QString::number(refs.size())),

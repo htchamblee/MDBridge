@@ -36,6 +36,11 @@ W1 / W2 pages and canvas); where a later MDATK fixed the item, its design is fol
   AP-17  the recent list keeps the settings file's other keys (MDATK 0.0.14 add_recent; MDBridge
          also writes atomically, which a file comparison cannot show)
   AP-18  dialog details are not cut at 3 000 characters
+  W2-A   the slot editors' data labels follow the settings they name after every change (MDATK
+         relabelled them only when it rebuilt the editors: a group chosen for an analysis left
+         "Aptamer–Target …" in the Data drop-down); the reference frame loads by itself (its summary
+         goes to the status bar), so the window's log has no "--- Loading preview ---" and
+         "Reference frame loaded: …" lines for it
 
 Not observable in the recorded files and messages, tested by the Qt tests of their packages:
 AP-14 (close during a job), AP-15 (table edits commit on focus loss), AP-16 (About text with the
@@ -639,6 +644,16 @@ def apply(app, W, config, PF, n_slots, harness):
 
     app.MainWindow._on_canvas_zoom = on_canvas_zoom
 
+    # --- W2-A: the reference frame loads by itself (status bar, not the log) ---------------------
+    logged = app.MainWindow.append_log
+
+    def append_log(self, text):
+        if text == "--- Loading preview ---" or str(text).startswith("Reference frame loaded: "):
+            return
+        logged(self, text)
+
+    app.MainWindow.append_log = append_log
+
     # --- AP-17: the settings file's other keys stay (MDATK 0.0.14 add_recent) --------------------
     docs = {"recent": "Recently used project files, newest first.",
             "cat_proof": "RNAdo's Cat-proof mode: the keyboard is ignored (untick it with the mouse)."}
@@ -681,6 +696,21 @@ def on_set(binding):
         except (ValueError, TypeError):
             binding.baseline = _ERR
     return after
+
+
+def after_action(win):
+    """W2-A: the slot editors' data labels name the settings as they are now (MDBridge's editors
+    follow every change; MDATK relabelled them only when it rebuilt them). Rows' texts only: the
+    choices, the selection and the titles stay."""
+    rows = getattr(win, "slot_rows", None)
+    if not rows:
+        return
+    from mdatk.analysis.base import key_label
+    project = win._project_for_choices()
+    for row in rows:
+        for r in row["data"].get_model():
+            if r[1]:
+                r[0] = f"{key_label(r[1], project)}   [{r[1]}]"
 
 
 def slot_edited(win, k):
