@@ -8,6 +8,8 @@ add_library(mdbridge_app STATIC
     cli.hpp
     fonts_command.cpp
     fonts_command.hpp
+    loaded_libraries.cpp
+    loaded_libraries.hpp
     gui/actions/window_actions.cpp
     gui/actions/window_actions.hpp
     gui/background.hpp
@@ -62,6 +64,8 @@ add_library(mdbridge_app STATIC
     gui/preview_widget.hpp
     gui/problems/problems_panel.cpp
     gui/problems/problems_panel.hpp
+    gui/script_runner.cpp
+    gui/script_runner.hpp
     project_summary.cpp
     project_summary.hpp
     render_backend_qt.cpp

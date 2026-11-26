@@ -76,6 +76,15 @@ machine it was built on or newer: releases are built on Rocky Linux 9 (glibc 2.3
 RHEL 9 and Ubuntu 22.04 and newer. The Vulkan loader is never bundled; it comes with the user's
 graphics driver.
 
+Desktop libraries Qt needs at start (OpenGL / EGL dispatch, X11, xcb, fontconfig, freetype and what
+they need) are copied from the build machine into `usr/lib/fallback/<name>/<name>`, one folder per
+library. `AppRun` puts a copy's folder on the library path only when the host lacks that library
+(not in `ldconfig -p`, the standard library folders or `LD_LIBRARY_PATH`), so on a desktop the
+host's copies are used and a minimal or server install gets just the missing ones;
+`MDBRIDGE_APPRUN_DEBUG=1 ./MDBridge-*.AppImage graphics --json` lists the copies supplied on stderr
+and every library loaded (`libraries`). The smoke test checks this on every host it runs on
+(`--expect-fallback LIBS|none` asserts which copies must be used there).
+
 ## Windows
 
 From a PowerShell prompt in the repository:
@@ -160,8 +169,18 @@ Installed packages can be used instead with `-DMDBRIDGE_USE_SYSTEM_DEPS=ON` (zli
   or `mdbridge.exe`): command line, project files against MDATK's reading, the figure fonts, a
   `render` of the demo project (an AV1 video read back with `mdbridge probe-video` and, when it is
   on `PATH`, `ffprobe`; charts), `charts` and `preview` without a display, and the interface with
-  the software and the automatic 3D view (screenshots that must have content). CI runs it on the
-  build machine, on Ubuntu 22.04, on a bare Rocky Linux 9 (no X11, fonts or Vulkan) and on Windows.
+  the software and the automatic 3D view (screenshots that must have content), and an editing case
+  run through the window with `mdbridge gui PROJECT --script FILE` (format in
+  `src/app/gui/script_runner.hpp`): a field of the Outputs page typed in, saved (the file must
+  change in exactly that line), *Render still*, a screenshot of every page. For an AppImage it
+  also checks which libraries came from the AppImage's fallback copies (see "AppImage").
+  `--screenshot-dir DIR` keeps the screenshots (CI: artifacts `gui-screenshots-<platform>`);
+  `--gui-exe GUI_EXE` starts the program a desktop shortcut starts on a project file (Windows CI:
+  the Start-menu entry's target, after checking the entry exists and starts MDBridge). CI runs it on
+  the build machine, on Ubuntu 22.04, on a bare Rocky Linux 9 (no X11, fonts or Vulkan) and on the
+  installed Windows program. The Windows installer registers no file type (as MDATK's; Windows
+  could only claim every `.toml` file): projects open with *Open with*, by drag and drop, or from
+  the window.
 - Parity with MDATK (CI job `parity`): MDATK v0.0.4.1 writes fresh project files and records what it
   reads from them (`tests/parity/make_projects.py`, `reference.py`); `tests/parity/compare.py`
   checks that MDBridge reads the same. `tests/data/README.md` explains how to regenerate the
@@ -179,7 +198,10 @@ Installed packages can be used instead with `-DMDBRIDGE_USE_SYSTEM_DEPS=ON` (zli
 
 The interface has check options for automation: `mdbridge gui PROJECT --renderer vulkan
 --screenshot view.png` renders a few frames, saves the 3D view, prints a JSON report and quits;
-`--quit-after SECONDS` quits after a while. `QT_QPA_PLATFORM=offscreen` runs without a display
+`--quit-after SECONDS` quits after a while; `--script FILE [--script-output DIR]` runs an action
+script through the window (type values into fields, save, render a still, screenshots of every
+page; format in `src/app/gui/script_runner.hpp`), prints a JSON report and quits with 0 when every
+action succeeded. `QT_QPA_PLATFORM=offscreen` runs without a display
 (software view). `MDBRIDGE_VULKAN_VALIDATION=1` enables the Vulkan validation layer if installed.
 
 Vulkan tests (`ctest -L vulkan`: the offscreen renderer and the Vulkan scene renderer against the

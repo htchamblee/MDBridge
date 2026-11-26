@@ -2,14 +2,19 @@
 
     python packaging/smoke_test.py EXE [--gui] [--expect-renderer auto|vulkan|software] [--version X.Y.Z]
                                        [--text-report OUT.json] [--compare-text-report REF.json]
-                                       [--screenshot-dir DIR]
+                                       [--screenshot-dir DIR] [--expect-fallback LIBS|none]
+                                       [--gui-exe GUI_EXE]
 
 Runs, in order:
 
 * ``EXE --version``
 * ``EXE project show`` on the fixtures in tests/data/projects: summaries, rejected files, and the
   JSON of every file against MDATK's reference reading (tests/data/expected)
-* ``EXE graphics --json``
+* ``EXE graphics --json``; for an AppImage (or an AppDir's AppRun) also which libraries it loaded:
+  a copy from the AppImage's fallback libraries (usr/lib/fallback) only where the host lacks the
+  library, so fontconfig, freetype, OpenGL / EGL, X11 and xcb come from the host whenever it has
+  them (packaging/linux/AppRun); ``--expect-fallback libGL.so.1,...`` names copies that must be
+  used on this host (``none``: no copy at all)
 * ``EXE fonts --json --render PNG``: the bundled figure fonts load from the program, and a text
   image is drawn without a display (Linux: the "offscreen" platform, also under X);
   ``--text-report`` writes the report, ``--compare-text-report`` checks that the image's pixels and
@@ -28,7 +33,17 @@ Runs, in order:
   differ from the background), and that the figure preview was drawn; then
   ``EXE gui PROJECT --quit-after 5`` on a project whose input files are missing (the interface
   reports it and keeps running). On a headless Linux machine run it under ``xvfb-run -a``.
+  Then the editing case: ``EXE gui PROJECT --renderer software --script FILE`` (an action script,
+  src/app/gui/script_runner.hpp) saves the demo project, enters a new frame rate into the Outputs
+  page's field (typed, as a user would), saves again, renders a still (*Render still*) and takes a
+  screenshot of every page; the saved file must differ from the first save in exactly that line
+  (and the time stamp of the save), and the still and the screenshots must have content. For an
+  AppImage the interface's libraries (xcb, X11) are checked as above.
   ``--screenshot-dir``: keep the screenshots there (CI uploads them for review).
+* ``--gui-exe GUI_EXE``: the program a desktop shortcut starts (Windows: the Start-menu entry's
+  target, mdbridge-gui.exe), started as a double-click on a project or "Open with" does:
+  ``GUI_EXE PROJECT`` (with a short script that checks the project was opened and takes a
+  screenshot).
 
 Uses the standard library only; exits with 1 when a check fails.
 """
@@ -36,6 +51,7 @@ Uses the standard library only; exits with 1 when a check fails.
 from __future__ import annotations
 
 import argparse
+import difflib
 import json
 import os
 import shutil
@@ -53,10 +69,11 @@ FAILED = []
 SCREENSHOT_DIR = None  # --screenshot-dir
 
 
-def env():
+def env(**extra):
     e = dict(os.environ, APPIMAGE_EXTRACT_AND_RUN="1")  # AppImages without FUSE (containers, CI)
     if os.name != "nt":
         e.setdefault("LC_ALL", "C.UTF-8")  # Qt warns on other locales
+    e.update(extra)
     return e
 
 
@@ -67,9 +84,75 @@ def check(label: str, ok: bool, detail: str = "") -> bool:
     return ok
 
 
-def run(exe, *args, timeout=180):
-    return subprocess.run([exe, *args], capture_output=True, env=env(), encoding="utf-8", errors="replace",
-                          timeout=timeout)
+def run(exe, *args, timeout=180, extra_env=None):
+    return subprocess.run([exe, *args], capture_output=True, env=env(**(extra_env or {})), encoding="utf-8",
+                          errors="replace", timeout=timeout)
+
+
+def last_json_line(text: str):
+    lines = [line for line in text.splitlines() if line.startswith("{")]
+    return read_json(lines[-1]) if lines else {}
+
+
+# ---- the AppImage's fallback libraries (packaging/linux/AppRun) ------------------------------------
+
+# the desktop libraries whose host copies must win (graphics driver, font set-up)
+HOST_FIRST = ("libGL.so.1", "libEGL.so.1", "libfontconfig.so.1", "libfreetype.so.6", "libX11.so.6", "libxcb.so.1")
+EXPECT_FALLBACK = None  # --expect-fallback: None (not checked), set() for none, or the names
+
+
+def is_appimage(exe: str) -> bool:
+    return sys.platform.startswith("linux") and (exe.endswith(".AppImage") or os.path.basename(exe) == "AppRun")
+
+
+def host_libraries() -> set:
+    """The x86-64 libraries this host's dynamic loader finds: its cache, the standard folders and
+    LD_LIBRARY_PATH (as AppRun decides, but found independently)."""
+    names = set()
+    for ldconfig in ("ldconfig", "/sbin/ldconfig"):
+        try:
+            out = subprocess.run([ldconfig, "-p"], capture_output=True, encoding="utf-8", errors="replace").stdout
+        except OSError:
+            continue
+        for line in out.splitlines():
+            parts = line.split()
+            if parts and "x86-64" in line:
+                names.add(parts[0])
+        break
+    folders = ["/usr/lib64", "/lib64", "/usr/lib/x86_64-linux-gnu", "/lib/x86_64-linux-gnu"]
+    folders += [d for d in os.environ.get("LD_LIBRARY_PATH", "").split(":") if d]
+    for folder in folders:
+        try:
+            names.update(os.listdir(folder))
+        except OSError:
+            pass
+    return names
+
+
+def library_check(label: str, libraries) -> None:
+    """The fallback copies an AppImage loaded: only libraries the host lacks; the HOST_FIRST ones
+    from the host whenever it has them; --expect-fallback: exactly these copies are used."""
+    if not libraries:
+        check(f"{label}: the program lists the libraries it loaded", False, "no 'libraries' in the report")
+        return
+    host = host_libraries()
+    fallback = {p.rsplit("/", 1)[-1]: p for p in libraries if "/usr/lib/fallback/" in p}
+    print(f"     {label}: {len(libraries)} libraries loaded; copies from the AppImage's fallback: "
+          f"{' '.join(sorted(fallback)) or 'none'}")
+    wrong = sorted(name for name in fallback if name in host)
+    check(f"{label}: fallback copies only of libraries the host lacks", not wrong,
+          "the host has " + ", ".join(f"{n} (loaded {fallback[n]})" for n in wrong))
+    present = [n for n in HOST_FIRST if n in host]
+    loaded = {p.rsplit("/", 1)[-1]: p for p in libraries}
+    not_host = [f"{n}: {loaded[n]}" for n in present if n in loaded and n in fallback]
+    check(f"{label}: the host's {', '.join(present) or 'desktop libraries (it has none)'} used",
+          not not_host, "; ".join(not_host))
+    if EXPECT_FALLBACK:
+        missing = sorted(n for n in EXPECT_FALLBACK if n not in fallback)
+        check(f"{label}: the AppImage's copies of {', '.join(sorted(EXPECT_FALLBACK))} used", not missing,
+              "loaded from elsewhere or not at all: " + ", ".join(f"{n} ({loaded.get(n, 'not loaded')})" for n in missing))
+    elif EXPECT_FALLBACK is not None:
+        check(f"{label}: no fallback copy used", not fallback, ", ".join(sorted(fallback)))
 
 
 # The demo system (tests/data) as a project: the 3D view shows its reference frame, the preview its
@@ -223,6 +306,99 @@ def screenshot(exe, renderer: str, work: str):
     return report
 
 
+# The editing case of --gui: a field of the Outputs page changed through the window, saved, a still
+# rendered and every page photographed (gui --script; src/app/gui/script_runner.hpp)
+EDIT_KEY, EDIT_OLD, EDIT_NEW = "output.video.fps", "fps = 24", "fps = 30"
+
+
+def gui_config_env(work: str) -> dict:
+    """A settings folder of the run's own (recent projects, recovery copies), not the user's."""
+    folder = os.path.join(work, "config")
+    os.makedirs(folder, exist_ok=True)
+    return {"APPDATA": folder} if os.name == "nt" else {"XDG_CONFIG_HOME": folder}
+
+
+def write_script(path: str, actions) -> str:
+    with open(path, "w", encoding="utf-8") as fh:
+        json.dump({"format": "mdbridge-gui-script", "version": 1, "actions": actions}, fh, indent=1)
+    return path
+
+
+def saved_changes(before: str, after: str):
+    """The lines removed and added between two saves, without the time stamp of the save."""
+    diff = [line for line in difflib.ndiff(before.splitlines(), after.splitlines()) if line[:2] in ("- ", "+ ")]
+    diff = [line for line in diff if not line[2:].startswith("saved = ")]
+    return [line[2:] for line in diff if line.startswith("- ")], [line[2:] for line in diff if line.startswith("+ ")]
+
+
+def gui_edit_check(exe, appimage: bool):
+    with tempfile.TemporaryDirectory() as work:
+        project = demo_project(work)
+        shots = SCREENSHOT_DIR or os.path.join(work, "shots")
+        script = write_script(os.path.join(work, "edit.json"), [
+            {"action": "wait"},
+            {"action": "save"},
+            {"action": "copy_project", "to": "before.mdatk.toml"},
+            {"action": "set", "key": EDIT_KEY, "value": 30},
+            {"action": "save"},
+            {"action": "render_still", "frame": 3, "to": "still.png", "screenshot": "edit-still-dialog"},
+            {"action": "screenshot", "name": "edit-page", "pages": True},
+        ])
+        r = run(exe, "gui", project, "--renderer", "software", "--script", script, "--script-output", shots,
+                timeout=900, extra_env=gui_config_env(work))
+        report = last_json_line(r.stdout)
+        detail = f"exit {r.returncode}; {report.get('problem')}; {r.stderr.strip()[-900:]}"
+        check(f"gui --script: {len(report.get('actions', []))} actions through the window "
+              f"(edit, save, render still, screenshots)", r.returncode == 0 and report.get("ok") is True, detail)
+        actions = {a.get("action"): a for a in report.get("actions", [])}
+        before = os.path.join(work, "before.mdatk.toml")
+        if os.path.isfile(before):
+            with open(before, encoding="utf-8") as fh:
+                old = fh.read()
+            with open(project, encoding="utf-8") as fh:
+                new = fh.read()
+            removed, added = saved_changes(old, new)
+            check(f"gui --script: the saved file changed in exactly one line ({EDIT_OLD} -> {EDIT_NEW})",
+                  removed == [EDIT_OLD] and added == [EDIT_NEW] and actions.get("set", {}).get("stored") == 30
+                  and report.get("modified") is False,
+                  f"removed {removed}, added {added}, stored {actions.get('set', {}).get('stored')}, "
+                  f"modified {report.get('modified')}")
+        else:
+            check("gui --script: the project was saved", False, detail)
+        still = os.path.join(work, "still.png")
+        check("gui --script: Render still drew the frame",
+              file_starts_with(still, b"\x89PNG") and os.path.getsize(still) > 5000, detail)
+        if SCREENSHOT_DIR and os.path.isfile(still):
+            shutil.copy(still, os.path.join(SCREENSHOT_DIR, "edit-still.png"))
+        pages = report.get("pages", [])
+        files = actions.get("screenshot", {}).get("files", [])
+        check(f"gui --script: a screenshot of each of the {len(pages)} pages",
+              len(pages) == 6 and len(files) == len(pages)
+              and all(file_starts_with(f, b"\x89PNG") and os.path.getsize(f) > 5000 for f in files),
+              f"pages {pages}, files {files}")
+        if appimage:
+            library_check("interface", report.get("libraries"))
+
+
+def gui_exe_check(gui_exe):
+    """The shortcut's program started on a project file, as a double-click or "Open with" does."""
+    with tempfile.TemporaryDirectory() as work:
+        project = demo_project(work)
+        shots = SCREENSHOT_DIR or os.path.join(work, "shots")
+        script = write_script(os.path.join(work, "open.json"), [
+            {"action": "wait"},
+            {"action": "screenshot", "name": "shortcut-window"},
+        ])
+        r = run(gui_exe, project, "--script", script, "--script-output", shots, timeout=600,
+                extra_env=gui_config_env(work))
+        report = last_json_line(r.stdout)
+        opened = report.get("project") or ""
+        same = bool(opened) and os.path.normcase(os.path.abspath(opened)) == os.path.normcase(os.path.abspath(project))
+        check(f"{os.path.basename(gui_exe)} PROJECT: the window opens the project ({opened or '?'})",
+              r.returncode == 0 and report.get("ok") is True and same and not report.get("messages"),
+              f"exit {r.returncode}; {report}; {r.stderr.strip()[-600:]}")
+
+
 BUNDLED_FONTS = {"IBMPlexSerif-Regular.ttf", "IBMPlexSerif-Bold.ttf", "IBMPlexSerif-Italic.ttf",
                  "IBMPlexSerif-BoldItalic.ttf", "IBMPlexMath-Regular.ttf", "IBMPlexMono-Regular.ttf",
                  "IBMPlexMono-Bold.ttf"}
@@ -274,10 +450,17 @@ def main(argv=None) -> int:
     parser.add_argument("--compare-text-report", help="a report of --text-report another machine wrote: the text "
                         "image's pixels and the metrics must be the same")
     parser.add_argument("--screenshot-dir", help="with --gui: keep the screenshots and reports in this folder")
+    parser.add_argument("--expect-fallback", help="AppImage: the fallback copies that must be used on this host "
+                        "(comma-separated library names), or 'none'")
+    parser.add_argument("--gui-exe", help="the program a desktop shortcut starts (Windows: mdbridge-gui.exe): "
+                        "check that it opens a project given as its argument")
     args = parser.parse_args(argv)
     exe = os.path.abspath(args.exe)
-    global SCREENSHOT_DIR
+    global SCREENSHOT_DIR, EXPECT_FALLBACK
     SCREENSHOT_DIR = os.path.abspath(args.screenshot_dir) if args.screenshot_dir else None
+    if args.expect_fallback is not None:
+        EXPECT_FALLBACK = set() if args.expect_fallback == "none" else \
+            {n.strip() for n in args.expect_fallback.split(",") if n.strip()}
 
     r = run(exe, "--version")
     check(f"--version: {r.stdout.strip()}", r.returncode == 0 and r.stdout.startswith("mdbridge ")
@@ -298,6 +481,8 @@ def main(argv=None) -> int:
         graphics = {}
     check(f"graphics: {graphics.get('renderer')} ({graphics.get('device') or graphics.get('problem')})",
           r.returncode == 0 and graphics.get("renderer") in ("vulkan", "software"), r.stdout + r.stderr)
+    if is_appimage(exe):
+        library_check("command line", graphics.get("libraries"))
 
     fonts_check(exe, args.text_report, args.compare_text_report)
 
@@ -332,6 +517,9 @@ def main(argv=None) -> int:
                 check("the Vulkan view ran", vulkan.get("renderer") == "vulkan", str(vulkan.get("fallback_reason")))
         r = run(exe, "gui", os.path.join(PROJECTS, "split.mdatk.toml"), "--quit-after", "5")
         check("gui runs 5 s and quits (a project without input files)", r.returncode == 0, r.stderr.strip()[-600:])
+        gui_edit_check(exe, is_appimage(exe))
+    if args.gui_exe:
+        gui_exe_check(os.path.abspath(args.gui_exe))
 
     print(f"\n{'all checks passed' if not FAILED else str(len(FAILED)) + ' check(s) failed'}")
     return 1 if FAILED else 0

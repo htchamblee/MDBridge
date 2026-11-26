@@ -454,10 +454,21 @@ if(MDBRIDGE_BUILD_APP)
     add_test(NAME gui.jobs COMMAND mdbridge_gui_jobs_tests)
     set_tests_properties(gui.jobs PROPERTIES LABELS gui ENVIRONMENT "${MDBRIDGE_QT_TEST_ENVIRONMENT}" TIMEOUT 600)
 
+    # `mdbridge gui --script` (src/app/gui/script_runner.*), the action scripts of the smoke test of
+    # finished builds: an edit saved as exactly one changed line, screenshots of every page, failing
+    # actions and malformed scripts. Qt Test, offscreen.
+    add_executable(mdbridge_gui_script_tests gui/test_script.cpp)
+    set_target_properties(mdbridge_gui_script_tests PROPERTIES AUTOMOC ON)
+    target_link_libraries(mdbridge_gui_script_tests PRIVATE mdbridge_app mdbridge::render_panels_vulkan Qt6::Test)
+    mdbridge_target_warnings(mdbridge_gui_script_tests)
+    add_test(NAME gui.script COMMAND mdbridge_gui_script_tests)
+    set_tests_properties(gui.script PROPERTIES LABELS gui ENVIRONMENT "${MDBRIDGE_QT_TEST_ENVIRONMENT}" TIMEOUT 600)
+
     # every GUI test program links mdbridge_app, which links the video encoder: the FFmpeg DLLs next to it
     if(WIN32 AND MDBRIDGE_VIDEO_RUNTIME_FILES)
         foreach(gui_test mdbridge_gui_tests mdbridge_gui_forms_tests mdbridge_gui_problems_tests mdbridge_gui_pages_tests
-                         mdbridge_gui_window_tests mdbridge_gui_group_pages_tests mdbridge_gui_jobs_tests)
+                         mdbridge_gui_window_tests mdbridge_gui_group_pages_tests mdbridge_gui_jobs_tests
+                         mdbridge_gui_script_tests)
             add_custom_command(TARGET ${gui_test} POST_BUILD
                 COMMAND ${CMAKE_COMMAND} -E copy_if_different ${MDBRIDGE_VIDEO_RUNTIME_FILES} $<TARGET_FILE_DIR:${gui_test}>
                 VERBATIM)
