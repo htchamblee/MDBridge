@@ -22,8 +22,19 @@ Known issue for W3 (packaging): when the host lacks one of the AppImage's fallba
 AppRun puts the whole `usr/lib/fallback` folder first on LD_LIBRARY_PATH, so Rocky's fontconfig,
 freetype, harfbuzz and GL replace the host's; only the missing libraries should be supplied.
 
-## Wave 1: in progress
+## Wave 1: done (CI green at 70b8a42)
 
-W1-A window shell, W1-B pages 1 (Input & cleaning, Residue groups, Analyses), W1-C pages 2
-(Structure view, Outputs), W1-D problems. Then wave 2 (layout page + canvas editor, actions) and
-wave 3 (docs, accessibility, Windows checks, packaging fix above).
+Window shell in MDATK's layout (no separate 3D view, D4), the Input & cleaning, Residue groups,
+Analyses, Structure view and Outputs pages, problems panel and page badges; every page fits the
+side bar (WN-11). GUI tests use the bundled font and report through stderr on Windows. 31 of the
+42 recorded MDATK GUI cases run and pass; the other 11 need the canvas or the slot editors (W2-A).
+
+Notes for wave 3: on Windows, show paths in interface text with native '\\' separators
+consistently (title, recent list, change notice, log); storage unchanged.
+
+Owner decisions since: fonts switch to IBM Plex Serif everywhere (interface, figures, charts,
+videos) with IBM Plex Math as the only fallback for missing symbols (branch `plex-serif`).
+
+## Wave 2: in progress
+
+W2-A layout page + canvas editor (the canvas's structure panel is the 3D view), W2-B actions.
