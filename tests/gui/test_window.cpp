@@ -2,7 +2,7 @@
 // shortcuts (D4, D11), every header and menu action, the questions about unsaved changes (AP-13),
 // Save as (AP-11), the start with a file that does not load (AP-12), closing during a job (AP-14),
 // recovery copies (D6), the external-change notice, drag and drop, and screenshots of the window
-// (one per page, CI artifacts, never compared). Qt Test on the offscreen platform; questions,
+// (one per page, CI artifacts, never compared) and that every page fits the 520 px side bar. Qt Test on the offscreen platform; questions,
 // messages and file dialogs answered by the harness's RecordingPrompter and a file dialog function.
 
 #include <atomic>
@@ -18,12 +18,17 @@
 #include <QAction>
 #include <QApplication>
 #include <QClipboard>
+#include <QHeaderView>
 #include <QLabel>
 #include <QLocale>
 #include <QMenu>
 #include <QMimeData>
 #include <QProgressBar>
 #include <QPushButton>
+#include <QScrollArea>
+#include <QScrollBar>
+#include <QTableView>
+#include <QToolButton>
 #include <QTemporaryDir>
 #include <QTest>
 #include <QUrl>
@@ -143,6 +148,7 @@ private slots:
     void recoveryCopies();
     void externalChange();
     void dragAndDrop();
+    void pagesFitTheSideBar();
     void screenshots();
 
 private:
@@ -536,10 +542,12 @@ void WindowTests::closingAsks() {
 void WindowTests::closingDuringAJob() {
     Fixture f;
     app::MainWindow& w = *f.window;
+    auto started = std::make_shared<std::atomic<bool>>(false);
     auto cleaned = std::make_shared<std::atomic<bool>>(false);
     QVERIFY(w.jobRunner()->start(
         QStringLiteral("Waiting"),
-        [cleaned](const core::Reporter& reporter) {
+        [started, cleaned](const core::Reporter& reporter) {
+            started->store(true);
             try {
                 for (;;) {
                     reporter.progress(0.5, "waiting");
@@ -554,6 +562,8 @@ void WindowTests::closingDuringAJob() {
         },
         [] {}));
     QVERIFY(w.action(QStringLiteral("cancel"))->isEnabled());
+    // a job cancelled before its thread picked it up never runs (no clean-up to wait for): let it start
+    QTRY_VERIFY_WITH_TIMEOUT(started->load(), 10000);
     int asked = 0;
     w.jobRunner()->setAsker([&asked](QWidget*, app::jobs::CloseQuestion, const QString&) {
         ++asked;
@@ -653,6 +663,70 @@ void WindowTests::dragAndDrop() {
     QDropEvent drop(QPointF(10, 10), Qt::CopyAction, &data, Qt::LeftButton, Qt::NoModifier);
     QApplication::sendEvent(&w, &drop);
     QTRY_COMPARE(w.document().path(), p);
+}
+
+// Every page fits the side bar (WN-11): with all sections open, no widget of a page reaches past
+// its scroll area's viewport (rows wrap, hints wrap, tables fit their columns) and the tables
+// need no horizontal scroll bar.
+void WindowTests::pagesFitTheSideBar() {
+    Fixture f;
+    app::MainWindow& w = *f.window;
+    QVERIFY(w.openPath(f.copy("full.mdatk.toml", "full.mdatk.toml")));
+    QTRY_VERIFY_WITH_TIMEOUT(!w.loading(), 120000);
+    QStringList overflows;
+    for (const app::MainWindow::Page& page : w.pages()) {
+        QVERIFY(w.showPage(page.id));
+        for (QToolButton* header : page.widget->findChildren<QToolButton*>()) {
+            if (header->objectName().startsWith(QStringLiteral("section:")) && header->isCheckable() &&
+                !header->isChecked()) {
+                header->setChecked(true);
+            }
+        }
+        QTest::qWait(50);  // the layouts settle (tables fit their columns after a reload)
+        auto* scroll = page.widget->findChild<QScrollArea*>(QStringLiteral("page:%1:scroll").arg(page.id));
+        if (!scroll) {
+            QVERIFY2(page.placeholder, qPrintable(page.id));
+            continue;
+        }
+        QWidget* viewport = scroll->viewport();
+        QWidget* body = scroll->widget();
+        QVERIFY(body);
+        const int room = viewport->width();
+        QVERIFY2(room > 400, qPrintable(QStringLiteral("%1: viewport %2 px").arg(page.id).arg(room)));
+        if (body->width() > room) {
+            overflows << QStringLiteral("%1: the page is %2 px wide in a %3 px viewport (minimum %4 px)")
+                             .arg(page.id)
+                             .arg(body->width())
+                             .arg(room)
+                             .arg(body->minimumSizeHint().width());
+        }
+        int checked = 0;
+        for (QWidget* child : body->findChildren<QWidget*>()) {
+            if (!child->isVisibleTo(body)) {
+                continue;
+            }
+            bool insideView = false;  // a table's cells and scroll bars are the table's business
+            for (QWidget* up = child->parentWidget(); up && up != body; up = up->parentWidget()) {
+                insideView = insideView || qobject_cast<QAbstractScrollArea*>(up) != nullptr;
+            }
+            if (insideView) {
+                continue;
+            }
+            ++checked;
+            const int right = child->mapTo(viewport, QPoint(child->width(), 0)).x();
+            if (right > room) {
+                overflows << QStringLiteral("%1: %2 '%3' ends at %4 px (minimum width %5 px)")
+                                 .arg(page.id, QString::fromLatin1(child->metaObject()->className()), child->objectName())
+                                 .arg(right)
+                                 .arg(child->minimumSizeHint().width());
+            }
+            if (auto* table = qobject_cast<QTableView*>(child); table && table->horizontalScrollBar()->isVisible()) {
+                overflows << QStringLiteral("%1: the table '%2' scrolls sideways").arg(page.id, table->objectName());
+            }
+        }
+        QVERIFY2(checked > 10, qPrintable(page.id));
+    }
+    QVERIFY2(overflows.isEmpty(), qPrintable(overflows.join(QLatin1Char('\n'))));
 }
 
 void WindowTests::screenshots() {

@@ -21,6 +21,8 @@ add_library(mdbridge_app STATIC
     gui/forms/field_spec.hpp
     gui/forms/field_widgets.cpp
     gui/forms/field_widgets.hpp
+    gui/forms/flow_layout.cpp
+    gui/forms/flow_layout.hpp
     gui/forms/form_context.cpp
     gui/forms/form_context.hpp
     gui/forms/list_editor.cpp

@@ -7,7 +7,6 @@
 #include <QAbstractSpinBox>
 #include <QFont>
 #include <QGridLayout>
-#include <QHBoxLayout>
 #include <QLabel>
 #include <QPalette>
 #include <QPushButton>
@@ -17,6 +16,7 @@
 #include <QVBoxLayout>
 
 #include "gui/forms/field_factory.hpp"
+#include "gui/forms/flow_layout.hpp"
 #include "gui/problems/problems_panel.hpp"
 #include "mdbridge/core/problems.hpp"
 #include "mdbridge/core/project_document.hpp"
@@ -25,8 +25,8 @@ namespace mdbridge::app::pages {
 
 namespace {
 
-constexpr int kLabelWidth = 130;
-constexpr int kNumberWidth = 84;  // a spin box in a row of several (MDATK's spins show 5-7 digits)  // MDATK: set_max_width_chars(18) in the 520 px side bar
+constexpr int kLabelWidth = 130;   // MDATK: set_max_width_chars(18) in the 520 px side bar
+constexpr int kNumberWidth = 84;   // a spin box in a row of several (MDATK's spins show 5-7 digits)
 
 }  // namespace
 
@@ -71,9 +71,8 @@ QWidget* FormGrid::add(const QString& label, QWidget* widget, const QString& too
 
 QWidget* FormGrid::addRow(const QString& label, std::initializer_list<QWidget*> widgets, const QString& tooltip) {
     auto* row = new QWidget(this);
-    auto* box = new QHBoxLayout(row);
+    auto* box = new forms::FlowLayout(row);  // wraps when the side bar is too narrow for the row
     box->setContentsMargins(0, 0, 0, 0);
-    box->setSpacing(6);
     for (QWidget* w : widgets) {
         if (auto* f = qobject_cast<forms::FieldWidget*>(w); f && qobject_cast<QAbstractSpinBox*>(f->editor())) {
             f->setMinimumWidth(kNumberWidth);
@@ -83,7 +82,6 @@ QWidget* FormGrid::addRow(const QString& label, std::initializer_list<QWidget*> 
             w->setToolTip(tooltip);
         }
     }
-    box->addStretch(1);
     m_grid->addWidget(rowLabel(label, widgets.size() ? *widgets.begin() : nullptr, tooltip), m_row, 0);
     m_grid->addWidget(row, m_row, 1);
     ++m_row;
@@ -105,13 +103,11 @@ QLabel* FormGrid::addHint(const QString& text) {
 
 QWidget* FormGrid::addButtons(std::initializer_list<QWidget*> buttons) {
     auto* row = new QWidget(this);
-    auto* box = new QHBoxLayout(row);
+    auto* box = new forms::FlowLayout(row);
     box->setContentsMargins(0, 0, 0, 0);
-    box->setSpacing(6);
     for (QWidget* b : buttons) {
         box->addWidget(b);
     }
-    box->addStretch(1);
     return addWide(row);
 }
 

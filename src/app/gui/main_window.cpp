@@ -8,6 +8,7 @@
 #include <iostream>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <iterator>
 #include <system_error>
 #include <tuple>
@@ -240,9 +241,9 @@ MainWindow::MainWindow(render::Renderer renderer, QWidget* parent)
     connect(m_preview, &PreviewWidget::drawn, this, [this] {
         const std::vector<std::string>& now = m_preview->warnings();
         if (m_warningsKnown && now != m_lastWarnings) {
-            for (const std::string& line : now) {
-                if (std::find(m_lastWarnings.begin(), m_lastWarnings.end(), line) == m_lastWarnings.end()) {
-                    appendLog(qs(line));
+            for (const std::string& warning : now) {
+                if (std::find(m_lastWarnings.begin(), m_lastWarnings.end(), warning) == m_lastWarnings.end()) {
+                    appendLog(qs(warning));
                 }
             }
         }

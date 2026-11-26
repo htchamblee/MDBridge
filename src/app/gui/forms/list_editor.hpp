@@ -129,8 +129,15 @@ public:
     void commit() override;
     QString displayedText() const override { return {}; }
 
+    // Sizes the columns to the table's width: each column its content's width while they all fit
+    // (the last one takes the rest), else the widest ones shrink alike (their text elided) down to
+    // the header's minimum; only then does the table scroll sideways. Runs when the table is
+    // resized or reloaded; a column the user resized keeps its width until then.
+    void fitColumns();
+
 protected:
     void onDocumentChanged(const core::DocumentChange& change) override;
+    bool eventFilter(QObject* watched, QEvent* event) override;
 
 private:
     bool storeCell(const std::string& cellPath, const QString& text);

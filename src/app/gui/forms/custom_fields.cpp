@@ -50,7 +50,7 @@ RotationField::RotationField(FormContext& context, std::string path, FieldSpec s
         slider->setRange(-static_cast<int>(kLimit) * kScale, static_cast<int>(kLimit) * kScale);
         slider->setSingleStep(kScale / 2);  // MDATK's step: 0.5 degrees
         slider->setPageStep(5 * kScale);
-        slider->setMinimumWidth(220);
+        slider->setMinimumWidth(120);  // fits the side bar with the label and value beside it
         slider->setObjectName(toQString(this->path()) + QStringLiteral(".%1").arg(axis));
         slider->setProperty("mdbridgeScale", kScale);
         slider->setAccessibleName(name);
@@ -86,6 +86,7 @@ RotationField::RotationField(FormContext& context, std::string path, FieldSpec s
     inner->setColumnStretch(1, 1);
     m_angles = new QLabel(this);
     m_angles->setObjectName(toQString(this->path()) + QStringLiteral(":angles"));
+    m_angles->setWordWrap(true);
     m_angles->setTextInteractionFlags(Qt::TextSelectableByMouse | Qt::TextSelectableByKeyboard);
     grid->addWidget(sliders, 0, 0);
     grid->addWidget(m_angles, 1, 0);

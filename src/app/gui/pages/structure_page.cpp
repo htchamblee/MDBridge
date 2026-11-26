@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <string>
 
-#include <QHeaderView>
 #include <QLabel>
 #include <QPointer>
 #include <QPushButton>
@@ -84,7 +83,6 @@ void StructurePage::buildRepresentations() {
     m_reps->addButton()->setText(tr("Add representation"));
     m_reps->addButton()->setToolTip(tr("Draw residue groups as cartoon, ribbon, tube, licorice, VDW or surface"));
     m_reps->removeButton()->setToolTip(tr("Remove the selected representation"));
-    m_reps->view()->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     m_reps->view()->setMinimumHeight(110);
     m_reps->view()->setMaximumHeight(170);
     f->addWide(m_reps);

@@ -39,13 +39,14 @@ public:
     // A row "label | widget" (Form.add); `tooltip` goes on the label and on the widget when it has
     // none (a field widget's hint belongs in its spec, where its flag tooltip keeps it).
     QWidget* add(const QString& label, QWidget* widget, const QString& tooltip = {});
-    // A row "label | w1 w2 ..." (Form.add_row): the widgets side by side, not stretched.
+    // A row "label | w1 w2 ..." (Form.add_row): the widgets side by side, not stretched, moving onto
+    // further lines when the side bar is too narrow for them (MDATK 0.1.1 flow rows).
     QWidget* addRow(const QString& label, std::initializer_list<QWidget*> widgets, const QString& tooltip = {});
     // A widget across both columns (Form.add_wide).
     QWidget* addWide(QWidget* widget);
     // A dim, wrapped text across both columns (W.hint).
     QLabel* addHint(const QString& text);
-    // A row of buttons across both columns (left aligned).
+    // A row of buttons across both columns (left aligned, wrapping like addRow).
     QWidget* addButtons(std::initializer_list<QWidget*> buttons);
 
 private:

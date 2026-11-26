@@ -9,6 +9,7 @@
 #include <utility>
 
 #include <QAction>
+#include <QCheckBox>
 #include <QApplication>
 #include <QColorDialog>
 #include <QDir>
@@ -19,11 +20,15 @@
 #include <QHBoxLayout>
 #include <QKeyEvent>
 #include <QLineEdit>
+#include <QPaintEvent>
 #include <QPainter>
 #include <QPen>
 #include <QPalette>
 #include <QPixmap>
+#include <QSizePolicy>
 #include <QStyle>
+#include <QStyleOption>
+#include <QStylePainter>
 #include <QToolButton>
 
 #include "mdbridge/core/errors.hpp"
@@ -916,13 +921,65 @@ std::optional<QString> EditableComboField::pendingText() const {
 
 namespace {
 
-// Partly checked only while an optional boolean is unset; a click sets true or false.
+// Partly checked only while an optional boolean is unset; a click sets true or false. A long text
+// wraps onto further lines when the side bar is narrower than it (MDATK's GTK check buttons wrap),
+// so a check box never pushes a page wider than the side bar.
 class TwoStateClicks : public QCheckBox {
 public:
-    using QCheckBox::QCheckBox;
+    TwoStateClicks(const QString& text, QWidget* parent) : QCheckBox(text, parent) {
+        QSizePolicy policy(QSizePolicy::Preferred, QSizePolicy::Minimum);  // may shrink below one line, then wraps
+        policy.setHeightForWidth(true);
+        setSizePolicy(policy);
+    }
+
+    QSize minimumSizeHint() const override {
+        // the indicator and the longest word (or the whole text when it is shorter)
+        int word = 0;
+        for (const QString& part : text().split(QLatin1Char(' '), Qt::SkipEmptyParts)) {
+            word = std::max(word, fontMetrics().horizontalAdvance(part));
+        }
+        const QSize full = QCheckBox::sizeHint();
+        return {std::min(full.width(), textOffset() + word + 2), full.height()};
+    }
+    bool hasHeightForWidth() const override { return true; }
+    int heightForWidth(int w) const override {
+        const QRect bounds = fontMetrics().boundingRect(QRect(0, 0, std::max(w - textOffset(), 1), 100000),
+                                                        Qt::TextWordWrap, text());
+        return std::max(QCheckBox::sizeHint().height(), bounds.height() + 4);
+    }
 
 protected:
     void nextCheckState() override { setCheckState(checkState() == Qt::Checked ? Qt::Unchecked : Qt::Checked); }
+    bool hitButton(const QPoint& pos) const override { return rect().contains(pos); }
+    void paintEvent(QPaintEvent* event) override {
+        if (QCheckBox::sizeHint().width() <= width()) {
+            QCheckBox::paintEvent(event);  // fits on one line: the style draws it as usual
+            return;
+        }
+        QStylePainter painter(this);
+        QStyleOptionButton option;
+        initStyleOption(&option);
+        const QString caption = option.text;
+        option.text.clear();
+        const QRect indicator = style()->subElementRect(QStyle::SE_CheckBoxIndicator, &option, this);
+        option.rect = QRect(rect().left(), rect().top(), indicator.width(), rect().height());
+        painter.drawControl(QStyle::CE_CheckBox, option);
+        const QRect area(textOffset(), 0, width() - textOffset(), height());
+        painter.drawItemText(area, Qt::AlignLeft | Qt::AlignVCenter | Qt::TextWordWrap, palette(), isEnabled(), caption,
+                             QPalette::WindowText);
+        if (hasFocus()) {
+            QStyleOptionFocusRect focus;
+            focus.initFrom(this);
+            focus.rect = area;
+            painter.drawPrimitive(QStyle::PE_FrameFocusRect, focus);
+        }
+    }
+
+private:
+    int textOffset() const {
+        return style()->pixelMetric(QStyle::PM_IndicatorWidth, nullptr, this) +
+               style()->pixelMetric(QStyle::PM_CheckBoxLabelSpacing, nullptr, this);
+    }
 };
 
 }  // namespace

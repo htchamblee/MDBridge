@@ -2,12 +2,14 @@
 
 #include <algorithm>
 #include <exception>
+#include <numeric>
 #include <optional>
 #include <utility>
 
 #include <QBrush>
 #include <QColor>
 #include <QComboBox>
+#include <QEvent>
 #include <QHBoxLayout>
 #include <QHeaderView>
 #include <QItemSelectionModel>
@@ -16,6 +18,7 @@
 #include <QStyle>
 #include <QTableView>
 #include <QToolButton>
+#include <QTimer>
 #include <QVBoxLayout>
 
 #include "mdbridge/core/errors.hpp"
@@ -306,7 +309,7 @@ ListEditor::ListEditor(FormContext& context, std::string listPath, FieldSpec spe
     m_view->setEditTriggers(QAbstractItemView::DoubleClicked | QAbstractItemView::EditKeyPressed |
                             QAbstractItemView::AnyKeyPressed | QAbstractItemView::SelectedClicked);
     m_view->setTabKeyNavigation(false);  // Tab leaves the table (keyboard users reach the buttons)
-    m_view->horizontalHeader()->setStretchLastSection(true);
+    m_view->horizontalHeader()->setStretchLastSection(false);  // fitColumns() sizes them all
     m_view->verticalHeader()->setVisible(false);
     m_view->setMinimumHeight(90);
     m_view->setProperty("mdbridgeList", true);
@@ -356,7 +359,64 @@ ListEditor::ListEditor(FormContext& context, std::string listPath, FieldSpec spe
         connect(m_browse, &QPushButton::clicked, this, &ListEditor::browse);
     }
     connect(&context, &FormContext::problemsChanged, m_model, &ListModel::problemsChanged);
+    m_view->viewport()->installEventFilter(this);
+    connect(m_model, &QAbstractItemModel::modelReset, this, [this] {
+        QTimer::singleShot(0, this, &ListEditor::fitColumns);  // after the header has its sections again
+    });
     refresh();
+}
+
+bool ListEditor::eventFilter(QObject* watched, QEvent* event) {
+    if (watched == m_view->viewport() && event->type() == QEvent::Resize) {
+        fitColumns();
+    }
+    return FieldWidget::eventFilter(watched, event);
+}
+
+void ListEditor::fitColumns() {
+    QHeaderView* header = m_view->horizontalHeader();
+    const int columns = m_model->columnCount();
+    const int available = m_view->viewport()->width();
+    if (columns <= 0 || available <= 0) {
+        return;
+    }
+    std::vector<int> natural(static_cast<std::size_t>(columns));
+    const int rows = std::min(m_model->rowCount(), 200);
+    const int grid = m_view->showGrid() ? 1 : 0;
+    for (int c = 0; c < columns; ++c) {
+        int fit = std::max(header->sectionSizeHint(c), header->minimumSectionSize());
+        for (int r = 0; r < rows; ++r) {
+            fit = std::max(fit, m_view->sizeHintForIndex(m_model->index(r, c)).width() + grid);
+        }
+        natural[static_cast<std::size_t>(c)] = fit;
+    }
+    int cap = *std::max_element(natural.begin(), natural.end());
+    const auto total = [&natural](int limit) {
+        return std::accumulate(natural.begin(), natural.end(), 0, [limit](int sum, int w) { return sum + std::min(w, limit); });
+    };
+    if (total(cap) > available) {
+        // the largest cap at which everything fits (water filling), never below the header's minimum
+        int low = header->minimumSectionSize();
+        int high = cap;
+        while (low < high) {
+            const int mid = (low + high + 1) / 2;
+            if (total(mid) <= available) {
+                low = mid;
+            } else {
+                high = mid - 1;
+            }
+        }
+        cap = low;
+    }
+    int used = 0;
+    for (int c = 0; c + 1 < columns; ++c) {
+        const int section = std::min(natural[static_cast<std::size_t>(c)], cap);
+        header->resizeSection(c, section);
+        used += section;
+    }
+    // the last column takes the rest (the header's own last-section stretch keeps it at least
+    // its default size, which made narrow tables scroll)
+    header->resizeSection(columns - 1, std::max(available - used, header->minimumSectionSize()));
 }
 
 void ListEditor::addButton(QWidget* button) {
