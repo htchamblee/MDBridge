@@ -2935,9 +2935,13 @@ decisions D3 and D4), tested against SciPy 1.18.1 on the cases of
 `tests/parity/make_numerics_cases.py` (`tests/data/numerics/numerics_cases.json`;
 `tests/numerics/test_*.cpp`). `scipy.fft.rfftn` / `irfftn` run SciPy's own FFT (ducc0 0.40.0,
 vendored in `third_party/ducc0`; SciPy 1.18.1 uses ducc0, the successor of pocketfft, not pocketfft
-itself) and equal SciPy's bit for bit, for any thread count. Powell's method and Brent's line search
-(`src/numerics/powell.cpp`) give SciPy's iterates bit for bit on the recorded objectives (the test
-allows 1e-9). The Gaussian filter (now also mode "reflect" and one sigma per axis) and
+itself) and equal SciPy's bit for bit, for any thread count, with glibc: ducc0's twiddle factors come
+from the C library's sin / cos, so with MSVC's C library the last bits move (CI run 45882807857), and
+the test compares them there within a relative 1e-12 of the largest value (also against a direct DFT,
+on every platform). Powell's method and Brent's line search (`src/numerics/powell.cpp`) give SciPy's
+iterates bit for bit on the recorded objectives (the test allows 1e-9); on the objectives that call
+`exp`, another C library's rounding moves the line searches' stopping points in the flat valley
+(MSVC: iterates by 1.6e-8, nfev by 3 %), which the test allows without glibc (1e-6, nfev 5 %). The Gaussian filter (now also mode "reflect" and one sigma per axis) and
 `map_coordinates` (now also mode "constant" with a cval) of `src/numerics/ndimage.cpp`, moved from
 `src/render/molecule`, give SciPy's float32 values (within an ulp where the kernel's `exp` rounds
 differently). `density_centroid` moved from `src/render/panels` unchanged (its finite-voxel rule is

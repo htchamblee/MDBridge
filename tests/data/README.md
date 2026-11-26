@@ -508,7 +508,10 @@ and the command line in `sys.argv` (the step log records it), the step log's `ti
 are masked, and `dict pubchem` asks a stand-in PubChem on 127.0.0.1 (`MDBRIDGE_PUBCHEM_URL`, owner
 decision D7; `{pubchem}` in `env`). Cases with `fitted` (rebuilt helices: 0.05; density fits: 0.6)
 compare their texts with their decimal numbers within that absolute tolerance (D10) and keep files of
-any size as text. The same script compares a build with MDATK directly (CI's `parity` job, against the
+any size as text. numpy's and OpenBLAS' kernels are pinned (`chem_common.pin_kernels`, as in the chem
+generators): with other kernels the least-squares closures of the non-Watson-Crick and triplex builds
+land on other solutions, up to 0.8 Å apart (CI run 45882807857; `OPENBLAS_CORETYPE=Haswell` on the
+reference machine), which no tolerance covers; pinning changed only the fitted cases. The same script compares a build with MDATK directly (CI's `parity` job, against the
 AppImage):
 
 ```bash

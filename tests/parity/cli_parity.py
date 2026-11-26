@@ -100,6 +100,12 @@ import zipfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)  # -I leaves the script's folder out
+import chem_common  # noqa: E402
+
+# numpy's and OpenBLAS' kernels pinned as in the chem generators, before the child imports numpy:
+# the fitted builds (non-Watson-Crick helices, triplexes: least-squares closures) land up to 0.8 A
+# apart with other kernels (OPENBLAS_CORETYPE=Haswell on the reference machine; CI run 45882807857)
+chem_common.pin_kernels()
 import improvements_cli  # noqa: E402
 import improvements_readers_pdb  # noqa: E402  MDBridge's reader warnings and errors (docs/DIFFERENCES.md)
 

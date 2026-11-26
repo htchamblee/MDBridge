@@ -26,6 +26,23 @@ namespace {
 
 constexpr double kIterateTol = 1e-9;
 
+// gauss6 and gauss6_shift go through the C library's exp: the recorded iterates are glibc's (the
+// generator's math.exp). Another libm rounds some exp() an ulp away, and Brent's line search then
+// stops at other points of the flat valley near the minimum: MSVC's moved the iterates by up to
+// 1.6e-8 and nfev by 8 of 311 and 14 of 599, with the same nit (CI run 45882807857). Without glibc
+// those two are compared within kOtherLibmTol (about 100 sqrt(eps), the scale of a line-search
+// minimum moved by an ulp of f) and nfev within 5 %; rosen and quad3 use no libm and stay exact.
+#if defined(__GLIBC__)
+constexpr bool kGlibcLibm = true;
+#else
+constexpr bool kGlibcLibm = false;
+#endif
+constexpr double kOtherLibmTol = 1e-6;
+
+bool usesLibm(const std::string& objective) {
+    return objective == "gauss6" || objective == "gauss6_shift";
+}
+
 double sq(double v) {
     return v * v;  // Python's v ** 2 (pow(v, 2) is exact rounding of v * v)
 }
@@ -212,20 +229,27 @@ TEST(Powell, IteratesMatchScipy) {
             });
         const core::Array& iterates = list(at(c, "iterates"));
         const std::string label = name + " from " + std::to_string(x0[0]);
+        const bool exact = kGlibcLibm || !usesLibm(name);
+        const double tol = exact ? kIterateTol : kOtherLibmTol;
         ASSERT_EQ(xs.size(), iterates.size()) << label;
         for (std::size_t k = 0; k < xs.size(); ++k) {
-            expectClose(xs[k], nums(at(iterates[k], "x")), kIterateTol, label + " iterate " + std::to_string(k));
-            EXPECT_TRUE(close(funs[k], num(at(iterates[k], "fun")), kIterateTol)) << label << " " << k;
+            expectClose(xs[k], nums(at(iterates[k], "x")), tol, label + " iterate " + std::to_string(k));
+            EXPECT_TRUE(close(funs[k], num(at(iterates[k], "fun")), tol)) << label << " " << k;
         }
-        expectClose(r.x, nums(at(c, "x")), kIterateTol, label + " x");
-        EXPECT_TRUE(close(r.fun, num(at(c, "fun")), kIterateTol)) << label;
+        expectClose(r.x, nums(at(c, "x")), tol, label + " x");
+        EXPECT_TRUE(close(r.fun, num(at(c, "fun")), tol)) << label;
         const core::Array& direc = list(at(c, "direc"));
         ASSERT_EQ(r.direc.size(), direc.size());
         for (std::size_t k = 0; k < direc.size(); ++k) {
-            expectClose(r.direc[k], nums(direc[k]), kIterateTol, label + " direc");
+            expectClose(r.direc[k], nums(direc[k]), tol, label + " direc");
         }
         EXPECT_EQ(r.nit, count(at(c, "nit"))) << label;
-        EXPECT_EQ(r.nfev, count(at(c, "nfev"))) << label;
+        if (exact) {
+            EXPECT_EQ(r.nfev, count(at(c, "nfev"))) << label;
+        } else {
+            const std::size_t want = count(at(c, "nfev"));
+            EXPECT_LE((r.nfev > want ? r.nfev - want : want - r.nfev) * 20, want) << label << ": nfev " << r.nfev;
+        }
         EXPECT_EQ(r.status, static_cast<int>(count(at(c, "status")))) << label;
         EXPECT_EQ(r.message, str(at(c, "message"))) << label;
     }

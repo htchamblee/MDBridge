@@ -2,8 +2,9 @@
 // scipy.fft.rfftn / irfftn of 3-D float64 arrays in C order ([z, y, x], shape {n0, n1, n2}) with the
 // default ("backward") normalisation, computed by the FFT scipy.fft itself runs: Martin Reinecke's ducc0
 // FFT 0.40.0 as SciPy 1.18.1 vendors it (third_party/ducc0, BSD-3-Clause; owner decision D3). The
-// results equal SciPy's bit for bit on the same CPU family (ducc0 vectorises over lines with the
-// compiler's SIMD types where SciPy's build does, never inside a line), and do not depend on the
+// results equal SciPy's bit for bit on the same CPU family and C library (ducc0 vectorises over lines
+// with the compiler's SIMD types where SciPy's build does, never inside a line; its twiddle factors
+// come from the C library's sin / cos, so another libm moves the last bits), and do not depend on the
 // thread count: threads only share out whole lines (MDATK passes workers=-1).
 
 #include <array>
