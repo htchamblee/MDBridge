@@ -10,7 +10,6 @@
 #include <QColor>
 #include <QComboBox>
 #include <QEvent>
-#include <QHBoxLayout>
 #include <QHeaderView>
 #include <QItemSelectionModel>
 #include <QLineEdit>
@@ -21,6 +20,7 @@
 #include <QTimer>
 #include <QVBoxLayout>
 
+#include "gui/forms/flow_layout.hpp"
 #include "mdbridge/core/errors.hpp"
 #include "mdbridge/core/python.hpp"
 
@@ -316,9 +316,12 @@ ListEditor::ListEditor(FormContext& context, std::string listPath, FieldSpec spe
     layout->addWidget(m_view);
     setEditor(m_view);
 
-    auto* buttons = new QHBoxLayout;
+    // the buttons wrap onto a further line when the field column is too narrow for all of them
+    // (fonts wider than the one the side bar was laid out with), as the form rows do
+    auto* buttonRow = new QWidget(this);
+    auto* buttons = new FlowLayout(buttonRow, 4, 4);
+    buttons->setContentsMargins(0, 0, 0, 0);
     m_buttonRow = buttons;
-    buttons->setSpacing(4);
     const QString name = toQString(path());
     const auto pushButton = [&](const QString& text, const QString& id, QStyle::StandardPixmap icon, const QString& tip) {
         auto* b = new QPushButton(style()->standardIcon(icon), text, this);
@@ -349,8 +352,7 @@ ListEditor::ListEditor(FormContext& context, std::string listPath, FieldSpec spe
                               QStringLiteral("Browse: ") +
                                   (this->spec().dialogTitle.isEmpty() ? label() : this->spec().dialogTitle));
     }
-    buttons->addStretch(1);
-    layout->addLayout(buttons);
+    layout->addWidget(buttonRow);
     connect(m_add, &QPushButton::clicked, this, &ListEditor::addRow);
     connect(m_remove, &QPushButton::clicked, this, &ListEditor::removeSelected);
     connect(m_up, &QToolButton::clicked, this, [this] { moveSelected(-1); });
@@ -421,7 +423,7 @@ void ListEditor::fitColumns() {
 
 void ListEditor::addButton(QWidget* button) {
     button->setParent(this);
-    m_buttonRow->insertWidget(m_buttonRow->count() - 1, button);  // before the stretch
+    m_buttonRow->addWidget(button);
 }
 
 std::vector<ListColumn> ListEditor::columnsFor(const FieldSpec& spec) const {

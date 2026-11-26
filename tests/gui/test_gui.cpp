@@ -239,10 +239,22 @@ void GuiTests::comparesTexts() {
     QCOMPARE(guitest::compareText("a\nc\n", "a\nb\n"), std::string("line 2: expected 'b', got 'c'"));
     QCOMPARE(guitest::compareText("a\n", "a\nb\n"), std::string("line 2: expected 'b', got the end of the file"));
     QCOMPARE(guitest::compareText("a", "a\n"), std::string("the texts differ in their final line end"));
+    // Windows: the folder with either separator, the path after it with '/' up to where it ends
+    QCOMPARE(guitest::replaceFolder("Saved project C:/work/tmp\\case\\sub\\copy.mdatk.toml", "C:/work/tmp/case",
+                                    "{case_dir}", true),
+             std::string("Saved project {case_dir}/sub/copy.mdatk.toml"));
+    QCOMPARE(guitest::replaceFolder("ERROR: Could not open C:\\work\\case\\a.toml: C:\\work\\case\\a.toml: bad '\\n'",
+                                    "C:/work/case", "{case_dir}", true),
+             std::string("ERROR: Could not open {case_dir}/a.toml: {case_dir}/a.toml: bad '\\n'"));
+    QCOMPARE(guitest::replaceFolder("C:\\work\\case\\p.toml (save it)", "C:\\work\\case", "{case_dir}", true),
+             std::string("{case_dir}/p.toml (save it)"));
+    QCOMPARE(guitest::replaceFolder("/work/case/a\\b", "/work/case", "{case_dir}", false), std::string("{case_dir}/a\\b"));
 #ifdef _WIN32
     const fs::path dir = core::pathFromUtf8("C:\\work\\case");
     QCOMPARE(guitest::normalise("out_dir = \"C:/work/case/MDATK_output\"\r\n", dir),
              std::string("out_dir = \"{case_dir}/MDATK_output\"\n"));
+    QCOMPARE(guitest::normalise("Saved project C:\\work\\case\\sub\\p.mdatk.toml", dir),
+             std::string("Saved project {case_dir}/sub/p.mdatk.toml"));
 #else
     const fs::path dir = core::pathFromUtf8("/work/case");
     QCOMPARE(guitest::normalise("out_dir = \"/work/case/MDATK_output\"\r\n", dir),
@@ -380,9 +392,11 @@ void GuiTests::cases() {
         try {
             guitest::prepareCase(c, kData, caseDir);
             if (!c.settings.empty()) {
+                // the generic form: a Windows path's '\\' would be an escape in the TOML string
+                const std::u8string folder = caseDir.lexically_normal().generic_u8string();
                 writeText(core::userSettingsPath(),
                           replaced(readText(kData / core::pathFromUtf8(c.settings)), "{case_dir}",
-                                   core::pathToUtf8(caseDir)));
+                                   std::string(folder.begin(), folder.end())));
             }
         } catch (const std::exception& e) {
             failure = e.what();
@@ -430,6 +444,7 @@ int main(int argc, char** argv) {
     qputenv("QT_QPA_PLATFORM", platform.isEmpty() ? QByteArray("offscreen") : platform);
     QLocale::setDefault(QLocale::c());  // numbers typed as the project file writes them
     QApplication app(argc, argv);
+    guitest::useBundledFont();
     GuiTests tests;
     return QTest::qExec(&tests, argc, argv);
 }

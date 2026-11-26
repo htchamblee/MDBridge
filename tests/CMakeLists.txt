@@ -340,6 +340,12 @@ if(MDBRIDGE_BUILD_APP)
 endif()
 
 if(MDBRIDGE_BUILD_APP)
+    # The Qt Test programs' environment: the offscreen platform, and Qt's messages and Qt Test's
+    # report on stdout / stderr. Without QT_FORCE_STDERR_LOGGING, Qt on Windows sends both to the
+    # debugger (OutputDebugString) when the process has no console, as under the CI runner, and
+    # ctest --output-on-failure showed nothing of a failing test.
+    set(MDBRIDGE_QT_TEST_ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_FORCE_STDERR_LOGGING=1")
+
     # the main window driven by action scripts (tests/data/gui, format in tests/data/README.md "gui"):
     # saved files against MDATK's, screenshots to $MDBRIDGE_GUI_SCREENSHOTS (default
     # <build>/gui-screenshots; CI artifacts, never compared). Qt Test on the offscreen platform.
@@ -350,7 +356,7 @@ if(MDBRIDGE_BUILD_APP)
                                MDBRIDGE_GUI_SCREENSHOT_DIR="${CMAKE_BINARY_DIR}/gui-screenshots")
     mdbridge_target_warnings(mdbridge_gui_tests)
     add_test(NAME gui.cases COMMAND mdbridge_gui_tests)
-    set_tests_properties(gui.cases PROPERTIES LABELS gui ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+    set_tests_properties(gui.cases PROPERTIES LABELS gui ENVIRONMENT "${MDBRIDGE_QT_TEST_ENVIRONMENT}")
 
     # the GUI's bound field widgets (src/app/gui/forms, milestone 5 W0-C): every field of the fixture
     # projects loaded and saved without an edit byte for byte, edits, undo / redo, AP-01 .. AP-05,
@@ -362,7 +368,7 @@ if(MDBRIDGE_BUILD_APP)
     target_compile_definitions(mdbridge_gui_forms_tests PRIVATE MDBRIDGE_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data")
     mdbridge_target_warnings(mdbridge_gui_forms_tests)
     add_test(NAME gui.forms COMMAND mdbridge_gui_forms_tests)
-    set_tests_properties(gui.forms PROPERTIES LABELS gui ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+    set_tests_properties(gui.forms PROPERTIES LABELS gui ENVIRONMENT "${MDBRIDGE_QT_TEST_ENVIRONMENT}")
 
     # the problems presentation (src/app/gui/problems, milestone 5 W1-D): every validate case's problem
     # on its field of a factory-built form with its location, page badges, jumps, checking as you type
@@ -373,7 +379,7 @@ if(MDBRIDGE_BUILD_APP)
     target_compile_definitions(mdbridge_gui_problems_tests PRIVATE MDBRIDGE_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data")
     mdbridge_target_warnings(mdbridge_gui_problems_tests)
     add_test(NAME gui.problems COMMAND mdbridge_gui_problems_tests)
-    set_tests_properties(gui.problems PROPERTIES LABELS gui ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+    set_tests_properties(gui.problems PROPERTIES LABELS gui ENVIRONMENT "${MDBRIDGE_QT_TEST_ENVIRONMENT}")
 
     # the settings pages Structure view and Outputs (src/app/gui/pages, milestone 5 W1-C): MDATK's
     # representation editor and mouse-wheel tests, the rotation sliders, chart format boxes (AP-04),
@@ -385,7 +391,7 @@ if(MDBRIDGE_BUILD_APP)
                                MDBRIDGE_GUI_SCREENSHOT_DIR="${CMAKE_BINARY_DIR}/gui-screenshots")
     mdbridge_target_warnings(mdbridge_gui_pages_tests)
     add_test(NAME gui.pages COMMAND mdbridge_gui_pages_tests)
-    set_tests_properties(gui.pages PROPERTIES LABELS gui ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+    set_tests_properties(gui.pages PROPERTIES LABELS gui ENVIRONMENT "${MDBRIDGE_QT_TEST_ENVIRONMENT}")
 
     # the analysis window's shell (src/app/gui/main_window.*, milestone 5 W1-A): layout and shortcuts,
     # every menu action, AP-11 .. AP-14, recovery copies (D6), external changes, drag and drop,
@@ -398,7 +404,7 @@ if(MDBRIDGE_BUILD_APP)
                                MDBRIDGE_GUI_SCREENSHOT_DIR="${CMAKE_BINARY_DIR}/gui-screenshots")
     mdbridge_target_warnings(mdbridge_gui_window_tests)
     add_test(NAME gui.window COMMAND mdbridge_gui_window_tests)
-    set_tests_properties(gui.window PROPERTIES LABELS gui ENVIRONMENT "QT_QPA_PLATFORM=offscreen" TIMEOUT 900)
+    set_tests_properties(gui.window PROPERTIES LABELS gui ENVIRONMENT "${MDBRIDGE_QT_TEST_ENVIRONMENT}" TIMEOUT 900)
 
     # the settings pages Input & cleaning, Residue groups and Analyses (src/app/gui/pages, milestone 5
     # W1-B): MDATK's sections and fields, the group drop-downs, group renames, Groups from chains
@@ -411,7 +417,7 @@ if(MDBRIDGE_BUILD_APP)
                                MDBRIDGE_GUI_SCREENSHOT_DIR="${CMAKE_BINARY_DIR}/gui-screenshots")
     mdbridge_target_warnings(mdbridge_gui_group_pages_tests)
     add_test(NAME gui.group_pages COMMAND mdbridge_gui_group_pages_tests)
-    set_tests_properties(gui.group_pages PROPERTIES LABELS gui ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+    set_tests_properties(gui.group_pages PROPERTIES LABELS gui ENVIRONMENT "${MDBRIDGE_QT_TEST_ENVIRONMENT}")
 
     # the interface's job runner and log view (src/app/gui/jobs; Qt Test, offscreen platform): job
     # texts, one job at a time, progress throttle, cancel paths, failures, close-while-running
@@ -421,7 +427,7 @@ if(MDBRIDGE_BUILD_APP)
     target_link_libraries(mdbridge_gui_jobs_tests PRIVATE mdbridge_app Qt6::Test)
     mdbridge_target_warnings(mdbridge_gui_jobs_tests)
     add_test(NAME gui.jobs COMMAND mdbridge_gui_jobs_tests)
-    set_tests_properties(gui.jobs PROPERTIES LABELS gui ENVIRONMENT "QT_QPA_PLATFORM=offscreen" TIMEOUT 600)
+    set_tests_properties(gui.jobs PROPERTIES LABELS gui ENVIRONMENT "${MDBRIDGE_QT_TEST_ENVIRONMENT}" TIMEOUT 600)
 
     # every GUI test program links mdbridge_app, which links the video encoder: the FFmpeg DLLs next to it
     if(WIN32 AND MDBRIDGE_VIDEO_RUNTIME_FILES)

@@ -591,6 +591,7 @@ int main(int argc, char** argv) {
     qputenv("QT_QPA_PLATFORM", platform.isEmpty() ? QByteArray("offscreen") : platform);
     QLocale::setDefault(QLocale::c());
     QApplication app(argc, argv);
+    guitest::useBundledFont();
     GroupPagesTests tests;
     return QTest::qExec(&tests, argc, argv);
 }

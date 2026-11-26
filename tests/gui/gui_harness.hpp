@@ -106,10 +106,23 @@ void tableAction(QWidget* root, const QString& key, const std::string& what, int
 // Saves `widget` as <dir>/<name>.png (the folder is made); returns the file. Throws CaseError.
 std::filesystem::path saveScreenshot(QWidget* widget, const std::filesystem::path& dir, const std::string& name);
 
+// The application font of the GUI tests: the bundled DejaVu Sans at Qt's default 9 pt, so text
+// widths are the same on every machine (Linux CI has DejaVu Sans as its only font; Qt's
+// offscreen platform on Windows finds no font at all and draws boxes) and layout tests such as
+// WindowTests::pagesFitTheSideBar measure what CI measures. Call after the QApplication exists;
+// a warning (and Qt's default font) when the bundled fonts cannot be registered.
+void useBundledFont();
+
 // The screenshot folder: $MDBRIDGE_GUI_SCREENSHOTS, else `fallback`.
 std::filesystem::path screenshotDir(const std::filesystem::path& fallback);
 
-// The text as compared: CR LF -> LF, the case folder's absolute path (generic form) -> {case_dir}.
+// `text` with every occurrence of the folder `folder` replaced by `name`. With `anySeparator` (on
+// Windows) '\\' and '/' match each other in the folder, and the separators of the path that follows
+// it, up to a space, quote, colon, comma, semicolon or closing bracket, become '/'.
+std::string replaceFolder(std::string text, const std::string& folder, const std::string& name, bool anySeparator);
+
+// The text as compared: CR LF -> LF, the case folder's absolute path (generic and native forms;
+// on Windows with either separator, the path after it with '/') -> {case_dir}.
 std::string normalise(std::string text, const std::filesystem::path& caseDir);
 
 // "" when equal, else where the texts first differ ("line 12: expected ... got ...").
@@ -184,7 +197,8 @@ std::string checkOutcome(const GuiCase& c, const CaseRunner& runner, const std::
                          const std::filesystem::path& dataDir, const std::filesystem::path& caseDir,
                          const std::filesystem::path& configDir);
 
-// The text with the case and config folders (generic and native forms) as {case_dir} / {config_dir}.
+// The text with the case and config folders (generic and native forms; on Windows with either
+// separator, the paths after them with '/') as {case_dir} / {config_dir}.
 std::string placeholders(std::string text, const std::filesystem::path& caseDir, const std::filesystem::path& configDir);
 
 // The words of the TOML parser in "not valid TOML: <words> (at line ..." replaced by a marker.

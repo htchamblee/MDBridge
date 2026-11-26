@@ -5,6 +5,7 @@
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
+#include <exception>
 #include <fstream>
 #include <iterator>
 #include <memory>
@@ -18,11 +19,13 @@
 #include <QAbstractSpinBox>
 #include <QApplication>
 #include <QComboBox>
+#include <QFont>
 #include <QImage>
 #include <QLabel>
 #include <QLineEdit>
 #include <QPixmap>
 #include <QPlainTextEdit>
+#include <QStringList>
 #include <QTableView>
 #include <QTest>
 #include <QTextEdit>
@@ -35,6 +38,7 @@
 #include "mdbridge/core/paths.hpp"
 #include "mdbridge/core/project_file.hpp"
 #include "mdbridge/core/settings.hpp"
+#include "mdbridge/render/text_qt.hpp"
 #include "gui/preview_widget.hpp"
 
 namespace fs = std::filesystem;
@@ -652,6 +656,21 @@ fs::path saveScreenshot(QWidget* widget, const fs::path& dir, const std::string&
     return file;
 }
 
+void useBundledFont() {
+    const QString family = QStringLiteral("DejaVu Sans");
+    QStringList families;
+    try {
+        families = render::registerBundledFonts();
+    } catch (const std::exception& e) {
+        qWarning("the bundled fonts: %s", e.what());  // the layout tests then report what they measure
+    }
+    if (!families.contains(family)) {
+        qWarning("the bundled fonts have no %s: the tests run with Qt's default font", qPrintable(family));
+        return;
+    }
+    QApplication::setFont(QFont(family, 9));
+}
+
 fs::path screenshotDir(const fs::path& fallback) {
     if (const char* dir = std::getenv("MDBRIDGE_GUI_SCREENSHOTS"); dir && *dir) {
         return core::pathFromUtf8(dir);
@@ -659,12 +678,63 @@ fs::path screenshotDir(const fs::path& fallback) {
     return fallback;
 }
 
+std::string replaceFolder(std::string text, const std::string& folder, const std::string& name, bool anySeparator) {
+    if (folder.empty()) {
+        return text;
+    }
+    if (!anySeparator) {
+        replaceAll(text, folder, name);
+        return text;
+    }
+    const auto slash = [](char c) { return c == '\\' ? '/' : c; };
+    // where a path in a message ends: "Could not open <path>: <reason>", "<path> (save them ...)"
+    const auto endsPath = [](char c) {
+        return c == ' ' || c == '\t' || c == '\n' || c == '"' || c == '\'' || c == ':' || c == ',' || c == ';' ||
+               c == ')' || c == ']' || c == '}';
+    };
+    std::string out;
+    out.reserve(text.size());
+    std::size_t at = 0;
+    while (at < text.size()) {
+        bool found = at + folder.size() <= text.size();
+        for (std::size_t k = 0; found && k < folder.size(); ++k) {
+            found = slash(text[at + k]) == slash(folder[k]);
+        }
+        if (!found) {
+            out += text[at++];
+            continue;
+        }
+        out += name;
+        for (at += folder.size(); at < text.size() && !endsPath(text[at]); ++at) {
+            out += slash(text[at]);
+        }
+    }
+    return out;
+}
+
+namespace {
+
+// Windows: the window joins and normalises paths as ntpath does ('\\'), the harness's folders come
+// from Qt ('/') joined by std::filesystem ('\\'), and the cases were recorded with '/': the
+// folders match whatever their separators and the paths after them compare with '/'.
+#ifdef _WIN32
+constexpr bool kAnySeparator = true;
+#else
+constexpr bool kAnySeparator = false;
+#endif
+
+std::string withFolder(std::string text, const fs::path& dir, const std::string& name) {
+    const fs::path normal = dir.lexically_normal();
+    text = replaceFolder(std::move(text), genericUtf8(normal), name, kAnySeparator);
+    return replaceFolder(std::move(text), core::pathToUtf8(normal), name, kAnySeparator);
+}
+
+}  // namespace
+
 std::string normalise(std::string text, const fs::path& caseDir) {
     replaceAll(text, "\r\n", "\n");
     if (!caseDir.empty()) {
-        const fs::path dir = caseDir.lexically_normal();
-        replaceAll(text, genericUtf8(dir), "{case_dir}");
-        replaceAll(text, core::pathToUtf8(dir), "{case_dir}");
+        text = withFolder(std::move(text), caseDir, "{case_dir}");
     }
     return text;
 }
@@ -939,9 +1009,7 @@ std::string placeholders(std::string text, const fs::path& caseDir, const fs::pa
     text = maskParserWords(std::move(text));
     for (const auto& [dir, name] : {std::pair{configDir, "{config_dir}"}, std::pair{caseDir, "{case_dir}"}}) {
         if (dir.empty()) continue;
-        const fs::path normal = dir.lexically_normal();
-        replaceAll(text, genericUtf8(normal), name);
-        replaceAll(text, core::pathToUtf8(normal), name);
+        text = withFolder(std::move(text), dir, name);
     }
     return text;
 }
@@ -1063,9 +1131,11 @@ std::string checkOutcome(const GuiCase& c, const CaseRunner& runner, const std::
             problems += "settings: " + core::pathToUtf8(settings) + " was not written\n";
         } else {
             // the comments line for line and the values; arrays wrap by the length of the paths in them,
-            // which differ between the generator's folders and these
+            // which differ between the generator's folders and these; the placeholders go into the
+            // parsed values (in the text, a TOML string escapes a Windows path's '\\')
             const std::string want = normalise(readFile(dataDir / core::pathFromUtf8(expected->stringOr())), {});
-            const std::string got = placeholders(readFile(settings), caseDir, configDir);
+            const std::string written = readFile(settings);
+            const std::string got = placeholders(written, caseDir, configDir);
             const auto comments = [](const std::string& text) {
                 std::istringstream in(text);
                 std::string out;
@@ -1077,7 +1147,8 @@ std::string checkOutcome(const GuiCase& c, const CaseRunner& runner, const std::
             try {
                 if (const std::string diff = compareText(comments(got), comments(want)); !diff.empty()) {
                     problems += "settings (comments): " + diff + "\n";
-                } else if (!sameValue(core::parseToml(got, "settings.toml"), core::parseToml(want, "expected"))) {
+                } else if (!sameValue(withPlaceholders(core::parseToml(written, "settings.toml"), caseDir, configDir),
+                                      core::parseToml(want, "expected"))) {
                     problems += "settings: expected\n" + want + "got\n" + got;
                 }
             } catch (const std::exception& e) {

@@ -750,6 +750,7 @@ int main(int argc, char** argv) {
     QLocale::setDefault(QLocale::c());
     QApplication app(argc, argv);
     QApplication::setStyle(QStringLiteral("Fusion"));
+    guitest::useBundledFont();
     WindowTests tests;
     return QTest::qExec(&tests, argc, argv);
 }

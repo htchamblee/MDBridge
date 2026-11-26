@@ -23,12 +23,13 @@
 
 #include "gui/forms/field_widgets.hpp"
 
-class QHBoxLayout;
 class QPushButton;
 class QTableView;
 class QToolButton;
 
 namespace mdbridge::app::forms {
+
+class FlowLayout;
 
 struct ListColumn {
     std::string key;  // "" for plain items
@@ -151,7 +152,7 @@ private:
     QToolButton* m_up = nullptr;
     QToolButton* m_down = nullptr;
     QPushButton* m_browse = nullptr;
-    QHBoxLayout* m_buttonRow = nullptr;
+    FlowLayout* m_buttonRow = nullptr;  // the Add / Remove / move / Browse buttons
     CellEditHandler m_cellEdit;
     bool m_writing = false;
 };

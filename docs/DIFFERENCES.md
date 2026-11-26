@@ -2024,12 +2024,15 @@ lines) and the suggested file names (`<project_name or MDATK>.mdatk.toml`,
   tables): the content is cut off on the right. MDBridge follows MDATK 0.1.1, whose rows are flow
   rows (`widgets.flow_row`, the groups move onto a further line) and whose test checks that no page
   scrolls sideways: a form row of several widgets and a row of buttons wrap onto further lines
-  (`forms::FlowLayout`), a check box's long text wraps, the rotation sliders and their angle line
-  shrink and wrap, and a list editor sizes its columns to the table's width (each its content's
+  (`forms::FlowLayout`; a list editor's Add / Remove / move / Browse buttons too), a check box's
+  long text wraps, the rotation sliders and their angle line shrink and wrap, and a list editor
+  sizes its columns to the table's width (each its content's
   width while all fit, else the widest shrink alike with their text elided; it scrolls sideways
   only when even the header's minimum widths do not fit). *Tested:* `mdbridge_gui_window_tests`
   `pagesFitTheSideBar` (with every section open, no widget of any page reaches past its viewport and
-  no table scrolls sideways); screenshots of all six pages at 100% and 200% scale (CI artifacts).
+  no table scrolls sideways) with the GUI tests' font pinned to the bundled DejaVu Sans 9 pt (the
+  only font of the Linux CI, where the list editors' button rows had made the Input page 3 px too
+  wide); screenshots of all six pages at 100% and 200% scale (CI artifacts).
 
 ## Interface: the edit model (src/core/project_document.cpp, problems.cpp; milestone 5 W0-B)
 
