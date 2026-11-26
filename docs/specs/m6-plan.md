@@ -442,6 +442,8 @@ D13), W1-D (D13), W1-E (D2), W2-A (D10), W2-B (D11), W2-C (D7, D8), W3-B (D1).
 
 ## 7. Owner decisions (one line each, with recommendation)
 
+All decided by the owner on 2026-11-26: every recommendation below is accepted.
+
 - **D1 GUI scope**: recommend M6 delivers the library, the CLI and the density fit buttons of the
   analysis window (W3-A), and builds the PDB clean-up and builder windows (W3-B) behind a host
   interface opened from the analysis window's menu as in v0.0.4.1, for M7 to move into RNAdo (M5 D1);
