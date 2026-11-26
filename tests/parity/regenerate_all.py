@@ -115,7 +115,7 @@ DATA_TABLES = "src/core/include/mdbridge/core/detail/data_tables_independent.inc
 TABLES = ["src/core/unicode_tables.inc", "src/core/case_tables.inc", "src/core/citation_data.inc",
           "src/core/step_types.inc", "src/core/panel_tables.inc", DATA_TABLES, "src/core/selection_tables.inc",
           "src/io/pdb_tables.inc", "src/analysis/covalent_radii.inc", "src/analysis/energy_lj_tables.inc",
-          "src/render/core/mpl_colors.inc"]
+          "src/render/core/mpl_colors.inc", "src/chem/helix_tables.inc", "src/chem/component_tables.inc"]
 SOURCES = "data/sources"  # committed inputs of tools/gen_data_tables.py, copied into the fresh tree
 FONTS = "data/fonts"  # the bundled fonts the render generators give Matplotlib (improvements_fonts.py), copied too
 

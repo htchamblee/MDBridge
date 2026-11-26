@@ -486,6 +486,18 @@ All decided by the owner on 2026-11-26: every recommendation below is accepted.
 - **D14 mmCIF coordinates**: recommend PDB only in M6 (as MDATK), with CH-01 / CH-02 for the column
   limits; mmCIF model output post-parity.
 
+Decided by the owner on 2026-11-26 after wave 0 (W0-B found MDATK's tables disagree with their
+primary sources; docs/DIFFERENCES.md "Chemistry reference data"):
+
+- **D15 Guanine's amino hydrogens (CHD-01)**: follow the wwPDB CCD, H21 trans to N1 (N3 side) and
+  H22 cis to N1 (the Watson-Crick edge), in the builder's hydrogen rules (built and mutated G), the
+  0G dictionary rule and the pair hydrogen-bond tables (wc and reverse-wc G·C, reverse-Hoogsteen
+  G·G use H22). The expected data patches MDATK the same way (improvements_chem.py).
+- **D16 The 4JRD helix frame (CHD-02)**: use the 4JRD nucleotide in the frame of the fitted 4JRD
+  screw (twist 41.748411°, rise 3.791704 Å; src/chem/helix_tables.inc), not MDATK's tilted, rounded
+  frame, for every non-Watson-Crick build; the expected data patches MDATK with
+  `gen_chem_tables.jrd_nucleotide()`, and the hh helix's REMARK 951 prints TWIST 41.7 (MDATK 41.8).
+
 ---------------------------------------------------------------------------------------------------
 
 ## 8. Risks

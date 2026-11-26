@@ -1209,7 +1209,8 @@ with MDATK 0.0.4.1's: every difference is printed, and one that is not listed be
   L ideal coordinates); it concerns the monomer library's copies. *Tested:* the generator's checks;
   tests/chem/test_reference_tables.cpp (bond lengths, the A-RNA O3'-P link of 1.59 A, compositions
   and charges).
-- **CHD-01 Guanine's amino hydrogens H21 / H22.** MDATK puts H21 cis to N1 (the Watson-Crick
+- **CHD-01 Guanine's amino hydrogens H21 / H22** (owner-approved: decision D15 of
+  docs/specs/m6-plan.md). MDATK puts H21 cis to N1 (the Watson-Crick
   edge) and H22 on the N3 side: the builder's hydrogen rules (`_H_RULES["G"]`), so every built or
   mutated G, and the dictionaries' naming rule (`COMPONENTS["0G"].hpos` `H21:N2,C2,N1,cis`), so a
   finished 0G dictionary. The CCD's G and DG put H21 trans to N1 (on the N3 side) and H22 cis to
@@ -1220,10 +1221,14 @@ with MDATK 0.0.4.1's: every difference is printed, and one that is not listed be
   `kHydrogenPositions` has G / 0G H21 trans and H22 cis to N1. For the implementers (W1-C, W1-D,
   W2-A): the builder places H22 on the N1 side and H21 on the N3 side, and the pair tables that
   name the Watson-Crick-edge hydrogen of N2 (`_PAIR_HBONDS`: wc G·C, reverse-wc G·C, reverse-
-  Hoogsteen G·G) use H22; the parity generators patch MDATK the same way (improvements_chem.py).
+  Hoogsteen G·G) use H22; the parity generators patch MDATK the same way (improvements_chem.py
+  `_patch_reference_data`: `_H_RULES["G"]`, those `_PAIR_HBONDS` entries and both strand orders, and
+  `COMPONENTS` 0G / 0G5 / 0G3 from `gen_chem_tables.hydrogen_rules()`), so every chem expected file
+  and command-line case with a guanine's hydrogens records the CCD names.
   A and C are unchanged (H61 cis to N1, H41 cis to N3, as MDATK). 0.1.1: not changed. *Tested:* the
-  generator; `ReferenceTables.HydrogenPositionsAndChirality`.
-- **CHD-02 The 4JRD helix frame.** MDATK's 4JRD nucleotide (`_JRD_NUCLEOTIDE`, used by every
+  generator; `ReferenceTables.HydrogenPositionsAndChirality`; the chem expected data
+  (builder_cases.json, builder_fitted_cases.json, dict_cases.json, the `build_*` / `dict_*` cases).
+- **CHD-02 The 4JRD helix frame** (owner-approved: decision D16 of docs/specs/m6-plan.md). MDATK's 4JRD nucleotide (`_JRD_NUCLEOTIDE`, used by every
   non-Watson-Crick pairing and triplex) is said to be in the frame of the 4JRD duplex's screw
   (fitted to A3-A11 / B2-B10, axis along z), but its z axis is 4.44° from that screw's axis
   (Kabsch least squares of each residue onto the next: twist 41.748°, rise 3.792 Å, the numbers
@@ -1235,7 +1240,8 @@ with MDATK 0.0.4.1's: every difference is printed, and one that is not listed be
   z 0), with `kJrdTwist` 41.748411° and `kJrdRise` 3.791704 Å, all computed by the generator from
   4JRD and rounded to 1e-6 only. Consequences for W2-A: the non-Watson-Crick builds differ from
   MDATK's by more than D10's tolerance, so their expected data comes from MDATK patched with these
-  tables (`gen_chem_tables.jrd_nucleotide()` in improvements_chem.py; `_HELIX_START` and
+  tables (`gen_chem_tables.jrd_nucleotide()` in improvements_chem.py `_patch_reference_data`:
+  `_JRD_NUCLEOTIDE`, `JRD_TWIST`, `JRD_RISE`; `_HELIX_START` and
   `_SCREW_PRIOR` are starting values the fits refine), and the `REMARK 951 NUCLEOTIDE OF PDB 4JRD,
   TWIST` line of the hh helix prints 41.7 where MDATK prints 41.8. 0.1.1: not changed. *Tested:* the
   generator (rigid equality, frame tilt, both RMSDs); `ReferenceTables.JrdNucleotideAndScrewCloseTheBackbone`.
@@ -1964,10 +1970,11 @@ figures are compared by tests/render). Differences:
   locale Qt's notice about switching to `C.UTF-8` is not printed (the switch is made silently), and
   numbers in logs and files keep the decimal point whatever the user's locale.
 
-## Interface: index of the ids (milestone 5)
+## Interface: index of the ids (milestones 5 and 6)
 
-The interface's deliberate differences, by id; each entry below says what MDATK does, what MDBridge
-does instead and why, which MDATK version's design it follows, and how it is tested.
+The deliberate differences of the interface (milestone 5) and of the chemistry and numerics layers
+(milestone 6), by id; each entry below says what MDATK does, what MDBridge does instead and why,
+which MDATK version's design it follows, and how it is tested.
 
 | Ids | Section | Items |
 |---|---|---|
@@ -1982,6 +1989,9 @@ does instead and why, which MDATK version's design it follows, and how it is tes
 | WA-01 ... WA-09 | the window's actions | 01 job buttons while a job runs, 02 what blocks a job (D7), 03 Open video, 04 Inspect system, 05 cleaned files shown, 06 the desktop through Qt, 07 the still fits the screen, 08 Centre on model, 09 run citations |
 | LE-01 ... LE-10 | the canvas and the Layout & panels page | 01 the structure panel as the 3D view, 02 no drawing on the interface thread, 03 one drag one undo step, 04 MDATK's angles, 05 AP-07 ... AP-10 on the page, 06 data labels, 07 titles follow renames, 08 no frame announcement, 09 MDATK's pointer positions, 10 wheel bursts |
 | FONT-01 ... FONT-03 | Rendering: fonts and text | IBM Plex Serif in the interface and figures, Plex Math fallback, Plex Mono |
+| CH-01 ... CH-15, D7, D13 | Chemistry: PDB tools, annotation, builder, dictionaries, density fit (expected data; D-numbers of docs/specs/m6-plan.md) | 01 residue numbers below -999, 02 wrapped numbers reported, 03 one-character `--combine-into`, 04 CONECT records that cannot be remapped, 05 2'-deoxy residues with RNA names (0.1.0), 06 chain ends bonded to unknown residues (0.1.0), 07 three-character SEQRES names (0.0.17), 08 mutation specs without a chain (0.1.0), 09 hydrogens of mutated bases (D11), 10 unusable resolutions and spacings, 11 non-finite voxels, 12 `density fit --save` keeps paths, 13 missing input files named, 14 no Barnaba (D9), 15 reversed ranges; D7 PubChem root, D13 program name in records, automatic density fit before rendering |
+| CHD-01, CHD-02 | Chemistry reference data | 01 guanine's H21 / H22 as the CCD (owner decision D15), 02 the fitted 4JRD screw frame, hh TWIST 41.7 (D16) |
+| NU-01, NU-02 | Numerics | 01 pair search order and negative radii, 02 least_squares without LAPACK (iterates to rounding) |
 
 ## Interface: 3D view and figure preview (src/app/gui, src/app/commands/project_view.cpp, src/render/view.cpp, software_view.cpp)
 

@@ -53,6 +53,15 @@ child of cli_parity.py calls both). Each patch is listed with its id:
          engine's notes); the stacking note without the pip hint
   CH-15  a reversed residue range (A:4-1) is an error: PDBError("residue range A:4-1 ends before it
          starts")
+  CHD-01 (owner-approved) guanine's amino hydrogens as the wwPDB CCD names them: H21 trans to N1
+         (N3 side), H22 cis to N1 (the Watson-Crick edge): the builder's _H_RULES["G"] (built and
+         mutated G), the Watson-Crick-edge hydrogen of N2 in _PAIR_HBONDS (wc and reverse-wc G·C,
+         reverse-Hoogsteen G·G: H22) and the 0G dictionary rule (COMPONENTS 0G / 0G5 / 0G3 hpos, from
+         tools/gen_chem_tables.hydrogen_rules()); 0.1.1 not changed
+  CHD-02 (owner-approved) the 4JRD nucleotide in the frame of the fitted 4JRD screw, with its twist and
+         rise (_JRD_NUCLEOTIDE, JRD_TWIST, JRD_RISE from tools/gen_chem_tables.jrd_nucleotide(), the
+         tables of src/chem/helix_tables.inc): every non-Watson-Crick build, and REMARK 951's hh TWIST
+         41.7 (MDATK: 41.8); 0.1.1 not changed
   D7     dict pubchem asks MDBRIDGE_PUBCHEM_URL (the PUG REST root, default MDATK's PUBCHEM_REST) when
          that variable is set: the local stand-in server of cli_parity.py
   D9(M4) `render` / `preview` fit a shown map without a placement again when auto_fit is on (MDATK's
@@ -110,10 +119,67 @@ def apply_mdatk():
         return
     _applied = True
     _patch_names()
+    _patch_reference_data()
     _patch_pdbtools()
     _patch_annotate()
     _patch_builder()
     _patch_density()
+
+
+# ---------------------------------------------------------------------------------------------
+# reference data (CHD-01, CHD-02: docs/DIFFERENCES.md "Chemistry reference data")
+
+def chem_tables():
+    """tools/gen_chem_tables.py as a module (pure Python, reads data/sources only)."""
+    import importlib.util
+    import sys
+
+    name = "mdbridge_gen_chem_tables"
+    if name not in sys.modules:
+        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "tools", "gen_chem_tables.py")
+        spec = importlib.util.spec_from_file_location(name, os.path.normpath(path))
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        sys.modules[name] = module
+    return sys.modules[name]
+
+
+# the pair hydrogen bonds whose N2 donor is guanine's Watson-Crick-edge hydrogen (MDATK: H21)
+_N2_WC_EDGE_PAIRS = (("wc", "G", "C"), ("reverse-wc", "G", "C"), ("reverse-hoogsteen", "G", "G"))
+
+
+def _patch_reference_data():
+    import dataclasses
+    from functools import _lru_cache_wrapper
+
+    from mdatk import builder as B
+    from mdatk import dictionaries as D
+
+    tables = chem_tables()
+    # CHD-01: builder rules (nh2: parallel to the ring bond refs[1] -> refs[0], so ("C2", "N1") is trans
+    # to N1 and ("C2", "N3") cis to N1); the H21, H22 order is kept
+    rules = dict((h, (x, rule, refs)) for h, x, rule, refs in B._H_RULES["G"])
+    assert rules["H21"][2] == ("C2", "N3") and rules["H22"][2] == ("C2", "N1"), "MDATK's G rules changed"
+    B._H_RULES["G"] = tuple((h, x, rule, {"H21": ("C2", "N1"), "H22": ("C2", "N3")}.get(h, refs))
+                            for h, x, rule, refs in B._H_RULES["G"])
+    for pairing, a, b in _N2_WC_EDGE_PAIRS:
+        for key in {(pairing, a, b), (pairing, b, a)}:
+            B._PAIR_HBONDS[key] = tuple((x, y, side, "H22" if (h == "H21" and "N2" in (x, y)) else h)
+                                        for x, y, side, h in B._PAIR_HBONDS[key])
+    # CHD-01: the 0G dictionary rule, from the CCD (gen_chem_tables.hydrogen_rules)
+    ccd_rules = {r[0]: r for r in tables.hydrogen_rules()["0G"] if r[1] == "N2"}
+    for code in ("0G", "0G5", "0G3"):
+        comp = D.COMPONENTS[code]
+        D.COMPONENTS[code] = dataclasses.replace(
+            comp, hpos=tuple(ccd_rules.get(r[0], r) if r[1] == "N2" else r for r in comp.hpos))
+    # CHD-02: the 4JRD nucleotide in the fitted screw's frame
+    twist, rise, rows, _frame = tables.jrd_nucleotide()
+    assert [r[0] for r in rows] == [r[0] for r in B._JRD_NUCLEOTIDE], "4JRD atom names differ"
+    B._JRD_NUCLEOTIDE = tuple(tuple(r) for r in rows)
+    B.JRD_TWIST, B.JRD_RISE = twist, rise
+    for value in vars(B).values():
+        if isinstance(value, _lru_cache_wrapper):
+            value.cache_clear()
 
 
 # ---------------------------------------------------------------------------------------------

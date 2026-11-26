@@ -557,7 +557,7 @@ reproducible):
 The chem module of milestone 6 (PDB hygiene, annotation, the structure builder, restraint
 dictionaries, the density fit; docs/specs/m6-plan.md 4.2) is checked against the other files of
 `chem/`, written by five generators that import MDATK's chem code with MDBridge's improvements patched
-in (`tests/parity/improvements_chem.py`: CH-01 ... CH-15, D7, D11 ... D13, NA-01's names; each item
+in (`tests/parity/improvements_chem.py`: CH-01 ... CH-15, D7, D11 ... D13, NA-01's names, and the reference-data differences CHD-01, CHD-02 from `tools/gen_chem_tables.py`; each item
 names the MDATK version whose design it follows). Their contents are described in each generator's
 docstring:
 
