@@ -165,7 +165,7 @@ case("pages", "analyses_page", "Analyses: every section's fields", [
     snap("analyses"),
     a("save")])
 case("pages", "structure_page", "Structure view: orientation, representations, density, tags, appearance", [
-    a("set", key="visual.rotation", value=[15.5, -30, 120.25]),
+    a("set", key="visual.rotation", value=[15.5, -30.0, 120.25]),  # slider values are floats
     a("set", key="visual.zoom", value=1.75),
     a("type", key="visual.center_on", text="B:12"),
     a("table", key="visual.representations", do="add"),

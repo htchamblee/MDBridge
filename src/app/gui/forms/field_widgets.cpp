@@ -318,7 +318,14 @@ FieldWidget::FieldWidget(FormContext& context, std::string path, FieldSpec spec,
     connect(&m_context, &FormContext::problemsChanged, this, &FieldWidget::updateFlag);
 }
 
-FieldWidget::~FieldWidget() { m_context.removeField(this); }
+FieldWidget::~FieldWidget() {
+    m_context.removeField(this);
+    // QWidget's destructor takes the focus from a focused editor, whose focus-out (editingFinished)
+    // would call into this half-destroyed widget: its editors' signals no longer reach it
+    for (QObject* child : findChildren<QObject*>()) {
+        QObject::disconnect(child, nullptr, this, nullptr);
+    }
+}
 
 void FieldWidget::onDocumentChanged(const core::DocumentChange& change) {
     if (change.affects(m_path)) {

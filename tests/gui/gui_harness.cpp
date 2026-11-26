@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <charconv>
+#include <cmath>
 #include <cstdint>
 #include <cstdlib>
 #include <fstream>
@@ -13,6 +14,7 @@
 #include <system_error>
 
 #include <QAbstractButton>
+#include <QAbstractSlider>
 #include <QAbstractSpinBox>
 #include <QApplication>
 #include <QComboBox>
@@ -144,9 +146,20 @@ void addSecond(core::DateTime& t) {
     ++t.year;
 }
 
-// The text a user types for `value`.
+// The text a user types for `value` (a list of strings: "a, b", as the comma-separated fields).
 QString typedText(const core::Value& value, const char* widgetType) {
     if (const auto* s = value.get<std::string>()) return toQString(*s);
+    if (const auto* items = value.get<core::Array>()) {
+        QStringList parts;
+        for (const core::Value& item : *items) {
+            const auto* text = item.get<std::string>();
+            if (!text) {
+                throw CaseError(std::string("a ") + widgetType + " takes a list of strings only");
+            }
+            parts.append(toQString(*text));
+        }
+        return parts.join(QStringLiteral(", "));
+    }
     if (const auto* i = value.get<std::int64_t>()) return QString::number(*i);
     if (const auto* d = value.get<double>()) return toQString(core::pythonFloatRepr(*d));
     throw CaseError(std::string("a ") + widgetType + " takes a string or a number, not " +
@@ -318,6 +331,16 @@ GuiCase loadCase(const fs::path& file, const fs::path& casesDir) {
         throw CaseError(where + ": 'version' must be 1 (this harness reads version 1)");
     }
     c.description = optionalString(root, "description");
+    if (const core::Value* start = root.find("start")) {
+        const core::Value* project = start->find("project");
+        if (!project || !project->isString()) {
+            throw CaseError(where + ": 'start' must be {\"project\": name}");
+        }
+        c.start = *project->get<std::string>();
+    }
+    if (const core::Value* outcome = root.find("outcome")) {
+        c.outcome = *outcome;
+    }
     if (root.find("clock")) {
         c.clock = parseClock(stringEntry(root, "clock", where), where);
     }
@@ -431,6 +454,64 @@ void setField(QWidget* widget, const core::Value& value) {
         }
         if (button->isChecked() != *wanted) {
             throw CaseError(name + ": pressing Space did not change the check box");
+        }
+        return;
+    }
+    if (auto* slider = qobject_cast<QAbstractSlider*>(widget)) {
+        const auto* d = value.get<double>();
+        const auto* i = value.get<std::int64_t>();
+        if (!d && !i) {
+            throw CaseError(name + ": a slider takes a number");
+        }
+        const double scale = slider->property("mdbridgeScale").isValid() ? slider->property("mdbridgeScale").toDouble() : 1.0;
+        const double v = (d ? *d : static_cast<double>(*i)) * scale;
+        const int units = static_cast<int>(std::lround(v));
+        if (units < slider->minimum() || units > slider->maximum()) {
+            throw CaseError(name + ": the value is outside the slider's range");
+        }
+        slider->setFocus();
+        slider->setValue(units);  // as a drag to there
+        return;
+    }
+    if (const auto* items = value.get<core::Array>()) {
+        QList<QAbstractButton*> choices;
+        for (QAbstractButton* b : widget->findChildren<QAbstractButton*>()) {
+            if (b->property("mdbridgeChoice").isValid()) {
+                choices.append(b);
+            }
+        }
+        if (!choices.isEmpty()) {
+            QStringList wanted;
+            for (const core::Value& item : *items) {
+                wanted.append(typedText(item, "check box list"));
+            }
+            for (QAbstractButton* b : choices) {
+                if (b->isChecked() && !wanted.contains(b->property("mdbridgeChoice").toString())) {
+                    QTest::keyClick(b, Qt::Key_Space);
+                }
+            }
+            for (const QString& w : wanted) {
+                QAbstractButton* box = nullptr;
+                for (QAbstractButton* b : choices) {
+                    if (b->property("mdbridgeChoice").toString() == w) box = b;
+                }
+                if (!box) {
+                    throw CaseError(name + ": there is no check box for '" + w.toStdString() + "'");
+                }
+                if (!box->isChecked()) {
+                    QTest::keyClick(box, Qt::Key_Space);
+                }
+            }
+            return;
+        }
+        for (std::size_t k = 0; k < items->size(); ++k) {
+            const QString part = widget->objectName() + QStringLiteral(".%1").arg(k);
+            const QList<QWidget*> found = widget->findChildren<QWidget*>(part);
+            if (found.size() != 1) {
+                throw CaseError(name + ": no single part '" + part.toStdString() + "' takes item " + std::to_string(k));
+            }
+            setField(found.front(), (*items)[k]);
+            QApplication::processEvents();
         }
         return;
     }

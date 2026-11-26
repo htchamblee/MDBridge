@@ -38,6 +38,8 @@ struct GuiCase {
     core::Array actions;                                         // tables with "action"
     std::vector<std::pair<std::string, std::string>> expected;  // case-folder name, path under the data folder
     std::vector<std::string> needs;                              // "needs": features beyond this harness (W0-A cases)
+    std::string start;     // "start.project": the project the window starts with ("" none)
+    core::Value outcome;   // "outcome" as read (Null when absent)
 };
 
 // The entries of `c.needs` this harness does not support yet (it runs "type" and "table"; a case
@@ -68,8 +70,13 @@ QWidget* findField(QWidget* root, const QString& key);
 
 // Enters `value` into the widget as a user would (tests/data/README.md, action "set"): drop-downs
 // choose the item whose project value (item data) is `value` (W0-A's cases), editable ones and text
-// fields get it typed (select all, type, Enter), check boxes are toggled with Space. Throws
-// CaseError for widget types and values it cannot enter.
+// fields get it typed (select all, type, Enter; a list of strings typed as "a, b"), check boxes are
+// toggled with Space, sliders moved to the value (times their "mdbridgeScale" property). A list
+// value entered into a widget that is none of these goes to its parts: check boxes with an
+// "mdbridgeChoice" property are ticked for the values listed and unticked for the others (unticks
+// first, then ticks in the list's order: output.charts.formats), else item k goes to the child
+// named "<key>.k" (the rotation sliders "visual.rotation.0" ...). Throws CaseError for widget types
+// and values it cannot enter.
 void setField(QWidget* widget, const core::Value& value);
 
 // Replaces the widget's text with `text` and commits it (action "type"): select all, type (""

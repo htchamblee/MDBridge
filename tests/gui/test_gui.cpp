@@ -31,6 +31,7 @@
 #include "gui/forms/list_editor.hpp"
 #include "gui/main_window.hpp"
 #include "gui_harness.hpp"
+#include "page_host.hpp"
 #include "mdbridge/core/paths.hpp"
 #include "mdbridge/core/project_document.hpp"
 
@@ -284,11 +285,29 @@ void GuiTests::cases() {
     QFETCH(QString, file);
     const guitest::GuiCase c = guitest::loadCase(core::pathFromUtf8(file.toStdString()), kData / "gui");
     if (const std::vector<std::string> missing = guitest::unsupportedNeeds(c); !missing.empty()) {
-        std::string why = "needs what the harness does not have yet:";
-        for (const std::string& need : missing) {
-            why += " " + need;
+        // the window has no settings pages yet (W1-A): cases on pages that exist run on the
+        // test-only page host (page_host.hpp)
+        std::string why;
+        if (!guitest::pageHostRuns(c, why)) {
+            QSKIP(why.c_str());
         }
-        QSKIP(why.c_str());
+        QTemporaryDir hostTmp;
+        QVERIFY(hostTmp.isValid());
+        const fs::path hostDir = core::pathFromUtf8(hostTmp.path().toStdString()) / "case";
+        fs::create_directories(hostDir);
+        std::optional<guitest::FixedClock> hostClock;
+        if (c.clock) hostClock.emplace(*c.clock);
+        std::vector<fs::path> shots;
+        std::string failure = guitest::runOnPageHost(c, kData, hostDir, screenshots(), &shots);
+        for (const fs::path& shot : shots) {
+            qInfo("screenshot %s", core::pathToUtf8(shot).c_str());
+        }
+        if (!failure.empty()) {
+            hostTmp.setAutoRemove(false);
+            failure += "(case folder kept: " + core::pathToUtf8(hostDir) + ")";
+        }
+        QVERIFY2(failure.empty(), failure.c_str());
+        return;
     }
     QTemporaryDir tmp;
     QVERIFY(tmp.isValid());

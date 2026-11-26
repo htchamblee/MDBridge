@@ -7,6 +7,8 @@ add_library(mdbridge_app STATIC
     fonts_command.cpp
     fonts_command.hpp
     gui/background.hpp
+    gui/forms/custom_fields.cpp
+    gui/forms/custom_fields.hpp
     gui/forms/field_factory.cpp
     gui/forms/field_factory.hpp
     gui/forms/field_spec.cpp
@@ -25,6 +27,14 @@ add_library(mdbridge_app STATIC
     gui/jobs/log_view.hpp
     gui/main_window.cpp
     gui/main_window.hpp
+    gui/pages/form_page.cpp
+    gui/pages/form_page.hpp
+    gui/pages/outputs_page.cpp
+    gui/pages/outputs_page.hpp
+    gui/pages/page_registry.cpp
+    gui/pages/page_registry.hpp
+    gui/pages/structure_page.cpp
+    gui/pages/structure_page.hpp
     gui/preview_widget.cpp
     gui/preview_widget.hpp
     gui/problems/problems_panel.cpp
@@ -39,7 +49,7 @@ set_target_properties(mdbridge_app PROPERTIES AUTOMOC ON)
 target_include_directories(mdbridge_app PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 target_link_libraries(mdbridge_app
     PUBLIC mdbridge::core mdbridge::render Qt6::Widgets
-    PRIVATE mdbridge::commands mdbridge::video CLI11::CLI11)
+    PRIVATE mdbridge::commands mdbridge::render_panels mdbridge::video CLI11::CLI11)
 mdbridge_target_warnings(mdbridge_app)
 
 set(MDBRIDGE_ICON_ICO "${PROJECT_SOURCE_DIR}/data/icons/mdbridge.ico")

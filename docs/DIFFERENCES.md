@@ -2145,6 +2145,51 @@ stays `validate()`'s, v0.0.4.1's blocking rules with MDBridge's fixes (owner dec
   or the widget.
   *Tested:* `rangeHintWarningsAreListed`.
 
+## Interface: the Structure view and Outputs pages (src/app/gui/pages; milestone 5 W1-C)
+
+The two pages keep MDATK v0.0.4.1's sections, field order, labels and hints (`gui/app.py`
+`_tab_visual`, `_representation_frame`, `_density_frame`, `_tab_outputs`; 0.1.1's are the same) as
+folding sections (`section:structure.orientation` ...). Deliberate differences:
+
+- **PG-01: the rotation sliders keep what they do not change** (AP-01). MDATK's three sliders
+  (-180 ... 180, step 0.5) stored all three angles from the sliders, so a stored -200 became -180
+  as soon as another axis moved. MDBridge's sliders work in thousandths of a degree (MDATK's
+  3-decimal storage rounding), store only the axis moved, and show a stored angle beyond the range
+  at the slider's end with its value text, the angle label (`format_angles`) and a warning flag
+  saying it is kept. A slider drag is one undo step ("Rotate structure", as the canvas's drag).
+  *Tested:* test_pages.cpp `rotationSlidersAndAngleLabel`, the case `pages/structure_page`.
+- **PG-02: chart formats as check boxes for every format** (AP-04 on the page; completes FW-03).
+  MDATK offered PNG / SVG / PDF and saved the ticked ones (`["jpg", "svg"]` -> `["svg"]`, none ->
+  `["png"]`). MDBridge offers every format the charts write (RN-11: PNG, SVG, PDF, JPG, TIF, EPS,
+  PS); entries the list has beyond them (`jpeg`, `tiff`, `.PDF` counts as PDF, `bogus`) keep a box of
+  their own, unsupported ones named `(not supported)` and flagged with the charts' message.
+  Ticking appends, unticking removes; the order and every other entry stay; no box ticked is stored
+  as `[]` (the charts then write PNG, MDATK's fallback). *Tested:* `chartFormatsKeepEveryEntry`, the
+  case `pages/outputs_page`.
+- **PG-03: MDBridge's chart styles offered** (AP-19, owner decision D5 of milestone 4). MDATK
+  listed `mdatk` and every Matplotlib style; the drop-down offers `mdatk` and `default`, and any
+  typed name is kept (the charts warn and use MDATK's look). *Tested:*
+  `chartStylesAreMdbridgesAndTypedNamesStay`.
+- **PG-04: density fit buttons for milestone 6** (owner decision D2). *Global search* and *Refine*
+  are shown disabled with "(comes with milestone 6)" in their tooltips; *Centre on model* needs the
+  reference frame on the canvas and is enabled by the window when it has it; *Clear* and the map-mode
+  toggle work. Choosing another map file forgets the placement of the previous map as MDATK does,
+  in the same undo step as the new name. *Tested:* `densityButtonsAndStatus`,
+  `anotherMapForgetsThePlacementInOneStep`.
+- **PG-05: texts that do not fit the side bar.** Qt's check boxes do not wrap: the parameter-log
+  check box reads "Write MDATK_params_log.toml" with the rest of MDATK's text as a hint below it; the
+  renderer's hint names the Vulkan renderer instead of VTK (AP-19, RN-20). *Tested:* the page
+  screenshots (`screenshots`, CI artifacts).
+- **PG-06: a focused field can be destroyed.** Closing a page while one of its fields had the
+  focus crashed (the editor's focus-out committed into the half-destroyed field widget);
+  `FieldWidget`'s destructor now disconnects its editors first. *Tested:* every page case of
+  `mdbridge_gui_tests` ends with a focused field.
+
+The GUI cases `pages/structure_page` and `pages/outputs_page` (and the AP cases that only touch these
+pages: `ap05_unknown_choice`, `ap07_empty_slots`) run against a test-only page host until the window
+has its pages (tests/gui/page_host.hpp, tests/data/README.md "gui"). The structure case's rotation
+is set as floats (`-30.0`; a slider holds no integers), so its expected file reads as MDATK's.
+
 ## Interface: jobs and the log (src/app/gui/jobs)
 
 The window's background jobs (render, cleaning, export, …; M7's script runner reuses it) run
