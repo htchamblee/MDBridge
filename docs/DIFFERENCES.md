@@ -2781,6 +2781,87 @@ differences:
   the entry itself (the interface must still run after 15 s), and runs its target with a project
   argument (`smoke_test.py --gui-exe`: the window opens that project).
 
+## Chemistry: PDB tools, annotation, builder, dictionaries, density fit (milestone 6; expected data)
+
+The chem module's expected data (tests/data/chem, `cli/cli_cases.json`'s pending chem cases) records
+MDBridge's behaviour where it deliberately differs from MDATK v0.0.4.1 (docs/specs/m6-plan.md section
+5, owner decisions D7, D9, D11 ... D13): the generators patch MDATK on the test side
+(`tests/parity/improvements_chem.py`, one function per item). The C++ code lands with the packages
+named; W3-C completes these entries with the C++ tests. *Tested (expected data):*
+`tests/parity/make_pdbtools_cases.py`, `make_annotate_cases.py`, `make_builder_cases.py`,
+`make_dict_cases.py`, `make_density_fit_cases.py` and the `pdb_*`, `build_*`, `dict_*`, `density_*`
+cases of `cli_parity.py`.
+
+- **CH-01 Residue numbers below -999** (not fixed in MDATK 0.1.1). `_id_columns` wrote `A-1002`, which
+  shifted every later column and which MDATK's own reader then refused. MDBridge raises "residue number
+  -1002 (A) does not fit the PDB columns (-999 to 9999)" before anything is written (`pdb clean
+  --renumber --start=-2000`, `build helix --start=-1002,1`); numbers above 9999 keep MDATK's wrap.
+  Cases: `clean` input 16, `helices` `start -1002,1`, `pdb_clean_renumber_below_columns`,
+  `build_helix_start_below_columns`.
+- **CH-02 Wrapped numbers of built helices are reported** (not fixed). `build helix --start 9998,1`
+  wrapped to `B   0` silently; the build notes end with the renumbering's "WARNING: residue numbers
+  above 9999 wrap in the PDB columns". Cases: `helices` `start 9998,1`, `build_helix_start_wrap`.
+- **CH-03 `--combine-into` takes one character** (not fixed). `XY` was accepted, the notes said chain
+  XY and the file had X; now `PDBError("chain ids must be single characters")`, as `restore_chains`.
+- **CH-04 CONECT records that cannot be remapped are reported** (not fixed). With repeated input
+  serials `--keep-conect` dropped every CONECT record while the note said they were kept; the note is
+  "WARNING: dropped N CONECT records: the input's atom serials repeat, so they cannot be remapped".
+- **CH-05 2'-deoxy residues with RNA names are DNA** (follows MDATK 0.1.0, `pdbtools._nucleotide`).
+  CHARMM's ADE / CYT / GUA and pre-2007 A / C / G on a sugar with C2' and no O2' were renamed as RNA;
+  they are DNA and keep their names.
+- **CH-06 A chain end bonded to an unknown residue is no end** (follows MDATK 0.1.0, `_terminals` /
+  `_bonded_on`, without its LINK records). A nucleotide whose O3' / P is within 2.0 Å of a PSU or
+  5'-GTP beside it in the segment keeps its internal name and gets no 5'-phosphate warning.
+- **CH-07 SEQRES names have three characters** (follows MDATK 0.0.17, `_seqres_names`, its notes).
+  Longer nucleotide names (LDA5 ...) and MDATK's Amber-style L-DNA LDx are written as their CCD
+  component (0DA ...), other long names as UNK with a WARNING. The M2 writer `io::seqresLines` and
+  io/pdb/pdb_cases.json still record 0.0.4.1's four-character SEQRES of the crafted `LONG` residue:
+  W1-A changes both (make_pdb_cases.py then applies improvements_chem).
+- **CH-08 Mutation specs without a chain read the whole number** (follows MDATK 0.1.0,
+  `_MUTATION_RE`): `15G` is residue 15 of the blank chain, not residue 5 of chain 1.
+- **CH-09 Mutated bases get hydrogens when the old base had them** (owner decision D11; beyond 0.1.1).
+  MDATK dropped the old base's hydrogens and added a heavy-atom base, a mixed model. The new base's
+  hydrogens come from the builder's ideal templates (`_H_RULES` order, after the heavy atoms, the same
+  glycosidic-frame fit), with the note "replaced N hydrogen(s) of the old base (...) with M of the new
+  base (...) at ideal positions".
+- **CH-10 Unusable resolutions and spacings are refused first** (density.py unchanged in 0.1.1). A NaN
+  resolution or a negative spacing ended in numpy's `negative dimensions are not allowed`. `build fit`
+  and `density fit`: a non-finite `--resolution` gives "the resolution must be a positive number of Å"
+  (zero / negative keep MDATK's "enter the map resolution (Å)" and the project check); `density
+  simulate`: any resolution that is not a positive finite number gives that message, a negative or
+  non-finite `--spacing` "the grid spacing must be positive" (`--spacing 0` stays the default).
+- **CH-11 Non-finite voxels carry no density in a fit** (RN-30's rule; MDATK-BUG-060). The fit's
+  Gaussian smoothing spread one NaN voxel over 9^3 voxels (a 0.0° fit became 0.1°, the CC changed);
+  MDBridge fits a copy with them as 0, centres a local start on the finite voxels (RN-33's level) and
+  ends the fit message with "; N non-finite map voxel(s) read as no density".
+- **CH-12 `density fit --save` keeps the project's paths** (MDATK-BUG-006 on the command line; ED-02).
+  MDATK saved every path absolute; the project file is written with its paths as it had them and the
+  fit's density settings, a relative `--map` relative to the project folder, and `--save OTHER` rebases
+  the relative paths (Save As). Without `--project` (a new file from `--top` / `--traj`) MDATK's save is
+  kept.
+- **CH-13 Missing input files are named** (not fixed). A name that is not a file was parsed as PDB text
+  ("no ATOM/HETATM records found ..."); the commands report "[Errno 2] No such file or directory:
+  'x.pdb'" (a folder: "[Errno 21] Is a directory") for their inputs and `--chain-reference`; PDB text
+  given to the library is unchanged.
+- **CH-14 No Barnaba** (owner decision D9; DIFFERENCES "No Barnaba"). `pdb annotate`'s `auto` is the
+  builtin engine; `--engine barnaba` runs it with "WARNING: Barnaba is not available in MDBridge; using
+  the builtin detector"; the stacking note has no `pip install barnaba` hint; no STACK records, no
+  barnaba citation.
+- **CH-15 Reversed residue ranges are errors** (not fixed). `A:4-1` matched nothing ("the L ranges
+  match no nucleotide"); now `PDBError("residue range A:4-1 ends before it starts")`.
+- **D13 (milestone 6): the program named in written records** (as CMD-08): `REMARK 950 MDBridge
+  BASE-PAIR ANNOTATION` and `REMARK 951 MDBridge IDEAL ...`; every other byte as MDATK writes it.
+  Messages that name the program say `mdbridge` ('mdbridge pdb clean', 'mdbridge density fit --save').
+- **D7 (milestone 6): PubChem**: `dict pubchem` reads the PUG REST root from
+  `MDBRIDGE_PUBCHEM_URL` when it is set (default PubChem's); the command-line cases use a stand-in
+  server on 127.0.0.1 (cli_parity.py `PubchemStandIn`).
+- **Automatic density fit before rendering** (lifts milestone 4's D9 in the command-line cases):
+  a shown map without a placement is fitted when `auto_fit` is on, as MDATK does (`render_density_auto_fit`).
+
+Fitted outputs are compared within tolerances (plan 4.1, D10): the rebuilt helices of the other
+pairings and triplexes, the density fits and their transforms; regenerate_all.py compares the chem
+JSON files within FITTED's tolerance where their bytes differ (tests/data/README.md).
+
 ## Planned (from the improvement register; add each entry here when it lands)
 
 None: every FIX and ASK item of the improvement register (docs/IMPROVEMENTS.md) has landed
