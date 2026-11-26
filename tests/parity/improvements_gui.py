@@ -30,6 +30,9 @@ W1 / W2 pages and canvas); where a later MDATK fixed the item, its design is fol
   AP-12  a project that fails to load at the start is named in the window's log (MDATK 0.1.0,
          13d4fea: "ERROR: Could not open ...", "These are the default settings instead (unsaved).")
   AP-13  unsaved changes: New, Open and closing ask Save / Discard / Cancel (D6)
+  PRJ-09 a later MDATK's file keeps its mdatk_version and its comments when the window saves it
+         (W0-B's edit model writes it back byte for byte); PRJ-10 a step-log
+         marker inside the notes does not start the log (MDATK 0.1.1 _log_start)
   AP-17  the recent list keeps the settings file's other keys (MDATK 0.0.14 add_recent; MDBridge
          also writes atomically, which a file comparison cannot show)
   AP-18  dialog details are not cut at 3 000 characters
@@ -213,6 +216,122 @@ def rebase(project, old_dir, new_dir):
 
 
 # ---------------------------------------------------------------------------------------------
+# PRJ-09 / PRJ-10 in the window's saves
+
+def later_version(path):
+    """The mdatk_version of a project file a later MDATK wrote (MDBridge keeps it on save, PRJ-09),
+    else None."""
+    if not path or not os.path.isfile(path):
+        return None
+    with open(path, "r", encoding="utf-8", errors="replace") as fh:
+        for line in fh.read(8192).splitlines()[:40]:
+            if line.startswith("mdatk_version = "):
+                version = line.split("=", 1)[1].strip().strip('"')
+                try:
+                    later = tuple(int(x) for x in version.split(".")) > (0, 0, 4, 1)
+                except ValueError:
+                    return None
+                return version if later else None
+    return None
+
+
+def _open_after(line, in_triple, depth):
+    """(in_triple, bracket depth) after `line` of a TOML value."""
+    k = 0
+    while k < len(line):
+        if line.startswith('"""', k):
+            in_triple = not in_triple
+            k += 3
+            continue
+        ch = line[k]
+        if in_triple:
+            k += 2 if ch == "\\" else 1
+            continue
+        if ch == "#":
+            break
+        if ch in "\"'":
+            end = k + 1
+            while end < len(line) and line[end] != ch:
+                end += 2 if (ch == '"' and line[end] == "\\") else 1
+            k = end + 1
+            continue
+        if ch in "[{":
+            depth += 1
+        elif ch in "]}":
+            depth -= 1
+        k += 1
+    return in_triple, depth
+
+
+def _entries(text):
+    """The entries of a project file's text: [signature, comment block, body lines], and the lines
+    after the last one."""
+    items, pending, table = [], [], ""
+    lines = text.split("\n")
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        if not line.strip() or line.startswith("#"):
+            pending.append(line)
+            i += 1
+            continue
+        if line.startswith("["):
+            table = line.strip()
+            sig = ("table", table)
+        else:
+            sig = ("key", table, line.split("=", 1)[0].strip())
+        body = [line]
+        in_triple, depth = _open_after(line.split("=", 1)[1] if "=" in line and not line.startswith("[") else "",
+                                       False, 0)
+        i += 1
+        while (in_triple or depth > 0) and i < len(lines):
+            body.append(lines[i])
+            in_triple, depth = _open_after(lines[i], in_triple, depth)
+            i += 1
+        items.append([sig, pending, body])
+        pending = []
+    return items, pending
+
+
+def keep_file_comments(new_text, old_text):
+    """MDBridge's save of a file a later MDATK wrote (W0-B, ProjectDocument::comments): each entry the
+    file had keeps the comment the file had above it. Entries are matched in order by their table and
+    key (so the steps of a plan, whose tables repeat, match one by one)."""
+    new, tail = _entries(new_text)
+    old, _ = _entries(old_text)
+    j = 0
+    for item in new:
+        for k in range(j, min(len(old), j + 200)):
+            if old[k][0] == item[0]:
+                item[1] = old[k][1]
+                j = k + 1
+                break
+    out = []
+    for _sig, comments, body in new:
+        out += comments + body
+    return "\n".join(out + tail)
+
+
+def log_start(PF, text):
+    """MDATK 0.1.1's _log_start (projectfile.py; MDATK's own code, ported): the marker line that ends
+    the settings; one inside a string (the notes) does not count."""
+    first = at = text.find("\n" + PF.LOG_MARKER)
+    while at >= 0:
+        try:
+            PF.tomlio.loads(text[:at + 1])
+            return at
+        except PF.tomlio.TOMLDecodeError:
+            at = text.find("\n" + PF.LOG_MARKER, at + 1)
+    if first < 0:
+        return -1
+    try:
+        PF.tomlio.loads(text)
+        return -1
+    except PF.tomlio.TOMLDecodeError:
+        return first
+
+
+# ---------------------------------------------------------------------------------------------
 # AP-13: unsaved changes
 
 def modified(win):
@@ -310,6 +429,13 @@ def apply(app, W, config, PF, n_slots, harness):
     load_project = app.MainWindow.load_project
 
     def load_project_(self, project, path=None):
+        self._mdb_version = later_version(path)
+        self._mdb_source = None
+        if self._mdb_version:  # the settings text of the file, for its comments
+            with open(path, "r", encoding="utf-8") as fh:
+                text = fh.read()
+            at = log_start(PF, text)
+            self._mdb_source = text[:at + 1] if at >= 0 else text
         self._mdb_count = len(project.layout.panels)
         self._mdb_extra = []
         self._mdb_preset = project.layout.preset
@@ -346,11 +472,18 @@ def apply(app, W, config, PF, n_slots, harness):
         rebased = bool(base) and os.path.normpath(base) != new_base
         if rebased:
             project = rebase(project, base, new_base)
+        version, project_text = PF.__version__, PF.project_text
+        if getattr(self, "_mdb_version", None):  # PRJ-09: a later MDATK's file keeps its mdatk_version
+            PF.__version__ = self._mdb_version   # and the comments it had
+            source = self._mdb_source
+            PF.project_text = lambda p, log_file="": keep_file_comments(project_text(p, log_file), source)
         try:
             project.save(path)
         except OSError as exc:
             self.error("Could not save the project", str(exc))
             return False
+        finally:
+            PF.__version__, PF.project_text = version, project_text
         self._mdb_base = new_base
         if rebased:  # the fields show the rebased paths
             self.load_project(project, path)
@@ -366,6 +499,26 @@ def apply(app, W, config, PF, n_slots, harness):
         return True
 
     app.MainWindow.save_project = save_project
+
+    # --- PRJ-10: the step log starts at the marker that ends the settings (MDATK 0.1.1 _log_start:
+    # a marker pasted into the notes is part of a string and starts nothing) ---------------------
+    def existing_log(path):
+        if not os.path.isfile(path):
+            return "", ""
+        with open(path, "r", encoding="utf-8") as fh:
+            text = fh.read()
+        log_file = ""
+        for line in text.splitlines()[:60]:
+            if line.startswith("log_file = "):
+                try:
+                    log_file = PF.tomlio.loads(line)["log_file"]
+                except PF.tomlio.TOMLDecodeError:
+                    log_file = ""
+                break
+        at = log_start(PF, text)
+        return (text[at + 1:] if at >= 0 else ""), log_file
+
+    PF._existing_log = existing_log
 
     # --- AP-07 / AP-08 / AP-09: slots ------------------------------------------------------------
     def read_slots(self):

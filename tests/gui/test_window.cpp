@@ -18,6 +18,7 @@
 #include <QAction>
 #include <QApplication>
 #include <QClipboard>
+#include <QLabel>
 #include <QLocale>
 #include <QMenu>
 #include <QMimeData>
@@ -76,7 +77,7 @@ struct Fixture {
         window->setPrompter(&prompter);
         window->resize(1320, 920);
         window->show();
-        QTest::qWaitForWindowExposed(&*window);
+        if (!QTest::qWaitForWindowExposed(&*window)) qWarning("the window was not exposed");
     }
     ~Fixture() {
         if (window) {
@@ -210,7 +211,7 @@ void WindowTests::layoutAndShortcuts() {
 void WindowTests::pagesAndSections() {
     Fixture f;
     app::MainWindow& w = *f.window;
-    for (const pages::PageEntry& page : w.pages()) {
+    for (const app::MainWindow::Page& page : w.pages()) {
         QVERIFY(w.showPage(page.id));
         QCOMPARE(w.currentPage(), page.id);
         QCOMPARE(w.findChild<QLabel*>(QStringLiteral("side.title"))->text(), QStringLiteral("<b>%1</b>").arg(page.title.toHtmlEscaped()));
@@ -460,7 +461,7 @@ void WindowTests::aboutAndGraphics() {
     w.action(QStringLiteral("about"))->trigger();
     QVERIFY(w.lastDialog());
     QCOMPARE(w.lastDialog()->windowTitle(), QStringLiteral("About MDBridge"));
-    QVERIFY(w.lastDialog()->findChild<QLabel*>(QStringLiteral("dialog.heading"))->text().contains(QString::fromLatin1(app::kVersion)));
+    QVERIFY(w.lastDialog()->findChild<QLabel*>(QStringLiteral("dialog.heading"))->text().contains(QString::fromLatin1(mdbridge::kVersion)));
     QVERIFY(w.lastDialog()->findChild<QPushButton*>(QStringLiteral("dialog.bibtex")));
     w.action(QStringLiteral("graphics"))->trigger();
     QCOMPARE(w.lastDialog()->windowTitle(), QStringLiteral("Graphics"));
@@ -542,6 +543,7 @@ void WindowTests::closingDuringAJob() {
             try {
                 for (;;) {
                     reporter.progress(0.5, "waiting");
+                    reporter.checkCancel();
                     std::this_thread::sleep_for(std::chrono::milliseconds(5));
                 }
             } catch (const core::Cancelled&) {
@@ -559,7 +561,8 @@ void WindowTests::closingDuringAJob() {
     });
     QVERIFY(!w.close());
     QVERIFY(w.jobRunner()->running());
-    QVERIFY(w.close());
+    const bool closed = w.close();
+    QVERIFY(closed);
     QVERIFY(cleaned->load());
     QVERIFY(!w.jobRunner()->running());
 }
@@ -658,7 +661,7 @@ void WindowTests::screenshots() {
     const fs::path dir = guitest::screenshotDir(core::pathFromUtf8(MDBRIDGE_GUI_SCREENSHOT_DIR));
     QVERIFY(w.openPath(f.copy("full.mdatk.toml", "full.mdatk.toml")));
     QTRY_VERIFY_WITH_TIMEOUT(!w.loading() && w.preview()->settled(), 120000);
-    for (const pages::PageEntry& page : w.pages()) {
+    for (const app::MainWindow::Page& page : w.pages()) {
         w.showPage(page.id);
         QApplication::processEvents();
         const fs::path shot = guitest::saveScreenshot(&w, dir, "window-" + page.id.toStdString());

@@ -987,6 +987,16 @@ lacks something a case `needs` skips the case and names what is missing):
 | `outcome` | MDBridge's expected outcome besides files (below) |
 | `mdatk` | the keys of `expected` / `outcome` whose MDATK value differs, with MDATK's value (`expected` paths point into `<case>/mdatk/`); `{}`: MDATK did the same. Never compared |
 
+Until the window has its settings pages (W1-A), `mdbridge_gui_tests` runs a case that needs more
+than the harness has on a test-only page host (`tests/gui/page_host.hpp`) when it can: the case
+starts with a project, needs only `start`, `lossless`, `type`, `table`, `snapshot` and `toggle`,
+and every key its actions and snapshots name is on a page `pages::createPages()` makes. The host
+opens the start project in a `ProjectDocument`, shows every page in a tab, runs `set`, `type`,
+`table`, `click`, `toggle`, `open`, `save`, `snapshot` (keys and `density_status`; compared with
+`outcome.snapshots`) and `screenshot`, and saves a screenshot of each page the case used. It does
+not check `log`, `outcome.settings` or the other window outcomes. The other cases are skipped with
+the reason.
+
 Placeholders, in expected files and in `outcome` texts: `{case_dir}` (the case folder, absolute)
 and `{config_dir}` (`$XDG_CONFIG_HOME`, a folder outside it). The environment of a run:
 `XDG_CONFIG_HOME` = `{config_dir}`, `HOME` an empty folder, no cpptraj or conda installation found,

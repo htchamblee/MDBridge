@@ -251,7 +251,7 @@ show_ions = true
 # Superpose each frame's trace onto the reference frame
 align_frames = true
 # View rotation in degrees about X, Y and Z (R = Rz Ry Rx)
-rotation = [15.5, -30, 120.25]
+rotation = [15.5, -30.0, 120.25]
 # Magnification of the structure view (1: the whole model fits; 2: twice as large)
 zoom = 1.75
 # View centre: "" (centre of the model), "origin" (0, 0, 0 of the coordinates) or a residue, e.g.

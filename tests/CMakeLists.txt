@@ -375,6 +375,31 @@ if(MDBRIDGE_BUILD_APP)
     add_test(NAME gui.problems COMMAND mdbridge_gui_problems_tests)
     set_tests_properties(gui.problems PROPERTIES LABELS gui ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 
+    # the settings pages Structure view and Outputs (src/app/gui/pages, milestone 5 W1-C): MDATK's
+    # representation editor and mouse-wheel tests, the rotation sliders, chart format boxes (AP-04),
+    # density buttons (D2), sections and revealField, a screenshot of each page. Qt Test, offscreen.
+    add_executable(mdbridge_gui_pages_tests gui/test_pages.cpp gui/gui_harness.cpp gui/gui_harness.hpp)
+    set_target_properties(mdbridge_gui_pages_tests PROPERTIES AUTOMOC ON)
+    target_link_libraries(mdbridge_gui_pages_tests PRIVATE mdbridge_app mdbridge::render_panels_vulkan Qt6::Test)
+    target_compile_definitions(mdbridge_gui_pages_tests PRIVATE MDBRIDGE_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data"
+                               MDBRIDGE_GUI_SCREENSHOT_DIR="${CMAKE_BINARY_DIR}/gui-screenshots")
+    mdbridge_target_warnings(mdbridge_gui_pages_tests)
+    add_test(NAME gui.pages COMMAND mdbridge_gui_pages_tests)
+    set_tests_properties(gui.pages PROPERTIES LABELS gui ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+    # the analysis window's shell (src/app/gui/main_window.*, milestone 5 W1-A): layout and shortcuts,
+    # every menu action, AP-11 .. AP-14, recovery copies (D6), external changes, drag and drop,
+    # screenshots of the window. Qt Test, offscreen.
+    add_executable(mdbridge_gui_window_tests gui/test_window.cpp gui/gui_harness.cpp gui/gui_harness.hpp)
+    set_target_properties(mdbridge_gui_window_tests PROPERTIES AUTOMOC ON)
+    target_link_libraries(mdbridge_gui_window_tests PRIVATE mdbridge_app mdbridge::commands mdbridge::render_panels_vulkan
+                          Qt6::Test)
+    target_compile_definitions(mdbridge_gui_window_tests PRIVATE MDBRIDGE_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data"
+                               MDBRIDGE_GUI_SCREENSHOT_DIR="${CMAKE_BINARY_DIR}/gui-screenshots")
+    mdbridge_target_warnings(mdbridge_gui_window_tests)
+    add_test(NAME gui.window COMMAND mdbridge_gui_window_tests)
+    set_tests_properties(gui.window PROPERTIES LABELS gui ENVIRONMENT "QT_QPA_PLATFORM=offscreen" TIMEOUT 900)
+
     # the interface's job runner and log view (src/app/gui/jobs; Qt Test, offscreen platform): job
     # texts, one job at a time, progress throttle, cancel paths, failures, close-while-running
     # (AP-14), a bounded batched log that keeps the event loop responsive under 10^6 lines
@@ -387,7 +412,8 @@ if(MDBRIDGE_BUILD_APP)
 
     # every GUI test program links mdbridge_app, which links the video encoder: the FFmpeg DLLs next to it
     if(WIN32 AND MDBRIDGE_VIDEO_RUNTIME_FILES)
-        foreach(gui_test mdbridge_gui_tests mdbridge_gui_forms_tests mdbridge_gui_problems_tests mdbridge_gui_jobs_tests)
+        foreach(gui_test mdbridge_gui_tests mdbridge_gui_forms_tests mdbridge_gui_problems_tests mdbridge_gui_pages_tests
+                         mdbridge_gui_window_tests mdbridge_gui_jobs_tests)
             add_custom_command(TARGET ${gui_test} POST_BUILD
                 COMMAND ${CMAKE_COMMAND} -E copy_if_different ${MDBRIDGE_VIDEO_RUNTIME_FILES} $<TARGET_FILE_DIR:${gui_test}>
                 VERBATIM)

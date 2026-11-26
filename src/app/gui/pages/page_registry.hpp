@@ -1,18 +1,13 @@
 #pragma once
-// The settings pages of the main window's side bar, in MDATK's order (core::kProblemPages: Input &
-// cleaning, Residue groups, Analyses, Structure view, Layout & panels, Outputs).
+// The settings pages of the analysis window, in MDATK's order (core::kProblemPages: input, groups,
+// analyses, structure, layout, outputs). Each page package adds its page to createPages(); the
+// window shows them in its side bar and goes to a problem's field with revealField.
 //
-// A page is a QWidget class XPage(forms::FormContext&, QWidget* parent) with QString pageId(),
-// QString title() and bool revealField(const QString& path) (scrolls to the field and focuses it;
-// false when the field is not on the page), and sections that are PageSection
-// (page_section.hpp, objectName "section:<page>.<section>"). The window puts each page into a
-// scroll area of the side bar's fixed width (pages scroll vertically, never sideways), so a page
-// has no scroll area of its own.
-//
-// createPages() is the one place that lists them: each package adds its page by replacing the
-// placeholder's line (`entry(new InputPage(context))`).
+// A page is a QWidget with pageId() (one of core::kProblemPages' ids), title() and
+// revealField(path) (scrolls to the field, opens its section, focuses it; false when the field is
+// not on the page). The helpers below call them through Qt's meta-object system, so a page need not
+// derive from FormPage as long as the three are Q_INVOKABLE.
 
-#include <functional>
 #include <vector>
 
 #include <QString>
@@ -25,22 +20,17 @@ class FormContext;
 
 namespace mdbridge::app::pages {
 
-struct PageEntry {
-    QString id;
-    QString title;
-    QWidget* widget = nullptr;  // the caller takes ownership (parents it)
-    std::function<bool(const QString& path)> revealField;
-    bool placeholder = false;   // a PlaceholderPage (the page's own is not there yet)
-};
+// The pages there are, in MDATK's order, bound to `context` (which must outlive them). The caller
+// owns them (they have no parent).
+std::vector<QWidget*> createPages(forms::FormContext& context);
 
-// Any page class of the form above.
-template <class Page>
-PageEntry entry(Page* page, bool placeholder = false) {
-    return PageEntry{page->pageId(), page->title(), page,
-                     [page](const QString& path) { return page->revealField(path); }, placeholder};
-}
+// The ids of the pages createPages() makes, in order.
+std::vector<QString> pageIds();
 
-// The six pages, in MDATK's order, bound to `context`.
-std::vector<PageEntry> createPages(forms::FormContext& context);
+QString pageIdOf(QWidget* page);
+QString pageTitleOf(QWidget* page);
+bool revealFieldOn(QWidget* page, const QString& path);
+// The page is a PlaceholderPage (its own page is not there yet; placeholder_page.hpp).
+bool isPlaceholder(QWidget* page);
 
 }  // namespace mdbridge::app::pages

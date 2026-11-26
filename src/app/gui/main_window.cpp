@@ -52,7 +52,7 @@
 #include "gui/forms/field_widgets.hpp"
 #include "gui/jobs/job_runner.hpp"
 #include "gui/jobs/log_view.hpp"
-#include "gui/pages/page_section.hpp"
+#include "gui/pages/form_page.hpp"
 #include "gui/problems/problems_panel.hpp"
 #include "mdbridge/core/citations.hpp"
 #include "mdbridge/core/json.hpp"
@@ -61,6 +61,7 @@
 #include "mdbridge/core/project_file.hpp"
 #include "mdbridge/core/project_io.hpp"
 #include "mdbridge/core/settings.hpp"
+#include "mdbridge/render/shading.hpp"
 #include "mdbridge/render/vulkan_probe.hpp"
 #include "mdbridge/version.hpp"
 #include "log_capture.hpp"
@@ -535,15 +536,12 @@ QWidget* MainWindow::createSideBar() {
     layout->addWidget(line);
     m_stack = new QStackedWidget(side);
     m_stack->setObjectName(QStringLiteral("side.pages"));
-    m_pages = pages::createPages(*m_context);
-    for (const pages::PageEntry& page : m_pages) {
-        auto* area = new QScrollArea(m_stack);
-        area->setObjectName(QStringLiteral("scroll:") + page.id);
-        area->setWidgetResizable(true);
-        area->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);  // rows fit the side bar, never scroll sideways
-        area->setFrameShape(QFrame::NoFrame);
-        area->setWidget(page.widget);
-        m_stack->addWidget(area);
+    for (QWidget* widget : pages::createPages(*m_context)) {
+        m_pages.push_back(Page{pages::pageIdOf(widget), pages::pageTitleOf(widget), widget, pages::isPlaceholder(widget)});
+    }
+    for (const Page& page : m_pages) {
+        page.widget->setParent(m_stack);  // a page scrolls itself (pages/form_page.hpp)
+        m_stack->addWidget(page.widget);
     }
     layout->addWidget(m_stack, 1);
     return side;
@@ -661,24 +659,31 @@ bool MainWindow::showPage(const QString& id) {
 
 bool MainWindow::openSection(const QString& page, const QString& section) {
     if (!showPage(page)) return false;
-    auto* area = qobject_cast<QScrollArea*>(m_stack->currentWidget());
+    QWidget* shown = m_stack->currentWidget();
+    auto* area = shown->findChild<QScrollArea*>();
     if (section.isEmpty()) {
         if (area) area->verticalScrollBar()->setValue(0);
         return true;
     }
-    pages::PageSection* target = pages::findSection(m_stack->currentWidget(), page, section);
+    auto* target = shown->findChild<QWidget*>(QStringLiteral("section:%1.%2").arg(page, section));
     if (!target) return false;
-    pages::scrollIntoView(target);
-    // once the layout of the page shown is done (MDATK scrolls 60 ms later)
-    QTimer::singleShot(0, target, [target] { pages::scrollIntoView(target); });
+    if (auto* s = qobject_cast<pages::Section*>(target)) s->setExpanded(true);
+    // MDATK's open_section: the section's top 6 px below the top, once the page's layout is done
+    const auto scroll = [area, target] {
+        if (!area || !area->widget()) return;
+        const QPoint at = target->mapTo(area->widget(), QPoint(0, 0));
+        area->verticalScrollBar()->setValue(std::max(0, at.y() - 6));
+    };
+    scroll();
+    QTimer::singleShot(0, target, scroll);
     return true;
 }
 
 bool MainWindow::revealField(const QString& path) {
     const QString page = qs(std::string(core::problemPage(utf8(path))));
     if (page.isEmpty() || !showPage(page)) return false;
-    for (const pages::PageEntry& entry : m_pages) {
-        if (entry.id == page) return entry.revealField && entry.revealField(path);
+    for (const Page& entry : m_pages) {
+        if (entry.id == page) return pages::revealFieldOn(entry.widget, path);
     }
     return false;
 }
@@ -779,6 +784,7 @@ void MainWindow::onDocumentChanged(const core::DocumentChange& change) {
 }
 
 void MainWindow::afterReplace(const fs::path& /*opened*/) {
+    render::resetWarnOnce();  // a project shown anew warns again about what its drawing finds
     m_warningsKnown = false;
     m_lastWarnings.clear();
     m_externalNoticed = false;
@@ -1298,6 +1304,8 @@ void MainWindow::refreshPreview() {
 }
 
 void MainWindow::schedulePreview() { m_previewTimer.start(); }
+
+bool MainWindow::previewSettled() const { return !m_previewTimer.isActive() && m_preview->settled(); }
 
 void MainWindow::updatePreview() {
     m_previewTimer.stop();

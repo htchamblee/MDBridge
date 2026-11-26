@@ -14,10 +14,12 @@
 #include <system_error>
 
 #include <QAbstractButton>
+#include <QAbstractSlider>
 #include <QAbstractSpinBox>
 #include <QApplication>
 #include <QComboBox>
 #include <QImage>
+#include <QLabel>
 #include <QLineEdit>
 #include <QPixmap>
 #include <QPlainTextEdit>
@@ -147,9 +149,20 @@ void addSecond(core::DateTime& t) {
     ++t.year;
 }
 
-// The text a user types for `value`.
+// The text a user types for `value` (a list of strings: "a, b", as the comma-separated fields).
 QString typedText(const core::Value& value, const char* widgetType) {
     if (const auto* s = value.get<std::string>()) return toQString(*s);
+    if (const auto* items = value.get<core::Array>()) {
+        QStringList parts;
+        for (const core::Value& item : *items) {
+            const auto* text = item.get<std::string>();
+            if (!text) {
+                throw CaseError(std::string("a ") + widgetType + " takes a list of strings only");
+            }
+            parts.append(toQString(*text));
+        }
+        return parts.join(QStringLiteral(", "));
+    }
     if (const auto* i = value.get<std::int64_t>()) return QString::number(*i);
     if (const auto* d = value.get<double>()) return toQString(core::pythonFloatRepr(*d));
     throw CaseError(std::string("a ") + widgetType + " takes a string or a number, not " +
@@ -378,7 +391,7 @@ std::vector<std::string> unsupportedNeeds(const GuiCase& c) {
     // grows as the window and this runner do (the canvas actions come with W2-A)
     static const std::vector<std::string> supported{"answers", "close",    "lossless", "new",  "open_failure",
                                                     "save_as", "settings", "snapshot", "start", "table",
-                                                    "type"};
+                                                    "toggle", "type"};
     std::vector<std::string> out;
     for (const std::string& need : c.needs) {
         if (std::find(supported.begin(), supported.end(), need) == supported.end()) {
@@ -459,6 +472,64 @@ void setField(QWidget* widget, const core::Value& value) {
         }
         if (button->isChecked() != *wanted) {
             throw CaseError(name + ": pressing Space did not change the check box");
+        }
+        return;
+    }
+    if (auto* slider = qobject_cast<QAbstractSlider*>(widget)) {
+        const auto* d = value.get<double>();
+        const auto* i = value.get<std::int64_t>();
+        if (!d && !i) {
+            throw CaseError(name + ": a slider takes a number");
+        }
+        const double scale = slider->property("mdbridgeScale").isValid() ? slider->property("mdbridgeScale").toDouble() : 1.0;
+        const double v = (d ? *d : static_cast<double>(*i)) * scale;
+        const int units = static_cast<int>(std::lround(v));
+        if (units < slider->minimum() || units > slider->maximum()) {
+            throw CaseError(name + ": the value is outside the slider's range");
+        }
+        slider->setFocus();
+        slider->setValue(units);  // as a drag to there
+        return;
+    }
+    if (const auto* items = value.get<core::Array>()) {
+        QList<QAbstractButton*> choices;
+        for (QAbstractButton* b : widget->findChildren<QAbstractButton*>()) {
+            if (b->property("mdbridgeChoice").isValid()) {
+                choices.append(b);
+            }
+        }
+        if (!choices.isEmpty()) {
+            QStringList wanted;
+            for (const core::Value& item : *items) {
+                wanted.append(typedText(item, "check box list"));
+            }
+            for (QAbstractButton* b : choices) {
+                if (b->isChecked() && !wanted.contains(b->property("mdbridgeChoice").toString())) {
+                    QTest::keyClick(b, Qt::Key_Space);
+                }
+            }
+            for (const QString& w : wanted) {
+                QAbstractButton* box = nullptr;
+                for (QAbstractButton* b : choices) {
+                    if (b->property("mdbridgeChoice").toString() == w) box = b;
+                }
+                if (!box) {
+                    throw CaseError(name + ": there is no check box for '" + w.toStdString() + "'");
+                }
+                if (!box->isChecked()) {
+                    QTest::keyClick(box, Qt::Key_Space);
+                }
+            }
+            return;
+        }
+        for (std::size_t k = 0; k < items->size(); ++k) {
+            const QString part = widget->objectName() + QStringLiteral(".%1").arg(k);
+            const QList<QWidget*> found = widget->findChildren<QWidget*>(part);
+            if (found.size() != 1) {
+                throw CaseError(name + ": no single part '" + part.toStdString() + "' takes item " + std::to_string(k));
+            }
+            setField(found.front(), (*items)[k]);
+            QApplication::processEvents();
         }
         return;
     }
@@ -666,6 +737,11 @@ void CaseRunner::run(const core::Array& actions) {
         m_prompter.answers = answers ? *answers : core::Value();
         try {
             runAction(actions[k]);
+            // as the generator's flush(): the redraws the action caused are done (and their warnings
+            // logged) before the next one
+            if (!QTest::qWaitFor([this] { return m_window.isHidden() || m_window.previewSettled(); }, 30000)) {
+                throw CaseError("the preview did not settle in 30 s");
+            }
         } catch (const std::exception& e) {
             throw CaseError("action " + std::to_string(k + 1) + " (" + actions[k].find("action")->stringOr() +
                             "): " + e.what());
@@ -709,7 +785,7 @@ void CaseRunner::runAction(const core::Value& action) {
             else throw CaseError("'timeout_s' must be a number");
         }
         waitUntilLoaded(timeoutMs);
-    } else if (what == "set") {
+    } else if (what == "set" || what == "toggle") {
         const core::Value* value = action.find("value");
         if (!value) {
             throw CaseError("'value' is missing");
@@ -815,8 +891,8 @@ void RecordingPrompter::printError(const QString& line) { stderrLines.push_back(
 
 void CaseRunner::snapshot(const core::Value& action) {
     core::Table rec{{"action", static_cast<std::int64_t>(m_index)}};
-    if (action.find("slots") || action.find("density_status")) {
-        throw CaseError("snapshots of slots and of the density status need the layout and structure pages (W1-C, W2-A)");
+    if (action.find("slots")) {
+        throw CaseError("snapshots of the slot editors need the Layout & panels page (W2-A)");
     }
     app::forms::FormContext& context = m_window.formContext();
     context.commitPendingEdits();
@@ -833,6 +909,10 @@ void CaseRunner::snapshot(const core::Value& action) {
     }
     if (const core::Value* page = action.find("page"); page && page->get<bool>() && *page->get<bool>()) {
         rec.emplace_back("page", m_window.currentPage().toStdString());
+    }
+    if (const core::Value* status = action.find("density_status"); status && status->get<bool>() && *status->get<bool>()) {
+        auto* label = m_window.findChild<QLabel*>(QStringLiteral("density.status"));
+        rec.emplace_back("density_status", label ? label->text().toStdString() : std::string("<no density.status label>"));
     }
     if (const core::Value* modified = action.find("modified"); modified && modified->get<bool>() && *modified->get<bool>()) {
         rec.emplace_back("modified", m_window.document().isModified());

@@ -54,12 +54,6 @@ const char* pendingReason(const std::string& name) {
         {"pages/analyses_page", "the Analyses page (W1-B)"},
         {"pages/groups_page", "the Residue groups page and the slot editors (W1-B, W2-A)"},
         {"pages/layout_page", "the Layout & panels page (W2-A)"},
-        {"pages/outputs_page", "the Outputs page (W1-C)"},
-        {"pages/structure_page", "the Structure view page (W1-C)"},
-        // the generator's expected file is MDATK 0.0.4.1's writer with 0.1.1's keys; the edit model
-        // (W0-B, PRJ-09, ED-xx) writes a later MDATK's file back byte for byte: to be settled in W0-A
-        {"roundtrip/open_save_mdatk_0_1_1", "expected file conflicts with the edit model's byte-for-byte 0.1.1 round "
-                                            "trip (W0-A / W0-B to settle)"},
     };
     for (const auto& [n, why] : pending) {
         if (n == name) return why;

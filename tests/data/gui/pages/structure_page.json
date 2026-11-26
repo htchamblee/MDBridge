@@ -29,7 +29,7 @@
    "key": "visual.rotation",
    "value": [
     15.5,
-    -30,
+    -30.0,
     120.25
    ]
   },
@@ -201,7 +201,7 @@
       "align_frames": true,
       "rotation": [
        15.5,
-       -30,
+       -30.0,
        120.25
       ],
       "zoom": 1.75,

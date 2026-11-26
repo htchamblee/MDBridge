@@ -122,7 +122,14 @@ public:
     QAction* action(const QString& name) const;
     // The page buttons' QAbstractButton ("page:<id>" buttons) for W1-D's badges.
     QAbstractButton* pageButton(const QString& id) const;
-    const std::vector<pages::PageEntry>& pages() const { return m_pages; }
+    // The side bar's pages (pages/page_registry.hpp), in MDATK's order.
+    struct Page {
+        QString id;
+        QString title;
+        QWidget* widget = nullptr;
+        bool placeholder = false;  // a PlaceholderPage until the page's own is delivered
+    };
+    const std::vector<Page>& pages() const { return m_pages; }
     // The problems list (W1-D), shown by the header's problems button.
     problems::ProblemsPanel* problemsPanel() const { return m_problems; }
 
@@ -162,6 +169,8 @@ public:
     QString loadProblem() const { return m_loadProblem; }
     QString structureSummary() const { return m_structureSummary; }
     void cancelLoad();
+    // The preview shows the current settings (no redraw pending or running).
+    bool previewSettled() const;
     render::Renderer renderer() const { return m_renderer; }
 
     // The recovery copy written for the current document ("" when none is written).
@@ -226,7 +235,7 @@ private:
     QButtonGroup* m_pageButtons = nullptr;
     QLabel* m_sideTitle = nullptr;
     QStackedWidget* m_stack = nullptr;
-    std::vector<pages::PageEntry> m_pages;
+    std::vector<Page> m_pages;
     PreviewWidget* m_preview = nullptr;
     problems::ProblemsPanel* m_problems = nullptr;
     jobs::LogView* m_log = nullptr;
