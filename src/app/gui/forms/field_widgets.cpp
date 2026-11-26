@@ -344,6 +344,9 @@ void FieldWidget::setEditor(QWidget* editor, QWidget* flagTarget) {
     editor->setToolTip(m_spec.hint);
     editor->setAccessibleDescription(m_spec.hint);
     setFocusProxy(editor);
+    if (QLineEdit* edit = lineEditOf(editor)) {  // check as you type (W1-D)
+        connect(edit, &QLineEdit::textEdited, &m_context, &FormContext::scheduleCheck);
+    }
 }
 
 std::pair<QString, QString> FieldWidget::flag() const { return flagOf(m_flagTarget); }
@@ -390,6 +393,13 @@ void FieldWidget::setLocalProblem(const QString& message, const QString& level) 
     }
     m_localMessage = message;
     m_localLevel = level;
+    if (message.isEmpty()) {
+        m_context.setLocalProblem(m_path, nullptr);
+    } else {
+        const core::Problem problem = core::locatedProblem(m_path, toStdString(message), &document().project(),
+                                                           level == QLatin1String("warning") ? "warning" : "error");
+        m_context.setLocalProblem(m_path, &problem);
+    }
     updateFlag();
 }
 
@@ -467,10 +477,12 @@ NumberField::NumberField(FormContext& context, std::string path, FieldSpec spec,
         return out;
     };
     connect(m_box, &QAbstractSpinBox::editingFinished, this, &NumberField::commit);
+    connect(m_box->edit(), &QLineEdit::textEdited, this, &NumberField::checkRange);
     m_box->installEventFilter(new EscapeReverts(this, [this] {
         this->context().setFormError(this->path(), nullptr);
         refresh();
         updateFlag();
+        this->context().scheduleCheck();  // the typed text is gone: check the value shown again
     }));
     refresh();
 }
@@ -531,12 +543,16 @@ void NumberField::refresh() {
     }
     setDirty(m_box->edit(), false);
     m_box->setReadOnly(!fieldExists());
+    checkRange(text);
+}
+
+void NumberField::checkRange(const QString& text) {
     QString problem;
     const std::optional<double> v = currentNumber();
     const FieldSpec& s = spec();
     if (v && ((s.minimum && *v < *s.minimum) || (s.maximum && *v > *s.maximum))) {
         problem = QStringLiteral("%1 is outside the usual range %2 to %3 (kept as it is).")
-                      .arg(text, s.minimum ? numberHintText(*s.minimum) : QStringLiteral("-"),
+                      .arg(text.trimmed(), s.minimum ? numberHintText(*s.minimum) : QStringLiteral("-"),
                            s.maximum ? numberHintText(*s.maximum) : QStringLiteral("-"));
     }
     setLocalProblem(problem);
@@ -552,6 +568,10 @@ void NumberField::commit() {
 }
 
 QString NumberField::displayedText() const { return m_box->edit()->text(); }
+
+std::optional<QString> NumberField::pendingText() const {
+    return isDirty(m_box->edit()) ? std::optional<QString>(m_box->edit()->text()) : std::nullopt;
+}
 
 // ---- LineField -------------------------------------------------------------------------------
 
@@ -572,6 +592,7 @@ LineField::LineField(FormContext& context, std::string path, FieldSpec spec, QWi
         this->context().setFormError(this->path(), nullptr);
         refresh();
         updateFlag();
+        this->context().scheduleCheck();  // the typed text is gone: check the value shown again
     }));
     refresh();
 }
@@ -600,6 +621,10 @@ void LineField::commit() {
 }
 
 QString LineField::displayedText() const { return m_edit->text(); }
+
+std::optional<QString> LineField::pendingText() const {
+    return isDirty(m_edit) ? std::optional<QString>(m_edit->text()) : std::nullopt;
+}
 
 // ---- PathField -------------------------------------------------------------------------------
 
@@ -700,6 +725,7 @@ MultiLineField::MultiLineField(FormContext& context, std::string path, FieldSpec
     connect(m_edit, &QPlainTextEdit::textChanged, this, [this] {
         if (!refreshing()) {
             m_dirty = true;
+            this->context().scheduleCheck();
         }
     });
     m_edit->installEventFilter(this);
@@ -733,6 +759,10 @@ void MultiLineField::commit() {
 }
 
 QString MultiLineField::displayedText() const { return m_edit->toPlainText(); }
+
+std::optional<QString> MultiLineField::pendingText() const {
+    return m_dirty ? std::optional<QString>(m_edit->toPlainText()) : std::nullopt;
+}
 
 // ---- ComboField ------------------------------------------------------------------------------
 
@@ -824,6 +854,7 @@ EditableComboField::EditableComboField(FormContext& context, std::string path, F
         this->context().setFormError(this->path(), nullptr);
         refresh();
         updateFlag();
+        this->context().scheduleCheck();  // the typed text is gone: check the value shown again
     }));
     QStringList items;
     for (const Choice& c : this->spec().choices) {
@@ -867,6 +898,10 @@ void EditableComboField::commit() {
 }
 
 QString EditableComboField::displayedText() const { return m_combo->lineEdit()->text(); }
+
+std::optional<QString> EditableComboField::pendingText() const {
+    return isDirty(m_combo->lineEdit()) ? std::optional<QString>(m_combo->lineEdit()->text()) : std::nullopt;
+}
 
 // ---- CheckField ------------------------------------------------------------------------------
 
