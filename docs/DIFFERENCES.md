@@ -2104,6 +2104,47 @@ after its field path. Deliberate differences from MDATK v0.0.4.1:
   (mdbridge_gui_forms_tests): the decision, path fields, lists of files and of records, resolution and
   the saved file.
 
+## Interface: problems as you type (src/app/gui/problems, gui/forms/form_context.cpp; milestone 5 W1-D)
+
+MDATK v0.0.4.1 checks the settings only when a job starts and shows `validate()`'s lines in a message
+box. MDBridge shows them while the project is edited, with MDATK 0.0.10's presentation as MDATK 0.1.1
+has it (`gui/problemview.py`, `schedule_check` / `check_problems` of `gui/app.py`); what is an error
+stays `validate()`'s, v0.0.4.1's blocking rules with MDBridge's fixes (owner decision D7: 0.0.10's
+"only what is about to run can block it" waits for the post-parity phase, as it changes CLI output).
+
+- **PV-01: checked as you type** (follows MDATK 0.1.1). The problems are those of the project as the
+  fields show it: text typed into a field and not yet stored is checked too (on a copy; the document
+  is not edited), and text the field cannot take is a located error at the field (`Input & cleaning ›
+  Frames › Stop: 'abc' is not a whole number`), as 0.1.1's `store_fields` errors. Typing schedules one
+  check 400 ms (0.1.1's `CHECK_DELAY_MS`) after the last key; Esc schedules one for the value shown
+  again. A change of the document (a stored field, undo, a row added) is checked at once, once for all
+  widgets; the changes of an undo group (a canvas drag, one per mouse move) are not checked one by
+  one: the last check stands until the drag pauses for 400 ms. *Tested:* test_problems.cpp
+  `typedTextIsCheckedOncePerBurst`, `escapeDropsTheTypedProblem`, `aDragIsCheckedWhenItPauses`.
+- **PV-02: page badges and the problems list** (0.0.10 / 0.1.1). Each page button can carry a
+  `ProblemBadge`: the number of the page's problems (`Problem::page()`; "99+" from 100), red when one
+  is an error, amber (0.1.1's `#c64600`) for warnings only, hidden at none, with 0.1.1's summary as
+  tooltip (`• Frames › Stop: …`, six lines and "… and n more"). The `ProblemsPanel` lists every problem
+  with the level's icon, its location in 0.1.1's words (`Residue groups › Group 2 (Target) ›
+  Residues`; "Project" for none) and its message, and a click (or Enter) on a row shows the field: the
+  window shows the field's page and calls its `revealField`, which can use `revealFieldIn` (the field
+  widget or list cell of the path, else of its nearest parent, scrolled into view and focused without
+  selecting a line edit's text, as 0.1.1's `grab_focus_without_selecting`); a click on a badged page
+  cycles through its problems (`nextOnPage`, 0.1.1's `_on_page_button_release`). 0.1.1 shows the list
+  in a popover behind a header button; MDBridge gives it as a panel the window places (W1-A).
+  *Tested:* `everyValidateProblemLandsOnItsField` (every problem of the 120 cases of
+  `validate_cases.json` is listed with `describeField`'s location, and each error has a field widget
+  or list cell of exactly its path in a form built from the field factory, on its page, and the jump
+  focuses it), `badgesCountEachPage`, `clickingARowJumpsToTheField`, `summariesAndCounts`.
+- **PV-03: the field widgets' own problems are listed** (not in 0.1.1, whose spin buttons clamp
+  and whose colour buttons cannot hold a wrong colour). What a field widget flags by itself and the
+  checks do not report (a value outside MDATK's spin range, FW-01; a choice the combo does not offer,
+  FW-03; a colour Matplotlib cannot read, FW-02, an error at render time) is listed and counted by the
+  badges at its field, at the widget's level (the range hint and unknown choices as warnings), where
+  the field has no other problem; the range hint follows typed text, and each goes away with the value
+  or the widget.
+  *Tested:* `rangeHintWarningsAreListed`.
+
 ## Interface: jobs and the log (src/app/gui/jobs)
 
 The window's background jobs (render, cleaning, export, …; M7's script runner reuses it) run
