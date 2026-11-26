@@ -109,7 +109,8 @@ echo "== fallback libraries (each used only on hosts without it)"
 # them (and their copies must match the graphics driver), but minimal and server installs (a cluster
 # node used over ssh -X, CI runners) may lack them. Each copy (these and what they need) goes into a
 # folder of its own, usr/lib/fallback/<name>/<name>: AppRun puts on the library path only the
-# folders of the libraries the host lacks, so the host's copies of the others still win.
+# folders of the libraries the host lacks (the GL dispatch libraries, glvnd, as one unit), so the
+# host's copies of the others still win.
 FALLBACK_LIBS="libGL.so.1 libEGL.so.1 libX11.so.6 libX11-xcb.so.1 libxcb.so.1 libfontconfig.so.1 libfreetype.so.6"
 # what even minimal systems have; never bundled
 HOST_CORE='^(ld-linux-x86-64\.so\.2|lib(c|m|dl|pthread|rt)\.so\.[0-9]+|libstdc\+\+\.so\.6|libgcc_s\.so\.1|libz\.so\.1|libgpg-error\.so\.0)$'
@@ -125,6 +126,13 @@ for key in $FALLBACK_LIBS; do
                 cp -L "$file" "$FALLBACK/$name/$name"
             fi
         done
+done
+# the GL dispatch libraries (glvnd) are one unit for AppRun: a member linuxdeploy put into usr/lib
+# goes with the others
+for lib in "$APPDIR"/usr/lib/lib{GLdispatch,GLX,GL,EGL,OpenGL,GLESv1_CM,GLESv2}.so.*; do
+    [ -e "$lib" ] || continue
+    name="$(basename "$lib")"
+    mkdir -p "$FALLBACK/$name" && mv "$lib" "$FALLBACK/$name/$name"
 done
 echo "   $(cd "$FALLBACK" && echo *)"
 

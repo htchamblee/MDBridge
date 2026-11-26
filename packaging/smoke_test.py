@@ -54,6 +54,7 @@ import argparse
 import difflib
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -96,7 +97,8 @@ def last_json_line(text: str):
 
 # ---- the AppImage's fallback libraries (packaging/linux/AppRun) ------------------------------------
 
-# the desktop libraries whose host copies must win (graphics driver, font set-up)
+# the desktop libraries whose host copies must win (graphics driver, font set-up; libGL and libEGL
+# with the rest of the glvnd unit)
 HOST_FIRST = ("libGL.so.1", "libEGL.so.1", "libfontconfig.so.1", "libfreetype.so.6", "libX11.so.6", "libxcb.so.1")
 EXPECT_FALLBACK = None  # --expect-fallback: None (not checked), set() for none, or the names
 
@@ -129,28 +131,53 @@ def host_libraries() -> set:
     return names
 
 
-def library_check(label: str, libraries) -> None:
-    """The fallback copies an AppImage loaded: only libraries the host lacks; the HOST_FIRST ones
-    from the host whenever it has them; --expect-fallback: exactly these copies are used."""
+GLVND = re.compile(r"^lib(GLdispatch|GLX|GL|EGL|OpenGL|GLESv1_CM|GLESv2)\.so\.[0-9]+$")
+APPRUN_DEBUG = {"MDBRIDGE_APPRUN_DEBUG": "1"}  # AppRun names the glvnd set it carries on stderr
+
+
+def bundled_glvnd(stderr: str):
+    """The glvnd set AppRun reported (MDBRIDGE_APPRUN_DEBUG), or None when it did not."""
+    for line in stderr.splitlines():
+        if line.startswith("AppRun: glvnd set:"):
+            names = line.split(":", 2)[2].split(";")[0].split()
+            return [n for n in names if n != "none"]
+    return None
+
+
+def library_check(label: str, libraries, stderr: str) -> None:
+    """The fallback copies an AppImage loaded: only libraries the host lacks, the GL dispatch
+    libraries (glvnd) as one unit (all the AppImage's when the host lacks a member of its set,
+    else all the host's); fontconfig, freetype, X11 and xcb from the host whenever it has them;
+    --expect-fallback: these copies are used."""
     if not libraries:
         check(f"{label}: the program lists the libraries it loaded", False, "no 'libraries' in the report")
         return
     host = host_libraries()
-    fallback = {p.rsplit("/", 1)[-1]: p for p in libraries if "/usr/lib/fallback/" in p}
+    loaded = {p.rsplit("/", 1)[-1]: p for p in libraries}
+    fallback = {n: p for n, p in loaded.items() if "/usr/lib/fallback/" in p}
     print(f"     {label}: {len(libraries)} libraries loaded; copies from the AppImage's fallback: "
           f"{' '.join(sorted(fallback)) or 'none'}")
-    wrong = sorted(name for name in fallback if name in host)
-    check(f"{label}: fallback copies only of libraries the host lacks", not wrong,
+    wrong = sorted(n for n in fallback if n in host and not GLVND.match(n))
+    check(f"{label}: fallback copies only of libraries the host lacks (glvnd as one unit)", not wrong,
           "the host has " + ", ".join(f"{n} (loaded {fallback[n]})" for n in wrong))
-    present = [n for n in HOST_FIRST if n in host]
-    loaded = {p.rsplit("/", 1)[-1]: p for p in libraries}
-    not_host = [f"{n}: {loaded[n]}" for n in present if n in loaded and n in fallback]
+    glvnd = bundled_glvnd(stderr)
+    if glvnd is None:
+        check(f"{label}: AppRun names its glvnd set (MDBRIDGE_APPRUN_DEBUG)", False, stderr[-600:])
+    else:
+        missing = [n for n in glvnd if n not in host]
+        loaded_glvnd = sorted(n for n in loaded if GLVND.match(n))
+        mixed = [f"{n}: {loaded[n]}" for n in loaded_glvnd if (n in fallback) != bool(missing)]
+        check(f"{label}: glvnd ({', '.join(loaded_glvnd) or 'none loaded'}) all from "
+              + (f"the AppImage (the host lacks {', '.join(missing)})" if missing else "the host"),
+              not mixed, "; ".join(mixed))
+    present = [n for n in HOST_FIRST if n in host and not GLVND.match(n)]
+    not_host = [f"{n}: {loaded[n]}" for n in present if n in fallback]
     check(f"{label}: the host's {', '.join(present) or 'desktop libraries (it has none)'} used",
           not not_host, "; ".join(not_host))
     if EXPECT_FALLBACK:
-        missing = sorted(n for n in EXPECT_FALLBACK if n not in fallback)
-        check(f"{label}: the AppImage's copies of {', '.join(sorted(EXPECT_FALLBACK))} used", not missing,
-              "loaded from elsewhere or not at all: " + ", ".join(f"{n} ({loaded.get(n, 'not loaded')})" for n in missing))
+        absent = sorted(n for n in EXPECT_FALLBACK if n not in fallback)
+        check(f"{label}: the AppImage's copies of {', '.join(sorted(EXPECT_FALLBACK))} used", not absent,
+              "loaded from elsewhere or not at all: " + ", ".join(f"{n} ({loaded.get(n, 'not loaded')})" for n in absent))
     elif EXPECT_FALLBACK is not None:
         check(f"{label}: no fallback copy used", not fallback, ", ".join(sorted(fallback)))
 
@@ -345,7 +372,7 @@ def gui_edit_check(exe, appimage: bool):
             {"action": "screenshot", "name": "edit-page", "pages": True},
         ])
         r = run(exe, "gui", project, "--renderer", "software", "--script", script, "--script-output", shots,
-                timeout=900, extra_env=gui_config_env(work))
+                timeout=900, extra_env={**gui_config_env(work), **APPRUN_DEBUG})
         report = last_json_line(r.stdout)
         detail = f"exit {r.returncode}; {report.get('problem')}; {r.stderr.strip()[-900:]}"
         check(f"gui --script: {len(report.get('actions', []))} actions through the window "
@@ -377,7 +404,7 @@ def gui_edit_check(exe, appimage: bool):
               and all(file_starts_with(f, b"\x89PNG") and os.path.getsize(f) > 5000 for f in files),
               f"pages {pages}, files {files}")
         if appimage:
-            library_check("interface", report.get("libraries"))
+            library_check("interface", report.get("libraries"), r.stderr)
 
 
 def gui_exe_check(gui_exe):
@@ -474,7 +501,7 @@ def main(argv=None) -> int:
     problems = [p for name in names for p in compare.compare([exe], EXPECTED, os.path.join(PROJECTS, name), env())]
     check(f"project show --json reads {len(names)} files as MDATK 0.0.4.1 does", not problems, "\n".join(problems))
 
-    r = run(exe, "graphics", "--json")
+    r = run(exe, "graphics", "--json", extra_env=APPRUN_DEBUG)
     try:
         graphics = json.loads(r.stdout)
     except json.JSONDecodeError:
@@ -482,7 +509,7 @@ def main(argv=None) -> int:
     check(f"graphics: {graphics.get('renderer')} ({graphics.get('device') or graphics.get('problem')})",
           r.returncode == 0 and graphics.get("renderer") in ("vulkan", "software"), r.stdout + r.stderr)
     if is_appimage(exe):
-        library_check("command line", graphics.get("libraries"))
+        library_check("command line", graphics.get("libraries"), r.stderr)
 
     fonts_check(exe, args.text_report, args.compare_text_report)
 

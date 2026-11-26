@@ -251,16 +251,18 @@ jobs:
           # none of the desktop libraries is installed: the AppImage's copies must stand in
           python3 packaging/smoke_test.py dist/MDBridge-*-x86_64.AppImage --version "${{ needs.linux.outputs.version }}" \
             --compare-text-report text-report/text-report.json --screenshot-dir cli-render-rocky \
-            --expect-fallback libGL.so.1,libEGL.so.1,libX11.so.6,libxcb.so.1,libfontconfig.so.1,libfreetype.so.6
+            --expect-fallback libGL.so.1,libEGL.so.1,libGLX.so.0,libGLdispatch.so.0,libX11.so.6,libxcb.so.1,libfontconfig.so.1,libfreetype.so.6
       # no system fonts either: the interface draws in the bundled IBM Plex fonts (FONT-01)
       - name: Interface under Xvfb, without a Vulkan driver (software view)
         run: |
           dnf install -y --setopt=install_weak_deps=False xorg-x11-server-Xvfb xorg-x11-xauth
-          # Xvfb brings libGL, X11, xcb and freetype but neither libEGL nor fontconfig: only those two
-          # copies (and what they need) may be used, the host's GL, X11, xcb and freetype win
+          # Xvfb brings libGL, libGLX, libGLdispatch, X11, xcb and freetype but neither libEGL nor
+          # fontconfig: the AppImage's whole glvnd set (one unit, as the host lacks a member) and its
+          # fontconfig are used, the host's X11, xcb and freetype win
           xvfb-run -a -s "-screen 0 1600x1000x24" python3 packaging/smoke_test.py dist/MDBridge-*-x86_64.AppImage \
             --gui --expect-renderer software --version "${{ needs.linux.outputs.version }}" \
-            --screenshot-dir gui-screenshots --expect-fallback libEGL.so.1,libfontconfig.so.1
+            --screenshot-dir gui-screenshots \
+            --expect-fallback libGL.so.1,libEGL.so.1,libGLX.so.0,libGLdispatch.so.0,libfontconfig.so.1
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         if: always()
         with:

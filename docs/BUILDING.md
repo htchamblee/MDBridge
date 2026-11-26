@@ -80,9 +80,11 @@ Desktop libraries Qt needs at start (OpenGL / EGL dispatch, X11, xcb, fontconfig
 they need) are copied from the build machine into `usr/lib/fallback/<name>/<name>`, one folder per
 library. `AppRun` puts a copy's folder on the library path only when the host lacks that library
 (not in `ldconfig -p`, the standard library folders or `LD_LIBRARY_PATH`), so on a desktop the
-host's copies are used and a minimal or server install gets just the missing ones;
-`MDBRIDGE_APPRUN_DEBUG=1 ./MDBridge-*.AppImage graphics --json` lists the copies supplied on stderr
-and every library loaded (`libraries`). The smoke test checks this on every host it runs on
+host's copies are used and a minimal or server install gets just the missing ones. The GL dispatch
+libraries (glvnd: libGLdispatch, libGLX, libGL, libEGL, libOpenGL, libGLES*) count as one unit:
+if the host lacks any member the AppImage carries, the whole bundled set is used, else the host's.
+`MDBRIDGE_APPRUN_DEBUG=1 ./MDBridge-*.AppImage graphics --json` names the glvnd set and the copies
+supplied on stderr and lists every library loaded (`libraries`). The smoke test checks this on every host it runs on
 (`--expect-fallback LIBS|none` asserts which copies must be used there).
 
 ## Windows
