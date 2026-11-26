@@ -110,7 +110,9 @@ QStringList nativeFileDialog(QWidget* parent, const FileDialogRequest& r) {
     case PathMode::OpenFiles:
         return QFileDialog::getOpenFileNames(parent, r.title, r.start, filters);
     case PathMode::SaveFile: {
-        const QString file = QFileDialog::getSaveFileName(parent, r.title, r.start, filters);
+        const QString file = QFileDialog::getSaveFileName(
+            parent, r.title, r.start, filters, nullptr,
+            r.confirmOverwrite ? QFileDialog::Options() : QFileDialog::Options(QFileDialog::DontConfirmOverwrite));
         return file.isEmpty() ? QStringList() : QStringList{file};
     }
     case PathMode::Folder: {

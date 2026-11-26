@@ -32,7 +32,9 @@
 #include "gui/main_window.hpp"
 #include "gui_harness.hpp"
 #include "mdbridge/core/paths.hpp"
+#include "gui/jobs/log_view.hpp"
 #include "mdbridge/core/project_document.hpp"
+#include "mdbridge/core/settings.hpp"
 
 namespace fs = std::filesystem;
 using namespace mdbridge;
@@ -43,6 +45,27 @@ namespace {
 const fs::path kData = core::pathFromUtf8(MDBRIDGE_TEST_DATA);
 
 fs::path screenshots() { return guitest::screenshotDir(core::pathFromUtf8(MDBRIDGE_GUI_SCREENSHOT_DIR)); }
+
+// Cases whose needs the harness has but whose pages are still placeholders (pages/page_registry.cpp):
+// skipped, naming the package that delivers what they need, until it does.
+const char* pendingReason(const std::string& name) {
+    static const std::vector<std::pair<std::string, const char*>> pending{
+        {"ap/ap08_preset_round_trip", "the slot editors of the Layout & panels page (W2-A)"},
+        {"pages/analyses_page", "the Analyses page (W1-B)"},
+        {"pages/groups_page", "the Residue groups page and the slot editors (W1-B, W2-A)"},
+        {"pages/layout_page", "the Layout & panels page (W2-A)"},
+        {"pages/outputs_page", "the Outputs page (W1-C)"},
+        {"pages/structure_page", "the Structure view page (W1-C)"},
+        // the generator's expected file is MDATK 0.0.4.1's writer with 0.1.1's keys; the edit model
+        // (W0-B, PRJ-09, ED-xx) writes a later MDATK's file back byte for byte: to be settled in W0-A
+        {"roundtrip/open_save_mdatk_0_1_1", "expected file conflicts with the edit model's byte-for-byte 0.1.1 round "
+                                            "trip (W0-A / W0-B to settle)"},
+    };
+    for (const auto& [n, why] : pending) {
+        if (n == name) return why;
+    }
+    return nullptr;
+}
 
 template <class F>
 std::string errorOf(F&& f) {
@@ -280,6 +303,59 @@ void GuiTests::cases_data() {
     }
 }
 
+// The environment of a case (tests/data/README.md "gui"): XDG_CONFIG_HOME (and APPDATA) a folder of
+// its own, HOME an empty folder, the case folder current; restored afterwards.
+class CaseEnvironment {
+public:
+    CaseEnvironment(const fs::path& caseDir, const fs::path& configDir, const fs::path& homeDir) {
+        for (const char* name : {"XDG_CONFIG_HOME", "APPDATA", "HOME", "USERPROFILE"}) {
+            m_saved.emplace_back(name, qEnvironmentVariableIsSet(name) ? std::optional<QByteArray>(qgetenv(name)) : std::nullopt);
+        }
+        const QByteArray config = QByteArray::fromStdString(core::pathToUtf8(configDir));
+        const QByteArray home = QByteArray::fromStdString(core::pathToUtf8(homeDir));
+        qputenv("XDG_CONFIG_HOME", config);
+        qputenv("APPDATA", config);
+        qputenv("HOME", home);
+        qputenv("USERPROFILE", home);
+        m_cwd = fs::current_path();
+        fs::current_path(caseDir);
+    }
+    ~CaseEnvironment() {
+        std::error_code ec;
+        fs::current_path(m_cwd, ec);
+        for (const auto& [name, value] : m_saved) {
+            if (value) qputenv(name, *value);
+            else qunsetenv(name);
+        }
+    }
+    CaseEnvironment(const CaseEnvironment&) = delete;
+    CaseEnvironment& operator=(const CaseEnvironment&) = delete;
+
+private:
+    std::vector<std::pair<const char*, std::optional<QByteArray>>> m_saved;
+    fs::path m_cwd;
+};
+
+std::string replaced(std::string text, const std::string& from, const std::string& to) {
+    for (std::size_t at = text.find(from); at != std::string::npos; at = text.find(from, at + to.size())) {
+        text.replace(at, from.size(), to);
+    }
+    return text;
+}
+
+std::string readText(const fs::path& path) {
+    QFile f(QString::fromStdString(core::pathToUtf8(path)));
+    if (!f.open(QIODevice::ReadOnly)) throw CaseError("cannot read " + core::pathToUtf8(path));
+    return f.readAll().toStdString();
+}
+
+void writeText(const fs::path& path, const std::string& text) {
+    fs::create_directories(path.parent_path());
+    QFile f(QString::fromStdString(core::pathToUtf8(path)));
+    if (!f.open(QIODevice::WriteOnly)) throw CaseError("cannot write " + core::pathToUtf8(path));
+    f.write(text.data(), static_cast<qint64>(text.size()));
+}
+
 void GuiTests::cases() {
     QFETCH(QString, file);
     const guitest::GuiCase c = guitest::loadCase(core::pathFromUtf8(file.toStdString()), kData / "gui");
@@ -290,30 +366,59 @@ void GuiTests::cases() {
         }
         QSKIP(why.c_str());
     }
+    if (const char* pending = pendingReason(c.name)) {
+        QSKIP(pending);
+    }
     QTemporaryDir tmp;
     QVERIFY(tmp.isValid());
-    const fs::path caseDir = core::pathFromUtf8(tmp.path().toStdString()) / "case";
-    fs::create_directories(caseDir);
+    const fs::path root = core::pathFromUtf8(tmp.path().toStdString());
+    const fs::path caseDir = root / "case";
+    const fs::path configDir = root / "config";
+    const fs::path homeDir = root / "home";
+    for (const fs::path& dir : {caseDir, configDir, homeDir}) fs::create_directories(dir);
     std::optional<guitest::FixedClock> clock;
     if (c.clock) clock.emplace(*c.clock);
 
     std::string failure;
     {
-        app::MainWindow window(render::Renderer::Software);
-        window.resize(1280, 800);
-        window.show();
-        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        CaseEnvironment environment(caseDir, configDir, homeDir);
+        std::vector<std::string> log;
+        std::optional<guitest::CaseRunner> runner;
         try {
             guitest::prepareCase(c, kData, caseDir);
-            guitest::CaseRunner runner(window, caseDir, screenshots(), c.name);
-            runner.run(c.actions);
-            for (const fs::path& shot : runner.screenshots()) {
-                qInfo("screenshot %s", core::pathToUtf8(shot).c_str());
+            if (!c.settings.empty()) {
+                writeText(core::userSettingsPath(),
+                          replaced(readText(kData / core::pathFromUtf8(c.settings)), "{case_dir}",
+                                   core::pathToUtf8(caseDir)));
             }
         } catch (const std::exception& e) {
             failure = e.what();
         }
-        window.cancelLoad();
+        if (failure.empty()) {
+            app::MainWindow window(render::Renderer::Software);
+            window.resize(1320, 920);
+            window.show();
+            QVERIFY(QTest::qWaitForWindowExposed(&window));
+            try {
+                runner.emplace(window, caseDir, screenshots(), c.name);
+                runner->setOpenMayFail(c.needsAny("open_failure"));
+                if (!c.start.empty()) runner->start(c.start);
+                runner->run(c.actions);
+                for (const fs::path& shot : runner->screenshots()) {
+                    qInfo("screenshot %s", core::pathToUtf8(shot).c_str());
+                }
+            } catch (const std::exception& e) {
+                failure = e.what();
+            }
+            window.logView()->flush();
+            const QStringList lines = window.logView()->text().split(QLatin1Char('\n'), Qt::SkipEmptyParts);
+            for (const QString& line : lines) log.push_back(line.toStdString());
+            window.cancelLoad();
+            if (failure.empty()) {
+                failure = guitest::checkOutcome(c, *runner, log, kData, caseDir, configDir);
+            }
+            runner.reset();
+        }
     }
     if (failure.empty()) {
         failure = guitest::checkExpected(c, kData, caseDir);

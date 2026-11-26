@@ -7,6 +7,10 @@ add_library(mdbridge_app STATIC
     fonts_command.cpp
     fonts_command.hpp
     gui/background.hpp
+    gui/dialogs/prompts.cpp
+    gui/dialogs/prompts.hpp
+    gui/dialogs/text_dialog.cpp
+    gui/dialogs/text_dialog.hpp
     gui/forms/field_factory.cpp
     gui/forms/field_factory.hpp
     gui/forms/field_spec.cpp
@@ -23,14 +27,19 @@ add_library(mdbridge_app STATIC
     gui/jobs/job_runner.hpp
     gui/jobs/log_view.cpp
     gui/jobs/log_view.hpp
+    gui/log_capture.hpp
     gui/main_window.cpp
     gui/main_window.hpp
+    gui/pages/page_registry.cpp
+    gui/pages/page_registry.hpp
+    gui/pages/page_section.cpp
+    gui/pages/page_section.hpp
+    gui/pages/placeholder_page.cpp
+    gui/pages/placeholder_page.hpp
     gui/preview_widget.cpp
     gui/preview_widget.hpp
     gui/problems/problems_panel.cpp
     gui/problems/problems_panel.hpp
-    gui/project_panel.cpp
-    gui/project_panel.hpp
     project_summary.cpp
     project_summary.hpp
     render_backend_qt.cpp

@@ -7,11 +7,14 @@
 #include <optional>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
 #include <QString>
 
+#include "gui/dialogs/prompts.hpp"
+#include "gui/forms/field_widgets.hpp"
 #include "mdbridge/core/clock.hpp"
 #include "mdbridge/core/value.hpp"
 
@@ -38,6 +41,12 @@ struct GuiCase {
     core::Array actions;                                         // tables with "action"
     std::vector<std::pair<std::string, std::string>> expected;  // case-folder name, path under the data folder
     std::vector<std::string> needs;                              // "needs": features beyond this harness (W0-A cases)
+    std::string start;                       // "start.project": the file the window starts with ("" none)
+    std::string settings;                    // "settings": settings.toml before the start (path under tests/data)
+    std::optional<std::vector<std::string>> log;  // "log": the log lines expected
+    core::Value outcome;                     // "outcome" (a table; Null without one)
+
+    bool needsAny(std::string_view need) const;
 };
 
 // The entries of `c.needs` this harness does not support yet (it runs "type" and "table"; a case
@@ -101,6 +110,22 @@ std::string normalise(std::string text, const std::filesystem::path& caseDir);
 // "" when equal, else where the texts first differ ("line 12: expected ... got ...").
 std::string compareText(const std::string& actual, const std::string& expected);
 
+// The window's questions, messages and terminal lines during a case: each recorded with the index
+// of the action that caused it (-1: the start), questions answered from the action's "answers"
+// (a question without an answer gets the first choice, tests/data/README.md "gui").
+class RecordingPrompter : public app::Prompter {
+public:
+    QString ask(QWidget* parent, const app::Question& question) override;
+    void message(QWidget* parent, app::MessageKind kind, const QString& text, const QString& detail) override;
+    void printError(const QString& line) override;
+
+    int action = -1;
+    core::Value answers;                  // the current action's "answers" (a table, or Null)
+    core::Array questions;                // {"action", "kind", "path", "answer"}
+    core::Array dialogs;                  // {"action", "kind", "text", "detail"}
+    std::vector<std::string> stderrLines;
+};
+
 // Runs a case's actions against `window`, files in `caseDir`, screenshots to `screenshots`
 // (named <case name with / as _>-<name>.png). Throws CaseError naming the action.
 class CaseRunner {
@@ -108,15 +133,33 @@ public:
     CaseRunner(app::MainWindow& window, std::filesystem::path caseDir, std::filesystem::path screenshots,
                std::string caseName);
 
+    ~CaseRunner();
+    CaseRunner(const CaseRunner&) = delete;
+    CaseRunner& operator=(const CaseRunner&) = delete;
+
+    // The window started with `project` (case folder; as `mdbridge gui PROJECT`).
+    void start(const std::string& project);
     void run(const core::Array& actions);
     void runAction(const core::Value& action);
+    // "open" may fail (the case needs "open_failure"): its error is a recorded dialog then.
+    void setOpenMayFail(bool may) { m_openMayFail = may; }
 
     const std::vector<std::filesystem::path>& screenshots() const { return m_shots; }
+    const RecordingPrompter& prompter() const { return m_prompter; }
+    const core::Array& snapshots() const { return m_snapshots; }
 
 private:
     void waitUntilLoaded(int timeoutMs);
+    void snapshot(const core::Value& action);
+    QStringList dialogAnswer(const app::forms::FileDialogRequest& request) const;
 
     app::MainWindow& m_window;
+    RecordingPrompter m_prompter;
+    core::Array m_snapshots;
+    core::Value m_current;  // the action being run
+    int m_index = -1;
+    bool m_openMayFail = false;
+    app::forms::FileDialogFunction m_previousDialog;
     std::filesystem::path m_caseDir;
     std::filesystem::path m_screenshotDir;
     std::string m_caseName;
@@ -128,5 +171,22 @@ void prepareCase(const GuiCase& c, const std::filesystem::path& dataDir, const s
 
 // Every mismatch of the case's expected files, one per line; "" when all are equal.
 std::string checkExpected(const GuiCase& c, const std::filesystem::path& dataDir, const std::filesystem::path& caseDir);
+
+// Every mismatch of the case's outcome (tests/data/README.md "gui": log, questions, dialogs,
+// snapshots, stderr, settings) with what `runner` recorded, `log` (the window's log lines) and the
+// settings file; texts with {case_dir} and {config_dir} for the two folders. "" when all agree.
+std::string checkOutcome(const GuiCase& c, const CaseRunner& runner, const std::vector<std::string>& log,
+                         const std::filesystem::path& dataDir, const std::filesystem::path& caseDir,
+                         const std::filesystem::path& configDir);
+
+// The text with the case and config folders (generic and native forms) as {case_dir} / {config_dir}.
+std::string placeholders(std::string text, const std::filesystem::path& caseDir, const std::filesystem::path& configDir);
+
+// The words of the TOML parser in "not valid TOML: <words> (at line ..." replaced by a marker.
+std::string maskParserWords(std::string text);
+
+// Two values as the snapshots compare them: numbers within 1e-9 relative (NaN equals NaN; an
+// integer equals the same float), tables by key whatever their order, everything else exactly.
+bool sameValue(const core::Value& a, const core::Value& b);
 
 }  // namespace mdbridge::guitest

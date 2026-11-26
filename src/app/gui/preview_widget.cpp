@@ -3,12 +3,15 @@
 #include <algorithm>
 #include <cmath>
 #include <exception>
+#include <string>
+#include <vector>
 
 #include <QPainter>
 
 #include "mdbridge/render/display_list.hpp"
 #include "mdbridge/render/figure_qt.hpp"
 #include "mdbridge/render/text_qt.hpp"
+#include "log_capture.hpp"
 #include "project_view.hpp"
 
 namespace mdbridge::app {
@@ -77,10 +80,12 @@ void PreviewWidget::start() {
     struct Result {
         QImage image;
         QString problem;
+        std::vector<std::string> warnings;
     };
     m_background.run(
         [content = m_content, width, height, dpr]() {
             Result r;
+            const ThreadLogCapture capture(&r.warnings);
             try {
                 const render::FontSet& fonts = render::bundledFontSet();
                 const render::panels::BuiltFigure built =
@@ -99,6 +104,7 @@ void PreviewWidget::start() {
                 m_image = r.image;
                 m_problem = r.problem;
                 m_message = r.problem;
+                m_warnings = std::move(r.warnings);
                 update();
                 emit drawn();
             } else {

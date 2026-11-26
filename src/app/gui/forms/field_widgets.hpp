@@ -68,6 +68,9 @@ struct FileDialogRequest {
     QString title;
     QString start;        // the folder or file the dialog starts at
     QStringList filters;  // Qt name filters (nameFilters())
+    // SaveFile: the dialog asks before a file that exists is chosen (false: the caller asks about
+    // the final name itself, e.g. after adding a suffix: AP-11)
+    bool confirmOverwrite = true;
 };
 using FileDialogFunction = std::function<QStringList(QWidget* parent, const FileDialogRequest& request)>;
 using ColorDialogFunction = std::function<QColor(QWidget* parent, const QColor& initial, const QString& title)>;
