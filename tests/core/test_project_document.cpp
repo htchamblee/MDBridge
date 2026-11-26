@@ -658,6 +658,73 @@ TEST(ProjectDocument, GroupsAreOneStep) {
     EXPECT_EQ(doc.redoLabel(), "Typed");
 }
 
+// LE-10: a burst of setMerged changes with one key is one undo step; endMerge, another change,
+// a group, an undo or a save starts a new one.
+TEST(ProjectDocument, MergedChangesAreOneStep) {
+    ProjectDocument doc;
+    Events events(doc);
+    for (int i = 1; i <= 5; ++i) {
+        EXPECT_TRUE(doc.setMerged("wheel", "visual.zoom", 1.0 + i * 0.5, "Zoom the structure"));
+    }
+    EXPECT_EQ(events.seen.size(), 5U);  // each notch is notified
+    EXPECT_EQ(doc.undoLabel(), "Zoom the structure");
+    EXPECT_EQ(doc.project().visual.zoom, 3.5);
+    doc.undo();
+    EXPECT_FALSE(doc.canUndo());
+    EXPECT_EQ(doc.project().visual.zoom, 1.0);
+    EXPECT_FALSE(doc.isModified());
+    doc.redo();
+    EXPECT_EQ(doc.project().visual.zoom, 3.5);
+    // after a redo the next notch starts its own step
+    doc.setMerged("wheel", "visual.zoom", 4.0, "Zoom the structure");
+    doc.undo();
+    EXPECT_EQ(doc.project().visual.zoom, 3.5);
+    doc.undo();
+    EXPECT_EQ(doc.project().visual.zoom, 1.0);
+    EXPECT_FALSE(doc.canUndo());
+
+    // endMerge, another change, another key: new steps
+    doc.setMerged("wheel", "visual.zoom", 2.0, "Zoom the structure");
+    doc.setMerged("wheel", "visual.zoom", 3.0, "Zoom the structure");
+    doc.endMerge();
+    doc.setMerged("wheel", "visual.zoom", 4.0, "Zoom the structure");
+    doc.set("notes", "x");
+    doc.setMerged("wheel", "visual.zoom", 5.0, "Zoom the structure");
+    doc.setMerged("other", "visual.zoom", 6.0, "Zoom the structure");
+    doc.beginGroup("Rotate structure");
+    doc.set("visual.rotation", Array{Value(1.0), Value(0.0), Value(0.0)});
+    doc.endGroup();
+    doc.setMerged("other", "visual.zoom", 7.0, "Zoom the structure");
+    const std::vector<double> zooms{6.0, 6.0, 5.0, 4.0, 4.0, 3.0, 1.0};
+    for (const double z : zooms) {
+        ASSERT_TRUE(doc.canUndo());
+        doc.undo();
+        EXPECT_EQ(doc.project().visual.zoom, z);
+    }
+    EXPECT_FALSE(doc.canUndo());
+    EXPECT_EQ(doc.project(), Project{});
+
+    // no change: nothing happens, the burst goes on
+    doc.setMerged("wheel", "visual.zoom", 2.0, "Zoom the structure");
+    EXPECT_FALSE(doc.setMerged("wheel", "visual.zoom", 2.0, "Zoom the structure"));
+    doc.setMerged("wheel", "visual.zoom", 3.0, "Zoom the structure");
+    doc.undo();
+    EXPECT_FALSE(doc.canUndo());
+}
+
+// a save ends a burst: undo reaches the saved state again
+TEST(ProjectDocument, SaveEndsAMergedBurst) {
+    TempDir dir;
+    ProjectDocument doc;
+    doc.setMerged("wheel", "visual.zoom", 2.0, "Zoom the structure");
+    doc.saveAs(dir / "a.toml");
+    doc.setMerged("wheel", "visual.zoom", 3.0, "Zoom the structure");
+    EXPECT_TRUE(doc.isModified());
+    doc.undo();
+    EXPECT_EQ(doc.project().visual.zoom, 2.0);
+    EXPECT_FALSE(doc.isModified());
+}
+
 TEST(ProjectDocument, UndoKeepsAtMostTheLimit) {
     ProjectDocument doc;
     for (std::size_t i = 0; i < ProjectDocument::kUndoLimit + 5; ++i) {

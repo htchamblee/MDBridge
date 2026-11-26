@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <filesystem>
 #include <string>
 #include <vector>
@@ -78,6 +79,7 @@ private slots:
     void dragIsOneUndoStepAndEscCancels();
     void rotationRedrawsOnlyTheStructure();
     void slotDefaultsAndWheelZoom();
+    void wheelBurstIsOneUndoStep();
     void titlesFollowAGroupRename();
 
 private:
@@ -238,6 +240,27 @@ void CanvasTests::slotDefaultsAndWheelZoom() {
     for (int k = 0; k < 40; ++k) wheel(canvas, centre(canvas->slotRects()[0]), 1);
     QVERIFY(settled());
     QCOMPARE(doc.project().visual.zoom, 50.0);
+}
+
+// LE-10: notches at most MainWindow::kWheelBurstMs apart are one undo step; after a pause, a new one
+void CanvasTests::wheelBurstIsOneUndoStep() {
+    app::PreviewWidget* canvas = m_window->preview();
+    core::ProjectDocument& doc = m_window->document();
+    const double z0 = doc.project().visual.zoom;
+    const QPointF at = centre(canvas->slotRects()[0]);
+    for (int k = 0; k < 5; ++k) wheel(canvas, at, 1);
+    QVERIFY(settled());
+    QTest::qWait(app::MainWindow::kWheelBurstMs + 200);
+    for (int k = 0; k < 3; ++k) wheel(canvas, at, -1);
+    QVERIFY(settled());
+    QCOMPARE(QString::fromStdString(doc.undoLabel()), QStringLiteral("Zoom the structure"));
+    doc.undo();
+    QVERIFY(settled());
+    QVERIFY(std::abs(doc.project().visual.zoom - z0 * std::pow(1.15, 5)) < 1e-12);
+    doc.undo();
+    QVERIFY(settled());
+    QCOMPARE(doc.project().visual.zoom, z0);
+    QVERIFY(!doc.canUndo());
 }
 
 // MDATK 0.1.1 _adopt_project: a renamed group renames the data keys, and the titles that were their

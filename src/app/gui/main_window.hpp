@@ -32,6 +32,7 @@
 #include <string>
 #include <vector>
 
+#include <QElapsedTimer>
 #include <QMainWindow>
 #include <QPointer>
 #include <QTimer>
@@ -83,6 +84,10 @@ class MainWindow : public QMainWindow {
     Q_OBJECT
 
 public:
+    // Wheel notches over the canvas's structure panel at most this far apart are one undo step
+    // (LE-10); a pause, or any other change, starts a new one.
+    static constexpr int kWheelBurstMs = 500;
+
     // `renderer`: the 3D renderer of the canvas's structure panel while dragging (Auto / Vulkan: the
     // GPU renderer when this machine has a GPU, D4; Software: never the GPU), shown by Graphics….
     explicit MainWindow(render::Renderer renderer = render::Renderer::Auto, QWidget* parent = nullptr);
@@ -288,6 +293,7 @@ private:
     pages::LayoutPage* m_layoutPage = nullptr;
     pages::StructurePage* m_structurePage = nullptr;
     bool m_canvasEdit = false;            // the document change comes from the canvas, which shows it
+    QElapsedTimer m_wheelClock;           // since the last wheel notch (LE-10)
     std::shared_ptr<void> m_gpu;          // render::panels::GpuStageRenderers while it may be used
 };
 

@@ -224,6 +224,13 @@ public:
     // else one undo step labelled `label` (default "Set <describeField(path)>"). Throws FieldError;
     // the document is unchanged then.
     bool set(std::string_view path, const Value& value, std::string_view label = {});
+    // set(), but a burst of these with the same `key` is one undo step (the wheel's notches,
+    // LE-10): the change joins the step of the previous setMerged when that had the same key and
+    // nothing else happened to the document since (no other change, group, undo, redo, save, open
+    // or replace). The caller ends a burst early with endMerge() (the wheel: after a pause).
+    bool setMerged(std::string_view key, std::string_view path, const Value& value, std::string_view label = {});
+    // The next setMerged starts a new undo step.
+    void endMerge() { m_mergeKey.clear(); }
     // set(path, parseFieldText(...)), but text equal to text(path) changes nothing (so a value is
     // kept exactly as read until the user types something else). Throws FieldError (AP-10).
     bool setText(std::string_view path, std::string_view text, std::string_view label = {});
@@ -311,6 +318,9 @@ private:
     std::optional<Step> m_groupStart;  // the state at the outermost beginGroup
     std::string m_groupLabel;
     bool m_groupChanged = false;
+    std::string m_mergeKey;            // the burst setMerged may join ("" for none)
+    std::uint64_t m_mergeId = 0;       // the state its last change made
+    bool m_joinNext = false;           // commit: join the top undo step (setMerged)
     std::vector<std::pair<ListenerId, Listener>> m_listeners;
     ListenerId m_nextListener = 1;
     std::uint64_t m_serial = 0;  // number of this document within the process (recovery names)

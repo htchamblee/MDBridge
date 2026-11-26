@@ -486,8 +486,8 @@ void LayoutPage::refreshSlots(bool force) {
         }
         // the choices' labels name the settings as they are now; the selections stay
         ++m_loading;
-        const std::string data = comboId(slot.data);
-        fillData(slot, spec.type, data);
+        const std::string chosen = comboId(slot.data);
+        fillData(slot, spec.type, chosen);
         fillGroups(slot);
         updateGroupWidgets(slot);
         if (!slot.more->dirty()) slot.more->showText(toQString(joined(spec.series, 1)));

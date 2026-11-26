@@ -68,7 +68,7 @@ jobs:
             gcc-c++ cmake ninja-build git file binutils findutils which tar xz \
             python3.12 python3.12-pip libglvnd-devel mesa-libGL-devel \
             libX11-xcb libxkbcommon libxkbcommon-x11 xcb-util xcb-util-cursor xcb-util-wm xcb-util-image \
-            xcb-util-keysyms xcb-util-renderutil fontconfig dejavu-sans-fonts dbus-libs \
+            xcb-util-keysyms xcb-util-renderutil fontconfig dbus-libs \
             libglvnd-egl libglvnd-glx libglvnd-opengl mesa-libGL mesa-libEGL \
             vulkan-loader mesa-vulkan-drivers xorg-x11-server-Xvfb xorg-x11-xauth
           g++ --version | head -n 1
@@ -240,9 +240,10 @@ jobs:
           chmod +x dist/*.AppImage
           python3 packaging/smoke_test.py dist/MDBridge-*-x86_64.AppImage --version "${{ needs.linux.outputs.version }}" \
             --compare-text-report text-report/text-report.json --screenshot-dir cli-render-rocky
+      # no system fonts either: the interface draws in the bundled IBM Plex fonts (FONT-01)
       - name: Interface under Xvfb, without a Vulkan driver (software view)
         run: |
-          dnf install -y --setopt=install_weak_deps=False xorg-x11-server-Xvfb xorg-x11-xauth dejavu-sans-fonts
+          dnf install -y --setopt=install_weak_deps=False xorg-x11-server-Xvfb xorg-x11-xauth
           xvfb-run -a -s "-screen 0 1600x1000x24" python3 packaging/smoke_test.py dist/MDBridge-*-x86_64.AppImage \
             --gui --expect-renderer software --version "${{ needs.linux.outputs.version }}" \
             --screenshot-dir gui-screenshots

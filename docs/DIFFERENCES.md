@@ -2033,7 +2033,7 @@ lines) and the suggested file names (`<project_name or MDATK>.mdatk.toml`,
 `<project_name>_citations.bib`). Deliberate differences:
 
 - **WN-01: layout (D4).** No separate 3D view (above). The canvas is MDATK's layout editor (LE-01 ..
-  LE-09 below); it redraws 120 ms after a change (MDATK's debounce) and with *Refresh* (F5).
+  LE-10 below); it redraws 120 ms after a change (MDATK's debounce) and with *Refresh* (F5).
   *Load real frame* is gone (the reference frame loads by itself). The Layout & panels page is W2-A's. Qt's Fusion style in the system's light or dark scheme
   (D3). *Tested:* `WindowTests::layoutAndShortcuts`, `pagesAndSections`, `screenshots`.
 - **WN-02: shortcuts (D11).** MDATK's Ctrl+O, Ctrl+S, Ctrl+Shift+S, Ctrl+R (Ctrl+P, Ctrl+Shift+W
@@ -2589,9 +2589,23 @@ differences:
 - **LE-09: the GUI tests replay MDATK's pointer positions.** The canvas cases record MDATK's hit
   rectangles and the positions each action resolved to (`outcome.canvas`); `mdbridge_gui_tests` sends
   its events there (the canvas at the case's size), so a drag is MDATK's mouse path whatever this
-  canvas's geometry, and prints where the hit areas differ by more than 3 px (the heat map's tight box
-  is about 10 px wider on the right than Matplotlib's: an open render-core item, no effect on what the
-  cases store). A mid-drag frame of every drag is saved as a screenshot (CI artifact).
+  canvas's geometry, and prints where the hit areas differ by more than 3 px. The one such note, the
+  heat-map slot of `large_plus_3` 5 px wider on the right (10 px with the DejaVu fonts of milestone
+  4), is the unhinted text metrics (above, "Unhinted text metrics and glyphs"), not the tight box:
+  the slot's right edge is the end of its left-aligned title, *Aptamer residue contacts with Target*
+  (11 pt at the canvas's 120 dpi), which Matplotlib's default hinting measures 317.78 px wide and
+  MDBridge 323.55 px, exactly Matplotlib's width with `text.hinting: no_hinting`; Matplotlib's
+  `get_tightbbox` of that axes and `Figure::tightBox` otherwise agree (the colour bar is a separate
+  axes in both, outside the slot as in MDATK). No effect on what the cases store. A mid-drag frame
+  of every drag is saved as a screenshot (CI artifact).
+- **LE-10: a burst of wheel notches is one undo step.** MDATK had no undo, and its 0.1.1 wheel
+  handler (`canvas.py _on_scroll`) still sets the zoom per notch; one undo step per notch would make
+  undoing a zoom take dozens of Ctrl+Z. Notches over the structure panel at most 500 ms apart
+  (`MainWindow::kWheelBurstMs`) join one step, *Zoom the structure* (`ProjectDocument::setMerged`,
+  new: a change joins the previous one's step while nothing else happened to the document since);
+  a pause, any other change, a drag, an undo / redo or a save starts a new step. Each notch is still
+  shown and stored at once (LE-02). *Tested:* `ProjectDocument.MergedChangesAreOneStep`,
+  `SaveEndsAMergedBurst`, `CanvasTests::wheelBurstIsOneUndoStep`.
 
 ## Planned (from the improvement register; add each entry here when it lands)
 

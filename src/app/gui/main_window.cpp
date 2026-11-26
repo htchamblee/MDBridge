@@ -1419,7 +1419,7 @@ namespace {
 
 // Sets m_canvasEdit while the canvas's own change is stored.
 struct CanvasEdit {
-    explicit CanvasEdit(bool& flag) : flag(flag), was(flag) { flag = true; }
+    explicit CanvasEdit(bool& target) : flag(target), was(target) { target = true; }
     ~CanvasEdit() { flag = was; }
     CanvasEdit(const CanvasEdit&) = delete;
     CanvasEdit& operator=(const CanvasEdit&) = delete;
@@ -1482,7 +1482,10 @@ void MainWindow::connectCanvas() {
         // the stored zoom (AP-01: not the one a spin box shows), within MDATK's wheel limits
         const double zoom = std::min(50.0, std::max(0.05, m_document.project().visual.zoom * factor));
         m_preview->setZoom(zoom);
-        m_document.set("visual.zoom", core::Value(zoom), "Zoom the structure");
+        // a burst of notches is one undo step (LE-10): a pause ends it (any other change too)
+        if (!m_wheelClock.isValid() || m_wheelClock.elapsed() > kWheelBurstMs) m_document.endMerge();
+        m_wheelClock.start();
+        m_document.setMerged("wheel", "visual.zoom", core::Value(zoom), "Zoom the structure");
     });
     connect(m_preview, &PreviewWidget::swapRequested, this, [this](int from, int to) {
         if (m_layoutPage) m_layoutPage->swapPanels(from, to);

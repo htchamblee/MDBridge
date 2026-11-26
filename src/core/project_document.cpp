@@ -829,6 +829,7 @@ void ProjectDocument::replace(Project project, fs::path path, bool modified) {
 }
 
 void ProjectDocument::assign(Project project, fs::path path, bool modified, FileKind kind) {
+    m_mergeKey.clear();
     const bool wasModified = isModified();
     m_project = std::move(project);
     m_path = path.empty() ? fs::path() : pathFromUtf8(detail::absolutePath(path));
@@ -854,6 +855,7 @@ void ProjectDocument::save() {
         throw ProjectError("the project has no file yet; use Save As");
     }
     saveProject(m_path, m_project, comments());
+    m_mergeKey.clear();  // a save ends a burst: the saved state stays one undo step away
     const bool wasModified = isModified();
     m_savedId = m_currentId;
     rememberDisk();
@@ -864,6 +866,7 @@ void ProjectDocument::save() {
 }
 
 void ProjectDocument::saveAs(const fs::path& path) {
+    m_mergeKey.clear();
     const fs::path target = pathFromUtf8(detail::absolutePath(path));
     const std::string from = folder();
     const std::string to = detail::absoluteDirectory(target);
@@ -971,6 +974,25 @@ bool ProjectDocument::set(std::string_view path, const Value& value, std::string
     return true;
 }
 
+bool ProjectDocument::setMerged(std::string_view key, std::string_view path, const Value& value, std::string_view label) {
+    const bool join = !key.empty() && key == m_mergeKey && m_mergeId == m_currentId && m_groupDepth == 0 && !m_undo.empty();
+    std::string burst(key);
+    m_joinNext = join;
+    bool changed = false;
+    try {
+        changed = set(path, value, label);
+    } catch (...) {
+        m_joinNext = false;
+        throw;
+    }
+    m_joinNext = false;
+    if (changed) {
+        m_mergeKey = std::move(burst);
+        m_mergeId = m_currentId;
+    }
+    return changed;
+}
+
 bool ProjectDocument::setText(std::string_view path, std::string_view text, std::string_view label) {
     if (fieldText(m_project, path) == text) {
         return false;
@@ -1062,6 +1084,8 @@ void ProjectDocument::commit(Project next, std::string_view label) {
             m_redo.clear();
         }
         m_groupChanged = true;
+    } else if (m_joinNext) {
+        m_redo.clear();  // the top step (the burst's start) stays: this change joins it
     } else {
         m_undo.push_back(Step{std::move(m_project), m_currentId, std::string(label)});
         if (m_undo.size() > kUndoLimit) {
@@ -1069,6 +1093,7 @@ void ProjectDocument::commit(Project next, std::string_view label) {
         }
         m_redo.clear();
     }
+    m_mergeKey.clear();  // any change ends a burst (setMerged starts its own again)
     m_project = std::move(next);
     m_currentId = m_nextId++;
     change.modifiedChanged = wasModified != isModified();
@@ -1080,6 +1105,7 @@ std::string ProjectDocument::undoLabel() const { return m_undo.empty() ? std::st
 std::string ProjectDocument::redoLabel() const { return m_redo.empty() ? std::string() : m_redo.back().label; }
 
 void ProjectDocument::undo() {
+    m_mergeKey.clear();
     while (m_groupDepth > 0) {
         endGroup();
     }
@@ -1101,6 +1127,7 @@ void ProjectDocument::undo() {
 }
 
 void ProjectDocument::redo() {
+    m_mergeKey.clear();
     while (m_groupDepth > 0) {
         endGroup();
     }
@@ -1122,11 +1149,13 @@ void ProjectDocument::redo() {
 }
 
 void ProjectDocument::clearUndo() {
+    m_mergeKey.clear();
     m_undo.clear();
     m_redo.clear();
 }
 
 void ProjectDocument::beginGroup(std::string_view label) {
+    m_mergeKey.clear();
     if (m_groupDepth++ == 0) {
         m_groupStart = Step{m_project, m_currentId, std::string(label)};
         m_groupLabel = std::string(label);
