@@ -222,7 +222,13 @@ private slots:
         QCOMPARE(runner.statusText(), QStringLiteral("Idle"));
         QVERIFY(log.get().isEmpty());
 
-        // cancelled at once: whether the worker had begun or not, the job ends "Cancelled" unrun
+        // cancelled at once: whether the worker had begun or not, the job ends "Cancelled" unrun.
+        // The work does not get under way until the cancel has arrived, so the outcome does not
+        // depend on how far the worker got before the interface thread called cancel(): on a
+        // loaded machine the interface thread can lose the processor for several of the work's
+        // 1 ms steps (CI run 45937321418, sanitizer job, counted more than one). Waiting on the
+        // flag rather than on a gate the test opens keeps a failed check from leaving the worker
+        // waiting while the runner's destructor joins it.
         QSignalSpy finished(&runner, &JobRunner::finished);
         QSignalSpy errors(&runner, &JobRunner::errorReported);
         std::atomic<int> steps{0};
@@ -230,6 +236,7 @@ private slots:
         runner.start(
             QStringLiteral("Early"),
             [&steps](const Reporter& reporter) {
+                while (!reporter.cancelled()) std::this_thread::sleep_for(1ms);
                 for (;;) {
                     reporter.checkCancel();
                     ++steps;
@@ -241,7 +248,7 @@ private slots:
         QCOMPARE(runner.statusText(), QStringLiteral("Cancelling …"));
         QTRY_COMPARE(finished.size(), 1);
         QCOMPARE(finished.at(0).at(0).value<JobOutcome>(), JobOutcome::Cancelled);
-        QVERIFY(steps <= 1);
+        QCOMPARE(steps.load(), 0);
         QVERIFY(!succeeded);
         QCOMPARE(errors.size(), 0);
         QCOMPARE(runner.statusText(), QStringLiteral("Cancelled"));
