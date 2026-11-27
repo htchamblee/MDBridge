@@ -1256,14 +1256,15 @@ All through `mdatk.selections.select(u, text, allow_empty=True)` on the demo uni
 ## MDATK's response (2026-11-27)
 
 MDATK fixed most items. It kept the five below, with the reasons given. MDBridge keeps its own behaviour
-for the four design choices (its DIFFERENCES entries stand); the fifth was our error.
+for the four design choices (its DIFFERENCES entries stand); for 099 the owner decided for MDBridge's
+behaviour, which MDATK will follow. The fifth was our error.
 
 | Item | MDATK's verdict | MDATK's reason | MDBridge's note |
 |---|---|---|---|
 | 023 | By design | Base pairs ignore periodic images; the base-pair analysis code documents this (`basepairs.py`: paired bases belong to one molecule, which cleaned trajectories keep whole). | Holds when the cleaning keeps a duplex's two strands together, as cpptraj's `autoimage` normally does around its anchor; it does not hold when each strand is imaged on its own (for example `gmx trjconv -pbc mol`). Our "which `autoimage` does" overstated how often that happens. MDBridge keeps minimum-image distances (AN-11). |
 | 026 | By design | `use_parm7` means "use the parm7 when one is available", as the GUI label and README say. | Accepted. MDBridge keeps its warning when the topology is not a parm7 (AN-06); the option's meaning is unchanged. |
 | 061 | By design | The ion selection is documented as the Mg²⁺ ions, so the legend says Mg²⁺; labelling from the selected ions would need the trace analysis to store their elements. | Accepted for MDATK. MDBridge stores the ions' labels and names them (RN-08). |
-| 099 (addendum) | By design | `build mutate` drops the old base's hydrogens, as the README documents and a test checks. | Accepted for MDATK. MDBridge adds hydrogens to the new base when the old one had them (CH-09, owner decision D11). |
+| 099 (addendum) | By design | `build mutate` drops the old base's hydrogens, as the README documents and a test checks. | Superseded by the owner's decision D11: when the starting model has hydrogens, the mutated result has them too. MDBridge does this (CH-09), and MDATK will adopt the same behaviour. |
 | 071, second half | False report | Two chain ends bond only when their atoms are within bonding distance, so separate chains are not joined. | Agreed; withdrawn in the item above. |
 
 ## Appendix A: further reader-message items (not itemised, not re-run against 0.1.1)
