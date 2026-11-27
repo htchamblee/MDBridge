@@ -5,8 +5,10 @@
 // Inspect system, Run cleaning, Centre on model, Open output folder / video (latest_video), Cancel
 // in the middle of a render and closing the window during one (AP-14, no partial video left), the
 // smoke test that makes the demo system and renders it from the window (offscreen, software
-// renderer; the video parts need the FFmpeg build), and screenshots of the result dialogs (CI
-// artifacts, never compared). Qt Test; messages and file dialogs answered by the harness.
+// renderer; the video parts need the FFmpeg build), screenshots of the result dialogs (CI
+// artifacts, never compared), and the density fit of the Structure view page (milestone 6 W3-A:
+// MDATK's test_density_map_fit_shadow_and_drag, fit part; a cancelled fit and a map changed during
+// one leave the project as it was). Qt Test; messages and file dialogs answered by the harness.
 
 #include <algorithm>
 #include <atomic>
@@ -30,6 +32,7 @@
 #include <QColor>
 #include <QElapsedTimer>
 #include <QImage>
+#include <QLabel>
 #include <QLocale>
 #include <QMessageBox>
 #include <QProgressBar>
@@ -41,6 +44,7 @@
 
 #include "citations.hpp"
 #include "demo.hpp"
+#include "density_pipeline.hpp"
 #include "gui/actions/window_actions.hpp"
 #include "gui/dialogs/image_dialog.hpp"
 #include "gui/dialogs/prompts.hpp"
@@ -54,8 +58,10 @@
 #include "gui/pages/input_page.hpp"
 #include "gui/pages/outputs_page.hpp"
 #include "gui/pages/structure_page.hpp"
+#include "gui/preview_widget.hpp"
 #include "gui_harness.hpp"
 #include "mdbridge/analysis/cache.hpp"
+#include "mdbridge/analysis/pipeline.hpp"
 #include "mdbridge/core/citations.hpp"
 #include "mdbridge/core/paths.hpp"
 #include "mdbridge/core/problems.hpp"
@@ -234,6 +240,8 @@ private slots:
     void exportRerenderInspect();
     void runCleaningWithoutCpptraj();
     void centreOnModel();
+    void densityFit();
+    void densityFitCancelAndMapChange();
     void openFolderAndVideo();
     void latestVideo();
     void cancelMidRender();
@@ -259,8 +267,9 @@ void ActionTests::enableStates() {
     auto* outputs = f.page<app::pages::OutputsPage>();
     auto* structure = f.page<app::pages::StructurePage>();
     QVERIFY(input && outputs && structure);
-    const std::vector<QAbstractButton*> busyButtons{input->runCleaningButton(), input->inspectButton(),
-                                                    outputs->exportPdbsButton(), outputs->rerenderButton()};
+    const std::vector<QAbstractButton*> busyButtons{input->runCleaningButton(),         input->inspectButton(),
+                                                    outputs->exportPdbsButton(),        outputs->rerenderButton(),
+                                                    structure->globalSearchButton(),    structure->refineButton()};
     const auto busy = [&](bool expected) {
         QCOMPARE(w.action(QStringLiteral("render"))->isEnabled(), !expected);
         QCOMPARE(w.action(QStringLiteral("create_demo"))->isEnabled(), !expected);
@@ -304,7 +313,10 @@ void ActionTests::blockingRules() {
     QCOMPARE(f.lastDialogText(), std::string("Please fix these parameters first"));
     QVERIFY(!f.actions().exportPdbs());
     QCOMPARE(f.lastDialogText(), std::string("Please fix these parameters first"));
-    QCOMPARE(f.dialogTexts("error").size(), std::size_t{3});
+    // the density fit: collect() validates (MDATK fit_density), before it looks for the map
+    QVERIFY(!f.actions().fitDensity(QStringLiteral("global")));
+    QCOMPARE(f.lastDialogText(), std::string("Please fix these parameters first"));
+    QCOMPARE(f.dialogTexts("error").size(), std::size_t{4});
     // the others run without validate(): the job itself fails
     QVERIFY(f.actions().inspectSystem());
     QVERIFY(f.waitJob());
@@ -320,8 +332,9 @@ void ActionTests::blockingRules() {
     QVERIFY(!f.actions().inspectSystem());
     QVERIFY(!f.actions().runCleaning());
     QVERIFY(!f.actions().rerenderFromCache());
+    QVERIFY(!f.actions().fitDensity(QStringLiteral("manual")));
     QVERIFY(!f.actions().render());
-    QCOMPARE(f.prompter.dialogs.size(), before + 4);
+    QCOMPARE(f.prompter.dialogs.size(), before + 5);
     QCOMPARE(f.lastDialogText(), std::string("Please fix these parameters before rendering"));
     QCOMPARE(f.lastDialogDetail(), problem.text());
     QCOMPARE(f.prompter.dialogs[before].find("text")->stringOr(), std::string("Invalid parameters"));
@@ -582,6 +595,187 @@ void ActionTests::centreOnModel() {
     w.document().set("density.map_path", core::pathToUtf8(f.dir / "bad.mrc"));
     f.actions().centreOnModel();
     QCOMPARE(f.lastDialogText(), std::string("Cannot read the density map"));
+}
+
+namespace {
+
+// MDATK's test map: the reference frame's atoms placed by `truth`, simulated at 6 Å with 1.5 Å
+// voxels and padded by 10 voxels of zeros on every side (np.pad(sim.data, 10), origin - 15 Å).
+io::DensityMap paddedTestMap(app::MainWindow& w, const core::RigidTransform& truth) {
+    analysis::Pipeline pipeline(w.document().resolvedProject());
+    const app::DensityFrameAtoms atoms = app::densityFrameAtoms(pipeline, "ref");
+    const io::DensityMap sim =
+        io::simulateMap(truth.apply(atoms.xyz), io::atomWeights(atoms.elements), 6.0, 1.5);
+    io::DensityMap out;
+    constexpr std::int64_t pad = 10;
+    for (std::size_t k = 0; k < 3; ++k) out.shapeXyz[k] = sim.shapeXyz[k] + 2 * pad;
+    out.origin = {sim.origin[0] - 15.0, sim.origin[1] - 15.0, sim.origin[2] - 15.0};
+    out.voxel = sim.voxel;
+    out.data.assign(static_cast<std::size_t>(out.shapeXyz[0] * out.shapeXyz[1] * out.shapeXyz[2]), 0.0f);
+    for (std::int64_t z = 0; z < sim.shapeXyz[2]; ++z) {
+        for (std::int64_t y = 0; y < sim.shapeXyz[1]; ++y) {
+            for (std::int64_t x = 0; x < sim.shapeXyz[0]; ++x) {
+                const std::int64_t to = ((z + pad) * out.shapeXyz[1] + (y + pad)) * out.shapeXyz[0] + (x + pad);
+                out.data[static_cast<std::size_t>(to)] = sim.at(x, y, z);
+            }
+        }
+    }
+    return out;
+}
+
+core::RigidTransform mdatkTruth() {
+    core::RigidTransform truth;
+    truth.rotation = core::quaternionMatrix({0.7, 0.1, -0.6, 0.3});
+    truth.translation = {12.0, -6.0, 30.0};
+    return truth;
+}
+
+// degrees between two rotations
+double angleBetween(const core::Mat3& a, const core::Mat3& b) {
+    core::Mat3 r{};
+    for (std::size_t i = 0; i < 3; ++i) {
+        for (std::size_t j = 0; j < 3; ++j) {
+            for (std::size_t k = 0; k < 3; ++k) r[i][j] += a[i][k] * b[j][k];
+        }
+    }
+    return core::rotationAngle(r);
+}
+
+}  // namespace
+
+// MDATK test_gui.py test_density_map_fit_shadow_and_drag, the fit part: Global search finds the
+// placement of a map simulated from the reference frame (CC > 0.9, the status shows the CC), the
+// preview draws the map, Refine refines from the stored placement; each fit is one undo step.
+void ActionTests::densityFit() {
+    Fixture f;
+    app::MainWindow& w = f.w();
+    QVERIFY(!f.openDryDemo().empty());
+    QTRY_VERIFY_WITH_TIMEOUT(!w.loading(), 120000);
+    auto* structure = f.page<app::pages::StructurePage>();
+    QVERIFY(structure->globalSearchButton()->isEnabled() && structure->refineButton()->isEnabled());
+    QVERIFY(!structure->globalSearchButton()->toolTip().contains(QStringLiteral("milestone")));
+    // no map: MDATK's message, nothing started
+    QVERIFY(!f.actions().fitDensity(QStringLiteral("global")));
+    QCOMPARE(f.lastDialogText(), std::string("No density map"));
+    QCOMPARE(f.lastDialogDetail(), std::string("Choose an MRC / CCP4 map first."));
+    QVERIFY(!w.jobRunner()->running());
+
+    const core::RigidTransform truth = mdatkTruth();
+    const fs::path mapFile = f.dir / "gui_map.mrc";
+    io::writeMap(mapFile, paddedTestMap(w, truth));
+    w.document().edit("map", [&](core::Project& p) {
+        p.density.map_path = core::pathToUtf8(mapFile);
+        p.density.resolution = 6.0;
+    });
+    QVERIFY(structure->densityStatus()->text().contains(QStringLiteral("Not placed")));
+    QVERIFY(w.save());
+    QVERIFY(!w.document().isModified());
+    f.prompter.dialogs.clear();
+
+    w.showPage(QStringLiteral("structure"));
+    structure->globalSearchButton()->click();
+    QVERIFY(w.jobRunner()->running());
+    QVERIFY(!structure->globalSearchButton()->isEnabled() && !structure->refineButton()->isEnabled());
+    QCOMPARE(w.jobRunner()->title(), QStringLiteral("Fitting the density map"));
+    QVERIFY(f.waitJob());
+    QVERIFY2(f.dialogTexts("error").empty(), f.lastDialogDetail().c_str());
+    QCOMPARE(w.jobRunner()->statusText(), QStringLiteral("Fitting the density map: done"));
+    QVERIFY(structure->globalSearchButton()->isEnabled() && structure->refineButton()->isEnabled());
+    const core::DensityParams& d = w.document().project().density;
+    QCOMPARE(d.transform.size(), std::size_t{12});
+    QVERIFY2(d.fit_cc > 0.9, std::to_string(d.fit_cc).c_str());
+    QVERIFY(structure->densityStatus()->text().contains(QStringLiteral("CC")));
+    QVERIFY(d.fit_info.rfind("global search, frame 0, ", 0) == 0);
+    QCOMPARE(d.anchor.size(), std::size_t{24});  // anchored to the reference frame's trace
+    // the placement found is the map's (MDATK's test checks the CC; the pose is checked too)
+    const core::RigidTransform found = core::RigidTransform::fromList(d.transform);
+    QVERIFY2(angleBetween(found.rotation, truth.rotation) < 1.0,
+             std::to_string(angleBetween(found.rotation, truth.rotation)).c_str());
+    QVERIFY(f.logged("--- Fitting the density map ---"));
+    QVERIFY(f.loggedStart("Density fit (global search) of frame ref into gui_map.mrc at 6 \xc3\x85"));
+    QVERIFY(f.loggedStart("Density fit: global search, frame 0, "));
+    // one undo step; the project is modified
+    QVERIFY(w.document().isModified());
+    QCOMPARE(w.document().undoLabel(), std::string("Density fit (global search)"));
+    // the preview draws the map on the model
+    QTRY_VERIFY_WITH_TIMEOUT(w.previewSettled() && w.preview()->structureHasDensity(), 60000);
+    QVERIFY(w.openSection(QStringLiteral("structure"), QStringLiteral("density")));  // the status line shown
+    QApplication::processEvents();
+    guitest::saveScreenshot(&w, guitest::screenshotDir(core::pathFromUtf8(MDBRIDGE_GUI_SCREENSHOT_DIR)),
+                            "actions-density-fit-global");
+
+    // Refine from the stored placement
+    const std::vector<double> global = d.transform;
+    structure->refineButton()->click();
+    QVERIFY(f.waitJob());
+    QVERIFY2(f.dialogTexts("error").empty(), f.lastDialogDetail().c_str());
+    QVERIFY(d.fit_cc > 0.9);
+    QVERIFY(d.fit_info.find("local refinement") != std::string::npos);
+    QVERIFY(d.fit_info.find("start CC ") != std::string::npos);
+    QCOMPARE(w.document().undoLabel(), std::string("Density fit (local refinement)"));
+    w.document().undo();
+    QCOMPARE(w.document().project().density.transform, global);
+    w.document().undo();
+    QVERIFY(w.document().project().density.transform.empty());
+    QVERIFY(!w.document().isModified());  // back where it was saved
+    QVERIFY(structure->densityStatus()->text().contains(QStringLiteral("Not placed")));
+
+    // Render still with the map shown and no placement: the automatic fit's placement is kept
+    // (MDATK's _adopt_auto_fit), one undo step
+    QVERIFY(f.actions().renderStill(0));
+    QVERIFY(f.waitJob());
+    QVERIFY2(f.dialogTexts("error").empty(), f.lastDialogDetail().c_str());
+    QCOMPARE(w.document().project().density.transform.size(), std::size_t{12});
+    QVERIFY(f.loggedStart("Density map placement stored: global search, frame 0, "));
+    QCOMPARE(w.document().undoLabel(), std::string("Density map placement stored"));
+    if (app::ImageDialog* still = f.actions().stillDialog()) still->close();
+}
+
+// Cancel during the global search leaves the project as it was: no placement, no undo step, not
+// modified; a map file changed while a fit runs gets no placement of the old one (WF-02).
+void ActionTests::densityFitCancelAndMapChange() {
+    Fixture f;
+    app::MainWindow& w = f.w();
+    QVERIFY(!f.openDryDemo().empty());
+    QTRY_VERIFY_WITH_TIMEOUT(!w.loading(), 120000);
+    const fs::path mapFile = f.dir / "gui_map.mrc";
+    io::writeMap(mapFile, paddedTestMap(w, mdatkTruth()));
+    w.document().edit("map", [&](core::Project& p) {
+        p.density.map_path = core::pathToUtf8(mapFile);
+        p.density.resolution = 6.0;
+    });
+    QVERIFY(w.save());
+    QVERIFY(!w.document().isModified());
+    const std::string undoLabel = w.document().undoLabel();
+    f.prompter.dialogs.clear();
+
+    bool cancelled = false;
+    QMetaObject::Connection c = connect(w.jobRunner(), &app::jobs::JobRunner::statusChanged, this,
+                                        [&](double, const QString& text) {
+                                            if (!cancelled && text.contains(QLatin1Char('%'))) {
+                                                cancelled = w.jobRunner()->cancel();
+                                            }
+                                        });
+    QVERIFY(f.actions().fitDensity(QStringLiteral("global")));
+    QVERIFY(f.waitJob());
+    disconnect(c);
+    QVERIFY(cancelled);
+    QCOMPARE(w.jobRunner()->statusText(), QStringLiteral("Cancelled"));
+    QVERIFY(f.logged("Cancelled."));
+    QVERIFY(f.prompter.dialogs.empty());
+    QVERIFY(w.document().project().density.transform.empty());
+    QVERIFY(!w.document().isModified());
+    QCOMPARE(w.document().undoLabel(), undoLabel);
+
+    // another map chosen while the fit runs: the placement found is not stored
+    QVERIFY(f.actions().fitDensity(QStringLiteral("manual")));
+    w.document().set("density.map_path", core::pathToUtf8(f.dir / "other.mrc"), "Choose another map");
+    QVERIFY(f.waitJob());
+    QCOMPARE(w.jobRunner()->statusText(), QStringLiteral("Fitting the density map: done"));
+    QVERIFY(w.document().project().density.transform.empty());
+    QCOMPARE(w.document().undoLabel(), std::string("Choose another map"));
+    QVERIFY(f.loggedStart("WARNING: the density map file was changed during the fit; the placement found for "
+                          "gui_map.mrc was not stored"));
 }
 
 void ActionTests::openFolderAndVideo() {

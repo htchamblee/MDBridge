@@ -61,15 +61,18 @@ CASES = []
 
 
 def case(topic, name, description, actions, *, files=None, build=None, start=PROJECT, items=(),
-         mdatk_test="", settings=None, canvas=None):
+         mdatk_test="", settings=None, canvas=None, fitted=False):
     """files: name -> path under tests/data; build: name -> builder function name (an input project
-    written by MDATK in the worker); start: the project the window starts with (None: none)."""
+    written by MDATK in the worker); start: the project the window starts with (None: none);
+    fitted: the case runs a density fit, whose numbers MDBridge's harness compares with owner
+    decision D10's tolerance (the case needs "fitted")."""
     files = dict(files or {})
     if start and start not in files and start not in (build or {}):
         files[start] = "projects/default.mdatk.toml"  # what `mdatk init` writes
     CASES.append({"topic": topic, "name": name, "description": description, "items": list(items),
                   "mdatk_test": mdatk_test, "files": files, "build": dict(build or {}),
-                  "start": start, "settings": settings, "canvas": canvas or CANVAS, "actions": actions})
+                  "start": start, "settings": settings, "canvas": canvas or CANVAS, "actions": actions,
+                  "fitted": fitted})
 
 
 def a(action, **kw):
@@ -323,6 +326,22 @@ case("canvas", "map_move_rotate", "Map mode: drag moves the density map, Shift +
     a("click", key="density.clear"), snap("density", density_status=True)],
     files={**DEMO, **MAP}, build={PROJECT: "demo_map"},
     mdatk_test="tests/test_gui.py::test_density_map_fit_shadow_and_drag")
+# the fit part of test_density_map_fit_shadow_and_drag (milestone 6 W3-A): Global search, a drag in
+# map mode, Refine from there; the jobs are waited for (MDATK: pump until the worker is done)
+case("canvas", "density_fit", "Global search, a drag in map mode, Refine from the placement", [
+    a("wait"),
+    snap("density", density_status=True, modified=True),
+    a("click", key="density.global_search"),
+    snap("density", density_status=True, modified=True),
+    a("toggle", key="density.move_with_mouse", value=True),
+    a("canvas.drag", **{"from": {"slot": 0, "at": [0.5, 0.5]}, "path": [[10, 0], [20, 5], [30, 10]]}),
+    a("toggle", key="density.move_with_mouse", value=False),
+    snap("density.fit_info", density_status=True),
+    a("click", key="density.refine"),
+    snap("density", density_status=True),
+    a("save"), snap(modified=True)],
+    files={**DEMO, **MAP}, build={PROJECT: "demo_map"}, fitted=True,
+    mdatk_test="tests/test_gui.py::test_density_map_fit_shadow_and_drag")
 
 
 # ================================================================================================
@@ -386,6 +405,8 @@ def needs_of(c, outcome, lossless):
         out.add("lossless")
     if c["settings"]:
         out.add("settings")
+    if c["fitted"]:
+        out.add("fitted")
     return sorted(out)
 
 
@@ -984,7 +1005,11 @@ def worker(kind, mdatk, data, cases_file, out_file):
                     else:
                         editor.move(act["by"])
         elif name == "click":
+            def fit(search):
+                win.fit_density(search)
+                wait_jobs(win)
             {"density.centre_on_model": win.centre_density, "density.clear": win.clear_density_fit,
+             "density.global_search": lambda: fit("global"), "density.refine": lambda: fit("manual"),
              "structure.reset_orientation": lambda: win._set_rotation([0, 0, 0]),
              "structure.reset_view": win._reset_view, "toolbar.refresh": win.refresh_canvas}[act["key"]]()
         elif name == "toggle":

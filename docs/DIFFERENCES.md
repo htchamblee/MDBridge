@@ -1991,6 +1991,7 @@ which MDATK version's design it follows, and how it is tested.
 | GP-01 ... GP-05 | Input, Residue groups and Analyses pages | 01 renames cascade, 02 removed groups in use, 03 Groups from chains (D15), 04 Pick colour and the swatch, 05 texts naming MDAnalysis or Barnaba |
 | JB-01 ... JB-04 | jobs and the log | 01 closing asks and waits, 02 the log never floods, 03 Copy / Save / dark styles, 04 failures |
 | WA-01 ... WA-09 | the window's actions | 01 job buttons while a job runs, 02 what blocks a job (D7), 03 Open video, 04 Inspect system, 05 cleaned files shown, 06 the desktop through Qt, 07 the still fits the screen, 08 Centre on model, 09 run citations |
+| WF-01 ... WF-03 | the density fit in the window (milestone 6 W3-A) | 01 one undo step, nothing on Cancel, 02 a map changed during the fit, 03 the reference frame reloaded only for new cleaned files |
 | LE-01 ... LE-10 | the canvas and the Layout & panels page | 01 the structure panel as the 3D view, 02 no drawing on the interface thread, 03 one drag one undo step, 04 MDATK's angles, 05 AP-07 ... AP-10 on the page, 06 data labels, 07 titles follow renames, 08 no frame announcement, 09 MDATK's pointer positions, 10 wheel bursts |
 | FONT-01 ... FONT-03 | Rendering: fonts and text | IBM Plex Serif in the interface and figures, Plex Math fallback, Plex Mono |
 | CH-01 ... CH-15, D7, D13 | Chemistry: PDB tools, annotation, builder, dictionaries, density fit (expected data; D-numbers of docs/specs/m6-plan.md) | 01 residue numbers below -999, 02 wrapped numbers reported, 03 one-character `--combine-into`, 04 CONECT records that cannot be remapped, 05 2'-deoxy residues with RNA names (0.1.0), 06 chain ends bonded to unknown residues (0.1.0), 07 three-character SEQRES names (0.0.17), 08 mutation specs without a chain (0.1.0), 09 hydrogens of mutated bases (D11), 10 unusable resolutions and spacings, 11 non-finite voxels, 12 `density fit --save` keeps paths, 13 missing input files named, 14 no Barnaba (D9), 15 reversed ranges; D7 PubChem root, D13 program name in records, automatic density fit before rendering |
@@ -2501,8 +2502,9 @@ folding sections (`section:structure.orientation` ...). Deliberate differences:
   listed `mdatk` and every Matplotlib style; the drop-down offers `mdatk` and `default`, and any
   typed name is kept (the charts warn and use MDATK's look). *Tested:*
   `chartStylesAreMdbridgesAndTypedNamesStay`.
-- **PG-04: density fit buttons for milestone 6** (owner decision D2). *Global search* and *Refine*
-  are shown disabled with "(comes with milestone 6)" in their tooltips; *Centre on model* needs the
+- **PG-04: density fit buttons** (owner decision D2). *Global search* and *Refine* were shown
+  disabled with "(comes with milestone 6)" in their tooltips until milestone 6 W3-A made them run the
+  fit (section "the density fit in the window", WF-01 ... WF-03); *Centre on model* needs the
   reference frame on the canvas and is enabled by the window when it has it; *Clear* and the map-mode
   toggle work. Choosing another map file forgets the placement of the previous map as MDATK does,
   in the same undo step as the new name. *Tested:* `densityButtonsAndStatus`,
@@ -2645,7 +2647,7 @@ its log line `Still frame written to …`, Re-render's progress split (video 0�
 `output.video.filename` with anything between stem and extension, hidden files left out), and
 centre_density's placement (identity rotation, translation density centre − model centre,
 anchored to the shown frame, `Centred on the model (not fitted).`). MDATK's `_adopt_auto_fit`
-has nothing to adopt: MDBridge does not fit maps yet (milestone 4 D9). Deliberate differences:
+came with milestone 6 (section "the density fit in the window"). Deliberate differences:
 
 - **WA-01: job buttons are disabled while a job runs.** MDATK disabled Render, Render still,
   Export PDBs and Re-render (its busy widgets) but left *Run cleaning now* and *Inspect system*
@@ -2710,6 +2712,54 @@ a render leave no video and no temporary file (`cancelMidRender`, `closeDuringRe
 the smoke test `smokeDemoFromWindow` (Create demo system…, Ctrl+R, the 120-frame 1080p video probed,
 charts, PDBs and the params log written). Screenshots of the result dialogs are CI artifacts
 (`result-*.png`).
+
+## Interface: the density fit in the window (src/app/gui/actions/window_actions.cpp, gui/pages/structure_page.cpp; milestone 6 W3-A)
+
+MDATK v0.0.4.1's *Global search* and *Refine* (`gui/app.py` fit_density, `_store_density_result`;
+0.1.1's are the same apart from 0.1.x's narrower `collect(... density=True)` checks, which wait for
+the post-parity phase with D7 of milestone 5) and `_adopt_auto_fit` on the window's JobRunner and the
+density pipeline of `mdbridge density fit` (`src/app/commands/density_pipeline.hpp` fitDensity:
+the fit frame's atoms, the stored placement anchored to the current reference or the map's density
+centre as the start, `chem::fitModel`, progress and Cancel through the job's `core::Reporter`).
+Kept: the blocking (`collect()` with `validate()`: `Please fix these parameters first`; no map:
+`No density map` / `Choose an MRC / CCP4 map first.`), the job title `Fitting the density map`
+and with it MDATK's texts (`Fitting the density map …`, `NN%  <step>`, `Fitting the density map:
+done`, `Cancelled`, `Failed`, `ERROR: Fitting the density map failed: <reason>`; the log's `---
+Fitting the density map ---`, `Density fit (global search) of frame ref into MAP at 6 Å`, `Density
+fit: <fit_info>`), the stored fields (transform, anchor, fit_cc, fit_info) and the status line (the
+fit info), the busy buttons (both disabled while any job runs, WA-01), MDATK's tooltips (the shell
+note of PG-04 is gone), and after a Render or Render still the placement an automatic fit found
+(`Density map placement stored: <fit_info>`, when the map is still the one fitted). Deliberate
+differences:
+
+- **WF-01: one undo step; nothing on Cancel.** The placement found is stored as one undo step
+  (`Density fit (global search)`, `Density fit (local refinement)`, `Density map placement
+  stored`) once the job has succeeded: a cancelled or failed fit leaves the project as it was (no
+  undo step, no modified marker). MDATK had no undo. *Tested:* `ActionTests::densityFit` (two fits,
+  two steps, undone back to the saved state), `densityFitCancelAndMapChange` (Cancel at the first
+  progress step: no placement, no step, not modified).
+- **WF-02: a map changed during the fit.** MDATK stored the placement found into the settings
+  whatever map file they named by then, so the new map got the old map's placement. MDBridge stores
+  it only when the settings still name the map that was fitted; otherwise the log says `WARNING: the
+  density map file was changed during the fit; the placement found for <map> was not stored` (as
+  MDATK's own `_adopt_auto_fit` compares the map path). *Tested:* `densityFitCancelAndMapChange`.
+- **WF-03: the reference frame is loaded again only for new cleaned files.** MDATK's fit job
+  replaced the preview data with `structure_preview()` of the fit's pipeline every time; MDBridge's
+  window draws the preview again after the placement is stored (the document change) and loads the
+  reference frame again only when the fit cleaned the inputs anew (cpptraj wrote new files the
+  window has not shown; reused files were already the ones shown, WA-05). *Tested:*
+  `densityFit` (the preview draws the map after the fit).
+
+Also tested: the fit part of MDATK's `test_density_map_fit_shadow_and_drag` as the GUI case
+`canvas/density_fit` (Global search on `demo_dry_map.mrc`, a drag in map mode, Refine from there,
+saved; `tests/parity/make_gui_cases.py`, compared within owner decision D10's tolerance of milestone
+6: 0.5° / 0.2 Å, CC 1e-3, printed numbers ± 1 in their last digit, every other byte of the saved
+project equal; `tests/data/README.md` "gui"), and `ActionTests::densityFit` (MDATK's test map: the
+reference frame placed by quaternion (0.7, 0.1, -0.6, 0.3) and (12, -6, 30) Å, simulated at 6 Å,
+padded; CC > 0.9, the pose within 1°, the status shows the CC, the map drawn on the canvas; Refine
+logs `local refinement` with its start CC; then Render still with the map shown and no placement
+keeps the automatic fit's placement, `Density map placement stored: …`, one undo step). The case's runner waits for a job a click starts, as
+the generator waits for MDATK's worker. Screenshot: `actions-density-fit-global.png` (CI artifact).
 
 ## Interface: the canvas and the Layout & panels page (src/app/gui/preview_widget.cpp, gui/pages/layout_page.cpp; milestone 5 W2-A)
 

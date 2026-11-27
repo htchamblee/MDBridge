@@ -269,12 +269,22 @@ void PagesTest::resetButtons() {
 
 void PagesTest::densityButtonsAndStatus() {
     Shown<StructurePage> s;
-    // owner decision D2: the fit is milestone 6's
+    // milestone 6 W3-A: the fit buttons ask the window for the fit (MDATK's tooltips, no shell note)
+    QSignalSpy fit(s.page.get(), &StructurePage::fitRequested);
     for (QPushButton* b : {s.page->globalSearchButton(), s.page->refineButton()}) {
-        QVERIFY(!b->isEnabled());
-        QVERIFY2(b->toolTip().contains(QStringLiteral("comes with milestone 6")), qPrintable(b->toolTip()));
+        QVERIFY(b->isEnabled());
+        QVERIFY2(!b->toolTip().contains(QStringLiteral("milestone")), qPrintable(b->toolTip()));
+        QTest::mouseClick(b, Qt::LeftButton);
     }
+    QCOMPARE(fit.count(), 2);
+    QCOMPARE(fit.at(0).at(0).toString(), QStringLiteral("global"));
+    QCOMPARE(fit.at(1).at(0).toString(), QStringLiteral("manual"));
+    QCOMPARE(s.page->globalSearchButton()->toolTip(),
+             QStringLiteral("Exhaustive orientation search + local refinement (maximises the correlation with a map "
+                            "simulated from the model)"));
+    QCOMPARE(s.page->refineButton()->toolTip(), QStringLiteral("Local refinement from the current placement"));
     QCOMPARE(s.page->globalSearchButton()->objectName(), QStringLiteral("density.global_search"));
+    QCOMPARE(s.page->refineButton()->objectName(), QStringLiteral("density.refine"));
     QVERIFY(!s.page->centreOnModelButton()->isEnabled());
     QSignalSpy centre(s.page.get(), &StructurePage::centreOnModelRequested);
     s.page->setCentreOnModelAvailable(true);

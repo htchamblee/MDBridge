@@ -8,11 +8,12 @@
 // placement status), Residue number tags and Appearance, each a section of MDATK's frames.
 //
 // Bound to the document: the page's fields show it and store edits as undo steps; the canvas
-// (the window) follows the document. Global search and Refine are shown disabled until milestone 6
-// brings the density fit (owner decision D2: "comes with milestone 6"); Centre on model needs the
-// loaded reference frame and the map, which the window has: it is enabled once the window says so
-// (setCentreOnModelAvailable) and asks it with centreOnModelRequested(). Choosing another map file
-// forgets the placement of the previous map in the same undo step (MDATK _on_density_map_changed).
+// (the window) follows the document. Global search and Refine ask the window for the density fit
+// (fitRequested("global" / "manual"): a job on its JobRunner, milestone 6 W3-A, which disables the
+// buttons while any job runs); Centre on model needs the loaded reference frame and the map, which
+// the window has: it is enabled once the window says so (setCentreOnModelAvailable) and asks it
+// with centreOnModelRequested(). Choosing another map file forgets the placement of the previous
+// map in the same undo step (MDATK _on_density_map_changed).
 
 #include <QString>
 
@@ -55,6 +56,9 @@ public:
 signals:
     // "Apply": redraw the preview now.
     void previewRequested();
+    // "Global search" ("global") or "Refine" ("manual") was pressed, the typed text stored (the
+    // window runs the density fit: MDATK's fit_density(search)).
+    void fitRequested(const QString& search);
     // "Centre on model" was pressed (the window places the map: core density centre transform).
     void centreOnModelRequested();
     // "Move the map with the mouse" toggled: the canvas's map mode.

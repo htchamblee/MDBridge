@@ -17,8 +17,6 @@ namespace mdbridge::app::pages {
 
 namespace {
 
-constexpr const char* kFitLater = "(comes with milestone 6)";
-
 bool hasPlacement(const core::DensityParams& d) {
     return !d.transform.empty() || !d.anchor.empty() || d.fit_cc != 0.0 || !d.fit_info.empty();
 }
@@ -126,18 +124,23 @@ void StructurePage::buildDensity() {
                  "works. The global search samples orientations every <step> degrees."));
     f->addWide(check("density.auto_fit", tr("Fit automatically before rendering when the map has no placement yet")));
 
-    const auto later = [](const QString& tip) { return tip + QStringLiteral("\n") + QLatin1String(kFitLater); };
     m_globalSearch = makeButton(tr("Global search"), QStringLiteral("density.global_search"),
-                                later(tr("Exhaustive orientation search + local refinement (maximises the "
-                                         "correlation with a map simulated from the model)")));
+                                tr("Exhaustive orientation search + local refinement (maximises the "
+                                   "correlation with a map simulated from the model)"));
     m_refine = makeButton(tr("Refine"), QStringLiteral("density.refine"),
-                          later(tr("Local refinement from the current placement")));
-    m_globalSearch->setEnabled(false);  // owner decision D2: the density fit is milestone 6's
-    m_refine->setEnabled(false);
+                          tr("Local refinement from the current placement"));
     m_centre = makeButton(tr("Centre on model"), QStringLiteral("density.centre_on_model"));
     m_clear = makeButton(tr("Clear"), QStringLiteral("density.clear"), tr("Forget the placement"));
     setCentreOnModelAvailable(false);
     f->addButtons({m_globalSearch, m_refine, m_centre, m_clear});
+    connect(m_globalSearch, &QPushButton::clicked, this, [this] {
+        context().commitPendingEdits();
+        emit fitRequested(QStringLiteral("global"));
+    });
+    connect(m_refine, &QPushButton::clicked, this, [this] {
+        context().commitPendingEdits();
+        emit fitRequested(QStringLiteral("manual"));
+    });
     connect(m_centre, &QPushButton::clicked, this, [this] {
         context().commitPendingEdits();
         emit centreOnModelRequested();

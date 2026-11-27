@@ -1,7 +1,7 @@
 #pragma once
 // The analysis window's jobs and desktop actions (milestone 5 W2-B; MDATK v0.0.4.1 gui/app.py
 // render, run_cleaning, inspect_system, preview_frame, export_pdbs, rerender_from_cache,
-// open_output_dir, open_video, centre_density, start_job; gui/desktop.py latest_video).
+// open_output_dir, open_video, centre_density, fit_density, start_job; gui/desktop.py latest_video).
 //
 // Every job runs on the window's jobs::JobRunner (one at a time, progress, log, Cancel, the close
 // question AP-14) through the analysis and render pipelines the command line uses
@@ -22,9 +22,21 @@
 // cleaning the reference frame is loaded again from the cleaned files; the folder and the video
 // open through QDesktopServices.
 //
+// Global search and Refine (milestone 6 W3-A) run the density fit of the command line
+// (density_pipeline.hpp fitDensity: chem::fitModel, progress and Cancel through the job's
+// core::Reporter) as the job "Fitting the density map", blocked as v0.0.4.1's fit_density is
+// (collect(): "Please fix these parameters first"; no map: "No density map"). The placement found
+// (transform, anchor, fit_cc, fit_info: MDATK's _store_density_result) is stored as one undo step
+// once the job has succeeded, so a cancelled or failed fit leaves the project as it was (no undo
+// step, no modified marker); a map file changed during the fit gets no placement of the old one
+// (WF-02). The preview is drawn again with the placement, and the reference frame loaded again
+// when the fit cleaned the inputs anew (MDATK: pipe.structure_preview(); WF-03). Render and Render
+// still keep the placement an automatic fit found (density.auto_fit, MDATK's _adopt_auto_fit:
+// "Density map placement stored: <fit_info>"), also as one undo step.
+//
 // The pages' buttons are connected here: Input & cleaning (runCleaningRequested,
 // inspectSystemRequested), Outputs (exportPdbsRequested, rerenderRequested), Structure view
-// (centreOnModelRequested) and the Layout page's *Render still*: a page with a signal
+// (fitRequested, centreOnModelRequested) and the Layout page's *Render still*: a page with a signal
 // `renderStillRequested(int frame)` is connected by name, and its button named
 // "layout.render_still" (if any) is disabled while a job runs.
 
@@ -67,6 +79,8 @@ public:
     void openOutputFolder();       // Open output folder
     void openVideo();              // Open video
     void centreOnModel();          // Structure view › Density map › Centre on model
+    // Structure view › Density map › Global search ("global") / Refine ("manual")
+    bool fitDensity(const QString& search);
 
     // ---- state ----
 
@@ -102,6 +116,11 @@ private slots:
 private:
     void connectPages();
     void updateCentre();
+    // The placement of a fit (transform, anchor, fit_cc, fit_info) stored as the undo step `label`
+    // when it is for the map the settings name now; false (and a warning in the log) otherwise.
+    bool storeFit(const core::DensityParams& fitted, const std::string& label);
+    // MDATK's _adopt_auto_fit: a placement an automatic fit of a render job found.
+    void adoptAutoFit(const core::DensityParams& fitted);
     // MDATK's collect(validate): the project (paths resolved) or nothing after the error dialog.
     std::optional<core::Project> collect(bool validate, bool renderChecks, const QString& title);
     void result(const QString& title, const QString& detail);
