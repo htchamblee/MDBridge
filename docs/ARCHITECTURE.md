@@ -6,9 +6,14 @@ cache, the frame-parallel runner) and 4 (`render`: figures, charts, the structur
 software and Vulkan renderers, MP4 video with bundled LGPL FFmpeg, the commands `render`, `charts`
 and `preview`) and 5 (`app`: MDATK's analysis window in Qt Widgets with its six pages, the canvas
 layout editor whose structure panel is the 3D view, jobs, undo, recovery copies, and the commands
-`demo`, `clean` and `citations`) done, milestone 6 (`chem`) next. The C++ successor of MDATK is
-named **MDBridge** and lives in its own repository (`htchamblee/MDBridge`). The Python package MDATK (v0.0.4.1) is frozen as
-the reference implementation and receives bug fixes only.
+`demo`, `clean` and `citations`) done. Milestone 6 (`chem`) is in progress (2026-11-27): PDB hygiene,
+annotation, dictionaries and SMILES, the Watson-Crick helix builder, mutations, the density fit, the
+commands `pdb`, `build` and `density`, and the PDB clean-up and structure builder windows are done; the
+other pairings and triplexes (W2-A) and the milestone's docs remain (`docs/specs/m6-status.md`).
+Milestone 7 (`workflow`) is being planned. The C++ successor of MDATK is named **MDBridge** and lives
+in its own repository (`htchamblee/MDBridge`). MDATK v0.0.4.1 is the parity reference; MDATK itself is
+still developed (0.1.2 at the time of writing), and MDBridge follows later MDATK's designs where they
+fix 0.0.4.x issues (`CLAUDE.md`).
 
 ## Why
 
