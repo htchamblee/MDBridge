@@ -1,0 +1,421 @@
+{
+ "format": "mdbridge-gui-case",
+ "version": 1,
+ "description": "PDB clean-up: no input, a missing input, no output, the output over the input, a reversed L range, a file that is not UTF-8 text, a missing reference PDB",
+ "source": "MDATK v0.0.4.1's GTK window driven by tests/parity/make_gui_cases.py, with MDBridge's window improvements (tests/parity/improvements_gui.py)",
+ "clock": "2026-11-25T12:00:00",
+ "items": [
+  "TW-02",
+  "CH-13",
+  "CH-15"
+ ],
+ "mdatk_test": "",
+ "needs": [
+  "lossless",
+  "snapshot",
+  "start",
+  "tools"
+ ],
+ "canvas": {
+  "width": 960,
+  "height": 540
+ },
+ "files": {
+  "in.pdb": "gui/tools/pdb_tools_errors/in/in.pdb",
+  "latin1.pdb": "gui/tools/pdb_tools_errors/in/latin1.pdb",
+  "p.mdatk.toml": "projects/default.mdatk.toml"
+ },
+ "start": {
+  "project": "p.mdatk.toml"
+ },
+ "actions": [
+  {
+   "action": "tool.open",
+   "tool": "pdb_tools"
+  },
+  {
+   "action": "tool.click",
+   "tool": "pdb_tools",
+   "key": "check"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "tool": {
+    "name": "pdb_tools",
+    "report": true,
+    "fields": [],
+    "sensitive": []
+   }
+  },
+  {
+   "action": "tool.set",
+   "tool": "pdb_tools",
+   "key": "input",
+   "value": "missing.pdb"
+  },
+  {
+   "action": "tool.click",
+   "tool": "pdb_tools",
+   "key": "write"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "tool": {
+    "name": "pdb_tools",
+    "report": true,
+    "fields": [
+     "output"
+    ],
+    "sensitive": []
+   }
+  },
+  {
+   "action": "tool.set",
+   "tool": "pdb_tools",
+   "key": "input",
+   "value": "in.pdb"
+  },
+  {
+   "action": "tool.set",
+   "tool": "pdb_tools",
+   "key": "output",
+   "value": ""
+  },
+  {
+   "action": "tool.click",
+   "tool": "pdb_tools",
+   "key": "write"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "tool": {
+    "name": "pdb_tools",
+    "report": true,
+    "fields": [],
+    "sensitive": []
+   }
+  },
+  {
+   "action": "tool.set",
+   "tool": "pdb_tools",
+   "key": "output",
+   "value": "in.pdb"
+  },
+  {
+   "action": "tool.click",
+   "tool": "pdb_tools",
+   "key": "write"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "tool": {
+    "name": "pdb_tools",
+    "report": true,
+    "fields": [],
+    "sensitive": []
+   }
+  },
+  {
+   "action": "tool.set",
+   "tool": "pdb_tools",
+   "key": "output",
+   "value": "out.pdb"
+  },
+  {
+   "action": "tool.set",
+   "tool": "pdb_tools",
+   "key": "l_ranges",
+   "value": "A:4-1"
+  },
+  {
+   "action": "tool.click",
+   "tool": "pdb_tools",
+   "key": "check"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "tool": {
+    "name": "pdb_tools",
+    "report": true,
+    "fields": [],
+    "sensitive": []
+   }
+  },
+  {
+   "action": "tool.click",
+   "tool": "pdb_tools",
+   "key": "write"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "tool": {
+    "name": "pdb_tools",
+    "report": true,
+    "fields": [],
+    "sensitive": []
+   }
+  },
+  {
+   "action": "tool.set",
+   "tool": "pdb_tools",
+   "key": "l_ranges",
+   "value": ""
+  },
+  {
+   "action": "tool.set",
+   "tool": "pdb_tools",
+   "key": "input",
+   "value": "latin1.pdb"
+  },
+  {
+   "action": "tool.set",
+   "tool": "pdb_tools",
+   "key": "output",
+   "value": "out.pdb"
+  },
+  {
+   "action": "tool.click",
+   "tool": "pdb_tools",
+   "key": "check"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "tool": {
+    "name": "pdb_tools",
+    "report": true,
+    "fields": [],
+    "sensitive": []
+   }
+  },
+  {
+   "action": "tool.click",
+   "tool": "pdb_tools",
+   "key": "write"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "tool": {
+    "name": "pdb_tools",
+    "report": true,
+    "fields": [],
+    "sensitive": []
+   }
+  },
+  {
+   "action": "tool.set",
+   "tool": "pdb_tools",
+   "key": "input",
+   "value": "in.pdb"
+  },
+  {
+   "action": "tool.set",
+   "tool": "pdb_tools",
+   "key": "chain_mode",
+   "value": "reference"
+  },
+  {
+   "action": "tool.set",
+   "tool": "pdb_tools",
+   "key": "reference",
+   "value": "nowhere.pdb"
+  },
+  {
+   "action": "tool.click",
+   "tool": "pdb_tools",
+   "key": "write"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "tool": {
+    "name": "pdb_tools",
+    "report": true,
+    "fields": [],
+    "sensitive": []
+   }
+  }
+ ],
+ "expected": {
+  "p.mdatk.toml": "gui/tools/pdb_tools_errors/out/p.mdatk.toml"
+ },
+ "log": [],
+ "outcome": {
+  "snapshots": [
+   {
+    "action": 2,
+    "tool": {
+     "name": "pdb_tools",
+     "open": true,
+     "report": "Choose an existing input PDB file first."
+    }
+   },
+   {
+    "action": 5,
+    "tool": {
+     "name": "pdb_tools",
+     "open": true,
+     "report": "Choose an existing input PDB file first.",
+     "values": {
+      "output": "missing_clean.pdb"
+     }
+    }
+   },
+   {
+    "action": 9,
+    "tool": {
+     "name": "pdb_tools",
+     "open": true,
+     "report": "Choose an output file."
+    }
+   },
+   {
+    "action": 12,
+    "tool": {
+     "name": "pdb_tools",
+     "open": true,
+     "report": "The output must not overwrite the input file."
+    }
+   },
+   {
+    "action": 16,
+    "tool": {
+     "name": "pdb_tools",
+     "open": true,
+     "report": "ERROR: residue range A:4-1 ends before it starts"
+    }
+   },
+   {
+    "action": 18,
+    "tool": {
+     "name": "pdb_tools",
+     "open": true,
+     "report": "ERROR: residue range A:4-1 ends before it starts"
+    }
+   },
+   {
+    "action": 23,
+    "tool": {
+     "name": "pdb_tools",
+     "open": true,
+     "report": "ERROR: 'utf-8' codec can't decode byte 0xc8 in position 14: invalid continuation byte"
+    }
+   },
+   {
+    "action": 25,
+    "tool": {
+     "name": "pdb_tools",
+     "open": true,
+     "report": "ERROR: 'utf-8' codec can't decode byte 0xc8 in position 14: invalid continuation byte"
+    }
+   },
+   {
+    "action": 30,
+    "tool": {
+     "name": "pdb_tools",
+     "open": true,
+     "report": "ERROR: [Errno 2] No such file or directory: 'nowhere.pdb'"
+    }
+   }
+  ]
+ },
+ "mdatk": {
+  "expected": {
+   "out.pdb": "gui/tools/pdb_tools_errors/mdatk/out.pdb",
+   "p.mdatk.toml": "gui/tools/pdb_tools_errors/mdatk/p.mdatk.toml"
+  },
+  "log": [
+   "PDB clean-up: wrote out.pdb"
+  ],
+  "snapshots": [
+   {
+    "action": 2,
+    "tool": {
+     "name": "pdb_tools",
+     "open": true,
+     "report": "Choose an existing input PDB file first."
+    }
+   },
+   {
+    "action": 5,
+    "tool": {
+     "name": "pdb_tools",
+     "open": true,
+     "report": "Choose an existing input PDB file first.",
+     "values": {
+      "output": "missing_clean.pdb"
+     }
+    }
+   },
+   {
+    "action": 9,
+    "tool": {
+     "name": "pdb_tools",
+     "open": true,
+     "report": "Choose an output file."
+    }
+   },
+   {
+    "action": 12,
+    "tool": {
+     "name": "pdb_tools",
+     "open": true,
+     "report": "The output must not overwrite the input file."
+    }
+   },
+   {
+    "action": 16,
+    "tool": {
+     "name": "pdb_tools",
+     "open": true,
+     "report": "in.pdb: 2 TER segment(s), 0 CONECT record(s)\n\nChain A: 2 residues (1-2), names C G; chirality 2 D\n  GC\nChain B: 2 residues (3-4), names 0G 0U; chirality 2 L\n  GU\n\nChirality (sugar geometry): 2 L and 2 D nucleotides, 0 forced L by ranges\nWARNING: the L ranges match no nucleotide"
+    }
+   },
+   {
+    "action": 18,
+    "tool": {
+     "name": "pdb_tools",
+     "open": true,
+     "report": "Wrote out.pdb\n\nChirality (sugar geometry): 2 L and 2 D nucleotides, 0 forced L by ranges\nWARNING: the L ranges match no nucleotide"
+    }
+   },
+   {
+    "action": 23,
+    "tool": {
+     "name": "pdb_tools",
+     "open": true,
+     "report": "Wrote out.pdb\n\nChirality (sugar geometry): 2 L and 2 D nucleotides, 0 forced L by ranges\nWARNING: the L ranges match no nucleotide"
+    }
+   },
+   {
+    "action": 25,
+    "tool": {
+     "name": "pdb_tools",
+     "open": true,
+     "report": "ERROR: 'utf-8' codec can't decode byte 0xc8 in position 14: invalid continuation byte"
+    }
+   },
+   {
+    "action": 30,
+    "tool": {
+     "name": "pdb_tools",
+     "open": true,
+     "report": "ERROR: no ATOM/HETATM records found (not a PDB file, or the path does not exist)"
+    }
+   }
+  ],
+  "uncaught": [
+   {
+    "action": 22,
+    "error": "UnicodeDecodeError: 'utf-8' codec can't decode byte 0xc8 in position 14: invalid continuation byte"
+   }
+  ]
+ }
+}

@@ -1,0 +1,505 @@
+{
+ "format": "mdbridge-gui-case",
+ "version": 1,
+ "description": "Structure builder: a duplex written, then mutated with and without compensatory partners (Check lists the residues, NOT FOUND, a spec that cannot be read); the output suggested",
+ "source": "MDATK v0.0.4.1's GTK window driven by tests/parity/make_gui_cases.py, with MDBridge's window improvements (tests/parity/improvements_gui.py)",
+ "clock": "2026-11-25T12:00:00",
+ "items": [
+  "TW-02",
+  "CH-08",
+  "CH-09"
+ ],
+ "mdatk_test": "",
+ "needs": [
+  "lossless",
+  "snapshot",
+  "start",
+  "tools"
+ ],
+ "canvas": {
+  "width": 960,
+  "height": 540
+ },
+ "files": {
+  "in.pdb": "gui/tools/builder_mutate/in/in.pdb",
+  "latin1.pdb": "gui/tools/builder_mutate/in/latin1.pdb",
+  "p.mdatk.toml": "projects/default.mdatk.toml"
+ },
+ "start": {
+  "project": "p.mdatk.toml"
+ },
+ "actions": [
+  {
+   "action": "tool.open",
+   "tool": "builder"
+  },
+  {
+   "action": "tool.set",
+   "tool": "builder",
+   "key": "seq",
+   "value": "GGCAUGCC"
+  },
+  {
+   "action": "tool.set",
+   "tool": "builder",
+   "key": "helix_out",
+   "value": "duplex.pdb"
+  },
+  {
+   "action": "tool.click",
+   "tool": "builder",
+   "key": "write"
+  },
+  {
+   "action": "tool.page",
+   "tool": "builder",
+   "page": "mutate"
+  },
+  {
+   "action": "tool.set",
+   "tool": "builder",
+   "key": "mut_input",
+   "value": "duplex.pdb"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "tool": {
+    "name": "builder",
+    "report": false,
+    "fields": [
+     "mut_out"
+    ],
+    "sensitive": [
+     "check",
+     "wobble"
+    ]
+   }
+  },
+  {
+   "action": "tool.set",
+   "tool": "builder",
+   "key": "mutations",
+   "value": "A:3G, B:20C"
+  },
+  {
+   "action": "tool.click",
+   "tool": "builder",
+   "key": "check"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "tool": {
+    "name": "builder",
+    "report": true,
+    "fields": [],
+    "sensitive": []
+   }
+  },
+  {
+   "action": "tool.set",
+   "tool": "builder",
+   "key": "mutations",
+   "value": "A:3G"
+  },
+  {
+   "action": "tool.click",
+   "tool": "builder",
+   "key": "write"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "tool": {
+    "name": "builder",
+    "report": true,
+    "fields": [],
+    "sensitive": []
+   }
+  },
+  {
+   "action": "tool.set",
+   "tool": "builder",
+   "key": "mutations",
+   "value": "A:3G, Z9"
+  },
+  {
+   "action": "tool.click",
+   "tool": "builder",
+   "key": "check"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "tool": {
+    "name": "builder",
+    "report": true,
+    "fields": [],
+    "sensitive": []
+   }
+  },
+  {
+   "action": "tool.set",
+   "tool": "builder",
+   "key": "mutations",
+   "value": "A:4C"
+  },
+  {
+   "action": "tool.set",
+   "tool": "builder",
+   "key": "compensatory",
+   "value": false
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "tool": {
+    "name": "builder",
+    "report": false,
+    "fields": [],
+    "sensitive": [
+     "wobble"
+    ]
+   }
+  },
+  {
+   "action": "tool.set",
+   "tool": "builder",
+   "key": "mut_out",
+   "value": "nocomp.pdb"
+  },
+  {
+   "action": "tool.click",
+   "tool": "builder",
+   "key": "write"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "tool": {
+    "name": "builder",
+    "report": true,
+    "fields": [],
+    "sensitive": []
+   }
+  },
+  {
+   "action": "tool.set",
+   "tool": "builder",
+   "key": "mut_input",
+   "value": "in.pdb"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "tool": {
+    "name": "builder",
+    "report": false,
+    "fields": [
+     "mut_out"
+    ],
+    "sensitive": []
+   }
+  },
+  {
+   "action": "tool.set",
+   "tool": "builder",
+   "key": "compensatory",
+   "value": true
+  },
+  {
+   "action": "tool.set",
+   "tool": "builder",
+   "key": "wobble",
+   "value": true
+  },
+  {
+   "action": "tool.set",
+   "tool": "builder",
+   "key": "mut_out",
+   "value": "in_mut.pdb"
+  },
+  {
+   "action": "tool.set",
+   "tool": "builder",
+   "key": "mutations",
+   "value": "A:1A"
+  },
+  {
+   "action": "tool.click",
+   "tool": "builder",
+   "key": "write"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "tool": {
+    "name": "builder",
+    "report": true,
+    "fields": [],
+    "sensitive": []
+   }
+  },
+  {
+   "action": "tool.set",
+   "tool": "builder",
+   "key": "mut_input",
+   "value": "latin1.pdb"
+  },
+  {
+   "action": "tool.click",
+   "tool": "builder",
+   "key": "check"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "tool": {
+    "name": "builder",
+    "report": true,
+    "fields": [],
+    "sensitive": []
+   }
+  },
+  {
+   "action": "tool.set",
+   "tool": "builder",
+   "key": "mut_input",
+   "value": "duplex.pdb"
+  },
+  {
+   "action": "tool.set",
+   "tool": "builder",
+   "key": "mut_out",
+   "value": "duplex.pdb"
+  },
+  {
+   "action": "tool.click",
+   "tool": "builder",
+   "key": "write"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "tool": {
+    "name": "builder",
+    "report": true,
+    "fields": [],
+    "sensitive": []
+   }
+  }
+ ],
+ "expected": {
+  "duplex.pdb": "gui/tools/builder_mutate/out/duplex.pdb",
+  "duplex_mut.pdb": "gui/tools/builder_mutate/out/duplex_mut.pdb",
+  "in_mut.pdb": "gui/tools/builder_mutate/out/in_mut.pdb",
+  "nocomp.pdb": "gui/tools/builder_mutate/out/nocomp.pdb",
+  "p.mdatk.toml": "gui/tools/builder_mutate/out/p.mdatk.toml"
+ },
+ "log": [
+  "Structure builder: wrote duplex.pdb",
+  "Structure builder: wrote duplex_mut.pdb",
+  "Structure builder: wrote nocomp.pdb",
+  "Structure builder: wrote in_mut.pdb"
+ ],
+ "outcome": {
+  "snapshots": [
+   {
+    "action": 6,
+    "tool": {
+     "name": "builder",
+     "open": true,
+     "values": {
+      "mut_out": "duplex_mut.pdb"
+     },
+     "sensitive": {
+      "check": true,
+      "wobble": true
+     }
+    }
+   },
+   {
+    "action": 9,
+    "tool": {
+     "name": "builder",
+     "open": true,
+     "report": "A:3 -> G: C\nB:20 -> C: NOT FOUND"
+    }
+   },
+   {
+    "action": 12,
+    "tool": {
+     "name": "builder",
+     "open": true,
+     "report": "Wrote duplex_mut.pdb\n\nA:3 C->G (C -> G, glycosidic-frame fit 0.11 Å)\nB:6 G->C (G -> C, glycosidic-frame fit 0.11 Å) - compensatory, compensates A:3 G\nMutated 2 residue(s)"
+    }
+   },
+   {
+    "action": 15,
+    "tool": {
+     "name": "builder",
+     "open": true,
+     "report": "ERROR: cannot read mutation 'Z9' (expected e.g. A:5G - chain, residue number, new base)"
+    }
+   },
+   {
+    "action": 18,
+    "tool": {
+     "name": "builder",
+     "open": true,
+     "sensitive": {
+      "wobble": false
+     }
+    }
+   },
+   {
+    "action": 21,
+    "tool": {
+     "name": "builder",
+     "open": true,
+     "report": "Wrote nocomp.pdb\n\nA:4 A->C (A -> C, glycosidic-frame fit 0.11 Å)\nMutated 1 residue(s)"
+    }
+   },
+   {
+    "action": 23,
+    "tool": {
+     "name": "builder",
+     "open": true,
+     "values": {
+      "mut_out": "nocomp.pdb"
+     }
+    }
+   },
+   {
+    "action": 29,
+    "tool": {
+     "name": "builder",
+     "open": true,
+     "report": "Wrote in_mut.pdb\n\nA:1: no Watson-Crick / G·U partner in the input; no compensatory change\nA:1 G->A (G -> A, glycosidic-frame fit 0.01 Å)\nMutated 1 residue(s)"
+    }
+   },
+   {
+    "action": 32,
+    "tool": {
+     "name": "builder",
+     "open": true,
+     "report": "ERROR: 'utf-8' codec can't decode byte 0xc8 in position 14: invalid continuation byte"
+    }
+   },
+   {
+    "action": 36,
+    "tool": {
+     "name": "builder",
+     "open": true,
+     "report": "The output must not overwrite the input file."
+    }
+   }
+  ]
+ },
+ "mdatk": {
+  "expected": {
+   "duplex.pdb": "gui/tools/builder_mutate/mdatk/duplex.pdb",
+   "duplex_mut.pdb": "gui/tools/builder_mutate/mdatk/duplex_mut.pdb",
+   "nocomp.pdb": "gui/tools/builder_mutate/mdatk/nocomp.pdb"
+  },
+  "snapshots": [
+   {
+    "action": 6,
+    "tool": {
+     "name": "builder",
+     "open": true,
+     "values": {
+      "mut_out": "duplex_mut.pdb"
+     },
+     "sensitive": {
+      "check": true,
+      "wobble": true
+     }
+    }
+   },
+   {
+    "action": 9,
+    "tool": {
+     "name": "builder",
+     "open": true,
+     "report": "A:3 -> G: C\nB:20 -> C: NOT FOUND"
+    }
+   },
+   {
+    "action": 12,
+    "tool": {
+     "name": "builder",
+     "open": true,
+     "report": "Wrote duplex_mut.pdb\n\nA:3 C->G (C -> G, glycosidic-frame fit 0.11 Å)\nB:6 G->C (G -> C, glycosidic-frame fit 0.11 Å) - compensatory, compensates A:3 G\nMutated 2 residue(s)"
+    }
+   },
+   {
+    "action": 15,
+    "tool": {
+     "name": "builder",
+     "open": true,
+     "report": "ERROR: cannot read mutation 'Z9' (expected e.g. A:5G - chain, residue number, new base)"
+    }
+   },
+   {
+    "action": 18,
+    "tool": {
+     "name": "builder",
+     "open": true,
+     "sensitive": {
+      "wobble": false
+     }
+    }
+   },
+   {
+    "action": 21,
+    "tool": {
+     "name": "builder",
+     "open": true,
+     "report": "Wrote nocomp.pdb\n\nA:4 A->C (A -> C, glycosidic-frame fit 0.11 Å)\nMutated 1 residue(s)"
+    }
+   },
+   {
+    "action": 23,
+    "tool": {
+     "name": "builder",
+     "open": true,
+     "values": {
+      "mut_out": "nocomp.pdb"
+     }
+    }
+   },
+   {
+    "action": 29,
+    "tool": {
+     "name": "builder",
+     "open": true,
+     "report": "Wrote in_mut.pdb\n\nA:1: no Watson-Crick / G·U partner in the input; no compensatory change\nA:1 G->A (G -> A, glycosidic-frame fit 0.01 Å)\nMutated 1 residue(s)"
+    }
+   },
+   {
+    "action": 32,
+    "tool": {
+     "name": "builder",
+     "open": true,
+     "report": "Wrote in_mut.pdb\n\nA:1: no Watson-Crick / G·U partner in the input; no compensatory change\nA:1 G->A (G -> A, glycosidic-frame fit 0.01 Å)\nMutated 1 residue(s)"
+    }
+   },
+   {
+    "action": 36,
+    "tool": {
+     "name": "builder",
+     "open": true,
+     "report": "The output must not overwrite the input file."
+    }
+   }
+  ],
+  "uncaught": [
+   {
+    "action": 31,
+    "error": "UnicodeDecodeError: 'utf-8' codec can't decode byte 0xc8 in position 14: invalid continuation byte"
+   }
+  ]
+ }
+}

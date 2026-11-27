@@ -1989,6 +1989,7 @@ which MDATK version's design it follows, and how it is tested.
 | PV-01 ... PV-03 | problems as you type | 01 checked as you type, 02 badges and the problems list, 03 the widgets' own problems |
 | PG-01 ... PG-06 | Structure view and Outputs pages | 01 rotation sliders, 02 chart format boxes, 03 chart styles, 04 density buttons (D2), 05 texts for the side bar, 06 a focused field destroyed |
 | GP-01 ... GP-05 | Input, Residue groups and Analyses pages | 01 renames cascade, 02 removed groups in use, 03 Groups from chains (D15), 04 Pick colour and the swatch, 05 texts naming MDAnalysis or Barnaba |
+| TW-01 ... TW-08 | the PDB clean-up and structure builder windows (milestone 6) | 01 hosted tools in the Workflow menu (D1), 02 *Check* of a file that is not UTF-8, 03 a cancelled fit, 04 closing during a build, 05 annotation engines without Barnaba, 06 a missing reference PDB named, 07 the other pairings pending (W2-A), 08 paths and files as the platform and the command line have them |
 | JB-01 ... JB-04 | jobs and the log | 01 closing asks and waits, 02 the log never floods, 03 Copy / Save / dark styles, 04 failures |
 | WA-01 ... WA-09 | the window's actions | 01 job buttons while a job runs, 02 what blocks a job (D7), 03 Open video, 04 Inspect system, 05 cleaned files shown, 06 the desktop through Qt, 07 the still fits the screen, 08 Centre on model, 09 run citations |
 | LE-01 ... LE-10 | the canvas and the Layout & panels page | 01 the structure panel as the 3D view, 02 no drawing on the interface thread, 03 one drag one undo step, 04 MDATK's angles, 05 AP-07 ... AP-10 on the page, 06 data labels, 07 titles follow renames, 08 no frame announcement, 09 MDATK's pointer positions, 10 wheel bursts |
@@ -2194,10 +2195,11 @@ lines) and the suggested file names (`<project_name or MDATK>.mdatk.toml`,
   (`citationText`), with *Copy citations*, *Export BibTeX…* and *Graphics…*; *Citations…* shows the
   same text with *Copy*, *Copy as JSON* (the `citations --json` form) and *Export BibTeX…*. The texts
   are selectable (MDATK 0.1.0). *Tested:* `WindowTests::citations`, `aboutAndGraphics`.
-- **WN-08: shells (D2).** The *Workflow* menu's Project Planner, Script wizard, PDB clean-up and
-  Structure builder are present but disabled with a tooltip naming their milestone (Cancel is
-  enabled while a job runs; the demo runs as a job; *Render*, *Open output folder* and *Open video*
-  are the window's actions, WA-xx). *Tested:* `workflowShells`, `demoProject`, `closingDuringAJob`.
+- **WN-08: shells (D2).** The *Workflow* menu's Project Planner and Script wizard are present but
+  disabled with a tooltip naming their milestone (7); the PDB clean-up and the structure builder
+  work since milestone 6 (TW-01) (Cancel is enabled while a job runs; the demo runs as a job;
+  *Render*, *Open output folder* and *Open video* are the window's actions, WA-xx). *Tested:*
+  `workflowShells`, `demoProject`, `closingDuringAJob`.
 - **WN-09: what the start says (AP-12).** As MDATK 0.1.0: the window logs the error (the log
   unfolded) and names it in the status bar, besides MDATK's stderr line; no dialog. Warnings of the
   file read at the start (unknown keys, D9) go to stderr as MDATK's do (its log handler is attached
@@ -2710,6 +2712,80 @@ a render leave no video and no temporary file (`cancelMidRender`, `closeDuringRe
 the smoke test `smokeDemoFromWindow` (Create demo system…, Ctrl+R, the 120-frame 1080p video probed,
 charts, PDBs and the params log written). Screenshots of the result dialogs are CI artifacts
 (`result-*.png`).
+
+## Interface: the PDB clean-up and structure builder windows (src/app/gui/tools; milestone 6 W3-B)
+
+MDATK v0.0.4.1's `PDBToolsWindow` and `BuilderWindow` (`mdatk/gui/pdbdialog.py`,
+`builderdialog.py`): the same forms, defaults, sensitivity rules, suggested output names
+(`<input>_clean.pdb`, `_mut`, `_fit`), messages, reports and step-log entries (MDATK's window titles,
+no command line), Watson-Crick helices and mutations built at once, the fitted pairings and the
+density fit on a worker thread with the progress bar (the fit with *Cancel fit*). Their work is
+`tools/tool_actions.cpp`, the chem library's calls of the command line (`chem::clean`, `annotate`,
+`check`, `buildHelix`, `mutate`, `fitToMap`), so a window writes what `mdbridge pdb clean` / `build
+helix` / `build mutate` / `build fit` write for the same options, with the chemistry's differences
+(CH-xx, CHD-xx, D13) included. Controls are named `<tool>.<key>` after MDATK's attributes and
+follow the analysis window's keyboard rules (WN-13: every control named and reachable with Tab, in
+the form's order; value widgets ignore the wheel unless focused, as MDATK 0.0.4's); the forms fit
+their 520 px column at 100, 150 and 200 % (WN-11). Deliberate differences:
+
+- **TW-01: hosted tools in the Workflow menu (owner decision D1).** The windows know only a small
+  host interface (`tools/host.hpp`: the project document, the project file that logs the steps, the
+  log, messages, Save, the questions), MDATK 0.1.1's `gui/host.py` (0.0.11), which the analysis
+  window implements (`MainWindowHost`); the menu entries open one window of each (shown again when
+  open; closing deletes it, as MDATK's destroy handler). Milestone 7 moves them into the `rnado`
+  program with its host (0.1.1 titles them "… · RNAdo" there); the planner and the wizard stay
+  disabled until then. *Why:* M6 plan D1 / risk 8: the layout is built once. *Tested:*
+  `ToolTests::menuOpensTheTools`, `hostedWithoutTheAnalysisWindow` (a host that is not the analysis
+  window, with and without a project file), the GUI cases `tests/data/gui/tools/*`
+  (`pdb_tools_check_and_clean` is MDATK's `test_pdb_tools_window_checks_and_cleans` as an action
+  script), `ToolTests::pdbToolsWindowChecksAndCleans` (that test's counterpart),
+  `pdbCleanWritesWhatTheCommandWrites`, `builderHelixWritesWhatTheCommandWrites`,
+  `mutateAndFitWriteWhatTheCommandsWrite` (byte-equal files), `everyControlIsNamedAndReachable`,
+  `tabOrderFollowsTheForm`, `formsFitTheirColumn` (ctest `gui.tools`, `gui.tools.scale150`,
+  `scale200`).
+- **TW-02: *Check* reports a file that is not UTF-8 text.** v0.0.4.1's *Check input* and the
+  builder's *Check* of the *Mutate* page caught only OSError and PDBError: a Latin-1 file ended in a
+  UnicodeDecodeError in the button's handler, and the report kept its previous text. As MDATK 0.1.0
+  (`except (OSError, ValueError)`), the report says `ERROR: 'utf-8' codec can't decode byte 0xc8 in
+  position 14: invalid continuation byte`. *Tested:* `gui/tools/pdb_tools_errors`,
+  `gui/tools/builder_mutate` (MDATK's uncaught error under `mdatk`).
+- **TW-03: a cancelled density fit is logged as cancelled.** v0.0.4.1 reported Cancel as `ERROR:
+  density fit: cancelled` and logged the step as failed. As MDATK 0.0.13 (0.1.1's `_user_cancel`):
+  `Cancelled: the density fit stopped, nothing was written.`, the step logged `cancelled` without
+  files; a Cancel pressed while the fit returns also writes nothing. *Tested:*
+  `ToolTests::fitCancelIsLoggedAsCancelled`.
+- **TW-04: closing the builder during a build asks and waits (JB-01).** MDATK cancelled the worker
+  and destroyed the window at once; the worker's result then reached a window that was gone.
+  MDBridge asks (*Cancel it and close* / Cancel) and waits for the build to stop, as the analysis
+  window does for its jobs. *Tested:* `ToolTests::closingDuringABuildAsks`.
+- **TW-05: the annotation engines as MDBridge has them (CH-14).** MDATK's drop-down offered Barnaba
+  ("- not installed" when missing) and said "install it with pip"; MDBridge has no Barnaba, so
+  *automatic* and *Barnaba* name the builtin detector (Barnaba with its warning in the report) and
+  the stacking box says that no STACK records are written. *Tested:* the engines by the CH-14 cases of
+  the annotation (`tests/data/chem/annotate_cases.json`) and `gui/tools/pdb_tools_check_and_clean`
+  (builtin); the labels in the screenshots (`tools-pdb_tools*.png`).
+- **TW-06: a missing reference PDB is named (CH-13).** MDATK read a chain-reference name that is no
+  file as PDB text (`no ATOM/HETATM records found (not a PDB file, or the path does not exist)`);
+  the window says `ERROR: [Errno 2] No such file or directory: 'nowhere.pdb'`, as the command line.
+  *Tested:* `gui/tools/pdb_tools_errors`.
+- **TW-07: the other pairings and triplexes are offered, not built yet (W2-A).** The window offers
+  them as MDATK does and builds them on its worker thread; until the fitted helix builder lands the
+  library answers `pairing hh is built by the fitted helix builder (not available yet)`, which the
+  report shows as its `ERROR:` (the step is logged failed, as `mdbridge build helix` logs it);
+  their *Check* messages are MDATK's. Nothing in the window changes when W2-A lands
+  (`tool_actions.cpp` passes the pairing through). *Tested:*
+  `ToolTests::builderNonWcHelixBuildsInTheBackground` (MDATK's
+  `test_builder_non_wc_helix_builds_in_the_background`: the background build, the responsive window;
+  marked `PENDING(W2-A)` and skipped after checking the clean error), `gui/tools/builder_helix` (the
+  checks of hh, reverse Hoogsteen and a triplex).
+- **TW-08: paths and files as the platform and the command line have them.** The reports and log
+  lines show paths with the platform's separators (WN-12; a path picked with *Browse…* is entered
+  with them), the step log keeps the text typed; the files are written as the command line writes
+  them (`\n` line ends on every platform; MDATK's text-mode files had `\r\n` on Windows). A chain id
+  typed with a comma stays one id (MDATK passes the ids as a tuple: "chain ids must be single
+  characters"). The fit case's coordinates are compared within 0.01 Å of MDATK's (D10's fit
+  agreement; `fitted` in the case). *Tested:* `ToolTests::builderHelixWritesWhatTheCommandWrites`,
+  `gui/tools/builder_fit`.
 
 ## Interface: the canvas and the Layout & panels page (src/app/gui/preview_widget.cpp, gui/pages/layout_page.cpp; milestone 5 W2-A)
 

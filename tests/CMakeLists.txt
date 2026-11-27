@@ -478,6 +478,28 @@ if(MDBRIDGE_BUILD_APP)
     add_test(NAME gui.group_pages COMMAND mdbridge_gui_group_pages_tests)
     set_tests_properties(gui.group_pages PROPERTIES LABELS gui ENVIRONMENT "${MDBRIDGE_QT_TEST_ENVIRONMENT}")
 
+    # the PDB clean-up and structure builder windows (src/app/gui/tools, milestone 6 W3-B, D1): the
+    # Workflow menu, the host interface, MDATK's two window tests, the files equal to the commands',
+    # Cancel of a fit, closing during a build, names, Tab order, the forms fitting their column (also
+    # at 150 % and 200 %), screenshots tools-*.png (artifacts). Qt Test, offscreen.
+    add_executable(mdbridge_gui_tools_tests gui/test_tools.cpp gui/gui_harness.cpp gui/gui_harness.hpp)
+    set_target_properties(mdbridge_gui_tools_tests PROPERTIES AUTOMOC ON)
+    target_link_libraries(mdbridge_gui_tools_tests PRIVATE mdbridge_app mdbridge::commands mdbridge::chem mdbridge::io
+                          mdbridge::render_panels_vulkan Qt6::Test)
+    target_compile_definitions(mdbridge_gui_tools_tests PRIVATE MDBRIDGE_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data"
+                               MDBRIDGE_GUI_SCREENSHOT_DIR="${CMAKE_BINARY_DIR}/gui-screenshots")
+    mdbridge_target_warnings(mdbridge_gui_tools_tests)
+    add_test(NAME gui.tools COMMAND mdbridge_gui_tools_tests)
+    set_tests_properties(gui.tools PROPERTIES LABELS gui ENVIRONMENT "${MDBRIDGE_QT_TEST_ENVIRONMENT}" TIMEOUT 900)
+    foreach(scale 150 200)
+        math(EXPR scale_whole "${scale} / 100")
+        math(EXPR scale_part "${scale} % 100")
+        add_test(NAME gui.tools.scale${scale}
+                 COMMAND mdbridge_gui_tools_tests everyControlIsNamedAndReachable formsFitTheirColumn screenshots)
+        set_tests_properties(gui.tools.scale${scale} PROPERTIES LABELS gui TIMEOUT 600
+                             ENVIRONMENT "${MDBRIDGE_QT_TEST_ENVIRONMENT};QT_SCALE_FACTOR=${scale_whole}.${scale_part}")
+    endforeach()
+
     # the interface's job runner and log view (src/app/gui/jobs; Qt Test, offscreen platform): job
     # texts, one job at a time, progress throttle, cancel paths, failures, close-while-running
     # (AP-14), a bounded batched log that keeps the event loop responsive under 10^6 lines
@@ -502,7 +524,7 @@ if(MDBRIDGE_BUILD_APP)
     if(WIN32 AND MDBRIDGE_VIDEO_RUNTIME_FILES)
         foreach(gui_test mdbridge_gui_tests mdbridge_gui_forms_tests mdbridge_gui_problems_tests mdbridge_gui_pages_tests
                          mdbridge_gui_window_tests mdbridge_gui_group_pages_tests mdbridge_gui_jobs_tests
-                         mdbridge_gui_script_tests)
+                         mdbridge_gui_script_tests mdbridge_gui_tools_tests)
             add_custom_command(TARGET ${gui_test} POST_BUILD
                 COMMAND ${CMAKE_COMMAND} -E copy_if_different ${MDBRIDGE_VIDEO_RUNTIME_FILES} $<TARGET_FILE_DIR:${gui_test}>
                 VERBATIM)

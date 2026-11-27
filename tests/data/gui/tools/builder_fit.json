@@ -1,0 +1,255 @@
+{
+ "format": "mdbridge-gui-case",
+ "version": 1,
+ "description": "Structure builder: Fit to map, a local refinement of a model moved off the map it was simulated from (in the background); the inputs checked first",
+ "source": "MDATK v0.0.4.1's GTK window driven by tests/parity/make_gui_cases.py, with MDBridge's window improvements (tests/parity/improvements_gui.py)",
+ "clock": "2026-11-25T12:00:00",
+ "items": [
+  "TW-01"
+ ],
+ "mdatk_test": "",
+ "needs": [
+  "snapshot",
+  "start",
+  "tools"
+ ],
+ "canvas": {
+  "width": 960,
+  "height": 540
+ },
+ "files": {
+  "in.pdb": "gui/tools/builder_fit/in/in.pdb",
+  "model.mrc": "gui/tools/builder_fit/in/model.mrc",
+  "p.mdatk.toml": "projects/default.mdatk.toml"
+ },
+ "fitted": {
+  "in_fit.pdb": 0.01,
+  "p.mdatk.toml": 0.0
+ },
+ "start": {
+  "project": "p.mdatk.toml"
+ },
+ "actions": [
+  {
+   "action": "tool.open",
+   "tool": "builder"
+  },
+  {
+   "action": "tool.page",
+   "tool": "builder",
+   "page": "fit"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "tool": {
+    "name": "builder",
+    "report": false,
+    "fields": [],
+    "sensitive": [
+     "check",
+     "step"
+    ]
+   }
+  },
+  {
+   "action": "tool.click",
+   "tool": "builder",
+   "key": "write"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "tool": {
+    "name": "builder",
+    "report": true,
+    "fields": [],
+    "sensitive": []
+   }
+  },
+  {
+   "action": "tool.set",
+   "tool": "builder",
+   "key": "fit_input",
+   "value": "in.pdb"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "tool": {
+    "name": "builder",
+    "report": false,
+    "fields": [
+     "fit_out"
+    ],
+    "sensitive": []
+   }
+  },
+  {
+   "action": "tool.click",
+   "tool": "builder",
+   "key": "write"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "tool": {
+    "name": "builder",
+    "report": true,
+    "fields": [],
+    "sensitive": []
+   }
+  },
+  {
+   "action": "tool.set",
+   "tool": "builder",
+   "key": "fit_map",
+   "value": "model.mrc"
+  },
+  {
+   "action": "tool.set",
+   "tool": "builder",
+   "key": "fit_out",
+   "value": "in.pdb"
+  },
+  {
+   "action": "tool.click",
+   "tool": "builder",
+   "key": "write"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "tool": {
+    "name": "builder",
+    "report": true,
+    "fields": [],
+    "sensitive": []
+   }
+  },
+  {
+   "action": "tool.set",
+   "tool": "builder",
+   "key": "fit_out",
+   "value": "in_fit.pdb"
+  },
+  {
+   "action": "tool.set",
+   "tool": "builder",
+   "key": "resolution",
+   "value": 6.0
+  },
+  {
+   "action": "tool.set",
+   "tool": "builder",
+   "key": "search",
+   "value": "local"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "tool": {
+    "name": "builder",
+    "report": false,
+    "fields": [],
+    "sensitive": [
+     "step"
+    ]
+   }
+  },
+  {
+   "action": "tool.click",
+   "tool": "builder",
+   "key": "write"
+  },
+  {
+   "action": "tool.wait",
+   "tool": "builder"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "tool": {
+    "name": "builder",
+    "report": true,
+    "fields": [],
+    "sensitive": []
+   }
+  }
+ ],
+ "expected": {
+  "in_fit.pdb": "gui/tools/builder_fit/out/in_fit.pdb",
+  "p.mdatk.toml": "gui/tools/builder_fit/out/p.mdatk.toml"
+ },
+ "log": [
+  "Structure builder: wrote in_fit.pdb (density fit CC 0.991)"
+ ],
+ "outcome": {
+  "snapshots": [
+   {
+    "action": 2,
+    "tool": {
+     "name": "builder",
+     "open": true,
+     "sensitive": {
+      "check": false,
+      "step": true
+     }
+    }
+   },
+   {
+    "action": 4,
+    "tool": {
+     "name": "builder",
+     "open": true,
+     "report": "Choose an existing model PDB first."
+    }
+   },
+   {
+    "action": 6,
+    "tool": {
+     "name": "builder",
+     "open": true,
+     "values": {
+      "fit_out": "in_fit.pdb"
+     }
+    }
+   },
+   {
+    "action": 8,
+    "tool": {
+     "name": "builder",
+     "open": true,
+     "report": "Choose an existing density map first."
+    }
+   },
+   {
+    "action": 12,
+    "tool": {
+     "name": "builder",
+     "open": true,
+     "report": "The output must not overwrite the input file."
+    }
+   },
+   {
+    "action": 16,
+    "tool": {
+     "name": "builder",
+     "open": true,
+     "sensitive": {
+      "step": false
+     }
+    }
+   },
+   {
+    "action": 19,
+    "tool": {
+     "name": "builder",
+     "open": true,
+     "report": "Wrote in_fit.pdb (CC 0.991)\n\nDensity fit (local refinement) into model.mrc at 6 Å, 86 atoms: CC 0.991 (start CC 0.945)\nModel moved by a 0.2° rotation and a 0.6 Å shift of its centre"
+    }
+   }
+  ]
+ },
+ "mdatk": {}
+}

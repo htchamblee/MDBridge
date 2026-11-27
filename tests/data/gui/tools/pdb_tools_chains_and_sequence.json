@@ -1,0 +1,333 @@
+{
+ "format": "mdbridge-gui-case",
+ "version": 1,
+ "description": "PDB clean-up: chain ids assigned, CCD names with forced L, SEQRES and a FASTA file, renumbering per chain; ids per segment, split, combine and sort; a reference PDB",
+ "source": "MDATK v0.0.4.1's GTK window driven by tests/parity/make_gui_cases.py, with MDBridge's window improvements (tests/parity/improvements_gui.py)",
+ "clock": "2026-11-25T12:00:00",
+ "items": [
+  "TW-01"
+ ],
+ "mdatk_test": "",
+ "needs": [
+  "snapshot",
+  "start",
+  "tools"
+ ],
+ "canvas": {
+  "width": 960,
+  "height": 540
+ },
+ "files": {
+  "blank.pdb": "gui/tools/pdb_tools_chains_and_sequence/in/blank.pdb",
+  "in.pdb": "gui/tools/pdb_tools_chains_and_sequence/in/in.pdb",
+  "p.mdatk.toml": "projects/default.mdatk.toml"
+ },
+ "start": {
+  "project": "p.mdatk.toml"
+ },
+ "actions": [
+  {
+   "action": "tool.open",
+   "tool": "pdb_tools"
+  },
+  {
+   "action": "tool.set",
+   "tool": "pdb_tools",
+   "key": "input",
+   "value": "blank.pdb"
+  },
+  {
+   "action": "tool.set",
+   "tool": "pdb_tools",
+   "key": "chain_mode",
+   "value": "assign"
+  },
+  {
+   "action": "tool.set",
+   "tool": "pdb_tools",
+   "key": "scheme",
+   "value": "ccd"
+  },
+  {
+   "action": "tool.set",
+   "tool": "pdb_tools",
+   "key": "l_ranges",
+   "value": "B:1"
+  },
+  {
+   "action": "tool.set",
+   "tool": "pdb_tools",
+   "key": "seqres",
+   "value": true
+  },
+  {
+   "action": "tool.set",
+   "tool": "pdb_tools",
+   "key": "fasta",
+   "value": "blank.fasta"
+  },
+  {
+   "action": "tool.set",
+   "tool": "pdb_tools",
+   "key": "renumber",
+   "value": true
+  },
+  {
+   "action": "tool.set",
+   "tool": "pdb_tools",
+   "key": "per_chain",
+   "value": true
+  },
+  {
+   "action": "tool.set",
+   "tool": "pdb_tools",
+   "key": "start",
+   "value": 10
+  },
+  {
+   "action": "tool.click",
+   "tool": "pdb_tools",
+   "key": "check"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "tool": {
+    "name": "pdb_tools",
+    "report": true,
+    "fields": [],
+    "sensitive": []
+   }
+  },
+  {
+   "action": "tool.click",
+   "tool": "pdb_tools",
+   "key": "write"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "tool": {
+    "name": "pdb_tools",
+    "report": true,
+    "fields": [],
+    "sensitive": []
+   }
+  },
+  {
+   "action": "tool.set",
+   "tool": "pdb_tools",
+   "key": "output",
+   "value": "lists.pdb"
+  },
+  {
+   "action": "tool.set",
+   "tool": "pdb_tools",
+   "key": "fasta",
+   "value": ""
+  },
+  {
+   "action": "tool.set",
+   "tool": "pdb_tools",
+   "key": "chain_mode",
+   "value": "list"
+  },
+  {
+   "action": "tool.set",
+   "tool": "pdb_tools",
+   "key": "chain_ids",
+   "value": "X, Y"
+  },
+  {
+   "action": "tool.set",
+   "tool": "pdb_tools",
+   "key": "combine",
+   "value": "X,Y"
+  },
+  {
+   "action": "tool.set",
+   "tool": "pdb_tools",
+   "key": "combine_into",
+   "value": "Q"
+  },
+  {
+   "action": "tool.set",
+   "tool": "pdb_tools",
+   "key": "records",
+   "value": "pdb"
+  },
+  {
+   "action": "tool.set",
+   "tool": "pdb_tools",
+   "key": "terminals",
+   "value": false
+  },
+  {
+   "action": "tool.set",
+   "tool": "pdb_tools",
+   "key": "keep_gaps",
+   "value": true
+  },
+  {
+   "action": "tool.click",
+   "tool": "pdb_tools",
+   "key": "write"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "tool": {
+    "name": "pdb_tools",
+    "report": true,
+    "fields": [],
+    "sensitive": []
+   }
+  },
+  {
+   "action": "tool.set",
+   "tool": "pdb_tools",
+   "key": "input",
+   "value": "in.pdb"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "tool": {
+    "name": "pdb_tools",
+    "report": false,
+    "fields": [
+     "output"
+    ],
+    "sensitive": []
+   }
+  },
+  {
+   "action": "tool.set",
+   "tool": "pdb_tools",
+   "key": "output",
+   "value": "ref.pdb"
+  },
+  {
+   "action": "tool.set",
+   "tool": "pdb_tools",
+   "key": "combine",
+   "value": ""
+  },
+  {
+   "action": "tool.set",
+   "tool": "pdb_tools",
+   "key": "combine_into",
+   "value": ""
+  },
+  {
+   "action": "tool.set",
+   "tool": "pdb_tools",
+   "key": "chain_mode",
+   "value": "reference"
+  },
+  {
+   "action": "tool.set",
+   "tool": "pdb_tools",
+   "key": "reference",
+   "value": "in.pdb"
+  },
+  {
+   "action": "tool.set",
+   "tool": "pdb_tools",
+   "key": "copy_numbers",
+   "value": true
+  },
+  {
+   "action": "tool.set",
+   "tool": "pdb_tools",
+   "key": "split_at",
+   "value": "B:4"
+  },
+  {
+   "action": "tool.set",
+   "tool": "pdb_tools",
+   "key": "sort_chains",
+   "value": true
+  },
+  {
+   "action": "tool.set",
+   "tool": "pdb_tools",
+   "key": "renumber",
+   "value": false
+  },
+  {
+   "action": "tool.click",
+   "tool": "pdb_tools",
+   "key": "write"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "tool": {
+    "name": "pdb_tools",
+    "report": true,
+    "fields": [],
+    "sensitive": []
+   }
+  }
+ ],
+ "expected": {
+  "blank.fasta": "gui/tools/pdb_tools_chains_and_sequence/out/blank.fasta",
+  "blank_clean.pdb": "gui/tools/pdb_tools_chains_and_sequence/out/blank_clean.pdb",
+  "lists.pdb": "gui/tools/pdb_tools_chains_and_sequence/out/lists.pdb",
+  "p.mdatk.toml": "gui/tools/pdb_tools_chains_and_sequence/out/p.mdatk.toml",
+  "ref.pdb": "gui/tools/pdb_tools_chains_and_sequence/out/ref.pdb"
+ },
+ "log": [
+  "PDB clean-up: wrote blank_clean.pdb",
+  "PDB clean-up: wrote lists.pdb",
+  "PDB clean-up: wrote ref.pdb"
+ ],
+ "outcome": {
+  "snapshots": [
+   {
+    "action": 11,
+    "tool": {
+     "name": "pdb_tools",
+     "open": true,
+     "report": "blank.pdb: 2 TER segment(s), 0 CONECT record(s)\n\nChain _: 4 residues (1-2), names A C G U; chirality 4 D\n  GCAU\n\nChirality (sugar geometry): 0 L and 4 D nucleotides, 0 forced L by ranges\nWARNING: the L ranges match no nucleotide"
+    }
+   },
+   {
+    "action": 13,
+    "tool": {
+     "name": "pdb_tools",
+     "open": true,
+     "report": "Wrote blank_clean.pdb\nWrote blank.fasta\n\nAssigned chain ids A, B to 2 TER segments\nChirality (sugar geometry): 1 L and 3 D nucleotides, 1 forced L by ranges\nWARNING: forced L although the sugar geometry is D: B:1 A (C4' -2.57, C3' +2.58, C1' -2.47)\nRenamed 1 residues to the ccd scheme: A->0A x1\n5'-terminal L residues with a 5'-phosphate keep the CCD component names (0A ..., which include P/OP1/OP2/OP3; the 5' variants 0A5 ... have a 5'-OH): B:1 A\nRenumbered residues per chain from 10\nWrote SEQRES records for 2 chain(s)"
+    }
+   },
+   {
+    "action": 24,
+    "tool": {
+     "name": "pdb_tools",
+     "open": true,
+     "report": "Wrote lists.pdb\n\nAssigned chain ids X, Y to 2 TER segments\nChirality (sugar geometry): 0 L and 4 D nucleotides, 0 forced L by ranges\nWARNING: the L ranges match no nucleotide\nCombined chains X, Y into chain Q (4 residues)\nWARNING: chain Q now has duplicate residue numbers (1, 2); renumber the residues\nResidue names already follow the ccd scheme\nRenumbered residues per chain from 10 (gaps kept)\nWARNING: 1 residues out of order; numbered sequentially there\nWrote SEQRES records for 1 chain(s)"
+    }
+   },
+   {
+    "action": 26,
+    "tool": {
+     "name": "pdb_tools",
+     "open": true,
+     "values": {
+      "output": "lists.pdb"
+     }
+    }
+   },
+   {
+    "action": 37,
+    "tool": {
+     "name": "pdb_tools",
+     "open": true,
+     "report": "Wrote ref.pdb\n\nRestored chain ids and residue numbers of 4 residues from the reference (chains A, B)\nChirality (sugar geometry): 2 L and 2 D nucleotides, 0 forced L by ranges\nWARNING: the L ranges match no nucleotide\nSplit chain B at residue 4: the rest is chain C\nResidue names already follow the ccd scheme\nRecord policy pdb: 0G->HETATM x1, 0U->HETATM x1\nWrote SEQRES records for 3 chain(s)"
+    }
+   }
+  ]
+ },
+ "mdatk": {}
+}

@@ -41,6 +41,10 @@ struct GuiCase {
     core::Array actions;                                         // tables with "action"
     std::vector<std::pair<std::string, std::string>> expected;  // case-folder name, path under the data folder
     std::vector<std::string> needs;                              // "needs": features beyond this harness (W0-A cases)
+    // "fitted": expected files whose decimal numbers (a density fit's coordinates, CCs, angles) are
+    // compared within one unit of their last printed digit or the file's tolerance (D10: a fit
+    // agrees within 0.5° and 0.2 Å; the case asks for less), the rest of the text exactly
+    std::vector<std::pair<std::string, double>> fitted;
     std::string start;                       // "start.project": the file the window starts with ("" none)
     std::string settings;                    // "settings": settings.toml before the start (path under tests/data)
     std::optional<std::vector<std::string>> log;  // "log": the log lines expected
@@ -60,7 +64,8 @@ std::vector<std::filesystem::path> findCases(const std::filesystem::path& dir);
 // Reads a case file; `name` is its path relative to `casesDir`. Throws CaseError.
 GuiCase loadCase(const std::filesystem::path& file, const std::filesystem::path& casesDir);
 
-// The project file clock fixed at `start`, one second further on every reading, while it lives.
+// The project file clock fixed at `start`, one second further on every reading, while it lives;
+// the monotonic clock stands still (a logged step's duration_s is 0.0, as the generator's).
 class FixedClock {
 public:
     explicit FixedClock(const core::DateTime& start);
@@ -130,6 +135,9 @@ std::string normalise(std::string text, const std::filesystem::path& caseDir);
 
 // "" when equal, else where the texts first differ ("line 12: expected ... got ...").
 std::string compareText(const std::string& actual, const std::string& expected);
+// compareText, but decimal numbers within one unit of their last printed digit or `tolerance`
+// (same digit count; the spaces before a number may differ with its sign, as in PDB columns).
+std::string compareFittedText(const std::string& actual, const std::string& expected, double tolerance = 0.0);
 
 // The window's questions, messages and terminal lines during a case: each recorded with the index
 // of the action that caused it (-1: the start), questions answered from the action's "answers"
@@ -181,6 +189,10 @@ private:
     void waitForPreview();
     void snapshot(const core::Value& action);
     void canvasAction(const core::Value& action, const std::string& what);
+    // "tool.open" / "tool.set" / "tool.click" / "tool.page" / "tool.wait" on the PDB clean-up and
+    // structure builder windows (milestone 6 W3-B), and a snapshot's "tool" record.
+    void toolAction(const core::Value& action, const std::string& what);
+    core::Value toolSnapshot(const core::Value& spec) const;
     QStringList dialogAnswer(const app::forms::FileDialogRequest& request) const;
 
     app::MainWindow& m_window;

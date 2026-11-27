@@ -68,6 +68,17 @@ add_library(mdbridge_app STATIC
     gui/problems/problems_panel.hpp
     gui/script_runner.cpp
     gui/script_runner.hpp
+    gui/tools/builder_window.cpp
+    gui/tools/builder_window.hpp
+    gui/tools/host.hpp
+    gui/tools/pdb_tools_window.cpp
+    gui/tools/pdb_tools_window.hpp
+    gui/tools/tool_actions.cpp
+    gui/tools/tool_actions.hpp
+    gui/tools/tool_window.cpp
+    gui/tools/tool_window.hpp
+    gui/tools/tool_windows.cpp
+    gui/tools/tool_windows.hpp
     project_summary.cpp
     project_summary.hpp
     pubchem_qt.cpp
@@ -78,7 +89,7 @@ set_target_properties(mdbridge_app PROPERTIES AUTOMOC ON)
 target_include_directories(mdbridge_app PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 target_link_libraries(mdbridge_app
     PUBLIC mdbridge::core mdbridge::render Qt6::Widgets
-    PRIVATE Qt6::Network mdbridge::analysis mdbridge::commands mdbridge::io mdbridge::numerics mdbridge::render_panels mdbridge::render_panels_vulkan
+    PRIVATE Qt6::Network mdbridge::analysis mdbridge::chem mdbridge::commands mdbridge::io mdbridge::numerics mdbridge::render_panels mdbridge::render_panels_vulkan
             mdbridge::video CLI11::CLI11)
 mdbridge_target_warnings(mdbridge_app)
 

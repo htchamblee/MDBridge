@@ -182,6 +182,11 @@ FLOAT_TOLERANCE = 1e-12
 FITTED = {f"tests/data/chem/{n}" for n in ("annotate_cases.json", "dict_cases.json", "builder_cases.json",
                                             "builder_fitted_cases.json", "density_fit_cases.json")}
 FITTED_TOLERANCE = 1e-6
+# Texts with fitted numbers (milestone 6 W3-B: the structure builder window's density fit, Powell's
+# path through BLAS dot products): where their bytes differ, compared as FITTED strings (decimal
+# numbers within one unit of their last printed digit, the rest equal); the GUI harness compares the
+# case's "fitted" files the same way.
+FITTED_TEXT = {f"tests/data/gui/tools/builder_fit{n}" for n in (".json", "/out/in_fit.pdb", "/out/p.mdatk.toml")}
 DECIMAL_RE = re.compile(r"-?\d+\.(\d+)")
 HEX_FLOAT_RE = re.compile(r"^-?0x[0-9a-f]\.[0-9a-f]+p[+-][0-9]+$")  # float.hex() of a finite float
 # Pinning does not give the reference machine's bits on every CI runner. On one (CI run 45898985841,
@@ -439,9 +444,10 @@ STEPS = [
          [f"{DATA}/gui/harness"]),
     # milestone 5: MDATK's GTK window driven by action scripts (W0-A; under Xvfb, which it starts
     # when DISPLAY is unset): open / save of the projects above, per page edits, the AP items, canvas
-    # actions on the demo files; reads the committed MDATK 0.1.1 file when mdatk_latest was skipped
+    # actions on the demo files; milestone 6 W3-B: the PDB clean-up and structure builder windows
+    # (tools); reads the committed MDATK 0.1.1 file when mdatk_latest was skipped
     Step("gui", "tests/parity/make_gui_cases.py", lambda ctx: [M(ctx), d(ctx)],
-         [f"{DATA}/gui/{topic}" for topic in ("roundtrip", "pages", "ap", "canvas")], gui=True,
+         [f"{DATA}/gui/{topic}" for topic in ("roundtrip", "pages", "ap", "canvas", "tools")], gui=True,
          before=copy_committed(f"{DATA}/project-file/mdatk-0.1.1/plan.mdatk.toml")),
 ]
 
@@ -911,6 +917,11 @@ def main(argv=None) -> int:
                 tolerated.append((rel, why))
                 continue
             print(f"(fitted {rel}: beyond the chem tolerance at {why})")
+        elif rel in FITTED_TEXT:
+            if _strings_close(old.decode("utf-8"), new.decode("utf-8")):
+                tolerated.append((rel, "decimals within their last printed digit"))
+                continue
+            print(f"(fitted {rel}: decimals beyond their last printed digit)")
         elif rel == CLI_CASES and other_kernels:
             ok, why = cli_closures_equal(normalised(rel, old), normalised(rel, new))
             if ok:
@@ -933,7 +944,7 @@ def main(argv=None) -> int:
               f"{KERNEL_PROBE} differ); path-dependent results ({', '.join(sorted(PATH_DEPENDENT))}) are "
               f"compared without the numbers their path decides (regenerate_all.py KERNEL_PROBE)")
     for rel, why in tolerated:
-        within = ("numbers within the chem tolerance (FITTED)" if rel in FITTED
+        within = ("numbers within the chem tolerance (FITTED)" if rel in FITTED or rel in FITTED_TEXT
                   else "the other kernels' structure check (OTHER KERNELS)" if rel == CLI_CASES
                   else f"numbers within {FLOAT_TOLERANCE:g}")
         print(f"TOLERATED    {rel}: not byte-identical on this CPU (machine-dependent), {within}; {why}")

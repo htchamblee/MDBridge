@@ -1047,6 +1047,7 @@ its case folder and names it.
 |---|---|---|
 | `harness/` | `open_save_default`: the default project (`projects/default.mdatk.toml`) opened and saved unchanged, and the file MDBridge's window writes for that: MDATK v0.0.4.1's (its window's Open and Save without edits are `Project.load` + `Project.save`; checked once against the GTK window itself under Xvfb: same bytes) with the paths kept as written (AP-06, D8: `improvements_gui.load_as_written`; MDATK writes `out_dir` absolute) | `python3 -I -B tests/parity/make_gui_harness_cases.py <MDATK checkout> tests/data` |
 | `roundtrip/`, `pages/`, `ap/`, `canvas/` | MDATK's GTK window driven by action scripts with MDBridge's window fixes (next section): open / save of the projects, edits of every page, the AP items, canvas drags, swaps, wheel zoom and map moves | `python -I -B tests/parity/make_gui_cases.py <MDATK checkout> tests/data` (step `gui`) |
+| `tools/` | the same for the Workflow menu's PDB clean-up and structure builder windows (milestone 6 W3-B, D1; "gui: the tool windows" below): Check and Write of every page, the files and step-log entries they write, their reports and messages | the same command (step `gui`) |
 
 ### gui: the per-page, AP and canvas cases (milestone 5, W0-A)
 
@@ -1066,7 +1067,7 @@ lacks something a case `needs` skips the case and names what is missing):
 | `clock` | always set: every case starts at `2026-11-25T12:00:00` (MDATK reads the clock once per save) |
 | `items` | ids the case covers (`AP-01`, `D8` ...; `[]`: plain parity with MDATK) |
 | `mdatk_test` | the MDATK test (`tests/test_gui.py::...`) the case mirrors, or `""` |
-| `needs` | the actions and keys of this section the case uses (`canvas`, `save_as`, `new`, `close`, `table`, `type`, `toggle`, `snapshot`, `start`, `settings`, `answers`; `open_failure` when an `open` is expected to fail), so a runner can skip what it does not have yet (`mdbridge_gui_tests` runs them all, below) |
+| `needs` | the actions and keys of this section the case uses (`canvas`, `save_as`, `new`, `close`, `table`, `type`, `toggle`, `snapshot`, `start`, `settings`, `answers`, `tools`; `open_failure` when an `open` is expected to fail), so a runner can skip what it does not have yet (`mdbridge_gui_tests` runs them all, below) |
 | `canvas` | `{"width": W, "height": H}`: the figure canvas widget's size in pixels (device pixel ratio 1); the figure is drawn at `scale = min(W / video.width, H / video.height)`, `int(video.width * scale)` x `int(video.height * scale)` pixels at `video.dpi * scale`, centred |
 | `settings` | path under tests/data of `$XDG_CONFIG_HOME/mdatk/settings.toml` before the start (`{case_dir}` in it: the case folder), or absent: no such file (D16, AP-17) |
 | `start` | `{"project": name}`: the window is started with `{case_dir}/name` (as `gui PATH`), before the first action; absent: started without a project |
@@ -1148,7 +1149,8 @@ on (MDATK's `... ready.` line left out; `{case_dir}` for the case folder); MDATK
 | `settings` | path under tests/data of the expected settings file afterwards (absent: none) |
 
 Files are compared as text; snapshot values that come from the canvas (rotation, zoom, density
-placement) within 1e-9 relative, everything else exactly. The generator needs GTK 3 with its
+placement) within 1e-9 relative, everything else exactly (but the case's `fitted` files, below).
+The generator needs GTK 3 with its
 introspection data, PyGObject and pycairo for its Python (pinned in
 `tests/parity/requirements-gui.txt`, built against the system's GTK: `libgirepository-2.0-dev`,
 `libcairo2-dev`, `gir1.2-gtk-3.0`) and Xvfb (started by the generator when `DISPLAY` is unset). It
@@ -1157,6 +1159,37 @@ runs every case twice in child processes, as MDATK and with `improvements_gui.py
 ```bash
 python -I -B tests/parity/make_gui_cases.py /tmp/mdatk tests/data
 ```
+
+### gui: the tool windows (milestone 6, W3-B)
+
+`gui/tools/` drives MDATK v0.0.4.1's PDB clean-up and structure builder windows
+(`mdatk/gui/pdbdialog.py`, `builderdialog.py`, opened from the analysis window's Workflow menu) in
+the same way; MDBridge's windows are `src/app/gui/tools` (`docs/DIFFERENCES.md` TW-xx). Before
+the first tool case the generator fixes the step log's durations (`logged()` times a step with
+`time.monotonic`: 0.0; the harness's clock stands still too) and, in the improved pass, applies
+`improvements_chem.py` (the chemistry's CH items, D13) and `improvements_gui.apply_tools` (TW-02,
+CH-13 for the windows). The cases' input files (MDATK's `test_pdbtools.make_pdb` fixtures, a map
+simulated from one) are written by the generator into `<case>/in/`. Controls are addressed by
+MDATK's attribute names (`input`, `scheme`, `renumber`, `seq`, `mut_input`, `fit_map` ...; the
+widget `<tool>.<key>` in MDBridge's windows), the tools by `pdb_tools` and `builder`:
+
+| Action | Keys | What the user does |
+|---|---|---|
+| `tool.open` | `tool` | *Workflow* -> *PDB clean-up…* / *Structure builder…* (the open window again when it is open) |
+| `tool.set` | `tool`, `key`, `value` | a text field or path entry gets `value` typed (`""` clears it), a drop-down the item whose id is `value`, a check box `true` / `false`, a spin box the number typed (only sensitive controls: as a user) |
+| `tool.click` | `tool`, `key` | presses a button: `check` (*Check input* / *Check*), `write` (*Write cleaned PDB* / *Write PDB*), `cancel` (*Cancel fit*), `close`; an insensitive or hidden button does nothing |
+| `tool.page` | `tool`, `page` | the builder's page: `helix`, `mutate`, `fit` |
+| `tool.wait` | `tool` | waits until the builder's background job (the fitted pairings, the density fit) has reported back |
+
+A `snapshot` with `tool: {"name", "report", "fields", "sensitive"}` records `outcome.snapshots[k].tool`
+= `{"name", "open", "report": the report text, "values": {key: the text, id, check state or number},
+"sensitive": {key: whether it is enabled}}` (`open: false` and nothing else once the window was
+closed). `needs` holds `tools` for these cases. `fitted` (the density fit's case): `{file:
+tolerance}`, expected files whose decimal numbers (coordinates, CCs, angles) are compared within one
+unit of their last printed digit or the tolerance in Å (D10's fit agreement is 0.5° and 0.2 Å; the
+case asks for 0.01 Å), the rest of the text exactly; `regenerate_all.py` compares the fit case's
+files across machines by the chemistry's rule (FITTED_TEXT). The non-Watson-Crick builds are not in
+the cases until the fitted builder (W2-A) lands: their *Check* messages are.
 
 ## numerics: SciPy's numerics (milestone 6, W0-C)
 
