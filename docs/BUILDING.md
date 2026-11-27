@@ -99,8 +99,9 @@ MDBRIDGE_REQUIRE_VULKAN_WINDOW=1 xvfb-run -a build/sanitize/tests/mdbridge_vulka
 - `VK_LOADER_DISABLE_DYNAMIC_LIBRARY_UNLOADING=1` keeps the Vulkan driver (lavapipe) loaded until
   the program ends. Otherwise the loader unloads it at `vkDestroyInstance`, and memory its threads
   keep for the life of the process is reported as a leak from an `<unknown module>`.
-- GCC 11's AddressSanitizer does not start when `/proc/sys/vm/mmap_rnd_bits` is above 28 (some
-  newer kernels default to 32): `sudo sysctl vm.mmap_rnd_bits=28`.
+- Some AddressSanitizer runtimes stop at start-up ("Shadow memory range interleaves with an
+  existing memory mapping") when `/proc/sys/vm/mmap_rnd_bits` is above 28, as newer kernels set;
+  Rocky 9's GCC 11 runs with 32 (CI). Where it does not: `sudo sysctl vm.mmap_rnd_bits=28`.
 - About 40 minutes to build with two jobs and 13 minutes for `ctest --parallel 4` on four cores
   (the build is RelWithDebInfo: optimised, with line numbers in the reports).
 

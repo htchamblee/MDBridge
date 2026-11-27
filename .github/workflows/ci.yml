@@ -228,8 +228,8 @@ jobs:
           # the tests' step needs a loader that reads VK_LOADER_DISABLE_DYNAMIC_LIBRARY_UNLOADING (1.3.275 does)
           grep -q VK_LOADER_DISABLE_DYNAMIC_LIBRARY_UNLOADING "$(readlink -f /usr/lib64/libvulkan.so.1)" || {
             echo "::error::this Vulkan loader unloads drivers regardless (VK_LOADER_DISABLE_DYNAMIC_LIBRARY_UNLOADING)"; exit 1; }
-          # GCC 11's AddressSanitizer fails to start with more than 28 bits of mmap randomisation
-          # (GitHub's runners set 28); printed for diagnosis
+          # some AddressSanitizer runtimes fail at start-up with more than 28 bits of mmap
+          # randomisation; Rocky 9's GCC 11 runs with the runners' 32 (CI run 45917141958). For diagnosis:
           echo "vm.mmap_rnd_bits = $(cat /proc/sys/vm/mmap_rnd_bits)"
 
       - name: Qt ${{ env.QT_VERSION }}
