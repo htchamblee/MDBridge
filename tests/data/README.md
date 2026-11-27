@@ -1066,7 +1066,7 @@ lacks something a case `needs` skips the case and names what is missing):
 | `clock` | always set: every case starts at `2026-11-25T12:00:00` (MDATK reads the clock once per save) |
 | `items` | ids the case covers (`AP-01`, `D8` ...; `[]`: plain parity with MDATK) |
 | `mdatk_test` | the MDATK test (`tests/test_gui.py::...`) the case mirrors, or `""` |
-| `needs` | the actions and keys of this section the case uses (`canvas`, `save_as`, `new`, `close`, `table`, `type`, `toggle`, `snapshot`, `start`, `settings`, `answers`; `open_failure` when an `open` is expected to fail), so a runner can skip what it does not have yet (`mdbridge_gui_tests` runs them all, below) |
+| `needs` | the actions and keys of this section the case uses (`canvas`, `save_as`, `new`, `close`, `table`, `type`, `toggle`, `snapshot`, `start`, `settings`, `answers`; `open_failure` when an `open` is expected to fail; `fitted` when the case runs a density fit, below), so a runner can skip what it does not have yet (`mdbridge_gui_tests` runs them all, below) |
 | `canvas` | `{"width": W, "height": H}`: the figure canvas widget's size in pixels (device pixel ratio 1); the figure is drawn at `scale = min(W / video.width, H / video.height)`, `int(video.width * scale)` x `int(video.height * scale)` pixels at `video.dpi * scale`, centred |
 | `settings` | path under tests/data of `$XDG_CONFIG_HOME/mdatk/settings.toml` before the start (`{case_dir}` in it: the case folder), or absent: no such file (D16, AP-17) |
 | `start` | `{"project": name}`: the window is started with `{case_dir}/name` (as `gui PATH`), before the first action; absent: started without a project |
@@ -1114,7 +1114,7 @@ Actions added or extended:
 | `set` | `key`, `value` | as above; `value` is the project value: drop-downs choose the item whose project value (item data) is `value` (ids outside the list are allowed: AP-05), spin boxes and sliders take numbers (integers for integer fields), colour buttons a colour picked (`"#rrggbb"`, or any text: AP-03), check boxes `true` / `false`, list-valued fields a list of strings (`output.charts.formats`, `visual.structure_groups`), `visual.rotation` `[x, y, z]` (the three sliders), table cells their text, slot editors their choice (`.group_a` `""` = "(analysis default)") |
 | `type` | `key`, `text` | replaces a text field's text with `text` and commits it (Enter / leaving the field): line edits, optional numbers (`inputs.stop`), comma lists, notes, table cells, the slot editors' `more`, `title`, `options` |
 | `table` | `key`, `do`, `row`, `by` | list editors (`groups`, `inputs.trajectories`, `inputs.external`, `analyses.rmsd.targets`, `visual.representations`): `"add"` (a row with the editor's defaults at the end), `"remove"` (row `row`), `"move"` (row `row` by `by` = -1 / +1) |
-| `click` | `key` | also `density.centre_on_model`, `density.clear`, `structure.reset_orientation`, `structure.reset_view` |
+| `click` | `key` | also `density.centre_on_model`, `density.clear`, `structure.reset_orientation`, `structure.reset_view`, `density.global_search` and `density.refine` (milestone 6 W3-A: the density fit job, which both sides wait for, then for the preview) |
 | `toggle` | `key`, `value` | a toggle button: `density.move_with_mouse` (map mode of the canvas) |
 | `wait` | | as above; MDATK's side presses *Load real frame* when the project's topology exists (MDBridge loads it by itself) |
 | `canvas.drag` | `from`, `path` or `to`, `shift` | press the left button at `from`, move, release. Points are `{"slot": N, "at": [fx, fy]}`: fractions of slot N's hit rectangle (the panel's drawn extent: axes, labels, colour bars; an empty slot's grid cell) from its top-left corner, y down. `path`: the motion events, each `[dx, dy]` pixels from the press point, released at the last; `to`: one motion to that point, released there. `shift`: Shift held throughout |
@@ -1148,7 +1148,14 @@ on (MDATK's `... ready.` line left out; `{case_dir}` for the case folder); MDATK
 | `settings` | path under tests/data of the expected settings file afterwards (absent: none) |
 
 Files are compared as text; snapshot values that come from the canvas (rotation, zoom, density
-placement) within 1e-9 relative, everything else exactly. The generator needs GTK 3 with its
+placement) within 1e-9 relative, everything else exactly. A case that needs `fitted` (a Global
+search or Refine: `canvas/density_fit`) compares the fit's numbers with owner decision D10's
+tolerance (milestone 6): a `density` table's `transform` within 0.5° and 0.2 Å at the model centre
+(the mean of the expected anchor points), `fit_cc` within 1e-3, and its `fit_info`, the
+`density_status` and the log lines with every number written with a decimal point within one unit
+of its last printed digit (whole numbers exactly); a written project file's `[density]` table is
+compared that way and the rest of its text byte for byte (the `transform`, `fit_cc` and `fit_info`
+lines left out of the text comparison). The generator needs GTK 3 with its
 introspection data, PyGObject and pycairo for its Python (pinned in
 `tests/parity/requirements-gui.txt`, built against the system's GTK: `libgirepository-2.0-dev`,
 `libcairo2-dev`, `gir1.2-gtk-3.0`) and Xvfb (started by the generator when `DISPLAY` is unset). It

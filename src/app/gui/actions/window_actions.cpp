@@ -19,6 +19,7 @@
 #include <QStringList>
 
 #include "commands.hpp"
+#include "density_pipeline.hpp"
 #include "gui/dialogs/image_dialog.hpp"
 #include "gui/display_path.hpp"
 #include "gui/forms/form_context.hpp"
@@ -67,6 +68,20 @@ QString display(const fs::path& path) { return gui::displayPath(generic(path)); 
 struct Rerendered {
     std::vector<std::string> files;
     std::optional<std::string> video;
+};
+
+// What a render job gives the window: its result and the density settings after it (a placement
+// an automatic fit stored, MDATK's _adopt_auto_fit).
+template <class T>
+struct WithDensity {
+    T result;
+    core::DensityParams density;
+};
+
+// What the density fit job gives the window.
+struct DensityFitted {
+    core::DensityParams density;  // the placement stored by fitDensity
+    bool cleanedAnew = false;     // the fit cleaned the inputs (new cleaned files the preview has not shown)
 };
 
 }  // namespace
@@ -123,6 +138,9 @@ void WindowActions::connectPages() {
             runner.addBusy(outputs->rerenderButton());
         } else if (auto* structure = qobject_cast<pages::StructurePage*>(page.widget)) {
             connect(structure, &pages::StructurePage::centreOnModelRequested, this, [this] { centreOnModel(); });
+            connect(structure, &pages::StructurePage::fitRequested, this, [this](const QString& search) { fitDensity(search); });
+            runner.addBusy(structure->globalSearchButton());  // MDATK's busy widgets
+            runner.addBusy(structure->refineButton());
         }
         // the Layout page's Render still (milestone 5 W2-A), connected by name
         const QMetaObject* meta = page.widget->metaObject();
@@ -189,9 +207,11 @@ bool WindowActions::render() {
             RenderPipeline pipeline(analyses, *backend, file);
             RunOutputs outputs = pipeline.run(std::nullopt, std::nullopt, std::nullopt, false);
             outputs.dataset.reset();  // not needed by the window
-            return outputs;
+            return WithDensity<RunOutputs>{std::move(outputs), analyses.project().density};
         },
-        [this](RunOutputs outputs) {
+        [this](WithDensity<RunOutputs> done) {
+            adoptAutoFit(done.density);
+            const RunOutputs& outputs = done.result;
             if (outputs.video) m_lastVideo = core::pathFromUtf8(*outputs.video);
             QStringList lines;
             if (outputs.video) lines.push_back(QStringLiteral("Video: %1").arg(display(core::pathFromUtf8(*outputs.video))));
@@ -220,10 +240,12 @@ bool WindowActions::renderStill(int frame) {
             const core::Reporter sub = reporter.sub(0.0, 0.9);
             const core::Dataset dataset = analyses.analyze(analyses.requiredAnalyses(true, false), false, &sub);
             const std::size_t last = dataset.frameCount() > 0 ? dataset.frameCount() - 1 : 0;
-            return pipeline.renderPreview(dataset, std::min(pos, last), core::pathToUtf8(stillPath()));
+            std::string written = pipeline.renderPreview(dataset, std::min(pos, last), core::pathToUtf8(stillPath()));
+            return WithDensity<std::string>{std::move(written), analyses.project().density};
         },
-        [this](std::string written) {
-            const QString path = qs(written);
+        [this](WithDensity<std::string> done) {
+            adoptAutoFit(done.density);
+            const QString path = qs(done.result);
             auto* dialog = new ImageDialog(&m_window, path);
             m_still = dialog;
             dialog->show();
@@ -471,6 +493,68 @@ void WindowActions::centreOnModel() {
     m_window.document().edit("Centre the map on the model", [&](core::Project& p) {
         render::panels::storeDensityPlacement(p.density, transform, points, "Centred on the model (not fitted).");
     });
+}
+
+// ---- the density fit (milestone 6 W3-A) ----------------------------------------------------------
+
+bool WindowActions::storeFit(const core::DensityParams& fitted, const std::string& label) {
+    // a placement belongs to one map: the settings may name another one by now (WF-02)
+    std::string current;
+    try {
+        current = m_window.document().resolvedProject().density.map_path;
+    } catch (const std::exception&) {
+        current = m_window.document().project().density.map_path;
+    }
+    if (current != fitted.map_path) {
+        m_window.appendLog(QStringLiteral("WARNING: the density map file was changed during the fit; the placement "
+                                          "found for %1 was not stored")
+                               .arg(qs(core::pathBasename(fitted.map_path))));
+        return false;
+    }
+    m_window.document().edit(label, [&fitted](core::Project& p) {
+        // MDATK's _store_density_result
+        p.density.transform = fitted.transform;
+        p.density.anchor = fitted.anchor;
+        p.density.fit_cc = fitted.fit_cc;
+        p.density.fit_info = fitted.fit_info;
+    });
+    return true;
+}
+
+void WindowActions::adoptAutoFit(const core::DensityParams& fitted) {
+    const core::DensityParams& d = m_window.document().project().density;
+    if (fitted.transform.size() != 12 || fitted.transform == d.transform) return;
+    if (storeFit(fitted, "Density map placement stored")) {
+        m_window.appendLog(QStringLiteral("Density map placement stored: %1").arg(qs(fitted.fit_info)));
+    }
+}
+
+bool WindowActions::fitDensity(const QString& search) {
+    std::optional<core::Project> collected = collect(true, false, tr("Please fix these parameters first"));
+    if (!collected) return false;
+    if (collected->density.map_path.empty()) {
+        m_window.showError(QStringLiteral("No density map"), QStringLiteral("Choose an MRC / CCP4 map first."));
+        return false;
+    }
+    const std::string how = search == QLatin1String("global") ? "global" : "manual";
+    const std::string label = how == "global" ? "Density fit (global search)" : "Density fit (local refinement)";
+    return m_window.jobRunner()->start(
+        tr("Fitting the density map"),
+        [project = std::move(*collected), how](const core::Reporter& reporter) {
+            analysis::Pipeline pipeline(project, reporter);
+            app::fitDensity(pipeline, how, std::nullopt, &reporter);
+            DensityFitted out;
+            out.density = pipeline.project().density;
+            const analysis::ResolvedInputs& inputs = pipeline.resolveInputs();
+            out.cleanedAnew = inputs.cleaned && !inputs.cleaned->reused;
+            return out;
+        },
+        [this, label](DensityFitted fitted) {
+            if (!storeFit(fitted.density, label)) return;
+            // the document change draws the preview again with the placement; new cleaned files are
+            // the reference frame's now (MDATK: the fit's pipe.structure_preview())
+            if (fitted.cleanedAnew) m_window.reloadReferenceFrame();
+        });
 }
 
 }  // namespace mdbridge::app

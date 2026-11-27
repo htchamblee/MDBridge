@@ -454,7 +454,8 @@ if(MDBRIDGE_BUILD_APP)
     # the window's jobs and desktop actions (src/app/gui/actions, milestone 5 W2-B): Render, Render still,
     # Export PDBs, Re-render, Inspect system, Run cleaning, Centre on model, Open output folder / video,
     # Cancel and closing during a render (AP-14), the demo rendered from the window (needs FFmpeg for
-    # the video parts), screenshots of the result dialogs. Qt Test, offscreen.
+    # the video parts), screenshots of the result dialogs, the density fit's Global search / Refine
+    # and its Cancel (milestone 6 W3-A). Qt Test, offscreen.
     add_executable(mdbridge_gui_actions_tests gui/test_actions.cpp gui/gui_harness.cpp gui/gui_harness.hpp)
     set_target_properties(mdbridge_gui_actions_tests PROPERTIES AUTOMOC ON)
     target_link_libraries(mdbridge_gui_actions_tests PRIVATE mdbridge_app mdbridge::commands mdbridge::io mdbridge::numerics mdbridge::video

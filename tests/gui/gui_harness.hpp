@@ -222,4 +222,24 @@ std::string maskParserWords(std::string text);
 // integer equals the same float), tables by key whatever their order, everything else exactly.
 bool sameValue(const core::Value& a, const core::Value& b);
 
+// ---- a case that needs "fitted" (a density fit: owner decision D10's tolerance) ----
+inline constexpr double kFitAngleTolerance = 0.5;   // degrees between the two rotations
+inline constexpr double kFitShiftTolerance = 0.2;   // Å between the model centres they place
+inline constexpr double kFitCcTolerance = 1e-3;     // fit_cc
+// Texts equal but for the numbers written with a decimal point, which may differ by one in their
+// last printed digit (D10: "within their printed rounding ± 1 in the last digit"); whole numbers
+// are compared exactly.
+bool closeText(const std::string& expected, const std::string& actual);
+// A project's `density` table: `transform` within the angle and shift tolerances (the model centre
+// is the mean of the expected anchor points), `fit_cc` within kFitCcTolerance, `fit_info` by
+// closeText, every other key with sameValue.
+bool closeDensity(const core::Value& expected, const core::Value& actual);
+// sameValue, but a table under the key "density" by closeDensity and texts by closeText (the
+// snapshots of a fitted case; `key` is the key the values are under).
+bool sameFitted(const core::Value& expected, const core::Value& actual, std::string_view key);
+// A written project file of a fitted case: the [density] tables by closeDensity, and the texts
+// equal line for line with the lines of transform, fit_cc and fit_info in [density] left out.
+// "" when they agree.
+std::string compareFittedProject(const std::string& actual, const std::string& expected);
+
 }  // namespace mdbridge::guitest

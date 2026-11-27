@@ -1,6 +1,8 @@
 #include "gui_harness.hpp"
 
 #include <algorithm>
+#include <array>
+#include <cctype>
 #include <charconv>
 #include <cmath>
 #include <cstdint>
@@ -13,6 +15,7 @@
 #include <string>
 #include <string_view>
 #include <system_error>
+#include <vector>
 
 #include <QAbstractButton>
 #include <QAbstractSlider>
@@ -36,10 +39,12 @@
 
 #include "gui/forms/field_widgets.hpp"
 #include "gui/forms/list_editor.hpp"
+#include "gui/jobs/job_runner.hpp"
 #include "gui/main_window.hpp"
 #include "mdbridge/core/json.hpp"
 #include "mdbridge/core/paths.hpp"
 #include "mdbridge/core/project_file.hpp"
+#include "mdbridge/core/rigid_transform.hpp"
 #include "mdbridge/core/settings.hpp"
 #include "mdbridge/render/text.hpp"
 #include "mdbridge/render/text_qt.hpp"
@@ -53,6 +58,7 @@ namespace mdbridge::guitest {
 namespace {
 
 constexpr int kDefaultWaitMs = 60000;
+constexpr int kJobWaitMs = 300000;  // a job a click started (the density fit)
 
 QString toQString(const std::string& text) { return QString::fromUtf8(text.data(), static_cast<qsizetype>(text.size())); }
 
@@ -405,9 +411,9 @@ bool GuiCase::needsAny(std::string_view need) const {
 }
 
 std::vector<std::string> unsupportedNeeds(const GuiCase& c) {
-    static const std::vector<std::string> supported{"answers", "canvas", "close", "lossless", "new", "open_failure",
-                                                    "save_as", "settings", "snapshot", "start", "table",
-                                                    "toggle", "type"};
+    static const std::vector<std::string> supported{"answers", "canvas", "close", "fitted", "lossless", "new",
+                                                    "open_failure", "save_as", "settings", "snapshot", "start",
+                                                    "table", "toggle", "type"};
     std::vector<std::string> out;
     for (const std::string& need : c.needs) {
         if (std::find(supported.begin(), supported.end(), need) == supported.end()) {
@@ -908,6 +914,14 @@ void CaseRunner::runAction(const core::Value& action) {
         }
         m_window.revealField(widget->objectName());
         QTest::mouseClick(button, Qt::LeftButton);
+        // a job the button started (Global search, Refine) is waited for, as the generator waits for
+        // MDATK's, and the window's preview after it
+        if (m_window.jobRunner()->running()) {
+            if (!QTest::qWaitFor([this] { return !m_window.jobRunner()->running(); }, kJobWaitMs)) {
+                throw CaseError("the job did not finish in " + std::to_string(kJobWaitMs / 1000) + " s");
+            }
+            waitUntilLoaded(kDefaultWaitMs);
+        }
     } else if (what == "save") {
         // Save (Ctrl+S); with "path" (the harness's own cases) Save as… onto that file
         if (m_current.isNull()) m_current = action;
@@ -1076,6 +1090,194 @@ void prepareCase(const GuiCase& c, const fs::path& dataDir, const fs::path& case
     }
 }
 
+// ---- fitted values (owner decision D10) --------------------------------------------------------
+
+namespace {
+
+// A text cut into the numbers in it and the text between them.
+struct TextPiece {
+    std::string text;  // the number as written, or the text between numbers
+    bool number = false;
+    double value = 0.0;
+    int decimals = -1;  // digits after the decimal point; -1: written without one
+};
+
+std::vector<TextPiece> textPieces(const std::string& text) {
+    std::vector<TextPiece> out;
+    const auto isDigit = [](char ch) { return ch >= '0' && ch <= '9'; };
+    std::size_t i = 0;
+    std::string between;
+    while (i < text.size()) {
+        const bool sign = text[i] == '-' && i + 1 < text.size() && isDigit(text[i + 1]) &&
+                          (i == 0 || !(isDigit(text[i - 1]) || std::isalpha(static_cast<unsigned char>(text[i - 1]))));
+        if (!isDigit(text[i]) && !sign) {
+            between += text[i++];
+            continue;
+        }
+        const std::size_t begin = i;
+        if (sign) ++i;
+        while (i < text.size() && isDigit(text[i])) ++i;
+        int decimals = -1;
+        if (i + 1 < text.size() && text[i] == '.' && isDigit(text[i + 1])) {
+            const std::size_t point = ++i;
+            while (i < text.size() && isDigit(text[i])) ++i;
+            decimals = static_cast<int>(i - point);
+        }
+        if (!between.empty()) out.push_back({between});
+        between.clear();
+        TextPiece piece{text.substr(begin, i - begin), true};
+        piece.value = std::strtod(piece.text.c_str(), nullptr);
+        piece.decimals = decimals;
+        out.push_back(piece);
+    }
+    if (!between.empty()) out.push_back({between});
+    return out;
+}
+
+double numberValue(const core::Value& v) {
+    if (const auto* i = v.get<std::int64_t>()) return static_cast<double>(*i);
+    if (const auto* d = v.get<double>()) return *d;
+    return std::nan("");
+}
+
+}  // namespace
+
+bool closeText(const std::string& expected, const std::string& actual) {
+    if (expected == actual) return true;
+    const std::vector<TextPiece> a = textPieces(expected);
+    const std::vector<TextPiece> b = textPieces(actual);
+    if (a.size() != b.size()) return false;
+    for (std::size_t k = 0; k < a.size(); ++k) {
+        if (a[k].number != b[k].number) return false;
+        if (!a[k].number || (a[k].decimals < 0 && b[k].decimals < 0)) {
+            if (a[k].text != b[k].text) return false;
+            continue;
+        }
+        const int decimals = std::max(0, std::max(a[k].decimals, b[k].decimals));
+        if (!(std::abs(a[k].value - b[k].value) <= std::pow(10.0, -decimals) * (1.0 + 1e-9))) return false;
+    }
+    return true;
+}
+
+bool closeDensity(const core::Value& expected, const core::Value& actual) {
+    const auto* a = expected.get<core::Table>();
+    const auto* b = actual.get<core::Table>();
+    if (!a || !b) return sameValue(expected, actual);
+    if (a->size() != b->size()) return false;
+    for (const auto& [key, want] : *a) {
+        const core::Value* got = actual.find(key);
+        if (!got) return false;
+        if (key == "fit_cc") {
+            if (!(std::abs(numberValue(want) - numberValue(*got)) <= kFitCcTolerance)) return false;
+        } else if (key == "fit_info") {
+            if (!want.isString() || !got->isString() || !closeText(want.stringOr(), got->stringOr())) return false;
+        } else if (key == "transform") {
+            const auto* x = want.get<core::Array>();
+            const auto* y = got->get<core::Array>();
+            if (!x || !y || x->size() != 12 || y->size() != 12) {
+                if (!sameValue(want, *got)) return false;
+                continue;
+            }
+            std::array<double, 12> p{};
+            std::array<double, 12> q{};
+            for (std::size_t k = 0; k < 12; ++k) {
+                p[k] = numberValue((*x)[k]);
+                q[k] = numberValue((*y)[k]);
+            }
+            // the angle of p q^T and the model centre (the anchor's mean) placed by each
+            core::Mat3 r{};
+            for (std::size_t i = 0; i < 3; ++i) {
+                for (std::size_t j = 0; j < 3; ++j) {
+                    double sum = 0.0;
+                    for (std::size_t m = 0; m < 3; ++m) sum += p[3 * i + m] * q[3 * j + m];
+                    r[i][j] = sum;
+                }
+            }
+            if (!(core::rotationAngle(r) <= kFitAngleTolerance)) return false;
+            core::Vec3 centre{0.0, 0.0, 0.0};
+            std::size_t n = 0;
+            if (const core::Value* anchor = expected.find("anchor"); anchor && anchor->get<core::Array>()) {
+                for (const core::Value& point : *anchor->get<core::Array>()) {
+                    const auto* xyz = point.get<core::Array>();
+                    if (!xyz || xyz->size() != 3) continue;
+                    for (std::size_t k = 0; k < 3; ++k) centre[k] += numberValue((*xyz)[k]);
+                    ++n;
+                }
+            }
+            for (double& c : centre) c /= static_cast<double>(std::max<std::size_t>(n, 1));
+            double d2 = 0.0;
+            for (std::size_t i = 0; i < 3; ++i) {
+                double pi = p[9 + i];
+                double qi = q[9 + i];
+                for (std::size_t m = 0; m < 3; ++m) {
+                    pi += p[3 * i + m] * centre[m];
+                    qi += q[3 * i + m] * centre[m];
+                }
+                d2 += (pi - qi) * (pi - qi);
+            }
+            if (!(std::sqrt(d2) <= kFitShiftTolerance)) return false;
+        } else if (!sameValue(want, *got)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool sameFitted(const core::Value& expected, const core::Value& actual, std::string_view key) {
+    if (key == "density" && expected.isTable() && actual.isTable()) return closeDensity(expected, actual);
+    if (const auto* x = expected.get<core::Table>()) {
+        const auto* y = actual.get<core::Table>();
+        if (!y || x->size() != y->size()) return false;
+        for (const auto& [k, value] : *x) {
+            const core::Value* other = actual.find(k);
+            if (!other || !sameFitted(value, *other, k)) return false;
+        }
+        return true;
+    }
+    if (const auto* x = expected.get<core::Array>()) {
+        const auto* y = actual.get<core::Array>();
+        if (!y || x->size() != y->size()) return false;
+        for (std::size_t k = 0; k < x->size(); ++k) {
+            if (!sameFitted((*x)[k], (*y)[k], key)) return false;
+        }
+        return true;
+    }
+    if (expected.isString() && actual.isString()) return closeText(expected.stringOr(), actual.stringOr());
+    return sameValue(expected, actual);
+}
+
+std::string compareFittedProject(const std::string& actual, const std::string& expected) {
+    // the [density] table's fitted numbers within D10's tolerance, every other byte equal
+    core::Value got;
+    core::Value want;
+    try {
+        got = core::parseToml(actual, "written");
+        want = core::parseToml(expected, "expected");
+    } catch (const std::exception& e) {
+        return std::string("cannot be read: ") + e.what();
+    }
+    const core::Value* a = want.find("density");
+    const core::Value* b = got.find("density");
+    if ((a == nullptr) != (b == nullptr) || (a && !closeDensity(*a, *b))) {
+        return "the [density] table differs beyond the fit tolerance: expected " +
+               (a ? core::toJson(*a, -1) : std::string("none")) + ", got " + (b ? core::toJson(*b, -1) : std::string("none"));
+    }
+    const auto withoutFitted = [](const std::string& text) {
+        std::istringstream in(text);
+        std::string out;
+        bool density = false;
+        for (std::string line; std::getline(in, line);) {
+            if (!line.empty() && line[0] == '[') density = line == "[density]";
+            for (const char* key : {"transform = ", "fit_cc = ", "fit_info = "}) {
+                if (density && line.rfind(key, 0) == 0) line = std::string(key) + "<fitted>";
+            }
+            out += line + "\n";
+        }
+        return out;
+    };
+    return compareText(withoutFitted(actual), withoutFitted(expected));
+}
+
 std::string checkExpected(const GuiCase& c, const fs::path& dataDir, const fs::path& caseDir) {
     std::string problems;
     for (const auto& [name, source] : c.expected) {
@@ -1083,6 +1285,9 @@ std::string checkExpected(const GuiCase& c, const fs::path& dataDir, const fs::p
         std::string problem;
         if (!fs::exists(written)) {
             problem = "was not written";
+        } else if (c.needsAny("fitted") && name.size() > 5 && name.compare(name.size() - 5, 5, ".toml") == 0) {
+            problem = compareFittedProject(normalise(readFile(written), caseDir),
+                                           normalise(readFile(dataDir / core::pathFromUtf8(source)), {}));
         } else {
             problem = compareText(normalise(readFile(written), caseDir), normalise(readFile(dataDir / core::pathFromUtf8(source)), {}));
         }
@@ -1244,11 +1449,11 @@ core::Value withPlaceholders(const core::Value& v, const fs::path& caseDir, cons
 }
 
 std::string compareList(const std::string& what, const core::Value* expected, const core::Array& actual,
-                        const fs::path& caseDir, const fs::path& configDir) {
+                        const fs::path& caseDir, const fs::path& configDir, bool fitted = false) {
     const core::Array none;
     const core::Value want = masked(core::Value(expected && expected->isArray() ? *expected->get<core::Array>() : none));
     const core::Value got = withPlaceholders(core::Value(actual), caseDir, configDir);
-    if (sameValue(want, got)) return {};
+    if (fitted ? sameFitted(want, got, what) : sameValue(want, got)) return {};
     return what + ": expected " + core::toJson(want, -1) + ", got " + core::toJson(got, -1) + "\n";
 }
 
@@ -1296,7 +1501,11 @@ std::string checkOutcome(const GuiCase& c, const CaseRunner& runner, const std::
         for (const std::string& line : log) got.push_back(placeholders(line, caseDir, configDir));
         std::vector<std::string> want;
         for (const std::string& line : *c.log) want.push_back(maskParserWords(line));
-        if (got != want) {
+        bool same = got.size() == want.size();
+        for (std::size_t k = 0; same && k < got.size(); ++k) {
+            same = c.needsAny("fitted") ? closeText(want[k], got[k]) : want[k] == got[k];
+        }
+        if (!same) {
             std::string text = "log: expected\n";
             for (const std::string& line : want) text += "    " + line + "\n";
             text += "  got\n";
@@ -1306,7 +1515,7 @@ std::string checkOutcome(const GuiCase& c, const CaseRunner& runner, const std::
     }
     problems += compareList("questions", entry("questions"), runner.prompter().questions, caseDir, configDir);
     problems += compareList("dialogs", entry("dialogs"), runner.prompter().dialogs, caseDir, configDir);
-    problems += compareList("snapshots", entry("snapshots"), runner.snapshots(), caseDir, configDir);
+    problems += compareList("snapshots", entry("snapshots"), runner.snapshots(), caseDir, configDir, c.needsAny("fitted"));
     {
         core::Array lines;
         for (const std::string& line : runner.prompter().stderrLines) lines.push_back(core::Value(line));
