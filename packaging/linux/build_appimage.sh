@@ -98,6 +98,12 @@ if [ ! -e "$APPDIR/usr/plugins/imageformats/libqjpeg.so" ]; then
     install -D -m 755 "$QT_DIR/plugins/imageformats/libqjpeg.so" "$APPDIR/usr/plugins/imageformats/libqjpeg.so"
     echo "   added imageformats/libqjpeg.so"
 fi
+# PubChem look-ups (HTTPS) need Qt's OpenSSL TLS backend (it loads the host's OpenSSL when used);
+# linuxdeploy-plugin-qt deploys it with Qt Network; checked like the JPEG plugin
+if [ ! -e "$APPDIR/usr/plugins/tls/libqopensslbackend.so" ]; then
+    install -D -m 755 "$QT_DIR/plugins/tls/libqopensslbackend.so" "$APPDIR/usr/plugins/tls/libqopensslbackend.so"
+    echo "   added tls/libqopensslbackend.so"
+fi
 # the Vulkan loader is the graphics driver's: never bundle one
 if ls "$APPDIR"/usr/lib/libvulkan.so* > /dev/null 2>&1; then
     echo "the AppDir contains a Vulkan loader; it must come from the host" >&2
@@ -112,8 +118,11 @@ echo "== fallback libraries (each used only on hosts without it)"
 # folders of the libraries the host lacks (the GL dispatch libraries, glvnd, as one unit), so the
 # host's copies of the others still win.
 FALLBACK_LIBS="libGL.so.1 libEGL.so.1 libX11.so.6 libX11-xcb.so.1 libxcb.so.1 libfontconfig.so.1 libfreetype.so.6"
-# what even minimal systems have; never bundled
-HOST_CORE='^(ld-linux-x86-64\.so\.2|lib(c|m|dl|pthread|rt)\.so\.[0-9]+|libstdc\+\+\.so\.6|libgcc_s\.so\.1|libz\.so\.1|libgpg-error\.so\.0)$'
+# what even minimal systems have; never bundled. glibc's own parts (libresolv: Qt Network's DNS
+# look-ups) must match the host's glibc; libcom_err (Kerberos, which Qt Network's GSSAPI
+# authentication brings) is in every base system (bare Rocky Linux 9 and Ubuntu images), as
+# linuxdeploy's exclude list assumes.
+HOST_CORE='^(ld-linux-x86-64\.so\.2|lib(c|m|dl|pthread|rt|resolv)\.so\.[0-9]+|libstdc\+\+\.so\.6|libgcc_s\.so\.1|libz\.so\.1|libgpg-error\.so\.0|libcom_err\.so\.2)$'
 FALLBACK="$APPDIR/usr/lib/fallback"
 mkdir -p "$FALLBACK"
 for key in $FALLBACK_LIBS; do
