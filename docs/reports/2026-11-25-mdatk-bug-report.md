@@ -104,7 +104,7 @@ were not re-run).
 | MDATK-BUG-068 | GUI | minor | Quitting during a job kills the worker mid-write | Confirmed by reading |
 | MDATK-BUG-069 | User settings | minor | `settings.toml` written non-atomically; an unreadable file is replaced by an empty one | Confirmed by reading |
 | MDATK-BUG-070 | Energy | minor | Net force direction inconsistent with the 0.5 Å distance clamp | Confirmed by reading |
-| MDATK-BUG-071 | Atoms analysis | minor | Bond guess misses S–S, links chains end to end | Confirmed by reading |
+| MDATK-BUG-071 | Atoms analysis | minor | Bond guess misses S–S (second half withdrawn 2026-11-27) | Confirmed by reading |
 | MDATK-BUG-072 | GRO reader | minor | GRO box fallback loses minus signs (inherited from MDAnalysis) | Verified |
 | MDATK-BUG-073 | Selections | minor | Duplicate group names: `group:` uses the last, `Project.group()` the first | Verified |
 | MDATK-BUG-074 | Selections | minor | `group:` token stops at invalid characters, misleading error | Verified |
@@ -1125,13 +1125,17 @@ All through `mdatk.selections.select(u, text, allow_empty=True)` on the demo uni
   so the force is scaled by r / 0.5 for r < 0.5 Å).
 - **Suggested fix:** unit vector `rvec / |rvec|` times the scalar force at the clamped distance.
 
-### MDATK-BUG-071 — `atoms` analysis bond guess misses S–S and links chains end to end
+### MDATK-BUG-071 — `atoms` analysis bond guess misses S–S
 
 - **MDBridge ref:** AN-14 · **Area:** atoms analysis (3D view) · **Status:** Confirmed by reading
 - **Where:** `mdatk/analysis/structure.py:376-403` (fixed 1.95 Å heavy-atom limit: disulfides at 2.05 Å are
-  missed; `abs(resi[i] - resi[j]) <= 1` regardless of chain: the last residue of chain A can bond to the
-  first of chain B).
-- **Suggested fix:** covalent radii (sum + 0.4 Å) and consecutive residues only within one chain.
+  missed).
+- **Suggested fix:** covalent radii (sum + 0.4 Å).
+- **Withdrawn (2026-11-27):** the second half of the original item ("links chains end to end": the
+  residue test `abs(resi[i] - resi[j]) <= 1` ignores the chain) was a false report. A bond also needs the
+  two atoms within 1.95 Å, so chain ends that are not already in bonding distance are never joined. MDBridge
+  keeps its one-chain rule (AN-14) because its covalent-radius limits are longer (P–O 2.13 Å), not because
+  MDATK joins chains.
 
 ### MDATK-BUG-072 — GRO box fallback loses minus signs (inherited from MDAnalysis)
 
@@ -1248,6 +1252,19 @@ All through `mdatk.selections.select(u, text, allow_empty=True)` on the demo uni
   `… frame 2 is outside this range; no files were written.`
 
 ---------------------------------------------------------------------------------------------------
+
+## MDATK's response (2026-11-27)
+
+MDATK fixed most items. It kept the five below, with the reasons given. MDBridge keeps its own behaviour
+for the four design choices (its DIFFERENCES entries stand); the fifth was our error.
+
+| Item | MDATK's verdict | MDATK's reason | MDBridge's note |
+|---|---|---|---|
+| 023 | By design | Base pairs ignore periodic images; the base-pair analysis code documents this (`basepairs.py`: paired bases belong to one molecule, which cleaned trajectories keep whole). | Holds when the cleaning keeps a duplex's two strands together, as cpptraj's `autoimage` normally does around its anchor; it does not hold when each strand is imaged on its own (for example `gmx trjconv -pbc mol`). Our "which `autoimage` does" overstated how often that happens. MDBridge keeps minimum-image distances (AN-11). |
+| 026 | By design | `use_parm7` means "use the parm7 when one is available", as the GUI label and README say. | Accepted. MDBridge keeps its warning when the topology is not a parm7 (AN-06); the option's meaning is unchanged. |
+| 061 | By design | The ion selection is documented as the Mg²⁺ ions, so the legend says Mg²⁺; labelling from the selected ions would need the trace analysis to store their elements. | Accepted for MDATK. MDBridge stores the ions' labels and names them (RN-08). |
+| 099 (addendum) | By design | `build mutate` drops the old base's hydrogens, as the README documents and a test checks. | Accepted for MDATK. MDBridge adds hydrogens to the new base when the old one had them (CH-09, owner decision D11). |
+| 071, second half | False report | Two chain ends bond only when their atoms are within bonding distance, so separate chains are not joined. | Agreed; withdrawn in the item above. |
 
 ## Appendix A: further reader-message items (not itemised, not re-run against 0.1.1)
 
