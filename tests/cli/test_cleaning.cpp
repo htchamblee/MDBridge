@@ -31,6 +31,7 @@
 #include "mdbridge/core/project_io.hpp"
 #include "mdbridge/version.hpp"
 #include "test_support.hpp"
+#include "time_scale.hpp"
 
 namespace mdbridge {
 namespace {
@@ -246,7 +247,7 @@ TEST(Process, CancelEndsTheProcessGroup) {
     canceller.join();
     const double seconds = std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
     EXPECT_TRUE(r.cancelled);
-    EXPECT_LT(seconds, 5.0);
+    EXPECT_LT(seconds, 5.0 * test::timeScale());
     const std::string pid = test::readFile(work / "child.pid");
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
     EXPECT_FALSE(fs::exists("/proc/" + pid.substr(0, pid.find('\n')) + "/cmdline") &&
@@ -413,7 +414,8 @@ TEST(Cleaning, Cancel) {
     }
     canceller.join();
     unsetenv("MDB_SLOW");
-    EXPECT_LT(std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count(), 10.0);
+    EXPECT_LT(std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count(),
+              10.0 * test::timeScale());
     const std::string key = analysis::cleaningKey(f.project.cleaning, f.project.inputs.topology,
                                                   f.project.inputs.trajectories);
     EXPECT_FALSE(fs::exists(f.work / "out" / "MDATK_cache" / "cleaned" / key / "MDATK_clean.json"));

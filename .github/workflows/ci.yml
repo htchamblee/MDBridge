@@ -4,6 +4,8 @@
 #                on the offscreen platform, their screenshots uploaded), AppImage,
 #                glibc check, smoke test with the Vulkan view (lavapipe) and the software view;
 #                the LGPL FFmpeg + SVT-AV1 libraries (packaging/ffmpeg) built there, cached
+# - sanitizers:  the build and every test with AddressSanitizer (leaks included) and
+#                UndefinedBehaviorSanitizer on Rocky Linux 9 / GCC 11 (MDBRIDGE_SANITIZE)
 # - appimage-*:  the AppImage on Ubuntu 22.04 (with Vulkan) and on a bare Rocky Linux 9 (command
 #                line without X11 / OpenGL / fonts, whose text image must equal the linux job's,
 #                then the interface without a Vulkan driver)
@@ -194,6 +196,89 @@ jobs:
           path: build/ffmpeg/ffmpeg-*-source.tar.xz
           if-no-files-found: error
           compression-level: 0
+
+  sanitizers:
+    name: AddressSanitizer and UndefinedBehaviorSanitizer (Rocky Linux 9, GCC 11)
+    # MDBridge, its tests and the fetched / vendored libraries built with -fsanitize=address,undefined
+    # (MDBRIDGE_SANITIZE, docs/BUILDING.md), every test run; any memory error, leak or undefined
+    # behaviour fails the job. Qt, FFmpeg and Mesa are prebuilt, so not instrumented (their
+    # allocations are still checked for leaks); tests/sanitizers/lsan.supp lists the few leaks of
+    # such libraries that are suppressed, each with its reason, never one of MDBridge's.
+    runs-on: ubuntu-latest
+    container: rockylinux:9
+    timeout-minutes: 120
+    env:
+      LC_ALL: C.UTF-8
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      - name: System packages (as the linux job, with GCC's sanitizer runtimes)
+        run: |
+          dnf install -y dnf-plugins-core
+          dnf config-manager --set-enabled crb
+          dnf install -y --setopt=install_weak_deps=False \
+            gcc-c++ libasan libubsan cmake ninja-build git findutils which tar xz \
+            python3.12 python3.12-pip libglvnd-devel mesa-libGL-devel \
+            libX11-xcb libxkbcommon libxkbcommon-x11 xcb-util xcb-util-cursor xcb-util-wm xcb-util-image \
+            xcb-util-keysyms xcb-util-renderutil fontconfig dbus-libs \
+            libglvnd-egl libglvnd-glx libglvnd-opengl mesa-libGL mesa-libEGL \
+            vulkan-loader mesa-vulkan-drivers xorg-x11-server-Xvfb xorg-x11-xauth
+          g++ --version | head -n 1
+          rpm -q vulkan-loader
+          # the tests' step needs a loader that reads VK_LOADER_DISABLE_DYNAMIC_LIBRARY_UNLOADING (1.3.275 does)
+          grep -q VK_LOADER_DISABLE_DYNAMIC_LIBRARY_UNLOADING "$(readlink -f /usr/lib64/libvulkan.so.1)" || {
+            echo "::error::this Vulkan loader unloads drivers regardless (VK_LOADER_DISABLE_DYNAMIC_LIBRARY_UNLOADING)"; exit 1; }
+          # GCC 11's AddressSanitizer fails to start with more than 28 bits of mmap randomisation
+          # (GitHub's runners set 28); printed for diagnosis
+          echo "vm.mmap_rnd_bits = $(cat /proc/sys/vm/mmap_rnd_bits)"
+
+      - name: Qt ${{ env.QT_VERSION }}
+        run: |
+          python3.12 -m pip install "py7zr==$PY7ZR_VERSION"
+          python3.12 tools/get_qt.py --version "$QT_VERSION" --arch linux_gcc_64 --out "/opt/Qt/$QT_VERSION/gcc_64" \
+            --archive qtbase --archive icu --archive qtsvg
+          echo "QT_DIR=/opt/Qt/$QT_VERSION/gcc_64" >> "$GITHUB_ENV"
+
+      # the linux job's FFmpeg build (same container, same key); only restored here: on a miss (the
+      # linux job is still building a changed packaging/ffmpeg) this run tests without video encoding
+      - name: FFmpeg (LGPL) and SVT-AV1 from the cache
+        id: ffmpeg-cache
+        uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25  # v5.1.0
+        with:
+          path: |
+            build/ffmpeg/prefix
+            build/ffmpeg/ffmpeg-*-source.tar.xz
+          key: ffmpeg-rocky9-${{ hashFiles('packaging/ffmpeg/**') }}
+
+      - name: Configure and build (RelWithDebInfo, -fsanitize=address,undefined)
+        env:
+          FFMPEG_HIT: ${{ steps.ffmpeg-cache.outputs.cache-hit }}
+        run: |
+          ffmpeg=(-DMDBRIDGE_FFMPEG=OFF)
+          if [ "$FFMPEG_HIT" = true ]; then
+            ffmpeg=(-DMDBRIDGE_FFMPEG=ON -DMDBRIDGE_FFMPEG_ROOT="$PWD/build/ffmpeg/prefix")
+          else
+            echo "::warning::FFmpeg is not in the cache yet: the sanitizer build tests without video encoding"
+          fi
+          cmake -S . -B build/sanitize -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_PREFIX_PATH="$QT_DIR" \
+            -DMDBRIDGE_WARNINGS_AS_ERRORS=ON -DMDBRIDGE_SANITIZE=address,undefined "${ffmpeg[@]}"
+          cmake --build build/sanitize
+
+      - name: Unit and GUI tests under the sanitizers
+        env:
+          MDBRIDGE_REQUIRE_VULKAN: "1"  # the Vulkan tests on lavapipe, as in the linux job (the GUI tests set offscreen)
+          # time limits of the tests scaled for the slower instrumented code (tests/core/time_scale.hpp)
+          MDBRIDGE_TIME_SCALE: "5"
+          # lavapipe stays loaded until the program ends: the loader would otherwise unload it at
+          # vkDestroyInstance, and memory the driver's threads keep for the life of the process would
+          # be reported as leaked from an "<unknown module>", which no suppression could name
+          VK_LOADER_DISABLE_DYNAMIC_LIBRARY_UNLOADING: "1"
+          ASAN_OPTIONS: detect_leaks=1:abort_on_error=1:detect_stack_use_after_return=1:check_initialization_order=1
+          UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
+        run: |
+          export LSAN_OPTIONS="suppressions=$PWD/tests/sanitizers/lsan.supp:print_suppressions=1"
+          ctest --test-dir build/sanitize --output-on-failure --parallel 4
+          MDBRIDGE_REQUIRE_VULKAN_WINDOW=1 xvfb-run -a -s "-screen 0 1024x768x24" build/sanitize/tests/mdbridge_vulkan_window_tests
 
   appimage-ubuntu:
     name: AppImage on Ubuntu 22.04 (Vulkan)
@@ -596,7 +681,7 @@ jobs:
   release:
     name: GitHub release
     # tags only, and only when every build and test passed: no half-empty releases
-    needs: [linux, appimage-ubuntu, appimage-rocky, windows, parity, regenerate]
+    needs: [linux, sanitizers, appimage-ubuntu, appimage-rocky, windows, parity, regenerate]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:

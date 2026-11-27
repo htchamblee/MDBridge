@@ -1,0 +1,9 @@
+# LeakSanitizer suppressions for the sanitizer build (docs/BUILDING.md, "Sanitizers"; CI job
+# `sanitizers`). Only allocations of prebuilt third-party libraries belong here, each with its
+# reason and where it was seen; a leak with an MDBridge frame is a bug to fix, never suppressed.
+
+# libdbus (system library, through Qt D-Bus): a read buffer libdbus allocates while Qt's xcb
+# platform looks for the session bus (accessibility, desktop settings) and never frees; seen in
+# mdbridge_vulkan_window_tests under Xvfb with no bus running (1032 bytes, _dbus_read ->
+# _dbus_string_lengthen, from a libQt6DBus thread). The offscreen platform does not use D-Bus.
+leak:libdbus-1.so

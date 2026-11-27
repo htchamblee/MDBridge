@@ -66,6 +66,44 @@ line's MDATK commands and their tests: no Qt needed; `build/tests/mdbridge_comma
 `tests/parity/cli_parity.py --mdbridge`; `render`, `charts`, `preview` and `demo --run` need the Qt
 build).
 
+### Sanitizers (AddressSanitizer, UndefinedBehaviorSanitizer)
+
+`-DMDBRIDGE_SANITIZE=address,undefined` (any list GCC's `-fsanitize=` takes) compiles every target
+with `-fsanitize=... -fno-omit-frame-pointer -fno-sanitize-recover=all`: MDBridge, its tests, the
+fetched libraries and the vendored ducc0 alike (Qt, FFmpeg and the Vulkan driver are prebuilt and
+stay uninstrumented, but their allocations are still checked for leaks). Configure the C compiler
+too, so zlib is built by the same GCC as the rest (one sanitizer runtime); RHEL / Rocky need the
+`libasan libubsan` packages. CI's `sanitizers` job does this on Rocky Linux 9 on every push:
+
+```bash
+cmake -S . -B build/sanitize -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_C_COMPILER=gcc-11 \
+  -DCMAKE_CXX_COMPILER=g++-11 -DCMAKE_PREFIX_PATH=$HOME/Qt/6.11.3/gcc_64 -DMDBRIDGE_SANITIZE=address,undefined
+cmake --build build/sanitize
+export MDBRIDGE_REQUIRE_VULKAN=1 MDBRIDGE_TIME_SCALE=5 \
+  VK_LOADER_DISABLE_DYNAMIC_LIBRARY_UNLOADING=1 \
+  ASAN_OPTIONS=detect_leaks=1:abort_on_error=1:detect_stack_use_after_return=1:check_initialization_order=1 \
+  UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=1 LSAN_OPTIONS=suppressions=$PWD/tests/sanitizers/lsan.supp
+ctest --test-dir build/sanitize --output-on-failure --parallel 4
+MDBRIDGE_REQUIRE_VULKAN_WINDOW=1 xvfb-run -a build/sanitize/tests/mdbridge_vulkan_window_tests
+```
+
+- Any finding (memory error, leak at exit, undefined behaviour) ends the program with an error, so
+  the test fails. A finding in MDBridge's code is a bug to fix, never suppressed;
+  `tests/sanitizers/lsan.supp` suppresses only leaks of prebuilt system libraries, each with its
+  reason (today one: libdbus, reached through Qt's xcb platform in the Vulkan window test).
+- `MDBRIDGE_TIME_SCALE` (a number of at least 1, default 1) multiplies the tests' time limits
+  (`tests/core/time_scale.hpp`): the instrumented code runs several times slower, so a test that
+  checks something is fast (`AtomSelection.MillionAtoms`: one second) or happens at once (a
+  cancel, the log view never stalling the event loop) checks it against a proportionally larger
+  budget instead of being skipped.
+- `VK_LOADER_DISABLE_DYNAMIC_LIBRARY_UNLOADING=1` keeps the Vulkan driver (lavapipe) loaded until
+  the program ends. Otherwise the loader unloads it at `vkDestroyInstance`, and memory its threads
+  keep for the life of the process is reported as a leak from an `<unknown module>`.
+- GCC 11's AddressSanitizer does not start when `/proc/sys/vm/mmap_rnd_bits` is above 28 (some
+  newer kernels default to 32): `sudo sysctl vm.mmap_rnd_bits=28`.
+- About 40 minutes to build with two jobs and 13 minutes for `ctest --parallel 4` on four cores
+  (the build is RelWithDebInfo: optimised, with line numbers in the reports).
+
 ### AppImage
 
 ```bash

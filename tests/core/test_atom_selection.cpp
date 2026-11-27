@@ -14,6 +14,7 @@
 #include <gtest/gtest.h>
 
 #include "mdbridge/core/atom_selection.hpp"
+#include "time_scale.hpp"
 #include "topology_dump.hpp"
 
 using namespace mdbridge::core;
@@ -280,8 +281,8 @@ TEST(AtomSelection, MillionAtoms) {
     const double seconds =
         std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
 #ifdef NDEBUG
-    EXPECT_LT(seconds, 1.0);
+    EXPECT_LT(seconds, 1.0 * mdbridge::test::timeScale());  // MDBRIDGE_TIME_SCALE: e.g. the sanitizer build
 #else
-    EXPECT_LT(seconds, 20.0);
+    EXPECT_LT(seconds, 20.0 * mdbridge::test::timeScale());
 #endif
 }

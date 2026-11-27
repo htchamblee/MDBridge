@@ -35,6 +35,7 @@
 #include "gui/jobs/log_view.hpp"
 #include "mdbridge/core/errors.hpp"
 #include "mdbridge/core/progress.hpp"
+#include "../core/time_scale.hpp"
 
 using mdbridge::app::jobs::CloseAnswer;
 using mdbridge::app::jobs::CloseQuestion;
@@ -698,7 +699,7 @@ private slots:
         QTRY_VERIFY(shownLines(log).back() == QStringLiteral("line 999999 of the pipeline output"));
         qInfo("10^6 lines from a thread: %.2f s, longest event-loop stall %.3f s, at most %d lines shown",
               feeding, stall, largest);
-        QVERIFY2(stall < 0.2, qPrintable(QString::number(stall)));
+        QVERIFY2(stall < 0.2 * mdbridge::test::timeScale(), qPrintable(QString::number(stall)));
         QVERIFY(largest <= LogView::MaxLines);
         QVERIFY(log.lineCount() <= LogView::MaxLines);
     }
@@ -721,7 +722,7 @@ private slots:
         feeder.stop();
         qInfo("10^6 lines on the interface thread: %.2f s, longest event-loop stall %.3f s",
               static_cast<double>(clock.elapsed()) / 1000.0, stall);
-        QVERIFY2(stall < 0.2, qPrintable(QString::number(stall)));
+        QVERIFY2(stall < 0.2 * mdbridge::test::timeScale(), qPrintable(QString::number(stall)));
         QCOMPARE(shownLines(log).back(), QStringLiteral("line 999999"));
         QVERIFY(log.lineCount() <= LogView::MaxLines);
     }
@@ -752,8 +753,8 @@ private slots:
               static_cast<double>(clock.elapsed()) / 1000.0, stall);
         QCOMPARE(finished.size(), 1);
         QCOMPARE(finished.at(0).at(0).value<JobOutcome>(), JobOutcome::Cancelled);
-        QVERIFY2(stall < 0.2, qPrintable(QString::number(stall)));
-        QVERIFY(clock.elapsed() < 2000);
+        QVERIFY2(stall < 0.2 * mdbridge::test::timeScale(), qPrintable(QString::number(stall)));
+        QVERIFY(static_cast<double>(clock.elapsed()) < 2000.0 * mdbridge::test::timeScale());
         QTRY_COMPARE(shownLines(log).back(), QStringLiteral("Cancelled."));
         QVERIFY(log.lineCount() <= LogView::MaxLines);
     }

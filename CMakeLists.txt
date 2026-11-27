@@ -20,6 +20,8 @@ option(MDBRIDGE_BUILD_APP "Build the Qt front ends (GUI and CLI); OFF builds the
 option(MDBRIDGE_BUILD_TESTS "Build the unit tests" ON)
 option(MDBRIDGE_USE_SYSTEM_DEPS "Prefer installed toml++, CLI11, GoogleTest, Vulkan headers and zlib over fetching them" OFF)
 option(MDBRIDGE_WARNINGS_AS_ERRORS "Treat compiler warnings in MDBridge's own code as errors" OFF)
+set(MDBRIDGE_SANITIZE "" CACHE STRING
+    "GCC sanitizers for every target, fetched and vendored code included, e.g. address,undefined (docs/BUILDING.md)")
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
