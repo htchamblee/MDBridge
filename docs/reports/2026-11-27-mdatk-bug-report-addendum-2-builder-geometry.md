@@ -107,7 +107,7 @@ are not attached; the method is in the geometry report.
 - **Suggested fix (MDBridge CH-16, owner decision D17):** a continuation closure (the link restraints
   switched on gradually from the uniform helix, converged at each stage) with a smooth link-torsion term;
   for the hoogsteen and th kinds the stacking of each step is also held. Reproducible within 0.001 Å
-  across kernels and 1e-8 start perturbations.
+  across kernels and 1e-8 start perturbations (measured before CH-18; being re-checked on the CH-18 closures).
 
 ### MDATK-BUG-111 — Strained links and levels without a base-base H-bond are not reported as such
 
