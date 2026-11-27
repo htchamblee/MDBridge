@@ -500,6 +500,16 @@ primary sources; docs/DIFFERENCES.md "Chemistry reference data"):
 
 ---------------------------------------------------------------------------------------------------
 
+
+- **D17 Non-Watson-Crick closure (CH-16)** (decided 2026-11-27): MDATK's `_close_levels` (four truncated
+  passes from O3'-P gaps up to 6.8 Å, contact pairs refreshed between passes, inexact subproblems) lands
+  on different backbone conformers (up to 1.56 Å heavy-atom RMSD, torsions up to 174° apart) under
+  1e-14 changes of its start or another BLAS kernel, so D10 against it is unattainable. MDBridge replaces
+  it with a continuation closure (from the uniform helix to the level poses in small steps, each solved
+  to convergence with TRF's exact subproblem and a sorted, stable contact refresh), which is reproducible
+  within D10 and gives better geometry. Owner: "Reliable geometry is infinitely more important than
+  runtime"; runtime is not a constraint. The expected data come from MDATK patched the same way.
+
 ## 8. Risks
 
 1. **Least-squares closures (W2-A)**: TRF with LSMR over sparse Jacobians and contact sets refreshed
