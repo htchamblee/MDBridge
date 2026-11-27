@@ -42,6 +42,16 @@ W1 / W2 pages and canvas); where a later MDATK fixed the item, its design is fol
          goes to the status bar), so the window's log has no "--- Loading preview ---" and
          "Reference frame loaded: …" lines for it
 
+The PDB clean-up and structure builder windows (milestone 6 W3-B, apply_tools; the chemistry itself
+is improvements_chem.py's):
+
+  TW-02  *Check input* (PDB clean-up) and *Check* of the builder's *Mutate* page report a file that
+         is not UTF-8 text ("ERROR: 'utf-8' codec can't decode ...") instead of failing in the
+         button's handler (MDATK 0.1.0: `except (OSError, ValueError)`)
+  CH-13  the PDB clean-up names a reference PDB that is not a file ("ERROR: [Errno 2] No such file
+         or directory: 'x.pdb'"), as the command line does; MDATK read the name as PDB text ("no
+         ATOM/HETATM records found ...")
+
 Not observable in the recorded files and messages, tested by the Qt tests of their packages:
 AP-14 (close during a job), AP-15 (table edits commit on focus loss), AP-16 (About text with the
 run-time citations: `mdbridge citations`, cli_parity.py), AP-19's offered choices, AP-20 (drawing
@@ -719,3 +729,29 @@ def slot_edited(win, k):
 
 
 START_PROBLEM = "These are the default settings instead (unsaved)."  # AP-12 (MDATK 0.1.0)
+
+
+def apply_tools(pdbdialog, builderdialog):
+    """MDBridge's tool window improvements (TW-02, CH-13 above) on MDATK's two windows' modules."""
+    import errno
+
+    real = pdbdialog.pdbtools
+
+    def read_pdb(source, *args, **kwargs):
+        try:
+            return real.read_pdb(source, *args, **kwargs)
+        except UnicodeDecodeError as exc:  # TW-02 (MDATK 0.1.0 catches ValueError)
+            raise real.PDBError(str(exc)) from None
+
+    def clean(source, *args, chain_reference=None, **kwargs):
+        if isinstance(chain_reference, str) and not os.path.isfile(chain_reference):  # CH-13
+            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), chain_reference)
+        return real.clean(source, *args, chain_reference=chain_reference, **kwargs)
+
+    proxy = types.SimpleNamespace(**{k: getattr(real, k) for k in dir(real) if not k.startswith("__")})
+    proxy.read_pdb, proxy.clean = read_pdb, clean
+    pdbdialog.pdbtools = proxy
+    builderdialog.pdbtools = proxy
+    from mdatk import annotate
+
+    pdbdialog.annotate = annotate.annotate  # improvements_chem's (CH-14, D13): the window imported the original

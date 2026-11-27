@@ -122,7 +122,7 @@ jobs:
         env:
           MDBRIDGE_REQUIRE_VULKAN: "1"  # the Vulkan tests run on lavapipe (mesa-vulkan-drivers), never skip
         run: |
-          # the GUI tests (label gui: gui.cases, gui.window, gui.pages, gui.group_pages, gui.forms, gui.problems, gui.jobs, gui.script; offscreen platform) run with the
+          # the GUI tests (label gui: gui.cases, gui.window, gui.pages, gui.group_pages, gui.forms, gui.problems, gui.jobs, gui.script, gui.tools; offscreen platform) run with the
           # rest; gui.cases saves its screenshots there
           export MDBRIDGE_GUI_SCREENSHOTS="$PWD/gui-test-screenshots"
           ctest --test-dir build/release --output-on-failure

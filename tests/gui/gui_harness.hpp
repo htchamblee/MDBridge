@@ -41,6 +41,10 @@ struct GuiCase {
     core::Array actions;                                         // tables with "action"
     std::vector<std::pair<std::string, std::string>> expected;  // case-folder name, path under the data folder
     std::vector<std::string> needs;                              // "needs": features beyond this harness (W0-A cases)
+    // "fitted" (a case that runs a density fit, which then needs "fitted"): expected files compared
+    // by compareFittedFile with the file's tolerance (D10: a fit agrees within 0.5° and 0.2 Å; a
+    // case may ask for less)
+    std::vector<std::pair<std::string, double>> fitted;
     std::string start;                       // "start.project": the file the window starts with ("" none)
     std::string settings;                    // "settings": settings.toml before the start (path under tests/data)
     std::optional<std::vector<std::string>> log;  // "log": the log lines expected
@@ -60,7 +64,8 @@ std::vector<std::filesystem::path> findCases(const std::filesystem::path& dir);
 // Reads a case file; `name` is its path relative to `casesDir`. Throws CaseError.
 GuiCase loadCase(const std::filesystem::path& file, const std::filesystem::path& casesDir);
 
-// The project file clock fixed at `start`, one second further on every reading, while it lives.
+// The project file clock fixed at `start`, one second further on every reading, while it lives;
+// the monotonic clock stands still (a logged step's duration_s is 0.0, as the generator's).
 class FixedClock {
 public:
     explicit FixedClock(const core::DateTime& start);
@@ -181,6 +186,10 @@ private:
     void waitForPreview();
     void snapshot(const core::Value& action);
     void canvasAction(const core::Value& action, const std::string& what);
+    // "tool.open" / "tool.set" / "tool.click" / "tool.page" / "tool.wait" on the PDB clean-up and
+    // structure builder windows (milestone 6 W3-B), and a snapshot's "tool" record.
+    void toolAction(const core::Value& action, const std::string& what);
+    core::Value toolSnapshot(const core::Value& spec) const;
     QStringList dialogAnswer(const app::forms::FileDialogRequest& request) const;
 
     app::MainWindow& m_window;
@@ -227,9 +236,10 @@ inline constexpr double kFitAngleTolerance = 0.5;   // degrees between the two r
 inline constexpr double kFitShiftTolerance = 0.2;   // Å between the model centres they place
 inline constexpr double kFitCcTolerance = 1e-3;     // fit_cc
 // Texts equal but for the numbers written with a decimal point, which may differ by one in their
-// last printed digit (D10: "within their printed rounding ± 1 in the last digit"); whole numbers
-// are compared exactly.
-bool closeText(const std::string& expected, const std::string& actual);
+// last printed digit (D10: "within their printed rounding ± 1 in the last digit") or by
+// `tolerance`, and the spaces before such a number (its sign moves a right-aligned column, as in
+// PDB records); whole numbers are compared exactly.
+bool closeText(const std::string& expected, const std::string& actual, double tolerance = 0.0);
 // A project's `density` table: `transform` within the angle and shift tolerances (the model centre
 // is the mean of the expected anchor points), `fit_cc` within kFitCcTolerance, `fit_info` by
 // closeText, every other key with sameValue.
@@ -237,9 +247,12 @@ bool closeDensity(const core::Value& expected, const core::Value& actual);
 // sameValue, but a table under the key "density" by closeDensity and texts by closeText (the
 // snapshots of a fitted case; `key` is the key the values are under).
 bool sameFitted(const core::Value& expected, const core::Value& actual, std::string_view key);
-// A written project file of a fitted case: the [density] tables by closeDensity, and the texts
-// equal line for line with the lines of transform, fit_cc and fit_info in [density] left out.
-// "" when they agree.
-std::string compareFittedProject(const std::string& actual, const std::string& expected);
+// compareText, but the lines compared by closeText with `tolerance`.
+std::string compareFittedText(const std::string& actual, const std::string& expected, double tolerance = 0.0);
+// One of a fitted case's "fitted" files: a project file (`name` ends in .toml) with its [density]
+// tables by closeDensity and the rest by compareFittedText, the lines of transform, fit_cc and
+// fit_info in [density] left out; any other file by compareFittedText. "" when they agree.
+std::string compareFittedFile(const std::string& name, const std::string& actual, const std::string& expected,
+                              double tolerance);
 
 }  // namespace mdbridge::guitest

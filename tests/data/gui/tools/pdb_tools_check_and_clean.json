@@ -1,0 +1,312 @@
+{
+ "format": "mdbridge-gui-case",
+ "version": 1,
+ "description": "PDB clean-up: the output suggested, Check input, Amber names and renumbering, then REMARK 950 annotation (builtin engine, no stacking); the window closed",
+ "source": "MDATK v0.0.4.1's GTK window driven by tests/parity/make_gui_cases.py, with MDBridge's window improvements (tests/parity/improvements_gui.py)",
+ "clock": "2026-11-25T12:00:00",
+ "items": [
+  "TW-01"
+ ],
+ "mdatk_test": "tests/test_gui.py::test_pdb_tools_window_checks_and_cleans",
+ "needs": [
+  "lossless",
+  "snapshot",
+  "start",
+  "tools"
+ ],
+ "canvas": {
+  "width": 960,
+  "height": 540
+ },
+ "files": {
+  "in.pdb": "gui/tools/pdb_tools_check_and_clean/in/in.pdb",
+  "p.mdatk.toml": "projects/default.mdatk.toml"
+ },
+ "start": {
+  "project": "p.mdatk.toml"
+ },
+ "actions": [
+  {
+   "action": "tool.open",
+   "tool": "pdb_tools"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "tool": {
+    "name": "pdb_tools",
+    "report": false,
+    "fields": [
+     "output"
+    ],
+    "sensitive": [
+     "ann_engine",
+     "reference",
+     "chain_ids",
+     "start"
+    ]
+   }
+  },
+  {
+   "action": "tool.set",
+   "tool": "pdb_tools",
+   "key": "input",
+   "value": "in.pdb"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "tool": {
+    "name": "pdb_tools",
+    "report": false,
+    "fields": [
+     "output"
+    ],
+    "sensitive": []
+   }
+  },
+  {
+   "action": "tool.click",
+   "tool": "pdb_tools",
+   "key": "check"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "tool": {
+    "name": "pdb_tools",
+    "report": true,
+    "fields": [],
+    "sensitive": []
+   }
+  },
+  {
+   "action": "tool.set",
+   "tool": "pdb_tools",
+   "key": "scheme",
+   "value": "amber"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "tool": {
+    "name": "pdb_tools",
+    "report": false,
+    "fields": [
+     "strip_5p"
+    ],
+    "sensitive": []
+   }
+  },
+  {
+   "action": "tool.set",
+   "tool": "pdb_tools",
+   "key": "renumber",
+   "value": true
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "tool": {
+    "name": "pdb_tools",
+    "report": false,
+    "fields": [],
+    "sensitive": [
+     "start",
+     "per_chain",
+     "keep_gaps"
+    ]
+   }
+  },
+  {
+   "action": "tool.click",
+   "tool": "pdb_tools",
+   "key": "write"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "tool": {
+    "name": "pdb_tools",
+    "report": true,
+    "fields": [],
+    "sensitive": [
+     "ann_engine"
+    ]
+   }
+  },
+  {
+   "action": "tool.set",
+   "tool": "pdb_tools",
+   "key": "annotate",
+   "value": true
+  },
+  {
+   "action": "tool.set",
+   "tool": "pdb_tools",
+   "key": "ann_engine",
+   "value": "builtin"
+  },
+  {
+   "action": "tool.set",
+   "tool": "pdb_tools",
+   "key": "ann_stacking",
+   "value": false
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "tool": {
+    "name": "pdb_tools",
+    "report": false,
+    "fields": [],
+    "sensitive": [
+     "ann_engine"
+    ]
+   }
+  },
+  {
+   "action": "tool.click",
+   "tool": "pdb_tools",
+   "key": "write"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "tool": {
+    "name": "pdb_tools",
+    "report": true,
+    "fields": [],
+    "sensitive": []
+   }
+  },
+  {
+   "action": "tool.click",
+   "tool": "pdb_tools",
+   "key": "close"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "tool": {
+    "name": "pdb_tools",
+    "report": false
+   }
+  },
+  {
+   "action": "save"
+  }
+ ],
+ "expected": {
+  "in_clean.pdb": "gui/tools/pdb_tools_check_and_clean/out/in_clean.pdb",
+  "p.mdatk.toml": "gui/tools/pdb_tools_check_and_clean/out/p.mdatk.toml"
+ },
+ "log": [
+  "PDB clean-up: wrote in_clean.pdb",
+  "PDB clean-up: wrote in_clean.pdb",
+  "Saved project {case_dir}/p.mdatk.toml"
+ ],
+ "outcome": {
+  "snapshots": [
+   {
+    "action": 1,
+    "tool": {
+     "name": "pdb_tools",
+     "open": true,
+     "values": {
+      "output": ""
+     },
+     "sensitive": {
+      "ann_engine": false,
+      "reference": false,
+      "chain_ids": false,
+      "start": false
+     }
+    }
+   },
+   {
+    "action": 3,
+    "tool": {
+     "name": "pdb_tools",
+     "open": true,
+     "values": {
+      "output": "in_clean.pdb"
+     }
+    }
+   },
+   {
+    "action": 5,
+    "tool": {
+     "name": "pdb_tools",
+     "open": true,
+     "report": "in.pdb: 2 TER segment(s), 0 CONECT record(s)\n\nChain A: 2 residues (1-2), names C G; chirality 2 D\n  GC\nChain B: 2 residues (3-4), names 0G 0U; chirality 2 L\n  GU\n\nChirality (sugar geometry): 2 L and 2 D nucleotides"
+    }
+   },
+   {
+    "action": 7,
+    "tool": {
+     "name": "pdb_tools",
+     "open": true,
+     "values": {
+      "strip_5p": true
+     }
+    }
+   },
+   {
+    "action": 9,
+    "tool": {
+     "name": "pdb_tools",
+     "open": true,
+     "sensitive": {
+      "start": true,
+      "per_chain": true,
+      "keep_gaps": true
+     }
+    }
+   },
+   {
+    "action": 11,
+    "tool": {
+     "name": "pdb_tools",
+     "open": true,
+     "report": "Wrote in_clean.pdb\n\nChirality (sugar geometry): 2 L and 2 D nucleotides\nRemoved the 5'-terminal phosphate of 2 residue(s): A:1 G, B:3 0G\nRenamed 4 residues to the amber scheme: G->G5 x1, C->C3 x1, 0G->LG5 x1, 0U->LU3 x1\nRenumbered residues continuously from 1",
+     "sensitive": {
+      "ann_engine": false
+     }
+    }
+   },
+   {
+    "action": 15,
+    "tool": {
+     "name": "pdb_tools",
+     "open": true,
+     "sensitive": {
+      "ann_engine": true
+     }
+    }
+   },
+   {
+    "action": 17,
+    "tool": {
+     "name": "pdb_tools",
+     "open": true,
+     "report": "Wrote in_clean.pdb\n\nChirality (sugar geometry): 2 L and 2 D nucleotides\nRemoved the 5'-terminal phosphate of 2 residue(s): A:1 G, B:3 0G\nRenamed 4 residues to the amber scheme: G->G5 x1, C->C3 x1, 0G->LG5 x1, 0U->LU3 x1\nRenumbered residues continuously from 1\nAnnotated 0 base pair(s) with the builtin engine"
+    }
+   },
+   {
+    "action": 19,
+    "tool": {
+     "name": "pdb_tools",
+     "open": false
+    }
+   }
+  ],
+  "settings": "gui/tools/pdb_tools_check_and_clean/settings.after.toml"
+ },
+ "mdatk": {
+  "expected": {
+   "in_clean.pdb": "gui/tools/pdb_tools_check_and_clean/mdatk/in_clean.pdb",
+   "p.mdatk.toml": "gui/tools/pdb_tools_check_and_clean/mdatk/p.mdatk.toml"
+  }
+ }
+}

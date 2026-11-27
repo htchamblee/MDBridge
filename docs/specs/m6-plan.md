@@ -148,8 +148,8 @@ errors print `error: <message>` with exit status 1 (cli.py:998-1020), usage erro
 |---|---|---|
 | Structure view page, density section: *Global search*, *Refine* (`fit_density(search)`, a job that runs `Pipeline.fit_density` and stores the placement, then reloads the preview), status line | gui/app.py:924-1056 | **6** (shown disabled since M5, "comes with milestone 6": src/app/gui/pages/structure_page.cpp:20, 129-136) |
 | *Centre on model*, *Clear*, map mode (move / rotate the map with the mouse) | app.py:964-1031, canvas.py | done (M5 W2-A / W2-B) |
-| *PDB clean-up…* window (`PDBToolsWindow`: input / output, names and chirality, chains, numbering, sequence, annotation, *Check input*, *Write cleaned PDB*, report) | gui/pdbdialog.py:39-298; menu app.py:163, 1632-1638 | D1 (section 7); menu shell "comes with milestone 6" (src/app/gui/main_window.cpp:390) |
-| *Structure builder…* window (`BuilderWindow`: *Ideal helix*, *Mutate*, *Fit to map* pages, *Check*, *Build*, background jobs with progress and cancel) | gui/builderdialog.py:39-424; menu app.py:165, 1640-1646 | D1; menu shell (main_window.cpp:391) |
+| *PDB clean-up…* window (`PDBToolsWindow`: input / output, names and chirality, chains, numbering, sequence, annotation, *Check input*, *Write cleaned PDB*, report) | gui/pdbdialog.py:39-298; menu app.py:163, 1632-1638 | D1 (section 7); done (M6 W3-B: src/app/gui/tools/pdb_tools_window.cpp behind tools/host.hpp; DIFFERENCES TW-xx) |
+| *Structure builder…* window (`BuilderWindow`: *Ideal helix*, *Mutate*, *Fit to map* pages, *Check*, *Build*, background jobs with progress and cancel) | gui/builderdialog.py:39-424; menu app.py:165, 1640-1646 | D1; done (M6 W3-B: tools/builder_window.cpp; the other pairings with W2-A, TW-07) |
 
 MDATK 0.0.11 moved both windows into RNAdo behind a small host interface (0.1.1 `gui/host.py`); M5 D1
 put RNAdo into milestone 7.

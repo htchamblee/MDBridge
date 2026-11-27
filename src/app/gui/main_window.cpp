@@ -62,6 +62,7 @@
 #include "gui/pages/layout_page.hpp"
 #include "gui/pages/structure_page.hpp"
 #include "gui/problems/problems_panel.hpp"
+#include "gui/tools/tool_windows.hpp"
 #include "mdbridge/core/citations.hpp"
 #include "mdbridge/core/json.hpp"
 #include "mdbridge/core/paths.hpp"
@@ -298,6 +299,7 @@ MainWindow::MainWindow(render::Renderer renderer, QWidget* parent)
 }
 
 MainWindow::~MainWindow() {
+    m_tools.reset();  // the tool windows close first (a running build is cancelled and waited for)
     cancelLoad();
     if (m_gpu) {  // the GPU check and the canvas's drawing end before the device goes
         m_preview->setFastStageRenderer(nullptr);
@@ -328,7 +330,6 @@ QAction* MainWindow::action(const QString& name) const {
 }
 
 void MainWindow::createActions() {
-    const QString later6 = tr("Comes with milestone 6 of MDBridge");
     const QString later7 = tr("Comes with milestone 7 of MDBridge");
     connect(makeAction(QStringLiteral("open"), tr("Open project"), QKeySequence::Open, tr("Open a project file (Ctrl+O)")),
             &QAction::triggered, this, &MainWindow::chooseAndOpen);
@@ -382,15 +383,21 @@ void MainWindow::createActions() {
                        tr("Redraw the layout preview with the current settings (F5)")),
             &QAction::triggered, this, &MainWindow::refreshPreview);
 
-    // the workflow programs (D1, D2): shells until their milestones
+    // the workflow programs (D1, D2): the planner and the wizard are shells until milestone 7; the
+    // PDB clean-up and the structure builder are tools hosted by this window (milestone 6 W3-B)
     for (const auto& [name, text, key, tip] :
          {std::tuple<QString, QString, QKeySequence, QString>{QStringLiteral("planner"), tr("Project Planner…"),
                                                              QKeySequence(Qt::CTRL | Qt::Key_P), later7},
-          {QStringLiteral("wizard"), tr("Script wizard…"), QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_W), later7},
-          {QStringLiteral("pdb_tools"), tr("PDB clean-up…"), QKeySequence(), later6},
-          {QStringLiteral("builder"), tr("Structure builder…"), QKeySequence(), later6}}) {
+          {QStringLiteral("wizard"), tr("Script wizard…"), QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_W), later7}}) {
         makeAction(name, text, key, tip)->setEnabled(false);
     }
+    m_tools = std::make_unique<tools::ToolWindows>(std::make_unique<tools::MainWindowHost>(*this));
+    connect(makeAction(QStringLiteral("pdb_tools"), tr("PDB clean-up…"), {},
+                       tr("Repair, rename (D/L-RNA naming schemes), re-chain and renumber PDB files")),
+            &QAction::triggered, this, [this] { m_tools->openPdbTools(); });
+    connect(makeAction(QStringLiteral("builder"), tr("Structure builder…"), {},
+                       tr("Ideal A-form helices (D / L), base mutations and rigid-body fits into a density map")),
+            &QAction::triggered, this, [this] { m_tools->openBuilder(); });
     // the action bar's jobs (connected by WindowActions, W2-B)
     makeAction(QStringLiteral("render"), tr("Render"), QKeySequence(Qt::CTRL | Qt::Key_R),
                tr("Run cleaning, analyses and all enabled outputs (Ctrl+R)"));
@@ -437,7 +444,8 @@ QWidget* MainWindow::createHeader() {
     auto* workflow = new QToolButton(bar);
     workflow->setObjectName(QStringLiteral("header.workflow"));
     workflow->setText(tr("Workflow"));
-    workflow->setToolTip(tr("Project Planner, script wizard, PDB clean-up and structure builder (milestones 6 and 7)"));
+    workflow->setToolTip(tr("PDB clean-up and structure builder; the Project Planner and the script wizard come with "
+                            "milestone 7"));
     workflow->setPopupMode(QToolButton::InstantPopup);
     auto* workflowMenu = new QMenu(workflow);
     workflowMenu->setObjectName(QStringLiteral("menu.workflow"));

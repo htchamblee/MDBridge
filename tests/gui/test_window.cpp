@@ -503,11 +503,16 @@ void WindowTests::aboutAndGraphics() {
 
 void WindowTests::workflowShells() {
     Fixture f;
-    // D2: present, disabled, saying when they come
-    for (const char* name : {"planner", "wizard", "pdb_tools", "builder"}) {
+    // D2: present, disabled, saying when they come (milestone 7)
+    for (const char* name : {"planner", "wizard"}) {
         QAction* a = f.window->action(QString::fromLatin1(name));
         QVERIFY2(a && !a->isEnabled(), name);
-        QVERIFY(a->toolTip().contains(QStringLiteral("milestone")));
+        QVERIFY(a->toolTip().contains(QStringLiteral("milestone 7")));
+    }
+    // milestone 6 W3-B (D1): the PDB clean-up and the structure builder work (tests/gui/test_tools.cpp)
+    for (const char* name : {"pdb_tools", "builder"}) {
+        QAction* a = f.window->action(QString::fromLatin1(name));
+        QVERIFY2(a && a->isEnabled(), name);
     }
 }
 

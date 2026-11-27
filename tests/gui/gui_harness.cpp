@@ -21,7 +21,9 @@
 #include <QAbstractSlider>
 #include <QAbstractSpinBox>
 #include <QApplication>
+#include <QCheckBox>
 #include <QComboBox>
+#include <QDoubleSpinBox>
 #include <QCoreApplication>
 #include <QFont>
 #include <QImage>
@@ -30,6 +32,7 @@
 #include <QMouseEvent>
 #include <QPixmap>
 #include <QPlainTextEdit>
+#include <QSpinBox>
 #include <QStringList>
 #include <QTableView>
 #include <QTest>
@@ -50,6 +53,9 @@
 #include "mdbridge/render/text_qt.hpp"
 #include "gui/pages/layout_page.hpp"
 #include "gui/preview_widget.hpp"
+#include "gui/tools/builder_window.hpp"
+#include "gui/tools/pdb_tools_window.hpp"
+#include "gui/tools/tool_windows.hpp"
 
 namespace fs = std::filesystem;
 
@@ -369,6 +375,14 @@ GuiCase loadCase(const fs::path& file, const fs::path& casesDir) {
             c.needs.push_back(need.stringOr());
         }
     }
+    if (const core::Value* fitted = root.find("fitted"); fitted && fitted->isTable()) {
+        for (const auto& [name, tolerance] : *fitted->get<core::Table>()) {
+            const auto* d = tolerance.get<double>();
+            const auto* i = tolerance.get<std::int64_t>();
+            if (!d && !i) throw CaseError(where + ": 'fitted' maps file names to tolerances");
+            c.fitted.emplace_back(name, d ? *d : static_cast<double>(*i));
+        }
+    }
     if (const core::Value* start = root.find("start")) {
         if (!start->isTable() || !start->find("project") || !start->find("project")->isString()) {
             throw CaseError(where + ": 'start' must be {\"project\": name}");
@@ -413,7 +427,7 @@ bool GuiCase::needsAny(std::string_view need) const {
 std::vector<std::string> unsupportedNeeds(const GuiCase& c) {
     static const std::vector<std::string> supported{"answers", "canvas", "close", "fitted", "lossless", "new",
                                                     "open_failure", "save_as", "settings", "snapshot", "start",
-                                                    "table", "toggle", "type"};
+                                                    "table", "toggle", "tools", "type"};
     std::vector<std::string> out;
     for (const std::string& need : c.needs) {
         if (std::find(supported.begin(), supported.end(), need) == supported.end()) {
@@ -430,7 +444,7 @@ FixedClock::FixedClock(const core::DateTime& start) {
                                                 addSecond(*next);
                                                 return now;
                                             },
-                                            {}});
+                                            [] { return 0.0; }});
 }
 
 FixedClock::~FixedClock() { core::setClock(m_previous); }
@@ -929,6 +943,8 @@ void CaseRunner::runAction(const core::Value& action) {
         else m_window.saveAs();
     } else if (what.rfind("canvas.", 0) == 0) {
         canvasAction(action, what);
+    } else if (what.rfind("tool.", 0) == 0) {
+        toolAction(action, what.substr(5));
     } else if (what == "screenshot") {
         const std::string widgetName = optionalString(action, "widget");
         QWidget* widget = widgetName.empty() ? static_cast<QWidget*>(&m_window) : findField(&m_window, toQString(widgetName));
@@ -1094,7 +1110,8 @@ void prepareCase(const GuiCase& c, const fs::path& dataDir, const fs::path& case
 
 namespace {
 
-// A text cut into the numbers in it and the text between them.
+// A text cut into the numbers in it and the text between them: always a text piece (perhaps
+// empty) before each number and after the last, so two texts with as many numbers line up.
 struct TextPiece {
     std::string text;  // the number as written, or the text between numbers
     bool number = false;
@@ -1123,14 +1140,14 @@ std::vector<TextPiece> textPieces(const std::string& text) {
             while (i < text.size() && isDigit(text[i])) ++i;
             decimals = static_cast<int>(i - point);
         }
-        if (!between.empty()) out.push_back({between});
+        out.push_back({between});
         between.clear();
         TextPiece piece{text.substr(begin, i - begin), true};
         piece.value = std::strtod(piece.text.c_str(), nullptr);
         piece.decimals = decimals;
         out.push_back(piece);
     }
-    if (!between.empty()) out.push_back({between});
+    out.push_back({between});
     return out;
 }
 
@@ -1140,21 +1157,36 @@ double numberValue(const core::Value& v) {
     return std::nan("");
 }
 
+std::string_view withoutTrailingSpaces(std::string_view text) {
+    while (!text.empty() && text.back() == ' ') text.remove_suffix(1);
+    return text;
+}
+
 }  // namespace
 
-bool closeText(const std::string& expected, const std::string& actual) {
+bool closeText(const std::string& expected, const std::string& actual, double tolerance) {
     if (expected == actual) return true;
     const std::vector<TextPiece> a = textPieces(expected);
     const std::vector<TextPiece> b = textPieces(actual);
     if (a.size() != b.size()) return false;
     for (std::size_t k = 0; k < a.size(); ++k) {
         if (a[k].number != b[k].number) return false;
-        if (!a[k].number || (a[k].decimals < 0 && b[k].decimals < 0)) {
+        if (!a[k].number) {
+            // the spaces before a number with a decimal point may differ (a right-aligned column)
+            const bool beforeDecimal = k + 1 < a.size() && (a[k + 1].decimals >= 0 || b[k + 1].decimals >= 0);
+            if (beforeDecimal ? withoutTrailingSpaces(a[k].text) != withoutTrailingSpaces(b[k].text)
+                              : a[k].text != b[k].text) {
+                return false;
+            }
+            continue;
+        }
+        if (a[k].decimals < 0 && b[k].decimals < 0) {
             if (a[k].text != b[k].text) return false;
             continue;
         }
         const int decimals = std::max(0, std::max(a[k].decimals, b[k].decimals));
-        if (!(std::abs(a[k].value - b[k].value) <= std::pow(10.0, -decimals) * (1.0 + 1e-9))) return false;
+        const double allowed = std::max(std::pow(10.0, -decimals) * (1.0 + 1e-9), tolerance);
+        if (!(std::abs(a[k].value - b[k].value) <= allowed)) return false;
     }
     return true;
 }
@@ -1246,8 +1278,37 @@ bool sameFitted(const core::Value& expected, const core::Value& actual, std::str
     return sameValue(expected, actual);
 }
 
-std::string compareFittedProject(const std::string& actual, const std::string& expected) {
-    // the [density] table's fitted numbers within D10's tolerance, every other byte equal
+std::string compareFittedText(const std::string& actual, const std::string& expected, double tolerance) {
+    if (actual == expected) return {};
+    std::istringstream a(actual);
+    std::istringstream b(expected);
+    std::string la;
+    std::string lb;
+    for (int line = 1;; ++line) {
+        const bool hasA = static_cast<bool>(std::getline(a, la));
+        const bool hasB = static_cast<bool>(std::getline(b, lb));
+        if (!hasA && !hasB) {
+            const bool endA = !actual.empty() && actual.back() == '\n';
+            const bool endB = !expected.empty() && expected.back() == '\n';
+            return endA == endB ? std::string() : std::string("the texts differ in their final line end");
+        }
+        if (!hasA || !hasB || !closeText(lb, la, tolerance)) {
+            std::ostringstream out;
+            out << "line " << line << ": expected " << (hasB ? "'" + lb + "'" : std::string("the end of the file"))
+                << ", got " << (hasA ? "'" + la + "'" : std::string("the end of the file"))
+                << " (decimals compared within their last digit or " << core::pythonFloatRepr(tolerance) << ")";
+            return out.str();
+        }
+    }
+}
+
+std::string compareFittedFile(const std::string& name, const std::string& actual, const std::string& expected,
+                              double tolerance) {
+    if (name.size() <= 5 || name.compare(name.size() - 5, 5, ".toml") != 0) {
+        return compareFittedText(actual, expected, tolerance);
+    }
+    // a project file: the [density] table's fitted numbers within D10's tolerance, the rest by
+    // compareFittedText
     core::Value got;
     core::Value want;
     try {
@@ -1275,7 +1336,7 @@ std::string compareFittedProject(const std::string& actual, const std::string& e
         }
         return out;
     };
-    return compareText(withoutFitted(actual), withoutFitted(expected));
+    return compareFittedText(withoutFitted(actual), withoutFitted(expected), tolerance);
 }
 
 std::string checkExpected(const GuiCase& c, const fs::path& dataDir, const fs::path& caseDir) {
@@ -1285,11 +1346,13 @@ std::string checkExpected(const GuiCase& c, const fs::path& dataDir, const fs::p
         std::string problem;
         if (!fs::exists(written)) {
             problem = "was not written";
-        } else if (c.needsAny("fitted") && name.size() > 5 && name.compare(name.size() - 5, 5, ".toml") == 0) {
-            problem = compareFittedProject(normalise(readFile(written), caseDir),
-                                           normalise(readFile(dataDir / core::pathFromUtf8(source)), {}));
         } else {
-            problem = compareText(normalise(readFile(written), caseDir), normalise(readFile(dataDir / core::pathFromUtf8(source)), {}));
+            const std::string actual = normalise(readFile(written), caseDir);
+            const std::string expected = normalise(readFile(dataDir / core::pathFromUtf8(source)), {});
+            const auto fitted = std::find_if(c.fitted.begin(), c.fitted.end(),
+                                             [&](const auto& entry) { return entry.first == name; });
+            problem = fitted != c.fitted.end() ? compareFittedFile(name, actual, expected, fitted->second)
+                                               : compareText(actual, expected);
         }
         if (!problem.empty()) {
             problems += name + " (expected " + source + "): " + problem + "\n";
@@ -1380,6 +1443,9 @@ void CaseRunner::snapshot(const core::Value& action) {
     }
     if (const core::Value* modified = action.find("modified"); modified && modified->get<bool>() && *modified->get<bool>()) {
         rec.emplace_back("modified", m_window.document().isModified());
+    }
+    if (const core::Value* tool = action.find("tool"); tool && tool->isTable()) {
+        rec.emplace_back("tool", toolSnapshot(*tool));
     }
     m_snapshots.push_back(core::Value(std::move(rec)));
 }
@@ -1557,6 +1623,109 @@ std::string checkOutcome(const GuiCase& c, const CaseRunner& runner, const std::
         problems += "settings: " + core::pathToUtf8(settings) + " was written, but the case expects none\n";
     }
     return problems;
+}
+
+// ---- the workflow tools (milestone 6 W3-B) ---------------------------------------------------
+
+namespace {
+
+app::tools::ToolWindow* openTool(app::MainWindow& window, const std::string& name) {
+    if (name == "pdb_tools") return window.toolWindows().pdbTools();
+    if (name == "builder") return window.toolWindows().builder();
+    throw CaseError("unknown tool '" + name + "' (pdb_tools, builder)");
+}
+
+app::tools::ToolWindow* toolWindowOf(app::MainWindow& window, const std::string& name) {
+    app::tools::ToolWindow* tool = openTool(window, name);
+    if (!tool) throw CaseError("the " + name + " window is not open");
+    return tool;
+}
+
+QWidget* toolControl(app::tools::ToolWindow* tool, const std::string& key) {
+    QWidget* w = tool->control(toQString(key));
+    if (!w) throw CaseError(tool->toolId().toStdString() + " has no single control '" + key + "'");
+    return w;
+}
+
+core::Value controlValue(QWidget* w) {
+    if (auto* edit = qobject_cast<QLineEdit*>(w)) return edit->text().toStdString();
+    if (auto* combo = qobject_cast<QComboBox*>(w)) return combo->currentData().toString().toStdString();
+    if (auto* check = qobject_cast<QCheckBox*>(w)) return check->isChecked();
+    if (auto* spin = qobject_cast<QSpinBox*>(w)) return static_cast<std::int64_t>(spin->value());
+    if (auto* spin = qobject_cast<QDoubleSpinBox*>(w)) return spin->value();
+    throw CaseError(w->objectName().toStdString() + ": no value to record");
+}
+
+}  // namespace
+
+void CaseRunner::toolAction(const core::Value& action, const std::string& what) {
+    const std::string& name = stringEntry(action, "tool", "tool." + what);
+    if (what == "open") {
+        if (name == "pdb_tools") m_window.toolWindows().openPdbTools();
+        else if (name == "builder") m_window.toolWindows().openBuilder();
+        else throw CaseError("unknown tool '" + name + "' (pdb_tools, builder)");
+        QApplication::processEvents();
+        return;
+    }
+    app::tools::ToolWindow* tool = toolWindowOf(m_window, name);
+    if (what == "set") {
+        const core::Value* value = action.find("value");
+        if (!value) throw CaseError("'value' is missing");
+        QWidget* w = toolControl(tool, stringEntry(action, "key", "tool.set"));
+        if (value->get<std::string>() && (qobject_cast<QLineEdit*>(w) || qobject_cast<QAbstractSpinBox*>(w))) {
+            typeField(w, toQString(*value->get<std::string>()));  // "" clears the field
+        } else {
+            setField(w, *value);
+        }
+    } else if (what == "click") {
+        auto* button = qobject_cast<QAbstractButton*>(toolControl(tool, stringEntry(action, "key", "tool.click")));
+        if (!button) throw CaseError("tool.click: not a button");
+        if (button->isEnabled() && button->isVisible()) {  // else a user cannot press it
+            QTest::mouseClick(button, Qt::LeftButton);
+        }
+    } else if (what == "page") {
+        auto* builder = qobject_cast<app::tools::BuilderWindow*>(tool);
+        if (!builder) throw CaseError("tool.page: only the builder has pages");
+        builder->setPage(toQString(stringEntry(action, "page", "tool.page")));
+    } else if (what == "wait") {
+        auto* builder = qobject_cast<app::tools::BuilderWindow*>(tool);
+        if (builder && !QTest::qWaitFor([&] { return !builder->busy(); }, 300000)) {
+            throw CaseError("the builder's job did not finish");
+        }
+    } else {
+        throw CaseError("unknown tool action (tests/data/README.md, \"gui\", lists the actions)");
+    }
+    QApplication::processEvents();
+    QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);  // a closed window is gone
+}
+
+core::Value CaseRunner::toolSnapshot(const core::Value& spec) const {
+    const core::Value* nameValue = spec.find("name");
+    const std::string name = nameValue ? nameValue->stringOr() : std::string();
+    app::tools::ToolWindow* tool = openTool(m_window, name);
+    core::Table out{{"name", name}, {"open", tool != nullptr}};
+    if (!tool) return core::Value(std::move(out));
+    if (const core::Value* report = spec.find("report"); report && report->get<bool>() && *report->get<bool>()) {
+        out.emplace_back("report", tool->reportText().toStdString());
+    }
+    const auto keys = [&](std::string_view entry) {
+        std::vector<std::string> list;
+        if (const core::Value* v = spec.find(entry); v && v->isArray()) {
+            for (const core::Value& k : *v->get<core::Array>()) list.push_back(k.stringOr());
+        }
+        return list;
+    };
+    if (const std::vector<std::string> fields = keys("fields"); !fields.empty()) {
+        core::Table values;
+        for (const std::string& k : fields) values.emplace_back(k, controlValue(toolControl(tool, k)));
+        out.emplace_back("values", core::Value(std::move(values)));
+    }
+    if (const std::vector<std::string> sensitive = keys("sensitive"); !sensitive.empty()) {
+        core::Table states;
+        for (const std::string& k : sensitive) states.emplace_back(k, toolControl(tool, k)->isEnabled());
+        out.emplace_back("sensitive", core::Value(std::move(states)));
+    }
+    return core::Value(std::move(out));
 }
 
 }  // namespace mdbridge::guitest

@@ -3,8 +3,9 @@
 // decision D4 as amended) around one core::ProjectDocument and its forms::FormContext.
 //
 //   header      Open (+ drop-down: recent projects, Demo project…, Browse…), Save, Save as…,
-//               Workflow (planner, wizard, PDB clean-up, builder: shells until milestones 6 / 7,
-//               D2), Undo / Redo (D5), the main menu (New project (defaults), Close project, Create
+//               Workflow (PDB clean-up and structure builder: tools/tool_windows.hpp, milestone 6
+//               D1; planner and wizard: shells until milestone 7, D2), Undo / Redo (D5), the main
+//               menu (New project (defaults), Close project, Create
 //               demo system…, Project log…, Export citations (BibTeX)…, Citations…, Graphics…,
 //               About MDBridge)
 //   page bar    six page buttons (Ctrl+1 .. Ctrl+6), the canvas hint, Refresh (F5)
@@ -68,6 +69,10 @@ class LogView;
 
 namespace problems {
 class ProblemsPanel;
+}
+
+namespace tools {
+class ToolWindows;
 }
 
 namespace pages {
@@ -145,6 +150,9 @@ public:
     const std::vector<Page>& pages() const { return m_pages; }
     // The problems list (W1-D), shown by the header's problems button.
     problems::ProblemsPanel* problemsPanel() const { return m_problems; }
+    // The PDB clean-up and structure builder windows of the Workflow menu (milestone 6 W3-B, D1),
+    // hosted by this window through tools::Host.
+    tools::ToolWindows& toolWindows() const { return *m_tools; }
 
     // The page shown ("input", "groups", ...), and showing one.
     QString currentPage() const;
@@ -299,6 +307,9 @@ private:
     QElapsedTimer m_wheelClock;           // since the last wheel notch (LE-10)
     QElapsedTimer m_keyClock;             // since the last arrow key on the canvas (WN-13)
     std::shared_ptr<void> m_gpu;          // render::panels::GpuStageRenderers while it may be used
+
+    // the workflow tools (W3-B): closed first when the window goes
+    std::unique_ptr<tools::ToolWindows> m_tools;
 };
 
 }  // namespace mdbridge::app

@@ -227,6 +227,29 @@ void GuiTests::comparesTexts() {
     QCOMPARE(guitest::compareText("a\nc\n", "a\nb\n"), std::string("line 2: expected 'b', got 'c'"));
     QCOMPARE(guitest::compareText("a\n", "a\nb\n"), std::string("line 2: expected 'b', got the end of the file"));
     QCOMPARE(guitest::compareText("a", "a\n"), std::string("the texts differ in their final line end"));
+    // a fitted case's texts (D10): decimals within their last printed digit or the file's
+    // tolerance, the spaces before them free (a sign moves a PDB column), whole numbers exact
+    QVERIFY(guitest::closeText("CC 0.912 at step 3", "CC 0.913 at step 3"));
+    QVERIFY(!guitest::closeText("CC 0.912 at step 3", "CC 0.914 at step 3"));
+    QVERIFY(!guitest::closeText("CC 0.912 at step 3", "CC 0.912 at step 4"));
+    QVERIFY(guitest::closeText("ATOM      1  P     G A   1      -0.001  12.500", "ATOM      1  P     G A   1       0.004  12.500",
+                               0.01));
+    QVERIFY(!guitest::closeText("x   1.000", "x   1.020", 0.01));
+    QVERIFY(guitest::closeText(" 1.5", "-1.5", 3.0));
+    QCOMPARE(guitest::compareFittedText("a 1.25\nb\n", "a 1.24\nb\n"), std::string());
+    QCOMPARE(guitest::compareFittedText("a 1.25\nb", "a 1.24\nb\n"), std::string("the texts differ in their final line end"));
+    QCOMPARE(guitest::compareFittedText("a 1.27\n", "a 1.24\n"),
+             std::string("line 1: expected 'a 1.24', got 'a 1.27' (decimals compared within their last digit or 0.0)"));
+    // a project file: the [density] table by D10's angle / shift / CC tolerances, the rest by line
+    const std::string want = "[density]\ntransform = [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 2.0, 3.0]\n"
+                             "anchor = [[0.0, 0.0, 0.0]]\nfit_cc = 0.9\nfit_info = \"CC 0.900\"\n";
+    std::string got = want;
+    got.replace(got.find("1.0, 2.0"), 8, "1.1, 2.0");
+    got.replace(got.find("0.9\n"), 4, "0.9005\n");
+    got.replace(got.find("CC 0.900"), 8, "CC 0.901");
+    QCOMPARE(guitest::compareFittedFile("p.mdatk.toml", got, want, 0.0), std::string());
+    got.replace(got.find("1.1, 2.0"), 8, "1.3, 2.0");
+    QVERIFY(guitest::compareFittedFile("p.mdatk.toml", got, want, 0.0).rfind("the [density] table differs", 0) == 0);
     // Windows: the folder with either separator, the path after it with '/' up to where it ends
     QCOMPARE(guitest::replaceFolder("Saved project C:/work/tmp\\case\\sub\\copy.mdatk.toml", "C:/work/tmp/case",
                                     "{case_dir}", true),

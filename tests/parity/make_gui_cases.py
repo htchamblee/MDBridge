@@ -49,7 +49,7 @@ sys.dont_write_bytecode = True
 CLOCK = "2026-11-25T12:00:00"           # the window's clock of every case
 INPUT_CLOCK = real_dt.datetime(2026, 11, 25, 11, 0, 0)  # input projects written by MDATK
 CANVAS = {"width": 960, "height": 540}
-TOPICS = ("roundtrip", "pages", "ap", "canvas")
+TOPICS = ("roundtrip", "pages", "ap", "canvas", "tools")
 DEMO = {"demo_dry.parm7": "topology/demo_dry.parm7", "demo_dry.nc": "io/trajectories/demo_dry.nc"}
 MAP = {"map.mrc": "render/inputs/demo_dry_map.mrc"}
 PROJECT = "p.mdatk.toml"
@@ -61,18 +61,21 @@ CASES = []
 
 
 def case(topic, name, description, actions, *, files=None, build=None, start=PROJECT, items=(),
-         mdatk_test="", settings=None, canvas=None, fitted=False):
+         mdatk_test="", settings=None, canvas=None, fitted=None):
     """files: name -> path under tests/data; build: name -> builder function name (an input project
     written by MDATK in the worker); start: the project the window starts with (None: none);
-    fitted: the case runs a density fit, whose numbers MDBridge's harness compares with owner
-    decision D10's tolerance (the case needs "fitted")."""
+    fitted: the case runs a density fit (owner decision D10): expected file -> absolute tolerance of
+    its decimal numbers (at least one unit of the last printed digit; a project file's [density]
+    table within D10's angle, shift and CC tolerances; the rest of the text exact), and its log,
+    reports and snapshot texts with their numbers within the last printed digit (the case needs
+    "fitted")."""
     files = dict(files or {})
     if start and start not in files and start not in (build or {}):
         files[start] = "projects/default.mdatk.toml"  # what `mdatk init` writes
     CASES.append({"topic": topic, "name": name, "description": description, "items": list(items),
                   "mdatk_test": mdatk_test, "files": files, "build": dict(build or {}),
                   "start": start, "settings": settings, "canvas": canvas or CANVAS, "actions": actions,
-                  "fitted": fitted})
+                  "fitted": dict(fitted or {})})
 
 
 def a(action, **kw):
@@ -340,8 +343,219 @@ case("canvas", "density_fit", "Global search, a drag in map mode, Refine from th
     a("click", key="density.refine"),
     snap("density", density_status=True),
     a("save"), snap(modified=True)],
-    files={**DEMO, **MAP}, build={PROJECT: "demo_map"}, fitted=True,
+    files={**DEMO, **MAP}, build={PROJECT: "demo_map"}, fitted={PROJECT: 0.0},
     mdatk_test="tests/test_gui.py::test_density_map_fit_shadow_and_drag")
+
+
+# ---- the workflow tools (milestone 6 W3-B, owner decision D1): the PDB clean-up and structure
+# builder windows of the Workflow menu (mdatk/gui/pdbdialog.py, builderdialog.py), driven through
+# their widgets (tool.set: an entry's text, a drop-down's id, a check box, a spin button's value)
+# and their buttons (tool.click: an insensitive or hidden button does nothing, as for a user); the
+# files they write (and the project's step log) and their reports compared.
+
+def tool(action, name, **kw):
+    return a(f"tool.{action}", tool=name, **kw)
+
+
+def tsnap(name, report=True, fields=(), sensitive=(), **kw):
+    """A snapshot of a tool window: its report text, widget values, which widgets are sensitive."""
+    return a("snapshot", keys=[], tool={"name": name, "report": report, "fields": list(fields),
+                                        "sensitive": list(sensitive)}, **kw)
+
+
+PDB_IN = {"in.pdb": "pdb_four_residues"}
+case("tools", "pdb_tools_check_and_clean", "PDB clean-up: the output suggested, Check input, Amber names and "
+     "renumbering, then REMARK 950 annotation (builtin engine, no stacking); the window closed", [
+    tool("open", "pdb_tools"),
+    tsnap("pdb_tools", report=False, fields=["output"], sensitive=["ann_engine", "reference", "chain_ids", "start"]),
+    tool("set", "pdb_tools", key="input", value="in.pdb"),
+    tsnap("pdb_tools", report=False, fields=["output"]),
+    tool("click", "pdb_tools", key="check"),
+    tsnap("pdb_tools"),
+    tool("set", "pdb_tools", key="scheme", value="amber"),
+    tsnap("pdb_tools", report=False, fields=["strip_5p"]),
+    tool("set", "pdb_tools", key="renumber", value=True),
+    tsnap("pdb_tools", report=False, sensitive=["start", "per_chain", "keep_gaps"]),
+    tool("click", "pdb_tools", key="write"),
+    tsnap("pdb_tools", sensitive=["ann_engine"]),
+    tool("set", "pdb_tools", key="annotate", value=True),
+    tool("set", "pdb_tools", key="ann_engine", value="builtin"),
+    tool("set", "pdb_tools", key="ann_stacking", value=False),
+    tsnap("pdb_tools", report=False, sensitive=["ann_engine"]),
+    tool("click", "pdb_tools", key="write"),
+    tsnap("pdb_tools"),
+    tool("click", "pdb_tools", key="close"),
+    a("snapshot", keys=[], tool={"name": "pdb_tools", "report": False}),
+    a("save")], build=PDB_IN, items=["TW-01"],
+    mdatk_test="tests/test_gui.py::test_pdb_tools_window_checks_and_cleans")
+case("tools", "pdb_tools_chains_and_sequence", "PDB clean-up: chain ids assigned, CCD names with forced L, SEQRES "
+     "and a FASTA file, renumbering per chain; ids per segment, split, combine and sort; a reference PDB", [
+    tool("open", "pdb_tools"),
+    tool("set", "pdb_tools", key="input", value="blank.pdb"),
+    tool("set", "pdb_tools", key="chain_mode", value="assign"),
+    tool("set", "pdb_tools", key="scheme", value="ccd"),
+    tool("set", "pdb_tools", key="l_ranges", value="B:1"),
+    tool("set", "pdb_tools", key="seqres", value=True),
+    tool("set", "pdb_tools", key="fasta", value="blank.fasta"),
+    tool("set", "pdb_tools", key="renumber", value=True),
+    tool("set", "pdb_tools", key="per_chain", value=True),
+    tool("set", "pdb_tools", key="start", value=10),
+    tool("click", "pdb_tools", key="check"),
+    tsnap("pdb_tools"),
+    tool("click", "pdb_tools", key="write"),
+    tsnap("pdb_tools"),
+    tool("set", "pdb_tools", key="output", value="lists.pdb"),
+    tool("set", "pdb_tools", key="fasta", value=""),
+    tool("set", "pdb_tools", key="chain_mode", value="list"),
+    tool("set", "pdb_tools", key="chain_ids", value="X, Y"),
+    tool("set", "pdb_tools", key="combine", value="X,Y"),
+    tool("set", "pdb_tools", key="combine_into", value="Q"),
+    tool("set", "pdb_tools", key="records", value="pdb"),
+    tool("set", "pdb_tools", key="terminals", value=False),
+    tool("set", "pdb_tools", key="keep_gaps", value=True),
+    tool("click", "pdb_tools", key="write"),
+    tsnap("pdb_tools"),
+    tool("set", "pdb_tools", key="input", value="in.pdb"),
+    tsnap("pdb_tools", report=False, fields=["output"]),
+    tool("set", "pdb_tools", key="output", value="ref.pdb"),
+    tool("set", "pdb_tools", key="combine", value=""),
+    tool("set", "pdb_tools", key="combine_into", value=""),
+    tool("set", "pdb_tools", key="chain_mode", value="reference"),
+    tool("set", "pdb_tools", key="reference", value="in.pdb"),
+    tool("set", "pdb_tools", key="copy_numbers", value=True),
+    tool("set", "pdb_tools", key="split_at", value="B:4"),
+    tool("set", "pdb_tools", key="sort_chains", value=True),
+    tool("set", "pdb_tools", key="renumber", value=False),
+    tool("click", "pdb_tools", key="write"),
+    tsnap("pdb_tools")], build={**PDB_IN, "blank.pdb": "pdb_blank_chains"}, items=["TW-01"])
+case("tools", "pdb_tools_errors", "PDB clean-up: no input, a missing input, no output, the output over the input, "
+     "a reversed L range, a file that is not UTF-8 text, a missing reference PDB", [
+    tool("open", "pdb_tools"),
+    tool("click", "pdb_tools", key="check"), tsnap("pdb_tools"),
+    tool("set", "pdb_tools", key="input", value="missing.pdb"),
+    tool("click", "pdb_tools", key="write"), tsnap("pdb_tools", fields=["output"]),
+    tool("set", "pdb_tools", key="input", value="in.pdb"),
+    tool("set", "pdb_tools", key="output", value=""),
+    tool("click", "pdb_tools", key="write"), tsnap("pdb_tools"),
+    tool("set", "pdb_tools", key="output", value="in.pdb"),
+    tool("click", "pdb_tools", key="write"), tsnap("pdb_tools"),
+    tool("set", "pdb_tools", key="output", value="out.pdb"),
+    tool("set", "pdb_tools", key="l_ranges", value="A:4-1"),
+    tool("click", "pdb_tools", key="check"), tsnap("pdb_tools"),
+    tool("click", "pdb_tools", key="write"), tsnap("pdb_tools"),
+    tool("set", "pdb_tools", key="l_ranges", value=""),
+    tool("set", "pdb_tools", key="input", value="latin1.pdb"),
+    tool("set", "pdb_tools", key="output", value="out.pdb"),
+    tool("click", "pdb_tools", key="check"), tsnap("pdb_tools"),
+    tool("click", "pdb_tools", key="write"), tsnap("pdb_tools"),
+    tool("set", "pdb_tools", key="input", value="in.pdb"),
+    tool("set", "pdb_tools", key="chain_mode", value="reference"),
+    tool("set", "pdb_tools", key="reference", value="nowhere.pdb"),
+    tool("click", "pdb_tools", key="write"), tsnap("pdb_tools")],
+    build={**PDB_IN, "latin1.pdb": "pdb_latin1"}, items=["TW-02", "CH-13", "CH-15"])
+case("tools", "builder_helix", "Structure builder: Check and Write of Watson-Crick helices (D, L with Amber names and "
+     "hydrogens, an explicit partner with a mismatch, a single strand); the checks of the other pairings and a "
+     "triplex; the sensitivity rules", [
+    tool("open", "builder"),
+    tsnap("builder", report=False, sensitive=["partner", "chain2", "pairing", "triplex", "third", "chain3", "check"]),
+    tool("set", "builder", key="seq", value="GGCAUGCC"),
+    tool("click", "builder", key="check"), tsnap("builder"),
+    tool("set", "builder", key="helix_out", value="helix_d.pdb"),
+    tool("click", "builder", key="write"), tsnap("builder"),
+    tool("set", "builder", key="chirality", value="L"),
+    tool("set", "builder", key="scheme", value="amber"),
+    tool("set", "builder", key="hydrogens", value=True),
+    tool("set", "builder", key="phosphate5", value=True),
+    tool("set", "builder", key="chain1", value="P"),
+    tool("set", "builder", key="chain2", value="Q"),
+    tool("set", "builder", key="start1", value=101),
+    tool("set", "builder", key="start2", value=-3),
+    tool("set", "builder", key="helix_out", value="helix_l.pdb"),
+    tool("click", "builder", key="write"), tsnap("builder"),
+    tool("set", "builder", key="partner_mode", value="explicit"),
+    tsnap("builder", report=False, sensitive=["partner"]),
+    tool("set", "builder", key="partner", value="GGCAUGUC"),
+    tool("set", "builder", key="scheme", value=""),
+    tool("set", "builder", key="hydrogens", value=False),
+    tool("set", "builder", key="phosphate5", value=False),
+    tool("set", "builder", key="chirality", value="D"),
+    tool("click", "builder", key="check"), tsnap("builder"),
+    tool("set", "builder", key="helix_out", value="mismatch.pdb"),
+    tool("click", "builder", key="write"), tsnap("builder"),
+    tool("set", "builder", key="partner_mode", value="none"),
+    tsnap("builder", report=False, sensitive=["partner", "chain2", "start2", "pairing", "triplex"]),
+    tool("set", "builder", key="seq", value="5'-acgt-3'"),
+    tool("set", "builder", key="helix_out", value="single.pdb"),
+    tool("click", "builder", key="write"), tsnap("builder"),
+    tool("set", "builder", key="partner_mode", value="auto"),
+    tool("set", "builder", key="seq", value="AAGG"),
+    tool("set", "builder", key="pairing", value="hh"),
+    tsnap("builder", report=False, sensitive=["triplex"]),
+    tool("click", "builder", key="check"), tsnap("builder"),
+    tool("set", "builder", key="pairing", value="reverse-hoogsteen"),
+    tool("click", "builder", key="check"), tsnap("builder"),
+    tool("set", "builder", key="pairing", value="wc"),
+    tool("set", "builder", key="triplex", value="hoogsteen"),
+    tsnap("builder", report=False, sensitive=["third", "chain3", "start3"]),
+    tool("click", "builder", key="check"), tsnap("builder"),
+    tool("set", "builder", key="third", value="UUCX"),
+    tool("click", "builder", key="check"), tsnap("builder"),
+    tool("set", "builder", key="helix_out", value=""),
+    tool("click", "builder", key="write"), tsnap("builder")], items=["TW-01"],
+    mdatk_test="tests/test_gui.py::test_builder_non_wc_helix_builds_in_the_background")
+case("tools", "builder_mutate", "Structure builder: a duplex written, then mutated with and without compensatory "
+     "partners (Check lists the residues, NOT FOUND, a spec that cannot be read); the output suggested", [
+    tool("open", "builder"),
+    tool("set", "builder", key="seq", value="GGCAUGCC"),
+    tool("set", "builder", key="helix_out", value="duplex.pdb"),
+    tool("click", "builder", key="write"),
+    tool("page", "builder", page="mutate"),
+    tool("set", "builder", key="mut_input", value="duplex.pdb"),
+    tsnap("builder", report=False, fields=["mut_out"], sensitive=["check", "wobble"]),
+    tool("set", "builder", key="mutations", value="A:3G, B:20C"),
+    tool("click", "builder", key="check"), tsnap("builder"),
+    tool("set", "builder", key="mutations", value="A:3G"),
+    tool("click", "builder", key="write"), tsnap("builder"),
+    tool("set", "builder", key="mutations", value="A:3G, Z9"),
+    tool("click", "builder", key="check"), tsnap("builder"),
+    tool("set", "builder", key="mutations", value="A:4C"),
+    tool("set", "builder", key="compensatory", value=False),
+    tsnap("builder", report=False, sensitive=["wobble"]),
+    tool("set", "builder", key="mut_out", value="nocomp.pdb"),
+    tool("click", "builder", key="write"), tsnap("builder"),
+    tool("set", "builder", key="mut_input", value="in.pdb"),
+    tsnap("builder", report=False, fields=["mut_out"]),
+    tool("set", "builder", key="compensatory", value=True),
+    tool("set", "builder", key="wobble", value=True),
+    tool("set", "builder", key="mut_out", value="in_mut.pdb"),
+    tool("set", "builder", key="mutations", value="A:1A"),
+    tool("click", "builder", key="write"), tsnap("builder"),
+    tool("set", "builder", key="mut_input", value="latin1.pdb"),
+    tool("click", "builder", key="check"), tsnap("builder"),
+    tool("set", "builder", key="mut_input", value="duplex.pdb"),
+    tool("set", "builder", key="mut_out", value="duplex.pdb"),
+    tool("click", "builder", key="write"), tsnap("builder")],
+    build={**PDB_IN, "latin1.pdb": "pdb_latin1"}, items=["TW-02", "CH-08", "CH-09"])
+case("tools", "builder_fit", "Structure builder: Fit to map, a local refinement of a model moved off the map it was "
+     "simulated from (in the background); the inputs checked first", [
+    tool("open", "builder"),
+    tool("page", "builder", page="fit"),
+    tsnap("builder", report=False, sensitive=["check", "step"]),
+    tool("click", "builder", key="write"), tsnap("builder"),
+    tool("set", "builder", key="fit_input", value="in.pdb"),
+    tsnap("builder", report=False, fields=["fit_out"]),
+    tool("click", "builder", key="write"), tsnap("builder"),
+    tool("set", "builder", key="fit_map", value="model.mrc"),
+    tool("set", "builder", key="fit_out", value="in.pdb"),
+    tool("click", "builder", key="write"), tsnap("builder"),
+    tool("set", "builder", key="fit_out", value="in_fit.pdb"),
+    tool("set", "builder", key="resolution", value=6.0),
+    tool("set", "builder", key="search", value="local"),
+    tsnap("builder", report=False, sensitive=["step"]),
+    tool("click", "builder", key="write"),
+    tool("wait", "builder"),
+    tsnap("builder")], build={**PDB_IN, "model.mrc": "map_of_shifted_model"}, items=["TW-01"],
+    fitted={"in_fit.pdb": 0.01, "p.mdatk.toml": 0.0})
 
 
 # ================================================================================================
@@ -393,6 +607,8 @@ def needs_of(c, outcome, lossless):
         name = act["action"]
         if name.startswith("canvas."):
             out.add("canvas")
+        elif name.startswith("tool."):
+            out.add("tools")
         elif name not in base:
             out.add(name)
         if "answers" in act:
@@ -455,6 +671,8 @@ def merge(c, inputs, mdatk, improved, data):
            "clock": CLOCK, "items": c["items"], "mdatk_test": c["mdatk_test"],
            "needs": needs_of(c, outcome, bool(mfiles) or "settings" in differs),
            "canvas": c["canvas"], "files": files}
+    if c["fitted"]:  # expected files with fitted numbers: compared within their last printed digit
+        out["fitted"] = c["fitted"]
     if c["settings"] is not None:
         write_bytes(os.path.join(root, "settings.before.toml"), c["settings"].encode("utf-8"))
         out["settings"] = f"{rel}/settings.before.toml"
@@ -758,6 +976,46 @@ def worker(kind, mdatk, data, cases_file, out_file):
         p.density.map_path = "maps/emd.mrc"
         return p
 
+    # -- input files of the tool cases (file_<name>(path) writes them; the same bytes in both passes)
+    def test_pdbtools():
+        import importlib.util
+
+        if "mdatk_test_pdbtools" not in sys.modules:
+            spec = importlib.util.spec_from_file_location("mdatk_test_pdbtools",
+                                                          os.path.join(mdatk, "tests", "test_pdbtools.py"))
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            sys.modules["mdatk_test_pdbtools"] = module
+        return sys.modules["mdatk_test_pdbtools"]
+
+    FOUR = [("A", [("G", 1, "G", False), ("C", 2, "C", False)]), ("B", [("0G", 3, "G", True), ("0U", 4, "U", True)])]
+
+    def write_text(path, text):
+        with open(path, "w", encoding="utf-8", newline="\n") as fh:
+            fh.write(text)
+
+    def b_file_pdb_four_residues(path):
+        """MDATK's test_pdb_tools_window_checks_and_cleans input: D G C (chain A), L 0G 0U (chain B)."""
+        write_text(path, test_pdbtools().make_pdb(FOUR))
+
+    def b_file_pdb_blank_chains(path):
+        write_text(path, test_pdbtools().make_pdb([(" ", [("G", 1, "G", False), ("C", 2, "C", False)]),
+                                                   (" ", [("A", 1, "A", False), ("U", 2, "U", False)])]))
+
+    def b_file_pdb_latin1(path):
+        text = test_pdbtools().make_pdb(FOUR, header=["REMARK   1 MOD\u00c8LE SANS ACCENT"])
+        with open(path, "wb") as fh:
+            fh.write(text.encode("latin-1"))
+
+    def b_file_map_of_shifted_model(path):
+        import numpy as np
+
+        from mdatk import builder as B, density as D, pdbtools as PT
+        from mdatk.io.mrc import write_map
+
+        xyz, elements = B.model_atoms(PT.read_pdb(test_pdbtools().make_pdb(FOUR)))
+        write_map(path, D.simulate_map(np.asarray(xyz) + np.array([0.4, -0.3, 0.2]), D.atom_weights(elements), 6.0))
+
     builders = {k[2:]: v for k, v in locals().items() if k.startswith("b_")}
 
     # -- helpers on the window
@@ -901,6 +1159,8 @@ def worker(kind, mdatk, data, cases_file, out_file):
             rec["density_status"] = win.density_status.get_text()
         if act.get("modified") and improved:
             rec["modified"] = IG.modified(win)
+        if act.get("tool"):
+            rec["tool"] = tool_snapshot(win, act["tool"])
         H.snapshots.append(rec)
 
     def point(win, spec):
@@ -972,6 +1232,101 @@ def worker(kind, mdatk, data, cases_file, out_file):
         flush(win)
         return win
 
+    # -- the tool windows (W3-B)
+    TOOL_ACTIONS = {"pdb_tools": {"check": "run_check", "write": "run_clean", "close": "destroy"},
+                    "builder": {"check": "check_current", "write": "run_current", "cancel": "_cancel",
+                                "close": "destroy"}}
+    tools_ready = []
+
+    def tools_setup():
+        """Once, before the first tool case: the step log's durations fixed (0.0: logged() times the
+        step with time.monotonic), and in the improved pass MDBridge's chemistry and tool window
+        improvements (improvements_chem.py, improvements_gui.apply_tools)."""
+        if tools_ready:
+            return
+        tools_ready.append(True)
+        PF.time = types.SimpleNamespace(monotonic=lambda: 0.0)
+        if improved:
+            import improvements_chem
+            from mdatk.gui import builderdialog, pdbdialog
+
+            improvements_chem.apply_mdatk()
+            IG.apply_tools(pdbdialog, builderdialog)  # after: it binds the patched annotate
+
+    def tool_window(win, name):
+        dlg = {"pdb_tools": win.pdb_tools, "builder": win.builder}[name]
+        if dlg is None:
+            raise RuntimeError(f"the {name} window is not open")
+        return dlg
+
+    def tool_value(w):
+        if isinstance(w, Gtk.Box) and "entry" in vars(w):
+            return w.entry.get_text()
+        if isinstance(w, Gtk.ComboBoxText):
+            return w.get_active_id()
+        if isinstance(w, Gtk.CheckButton):
+            return w.get_active()
+        if isinstance(w, Gtk.SpinButton):
+            return w.get_value()
+        return w.get_text()
+
+    def tool_set(w, value):
+        if isinstance(w, Gtk.Box) and "entry" in vars(w):
+            w.entry.set_text(str(value))
+        elif isinstance(w, Gtk.ComboBoxText):
+            if not w.set_active_id(str(value)):
+                raise ValueError(f"no item {value!r}")
+        elif isinstance(w, Gtk.CheckButton):
+            w.set_active(bool(value))
+        elif isinstance(w, Gtk.SpinButton):
+            w.set_value(float(value))
+        else:
+            w.set_text(str(value))
+
+    def tool_action(win, act):
+        tools_setup()
+        name, what = act["tool"], act["action"][len("tool."):]
+        if what == "open":
+            {"pdb_tools": win.open_pdb_tools, "builder": win.open_builder}[name]()
+            return
+        dlg = tool_window(win, name)
+        if what == "set":
+            tool_set(getattr(dlg, act["key"]), act["value"])
+        elif what == "page":
+            dlg.notebook.set_current_page(("helix", "mutate", "fit").index(act["page"]))
+        elif what == "click":
+            button = getattr(dlg, f"{act['key']}_button", None)
+            if button is not None and not (button.get_sensitive() and button.get_visible()):
+                return  # a user cannot press it
+            try:
+                getattr(dlg, TOOL_ACTIONS[name][act["key"]])()
+            except Exception as exc:  # noqa: BLE001 - in GTK the button handler's exception is printed
+                H.uncaught.append({"action": H.action, "error": f"{type(exc).__name__}: {exc}"})
+        elif what == "wait":
+            t0 = time.time()
+            while dlg.worker is not None and time.time() - t0 < 300:
+                Gtk.main_iteration_do(False)
+                time.sleep(0.002)
+            if dlg.worker is not None:
+                raise RuntimeError("the tool's job did not finish")
+        else:
+            raise ValueError(f"unknown action {act['action']}")
+
+    def tool_snapshot(win, spec):
+        dlg = {"pdb_tools": win.pdb_tools, "builder": win.builder}[spec["name"]]
+        out = {"name": spec["name"], "open": dlg is not None}
+        if dlg is None:
+            return out
+        if spec.get("report"):
+            buf = dlg.report.get_buffer()
+            out["report"] = buf.get_text(buf.get_start_iter(), buf.get_end_iter(), False)
+        if spec.get("fields"):
+            out["values"] = {k: tool_value(getattr(dlg, k)) for k in spec["fields"]}
+        if spec.get("sensitive"):
+            out["sensitive"] = {k: (getattr(dlg, k) if hasattr(dlg, k) else getattr(dlg, f"{k}_button")).get_sensitive()
+                                for k in spec["sensitive"]}
+        return out
+
     def run_action(state, act):
         win = state["win"]
         name = act["action"]
@@ -1016,6 +1371,8 @@ def worker(kind, mdatk, data, cases_file, out_file):
             {"density.move_with_mouse": win.map_toggle}[act["key"]].set_active(bool(act["value"]))
         elif name.startswith("canvas."):
             canvas_action(win, act)
+        elif name.startswith("tool."):
+            tool_action(win, act)
         elif name == "snapshot":
             snapshot(win, act)
         elif name == "save":
@@ -1086,7 +1443,10 @@ def worker(kind, mdatk, data, cases_file, out_file):
                 shutil.copyfile(os.path.join(data, rel), os.path.join(work, name))
             Clock.t = INPUT_CLOCK
             for name, builder in c["build"].items():
-                builders[builder]().save(os.path.join(work, name))
+                if "file_" + builder in builders:
+                    builders["file_" + builder](os.path.join(work, name))
+                else:
+                    builders[builder]().save(os.path.join(work, name))
             for n in os.listdir(work):
                 if n.startswith(".") and n.endswith(".lock"):
                     os.remove(os.path.join(work, n))
