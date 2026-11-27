@@ -25,7 +25,9 @@ SEL-15  the first group of a name wins in group: expansion (as everywhere else).
 SEL-19  select() errors in MDATK 0.1.x's frame, "invalid selection 'x' (expanded: 'y'): <message>
         (<hint>)", with MDBridge's parser messages; a misspelt keyword gets "did you mean
         'resname'?", a group name written without "group:" "to use the residue group write
-        group:Target" (MDATK 0.1.x selections.py syntax_error / _syntax_hint / suggest).
+        group:Target" (MDATK 0.1.x selections.py syntax_error / _syntax_hint / suggest); an
+        upper-case AND / OR / NOT read as a value "keywords are lower case: did you mean 'and'?"
+        (MDATK 0.1.2 syntax_error).
 SEL-20  an unknown group lists the defined ones and suggests one ("... (defined: A, B); did you mean
         'A'?"), naming the group whose selection used it (MDATK 0.1.x unknown_group_error).
 SEL-21  a group that contains itself names the circle ("group definitions are nested in a circle:
@@ -638,6 +640,12 @@ def syntax_message(text, expanded, exc, groups):
                     else "residue groups are written group:<Name>")
         elif exc.problem == "unclosed":
             hint = "a parenthesis is not closed"
+    if not hint and (not isinstance(exc, SelError) or not exc.problem):
+        # 'resid 1 AND name P' (MDATK 0.1.2 syntax_error): an upper-case and / or / not
+        upper = next((t for t in expanded.replace("(", " ").replace(")", " ").split()
+                      if t != t.lower() and t.lower() in ("and", "or", "not")), "")
+        if upper:
+            hint = f"keywords are lower case: did you mean {upper.lower()!r}?"
     message = f"invalid selection {shown!r}"
     if expanded.strip() not in (shown, shown[4:].strip()):
         message += f" (expanded: {expanded!r})"

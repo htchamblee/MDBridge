@@ -1084,7 +1084,32 @@ def pdb_systems():
     noh_conect = os.path.join(SYSTEMS, "noh_conect.pdb")
     write_pdb(noh_conect, [coords[0, keep]], rows, box, conect=[(serial[(24, "C4'")], serial[(24, "C3'")])])
     out["noh_conect"] = (noh_conect, noh_dcd)
+    # pdb_blown: pdb_nobonds' first 4 frames with a blown-up trace atom (C4' of residue 1 NaN) in frame 2,
+    # or in frame 0, the alignment and RMSD reference (AN-20, MDATK 0.1.2)
+    c4 = int(np.flatnonzero((atoms.resids == 1) & (atoms.names == "C4'"))[0])
+    blown = []
+    for bad in (2, 0):
+        frames = coords[:4].copy()
+        frames[bad, c4, 0] = np.nan
+        path = os.path.join(SYSTEMS, f"pdb_blown_{bad}.dcd")
+        write_mda(path, pdb, frames, box, fmt="DCD")
+        blown.append(path)
+    out["pdb_blown"] = (pdb, *blown)
     return out
+
+
+def bonds_system():
+    """AN-14 (MDATK 0.1.2's rule): a disulfide between residues 1 and 3 (S-S 2.05 Å) and an O3'-P link
+    1.60 Å across a chain-ID break (A 4 - B 5); residue 2 is far from both."""
+    rows = [("CB", "CYS", "A", 1, "C", (0.0, 0.0, 0.0)), ("SG", "CYS", "A", 1, "S", (1.81, 0.0, 0.0)),
+            ("CA", "GLY", "A", 2, "C", (20.0, 0.0, 0.0)), ("C", "GLY", "A", 2, "C", (21.5, 0.0, 0.0)),
+            ("SG", "CYS", "A", 3, "S", (1.81, 2.05, 0.0)), ("CB", "CYS", "A", 3, "C", (0.0, 2.05, 0.0)),
+            ("C3'", "A", "A", 4, "C", (10.0, 10.0, 10.0)), ("O3'", "A", "A", 4, "O", (11.43, 10.0, 10.0)),
+            ("P", "A", "B", 5, "P", (13.03, 10.0, 10.0)), ("O5'", "A", "B", 5, "O", (14.63, 10.0, 10.0))]
+    path = os.path.join(SYSTEMS, "bonds.pdb")
+    write_pdb(path, [np.array([r[5] for r in rows])], [(n, rn, c, ri, e, False) for n, rn, c, ri, e, _ in rows],
+              np.array([50.0, 50.0, 50.0, 90.0, 90.0, 90.0]))
+    return path
 
 
 def _polygon(n, radius, start_deg=0.0):
@@ -1235,6 +1260,15 @@ def systems_cases():
     s = sys_("noh_conect", noh_conect, [noh_dcd])
     cases.append(run_case("noh_conect_self", s, demo, ["groups.0.residues=1-24", "analyses.contacts.group_b=Aptamer"],
                           ["contacts", "trace"]))
+    # AN-20 (MDATK 0.1.2): a blown-up frame is stored unaligned (trace, atoms), its fitted RMSD is NaN
+    pdb, blown_2, blown_0 = pdbs["pdb_blown"]
+    fit = ["analyses.rmsd.targets.0.fit_selection=group:Aptamer"]
+    for name, traj in (("pdb_blown", blown_2), ("pdb_blown_reference", blown_0)):
+        s = sys_(name, pdb, [traj])
+        cases.append(run_case(name, s, demo, fit, ["rmsd", "trace", "atoms"]))
+    # AN-14 (MDATK 0.1.2): a disulfide between residues 1 and 3, O3'-P across a chain break
+    s = sys_("bonds", bonds_system())
+    cases.append(run_case("bonds", s, micro_base({"Aptamer": "1-3", "Target": "4-5"}), [], ["atoms"]))
     s = sys_("aromatic", aromatic)
     arom = micro_base({"Aptamer": "1-4", "Target": "5-10"})
     cases.append(run_case("aromatic", s, arom, [], ALL))

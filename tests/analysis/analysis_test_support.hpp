@@ -602,10 +602,15 @@ inline const Value* recordedResult(const Value& c, const std::string& instance) 
 
 // The log lines of a case that a run with probes reproduces: all but the warnings of the other
 // analyses (warnings whose text does not start with `prefix`, and the energy analysis' parameter line).
+// The runner's own frame warnings (AN-19, AN-20) stay: every run gives them.
 inline std::vector<std::string> logWithoutOtherWarnings(const Value& c, std::string_view prefix) {
     std::vector<std::string> out;
+    const auto runners = [](const std::string& line) {
+        return line.rfind("WARNING: frame ", 0) == 0 || line.rfind("WARNING: frames ", 0) == 0 ||
+               line.rfind("WARNING: use_pbc is on but trajectory frame ", 0) == 0;
+    };
     for (const std::string& line : strings(at(c, "log"))) {
-        if (line.rfind("WARNING: ", 0) == 0 && line.compare(9, prefix.size(), prefix) != 0) {
+        if (line.rfind("WARNING: ", 0) == 0 && line.compare(9, prefix.size(), prefix) != 0 && !runners(line)) {
             continue;
         }
         // the energy analysis' parameter line (CIT-04), the one log line of an analysis that is no warning

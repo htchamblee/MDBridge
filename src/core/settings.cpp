@@ -98,16 +98,36 @@ std::vector<fs::path> recentProjects() {
 
 namespace {
 
-// projectfile._user_settings of MDATK 0.0.14: the whole file, or nothing when it is missing,
-// unreadable or not TOML
-Table userSettings(const fs::path& target) {
+// projectfile._settings_to_change of MDATK 0.1.2 (AP-17): the user settings, read to change one and
+// write them all back; nothing when the file is missing. A file that is there but is no TOML (cut
+// off, edited by hand, not UTF-8) is never written over, which would lose every setting in it: it is
+// kept as settings.toml.unreadable, with a warning, and a new file starts. A file that cannot be read
+// at all throws (fs::filesystem_error), so nothing is written.
+Table settingsToChange(const fs::path& target) {
+    std::string reason;
     try {
         Value data = parseToml(detail::readTextFile(target), detail::displayPath(target));
         if (Table* table = data.get<Table>()) {
             return std::move(*table);
         }
-    } catch (const std::exception&) {
+        return {};
+    } catch (const fs::filesystem_error& error) {
+        if (error.code() == std::errc::no_such_file_or_directory) {
+            return {};
+        }
+        throw;
+    } catch (const ProjectError& error) {  // not UTF-8, not TOML
+        reason = error.what();
     }
+    const std::string shown = detail::displayPath(target);
+    if (reason.starts_with(shown + ": ")) {
+        reason.erase(0, shown.size() + 2);
+    }
+    fs::path kept = target;
+    kept += ".unreadable";
+    fs::rename(target, kept);
+    logWarning(shown + " cannot be read (" + reason + "): it is kept as " + detail::displayPath(kept) +
+               " and a new settings file starts");
     return {};
 }
 
@@ -136,7 +156,7 @@ void addRecent(const fs::path& project) {
     const fs::path target = userSettingsPath();
     try {
         fs::create_directories(target.parent_path());
-        Table data = userSettings(target);  // the other settings stay (MDATK 0.0.14)
+        Table data = settingsToChange(target);  // the other settings stay (MDATK 0.0.14, 0.1.2)
         const auto entry = std::find_if(data.begin(), data.end(), [](const auto& e) { return e.first == "recent"; });
         if (entry != data.end()) {
             entry->second = std::move(recent);

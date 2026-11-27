@@ -93,10 +93,11 @@ StructureResidues structureResidues(const AnalysisContext& context);
 // AN-14 (docs/DIFFERENCES.md): bonds among `atoms` guessed from their positions in `frame`, as
 // local index pairs (i < j) [m, 2] row-major, sorted: atoms no farther apart than the sum of their
 // covalent radii (Cordero et al. 2008; carbon's for an unknown element) + 0.4 Å, never two
-// hydrogens, never an atom of a one-atom residue (ions), and within one residue or between
-// consecutive residues (by index) of one chain (same segment and, when the topology has chain IDs,
-// the same chain ID). Elements from core::atomElements. (MDATK: 1.95 Å, H within 1.25 Å, adjacent
-// residue indices across chains.)
+// hydrogens, never an atom of a one-atom residue (ions), and within one residue, between
+// neighbouring residues (residue indices differing by 1, whatever their chains or segments: O3'-P
+// across a chain break) or between two sulfurs of any residues (a disulfide); MDATK 0.1.2's
+// residue rule. Elements from core::atomElements. (MDATK 0.0.4.1: 1.95 Å, H within 1.25 Å,
+// neighbouring residues only; 0.1.2: covalent radii + 0.4 Å but at least 1.95 Å, H within 1.25 Å.)
 std::vector<std::int64_t> guessBonds(const core::AtomGroup& atoms, const core::Frame& frame);
 
 // structure.guess_element(name): the element the atoms analysis tells hydrogens by: the name

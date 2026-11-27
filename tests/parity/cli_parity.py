@@ -1005,6 +1005,13 @@ CASES = [
                                      'analyses.rmsd.targets=[{"label": "A B"}, {"label": "C"}, {"label": "A_B"}, '
                                      '{"label": "!"}, {"label": "target3"}]'], DEMO),
     case("info_unknown_option", ["info", "--bogus"], exit_only=True),
+    # SEL-17 (MDATK 0.1.2): a group's distance keywords see the periodic images only with use_pbc (the
+    # molecule straddles a corner of the cell)
+    *[case(f"info_around_pbc_{flag}", ["info", "--top", "periodic_ortho.parm7", "--traj", "periodic_ortho.nc", "-s",
+                                       'groups=[{"name": "Near", "selection": "around 6 resid 1"}]', "-s",
+                                       f"analyses.use_pbc={flag}"],
+           {"periodic_ortho.parm7": "analysis/systems/periodic_ortho.parm7",
+            "periodic_ortho.nc": "analysis/systems/periodic_ortho.nc"}) for flag in ("false", "true")],
 
     # ---- export-pdb
     case("export_demo", ["export-pdb", *DEMO_RUN, "--frame-list", "0, 10, 20-23:2, last", "--selection", "Aptamer",

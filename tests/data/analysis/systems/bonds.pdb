@@ -1,0 +1,14 @@
+REMARK   1 MDBRIDGE TEST SYSTEM (tests/parity/make_analysis_cases.py)
+CRYST1   50.000   50.000   50.000  90.00  90.00  90.00 P 1           1
+ATOM      1  CB  CYS A   1       0.000   0.000   0.000  1.00  0.00           C
+ATOM      2  SG  CYS A   1       1.810   0.000   0.000  1.00  0.00           S
+ATOM      3  CA  GLY A   2      20.000   0.000   0.000  1.00  0.00           C
+ATOM      4  C   GLY A   2      21.500   0.000   0.000  1.00  0.00           C
+ATOM      5  SG  CYS A   3       1.810   2.050   0.000  1.00  0.00           S
+ATOM      6  CB  CYS A   3       0.000   2.050   0.000  1.00  0.00           C
+ATOM      7  C3'   A A   4      10.000  10.000  10.000  1.00  0.00           C
+ATOM      8  O3'   A A   4      11.430  10.000  10.000  1.00  0.00           O
+ATOM      9  P     A B   5      13.030  10.000  10.000  1.00  0.00           P
+ATOM     10  O5'   A B   5      14.630  10.000  10.000  1.00  0.00           O
+TER
+END

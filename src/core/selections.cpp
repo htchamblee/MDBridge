@@ -419,6 +419,25 @@ std::string resolveSelection(std::string_view text, const std::vector<ResidueGro
 
 namespace {
 
+// The first word of `expanded` (split at blanks and parentheses) that is "and", "or" or "not" in
+// another case ("AND", "Or"); "" for none.
+std::string upperCaseOperator(const std::string& expanded) {
+    std::string word;
+    for (std::size_t k = 0; k <= expanded.size(); ++k) {
+        const char c = k < expanded.size() ? expanded[k] : ' ';
+        if (c == '(' || c == ')' || c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\v' || c == '\f') {
+            const std::string lower = pythonLower(word);
+            if (lower != word && (lower == "and" || lower == "or" || lower == "not")) {
+                return word;
+            }
+            word.clear();
+        } else {
+            word += c;
+        }
+    }
+    return "";
+}
+
 // "invalid selection 'x' (expanded: 'y'): <message> (<hint>)" (MDATK 0.1.x syntax_error, with the
 // parser's own message in place of "MDAnalysis says: ...")
 SelectionError syntaxError(std::string_view text, const std::string& expanded, const std::exception& error,
@@ -452,6 +471,15 @@ SelectionError syntaxError(std::string_view text, const std::string& expanded, c
             break;
         case AtomSelectionError::Problem::Other:
             break;
+        }
+    }
+    const auto* parserError = dynamic_cast<const AtomSelectionError*>(&error);
+    if (hint.empty() && (!parserError || parserError->problem() == AtomSelectionError::Problem::Other)) {
+        // 'resid 1 AND name P': AND is read as a value and the error names it, or what follows it
+        // (MDATK 0.1.2 syntax_error): the first upper-case spelling of and / or / not in the expansion
+        if (const std::string upper = upperCaseOperator(expanded); !upper.empty()) {
+            token = upper;
+            hint = "keywords are lower case: did you mean " + repr(pythonLower(upper)) + "?";
         }
     }
     std::string message = "invalid selection " + repr(shown);

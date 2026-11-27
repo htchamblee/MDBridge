@@ -161,12 +161,16 @@ TEST(VideoCodecChoice, CrfTables) {
     for (const auto& [crf, expected] : svt) {
         EXPECT_EQ(svtAv1Crf(crf), expected) << crf;
     }
-    // -> mpeg4 qscale: 1 + crf / 10 up to 20 (MDATK's q 3), then 3 + (crf - 20) * 28 / 31, rounded
-    const std::vector<std::pair<int, int>> q = {{-1, 1}, {0, 1}, {4, 1}, {5, 2}, {10, 2}, {15, 3}, {20, 3},
-                                                 {21, 4}, {23, 6}, {28, 10}, {35, 17}, {51, 31}, {99, 31}};
-    for (const auto& [crf, expected] : q) {
-        EXPECT_EQ(mpeg4Qscale(crf), expected) << crf;
+    // -> mpeg4 qscale: min(31, max(2, round(3 * 2 ** ((crf - 20) / 6)))) of MDATK 0.1.2 (Python's
+    // values for crf 0 ... 51; 20 -> MDATK 0.0.4.1's q 3)
+    const std::vector<int> q = {2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,
+                                2,  3,  3,  3,  4,  4,  5,  5,  6,  7,  8,  8,  10, 11, 12, 13, 15, 17,
+                                19, 21, 24, 27, 30, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31};
+    for (int crf = 0; crf <= 51; ++crf) {
+        EXPECT_EQ(mpeg4Qscale(crf), q[static_cast<std::size_t>(crf)]) << crf;
     }
+    EXPECT_EQ(mpeg4Qscale(-1), 2);
+    EXPECT_EQ(mpeg4Qscale(99), 31);
     for (int crf = 1; crf <= 51; ++crf) {  // monotonic
         EXPECT_GE(svtAv1Crf(crf), svtAv1Crf(crf - 1));
         EXPECT_GE(mpeg4Qscale(crf), mpeg4Qscale(crf - 1));

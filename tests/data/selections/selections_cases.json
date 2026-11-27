@@ -17215,6 +17215,54 @@ null,
 {
 "fixture": "fixture_chains.pdb",
 "groups": "basic",
+"text": "resid 1 AND name P",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains.pdb",
+"groups": "basic",
+"text": "resid 1 AND name P",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains.pdb",
+"groups": "basic",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains.pdb",
+"groups": "basic",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains.pdb",
+"groups": "basic",
+"text": "NOT name P",
+"allow_empty": false,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains.pdb",
+"groups": "basic",
+"text": "NOT name P",
+"allow_empty": true,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains.pdb",
+"groups": "basic",
 "text": "group:Far",
 "allow_empty": false,
 "error": "unknown residue group 'Far' (defined: A, B, Loop1, Loop2)",
@@ -18954,6 +19002,54 @@ null,
 "text": "sel:Target",
 "allow_empty": true,
 "error": "invalid selection 'sel:Target': Unknown selection token: 'Target' (to use the residue group write group:Target)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains.pdb",
+"groups": "chains",
+"text": "resid 1 AND name P",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains.pdb",
+"groups": "chains",
+"text": "resid 1 AND name P",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains.pdb",
+"groups": "chains",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains.pdb",
+"groups": "chains",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains.pdb",
+"groups": "chains",
+"text": "NOT name P",
+"allow_empty": false,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains.pdb",
+"groups": "chains",
+"text": "NOT name P",
+"allow_empty": true,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
 "type": "SelectionError"
 },
 {
@@ -20622,6 +20718,54 @@ null,
 {
 "fixture": "fixture_chains.pdb",
 "groups": "duplicates",
+"text": "resid 1 AND name P",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains.pdb",
+"groups": "duplicates",
+"text": "resid 1 AND name P",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains.pdb",
+"groups": "duplicates",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains.pdb",
+"groups": "duplicates",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains.pdb",
+"groups": "duplicates",
+"text": "NOT name P",
+"allow_empty": false,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains.pdb",
+"groups": "duplicates",
+"text": "NOT name P",
+"allow_empty": true,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains.pdb",
+"groups": "duplicates",
 "text": "group:Far",
 "allow_empty": false,
 "error": "unknown residue group 'Far' (defined: X, Y, Empty, Bad, Sel)",
@@ -22243,6 +22387,54 @@ null,
 "text": "sel:Target",
 "allow_empty": true,
 "error": "invalid selection 'sel:Target': Unknown selection token: 'Target' (did you mean 'charge'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains.pdb",
+"groups": "deep",
+"text": "resid 1 AND name P",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains.pdb",
+"groups": "deep",
+"text": "resid 1 AND name P",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains.pdb",
+"groups": "deep",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains.pdb",
+"groups": "deep",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains.pdb",
+"groups": "deep",
+"text": "NOT name P",
+"allow_empty": false,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains.pdb",
+"groups": "deep",
+"text": "NOT name P",
+"allow_empty": true,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
 "type": "SelectionError"
 },
 {
@@ -23874,6 +24066,54 @@ null,
 {
 "fixture": "fixture_chains.pdb",
 "groups": "deeper",
+"text": "resid 1 AND name P",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains.pdb",
+"groups": "deeper",
+"text": "resid 1 AND name P",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains.pdb",
+"groups": "deeper",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains.pdb",
+"groups": "deeper",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains.pdb",
+"groups": "deeper",
+"text": "NOT name P",
+"allow_empty": false,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains.pdb",
+"groups": "deeper",
+"text": "NOT name P",
+"allow_empty": true,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains.pdb",
+"groups": "deeper",
 "text": "group:Far",
 "allow_empty": false,
 "error": "unknown residue group 'Far' (defined: G0, G1, G2, G3, G4, G5, G6, G7, G8, G9)",
@@ -25468,6 +25708,54 @@ null,
 {
 "fixture": "fixture_chains.pdb",
 "groups": "odd",
+"text": "resid 1 AND name P",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains.pdb",
+"groups": "odd",
+"text": "resid 1 AND name P",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains.pdb",
+"groups": "odd",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains.pdb",
+"groups": "odd",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains.pdb",
+"groups": "odd",
+"text": "NOT name P",
+"allow_empty": false,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains.pdb",
+"groups": "odd",
+"text": "NOT name P",
+"allow_empty": true,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains.pdb",
+"groups": "odd",
 "text": "group:Far",
 "allow_empty": false,
 "error": "unknown residue group 'Far' (defined: a.b+c-d'e_f, g, g2, sel:x,  pad , é)",
@@ -27057,6 +27345,54 @@ null,
 "text": "sel:Target",
 "allow_empty": true,
 "error": "invalid selection 'sel:Target': Unknown selection token: 'Target' (did you mean 'charge'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains.pdb",
+"groups": "none",
+"text": "resid 1 AND name P",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains.pdb",
+"groups": "none",
+"text": "resid 1 AND name P",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains.pdb",
+"groups": "none",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains.pdb",
+"groups": "none",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains.pdb",
+"groups": "none",
+"text": "NOT name P",
+"allow_empty": false,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains.pdb",
+"groups": "none",
+"text": "NOT name P",
+"allow_empty": true,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
 "type": "SelectionError"
 },
 {
@@ -28701,6 +29037,54 @@ null,
 "text": "sel:Target",
 "allow_empty": true,
 "error": "invalid selection 'sel:Target': Unknown selection token: 'Target' (to use the residue group write group:Target)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains.pdb",
+"groups": "typos",
+"text": "resid 1 AND name P",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains.pdb",
+"groups": "typos",
+"text": "resid 1 AND name P",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains.pdb",
+"groups": "typos",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains.pdb",
+"groups": "typos",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains.pdb",
+"groups": "typos",
+"text": "NOT name P",
+"allow_empty": false,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains.pdb",
+"groups": "typos",
+"text": "NOT name P",
+"allow_empty": true,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
 "type": "SelectionError"
 },
 {
@@ -31041,6 +31425,54 @@ null,
 {
 "fixture": "fixture_noelements.pdb",
 "groups": "basic",
+"text": "resid 1 AND name P",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_noelements.pdb",
+"groups": "basic",
+"text": "resid 1 AND name P",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_noelements.pdb",
+"groups": "basic",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_noelements.pdb",
+"groups": "basic",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_noelements.pdb",
+"groups": "basic",
+"text": "NOT name P",
+"allow_empty": false,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_noelements.pdb",
+"groups": "basic",
+"text": "NOT name P",
+"allow_empty": true,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_noelements.pdb",
+"groups": "basic",
 "text": "group:Far",
 "allow_empty": false,
 "error": "unknown residue group 'Far' (defined: A, B, Loop1, Loop2)",
@@ -32780,6 +33212,54 @@ null,
 "text": "sel:Target",
 "allow_empty": true,
 "error": "invalid selection 'sel:Target': Unknown selection token: 'Target' (to use the residue group write group:Target)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_noelements.pdb",
+"groups": "chains",
+"text": "resid 1 AND name P",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_noelements.pdb",
+"groups": "chains",
+"text": "resid 1 AND name P",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_noelements.pdb",
+"groups": "chains",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_noelements.pdb",
+"groups": "chains",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_noelements.pdb",
+"groups": "chains",
+"text": "NOT name P",
+"allow_empty": false,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_noelements.pdb",
+"groups": "chains",
+"text": "NOT name P",
+"allow_empty": true,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
 "type": "SelectionError"
 },
 {
@@ -34448,6 +34928,54 @@ null,
 {
 "fixture": "fixture_noelements.pdb",
 "groups": "duplicates",
+"text": "resid 1 AND name P",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_noelements.pdb",
+"groups": "duplicates",
+"text": "resid 1 AND name P",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_noelements.pdb",
+"groups": "duplicates",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_noelements.pdb",
+"groups": "duplicates",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_noelements.pdb",
+"groups": "duplicates",
+"text": "NOT name P",
+"allow_empty": false,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_noelements.pdb",
+"groups": "duplicates",
+"text": "NOT name P",
+"allow_empty": true,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_noelements.pdb",
+"groups": "duplicates",
 "text": "group:Far",
 "allow_empty": false,
 "error": "unknown residue group 'Far' (defined: X, Y, Empty, Bad, Sel)",
@@ -36042,6 +36570,54 @@ null,
 {
 "fixture": "fixture_noelements.pdb",
 "groups": "odd",
+"text": "resid 1 AND name P",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_noelements.pdb",
+"groups": "odd",
+"text": "resid 1 AND name P",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_noelements.pdb",
+"groups": "odd",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_noelements.pdb",
+"groups": "odd",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_noelements.pdb",
+"groups": "odd",
+"text": "NOT name P",
+"allow_empty": false,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_noelements.pdb",
+"groups": "odd",
+"text": "NOT name P",
+"allow_empty": true,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_noelements.pdb",
+"groups": "odd",
 "text": "group:Far",
 "allow_empty": false,
 "error": "unknown residue group 'Far' (defined: a.b+c-d'e_f, g, g2, sel:x,  pad , é)",
@@ -37631,6 +38207,54 @@ null,
 "text": "sel:Target",
 "allow_empty": true,
 "error": "invalid selection 'sel:Target': Unknown selection token: 'Target' (did you mean 'charge'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_noelements.pdb",
+"groups": "none",
+"text": "resid 1 AND name P",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_noelements.pdb",
+"groups": "none",
+"text": "resid 1 AND name P",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_noelements.pdb",
+"groups": "none",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_noelements.pdb",
+"groups": "none",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_noelements.pdb",
+"groups": "none",
+"text": "NOT name P",
+"allow_empty": false,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_noelements.pdb",
+"groups": "none",
+"text": "NOT name P",
+"allow_empty": true,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
 "type": "SelectionError"
 },
 {
@@ -39275,6 +39899,54 @@ null,
 "text": "sel:Target",
 "allow_empty": true,
 "error": "invalid selection 'sel:Target': Unknown selection token: 'Target' (to use the residue group write group:Target)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_noelements.pdb",
+"groups": "typos",
+"text": "resid 1 AND name P",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_noelements.pdb",
+"groups": "typos",
+"text": "resid 1 AND name P",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_noelements.pdb",
+"groups": "typos",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_noelements.pdb",
+"groups": "typos",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_noelements.pdb",
+"groups": "typos",
+"text": "NOT name P",
+"allow_empty": false,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_noelements.pdb",
+"groups": "typos",
+"text": "NOT name P",
+"allow_empty": true,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
 "type": "SelectionError"
 },
 {
@@ -41615,6 +42287,54 @@ null,
 {
 "fixture": "fixture_segids.pdb",
 "groups": "basic",
+"text": "resid 1 AND name P",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_segids.pdb",
+"groups": "basic",
+"text": "resid 1 AND name P",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_segids.pdb",
+"groups": "basic",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_segids.pdb",
+"groups": "basic",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_segids.pdb",
+"groups": "basic",
+"text": "NOT name P",
+"allow_empty": false,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_segids.pdb",
+"groups": "basic",
+"text": "NOT name P",
+"allow_empty": true,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_segids.pdb",
+"groups": "basic",
 "text": "group:Far",
 "allow_empty": false,
 "error": "unknown residue group 'Far' (defined: A, B, Loop1, Loop2)",
@@ -43354,6 +44074,54 @@ null,
 "text": "sel:Target",
 "allow_empty": true,
 "error": "invalid selection 'sel:Target': Unknown selection token: 'Target' (to use the residue group write group:Target)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_segids.pdb",
+"groups": "chains",
+"text": "resid 1 AND name P",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_segids.pdb",
+"groups": "chains",
+"text": "resid 1 AND name P",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_segids.pdb",
+"groups": "chains",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_segids.pdb",
+"groups": "chains",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_segids.pdb",
+"groups": "chains",
+"text": "NOT name P",
+"allow_empty": false,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_segids.pdb",
+"groups": "chains",
+"text": "NOT name P",
+"allow_empty": true,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
 "type": "SelectionError"
 },
 {
@@ -45022,6 +45790,54 @@ null,
 {
 "fixture": "fixture_segids.pdb",
 "groups": "duplicates",
+"text": "resid 1 AND name P",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_segids.pdb",
+"groups": "duplicates",
+"text": "resid 1 AND name P",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_segids.pdb",
+"groups": "duplicates",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_segids.pdb",
+"groups": "duplicates",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_segids.pdb",
+"groups": "duplicates",
+"text": "NOT name P",
+"allow_empty": false,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_segids.pdb",
+"groups": "duplicates",
+"text": "NOT name P",
+"allow_empty": true,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_segids.pdb",
+"groups": "duplicates",
 "text": "group:Far",
 "allow_empty": false,
 "error": "unknown residue group 'Far' (defined: X, Y, Empty, Bad, Sel)",
@@ -46616,6 +47432,54 @@ null,
 {
 "fixture": "fixture_segids.pdb",
 "groups": "odd",
+"text": "resid 1 AND name P",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_segids.pdb",
+"groups": "odd",
+"text": "resid 1 AND name P",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_segids.pdb",
+"groups": "odd",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_segids.pdb",
+"groups": "odd",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_segids.pdb",
+"groups": "odd",
+"text": "NOT name P",
+"allow_empty": false,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_segids.pdb",
+"groups": "odd",
+"text": "NOT name P",
+"allow_empty": true,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_segids.pdb",
+"groups": "odd",
 "text": "group:Far",
 "allow_empty": false,
 "error": "unknown residue group 'Far' (defined: a.b+c-d'e_f, g, g2, sel:x,  pad , é)",
@@ -48205,6 +49069,54 @@ null,
 "text": "sel:Target",
 "allow_empty": true,
 "error": "invalid selection 'sel:Target': Unknown selection token: 'Target' (did you mean 'charge'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_segids.pdb",
+"groups": "none",
+"text": "resid 1 AND name P",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_segids.pdb",
+"groups": "none",
+"text": "resid 1 AND name P",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_segids.pdb",
+"groups": "none",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_segids.pdb",
+"groups": "none",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_segids.pdb",
+"groups": "none",
+"text": "NOT name P",
+"allow_empty": false,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_segids.pdb",
+"groups": "none",
+"text": "NOT name P",
+"allow_empty": true,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
 "type": "SelectionError"
 },
 {
@@ -49849,6 +50761,54 @@ null,
 "text": "sel:Target",
 "allow_empty": true,
 "error": "invalid selection 'sel:Target': Unknown selection token: 'Target' (to use the residue group write group:Target)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_segids.pdb",
+"groups": "typos",
+"text": "resid 1 AND name P",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_segids.pdb",
+"groups": "typos",
+"text": "resid 1 AND name P",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_segids.pdb",
+"groups": "typos",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_segids.pdb",
+"groups": "typos",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_segids.pdb",
+"groups": "typos",
+"text": "NOT name P",
+"allow_empty": false,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_segids.pdb",
+"groups": "typos",
+"text": "NOT name P",
+"allow_empty": true,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
 "type": "SelectionError"
 },
 {
@@ -52068,6 +53028,54 @@ null,
 "text": "sel:Target",
 "allow_empty": true,
 "error": "invalid selection 'sel:Target': Unknown selection token: 'Target' (did you mean 'charge'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains_ba.pdb",
+"groups": "basic",
+"text": "resid 1 AND name P",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains_ba.pdb",
+"groups": "basic",
+"text": "resid 1 AND name P",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains_ba.pdb",
+"groups": "basic",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains_ba.pdb",
+"groups": "basic",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains_ba.pdb",
+"groups": "basic",
+"text": "NOT name P",
+"allow_empty": false,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains_ba.pdb",
+"groups": "basic",
+"text": "NOT name P",
+"allow_empty": true,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
 "type": "SelectionError"
 },
 {
@@ -53771,6 +54779,54 @@ null,
 {
 "fixture": "fixture_chains_ba.pdb",
 "groups": "chains",
+"text": "resid 1 AND name P",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains_ba.pdb",
+"groups": "chains",
+"text": "resid 1 AND name P",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains_ba.pdb",
+"groups": "chains",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains_ba.pdb",
+"groups": "chains",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains_ba.pdb",
+"groups": "chains",
+"text": "NOT name P",
+"allow_empty": false,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains_ba.pdb",
+"groups": "chains",
+"text": "NOT name P",
+"allow_empty": true,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains_ba.pdb",
+"groups": "chains",
 "text": "group:Far",
 "allow_empty": false,
 "error": "unknown residue group 'Far' (defined: Aptamer, Target, Prot, Both)",
@@ -55388,6 +56444,54 @@ null,
 {
 "fixture": "fixture_chains_ba.pdb",
 "groups": "duplicates",
+"text": "resid 1 AND name P",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains_ba.pdb",
+"groups": "duplicates",
+"text": "resid 1 AND name P",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains_ba.pdb",
+"groups": "duplicates",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains_ba.pdb",
+"groups": "duplicates",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains_ba.pdb",
+"groups": "duplicates",
+"text": "NOT name P",
+"allow_empty": false,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains_ba.pdb",
+"groups": "duplicates",
+"text": "NOT name P",
+"allow_empty": true,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains_ba.pdb",
+"groups": "duplicates",
 "text": "group:Far",
 "allow_empty": false,
 "error": "unknown residue group 'Far' (defined: X, Y, Empty, Bad, Sel)",
@@ -56936,6 +58040,54 @@ null,
 {
 "fixture": "fixture_chains_ba.pdb",
 "groups": "odd",
+"text": "resid 1 AND name P",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains_ba.pdb",
+"groups": "odd",
+"text": "resid 1 AND name P",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains_ba.pdb",
+"groups": "odd",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains_ba.pdb",
+"groups": "odd",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains_ba.pdb",
+"groups": "odd",
+"text": "NOT name P",
+"allow_empty": false,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains_ba.pdb",
+"groups": "odd",
+"text": "NOT name P",
+"allow_empty": true,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains_ba.pdb",
+"groups": "odd",
 "text": "group:Far",
 "allow_empty": false,
 "error": "unknown residue group 'Far' (defined: a.b+c-d'e_f, g, g2, sel:x,  pad , é)",
@@ -58479,6 +59631,54 @@ null,
 "text": "sel:Target",
 "allow_empty": true,
 "error": "invalid selection 'sel:Target': Unknown selection token: 'Target' (did you mean 'charge'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains_ba.pdb",
+"groups": "none",
+"text": "resid 1 AND name P",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains_ba.pdb",
+"groups": "none",
+"text": "resid 1 AND name P",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains_ba.pdb",
+"groups": "none",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains_ba.pdb",
+"groups": "none",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains_ba.pdb",
+"groups": "none",
+"text": "NOT name P",
+"allow_empty": false,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains_ba.pdb",
+"groups": "none",
+"text": "NOT name P",
+"allow_empty": true,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
 "type": "SelectionError"
 },
 {
@@ -60093,6 +61293,54 @@ null,
 "text": "sel:Target",
 "allow_empty": true,
 "error": "invalid selection 'sel:Target': Unknown selection token: 'Target' (to use the residue group write group:Target)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains_ba.pdb",
+"groups": "typos",
+"text": "resid 1 AND name P",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains_ba.pdb",
+"groups": "typos",
+"text": "resid 1 AND name P",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains_ba.pdb",
+"groups": "typos",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains_ba.pdb",
+"groups": "typos",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains_ba.pdb",
+"groups": "typos",
+"text": "NOT name P",
+"allow_empty": false,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "fixture_chains_ba.pdb",
+"groups": "typos",
+"text": "NOT name P",
+"allow_empty": true,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
 "type": "SelectionError"
 },
 {
@@ -63873,6 +65121,54 @@ null,
 {
 "fixture": "demo_dry.parm7",
 "groups": "basic",
+"text": "resid 1 AND name P",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "demo_dry.parm7",
+"groups": "basic",
+"text": "resid 1 AND name P",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "demo_dry.parm7",
+"groups": "basic",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "demo_dry.parm7",
+"groups": "basic",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "demo_dry.parm7",
+"groups": "basic",
+"text": "NOT name P",
+"allow_empty": false,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "demo_dry.parm7",
+"groups": "basic",
+"text": "NOT name P",
+"allow_empty": true,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "demo_dry.parm7",
+"groups": "basic",
 "text": "group:Far",
 "allow_empty": false,
 "error": "unknown residue group 'Far' (defined: A, B, Loop1, Loop2)",
@@ -65649,6 +66945,54 @@ null,
 "text": "sel:Target",
 "allow_empty": true,
 "error": "invalid selection 'sel:Target': Unknown selection token: 'Target' (to use the residue group write group:Target)",
+"type": "SelectionError"
+},
+{
+"fixture": "demo_dry.parm7",
+"groups": "chains",
+"text": "resid 1 AND name P",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "demo_dry.parm7",
+"groups": "chains",
+"text": "resid 1 AND name P",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "demo_dry.parm7",
+"groups": "chains",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "demo_dry.parm7",
+"groups": "chains",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "demo_dry.parm7",
+"groups": "chains",
+"text": "NOT name P",
+"allow_empty": false,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "demo_dry.parm7",
+"groups": "chains",
+"text": "NOT name P",
+"allow_empty": true,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
 "type": "SelectionError"
 },
 {
@@ -67746,6 +69090,54 @@ null,
 {
 "fixture": "demo_dry.parm7",
 "groups": "duplicates",
+"text": "resid 1 AND name P",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "demo_dry.parm7",
+"groups": "duplicates",
+"text": "resid 1 AND name P",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "demo_dry.parm7",
+"groups": "duplicates",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "demo_dry.parm7",
+"groups": "duplicates",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "demo_dry.parm7",
+"groups": "duplicates",
+"text": "NOT name P",
+"allow_empty": false,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "demo_dry.parm7",
+"groups": "duplicates",
+"text": "NOT name P",
+"allow_empty": true,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "demo_dry.parm7",
+"groups": "duplicates",
 "text": "group:Far",
 "allow_empty": false,
 "error": "unknown residue group 'Far' (defined: X, Y, Empty, Bad, Sel)",
@@ -69531,6 +70923,54 @@ null,
 {
 "fixture": "demo_dry.parm7",
 "groups": "odd",
+"text": "resid 1 AND name P",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "demo_dry.parm7",
+"groups": "odd",
+"text": "resid 1 AND name P",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "demo_dry.parm7",
+"groups": "odd",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "demo_dry.parm7",
+"groups": "odd",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "demo_dry.parm7",
+"groups": "odd",
+"text": "NOT name P",
+"allow_empty": false,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "demo_dry.parm7",
+"groups": "odd",
+"text": "NOT name P",
+"allow_empty": true,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "demo_dry.parm7",
+"groups": "odd",
 "text": "group:Far",
 "allow_empty": false,
 "error": "unknown residue group 'Far' (defined: a.b+c-d'e_f, g, g2, sel:x,  pad , é)",
@@ -71311,6 +72751,54 @@ null,
 "text": "sel:Target",
 "allow_empty": true,
 "error": "invalid selection 'sel:Target': Unknown selection token: 'Target' (did you mean 'charge'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "demo_dry.parm7",
+"groups": "none",
+"text": "resid 1 AND name P",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "demo_dry.parm7",
+"groups": "none",
+"text": "resid 1 AND name P",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "demo_dry.parm7",
+"groups": "none",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "demo_dry.parm7",
+"groups": "none",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "demo_dry.parm7",
+"groups": "none",
+"text": "NOT name P",
+"allow_empty": false,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "demo_dry.parm7",
+"groups": "none",
+"text": "NOT name P",
+"allow_empty": true,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
 "type": "SelectionError"
 },
 {
@@ -73163,6 +74651,54 @@ null,
 "text": "sel:Target",
 "allow_empty": true,
 "error": "invalid selection 'sel:Target': Unknown selection token: 'Target' (to use the residue group write group:Target)",
+"type": "SelectionError"
+},
+{
+"fixture": "demo_dry.parm7",
+"groups": "typos",
+"text": "resid 1 AND name P",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "demo_dry.parm7",
+"groups": "typos",
+"text": "resid 1 AND name P",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 AND name P': Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "demo_dry.parm7",
+"groups": "typos",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": false,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "demo_dry.parm7",
+"groups": "typos",
+"text": "resid 1 Or (resid 2)",
+"allow_empty": true,
+"error": "invalid selection 'resid 1 Or (resid 2)': Selection failed: 'Failed to parse value: Or' (keywords are lower case: did you mean 'or'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "demo_dry.parm7",
+"groups": "typos",
+"text": "NOT name P",
+"allow_empty": false,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
+"type": "SelectionError"
+},
+{
+"fixture": "demo_dry.parm7",
+"groups": "typos",
+"text": "NOT name P",
+"allow_empty": true,
+"error": "invalid selection 'NOT name P': Unknown selection token: 'NOT' (keywords are lower case: did you mean 'not'?)",
 "type": "SelectionError"
 },
 {

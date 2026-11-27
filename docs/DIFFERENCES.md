@@ -47,13 +47,16 @@ expected data is adjusted on the test side; generated files are never edited by 
   not reused. MDBridge has not been released, so one bump (MDATK's version + 1) covers every
   improvement of this release: energy 2 (AN-01-AN-05, AN-07, AN-08, RD-P12's float64 charges,
   SEL-13, AN-25-AN-27), hbonds 2 (AN-01-AN-04, AN-09, AN-10, SEL-13, distance-only pairs counted once),
-  rmsd 2 (AN-16-AN-18), proximity 2 (AN-01-AN-04,
-  AN-15, SEL-13), atoms 3 (AN-13, AN-14, SEL-13), contacts 2 (AN-01-AN-04, SEL-13, a group with itself, TOP-01)
+  rmsd 2 (AN-16-AN-18, AN-20), proximity 2 (AN-01-AN-04,
+  AN-15, SEL-13), atoms 3 (AN-13, AN-14, AN-20, SEL-13), contacts 2 (AN-01-AN-04, SEL-13, a group with itself, TOP-01)
   and mg 2 (AN-01-AN-04, SEL-13),
-  basepairs 2 (AN-01-AN-04, AN-11, SEL-13, NA-01), stacking 2 (AN-01-AN-04, AN-12, NA-01) and trace 5 (SEL-13, TOP-01, NA-01; its key
-  now covers every group). The fixes taken from MDATK 0.1.x ("Fixes adopted from MDATK 0.1.x" below) are
-  in this release's bump; MDATK 0.1.1 numbers its own versions independently (energy 2, hbonds 2,
-  contacts 2, trace 5 mean other results there), which matters only when the parity reference moves. The test side gives MDATK's analyses these
+  basepairs 2 (AN-01-AN-04, AN-11, SEL-13, NA-01), stacking 2 (AN-01-AN-04, AN-12, NA-01) and trace 5 (SEL-13, TOP-01, NA-01, AN-20; its key
+  now covers every group). The fixes taken from MDATK 0.1.x ("Fixes adopted from MDATK 0.1.x" below, and
+  the 0.1.2 designs of AN-14 and AN-20) are in this release's bump. MDATK numbers its own versions
+  independently: 0.1.2 has energy 3, hbonds 3, contacts 3, trace 6, atoms 3, mg 2, basepairs 2,
+  stacking 2, rmsd 2 and proximity 2 (0.1.1: energy 2, hbonds 2, contacts 2, trace 5), so an equal
+  number names other results in the two programs for most analyses. The caches never meet (own files,
+  above); the numbering matters only when the parity reference moves. The test side gives MDATK's analyses these
   versions from one table, tests/parity/analysis_versions.py, which regenerate_all.py checks against
   the C++ descriptors.
 
@@ -248,12 +251,16 @@ never rewrapped in MDAnalysis' "Failed to construct topology ..." / ChainReader 
 - **GRO box line (RD-G05).** When splitting on blanks fails, the values are read as 10-character fields
   (GROMACS' %10.5f, which run together beyond 9999 nm), else as run-together numbers with five decimals,
   **signs kept** (MDAnalysis' fallback pattern dropped them); otherwise `<file> line 10: GRO box line
-  '   3.0   4.0' has neither 3 nor 9 values`. *Tested:* neg_box.gro, packed_box.gro, bad_box.gro.
+  '   3.0   4.0' has neither 3 nor 9 values`. MDATK 0.1.2 (report item 072) refuses every box line but
+  blank-separated and unsigned run-together ones; MDBridge keeps reading GROMACS' signed 10-character
+  fields: a triclinic box has negative vectors, and they run together when they fill the ten columns.
+  *Tested:* neg_box.gro, packed_box.gro, bad_box.gro.
 - **GRO boxes that are no cell (RD-G06)** warn: `<file>: 1 box is zero; no periodic box (line 10)`,
   `... box has vectors that do not form a cell ...`. *Tested:* zero_box.gro, bad_cell.gro.
 - **Multi-frame GRO (RD-G07).** Every frame of a GRO file is read (GROMACS trajectories are such frames
   one after another; MDAnalysis reads the first only). A later frame with another atom count is an
-  error; text after the last frame that is no complete frame is ignored with a warning. *Tested:*
+  error; text after the last frame that is no complete frame is ignored with a warning. MDATK 0.1.2
+  (report item 046) reads the first frame and warns; MDBridge keeps reading them all. *Tested:*
   frames.gro.
 - **Mixed chains (LD-01).** Each trajectory gets the format of MDATK's extension table for its own
   extension (MDATK applied the table only when all files shared one extension: `.rst7` + `.inpcrd`
@@ -295,7 +302,9 @@ expects exactly these, and none for the other cases).
 parm7 topologies (src/io/parm7.cpp; tested by io/parm7/topology*, test_parm7.cpp
 `ImprovedTopologyRules`):
 - **RD-P01** An unknown section right after POINTERS is skipped like one anywhere else (MDAnalysis:
-  `UnboundLocalError ... 'numlines'`). unknown_first.parm7 loads.
+  `UnboundLocalError ... 'numlines'`). unknown_first.parm7 loads. MDATK 0.1.2 (report item 042) refuses
+  the file and asks to move the section to the end; MDBridge keeps skipping it: the position of a
+  section it does not read is no reason to refuse the topology.
 - **RD-P02 / RD-P03 / RD-P04** Python texts replaced: `<file>: unexpected end of file in %FLAG MASS
   (expected 8 data lines, found 1)`; `<file>: required section %FLAG POINTERS is missing` (was an
   empty StopIteration); `<file>: required section %FLAG ANGLES_WITHOUT_HYDROGEN is missing` (was
@@ -367,7 +376,9 @@ Amber NetCDF (src/io/netcdf.cpp; io/trajectories/cases.json):
 
 Amber ASCII (src/io/amber_ascii.cpp):
 - **RD-A01** One frame without a box line is one non-periodic frame (MDAnalysis: empty
-  StopIteration).
+  StopIteration; MDATK 0.1.2, report item 040: an error, `a single frame without a box line cannot be
+  read`). MDBridge keeps reading it: with the topology's atom count the frame is complete, so there
+  is nothing to refuse.
 - **RD-A02** The layout is checked against the atom count at open: every coordinate line has 10
   fields, the frame's last 3N mod 10 (or 10); `<file> line L: expected 10 coordinates for 7 atoms,
   found 5 (does the topology match?)`; the line after the first frame is a box line (3 values) or the
@@ -376,6 +387,8 @@ Amber ASCII (src/io/amber_ascii.cpp):
   reshape text).
 - **RD-A03** One atom: box lines are recognised (every second line, when there is an even number of
   data lines and all of them hold three positive values); MDAnalysis read 3 periodic frames as 6.
+  MDATK 0.1.2 (report item 047) only warns that box lines may be read as frames; MDBridge keeps
+  recognising them.
 - **RD-A04** Trailing blank lines are ignored; an incomplete last frame is ignored with `<file>: the
   last frame is incomplete (lines 18-18) and is ignored` (partial.mdcrd). Frame count = complete frames.
 - **RD-A05** `<file> line 2, columns 1-8: '********' is not a number (Fortran overflow: the value does
@@ -387,7 +400,10 @@ Amber ASCII (src/io/amber_ascii.cpp):
 
 DCD / XTC / TRR (src/io/dcd.cpp, gromacs.cpp):
 - **RD-D01** NSAVC = 0 is read as 1: dt = DELTA, times (frame + ISTART) * DELTA, with `<file>: the
-  DCD header's frame interval (NSAVC) is 0; it is taken as 1 step` (MDAnalysis: ZeroDivisionError). Expected data: MDAnalysis on a copy with NSAVC 1.
+  DCD header's frame interval (NSAVC) is 0; it is taken as 1 step` (MDAnalysis: ZeroDivisionError;
+  MDATK 0.1.2, report item 043, refuses the file: `DCD header has frame interval (NSAVC) 0`). MDBridge
+  keeps reading it: the coordinates are intact, only the times are uncertain, and the warning says how
+  they are taken. Expected data: MDAnalysis on a copy with NSAVC 1.
 - **RD-D02** `<file>: 4-dimensional DCD files are not supported` (was numpy's broadcast text).
 - **RD-D03** XDR errors name the file and, while reading a frame, the frame: `<file> frame 4: XTC read
   error = compression`, `<file>: XDR read error = magic`.
@@ -479,7 +495,12 @@ test_selections.cpp; cli_cases.json (`info_groups`); framework_cases.json (cache
     written group:<Name>)` when no group is close;
   - `Unexpected token: 'x' Expected: ')'`: `(a parenthesis is not closed)`. The end of the selection
     needs no hint: SEL-04's `Unexpected end of selection (expected ')')` says it (0.1.x hints at
-    MDAnalysis' `'None'` token instead).
+    MDAnalysis' `'None'` token instead);
+  - an upper-case `AND`, `OR` or `NOT` read as a value: `invalid selection 'resid 1 AND name P':
+    Selection failed: 'Failed to parse value: AND' (keywords are lower case: did you mean 'and'?)`,
+    for the first such word of the expansion, when no other hint applies (MDATK 0.1.2
+    `syntax_error`; an unknown token keeps its own hint, so `NOT name P` gets SEL-08's). *Tested:*
+    selections_cases.json (`resid 1 AND name P`, `resid 1 Or (resid 2)`, `NOT name P`).
 
   "Close" is 0.1.x's `suggest`: a candidate equal ignoring case, else Python difflib's
   `get_close_matches(..., n=1, cutoff=0.6)` on the lower-case spellings, reimplemented in
@@ -649,8 +670,14 @@ test_selections.cpp; cli_cases.json (`info_groups`); framework_cases.json (cache
   renamed (MDATK writes it in place). Locations per owner decision D16: Linux keeps the shared
   `$XDG_CONFIG_HOME/mdatk/settings.toml` (else `~/.config/mdatk`) for the list, MDBridge's own
   settings go to `$XDG_CONFIG_HOME/mdbridge/` (`core::mdbridgeConfigDir`); Windows keeps both in
-  `%APPDATA%\MDBridge\`. *Tested:* test_project_io.cpp (RecentListKeepsOtherSettings: MDATK 0.1.1's
-  text for the same file; ConfigFolders).
+  `%APPDATA%\MDBridge\`. A settings file that is not TOML (cut off, edited by hand, not UTF-8) is not
+  written over, which would lose every setting in it: it is renamed `settings.toml.unreadable`, with
+  `WARNING: <file> cannot be read (<reason>): it is kept as <file>.unreadable and a new settings file
+  starts`, and a new file holds the list; one that cannot be read at all (no permission, a folder) is
+  left alone and nothing is written (`could not update the recent projects list: ...`). Before, both
+  were replaced by a file holding `recent` alone. Follows MDATK 0.1.2 (`projectfile.py`
+  `_settings_to_change`). *Tested:* test_project_io.cpp (RecentListKeepsOtherSettings: MDATK 0.1.1's
+  text for the same file; UnreadableSettingsFileIsKept; ConfigFolders).
 - **PRJ-13: on Windows a save waits for a program reading the file.** Project files, parameter logs,
   the settings file and recovery files are written to `<name>.tmp` and renamed over the file
   (`os.replace` in MDATK 0.0.4.1 and 0.1.1, no retry). Windows refuses to replace a file while
@@ -745,7 +772,8 @@ a fake cpptraj and a fake `conda run`), tests/cli/test_cleaning.cpp.
   project with the PDB time `nanps`) give `the demo needs at least one frame (--n-frames 0)` and
   `the time between frames must be a positive number of ps (--dt 0.0)`; the library's sequence
   (not a command option) must have at least four of A, C, G, U (MDATK: KeyError or IndexError).
-  Not fixed in MDATK 0.1.1. *Tested:* cli_cases.json (demo_no_frames, demo_negative_frames,
+  MDATK 0.1.2 refuses them too, with the same messages (report item 092). *Tested:* cli_cases.json
+  (demo_no_frames, demo_negative_frames,
   demo_bad_dt; tests/parity/improvements_cli.py patches MDATK's build_demo the same way),
   `Demo.RefusesImpossibleArguments`.
 - **CMD-02: the demo's hint names MDBridge:** `Next: mdbridge render -p d/demo.mdatk.toml   (or:
@@ -758,7 +786,9 @@ a fake cpptraj and a fake `conda run`), tests/cli/test_cleaning.cpp.
   it started. MDBridge's process runner (src/core/process.hpp, also for the planner's scripts in
   milestone 7) polls every 50 ms, starts the program in its own process group (Windows: a job
   object) and ends the whole group: SIGTERM, SIGKILL after 10 s (Windows: at once, as Python's
-  terminate()). *Tested:* `Process.CancelEndsTheProcessGroup`, `Cleaning.Cancel`.
+  terminate()). MDATK 0.1.2 (report item 100) ends cpptraj's process group on POSIX too; on Windows it
+  ends only the program it started, so a cpptraj run through `conda run` keeps running, where
+  MDBridge's job object ends both. *Tested:* `Process.CancelEndsTheProcessGroup`, `Cleaning.Cancel`.
 - **CMD-04: cpptraj's output is decoded line by line.** MDATK decodes each 4 KiB chunk on its own,
   so a UTF-8 character split between two reads becomes two U+FFFD; MDBridge decodes whole lines
   (invalid bytes still become U+FFFD) and writes cpptraj.log with the bytes cpptraj wrote (MDATK:
@@ -910,7 +940,7 @@ Expected data: `tests/parity/improvements_analyses.py` patches MDATK (and the RM
 behaviour below before `make_analysis_cases.py`, `make_analysis_framework_cases.py`,
 `make_pipeline_cases.py`, `make_rmsd_cases.py` and `cli_parity.py --write` record it; hand-made
 checks are in tests/analysis/test_improvements_analyses.cpp. Version bumps (new cache keys): energy 2,
-hbonds 2, rmsd 2, proximity 2, atoms 3 ("Analysis cache" above has every analysis' version).
+hbonds 2, rmsd 2, proximity 2, atoms 3, trace 5 ("Analysis cache" above has every analysis' version).
 
 - **Setup order (SEL-17, AN-13).** Every analysis' setup starts on the first analysed frame
   (MDATK: on frame 0 of the trajectory, or on the rmsd reference frame for analyses set up after
@@ -919,8 +949,13 @@ hbonds 2, rmsd 2, proximity 2, atoms 3 ("Analysis cache" above has every analysi
   first analysed frame. *Tested:* setup_frame of every recorded case (all the first analysed frame),
   test_rmsd_analysis.cpp `EverySetupStartsOnTheFirstAnalysedFrame`.
 - **Periodicity of selections (SEL-17).** `around`, `sphzone`, ... in the analyses' selections use the
-  cell only with `analyses.use_pbc` (MDATK: whenever the frame has one). *Tested:*
-  `SelectionsHonourUsePbc`.
+  cell only with `analyses.use_pbc` (MDATK: whenever the frame has one). The groups that `info` and the
+  window's *Inspect system* count are selected the same way (`AnalysisContext::select`, which drops the
+  frame's cell without `use_pbc`), so they count the atoms the analyses use; before, they always used
+  the cell (`around 6 resid 1` on a molecule across a cell corner: 85 atoms instead of the analyses'
+  62). Follows MDATK 0.1.2 (`mdatk info` and *System info* select with `periodic=use_pbc`). *Tested:*
+  `SelectionsHonourUsePbc`, cli_cases.json `info_around_pbc_false` / `info_around_pbc_true`
+  (improvements_cli.py patches MDATK's `info` the same way).
 - **use_parm7 with another topology (AN-06).** `WARNING: energy: use_parm7 is set but the topology
   <file> is not a parm7 file; Lennard-Jones parameters come from force-field residue templates and
   Amber atom types` (MDATK: silent). The warning when a parm7 file's parameters cannot be read ends
@@ -931,8 +966,10 @@ hbonds 2, rmsd 2, proximity 2, atoms 3 ("Analysis cache" above has every analysi
   `WARNING: energy: the topology has no bonds; bonded pairs are excluded along bonds guessed from
   distances on the first analysed frame (covalent radii: Cordero et al., Dalton Trans. 2008,
   2832-2838, doi:10.1039/b801115j)` (the citation: CIT-03), and the exclusions follow the bonds the `atoms` guesser
-  (below) finds on the whole system (MDATK: nothing excluded, silently). *Tested:* micro and
-  systems_cases energy logs and values.
+  (below) finds on the whole system (MDATK: nothing excluded, silently). MDATK 0.1.2 (report item 019)
+  only warns, `... (exclude_bonded = 3 has no effect)`, and still excludes nothing; MDBridge keeps its
+  exclusions: without them a guessed-bond topology (PDB, GRO) gives other energies than the parm7
+  file of the same structure. *Tested:* micro and systems_cases energy logs and values.
 - **Exclusions along any path (AN-08).** Pairs joined by at most `exclude_bonded` bonds through any
   atoms are excluded (MDATK: only paths that start at a direct A-B bond and run through A). *Tested:*
   `ExclusionsThroughOtherAtoms`; the recorded chains give the same keys.
@@ -1038,12 +1075,27 @@ hbonds 2, rmsd 2, proximity 2, atoms 3 ("Analysis cache" above has every analysi
   that gets a hydrogen is not an acceptor, as with topology bonds (MDATK: kept as acceptor, so PDB
   and parm7 files of one structure gave different counts). *Tested:* systems_cases pdb_nobonds /
   gro_nobonds H-bond counts and maps.
-- **Bond guess (AN-14).** The `atoms` analysis (and AN-07) guesses bonds from covalent radii
-  (Cordero et al. 2008, data/sources/covalent_radii; distance <= r_i + r_j + 0.4 Å, carbon's radius
-  for unknown elements), never between two hydrogens, never to an atom of a one-atom residue (ions:
-  covalent radii would bond Mg to its water), and between residues only for consecutive residues of
-  one chain (same segment and chain ID). MDATK: 1.95 Å (a 2.05 Å disulfide missed), hydrogens within
-  1.25 Å, adjacent residue indices across chains. *Tested:* systems_cases `atoms` bonds,
+- **Bond guess (AN-14; residue rule of MDATK 0.1.2).** The `atoms` analysis (and AN-07's exclusions,
+  and AN-26's atom typing) guesses bonds from covalent radii (Cordero et al. 2008,
+  data/sources/covalent_radii; distance <= r_i + r_j + 0.4 Å, carbon's radius for unknown elements),
+  never between two hydrogens, never to an atom of a one-atom residue (ions: covalent radii would bond
+  Mg to its water), within a residue, between neighbouring residues (residue indices 1 apart, whatever
+  their chains or segments: O3'–P across a chain-ID break) and between two sulfurs of any residues (a
+  disulfide). MDATK 0.0.4.1: 1.95 Å (a 2.05 Å disulfide missed), hydrogens within 1.25 Å, neighbouring
+  residue indices only. The residue rule follows MDATK 0.1.2 (`structure.py` `atom_bonds`, report item
+  071). It replaces MDBridge's earlier rule, consecutive residues of one chain only, which missed a
+  disulfide between residues that are not neighbours and the O3'–P link of chains joined across a
+  chain-ID or segment change; the false inter-chain link that rule was meant to prevent needs the two
+  chain ends within bonding distance, which separate chains are not (0.1.2's reason for withdrawing the
+  second half of 071). MDBridge differs from 0.1.2 in its distances: 0.1.2 bonds two heavy atoms within
+  max(1.95 Å, r_i + r_j + 0.4 Å) and a hydrogen only within 1.25 Å. The 1.95 Å floor matters only for
+  C, N and O pairs, whose r_i + r_j + 0.4 Å (1.72-1.92 Å) is already above their bond lengths, and
+  1.25 Å misses S–H (1.34 Å) and P–H (1.42 Å) bonds that the radii find. MDBridge also keeps its
+  one-atom-residue rule, which its radii need (Mg 1.41 Å would bond a water oxygen up to 2.47 Å away;
+  0.1.2 gives elements it does not list 0.80 Å and has no such rule). The template matching of AN-25
+  still ends a chain at a chain-ID or segment change. *Tested:* systems_cases `bonds` (bonds.pdb: CYS 1
+  SG – CYS 3 SG 2.05 Å and A 4 O3' (chain A) – A 5 P (chain B) 1.60 Å are bonds), the `atoms` bonds of
+  the PDB / GRO / heavy-atom cases (unchanged: the demo's two strands are not within bonding distance),
   `CovalentRadiusBondGuess`.
 - **Proximity members (AN-15).** Residues of the proximity set are at distance 0 also when no other
   structure atoms remain (MDATK: left at inf). *Tested:* demo_dry_variants structure_target_only.
@@ -1073,6 +1125,22 @@ hbonds 2, rmsd 2, proximity 2, atoms 3 ("Analysis cache" above has every analysi
   values`); one warning per run of consecutive analysed frames: `frame K: N atoms have non-finite
   coordinates; they are left out of distance searches` (`frames K1-K2: up to N atoms ...`).
   *Tested:* test_spatial.cpp (the recorded error cases), `NonFiniteCoordinates`.
+  With `visual.align_frames` (the default) the trace and atoms analyses store such a frame unaligned
+  when its trace points, or the alignment reference's, are not all finite, and an RMSD target with a
+  fit selection gives NaN for a frame whose fit atoms are not all finite (MDATK 0.0.4.1 and 0.1.1: the
+  run stopped with numpy's `SVD did not converge`). Each says so once per run and names the
+  trajectory frames: `structural view: frame 2 has non-finite trace coordinates; its trace is stored
+  unaligned` (`frames 2, 5-7 have ...; their traces are stored unaligned`; the atoms analysis: `its
+  atoms are` / `their atoms are`), `structural view: the alignment reference (frame 0) has
+  non-finite trace coordinates; the frames of the trace are stored unaligned`, `RMSD target
+  'Complex': frame 2 has non-finite fit coordinates; its value is NaN` and `RMSD target 'Complex':
+  the reference frame (frame 0) has non-finite fit coordinates; every value is NaN`. Follows MDATK
+  0.1.2 (`structure.py` TraceAnalysis / AtomsAnalysis.process, `rmsd.py` process), which stores and
+  computes the same without these warnings: MDBridge names the frames because an unaligned frame
+  jumps in the video and a NaN leaves a gap in the series. *Tested:* systems_cases `pdb_blown` (C4'
+  of residue 1 NaN in frame 2 of 4: trace, atoms, and the RMSD with `fit_selection = group:Aptamer`)
+  and `pdb_blown_reference` (NaN in frame 0), `StructureAnalyses.BlownUpFramesAndBondGuess`,
+  `RmsdAnalysis.Systems`.
 - **Unknown structure groups (AN-21).** `WARNING: structural view: unknown residue group 'X' ignored`
   from the trace analysis' setup (once per run of the structural view; MDATK: silent). *Tested:*
   demo_dry_variants structure_unknown_group.
@@ -1675,8 +1743,11 @@ middle and last frame. The generator applies the items below to MDATK test-side
   cannot be NaN or Inf`. MDBridge frames the view by the finite points (the model centre too),
   warns once (`structure view: non-finite coordinates in frame(s) 3; left out of the view (those
   residues are not drawn there)`, at most ten frame numbers then `and N more`) and leaves those
-  points, their links, halos and tags out of the frames concerned. *Tested:* case `structure_nan`
-  (was MDATK's error), `StructurePanel.NonFiniteFrameIsLeftOut`.
+  points, their links, halos and tags out of the frames concerned. With `align_frames` (the default)
+  such a frame reaches the view only since AN-20's alignment rule (MDATK 0.1.2): before, `analyze`
+  stopped at the trace's `SVD did not converge`. MDATK 0.1.2 frames the view the same way (report item
+  032). *Tested:* case `structure_nan` (was MDATK's error), `StructurePanel.NonFiniteFrameIsLeftOut`;
+  the trace of such a frame: systems_cases `pdb_blown`.
 - **Ion legend (RN-08).** MDATK's legend always said `Mg²⁺`, whatever `analyses.mg.mg_selection`
   and `show_ions` selected. MDBridge names the element of the trace's ions (`meta.ion_labels`:
   residue name, charge signs and digits dropped): `Mg²⁺`, `Na⁺` (NA, SOD), `K⁺` (K, POT),
@@ -1838,8 +1909,10 @@ target folder renamed at the end and removed on failure. Stream metadata (frame 
   23 -> 28, 51 -> 63; preset 8, kept by owner decision D16 after a side-by-side quality
   comparison with presets 9 and 10 on the demo: preset 10 encodes about 2x faster but gives 30-50 %
   larger files, about 6-8 dB lower PSNR and stale text (the time label shows a nearby frame's
-  number in ~98 of 120 frames)), mpeg4 `qscale = round(1 + crf / 10)` up to 20 and
-  `round(3 + (crf - 20) * 28 / 31)` above (20 -> 3, MDATK's fixed value; 23 -> 6; 51 -> 31). When
+  number in ~98 of 120 frames)), mpeg4 `qscale = round(3 * 2^((crf - 20) / 6))` clamped to 2-31
+  (20 -> 3, MDATK's fixed value; 23 -> 4; 26 -> 6; 41 and above -> 31; Python's rounding, half to
+  even), MDATK 0.1.2's mapping (`render/video.py` `rate_options`), which keeps x264's rule that 6 crf
+  steps halve the bit rate (MDBridge's earlier piecewise-linear mapping halved it within 3 steps). When
   SVT-AV1 cannot encode the size (below 4x4) the encoder falls back to mpeg4 with
   `video: libsvtav1 cannot encode WxH (<reason>); using mpeg4`. *Tested:*
   tests/render/test_video_encoder.cpp (`VideoCodecChoice.*`, `SizesSvtAv1CannotEncodeFallBackToMpeg4`).
@@ -2057,37 +2130,50 @@ tests (`mdbridge_gui_tests`) replay the cases. *Tested:* the case named after ea
   typed beyond the range is kept and left to validation, and the wheel zoom multiplies the stored
   zoom (within MDATK's wheel limits 0.05 ... 50). Values the user or the canvas sets keep MDATK's
   storage rounding (rotation, representation size / opacity, map opacity: 3 decimals). *Why:* opening
-  a file must not change it. Not fixed in 0.1.1. *Tested:* `roundtrip/lossy_values`,
+  a file must not change it. MDATK 0.1.2 keeps loaded values too (report item 001). *Tested:*
+  `roundtrip/lossy_values`,
   `ap/ap01_set_out_of_range`, `canvas/wheel_zoom_from_tiny`, every `roundtrip/open_save_*`.
 - **AP-02: optional numbers keep every digit.** MDATK showed `inputs.dt_ps` and
   `energy.target_value` with `%g` and saved what it showed (0.0123456789 -> 0.0123457, -1234567.5 ->
-  -1234570). MDBridge shows and stores the shortest round-trip text. Not fixed in 0.1.1. *Tested:*
+  -1234570). MDBridge shows and stores the shortest round-trip text. MDATK 0.1.2 keeps every digit
+  too (002). *Tested:*
   `roundtrip/lossy_values`, `ap/ap02_typed_numbers`.
 - **AP-03: colour fields keep their text.** MDATK's colour buttons parse with GDK and write
   `#rrggbb`: Matplotlib colours MDATK itself accepts became black (`tab:orange`, `#ff000080`) or were
-  rewritten (`gold` -> `#ffd700`). MDBridge keeps the text; its picker writes `#rrggbb`. Not fixed in
-  0.1.1. *Tested:* `roundtrip/lossy_values`.
+  rewritten (`gold` -> `#ffd700`). MDBridge keeps the text; its picker writes `#rrggbb`. MDATK 0.1.2
+  keeps colours as written too (003). *Tested:* `roundtrip/lossy_values`.
 - **AP-04: chart formats as set.** Three check boxes saved `["jpg", "svg"]` as `["svg"]`. MDBridge
-  keeps the list (validation flags unknown entries). Not fixed in 0.1.1. *Tested:*
-  `roundtrip/lossy_values`.
+  keeps the list (validation flags unknown entries). MDATK 0.1.2 keeps it too and shows the formats
+  without a check box as "+ jpg" (004). *Tested:* `roundtrip/lossy_values`.
 - **AP-05: unknown drop-down values stay.** A stored value outside a drop-down's list was
   saved as the previous project's choice (`visual.renderer = "vulkan"` -> `"software"`) or as `""`.
-  MDBridge keeps it (shown as unknown and flagged). *Tested:* `ap/ap05_unknown_choice`,
+  MDBridge keeps it (shown as unknown and flagged); so does MDATK 0.1.2 (005). *Tested:*
+  `ap/ap05_unknown_choice`,
   `roundtrip/lossy_values`.
 - **AP-06: paths written as the file had them (owner decision D8).** MDATK's window made every path
   absolute on load and saved them so (`topology = "/home/.../system.parm7"`), which broke a project
   folder that is moved or shared. MDBridge writes relative paths relative (to the project's folder);
   *Save as* into another folder rebases them (`data/system.parm7` -> `../data/system.parm7` for a copy
   in `sub/`); absolute and `~` paths stay. The paths it reads are resolved against the project's
-  folder as before. Not fixed in 0.1.1. *Tested:* `roundtrip/relative_paths`, every round trip.
+  folder as before. MDATK 0.1.2 does the same (006). *Tested:* `roundtrip/relative_paths`, every round
+  trip.
 - **AP-07: empty slots stay empty.** A 4-slot preset with 2 panels was saved with 4 (two untitled
   `contacts/atom_pairs` series). MDBridge saves the panels there are; a slot becomes a panel when its
   editor is changed (and so do the slots before it, which are positional) or a panel is dragged onto
   it. *Tested:* `ap/ap07_empty_slots`, `canvas/swap_into_empty_slot`, `pages/layout_page`.
 - **AP-08: a smaller preset keeps the panels.** equal_4 -> single dropped panels 2 ... 4 at once
   and for good. MDBridge keeps them (rendering warns `layout single has 1 slots; ignoring 5 extra
-  panel(s)`, as M4's render does) and a larger preset shows them again. *Tested:*
-  `ap/ap08_preset_round_trip`, `roundtrip/open_save_full` (6 panels on 4 slots: MDATK dropped two).
+  panel(s)`, as M4's render does) and a larger preset shows them again. As MDATK 0.1.2 (`gui/app.py`
+  `_slot_editor`, `_more_panels_note`), the Layout page lists the panels without a slot below the
+  slots, after the note `3 more panels of this project have no slot in this grid: kept (and saved),
+  not drawn. A grid with more slots shows them again.`, and each slot has *Remove this panel*: its
+  panel is deleted and the panels after it move up one slot (one undo step, `Remove panel 2`; an
+  empty slot has nothing to remove). MDBridge lists each slot-less panel (`Panel 4: Residue heatmap
+  over time – <title or data label>`) with a *Remove* of its own, where 0.1.2 has one *Remove* for all
+  of them: one can keep some. A removal is refused while a slot whose panel would move up has options
+  that do not parse (`Panel not removed; fix this first: ...`, as AP-09); the removed slot's own text
+  goes with it. *Tested:* `ap/ap08_preset_round_trip`, `roundtrip/open_save_full` (6 panels on 4
+  slots: MDATK dropped two), `CanvasTests::removePanelsAndPanelsWithoutSlot`.
 - **AP-09: swaps and preset changes with invalid options are refused.** MDATK raised out of the
   signal handler (the swap silently not done, a traceback on the terminal). MDBridge logs `Panels not
   swapped; fix this first: <located message>` (MDATK 0.1.0, c6d8d15) and, for a preset change, `Grid
@@ -2097,8 +2183,9 @@ tests (`mdbridge_gui_tests`) replay the cases. *Tested:* the case named after ea
   MDBridge names the place as MDATK 0.0.10's `problems.py` does (`Input & cleaning › Frames › Stop:
   'x' is not a whole number`, `... › Target value: 'low' is not a number`, `Layout & panels › Panel 1
   (Structure) › Options: '{bad' is not valid JSON: <json's message>` or `... is not a JSON object`);
-  0.1.1 still has the Python texts for numbers, so MDBridge follows its locations and words the
-  reasons. *Tested:* `ap/ap10_form_errors`, `ap/ap09_swap_bad_options`.
+  0.1.1 still had the Python texts for numbers, so MDBridge follows its locations and words the
+  reasons; MDATK 0.1.2 names the field in words too (010). *Tested:* `ap/ap10_form_errors`,
+  `ap/ap09_swap_bad_options`.
 - **AP-11: Save as asks about the final name.** MDATK appended `.mdatk.toml` after the overwrite
   question, so an existing `name.mdatk.toml` was replaced unasked. MDBridge asks about the final name
   (MDATK 0.1.0, 172df88). *Tested:* `ap/ap11_save_as_suffix`.
@@ -2126,7 +2213,9 @@ tests (`mdbridge_gui_tests`) replay the cases. *Tested:* the case named after ea
   `citations_*` cases of `cli_parity.py`.
 - **AP-17: the recent list keeps the settings file's other keys.** MDATK 0.0.4.1 rewrote
   `settings.toml` with `recent` only, deleting newer MDATK's keys (0.0.14's `cat_proof`). MDBridge
-  keeps every other key (MDATK 0.0.14) and writes atomically. *Tested:* `ap/ap17_recent_keeps_settings`.
+  keeps every other key (MDATK 0.0.14) and writes atomically; a file that is not TOML is kept as
+  `settings.toml.unreadable` and one that cannot be read is not written (MDATK 0.1.2; PRJ-12).
+  *Tested:* `ap/ap17_recent_keeps_settings`, `ProjectIo.UnreadableSettingsFileIsKept`.
 - **AP-18: dialog details in full.** MDATK cut message details at 3 000 characters (a long list of
   problems or a traceback lost its end), its texts could not be selected and the still preview was
   scaled to a fixed 1 200 px. MDBridge shows the whole text, selectable and scrollable (MDATK 0.1.0,
@@ -2293,7 +2382,8 @@ saves whatever the widgets hold. MDBridge's GUI binds to `core::ProjectDocument`
 (`analyses.contacts.cutoff`, `layout.panels.2.options`), a Qt-free model tested on every compiler.
 Its deliberate differences from MDATK v0.0.4.1:
 
-- **ED-01: lossless fields** (milestone 5 AP-01 .. AP-05; MDATK 0.1.1 has the same bugs). MDATK's
+- **ED-01: lossless fields** (milestone 5 AP-01 .. AP-05; MDATK 0.1.1 had the same bugs, 0.1.2 fixed
+  them: report items 001-005). MDATK's
   spin buttons clamped loaded values to their ranges (`contacts.cutoff` 25 saved as 20, `visual.zoom`
   0.01 as 0.05), optional numbers went through `%g` (`inputs.dt_ps` 0.0123456789 saved as 0.0123457),
   colour buttons rewrote colours (`tab:orange` and `#ff000080` saved as `#000000`, `gold` as
@@ -2376,7 +2466,8 @@ and stores what the user enters as one undo step (text when editing finishes: En
 field, or `FormContext::commitPendingEdits()` before a save; a pick at once). The editor is named
 after its field path. Deliberate differences from MDATK v0.0.4.1:
 
-- **FW-01: no clamping, ranges as hints** (AP-01; MDATK 0.1.1 still clamps). MDATK's spin buttons
+- **FW-01: no clamping, ranges as hints** (AP-01; MDATK 0.1.1 still clamped, 0.1.2 keeps loaded values).
+  MDATK's spin buttons
   rewrote loaded values to their ranges (`contacts.cutoff` 25 saved as 20, `video.width` 7682 as
   7680). A number field holds any text of the field's type; MDATK's spin range is shown in the tooltip
   ("Usual range: 0.5 to 20 (other values are kept)") and a value outside it is flagged as a warning,
@@ -2384,7 +2475,8 @@ after its field path. Deliberate differences from MDATK v0.0.4.1:
   the range's ends but never move a value that is already outside into it. Range errors of
   `validate()` flag the field as errors. *Tested:* test_forms.cpp `numbersAreNeverClamped`,
   `numberArrowsStepWithinTheRangeHint`.
-- **FW-02: every digit and every colour kept** (AP-02, AP-03; not fixed in 0.1.1). Optional numbers
+- **FW-02: every digit and every colour kept** (AP-02, AP-03; not fixed in 0.1.1, fixed the same way in
+  0.1.2). Optional numbers
   show the project writer's shortest round-trip text (MDATK's `%g` saved `dt_ps` 0.0123456789 as
   0.0123457). Colour fields are text with a swatch and a picker (MDATK: a GTK colour button that wrote
   `tab:orange` and `#ff000080` as `#000000`, `gold` as `#ffd700`): any text is kept as typed, the
@@ -2883,7 +2975,8 @@ differences:
   stored angles. So the saved rotation of a mouse path equals MDATK's. *Tested:* `canvas/drag_rotate_swap`.
 - **LE-05 (AP-07, AP-08, AP-09, AP-10 on this page).** Empty slots stay empty until edited or
   dropped onto (filling the empty slots before them with what their editors show); a smaller preset
-  keeps the panels beyond its slots; swaps and preset changes are refused while a slot's options do not
+  keeps the panels beyond its slots, listed with a *Remove* each, and every slot has *Remove this
+  panel* (AP-08, MDATK 0.1.2); swaps and preset changes are refused while a slot's options do not
   parse (`Panels not swapped; fix this first: ...`, `Grid preset not changed; fix this first: ...`
   with the preset put back, as MDATK 0.1.0); options that do not parse are a located form error
   (`Layout & panels › Panel 1 (Structure) › Options: '{bad' is not valid JSON: <json's message>`, `...
@@ -2999,7 +3092,8 @@ four passes of at most 40 evaluations (`_CLOSE_PASSES`, also in 0.1.1), so an ul
 helix by up to 2.8 Å; W2-A's comparison of those helices (D10: 0.01 Å RMSD) has to take that into
 account (plan risk 1).
 
-- **CH-01 Residue numbers below -999** (not fixed in MDATK 0.1.1). `_id_columns` wrote `A-1002`, which
+- **CH-01 Residue numbers below -999** (not fixed in MDATK 0.1.1; 0.1.2 refuses them with the same
+  message, report item 088). `_id_columns` wrote `A-1002`, which
   shifted every later column and which MDATK's own reader then refused. MDBridge raises "residue number
   -1002 (A) does not fit the PDB columns (-999 to 9999)" before anything is written (`pdb clean
   --renumber --start=-2000`, `build helix --start=-1002,1`); numbers above 9999 keep MDATK's wrap.
@@ -3011,18 +3105,21 @@ account (plan risk 1).
   shifted columns hold coordinates). *Tested:* `tests/io/test_pdb.cpp` (`pdb_cases.json`, now
   generated with improvements_chem; `WriteRefusesWhatDoesNotFitTheColumns`), `tests/chem/
   test_pdbtools.cpp`, `test_renumber_residues` in `test_pdbtools_mdatk.cpp`.
-- **CH-02 Wrapped numbers of built helices are reported** (not fixed). `build helix --start 9998,1`
+- **CH-02 Wrapped numbers of built helices are reported** (not fixed in 0.1.1; 0.1.2 warns too, 093).
+  `build helix --start 9998,1`
   wrapped to `B   0` silently; the build notes end with the renumbering's "WARNING: residue numbers
   above 9999 wrap in the PDB columns". Cases: `helices` `start 9998,1`, `build_helix_start_wrap`.
   *C++ (builder, W1-D):* `chem::buildHelix` (src/chem/helix.cpp) names and records its residues with
   W1-A's `chem::convertNames` / `chem::setRecords`, gets CH-01's `PDBError` from `io::writePdb` (no
   check of its own) and appends CH-02's warning after the build notes; tests/chem/test_helix.cpp `HelixCases.WatsonCrickHelices`
   (every `helices` case byte for byte), `HelixGeometry.NumbersOutsideThePdbColumns`.
-- **CH-03 `--combine-into` takes one character** (not fixed). `XY` was accepted, the notes said chain
+- **CH-03 `--combine-into` takes one character** (not fixed in 0.1.1; 0.1.2 refuses `XY` too, 089). `XY`
+  was accepted, the notes said chain
   XY and the file had X; now `PDBError("chain ids must be single characters")`, as `restore_chains`.
   *Tested:* `pdbtools_cases.json` (`combine_chains` into `XY`, `clean` test call),
   `test_split_and_combine_chains`.
-- **CH-04 CONECT records that cannot be remapped are reported** (not fixed). With repeated input
+- **CH-04 CONECT records that cannot be remapped are reported** (not fixed in 0.1.1; 0.1.2 has the same
+  note, 090). With repeated input
   serials `--keep-conect` dropped every CONECT record while the note said they were kept; the note is
   "WARNING: dropped N CONECT records: the input's atom serials repeat, so they cannot be remapped".
   *Tested:* `clean` of input 9, `test_conect_strip_and_remap`.
@@ -3049,7 +3146,8 @@ account (plan risk 1).
   then does not find, is "cannot read mutation ...". *Tested:* every `parse_mutations` case and the
   `blank` mutations of `builder_cases.json` (tests/chem/test_mutate.cpp `MutationCases.*`),
   `Mutations.OptionsAndErrors`.
-- **CH-09 Mutated bases get hydrogens when the old base had them** (owner decision D11; beyond 0.1.1).
+- **CH-09 Mutated bases get hydrogens when the old base had them** (owner decision D11; beyond 0.1.1;
+  MDATK 0.1.2 adopted it, report item 099: hydrogens from the monomer's ideal geometry, one fit).
   MDATK dropped the old base's hydrogens and added a heavy-atom base, a mixed model. The new base's
   hydrogens come from the builder's ideal templates (`_H_RULES` order, after the heavy atoms, the same
   glycosidic-frame fit), with the note "replaced N hydrogen(s) of the old base (...) with M of the new
@@ -3061,7 +3159,8 @@ account (plan risk 1).
   `Mutations.KeepTheFrameAndCompensate` (MDATK's test with the hydrogens checked: bond lengths, order
   after the heavy atoms, the same atom set as a helix built with the new sequence),
   `Mutations.HydrogensOnlyWhereThereWereAndUnknownAtomsKept`.
-- **CH-10 Unusable resolutions and spacings are refused first** (density.py unchanged in 0.1.1). A NaN
+- **CH-10 Unusable resolutions and spacings are refused first** (density.py unchanged in 0.1.1; 0.1.2
+  refuses them too, 094). A NaN
   resolution or a negative spacing ended in numpy's `negative dimensions are not allowed`. `build fit`
   and `density fit`: a non-finite `--resolution` gives "the resolution must be a positive number of Å"
   (zero / negative keep MDATK's "enter the map resolution (Å)" and the project check); `density
@@ -3087,7 +3186,8 @@ account (plan risk 1).
   the file is what the analysis window writes. *Tested:* cli_cases.json `density_fit_save`,
   `density_fit_save_as`, `density_fit_then_placed` (MDATK patched by improvements_chem.py
   `_save_as_written`).
-- **CH-13 Missing input files are named** (not fixed). A name that is not a file was parsed as PDB text
+- **CH-13 Missing input files are named** (not fixed in 0.1.1; 0.1.2 names them too, 095). A name that is
+  not a file was parsed as PDB text
   ("no ATOM/HETATM records found ..."); the commands report "[Errno 2] No such file or directory:
   'x.pdb'" (a folder: "[Errno 21] Is a directory") for their inputs and `--chain-reference`; PDB text
   given to the library is unchanged. In C++ an input is `chem::PdbSource::text` or `::file` (a file
@@ -3102,7 +3202,9 @@ account (plan risk 1).
   builtin engine; `--engine barnaba` runs it with "WARNING: Barnaba is not available in MDBridge; using
   the builtin detector"; the stacking note has no `pip install barnaba` hint; no STACK records, no
   barnaba citation.
-- **CH-15 Reversed residue ranges are errors** (not fixed). `A:4-1` matched nothing ("the L ranges
+- **CH-15 Reversed residue ranges are errors** (not fixed in 0.1.1; an error in 0.1.2 too, 096, which
+  lets RNAdo's model maps keep reversed sides: `parse_ranges(reversed_ok=True)`, for milestone 7's port
+  of frames.py). `A:4-1` matched nothing ("the L ranges
   match no nucleotide"); now `PDBError("residue range A:4-1 ends before it starts")`. A residue
   number beyond 64 bits in a range (Python reads any size) is "cannot read residue range ...".
   *Tested:* `ranges` of `pdbtools_cases.json`, `test_parse_ranges`.
@@ -3205,7 +3307,8 @@ pairings and triplexes, the density fits and their transforms; regenerate_all.py
 JSON files within FITTED's tolerance where their bytes differ (tests/data/README.md).
 
 - **The density fit's sums in double precision, on several threads** (src/chem/density_fit.cpp,
-  milestone 6 W1-E; owner decision D2; density.py unchanged in 0.1.1). `rotationSamples`,
+  milestone 6 W1-E; owner decision D2; density.py unchanged in 0.1.1; 0.1.2 adds only CH-11's
+  non-finite voxels). `rotationSamples`,
   `FitProblem` (envelope, `cc`, `atResolution`, `flips`, `refine`), `CoarseSearch` (`_CoarseSearch`),
   `globalSearch`, `fitModel`, `fftSize` and `centreTransform` follow MDATK's code step by step, with
   SciPy's pieces from src/numerics (the same FFT, Gaussian filter, `map_coordinates` and Powell). The

@@ -28,12 +28,15 @@ Items:
   AN-09  H-bonds: a guessed hydrogen goes to the donor nearest by the pair search's distance.
   AN-10  H-bonds: nitrogens carrying a guessed hydrogen are not acceptors.
   AN-13  atoms: bonds guessed from the first analysed frame.
-  AN-14  atoms: bonds guessed from covalent radii (sum + 0.4 A), consecutive residues only within one
-         chain, never from a one-atom residue.
+  AN-14  atoms: bonds guessed from covalent radii (sum + 0.4 A), within a residue, between neighbouring
+         residues whatever their chains and between two sulfurs of any residues (MDATK 0.1.2), never
+         from a one-atom residue.
   CIT-05 atoms: when the bonds are guessed, a warning citing the covalent radii (as CIT-03's).
   AN-15  proximity: members are 0 also when no structure atoms remain.
   AN-19  use_pbc without a usable cell: one warning per run.
-  AN-20  non-finite coordinates: such atoms are in no pair; one warning per run of frames.
+  AN-20  non-finite coordinates: such atoms are in no pair; one warning per run of frames; with
+         align_frames, trace and atoms store a blown-up frame unaligned and the RMSD of a fit target
+         is NaN for it, each with a warning naming the frames (MDATK 0.1.2).
   AN-21  structural view: unknown residue groups are named in a warning.
   SEL-17 the analyses' selections are evaluated on the first analysed frame whatever the setup
          order, and distance keywords in them honour analyses.use_pbc.
@@ -229,7 +232,8 @@ CORDERO_CITATION = "(covalent radii: Cordero et al., Dalton Trans. 2008, 2832-28
 def guess_bonds(atoms):
     """AN-14: bonds among `atoms` (local index pairs, sorted) from their current positions: within
     r_i + r_j + 0.4 A (covalent radii, carbon's for unknown elements), never H-H, never an atom of a
-    one-atom residue, within a residue or between consecutive residues of one segment and chain ID."""
+    one-atom residue, within a residue, between neighbouring residues (residue indices 1 apart,
+    whatever their chains) or between two sulfurs of any residues (MDATK 0.1.2 atom_bonds)."""
     from mdatk.selections import atom_elements
     from mdatk.spatial import pairs_within
 
@@ -245,12 +249,7 @@ def guess_bonds(atoms):
     keep = i < j
     i, j, d = i[keep], j[keep], d[keep]
     res = atoms.resindices
-    seg = atoms.segindices
-    chain = np.asarray(atoms.chainIDs, dtype=object) if hasattr(atoms, "chainIDs") else None
-    same_chain = seg[i] == seg[j]
-    if chain is not None:
-        same_chain &= chain[i] == chain[j]
-    near = (res[i] == res[j]) | ((np.abs(res[i] - res[j]) == 1) & same_chain)
+    near = (np.abs(res[i] - res[j]) <= 1) | ((el[i] == "S") & (el[j] == "S"))
     hh = (el[i] == "H") & (el[j] == "H")
     single = (size[res[i]] < 2) | (size[res[j]] < 2)
     ok = near & ~hh & ~single & (d <= r[i] + r[j] + BOND_TOLERANCE)
@@ -501,6 +500,68 @@ def apply_mdatk():
         trace_setup(self, frame_indices)
 
     structure.TraceAnalysis.setup = trace_setup_warning
+
+    # AN-20 (MDATK 0.1.2): with align_frames, a frame whose trace points (or the reference's) are not all
+    # finite is stored as it is (process runs with align off for it), and finalize names such frames in a
+    # warning
+    def finite(x):
+        return bool(np.all(np.isfinite(x)))
+
+    def unaligned_process(original, aligning):
+        def process(self, k, ts):
+            if k == 0:
+                self._unaligned, self._ref_frame = [], ts.frame
+            skip = False
+            if self.ref is not None and self.align and aligning(self):
+                if not (finite(self.tracer.positions()) and finite(self.ref)):
+                    skip = True
+                    self._unaligned.append(ts.frame)
+            if skip:
+                self.align = False
+                try:
+                    original(self, k, ts)
+                finally:
+                    self.align = True
+            else:
+                original(self, k, ts)
+            if k == 0:
+                self._ref_finite = finite(self.ref)
+        return process
+
+    def frame_list(frames):
+        runs, k = [], 0
+        while k < len(frames):
+            end = k + 1
+            while end < len(frames) and frames[end] == frames[end - 1] + 1:
+                end += 1
+            runs.append(str(frames[k]) if end - k == 1 else f"{frames[k]}-{frames[end - 1]}")
+            k = end
+        return ("frame " if len(frames) == 1 else "frames ") + ", ".join(runs)
+
+    def unaligned_finalize(original, aligning, words):
+        one_words, many_words, whole = words
+
+        def finalize(self):
+            if self.align and aligning(self) and getattr(self, "_unaligned", None) is not None:
+                if not self._ref_finite:
+                    if self.n_frames > 1:
+                        self.ctx.warn(f"structural view: the alignment reference (frame {self._ref_frame}) has "
+                                      f"non-finite trace coordinates; the frames of the {whole} are stored unaligned")
+                elif self._unaligned:
+                    one = len(self._unaligned) == 1
+                    self.ctx.warn(f"structural view: {frame_list(self._unaligned)} {'has' if one else 'have'} "
+                                  f"non-finite trace coordinates; {one_words if one else many_words} stored unaligned")
+            return original(self)
+        return finalize
+
+    trace_points = lambda self: len(self.residues) >= 3  # noqa: E731
+    atoms_points = lambda self: len(self.tracer.positions()) >= 3  # noqa: E731
+    structure.TraceAnalysis.process = unaligned_process(structure.TraceAnalysis.process, trace_points)
+    structure.TraceAnalysis.finalize = unaligned_finalize(structure.TraceAnalysis.finalize, trace_points,
+                                                          ("its trace is", "their traces are", "trace"))
+    structure.AtomsAnalysis.process = unaligned_process(structure.AtomsAnalysis.process, atoms_points)
+    structure.AtomsAnalysis.finalize = unaligned_finalize(structure.AtomsAnalysis.finalize, atoms_points,
+                                                          ("its atoms are", "their atoms are", "atoms"))
 
     # AN-06 / AN-07 / AN-08; AN-25 - AN-27 and CIT-04 (parameters without parm7)
     import energy_parameters as eparams
@@ -793,6 +854,9 @@ def apply_mdatk():
     translation_only = set()
 
     def kabsch(mobile, reference, weights=None):
+        if not (finite(mobile) and finite(reference)):  # AN-20 (MDATK 0.1.2): no superposition, NaN
+            nan = np.full(3, np.nan)
+            return np.full((3, 3), np.nan), nan, nan
         r, mc, rc = mdatk_kabsch(mobile, reference, weights)
         if id(reference) in translation_only:
             r = np.eye(3)
@@ -803,10 +867,15 @@ def apply_mdatk():
 
     def rmsd_setup_improved(self, frame_indices):
         rmsd_setup(self, frame_indices)
+        self._blown_up = [[] for _ in self.targets]
         for t, spec in zip(self.targets, self.project.analyses.rmsd.targets):
             if t["fit"] is None or not self.superposition:
                 continue
             x = t["ref_fit"]
+            if not finite(x):
+                self.ctx.warn(f"RMSD target {spec.label!r}: the reference frame (frame "
+                              f"{int(frame_indices[self.ref_pos])}) has non-finite fit coordinates; every value "
+                              "is NaN")
             w = np.ones(len(x)) if t["wf"] is None else t["wf"]
             collinear = len(x) < 3 or (w.sum() > 0 and _collinear(x - (x * w[:, None]).sum(axis=0) / w.sum(), w))
             if collinear:
@@ -817,6 +886,27 @@ def apply_mdatk():
                               "superposition is translation only")
 
     rmsd.RMSDAnalysis.setup = rmsd_setup_improved
+    rmsd_process = rmsd.RMSDAnalysis.process
+    rmsd_finalize = rmsd.RMSDAnalysis.finalize
+
+    def rmsd_process_finite(self, k, ts):
+        if self.superposition:
+            for n, t in enumerate(self.targets):
+                if t["mob"].n_atoms and t["fit"] is not None and finite(t["ref_fit"]) and \
+                        not finite(t["fit"].positions):
+                    self._blown_up[n].append(ts.frame)
+        rmsd_process(self, k, ts)
+
+    def rmsd_finalize_warned(self):
+        for t, spec, frames in zip(self.targets, self.project.analyses.rmsd.targets, self._blown_up):
+            if frames:
+                one = len(frames) == 1
+                self.ctx.warn(f"RMSD target {spec.label!r}: {frame_list(frames)} {'has' if one else 'have'} non-finite "
+                              f"fit coordinates; {'its value is' if one else 'their values are'} NaN")
+        return rmsd_finalize(self)
+
+    rmsd.RMSDAnalysis.process = rmsd_process_finite
+    rmsd.RMSDAnalysis.finalize = rmsd_finalize_warned
 
     # the versions of the analyses whose results these items change (energy, hbonds, rmsd,
     # proximity, atoms): MDBridge's, from the one table of them

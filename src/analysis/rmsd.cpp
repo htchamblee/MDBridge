@@ -3,8 +3,9 @@
 // Per target: without superposition the plain RMSD to the reference positions; with
 // superposition and no fit selection MDAnalysis' rms.rmsd (superposedRmsd, bit for bit); with a
 // fit selection the fit atoms are superposed with kabsch and the target atoms moved with that
-// rotation. setup() moves the trajectory to the reference frame (MDATK seeks it there), so the
-// analyses set up after this one see the reference frame as the current frame.
+// rotation (AN-20, MDATK 0.1.2: a frame whose fit atoms, or the reference's, are not all finite
+// gets NaN, named in a warning). setup() moves the trajectory to the reference frame (MDATK seeks
+// it there), so the analyses set up after this one see the reference frame as the current frame.
 
 #include <algorithm>
 #include <cmath>
@@ -66,7 +67,15 @@ struct RmsdTarget {
     std::vector<double> ref;  // mob positions in the reference frame (float64, n x 3)
     std::vector<Vec3> refFit;  // fit positions in the reference frame
     bool translationOnly = false;  // AN-18: fewer than 3 or collinear fit atoms
+    bool refFitFinite = true;  // AN-20: the fit atoms are finite in the reference frame
+    std::string quoted;  // repr(t.label), for warnings
 };
+
+bool allFinite(const std::vector<Vec3>& xyz) {
+    return std::all_of(xyz.begin(), xyz.end(), [](const Vec3& x) {
+        return std::isfinite(x[0]) && std::isfinite(x[1]) && std::isfinite(x[2]);
+    });
+}
 
 // AN-18: whether the fit atoms (reference positions, weights or none) are fewer than 3 or
 // collinear: q <= 1e-10 p^2 for the weighted inner-product matrix of the centred set (p its trace,
@@ -182,6 +191,7 @@ public:
                 target.wf = target.fit ? massesOf(*target.fit) : target.w;
             }
             target.label = t.label.empty() ? "target" + std::to_string(k) : t.label;
+            target.quoted = core::pythonStringRepr(t.label);
             target.out = rmsdOutputKey(t.label, k);
             m_targets.push_back(std::move(target));
         }
@@ -200,6 +210,12 @@ public:
             t.ref = positionsOf(t.mob, reference);
             if (t.fit) {
                 t.refFit = vectorsOf(*t.fit, reference);
+                t.refFitFinite = allFinite(t.refFit);
+                if (m_superposition && !t.refFitFinite) {  // AN-20 (MDATK 0.1.2): nothing to superpose on
+                    context().warn("RMSD target " + t.quoted + ": the reference frame (frame " +
+                                   std::to_string(reference.index) +
+                                   ") has non-finite fit coordinates; every value is NaN");
+                }
                 t.translationOnly = m_superposition && collinearFit(t.refFit, t.wf);
                 if (t.translationOnly) {
                     const std::size_t atoms = t.fit->size();
@@ -211,6 +227,7 @@ public:
             }
         }
         m_values.assign(m_targets.size() * frameCount(), std::numeric_limits<double>::quiet_NaN());
+        m_blownUp.assign(m_targets.size() * frameCount(), -1);
     }
 
     bool concurrentProcess() const override { return true; }
@@ -235,6 +252,14 @@ public:
                 }
             } else {
                 const std::vector<Vec3> xf = vectorsOf(*t.fit, frame);
+                if (!t.refFitFinite) {
+                    continue;  // reported at setup; NaN
+                }
+                if (!allFinite(xf)) {
+                    // AN-20 (MDATK 0.1.2): a blown-up frame cannot be superposed: no value (NaN)
+                    m_blownUp[n * frameCount() + k] = frame.index;
+                    continue;
+                }
                 const KabschResult fit =
                     t.wf ? kabsch(xf, t.refFit, std::span<const double>(*t.wf)) : kabsch(xf, t.refFit);
                 // AN-18: translation only for fewer than 3 or collinear fit atoms (MDATK: an
@@ -275,6 +300,21 @@ public:
     }
 
     core::AnalysisResult finalize() override {
+        for (std::size_t n = 0; n < m_targets.size(); ++n) {
+            std::vector<std::int64_t> blown;
+            for (std::size_t k = 0; k < frameCount(); ++k) {
+                if (const std::int64_t f = m_blownUp[n * frameCount() + k]; f >= 0) {
+                    blown.push_back(f);
+                }
+            }
+            if (!blown.empty()) {
+                std::size_t count = 0;
+                const std::string list = detail::frameList(blown, &count);
+                context().warn("RMSD target " + m_targets[n].quoted + ": " + list + (count == 1 ? " has" : " have") +
+                               " non-finite fit coordinates; " + (count == 1 ? "its value is" : "their values are") +
+                               " NaN");
+            }
+        }
         core::AnalysisResult res = newResult({}, core::Table{{"reference_frame_index", m_refPos}});
         const std::vector<std::string> groups = parseInstance(instance()).groups;
         const std::string suffix = groups.empty() ? std::string() : " (" + groups[0] + ")";
@@ -293,6 +333,7 @@ private:
     bool m_superposition = true;
     std::vector<RmsdTarget> m_targets;
     std::vector<double> m_values;  // targets x frames, NaN where not computed
+    std::vector<std::int64_t> m_blownUp;  // targets x frames: the trajectory frame when its fit atoms are not finite
 };
 
 class RmsdDescriptor final : public AnalysisDescriptor {
