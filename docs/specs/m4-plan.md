@@ -466,8 +466,10 @@ D14).
   docs/DIFFERENCES.md ("Rendering: the Vulkan 3D renderer"); tested by
   `VulkanStage.ChoosesTheGpuRendererWhenUsable` and `VulkanStage.AutoLeavesACpuDriverToTheSoftwareRenderer`.
 - **D16 AV1 preset**: SVT-AV1 stays at preset 8 (`kSvtAv1Preset`, src/render/video/encoder.cpp).
-  Follow-up: the owner revisits it after a side-by-side quality comparison of preset 8 and preset 10
-  (preset 10 encodes about 1.6 x faster here, follow-up (1) under wave 4), to be prepared later.
+  Decided 2026-11-27 after a side-by-side comparison of presets 8, 9 and 10 on the demo (1080p,
+  120 frames): preset 10 is about 2x faster but 30-50 % larger, 6-8 dB lower in PSNR, and shows
+  stale text (wrong time labels in ~98 of 120 frames); preset 9 is 1.6x faster, 8-18 % larger and
+  slightly worse. The owner keeps preset 8.
 - **Citations** (also milestone-independent): methods are cited by their originators, not by the
   implementation MDATK ran on; MDAnalysis, NumPy, SciPy and Matplotlib are no longer cited, the
   RMSD's QCP and Kabsch superpositions are when used, colour maps are styling and not cited

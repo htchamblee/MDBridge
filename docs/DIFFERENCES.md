@@ -1835,8 +1835,10 @@ target folder renamed at the end and removed on failure. Stream metadata (frame 
   used as named; any other name is used if FFmpeg has that encoder (as MDATK passed it through), else
   `video: encoder X is not available; using libsvtav1` (or `mpeg4`). `crf` is always on the x264 /
   x265 scale (0-51, clamped) and is mapped: SVT-AV1 `crf = round(crf * 63 / 51)` (20 -> 25,
-  23 -> 28, 51 -> 63; preset 8, kept by owner decision D16 until a side-by-side quality
-  comparison with preset 10), mpeg4 `qscale = round(1 + crf / 10)` up to 20 and
+  23 -> 28, 51 -> 63; preset 8, kept by owner decision D16 after a side-by-side quality
+  comparison with presets 9 and 10 on the demo: preset 10 encodes about 2x faster but gives 30-50 %
+  larger files, about 6-8 dB lower PSNR and stale text (the time label shows a nearby frame's
+  number in ~98 of 120 frames)), mpeg4 `qscale = round(1 + crf / 10)` up to 20 and
   `round(3 + (crf - 20) * 28 / 31)` above (20 -> 3, MDATK's fixed value; 23 -> 6; 51 -> 31). When
   SVT-AV1 cannot encode the size (below 4x4) the encoder falls back to mpeg4 with
   `video: libsvtav1 cannot encode WxH (<reason>); using mpeg4`. *Tested:*
