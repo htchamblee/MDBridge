@@ -4,10 +4,10 @@ mutate (tests/chem/test_builder.cpp; docs/specs/m6-plan.md 1.3, 4.1, 4.2).
     python3 -I -B make_builder_cases.py MDATK_CHECKOUT OUT_DIR
 
 Needs numpy and scipy (least_squares, cKDTree, the density fit). The rebuilt helices run in parallel
-worker processes (MDBRIDGE_GENERATOR_JOBS, default the CPUs; about an hour of CPU time, CH-16's
-continuation closures). MDBridge's chem improvements are applied first (improvements_chem.py: CH-01 / CH-02 numbering, CH-08 mutation specs, CH-09 / D11
-hydrogens of mutated bases, CH-10 / CH-11 in the fit, CH-16 the closure of the other pairings, D13
-"REMARK 951 MDBridge IDEAL ..."). numpy's
+worker processes (MDBRIDGE_GENERATOR_JOBS, default the CPUs; some 20 minutes of CPU time, CH-16's
+continuation closures). MDBridge's chem improvements are applied first (improvements_chem.py: CH-01 /
+CH-02 numbering, CH-08 mutation specs, CH-09 / D11 hydrogens of mutated bases, CH-10 / CH-11 in the
+fit, CH-16 / CH-17 the closure of the other pairings, D13 "REMARK 951 MDBridge IDEAL ..."). numpy's
 and OpenBLAS' kernels are pinned (chem_common.pin_kernels). Writes:
 
   OUT_DIR/builder_cases.json

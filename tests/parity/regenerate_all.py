@@ -780,7 +780,7 @@ def cli_closures_equal(old: bytes, new: bytes) -> tuple[bool, str]:
 def fitted_equal(old: bytes, new: bytes, path_dependent: bool = False) -> tuple[bool, str]:
     """JSON documents equal within the chem tolerance (FITTED); with path_dependent (the pinned
     kernels differ from the reference machine's, KERNEL_PROBE) evaluation counts within
-    EVALUATIONS_TOLERANCE and rebuilt helices as _closure_problem; the reason when not."""
+    EVALUATIONS_TOLERANCE and rebuilt helices as _closure_problem (D10); the reason when not."""
     try:
         a, b = json.loads(old), json.loads(new)
     except ValueError as exc:
@@ -829,7 +829,8 @@ def fitted_equal(old: bytes, new: bytes, path_dependent: bool = False) -> tuple[
     problem = walk(a, b, "$")
     if problem:
         return False, problem
-    extra = f"; {loose[0]} path-dependent result(s) compared without their path" if loose[0] else ""
+    extra = (f"; {loose[0]} path-dependent result(s) compared with their wider tolerances (D10, evaluation counts)"
+             if loose[0] else "")
     return True, f"{count[0]} values within the chem tolerance{extra}"
 
 
@@ -1033,7 +1034,7 @@ def main(argv=None) -> int:
     missing = sorted(set(committed) - set(fresh))
     extra = sorted(set(fresh) - set(committed))
     differing, tolerated = [], []
-    other_kernels = kernels_match(root) is False  # PATH_DEPENDENT results compared without their path
+    other_kernels = kernels_match(root) is False  # PATH_DEPENDENT results compared with their wider tolerances
     for rel in sorted(set(committed) & set(fresh)):
         old, new = read(os.path.join(ROOT, rel)), read(os.path.join(root, rel))
         if old == new or normalised(rel, old) == normalised(rel, new):

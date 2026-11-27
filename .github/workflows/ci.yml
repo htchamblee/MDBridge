@@ -593,7 +593,7 @@ jobs:
     # tree, which must equal the committed files byte for byte (one CPU-dependent file within a
     # tolerance: see the script); no build needed
     runs-on: ubuntu-24.04
-    timeout-minutes: 120  # make_builder_cases.py: the CH-16 closures, in parallel workers (about an hour of CPU)
+    timeout-minutes: 90  # make_builder_cases.py: the CH-16 closures (some 20 min of CPU, in parallel workers)
     env:
       LC_ALL: C.UTF-8
     steps:

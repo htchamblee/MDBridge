@@ -51,13 +51,13 @@ namespace {
 // --- constants (builder.py) ------------------------------------------------------------------------
 
 constexpr double kPi = 3.141592653589793;
-constexpr double kHbond = 2.9;        // Å, donor-acceptor distance of the built pairs
-constexpr double kLink = 1.607;       // Å, O3'-P
-constexpr double kLinkLow = 1.5;      // LINK_RANGE
+constexpr double kHbond = 2.9;    // Å, donor-acceptor distance of the built pairs
+constexpr double kLink = 1.607;   // Å, O3'-P
+constexpr double kLinkLow = 1.5;  // LINK_RANGE
 constexpr double kLinkHigh = 1.7;
-constexpr double kClashNb = 2.4;      // Å, heavy atoms three bonds apart
-constexpr double kJrdChi = -170.0;    // chi of the nucleosides of _core (dchi 0)
-constexpr double kChiLow = -185.0;    // CHI_RANGE
+constexpr double kClashNb = 2.4;    // Å, heavy atoms three bonds apart
+constexpr double kJrdChi = -170.0;  // chi of the nucleosides of _core (dchi 0)
+constexpr double kChiLow = -185.0;  // CHI_RANGE
 constexpr double kChiHigh = -145.0;
 // _GEOM
 constexpr double kC5O5 = 1.443;
@@ -106,15 +106,15 @@ constexpr std::array<std::string_view, 5> kSugarH = {"H1'", "H2'", "H3'", "H4'",
 // _RIGID = _SUGAR + _SUGAR_H
 constexpr std::array<std::string_view, 12> kRigid = {"C2'", "O2'", "C3'", "O3'", "C4'", "O4'",
                                                      "C5'", "H1'", "H2'", "H3'", "H4'", "HO2'"};
-constexpr std::array<std::string_view, 19> kStrandNames = {"P",   "OP1", "OP2", "O5'", "C5'", "C4'", "O4'",
-                                                           "C3'", "O3'", "C2'", "O2'", "C1'", "H1'", "H2'",
+constexpr std::array<std::string_view, 19> kStrandNames = {"P",   "OP1", "OP2",  "O5'", "C5'", "C4'", "O4'",
+                                                           "C3'", "O3'", "C2'",  "O2'", "C1'", "H1'", "H2'",
                                                            "H3'", "H4'", "HO2'", "H5'", "H5''"};
 constexpr std::size_t kBaseSlots = 15;
 constexpr std::size_t kSlots = kStrandNames.size() + kBaseSlots;  // 34
 // slot of each _RIGID atom in kStrandNames
 constexpr std::array<std::size_t, 12> kRigidSlot = {9, 10, 7, 8, 5, 6, 4, 12, 13, 14, 15, 16};
-constexpr std::size_t kSlotP = 0, kSlotOP1 = 1, kSlotOP2 = 2, kSlotO5 = 3, kSlotC5 = 4, kSlotC4 = 5,
-                      kSlotC3 = 7, kSlotO3 = 8, kSlotC1 = 11, kSlotH5 = 17, kSlotH5b = 18;
+constexpr std::size_t kSlotP = 0, kSlotOP1 = 1, kSlotOP2 = 2, kSlotO5 = 3, kSlotC5 = 4, kSlotC4 = 5, kSlotC3 = 7,
+                      kSlotO3 = 8, kSlotC1 = 11, kSlotH5 = 17, kSlotH5b = 18;
 
 // --- small vector helpers ------------------------------------------------------------------------
 
@@ -361,7 +361,8 @@ std::vector<double> helixStart(std::string_view kind) {
     if (kind == "reverse-hoogsteen")
         return {-4.56, 0.76, 15.30, -16.81, 48.08, 4.39, -15.06, 162.79, 152.69, 20.07, 105.73, 215.23};
     if (kind == "triplex-hoogsteen")
-        return {0.95, -5.35, -23.66, 0.26, 25.61, 4.85, 3.15, 142.15, 173.97, -5.92, 55.06, 170.43, 21.23, 135.34, 170.28};
+        return {0.95,   -5.35, -23.66, 0.26,   25.61, 4.85,   3.15,  142.15,
+                173.97, -5.92, 55.06,  170.43, 21.23, 135.34, 170.28};
     return {-0.44, -4.42, -26.00, 5.62, 21.95, 5.06, 8.96, 155.86, 157.34, -4.39, 52.09, 168.87, 18.85, 98.76, 116.35};
 }
 
@@ -386,7 +387,9 @@ struct ScrewLevel {
     Mat3 rot{};
     Vec3 origin{};
     Vec3 offset{};  // rise * level * u
-    Vec3 operator()(const Vec3& x) const { return (matVec(rot, x - origin) + origin) - offset; }
+    Vec3 operator()(const Vec3& x) const {
+        return (matVec(rot, x - origin) + origin) - offset;
+    }
 };
 
 ScrewLevel screwAt(const Screw& s, double level) {
@@ -579,7 +582,9 @@ Pose pairFitUncached(std::string_view rule, char b1, char b2) {
         const auto residuals = [&](std::span<const double> p) {
             const Mat3 rot = matMul(rotvec({p[0], p[1], p[2]}), k0.rotation);
             const Vec3 shift = {p[3], p[4], p[5]};
-            const auto move = [&](const Vec3& x) { return (matVec(rot, x - k0.mobileCentre) + k0.referenceCentre) + shift; };
+            const auto move = [&](const Vec3& x) {
+                return (matVec(rot, x - k0.mobileCentre) + k0.referenceCentre) + shift;
+            };
             std::vector<double> res;
             for (const Bond& bond : hb) {
                 const Vec3 moved = move(bond.mobileAtom);
@@ -640,7 +645,8 @@ Pose pairFit(std::string_view rule, char b1, char b2) {
 // _nucleotides for one nucleoside: the sugar (_SUGAR, 7 atoms, or _RIGID, 12) turned by dchi about the
 // glycosidic bond, O5' and P from gamma and beta, H5' / H5'' with the ring hydrogens. Names: the sugar
 // atoms, C1', O5', P (, H5', H5'').
-Atoms nucleotide(const Vec3& c1, const Vec3& glyco, std::span<const Vec3> sugar, double dchi, double gamma, double beta) {
+Atoms nucleotide(const Vec3& c1, const Vec3& glyco, std::span<const Vec3> sugar, double dchi, double gamma,
+                 double beta) {
     const Vec3 k = unit(c1 - glyco);
     const double t = radians(dchi);
     const double ct = std::cos(t), st = std::sin(t);
@@ -771,7 +777,8 @@ LimitMatrix limitMatrix(const ContactTable& table) {
                 const int x = hyd(a) ? b : a;
                 v = h == 4 && (x == 2 || x == 3 || x == 7) ? table.polar : table.hx;
             } else {
-                const bool polarPair = a >= 1 && a <= 3 && b >= 1 && b <= 3 && !(a == 1 && b == 1) && !(a == 2 && b == 2);
+                const bool polarPair =
+                    a >= 1 && a <= 3 && b >= 1 && b <= 3 && !(a == 1 && b == 1) && !(a == 2 && b == 2);
                 v = a == 7 || b == 7 || polarPair ? table.hbond : table.heavy;
             }
         }
@@ -1042,9 +1049,9 @@ std::vector<double> fitResiduals(const HelixKind& h, std::span<const double> p) 
     for (std::size_t s = 0; s < h.strands.size(); ++s) {
         const Atoms here = nucleotideOf(h.ref.placed[s], h.strands[s].base, false, u.q[s]);
         const ScrewLevel op = screwAt(u.screw, h.strands[s].step);
-        const std::array<double, 6> link = linkResiduals(here.at("C4'"), here.at("C3'"), here.at("O3'"),
-                                                         op(here.at("P")), op(here.at("O5'")), op(here.at("C5'")),
-                                                         kReferenceTerm);
+        const std::array<double, 6> link =
+            linkResiduals(here.at("C4'"), here.at("C3'"), here.at("O3'"), op(here.at("P")), op(here.at("O5'")),
+                          op(here.at("C5'")), kReferenceTerm);
         out.insert(out.end(), link.begin(), link.end());
         const std::array<double, 4> prior = torsionPriors(u.q[s][0], u.q[s][1], u.q[s][2]);
         out.insert(out.end(), prior.begin(), prior.end());
@@ -1094,8 +1101,8 @@ HelixFitResult helixFitUncached(const std::string& kind, const core::Reporter* r
         }
         return false;
     };
-    const numerics::LeastSquaresResult sol = numerics::leastSquares(
-        [&h](std::span<const double> p) { return fitResiduals(h, p); }, start, o, callback);
+    const numerics::LeastSquaresResult sol =
+        numerics::leastSquares([&h](std::span<const double> p) { return fitResiduals(h, p); }, start, o, callback);
     const UnpackedFit u = unpackFit(h, sol.x);
     HelixFitResult out{u.screw, u.q, sol.cost, std::numeric_limits<double>::infinity(),
                        std::numeric_limits<double>::infinity()};
@@ -1222,7 +1229,7 @@ Pose levelPose(const std::string& kind, std::size_t strand, const std::string& l
 // _slot_table / _contact_tables: slot classes, slot pairs scored within a nucleotide, across a link
 struct ContactTables {
     std::array<std::array<int, kSlots>, 4> cls{};
-    std::array<std::vector<std::uint8_t>, 4> inside;                // kSlots x kSlots
+    std::array<std::vector<std::uint8_t>, 4> inside;               // kSlots x kSlots
     std::array<std::array<std::vector<std::uint8_t>, 4>, 4> link;  // [5'][3'] kSlots x kSlots
 };
 
@@ -1465,7 +1472,9 @@ private:
             for (std::size_t k = 0; k < m_n; ++k) {
                 const std::size_t at = s * m_n + k;
                 const Vec3 shift = {x[k * m_width + 3], x[k * m_width + 4], x[k * m_width + 5]};
-                const auto move = [&](const Vec3& y) { return (matVec(rot[k], y - m_centre[k]) + m_centre[k]) + shift; };
+                const auto move = [&](const Vec3& y) {
+                    return (matVec(rot[k], y - m_centre[k]) + m_centre[k]) + shift;
+                };
                 std::array<Vec3, 12> sugar{};
                 for (std::size_t i = 0; i < 12; ++i) {
                     sugar[i] = move(m_geometry.sugar[at][i]);
@@ -1616,7 +1625,9 @@ private:
             const std::size_t p = real[fi], q = real[fj];
             const std::size_t sp = p / (m_n * kSlots), kp = (p / kSlots) % m_n, ip = p % kSlots;
             const std::size_t sq = q / (m_n * kSlots), kq = (q / kSlots) % m_n, iq = q % kSlots;
-            const auto code = [&](std::size_t s, std::size_t k) { return static_cast<std::size_t>(m_codes[s * m_n + k]); };
+            const auto code = [&](std::size_t s, std::size_t k) {
+                return static_cast<std::size_t>(m_codes[s * m_n + k]);
+            };
             bool keep = kp != kq || (sp != sq && (ip < nStrand || iq < nStrand));
             const long long stepP = m_steps[sp], stepQ = m_steps[sq];
             const long long dk = static_cast<long long>(kq) - static_cast<long long>(kp);
@@ -1672,8 +1683,8 @@ private:
         o.jacSparsity = structure(m_pairs);
         o.denseFromSparsity = true;
         o.trSolver = numerics::TrustRegionSolver::Exact;
-        o.jacobianThreads = m_options.threads ? m_options.threads
-                                              : std::max<std::size_t>(1, std::thread::hardware_concurrency());
+        o.jacobianThreads =
+            m_options.threads ? m_options.threads : std::max<std::size_t>(1, std::thread::hardware_concurrency());
         const std::vector<ClosurePair>& pairs = m_pairs;
         const numerics::LeastSquaresCallback callback = [this](std::span<const double>, double, std::size_t,
                                                                std::size_t) {
@@ -1765,8 +1776,9 @@ std::vector<Atoms> strandHeavy(const std::vector<Atoms>& placed, const std::stri
         for (const TemplateAtom& a : nucleotideOf(placed[j], base, true, q[j]).items) {
             heavy.set(a.name, a.xyz);
         }
-        const Vec3 prev = out.empty() ? placeAtom(heavy.at("C5'"), heavy.at("O5'"), heavy.at("P"), kLink, kO3PO5, kAlpha)
-                                      : out.back().at("O3'");
+        const Vec3 prev = out.empty()
+                              ? placeAtom(heavy.at("C5'"), heavy.at("O5'"), heavy.at("P"), kLink, kO3PO5, kAlpha)
+                              : out.back().at("O3'");
         const auto [op1, op2] = phosphateOxygens(heavy.at("P"), prev, heavy.at("O5'"));
         heavy.set("OP1", op1);
         heavy.set("OP2", op2);
@@ -1934,8 +1946,8 @@ FittedHelix fittedHelix(const std::string& kind, const std::vector<std::string>&
             const bool isCanonical = canonical(st.rule, a, b);
             const Pose pose = levelPose(kind, s, atLevel[k]);
             uniform = uniform && a == spec[0].base && b == st.base;
-            placed[s].push_back(screwed(movedAtoms(coreTemplate(b), pose.rot, pose.shift),
-                                        screwAt(screw, static_cast<double>(k))));
+            placed[s].push_back(
+                screwed(movedAtoms(coreTemplate(b), pose.rot, pose.shift), screwAt(screw, static_cast<double>(k))));
             FitLevel lv;
             lv.level = k;
             lv.bases = std::string(1, a) + b;
@@ -2026,7 +2038,6 @@ bool allBaseName(std::string_view name) {  // _ALL_BASE_NAMES
     return contains(extra, name);
 }
 
-
 // the last value of a name (Python dict of a list of pairs)
 const Vec3* lastOf(const ResAtoms& atoms, std::string_view name) {
     const Vec3* found = nullptr;
@@ -2039,9 +2050,10 @@ const Vec3* lastOf(const ResAtoms& atoms, std::string_view name) {
 }  // namespace
 
 // _close_contacts
-std::vector<Contact> closeContacts(const std::vector<ResAtoms>& resAtoms, const std::vector<std::vector<std::size_t>>& segments,
-                                   const std::vector<char>& bases,
-                                   const std::vector<std::tuple<std::size_t, std::string, std::size_t, std::string>>& hbonds) {
+std::vector<Contact> closeContacts(
+    const std::vector<ResAtoms>& resAtoms, const std::vector<std::vector<std::size_t>>& segments,
+    const std::vector<char>& bases,
+    const std::vector<std::tuple<std::size_t, std::string, std::size_t, std::string>>& hbonds) {
     // _bonded_within
     std::vector<Vec3> xyz;
     std::vector<std::pair<std::size_t, std::string>> owner;
@@ -2110,8 +2122,8 @@ std::vector<Contact> closeContacts(const std::vector<ResAtoms>& resAtoms, const 
     }
     std::vector<double> flat;
     for (const Vec3& v : xyz) flat.insert(flat.end(), v.begin(), v.end());
-    const double cutoff = std::max({kContactReport.heavy, kContactReport.hbond, kContactReport.hh, kContactReport.polar,
-                                    kContactReport.hx});
+    const double cutoff = std::max(
+        {kContactReport.heavy, kContactReport.hbond, kContactReport.hh, kContactReport.polar, kContactReport.hx});
     for (const auto& [a, b] : numerics::queryPairs(flat, cutoff)) {
         if (neighbours[a].count(b)) continue;
         const auto& [two, three] = within(a);
@@ -2180,8 +2192,10 @@ std::vector<std::string> geometryNotes(const std::vector<std::string>& labels, c
             for (std::size_t k = 0; k < std::min<std::size_t>(8, gaps.size()); ++k) {
                 text += (k ? ", " : "") + gaps[k];
             }
-            out.push_back("WARNING: " + std::to_string(gaps.size()) + " O3'-P link(s) outside 1.5-1.7 Å (the backbone "
-                          "could not be closed there; minimise before use): " + text + (gaps.size() > 8 ? " ..." : ""));
+            out.push_back("WARNING: " + std::to_string(gaps.size()) +
+                          " O3'-P link(s) outside 1.5-1.7 Å (the backbone "
+                          "could not be closed there; minimise before use): " +
+                          text + (gaps.size() > 8 ? " ..." : ""));
         }
     }
     std::vector<double> hb;
@@ -2219,7 +2233,8 @@ std::vector<std::string> geometryNotes(const std::vector<std::string>& labels, c
             }
         }
         out.push_back("WARNING: mismatch " + labels[p.i] + " · " + labels[p.j] + ": " + p.what +
-                      " (closest base heavy atoms " + fixed(d, 1) + " Å" + (d < kClash ? ", the bases collide" : "") + ")");
+                      " (closest base heavy atoms " + fixed(d, 1) + " Å" + (d < kClash ? ", the bases collide" : "") +
+                      ")");
     }
     std::vector<std::tuple<std::size_t, std::string, std::size_t, std::string>> hbondAtoms;
     for (const NotePair& p : pairs) {
@@ -2237,8 +2252,8 @@ std::vector<std::string> geometryNotes(const std::vector<std::string>& labels, c
         std::string text;
         for (std::size_t k = 0; k < std::min<std::size_t>(6, contacts.size()); ++k) {
             const Contact& c = contacts[k];
-            text += (k ? ", " : "") + labels[c.a.first] + " " + c.a.second + " - " + labels[c.b.first] + " " + c.b.second +
-                    " " + fixed(c.d, 2) + " Å (" + c.what + ")";
+            text += (k ? ", " : "") + labels[c.a.first] + " " + c.a.second + " - " + labels[c.b.first] + " " +
+                    c.b.second + " " + fixed(c.d, 2) + " Å (" + c.what + ")";
         }
         out.push_back("WARNING: " + std::to_string(contacts.size()) + " close contact(s) (" + limits +
                       "; minimise before use): " + text + (contacts.size() > 6 ? " ..." : ""));
@@ -2258,8 +2273,8 @@ std::string torsionNote(const io::PdbStructure& s) {
         for (const io::PdbResidue& r : seg) {
             c.push_back(r.coords());
         }
-        static constexpr std::array<std::string_view, 7> keys = {"alpha", "beta", "gamma", "delta", "epsilon", "zeta",
-                                                                 "chi"};
+        static constexpr std::array<std::string_view, 7> keys = {"alpha",   "beta", "gamma", "delta",
+                                                                 "epsilon", "zeta", "chi"};
         std::array<std::vector<double>, 7> values;
         for (std::size_t j = 0; j < c.size(); ++j) {
             const ResAtoms& r = c[j];
@@ -2297,7 +2312,8 @@ std::string torsionNote(const io::PdbStructure& s) {
         text += (k ? "; " : "") + parts[k];
     }
     return "Backbone torsions (means, degrees; PDB 4JRD A-form: alpha -62 beta 174 gamma 58 delta 80 epsilon -146 "
-           "zeta -66 chi -175): " + text;
+           "zeta -66 chi -175): " +
+           text;
 }
 
 }  // namespace
@@ -2352,8 +2368,8 @@ std::vector<std::string> modelNotes(const io::PdbStructure& s, const std::vector
             const std::string edge = hoog ? " (a strand-1 pyrimidine has no purine Hoogsteen edge)" : "";
             std::string note;
             if (third) {
-                note = "no " + std::string(st.rule) + " third-strand pair of " + lv.bases[1] + " on " + lv.bases[0] + edge +
-                       "; placed from the " + ref + " reference triple";
+                note = "no " + std::string(st.rule) + " third-strand pair of " + lv.bases[1] + " on " + lv.bases[0] +
+                       edge + "; placed from the " + ref + " reference triple";
             } else if (st.rule == "wc") {
                 note = "no Watson-Crick pair" + edge + "; placed from the " + ref + " reference pair";
             } else {
@@ -2373,7 +2389,8 @@ std::vector<std::string> modelNotes(const io::PdbStructure& s, const std::vector
         }
     }
     if (plus) {
-        out.push_back(std::to_string(plus) + " G·C+ Hoogsteen pair(s): the cytosine is written as plain C (N3 "
+        out.push_back(std::to_string(plus) +
+                      " G·C+ Hoogsteen pair(s): the cytosine is written as plain C (N3 "
                       "unprotonated); protonate N3 (C+) for the force field or restrain the pair (at neutral pH it "
                       "is weak)");
     }

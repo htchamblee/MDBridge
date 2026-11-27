@@ -57,8 +57,8 @@ namespace {
 using Vec = std::array<double, 3>;
 
 const Value& fittedCases() {
-    static const Value data = core::parseJson(test::readFile(kData / "chem" / "builder_fitted_cases.json"),
-                                              "builder_fitted_cases.json");
+    static const Value data =
+        core::parseJson(test::readFile(kData / "chem" / "builder_fitted_cases.json"), "builder_fitted_cases.json");
     return data;
 }
 
@@ -139,15 +139,24 @@ HelixOptions optionsOf(const Value& c) {
         o.triplex = str(at(c, "triplex"));
     }
     for (const auto& [key, value] : *at(c, "options").get<core::Table>()) {
-        if (key == "partner") o.partner = str(value);
-        else if (key == "chirality") o.chirality = str(value);
-        else if (key == "chains") o.chains = str(value);
-        else if (key == "start") o.start = str(value);
-        else if (key == "scheme") o.scheme = str(value);
-        else if (key == "third") o.third = str(value);
-        else if (key == "phosphate5") o.phosphate5 = *value.get<bool>();
-        else if (key == "hydrogens") o.hydrogens = *value.get<bool>();
-        else throw std::runtime_error("unknown helix option " + key);
+        if (key == "partner")
+            o.partner = str(value);
+        else if (key == "chirality")
+            o.chirality = str(value);
+        else if (key == "chains")
+            o.chains = str(value);
+        else if (key == "start")
+            o.start = str(value);
+        else if (key == "scheme")
+            o.scheme = str(value);
+        else if (key == "third")
+            o.third = str(value);
+        else if (key == "phosphate5")
+            o.phosphate5 = *value.get<bool>();
+        else if (key == "hydrogens")
+            o.hydrogens = *value.get<bool>();
+        else
+            throw std::runtime_error("unknown helix option " + key);
     }
     return o;
 }
@@ -162,7 +171,8 @@ struct Request {
     HelixOptions options;
 };
 
-HelixOptions fitted(std::string_view pairing, std::optional<std::string> triplex = std::nullopt, bool hydrogens = false) {
+HelixOptions fitted(std::string_view pairing, std::optional<std::string> triplex = std::nullopt,
+                    bool hydrogens = false) {
     HelixOptions o;
     o.pairing = std::string(pairing);
     o.triplex = std::move(triplex);
@@ -175,8 +185,8 @@ std::vector<Built> buildAll(std::vector<Request> requests) {
     std::vector<Built> out(requests.size());
     std::atomic<std::size_t> next{0};
     std::vector<std::exception_ptr> errors(requests.size());
-    const std::size_t workers = std::max<std::size_t>(1, std::min<std::size_t>(std::thread::hardware_concurrency(),
-                                                                                requests.size()));
+    const std::size_t workers =
+        std::max<std::size_t>(1, std::min<std::size_t>(std::thread::hardware_concurrency(), requests.size()));
     std::vector<std::thread> pool;
     for (std::size_t w = 0; w < workers; ++w) {
         pool.emplace_back([&] {
@@ -246,8 +256,9 @@ char baseOf(const io::PdbResidue& r) {
 }
 
 // [(residue of strand 1, partner residue)] at each level
-std::vector<std::pair<const io::PdbResidue*, const io::PdbResidue*>> strandPairs(const io::PdbStructure& s, bool parallel,
-                                                                                std::size_t strand = 1) {
+std::vector<std::pair<const io::PdbResidue*, const io::PdbResidue*>> strandPairs(const io::PdbStructure& s,
+                                                                                 bool parallel,
+                                                                                 std::size_t strand = 1) {
     const auto& one = s.segments[0];
     const auto& other = s.segments[strand];
     const std::size_t n = one.size();
@@ -264,11 +275,14 @@ using HbondTable = std::map<std::string, std::vector<std::pair<std::string, std:
 const HbondTable& hbonds(std::string_view rule) {
     static const std::map<std::string, HbondTable, std::less<>> tables = {
         {"reverse-wc",
-         {{"AU", {{"N1", "N3"}, {"N6", "O2"}}}, {"UA", {{"N3", "N1"}, {"O2", "N6"}}},
-          {"GC", {{"N1", "O2"}, {"N2", "N3"}}}, {"CG", {{"O2", "N1"}, {"N3", "N2"}}}}},
+         {{"AU", {{"N1", "N3"}, {"N6", "O2"}}},
+          {"UA", {{"N3", "N1"}, {"O2", "N6"}}},
+          {"GC", {{"N1", "O2"}, {"N2", "N3"}}},
+          {"CG", {{"O2", "N1"}, {"N3", "N2"}}}}},
         {"hoogsteen", {{"AU", {{"N7", "N3"}, {"N6", "O4"}}}, {"GC", {{"N7", "N3"}, {"O6", "N4"}}}}},
         {"reverse-hoogsteen",
-         {{"AU", {{"N7", "N3"}, {"N6", "O2"}}}, {"AA", {{"N7", "N6"}, {"N6", "N1"}}},
+         {{"AU", {{"N7", "N3"}, {"N6", "O2"}}},
+          {"AA", {{"N7", "N6"}, {"N6", "N1"}}},
           {"GG", {{"N7", "N1"}, {"O6", "N2"}}}}},
         {"hh", {{"AA", {{"N6", "N7"}, {"N7", "N6"}}}}},
         {"wc", {{"AU", {{"N1", "N3"}, {"N6", "O4"}}}, {"GC", {{"N1", "N3"}, {"N2", "O2"}, {"O6", "N4"}}}}},
@@ -311,7 +325,8 @@ std::vector<ModelAtom> allAtoms(const io::PdbStructure& s, bool heavyOnly) {
     return out;
 }
 
-std::vector<std::pair<std::size_t, std::size_t>> backboneLinks(const io::PdbStructure& s, const std::vector<ModelAtom>& atoms) {
+std::vector<std::pair<std::size_t, std::size_t>> backboneLinks(const io::PdbStructure& s,
+                                                               const std::vector<ModelAtom>& atoms) {
     std::map<std::pair<std::size_t, std::string>, std::size_t> pos;
     for (std::size_t i = 0; i < atoms.size(); ++i) {
         pos[{atoms[i].residue, atoms[i].name}] = i;
@@ -379,7 +394,8 @@ double closestHeavy(const io::PdbStructure& s) {
 }
 
 const std::set<std::string>& polarH() {
-    static const std::set<std::string> names = {"H1", "H3", "H21", "H22", "H41", "H42", "H61", "H62", "HO2'", "HO5'", "HO3'"};
+    static const std::set<std::string> names = {"H1",  "H3",  "H21",  "H22",  "H41", "H42",
+                                                "H61", "H62", "HO2'", "HO5'", "HO3'"};
     return names;
 }
 
@@ -442,7 +458,8 @@ void checkModel(const Built& b, const std::vector<std::pair<const io::PdbResidue
         ASSERT_NE(it, table.end()) << where << " " << key;
         for (const auto& [p, q] : it->second) {
             const double d = dist(ca.at(p), cb.at(q));
-            EXPECT_TRUE(2.6 <= d && d <= 3.3) << where << " " << x->label() << " " << y->label() << " " << p << " " << q << " " << d;
+            EXPECT_TRUE(2.6 <= d && d <= 3.3)
+                << where << " " << x->label() << " " << y->label() << " " << p << " " << q << " " << d;
         }
     }
     const std::vector<double> d = o3pDistances(s);
@@ -510,7 +527,8 @@ TEST_P(FittedCase, WithinD10OfMdatk) {
     const Array& wantNotes = list(at(c, "notes"));
     ASSERT_EQ(notes.size(), wantNotes.size()) << where;
     for (std::size_t k = 0; k < notes.size(); ++k) {
-        EXPECT_TRUE(stringsClose(notes[k], str(wantNotes[k]))) << where << "\n  " << notes[k] << "\n  " << str(wantNotes[k]);
+        EXPECT_TRUE(stringsClose(notes[k], str(wantNotes[k])))
+            << where << "\n  " << notes[k] << "\n  " << str(wantNotes[k]);
     }
 }
 
@@ -531,7 +549,8 @@ TEST(BuilderMdatk, HhDuplexMatches4jrd) {
     checkModel(b, strandPairs(s, true), hbonds("hh"), "hh A10");
     // 4JRD atoms (chain, residue number) -> name -> xyz
     std::map<std::pair<std::string, int>, Coords> ref;
-    const std::vector<std::string> rows = lines(test::readFile(kData / ".." / ".." / "data" / "sources" / "pdb" / "4jrd_atoms.tsv"));
+    const std::vector<std::string> rows =
+        lines(test::readFile(kData / ".." / ".." / "data" / "sources" / "pdb" / "4jrd_atoms.tsv"));
     std::vector<std::string> header;
     for (std::size_t k = 0; k < rows.size(); ++k) {
         std::vector<std::string> f;
@@ -544,7 +563,8 @@ TEST(BuilderMdatk, HhDuplexMatches4jrd) {
         const auto col = [&](std::string_view name) {
             return f[static_cast<std::size_t>(std::find(header.begin(), header.end(), name) - header.begin())];
         };
-        if (col("label_comp_id") != "A" || col("pdbx_PDB_model_num") != "1" || (col("label_alt_id") != "." && col("label_alt_id") != "A")) {
+        if (col("label_comp_id") != "A" || col("pdbx_PDB_model_num") != "1" ||
+            (col("label_alt_id") != "." && col("label_alt_id") != "A")) {
             continue;
         }
         ref[{col("auth_asym_id"), std::stoi(col("auth_seq_id"))}][col("label_atom_id")] =
@@ -605,8 +625,10 @@ TEST(BuilderMdatk, HhDuplexMatches4jrd) {
 
 // test_pairings_build_the_intended_pairs
 TEST(BuilderMdatk, PairingsBuildTheIntendedPairs) {
-    const std::vector<std::pair<std::string, std::string>> cases = {
-        {"reverse-wc", "GAUCAGUAGC"}, {"hoogsteen", "AAGAGAAGGA"}, {"reverse-hoogsteen", "AAGAAGGAAG"}, {"hh", "AAAAAAAA"}};
+    const std::vector<std::pair<std::string, std::string>> cases = {{"reverse-wc", "GAUCAGUAGC"},
+                                                                    {"hoogsteen", "AAGAGAAGGA"},
+                                                                    {"reverse-hoogsteen", "AAGAAGGAAG"},
+                                                                    {"hh", "AAAAAAAA"}};
     std::vector<Request> requests;
     for (const auto& [pairing, seq] : cases) requests.push_back({seq, fitted(pairing)});
     const std::vector<Built> built = buildAll(requests);
@@ -617,17 +639,23 @@ TEST(BuilderMdatk, PairingsBuildTheIntendedPairs) {
         std::string partner;
         for (const io::PdbResidue& r : s.segments[1]) partner += r.name;
         EXPECT_EQ(partner, autoPartner(seq, pairing)) << pairing;
-        EXPECT_TRUE(anyNote(built[k].notes, [&](const std::string& n) { return startsWith(n, "Pairing " + pairing + ":"); }));
-        const std::string lw = pairing == "reverse-wc" ? "tWW" : pairing == "hoogsteen" ? "cHW" : pairing == "hh" ? "tHH" : "tHW";
+        EXPECT_TRUE(
+            anyNote(built[k].notes, [&](const std::string& n) { return startsWith(n, "Pairing " + pairing + ":"); }));
+        const std::string lw = pairing == "reverse-wc"  ? "tWW"
+                               : pairing == "hoogsteen" ? "cHW"
+                               : pairing == "hh"        ? "tHH"
+                                                        : "tHW";
         EXPECT_NE(built[k].text.find("PAIRING " + lw), std::string::npos) << pairing;
-        EXPECT_FALSE(anyNote(built[k].notes, [](const std::string& n) { return n.find("mismatch") != std::string::npos; }));
+        EXPECT_FALSE(
+            anyNote(built[k].notes, [](const std::string& n) { return n.find("mismatch") != std::string::npos; }));
     }
 }
 
 // test_triplex_third_strand
 TEST(BuilderMdatk, TriplexThirdStrand) {
     const std::string seq = "AAGAGAAGGA";
-    const std::vector<Built> built = buildAll({{seq, fitted("wc", "hoogsteen")}, {seq, fitted("wc", "reverse-hoogsteen")}});
+    const std::vector<Built> built =
+        buildAll({{seq, fitted("wc", "hoogsteen")}, {seq, fitted("wc", "reverse-hoogsteen")}});
     for (const std::string motif : {"hoogsteen", "reverse-hoogsteen"}) {
         const Built& b = built[motif == "hoogsteen" ? 0 : 1];
         const io::PdbStructure s = io::readPdbText(b.text);
@@ -653,7 +681,8 @@ TEST(BuilderMdatk, TriplexThirdStrand) {
 // test_l_pairings_are_mirror_images
 TEST(BuilderMdatk, LPairingsAreMirrorImages) {
     const std::string seq = "AAGAGA";
-    const std::vector<HelixOptions> kinds = {fitted("hoogsteen"), fitted("reverse-wc"), fitted("wc", "reverse-hoogsteen")};
+    const std::vector<HelixOptions> kinds = {fitted("hoogsteen"), fitted("reverse-wc"),
+                                             fitted("wc", "reverse-hoogsteen")};
     std::vector<Request> requests;
     for (const HelixOptions& o : kinds) {
         requests.push_back({seq, o});
@@ -696,7 +725,9 @@ TEST(BuilderMdatk, PairingMismatchesMessagesAndErrors) {
     pq.chains = "P,Q";
     pq.start = "5,10";
     const std::vector<Built> built = buildAll({{"AAGA", hoog}, {"AAUAG", fitted("wc", "hoogsteen")}, {"AAGAG", pq}});
-    EXPECT_TRUE(anyNote(built[0].notes, [](const std::string& n) { return startsWith(n, "WARNING: mismatch A:3 · B:3: no cHW pair"); }));
+    EXPECT_TRUE(anyNote(built[0].notes, [](const std::string& n) {
+        return startsWith(n, "WARNING: mismatch A:3 · B:3: no cHW pair");
+    }));
     EXPECT_EQ(io::readPdbText(built[0].text).segments.size(), 2u);
     EXPECT_TRUE(anyNote(built[1].notes, [](const std::string& n) {
         return n.find("a strand-1 pyrimidine has no purine Hoogsteen edge") != std::string::npos;
@@ -760,9 +791,9 @@ struct Mixed {
 // MIXED: other pairs than the reference pair, strand-1 pyrimidines, mismatches
 const std::vector<Mixed>& mixed() {
     static const std::vector<Mixed> cases = {
-        {"reverse-wc", {}, "GAGGAUCA"}, {"reverse-wc", {}, "AUGCAU"}, {"hoogsteen", {}, "GAGGAUCA"},
-        {"reverse-hoogsteen", {}, "GAAGAG"}, {"reverse-hoogsteen", {}, "AUGCAU"}, {"hh", {}, "GAGGAUCA"},
-        {"wc", "hoogsteen", "GAGGAUCA"}, {"wc", "reverse-hoogsteen", "AUGCAU"}};
+        {"reverse-wc", {}, "GAGGAUCA"},      {"reverse-wc", {}, "AUGCAU"},         {"hoogsteen", {}, "GAGGAUCA"},
+        {"reverse-hoogsteen", {}, "GAAGAG"}, {"reverse-hoogsteen", {}, "AUGCAU"},  {"hh", {}, "GAGGAUCA"},
+        {"wc", "hoogsteen", "GAGGAUCA"},     {"wc", "reverse-hoogsteen", "AUGCAU"}};
     return cases;
 }
 
@@ -785,7 +816,8 @@ TEST(BuilderMdatk, RebuiltHelicesHaveNoCloseContacts) {
         std::vector<std::string> report;
         for (const std::string& n : built[k].notes) {
             std::string lower = n;
-            std::transform(lower.begin(), lower.end(), lower.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+            std::transform(lower.begin(), lower.end(), lower.begin(),
+                           [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
             if (lower.find("close contact") != std::string::npos) report.push_back(n);
         }
         ASSERT_EQ(report.size(), 1u) << where;
@@ -831,8 +863,8 @@ TEST(BuilderMdatk, ReverseWcBasesClearTheirOwnSugars) {
 
 // test_sugar_steps_keep_c2_away_from_the_next_c5
 TEST(BuilderMdatk, SugarStepsKeepC2AwayFromTheNextC5) {
-    const std::vector<Mixed> cases = {{"reverse-hoogsteen", {}, "AAGAGG"}, {"reverse-hoogsteen", {}, "GAAGAG"},
-                                      {"wc", "hoogsteen", "GAGGAG"}};
+    const std::vector<Mixed> cases = {
+        {"reverse-hoogsteen", {}, "AAGAGG"}, {"reverse-hoogsteen", {}, "GAAGAG"}, {"wc", "hoogsteen", "GAGGAG"}};
     const std::vector<Built> built = buildWithHydrogens(cases);
     for (std::size_t k = 0; k < cases.size(); ++k) {
         const io::PdbStructure model = io::readPdbText(built[k].text);
@@ -864,14 +896,15 @@ Vec baseNormal(const Coords& c, char base) {
 
 // test_closed_strands_keep_the_pair_geometry
 TEST(BuilderMdatk, ClosedStrandsKeepThePairGeometry) {
-    const std::vector<Mixed> cases = {{"reverse-wc", {}, "AUGCAU"}, {"reverse-wc", {}, "GAGGAUCA"},
-                                      {"hoogsteen", {}, "GAGGAUCA"}, {"reverse-hoogsteen", {}, "GAGGAUCA"},
+    const std::vector<Mixed> cases = {{"reverse-wc", {}, "AUGCAU"},    {"reverse-wc", {}, "GAGGAUCA"},
+                                      {"hoogsteen", {}, "GAGGAUCA"},   {"reverse-hoogsteen", {}, "GAGGAUCA"},
                                       {"wc", "hoogsteen", "GAGGAUCA"}, {"wc", "reverse-hoogsteen", "GAAGAG"}};
     const std::vector<Built> built = buildWithHydrogens(cases);
     for (std::size_t k = 0; k < cases.size(); ++k) {
         const Mixed& m = cases[k];
         const io::PdbStructure s = io::readPdbText(built[k].text);
-        std::vector<std::pair<std::vector<std::pair<const io::PdbResidue*, const io::PdbResidue*>>, const HbondTable*>> groups;
+        std::vector<std::pair<std::vector<std::pair<const io::PdbResidue*, const io::PdbResidue*>>, const HbondTable*>>
+            groups;
         if (!m.motif) {
             groups.push_back({strandPairs(s, parallelPairing(m.pairing)), &hbonds(m.pairing)});
         } else {
@@ -896,13 +929,15 @@ TEST(BuilderMdatk, ClosedStrandsKeepThePairGeometry) {
                             if (h[0] == 'H' && dist(v, cd->at(don)) < 1.1) hs.push_back(h);
                         }
                         if (!hs.empty() && (acc[0] == 'N' || acc[0] == 'O') && don[0] == 'N') {
-                            const std::string h = *std::min_element(hs.begin(), hs.end(), [&](const std::string& p, const std::string& q) {
-                                return dist(cd->at(p), cc->at(acc)) < dist(cd->at(q), cc->at(acc));
-                            });
+                            const std::string h = *std::min_element(
+                                hs.begin(), hs.end(), [&](const std::string& p, const std::string& q) {
+                                    return dist(cd->at(p), cc->at(acc)) < dist(cd->at(q), cc->at(acc));
+                                });
                             if (dist(cd->at(h), cc->at(acc)) < 2.6) {
                                 const Vec u = sub(cd->at(don), cd->at(h)), v = sub(cc->at(acc), cd->at(h));
-                                const double angle = std::acos(dot(u, v) / std::sqrt(dot(u, u)) / std::sqrt(dot(v, v))) *
-                                                     180.0 / 3.14159265358979323846;
+                                const double angle =
+                                    std::acos(dot(u, v) / std::sqrt(dot(u, u)) / std::sqrt(dot(v, v))) * 180.0 /
+                                    3.14159265358979323846;
                                 EXPECT_LE(dist(cd->at(h), cc->at(acc)), 2.05) << where << " " << h << " " << acc;
                                 EXPECT_GE(angle, 150.0) << where << " " << h << " " << acc;
                             }
@@ -910,7 +945,8 @@ TEST(BuilderMdatk, ClosedStrandsKeepThePairGeometry) {
                     }
                 }
                 const Vec n1 = baseNormal(ca, key[0]), n2 = baseNormal(cb, key[1]);
-                EXPECT_LE(std::acos(std::min(1.0, std::fabs(dot(n1, n2)))) * 180.0 / 3.14159265358979323846, 10.0) << where;
+                EXPECT_LE(std::acos(std::min(1.0, std::fabs(dot(n1, n2)))) * 180.0 / 3.14159265358979323846, 10.0)
+                    << where;
                 ++checked;
             }
         }
@@ -951,8 +987,10 @@ TEST(BuilderMdatk, ContactReportIncludesHydrogensAndCloseHeavyAtoms) {
     EXPECT_NE(note.find("(H-H < 2.0)"), std::string::npos);
     // residue 2 moved (rigidly) so that its C5' is 2.7 Å from C2' of residue 1: reported (heavy < 3.0)
     Vec c2{}, c5{};
-    for (const auto& [n, x] : resAtoms[0]) if (n == "C2'") c2 = x;
-    for (const auto& [n, x] : resAtoms[1]) if (n == "C5'") c5 = x;
+    for (const auto& [n, x] : resAtoms[0])
+        if (n == "C2'") c2 = x;
+    for (const auto& [n, x] : resAtoms[1])
+        if (n == "C5'") c5 = x;
     const Vec u = sub(c2, c5);
     const double f = 1.0 - 2.7 / std::sqrt(dot(u, u));
     for (auto& [n, x] : resAtoms[1]) x = {x[0] + u[0] * f, x[1] + u[1] * f, x[2] + u[2] * f};
@@ -972,7 +1010,8 @@ TEST(BuilderMdatk, ContactReportIncludesHydrogensAndCloseHeavyAtoms) {
         const auto report = [](const std::vector<std::string>& notes) {
             std::vector<std::string> out;
             for (const std::string& n : notes) {
-                if (n.find("close contact") != std::string::npos || n.find("Close contact") != std::string::npos) out.push_back(n);
+                if (n.find("close contact") != std::string::npos || n.find("Close contact") != std::string::npos)
+                    out.push_back(n);
             }
             return out;
         };
@@ -984,9 +1023,12 @@ TEST(BuilderMdatk, ContactReportIncludesHydrogensAndCloseHeavyAtoms) {
 TEST(Builder, FittedBuildIsCancellable) {
     auto flag = std::make_shared<std::atomic<bool>>(false);
     int calls = 0;
-    const core::Reporter reporter({}, [&](double, const std::string&) {
-        if (++calls == 3) flag->store(true);
-    }, flag);
+    const core::Reporter reporter(
+        {},
+        [&](double, const std::string&) {
+            if (++calls == 3) flag->store(true);
+        },
+        flag);
     HelixOptions o = fitted("hoogsteen");
     o.reporter = &reporter;
     o.threads = 1;

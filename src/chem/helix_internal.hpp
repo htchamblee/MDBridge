@@ -258,9 +258,10 @@ struct Contact {
     std::pair<std::size_t, std::string> a, b;  // (residue, atom)
 };
 // _close_contacts(res_atoms, segments, bases, hbonds): sorted by distance
-std::vector<Contact> closeContacts(const std::vector<ResAtoms>& resAtoms, const std::vector<std::vector<std::size_t>>& segments,
-                                   const std::vector<char>& bases,
-                                   const std::vector<std::tuple<std::size_t, std::string, std::size_t, std::string>>& hbonds);
+std::vector<Contact> closeContacts(
+    const std::vector<ResAtoms>& resAtoms, const std::vector<std::vector<std::size_t>>& segments,
+    const std::vector<char>& bases,
+    const std::vector<std::tuple<std::size_t, std::string, std::size_t, std::string>>& hbonds);
 struct NotePair {
     std::size_t i, j;
     std::span<const PairHbond> bonds;
