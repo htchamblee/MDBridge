@@ -9,6 +9,7 @@
  ],
  "mdatk_test": "",
  "needs": [
+  "fitted",
   "snapshot",
   "start",
   "tools"

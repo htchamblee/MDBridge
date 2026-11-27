@@ -24,6 +24,9 @@
   "map.mrc": "render/inputs/demo_dry_map.mrc",
   "p.mdatk.toml": "gui/canvas/density_fit/in/p.mdatk.toml"
  },
+ "fitted": {
+  "p.mdatk.toml": 0.0
+ },
  "start": {
   "project": "p.mdatk.toml"
  },
