@@ -265,7 +265,15 @@ pdb=$(sed -n 's/^trajout "\([^"]*\)" pdb onlyframes 1$/\1/p' "$script")
 [ -n "$parmout" ] && cp "$parm" "$parmout"
 cp "$traj" "$nc"
 printf 'REMARK fake reference\nEND\n' > "$pdb"
-printf 'CPPTRAJ: Trajectory Analysis. V6.29.0 (fake)\nINPUT: Reading input from %s\n  0%% 25%% 50%% 75%% 100%% Complete.\nTIME: Total execution time: 0.0 seconds.\n' "$(basename "$script")"
+# one write (cat of a here-document): the reader gets the output in one chunk, so the progress and
+# the lines come in a fixed order; a multi-line printf would not do, as bash (Rocky's /bin/sh)
+# writes each line of it separately
+cat <<EOF
+CPPTRAJ: Trajectory Analysis. V6.29.0 (fake)
+INPUT: Reading input from $(basename "$script")
+  0% 25% 50% 75% 100% Complete.
+TIME: Total execution time: 0.0 seconds.
+EOF
 """
 FAKE_CONDA_RUN = r"""#!/bin/sh
 # fake conda run --no-capture-output -p PREFIX PROGRAM ARGS...
@@ -495,8 +503,15 @@ for out in $(sed -n 's/.*parmout "\([^"]*\)".*/\1/p; s/^parmwrite out "\([^"]*\)
 done
 cp "$traj" "$(sed -n 's/^trajout "\([^"]*\)" netcdf$/\1/p' "$script")"
 printf 'MODEL        1\nENDMDL\nEND\n' > "$(sed -n 's/^trajout "\([^"]*\)" pdb onlyframes 1$/\1/p' "$script")"
-# one write: the reader gets the output in one chunk, so progress and lines come in a fixed order
-printf "CPPTRAJ: Trajectory Analysis. (stand-in of tests/parity/cli_parity.py)\nINPUT: Reading input from '%s'\n 50%% Complete.\n100%% Complete.\n" "$script"
+# one write (cat of a here-document): the reader gets the output in one chunk, so progress and lines
+# come in a fixed order; a multi-line printf would not do, as bash (Rocky's /bin/sh) writes each
+# line of it separately
+cat <<EOF
+CPPTRAJ: Trajectory Analysis. (stand-in of tests/parity/cli_parity.py)
+INPUT: Reading input from '$script'
+ 50% Complete.
+100% Complete.
+EOF
 """
 CPPTRAJ_FAILS = "#!/bin/sh\necho 'Error: stand-in failure' >&2\nexit 3\n"
 CPPTRAJ_SILENT = "#!/bin/sh\necho 'nothing written'\n"

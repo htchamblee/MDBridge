@@ -546,7 +546,8 @@ TEST(Mutations, DnaPartnerAndAltlocs) {
 TEST(Mutations, HydrogensOnlyWhereThereWereAndUnknownAtomsKept) {
     const std::string src = buildHelix("GGCAUCG");
     const MutateResult r = mutate(PdbSource::text(src), "A:4G");
-    for (const io::PdbResidue* res : io::readPdbText(r.text).residues()) {
+    const io::PdbStructure mutated = io::readPdbText(r.text);  // residues() points into it
+    for (const io::PdbResidue* res : mutated.residues()) {
         for (const io::PdbAtom& a : res->atoms) {
             EXPECT_NE(a.element, "H") << res->label() << " " << a.name;
         }
