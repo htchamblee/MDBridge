@@ -12,6 +12,20 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     add_link_options(LINKER:--as-needed)
 endif()
 
+# Sanitizers (-DMDBRIDGE_SANITIZE=address,undefined; the CI job "sanitizers", docs/BUILDING.md):
+# compiled into every target from here on (MDBridge, its tests, the fetched libraries and the vendored
+# ducc0), so containers and allocations crossing library boundaries are all instrumented; Qt and
+# FFmpeg are prebuilt and stay uninstrumented. Any finding stops the program (no recovery).
+if(MDBRIDGE_SANITIZE)
+    if(MSVC)
+        message(FATAL_ERROR "MDBRIDGE_SANITIZE is for GCC builds (MSVC's /fsanitize=address is not set up)")
+    endif()
+    string(REPLACE ";" "," mdbridge_sanitizers "${MDBRIDGE_SANITIZE}")
+    message(STATUS "MDBridge: sanitizers ${mdbridge_sanitizers}")
+    add_compile_options(-fsanitize=${mdbridge_sanitizers} -fno-omit-frame-pointer -fno-sanitize-recover=all)
+    add_link_options(-fsanitize=${mdbridge_sanitizers})
+endif()
+
 # Warnings for MDBridge's own targets (not for fetched dependencies).
 function(mdbridge_target_warnings target)
     if(MSVC)
