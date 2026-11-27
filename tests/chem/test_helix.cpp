@@ -405,14 +405,13 @@ TEST(HelixCases, WatsonCrickHelices) {
     }
 }
 
-TEST(HelixCases, OtherPairingsWaitForTheFittedBuilder) {
+// the other pairings go to the fitted builder (helix_fit.cpp; tests/chem/test_builder.cpp), "WC" is wc
+TEST(HelixCases, OtherPairingsGoToTheFittedBuilder) {
     HelixOptions options;
     options.pairing = "hh";
-    const auto err = errorOf([&] { buildHelix("AAAA", options); });
-    ASSERT_TRUE(err);
-    EXPECT_EQ(err->first, "BuildError");
+    EXPECT_NE(buildHelix("AAAA", options).find("PAIRING tHH (PARALLEL STRANDS)"), std::string::npos);
     options.pairing = "WC";
-    EXPECT_NO_THROW(buildHelix("AAAA", options));
+    EXPECT_NE(buildHelix("AAAA", options).find("REMARK 951 MDBridge IDEAL A-FORM RNA"), std::string::npos);
 }
 
 // --- geometry (tests/test_builder.py) ------------------------------------------------------------

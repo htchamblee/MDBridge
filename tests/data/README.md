@@ -577,7 +577,7 @@ docstring:
 | `annotate_cases.json` | `make_annotate_cases.py` | built helices and crafted files; `annotate` with every option and engine (records, notes, text) |
 | `dict_cases.json`, `dictionaries/*.cif` | `make_dict_cases.py` (pytest: `tests/test_dictionaries.py`'s synthetic dictionaries) | `COMPONENTS`; `parse_smiles` (test strings, the components, a fuzzed set); `match_graph`; `check_smiles` / `identify_smiles`; `finish_dictionary` of synthetic acedrg / eLBOW dictionaries with every option; two dictionaries for `cli_parity.py`'s `dict finish` cases |
 | `builder_cases.json` | `make_builder_cases.py` | `check_helix` and the sequence functions; the A-form templates; Watson-Crick `build_helix` over its options; `mutate` and `parse_mutations` |
-| `builder_fitted_cases.json`, `maps/{helix_moved,strand_moved,strand_nan}.mrc` | `make_builder_cases.py` | the reference helix fits of the other pairings (start, the refined parameters `least_squares` reaches, cost, screw, torsions, contacts), `_pair_fit` of every canonical pair, the rebuilt helices (other pairings, triplexes: text, notes, heavy-atom coordinates), `fit_to_map` on the maps (one model with shifted columns takes the rewrite; read by `tests/chem/test_mutate.cpp`, the fits within D10's tolerance) |
+| `builder_fitted_cases.json`, `maps/{helix_moved,strand_moved,strand_nan}.mrc` | `make_builder_cases.py` | the reference helix fits of the other pairings (start, the refined parameters `least_squares` reaches, cost, screw, torsions, contacts), `_pair_fit` of every canonical pair, the rebuilt helices (other pairings, triplexes, CH-16's continuation closure: text, notes, heavy-atom coordinates; read by `tests/chem/test_builder.cpp` within D10; built in parallel worker processes, `MDBRIDGE_GENERATOR_JOBS`), `fit_to_map` on the maps (one model with shifted columns takes the rewrite; read by `tests/chem/test_mutate.cpp`, the fits within D10's tolerance) |
 | `density_fit_cases.json`, `maps/fit_*.mrc` | `make_density_fit_cases.py` (MDAnalysis: the demo frame) | `rotation_samples`, `_fft_size`, per model x map the `FitProblem`, CCs, flips, the coarse search's grid and peaks, `refine`, `fit_model` global and manual; errors (read by `tests/chem/test_density_fit.cpp`: fits within D10's tolerance) |
 
 numpy's and OpenBLAS' kernels are pinned (`chem_common.py`, as `make_analysis_cases.py`). The
@@ -589,17 +589,15 @@ digit); the maps are made without BLAS products and compared byte for byte. Pinn
 the reference machine's bits on every CI runner: on one (CI run 45898985841) the density fits' flips
 (a 3 x 3 product and LAPACK's eigh) moved by a few ulps, every other pinned number keeping its bits,
 and the results whose path runs through them moved further: Powell's evaluation counts of two global
-fits (by 0.4 % and 0.9 %; transforms and CCs within the chem tolerance) and the least-squares
-closures of 17 rebuilt helices and three `build helix` command-line cases (MDATK's closures are four
-passes of at most 40 evaluations with contact sets refreshed between them, so they stop wherever the
-path has led: up to 2.8 Å apart, one close-contact note reworded). `regenerate_all.py` therefore
-checks whether the fresh flips equal the committed ones bit for bit (`KERNEL_PROBE`); where they do
-not, it prints `OTHER KERNELS` and compares those results (`PATH_DEPENDENT`) for what does not follow
-the path: evaluation counts within 5 % (as `tests/numerics/test_optimize.cpp` compares SciPy's nfev
-without glibc), rebuilt helices and the command-line cases with `fitted` with their inputs, atom
-records (columns 1-30 and 55-), heavy-atom names, line and note counts equal and every other line
-equal with its numbers masked. Everywhere else, and on runners that reproduce the flips, they are
-compared as above. The C++ tests compare
+fits (by 0.4 % and 0.9 %; transforms and CCs within the chem tolerance). `regenerate_all.py`
+therefore checks whether the fresh flips equal the committed ones bit for bit (`KERNEL_PROBE`); where
+they do not, it prints `OTHER KERNELS` and compares those results (`PATH_DEPENDENT`) with their wider
+tolerances: evaluation counts within 5 % (as `tests/numerics/test_optimize.cpp` compares SciPy's nfev
+without glibc); the rebuilt helices and the command-line cases with `fitted` with D10 (atom records'
+columns 1-30 and 55- equal, every atom within 0.05 Å, the heavy atoms within 0.01 Å RMSD, the notes'
+numbers within one unit of their last printed digit, the rest equal), which the continuation closure
+(docs/DIFFERENCES.md CH-16) meets on any kernel. Everywhere else, and on runners that reproduce the
+flips, they are compared as above. The C++ tests compare
 fitted results with D10's tolerances (non-Watson-Crick helices: heavy-atom RMSD <= 0.01 Å, every
 atom <= 0.05 Å; fits: 0.5°, 0.2 Å, CC 1e-3; plan 4.1). To regenerate, with an MDATK checkout at
 `v0.0.4.1` (nothing is written into it):

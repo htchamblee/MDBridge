@@ -25,13 +25,20 @@ within D10). The regenerate job has a kernel probe: on runners whose pinned kern
 MDATK's path-dependent chem results (density-fit evaluation counts, non-WC closures) are compared
 structurally (interim; tighten once W2-A makes the non-WC builds well-conditioned).
 
-## Wave 2: W2-B and W2-C done; W2-A pending
+## Wave 2: done
 
 W2-B mutations and fit-to-map, W2-C the `pdb`, `build` and `density` commands and the pipeline's
-automatic fit (merged at bf1f67d). W2-A (other pairings and triplexes) is pending: the owner decided
-the conditioning question with D17 (CH-16, MDATK's `_close_levels` replaced by a continuation
-closure); the package implements it and its expected data. Until then the library answers the
-other pairings with `pairing ... is built by the fitted helix builder (not available yet)` (TW-07).
+automatic fit (merged at bf1f67d). W2-A, the other pairings and triplexes (`src/chem/helix_fit.cpp`):
+the owner's D17 continuation closure (CH-16), made reproducible by a continuous backbone torsion term
+(CH-17: MDATK's term jumps at ref + 180°, where its reference helices sit) and solves that start with
+a unit trust radius; all 17 closures of the expected data agree within PDB rounding across BLAS
+kernels and 1e-8 start perturbations, the C++ builds within 0.001 Å of the patched MDATK's. `build
+helix --pairing / --triplex`, the builder window and the 5 command-line cases work; the regenerate
+job compares the rebuilt helices with D10 on runners with other kernels (no longer masked). The
+refitted reference helices (hoogsteen, reverse-hoogsteen and the triplexes) are provisional: an
+independent check against experimental structures is under way, and the reference geometry is a
+separable input (the reference fit's torsion term; MDATK's reference helices with the continuous
+closure converge as well).
 
 ## Wave 3: W3-A and W3-B done; W3-C remaining
 
@@ -41,8 +48,8 @@ other pairings with `pairing ... is built by the fitted helix builder (not avail
   placement (DIFFERENCES WF-01 ... WF-03; GUI case `canvas/density_fit`).
 - W3-B, the PDB clean-up and structure builder windows behind the host interface (D1), opened from
   the Workflow menu (DIFFERENCES TW-01 ... TW-08; GUI cases `tools/*`; ctest `gui.tools`,
-  `gui.tools.scale150`, `gui.tools.scale200`). The non-WC builds of the builder window wait for W2-A
-  (`ToolTests::builderNonWcHelixBuildsInTheBackground` is marked `PENDING(W2-A)`).
+  `gui.tools.scale150`, `gui.tools.scale200`). The non-WC builds of the builder window came with W2-A
+  (`ToolTests::builderNonWcHelixBuildsInTheBackground` writes the file the command line writes).
 - Integrated together: a GUI case's `fitted` (`{file: tolerance}`, need `fitted`) is one mechanism
   for both (tests/data/README.md "gui"): fitted files line by line with their decimals within the last
   printed digit or the tolerance, a project's `[density]` table within D10's angle / shift / CC

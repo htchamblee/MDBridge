@@ -3,9 +3,11 @@ mutate (tests/chem/test_builder.cpp; docs/specs/m6-plan.md 1.3, 4.1, 4.2).
 
     python3 -I -B make_builder_cases.py MDATK_CHECKOUT OUT_DIR
 
-Needs numpy and scipy (least_squares, cKDTree, the density fit). MDBridge's chem improvements are
-applied first (improvements_chem.py: CH-01 / CH-02 numbering, CH-08 mutation specs, CH-09 / D11
-hydrogens of mutated bases, CH-10 / CH-11 in the fit, D13 "REMARK 951 MDBridge IDEAL ..."). numpy's
+Needs numpy and scipy (least_squares, cKDTree, the density fit). The rebuilt helices run in parallel
+worker processes (MDBRIDGE_GENERATOR_JOBS, default the CPUs; about an hour of CPU time, CH-16's
+continuation closures). MDBridge's chem improvements are applied first (improvements_chem.py: CH-01 / CH-02 numbering, CH-08 mutation specs, CH-09 / D11
+hydrogens of mutated bases, CH-10 / CH-11 in the fit, CH-16 the closure of the other pairings, D13
+"REMARK 951 MDBridge IDEAL ..."). numpy's
 and OpenBLAS' kernels are pinned (chem_common.pin_kernels). Writes:
 
   OUT_DIR/builder_cases.json
@@ -274,19 +276,31 @@ def heavy_coordinates(text):
     return out
 
 
+def rebuilt_case(index):
+    pairing, motif, seq, kw = REBUILT[index]
+    notes = []
+    case = {"pairing": pairing, "triplex": motif, "sequence": seq, "options": kw}
+    try:
+        case["text"] = B.build_helix(seq, pairing=pairing, triplex=motif, notes=notes, **kw)
+        case["notes"] = notes
+        case["heavy"] = heavy_coordinates(case["text"])
+    except ERRORS as exc:
+        case["error"] = error(exc)
+    return case
+
+
 def rebuilt_cases():
-    out = []
-    for pairing, motif, seq, kw in REBUILT:
-        notes = []
-        case = {"pairing": pairing, "triplex": motif, "sequence": seq, "options": kw}
-        try:
-            case["text"] = B.build_helix(seq, pairing=pairing, triplex=motif, notes=notes, **kw)
-            case["notes"] = notes
-            case["heavy"] = heavy_coordinates(case["text"])
-        except ERRORS as exc:
-            case["error"] = error(exc)
-        out.append(case)
-    return out
+    """The REBUILT builds, each in its own worker process (MDBRIDGE_GENERATOR_JOBS, default: the CPUs):
+    the continuation closures (CH-16) take minutes each in Python. The workers fork after the reference
+    helices are fitted (reference_cases), every build is independent, so the result is the same for any
+    number of workers."""
+    import multiprocessing
+
+    jobs = int(os.environ.get("MDBRIDGE_GENERATOR_JOBS") or os.cpu_count() or 1)
+    if jobs <= 1:
+        return [rebuilt_case(i) for i in range(len(REBUILT))]
+    with multiprocessing.get_context("fork").Pool(min(jobs, len(REBUILT))) as pool:
+        return pool.map(rebuilt_case, range(len(REBUILT)), chunksize=1)
 
 
 def write_moved_map(name, text, rotvec, shift, resolution, nan_voxel=False):

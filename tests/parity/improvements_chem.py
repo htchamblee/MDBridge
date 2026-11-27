@@ -64,6 +64,29 @@ child of cli_parity.py calls both). Each patch is listed with its id:
          rise (_JRD_NUCLEOTIDE, JRD_TWIST, JRD_RISE from tools/gen_chem_tables.jrd_nucleotide(), the
          tables of src/chem/helix_tables.inc): every non-Watson-Crick build, and REMARK 951's hh TWIST
          41.7 (MDATK: 41.8); 0.1.1 not changed
+  CH-16  (owner decision D17) the other pairings' strand closure (builder._close_levels) by
+         continuation: from the uniform helix (every partner nucleoside on its strand's reference
+         pose, closed by _helix_fit's torsions) the partner poses move to their _level_pose poses
+         along the rigid transform (rotation vector about the reference C1' and C1' shift, scaled by
+         t) in CLOSURE_STEPS steps; a step whose solve stops on its evaluation limit, or whose
+         contact pairs need more than CLOSURE_ROUNDS_OK refreshes, is retried as two half steps
+         (recursively, down to 1/320 of the interval). Every solve: MDATK's residuals at its last
+         pass's contact weight 0.01, TRF with the exact subproblem (2-point differences grouped by
+         MDATK's level-span sparsity, then dense), ftol = xtol = gtol = 1e-10; the contact pairs
+         within 4.5 Å (MDATK: 3.8) refreshed before every solve, kept once scored, in (p, q) order,
+         the solve repeated while the set grows; a solve's variables are the move from its start (TRF's
+         first trust radius 1, not the start's norm). _pair_fit, _level_pose and _helix_fit converged
+         (ftol = xtol = gtol = 1e-14). MDATK's four truncated passes ended in machine-dependent
+         minima (up to 1.6 Å RMSD between kernels); 0.1.1 has the same closure. No SciPy private API:
+         the column groups and the differences are written out (column_groups, fd_jacobian; SciPy's
+         group_columns / approx_derivative give the same numbers)
+  CH-17  the link torsions' term of the other pairings' fits is continuous (builder._link_residuals:
+         MDATK's (1 + cos 3 theta) * 1.5 + wrap(theta - ref) / 120 jumps by 3 at theta = ref + 180,
+         where its reference helices sit and its closures creep): the tilt TILT_A sin d +
+         TILT_B sin 2d (d = theta - ref) has MDATK's slope at the reference and its values +-1 at the
+         staggered positions +-120 degrees; the closure always uses it, the reference helices' fit
+         as REFERENCE_TERM says (the reference geometry is a separable input; which one is right is
+         open); 0.1.1 has MDATK's term
   D7     dict pubchem asks MDBRIDGE_PUBCHEM_URL (the PUG REST root, default MDATK's PUBCHEM_REST) when
          that variable is set: the local stand-in server of cli_parity.py
   D9(M4) retired: `render` / `preview` fit a shown map without a placement again when auto_fit is on
@@ -126,6 +149,8 @@ def apply_mdatk():
     _patch_annotate()
     _patch_builder()
     _patch_density()
+    _patch_torsions()
+    _patch_closure()
 
 
 # ---------------------------------------------------------------------------------------------
@@ -517,6 +542,401 @@ def _patch_builder():
         return fit_to_map(source, map_path, resolution, *args, **kwargs)
 
     B.fit_to_map = fit_to_map_checked
+
+
+# ---------------------------------------------------------------------------------------------
+# the backbone torsion terms of the other pairings' fits (CH-17)
+
+# MDATK's term of a link torsion, (1 + cos 3 theta) * 1.5 + wrap(theta - ref) / 120, jumps by 3 where
+# theta - ref crosses +-180 degrees (wrap: +1.5 to -1.5), so the cost is discontinuous there: MDATK's
+# reference helices sit next to the jump (hoogsteen strand 2: epsilon +26 / alpha 139; the triplexes'
+# alpha 113 and 121, the jump at 118) and closures creep against it until their evaluation limit
+# (hoogsteen AAGAGAAGGA: every step at 1/320 of the interval still at its limit; a 2-degree C1 ramp
+# in place of the jump left a stiff trough in which hoogsteen GAGGAUCA crept as long). CH-17's tilt is
+# smooth and periodic, with MDATK's slope at the reference (1/120 per degree) and MDATK's values at
+# the other staggered positions (+-1 at +-120 degrees): TILT_A sin d + TILT_B sin 2d.
+TILT_B = (1.5 / math.pi - 2.0 / math.sqrt(3.0)) / 3.0
+TILT_A = 2.0 / math.sqrt(3.0) + TILT_B
+
+
+def torsion_tilt(delta):
+    """CH-17's tilt of torsions delta degrees from their references (numpy arrays or floats)."""
+    import numpy as np
+
+    r = np.radians(delta)
+    return TILT_A * np.sin(r) + TILT_B * np.sin(2.0 * r)
+
+
+# The reference helices (_helix_fit: every kind's screw and strand torsions) are the one input the
+# builds take from them: the uniform helices are them and every closure starts on them. They are
+# separable from the closure: _HELIX_START, _SCREW_PRIOR and the torsion term of their fit
+# (REFERENCE_TERM: "continuous", CH-17's, or "mdatk", which gives MDATK's reference helices) define
+# them; the closure (_patch_closure) always scores the links with CH-17's term. Which reference
+# helices are the right ones is open (docs/DIFFERENCES.md CH-17).
+REFERENCE_TERM = "continuous"
+_MDATK_LINK_RESIDUALS = {}
+
+
+def continuous_link_residuals(a, b):
+    """MDATK's builder._link_residuals with CH-17's tilt."""
+    import numpy as np
+    from mdatk import builder as B
+
+    def torsion(theta, ref):
+        return (1 + np.cos(np.radians(3 * theta))) * 1.5 + torsion_tilt(theta - ref)
+
+    eps = B._dihedral(a["C4'"], a["C3'"], a["O3'"], b["P"])
+    return np.concatenate([
+        (np.linalg.norm(a["O3'"] - b["P"], axis=-1) - B.LINK) / 0.01,
+        (B._angle(a["C3'"], a["O3'"], b["P"]) - B._GEOM["C3'-O3'-P"]) / 1.5,
+        (B._angle(a["O3'"], b["P"], b["O5'"]) - B._GEOM["O3'-P-O5'"]) / 1.5,
+        torsion(eps, B._TORSIONS["epsilon"]) + np.clip(np.abs(B._wrap(eps + 120.0)) - 60.0, 0.0, None) / 10.0,
+        torsion(B._dihedral(a["C3'"], a["O3'"], b["P"], b["O5'"]), B._TORSIONS["zeta"]),
+        torsion(B._dihedral(a["O3'"], b["P"], b["O5'"], b["C5'"]), B._TORSIONS["alpha"])])
+
+
+def _patch_torsions():
+    """The reference fit's term (builder._link_residuals, which _fit_residuals calls) as REFERENCE_TERM."""
+    from mdatk import builder as B
+
+    _MDATK_LINK_RESIDUALS.setdefault("f", B._link_residuals)
+    B._link_residuals = continuous_link_residuals if REFERENCE_TERM == "continuous" else _MDATK_LINK_RESIDUALS["f"]
+
+
+# ---------------------------------------------------------------------------------------------
+# the other pairings' strand closure (CH-16, owner decision D17)
+
+# Continuation: the partner nucleosides move from their strand's reference pose (t = 0, the uniform
+# helix closed by _helix_fit's torsions) to their _level_pose poses (t = 1) along the rigid transform
+# (rotation vector about the reference C1' and C1' shift, both scaled by t). The interval is walked in
+# CLOSURE_STEPS equal steps; a step whose solve stops on its evaluation limit, or whose contact pairs
+# needed more than CLOSURE_ROUNDS_OK refreshes, is retried as two half steps (from the last accepted
+# point, recursively, down to CLOSURE_MAX_HALVINGS halvings; the smallest steps get the larger limit
+# and are accepted as they end). Every solve: MDATK's residuals at its last pass's contact weight, TRF
+# with the exact subproblem (2-point differences grouped by MDATK's level-span sparsity, then dense),
+# ftol = xtol = gtol = CLOSURE_TOL; the contact pairs within CLOSURE_CUTOFF (MDATK's filters) are
+# refreshed before every solve, kept once scored, in (p, q) order, and the solve repeats while the set
+# grows (at most CLOSURE_MAX_ROUNDS times). A solve's variables are the move from its start (TRF's
+# first trust radius is then 1 in x_scale's units, not the norm of the start: a start of torsions near
+# 100 degrees let the first steps jump by hundreds of degrees into another basin).
+CLOSURE_STEPS = 10
+CLOSURE_MAX_HALVINGS = 5          # down to 1 / 320 of the interval
+CLOSURE_WEIGHT = 0.01             # contact weight (MDATK's last pass)
+CLOSURE_TOL = 1e-10
+CLOSURE_MAX_NFEV = 1000           # evaluation limit of a step that may still be halved
+CLOSURE_FINAL_NFEV = 20000        # ... of the t = 0 solve and of the smallest steps
+CLOSURE_CUTOFF = 4.5              # Å (MDATK: 3.8)
+CLOSURE_ROUNDS_OK = 4             # pair refreshes a step may need before it is halved
+CLOSURE_MAX_ROUNDS = 50
+SMALL_FIT_TOL = 1e-14             # _pair_fit, _level_pose, _helix_fit
+SMALL_FIT_MAX_NFEV = 5000
+
+# the solver the closure and the small fits call (a test harness may wrap it)
+SOLVER = {}
+
+
+def _rotation_vector(R):
+    """Rotation vector (radians) of a rotation matrix (angle below pi)."""
+    import numpy as np
+
+    c = (np.trace(R) - 1.0) / 2.0
+    th = math.acos(min(1.0, max(-1.0, c)))
+    if th < 1e-12:
+        return np.zeros(3)
+    w = np.array([R[2, 1] - R[1, 2], R[0, 2] - R[2, 0], R[1, 0] - R[0, 1]]) / (2.0 * math.sin(th))
+    return w * th
+
+
+def column_groups(structure):
+    """Columns of a boolean Jacobian structure (m, n) that share no row, as SciPy's
+    group_columns(structure, order=0) forms them (greedy over numpy.random.RandomState(0).permutation(n))."""
+    import numpy as np
+
+    m, n = structure.shape
+    order = np.random.RandomState(0).permutation(n)
+    cols = structure[:, order].T  # (n, m)
+    groups = -np.ones(n, dtype=np.intp)
+    current = 0
+    for i in range(n):
+        if groups[i] >= 0:
+            continue
+        groups[i] = current
+        union = cols[i].copy()
+        all_grouped = True
+        for j in range(n):
+            if groups[j] >= 0:
+                continue
+            all_grouped = False
+            if not np.any(union & cols[j]):
+                union |= cols[j]
+                groups[j] = current
+        if all_grouped:
+            break
+        current += 1
+    out = np.empty(n, dtype=np.intp)
+    out[order] = groups
+    return out
+
+
+def fd_jacobian(fun, x, rows_of, groups):
+    """2-point finite-difference Jacobian (dense) with column groups (rows_of[j]: the rows of column j in
+    the structure), as SciPy's approx_derivative(fun, x, method="2-point", sparsity=(structure, groups))
+    computes it."""
+    import numpy as np
+
+    f0 = fun(x)
+    h = np.finfo(np.float64).eps ** 0.5 * np.where(x >= 0, 1.0, -1.0) * np.maximum(1.0, np.abs(x))
+    jac = np.zeros((len(f0), len(x)))
+    for g in range(int(groups.max()) + 1):
+        cols = np.nonzero(groups == g)[0]
+        xg = x.copy()
+        xg[cols] = x[cols] + h[cols]
+        df = fun(xg) - f0
+        for j in cols:
+            rows = rows_of[j]
+            jac[rows, j] = df[rows] / (xg[j] - x[j])
+    return jac
+
+
+def _patch_closure():
+    import functools
+
+    import numpy as np
+    import scipy.optimize
+    from mdatk import builder as B
+    from mdatk.spatial import kabsch
+
+    SOLVER.setdefault("least_squares", scipy.optimize.least_squares)
+    depth = [0]
+
+    def least_squares(fun, x0, *args, **kwargs):  # the small fits converged
+        if depth[0] > 0:
+            kwargs.update(ftol=SMALL_FIT_TOL, xtol=SMALL_FIT_TOL, gtol=SMALL_FIT_TOL,
+                          max_nfev=kwargs.get("max_nfev") or SMALL_FIT_MAX_NFEV)
+        return SOLVER["least_squares"](fun, x0, *args, **kwargs)
+
+    scipy.optimize.least_squares = least_squares  # the builder imports it when it fits
+
+    def converged(fn):
+        inner = getattr(fn, "__wrapped__", fn)
+
+        @functools.lru_cache(maxsize=None)
+        def wrapper(*args):
+            depth[0] += 1
+            try:
+                return inner(*args)
+            finally:
+                depth[0] -= 1
+        return wrapper
+
+    for name in ("_pair_fit", "_level_pose", "_helix_fit"):
+        setattr(B, name, converged(getattr(B, name)))
+
+    context = {}
+    helix_strands = B._helix_strands
+
+    def _helix_strands(kind, sequences):
+        context["kind"] = kind
+        return helix_strands(kind, sequences)
+
+    B._helix_strands = _helix_strands
+    names, slots, base_code = B._STRAND_NAMES, B._BASE_SLOTS, B._BASE_CODE
+
+    def _close_levels(placed, bases, steps, start):
+        kind = context["kind"]
+        spec = B._HELICES[kind]
+        screw = B._helix_fit(kind).screw
+        n_s, n = len(placed), len(placed[0])
+        width = 6 + 3 * n_s
+        # per partner nucleoside: the reference pose and the rigid move to its _level_pose pose
+        moves = [None]
+        for s in range(1, n_s):
+            rot, shift = B._pair_fit(spec[s].rule, spec[0].base, spec[s].base)
+            row = []
+            for k in range(n):
+                ref = {a: screw.apply(v, k) for a, v in B._moved(B._core(bases[s][k]), rot, shift).items()}
+                common = [a for a in placed[s][k] if a in ref and a != "H3+"]
+                P = np.array([ref[a] for a in common])
+                Q = np.array([placed[s][k][a] for a in common])
+                R, pc, qc = kabsch(P, Q, np.ones(len(common)))
+                c = ref["C1'"]
+                row.append((ref, _rotation_vector(R), c, (c - pc) @ R.T + qc - c))
+            moves.append(row)
+
+        def placed_at(t):
+            if t == 1.0:
+                return placed
+            out = [placed[0]]
+            for s in range(1, n_s):
+                row = []
+                for ref, w, c, d in moves[s]:
+                    R = B._rotvec(w * t)
+                    row.append({a: (v - c) @ R.T + c + t * d for a, v in ref.items()})
+                out.append(row)
+            return out
+
+        codes = np.array([[base_code[b] for b in bs] for bs in bases])
+        cls_tab, inside_tab, link_tab = B._contact_tables()
+        n_atoms = len(names) + slots
+        cls = cls_tab[codes].ravel()
+        atom_s, atom_k, atom_i = np.unravel_index(np.arange(n_s * n * n_atoms), (n_s, n, n_atoms))
+        step_of = np.asarray(steps)
+        order = [np.arange(n) if st > 0 else np.arange(n)[::-1] for st in steps]
+        geo = {}
+
+        def set_geometry(pl):
+            arrays = [B._core_arrays(p, b, True) for p, b in zip(pl, bases)]
+            base_xyz = np.full((n_s, n, slots, 3), 1e4)
+            for s in range(n_s):
+                for k, (core, b) in enumerate(zip(pl[s], bases[s])):
+                    base_xyz[s, k, :len(B._base_slots(b))] = [core[a] for a in B._base_slots(b)]
+            geo.update(arrays=arrays, base_xyz=base_xyz, centre=np.mean([a[0] for a in arrays], axis=0))
+
+        def build(x):  # MDATK's
+            v = x.reshape(n, width)
+            rot = B._rotvecs(np.radians(v[:, 0:3]))
+            centre = geo["centre"]
+
+            def move(y):
+                return np.einsum("nij,nmj->nmi", rot, y - centre[:, None]) + centre[:, None] + v[:, None, 3:6]
+
+            nts, atoms = [], []
+            for s, (c1, glyco, sugar) in enumerate(geo["arrays"]):
+                q = v[:, 6 + 3 * s:9 + 3 * s]
+                nt = B._nucleotides(move(c1[:, None])[:, 0], move(glyco[:, None])[:, 0], move(sugar), q[:, 0],
+                                    q[:, 1], q[:, 2])
+                o = order[s]
+                prev = np.empty((n, 3))
+                prev[o[1:]] = nt["O3'"][o[:-1]]
+                prev[o[0]] = B._place(nt["C5'"][o[0]], nt["O5'"][o[0]], nt["P"][o[0]], B.LINK,
+                                      B._GEOM["O3'-P-O5'"], B._TORSIONS["alpha"])
+                nt["OP1"], nt["OP2"] = B._phosphate_oxygens_many(nt["P"], prev, nt["O5'"])
+                nts.append(nt)
+                atoms.append(np.concatenate([np.stack([nt[a] for a in names], axis=1), move(geo["base_xyz"][s])],
+                                            axis=1))
+            return nts, np.array(atoms).reshape(-1, 3)
+
+        pairs = {}
+
+        def refresh(x):
+            """The pairs within CLOSURE_CUTOFF (MDATK's filters) added to those scored so far, in (p, q)
+            order; whether the set grew."""
+            from scipy.spatial import cKDTree
+
+            xyz = build(x)[1]
+            real = np.nonzero(cls != 6)[0]
+            found = cKDTree(xyz[real]).query_pairs(CLOSURE_CUTOFF, output_type="ndarray")
+            p, q = real[found[:, 0]], real[found[:, 1]]
+            sp, kp, ip, sq, kq, iq = atom_s[p], atom_k[p], atom_i[p], atom_s[q], atom_k[q], atom_i[q]
+            keep = (kp != kq) | (sp != sq) & ((ip < len(names)) | (iq < len(names)))
+            same = (sp == sq) & (kp == kq)
+            keep[same] = inside_tab[codes[sp[same], kp[same]], ip[same], iq[same]]
+            linked = (sp == sq) & (kq - kp == step_of[sp])
+            keep[linked] = link_tab[codes[sp[linked], kp[linked]], codes[sq[linked], kq[linked]], ip[linked],
+                                    iq[linked]]
+            linked = (sp == sq) & (kp - kq == step_of[sp])
+            keep[linked] = link_tab[codes[sq[linked], kq[linked]], codes[sp[linked], kp[linked]], iq[linked],
+                                    ip[linked]]
+            limit = B._FIT_LIMITS[cls[p], cls[q]]
+            keep &= limit > 0
+            ext_p = np.clip(np.where((ip == 1) | (ip == 2), kp - step_of[sp], kp), 0, n - 1)
+            ext_q = np.clip(np.where((iq == 1) | (iq == 2), kq - step_of[sq], kq), 0, n - 1)
+            lo = np.minimum(np.minimum(kp, kq), np.minimum(ext_p, ext_q))
+            hi = np.maximum(np.maximum(kp, kq), np.maximum(ext_p, ext_q))
+            new = dict(p=p[keep], q=q[keep], limit=limit[keep], lo=lo[keep], hi=hi[keep])
+            before = len(pairs.get("p", ()))
+            if pairs:
+                new = {k: np.concatenate([pairs[k], new[k]]) for k in new}
+            _u, first = np.unique(new["p"] * len(cls) + new["q"], return_index=True)
+            pairs.update({k: v[first] for k, v in new.items()})
+            return len(pairs["p"]) != before
+
+        def residuals(x):  # MDATK's
+            v = x.reshape(n, width)
+            nts, xyz = build(x)
+            out = [continuous_link_residuals({k: a[o[:-1]] for k, a in nt.items()},
+                                             {k: a[o[1:]] for k, a in nt.items()})
+                   for nt, o in zip(nts, order)]
+            out += [B._torsion_priors(v[:, 6 + 3 * s], v[:, 7 + 3 * s], v[:, 8 + 3 * s]) for s in range(n_s)]
+            viol = pairs["limit"] - np.linalg.norm(xyz[pairs["p"]] - xyz[pairs["q"]], axis=-1)
+            out += [(v[:, 0:3] / B.LEVEL_MOVE[0]).ravel(), (v[:, 3:6] / B.LEVEL_MOVE[1]).ravel(),
+                    np.clip(viol, 0.0, None) / CLOSURE_WEIGHT]
+            return np.concatenate(out)
+
+        def structure():  # MDATK's level spans
+            lo, hi = [], []
+            for o in order:
+                a, b = np.minimum(o[:-1], o[1:]), np.maximum(o[:-1], o[1:])
+                lo += list(a) * 6
+                hi += list(b) * 6
+            lo += list(range(n)) * 4 * n_s
+            hi += list(range(n)) * 4 * n_s
+            lo += list(np.repeat(np.arange(n), 3)) * 2
+            hi += list(np.repeat(np.arange(n), 3)) * 2
+            lo = np.concatenate([np.asarray(lo, dtype=np.intp), pairs["lo"]])
+            hi = np.concatenate([np.asarray(hi, dtype=np.intp), pairs["hi"]])
+            level = np.arange(n * width) // width
+            return (lo[:, None] <= level[None]) & (level[None] <= hi[:, None])
+
+        scale = np.tile([3.0, 3.0, 3.0, 0.2, 0.2, 0.2] + [10.0] * 3 * n_s, n)
+        group_cache = {}
+
+        def solve(x, max_nfev):
+            sp = structure()
+            key = sp.tobytes()
+            if key not in group_cache:
+                group_cache.clear()
+                group_cache[key] = (column_groups(sp), [np.nonzero(sp[:, j])[0] for j in range(sp.shape[1])])
+            groups, rows_of = group_cache[key]
+
+            def moved(y):  # the variables as the move from x: TRF's first trust radius is then 1 (scaled)
+                return residuals(x + y)
+
+            sol = SOLVER["least_squares"](moved, np.zeros_like(x),
+                                          jac=lambda yy: fd_jacobian(moved, yy, rows_of, groups),
+                                          tr_solver="exact", x_scale=scale, ftol=CLOSURE_TOL, xtol=CLOSURE_TOL,
+                                          gtol=CLOSURE_TOL, max_nfev=max_nfev)
+            return x + sol.x, sol.status == 0
+
+        def step(x, t, max_nfev, halvable):
+            """Solve at t from x with the pair refreshes: (x, whether the step had trouble); a step that
+            can still be halved stops at its first trouble."""
+            set_geometry(placed_at(t))
+            trouble = False
+            for rounds in range(CLOSURE_MAX_ROUNDS):
+                if not refresh(x) and rounds > 0:
+                    break
+                x, hit = solve(x, max_nfev)
+                trouble = trouble or hit or rounds >= CLOSURE_ROUNDS_OK
+                if trouble and halvable:
+                    break
+            return x, trouble
+
+        def advance(x, t0, t1, halvings):
+            last = halvings >= CLOSURE_MAX_HALVINGS
+            saved = {k: v.copy() for k, v in pairs.items()}
+            y, trouble = step(x, t1, CLOSURE_FINAL_NFEV if last else CLOSURE_MAX_NFEV, not last)
+            if not trouble or last:
+                return y
+            pairs.clear()
+            pairs.update(saved)
+            mid = 0.5 * (t0 + t1)
+            return advance(advance(x, t0, mid, halvings + 1), mid, t1, halvings + 1)
+
+        x = np.concatenate([np.zeros((n, 6))] + [np.asarray(q, dtype=np.float64).reshape(n, 3) for q in start],
+                           axis=1).ravel()
+        x = step(x, 0.0, CLOSURE_FINAL_NFEV, False)[0]
+        for i in range(CLOSURE_STEPS):
+            x = advance(x, i / CLOSURE_STEPS, (i + 1) / CLOSURE_STEPS, 0)
+        set_geometry(placed)
+        v = x.reshape(n, width)
+        rot = B._rotvecs(np.radians(v[:, 0:3]))
+        centre = geo["centre"]
+        moved = [[{a: (y - centre[k]) @ rot[k].T + centre[k] + v[k, 3:6] for a, y in core.items()}
+                  for k, core in enumerate(strand)] for strand in placed]
+        return [v[:, 6 + 3 * s:9 + 3 * s] for s in range(n_s)], moved
+
+    B._close_levels = _close_levels
 
 
 # ---------------------------------------------------------------------------------------------

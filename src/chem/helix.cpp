@@ -30,127 +30,11 @@
 #include "mdbridge/core/json.hpp"
 #include "mdbridge/core/python.hpp"
 #include "mdbridge/core/text.hpp"
+#include "helix_internal.hpp"
 
 namespace mdbridge::chem {
 
-namespace {
-
-// --- vectors in NumPy's order of operations ----------------------------------------------------
-
-constexpr double kDegToRad = 3.141592653589793 / 180.0;  // math.radians: x * (pi / 180)
-
-double radians(double degrees) {
-    return degrees * kDegToRad;
-}
-
-Vec3 operator+(const Vec3& a, const Vec3& b) {
-    return {a[0] + b[0], a[1] + b[1], a[2] + b[2]};
-}
-Vec3 operator-(const Vec3& a, const Vec3& b) {
-    return {a[0] - b[0], a[1] - b[1], a[2] - b[2]};
-}
-Vec3 operator-(const Vec3& a) {
-    return {-a[0], -a[1], -a[2]};
-}
-Vec3 operator*(double s, const Vec3& a) {
-    return {s * a[0], s * a[1], s * a[2]};
-}
-
-// np.linalg.norm: sqrt(x . x)
-double norm(const Vec3& v) {
-    double sum = v[0] * v[0];
-    sum += v[1] * v[1];
-    sum += v[2] * v[2];
-    return std::sqrt(sum);
-}
-
-Vec3 unit(const Vec3& v) {
-    const double n = norm(v);
-    return {v[0] / n, v[1] / n, v[2] / n};
-}
-
-// np.cross
-Vec3 cross(const Vec3& a, const Vec3& b) {
-    return {a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]};
-}
-
-using Mat3 = std::array<Vec3, 3>;
-
-// v @ m.T
-Vec3 matVec(const Mat3& m, const Vec3& v) {
-    Vec3 out{};
-    for (std::size_t j = 0; j < 3; ++j) {
-        double sum = v[0] * m[j][0];
-        sum += v[1] * m[j][1];
-        sum += v[2] * m[j][2];
-        out[j] = sum;
-    }
-    return out;
-}
-
-Vec3 cartesian(double r, double phi, double z) {
-    const double p = radians(phi);
-    return {r * std::cos(p), r * std::sin(p), z};
-}
-
-// _place: atom d bonded to c with angle b-c-d and torsion a-b-c-d (degrees)
-Vec3 place(const Vec3& a, const Vec3& b, const Vec3& c, double bond, double angle, double torsion) {
-    const Vec3 bc = unit(c - b);
-    const Vec3 n = unit(cross(b - a, bc));
-    const Vec3 m = cross(n, bc);
-    const double th = radians(angle);
-    const double ph = radians(torsion);
-    const double d0 = -bond * std::cos(th);
-    const double d1 = bond * std::sin(th) * std::cos(ph);
-    const double d2 = bond * std::sin(th) * std::sin(ph);
-    return c + d0 * bc + d1 * m + d2 * n;
-}
-
-// _turn_matrix: rotation by `degrees` about `axis` (Rodrigues)
-Mat3 turnMatrix(const Vec3& axis, double degrees) {
-    const Vec3 k = unit(axis);
-    const Mat3 kx = {Vec3{0.0, -k[2], k[1]}, Vec3{k[2], 0.0, -k[0]}, Vec3{-k[1], k[0], 0.0}};
-    Mat3 kk{};
-    for (std::size_t i = 0; i < 3; ++i) {
-        for (std::size_t j = 0; j < 3; ++j) {
-            double sum = kx[i][0] * kx[0][j];
-            sum += kx[i][1] * kx[1][j];
-            sum += kx[i][2] * kx[2][j];
-            kk[i][j] = sum;
-        }
-    }
-    const double t = radians(degrees);
-    const double s = std::sin(t);
-    const double c = 1.0 - std::cos(t);
-    Mat3 out{};
-    for (std::size_t i = 0; i < 3; ++i) {
-        for (std::size_t j = 0; j < 3; ++j) {
-            out[i][j] = ((i == j ? 1.0 : 0.0) + s * kx[i][j]) + c * kk[i][j];
-        }
-    }
-    return out;
-}
-
-// _screw: level k is turned by -k * TWIST about z and moved by -k * RISE
-Vec3 screw(const Vec3& xyz, double level) {
-    const double t = radians(-kHelixTwist * level);
-    const Mat3 rot = {Vec3{std::cos(t), -std::sin(t), 0.0}, Vec3{std::sin(t), std::cos(t), 0.0}, Vec3{0.0, 0.0, 1.0}};
-    return matVec(rot, xyz) + Vec3{0.0, 0.0, -kHelixRise * level};
-}
-
-// _dyad: the fibre two-fold about x
-Vec3 dyad(const Vec3& xyz) {
-    return {xyz[0] * 1.0, xyz[1] * -1.0, xyz[2] * -1.0};
-}
-
-// pdbtools.chiral_volume
-double chiralVolume(const Vec3& centre, const Vec3& a, const Vec3& b, const Vec3& c) {
-    const Vec3 va = a - centre;
-    const Vec3 vb = b - centre;
-    const Vec3 vc = c - centre;
-    const Vec3 cr = {vb[1] * vc[2] - vb[2] * vc[1], vb[2] * vc[0] - vb[0] * vc[2], vb[0] * vc[1] - vb[1] * vc[0]};
-    return va[0] * cr[0] + va[1] * cr[1] + va[2] * cr[2];
-}
+namespace helix_detail {
 
 // --- templates -------------------------------------------------------------------------------
 
@@ -178,7 +62,6 @@ double bondH(HRule rule) {
     }
     return 0.0;
 }
-constexpr double kBondOH = 0.96;
 
 struct HydrogenRule {
     std::string_view name;
@@ -218,8 +101,6 @@ constexpr std::string_view kHNamesC[] = {"H41", "H42", "H5", "H6"};
 constexpr std::string_view kHNamesU[] = {"H3", "H5", "H6"};
 
 constexpr double kHo2Torsion = 180.0;  // C3'-C2'-O2'-HO2'
-constexpr double kPOp3 = 1.48;         // P-OP3 of a 5'-phosphate
-constexpr double kClash = 2.5;         // closest allowed heavy-atom distance of a mismatched pair's bases
 
 double wobbleTurn(char base) {
     return base == 'G' ? -13.3 : base == 'U' ? 11.4 : 0.0;
@@ -240,58 +121,12 @@ std::span<const HydrogenRule> hydrogenRules(char base) {
     }
 }
 
-struct Glycosidic {
-    std::string_view n;
-    std::string_view a;
-    std::string_view b;
-};
 Glycosidic glycosidic(char base) {
     if (base == 'A' || base == 'G') {
         return {"N9", "C4", "C8"};
     }
     return {"N1", "C2", "C6"};
 }
-
-// An ordered name -> coordinates map (Python dict)
-class Atoms {
-public:
-    std::vector<TemplateAtom> items;
-
-    const Vec3* find(std::string_view name) const {
-        for (const TemplateAtom& a : items) {
-            if (a.name == name) {
-                return &a.xyz;
-            }
-        }
-        return nullptr;
-    }
-    Vec3* find(std::string_view name) {
-        for (TemplateAtom& a : items) {
-            if (a.name == name) {
-                return &a.xyz;
-            }
-        }
-        return nullptr;
-    }
-    const Vec3& at(std::string_view name) const {
-        const Vec3* v = find(name);
-        if (!v) {
-            throw std::logic_error("helix template: no atom " + std::string(name));
-        }
-        return *v;
-    }
-    void set(std::string_view name, const Vec3& xyz) {
-        if (Vec3* v = find(name)) {
-            *v = xyz;
-        } else {
-            items.push_back({std::string(name), xyz});
-        }
-    }
-    void erase(std::string_view name) {
-        items.erase(std::remove_if(items.begin(), items.end(), [&](const TemplateAtom& a) { return a.name == name; }),
-                    items.end());
-    }
-};
 
 // _hydrogens: ideal hydrogens of a D-nucleotide
 Atoms hydrogens(const Atoms& heavy, char base) {
@@ -337,7 +172,7 @@ Atoms hydrogens(const Atoms& heavy, char base) {
                 Vec3 h1 = c + d * (std::cos(half) * bis + std::sin(half) * perp);
                 Vec3 h2 = c + d * (std::cos(half) * bis - std::sin(half) * perp);
                 // PDB v3 names of a D-ribose: H5' gives a positive volume C5'(O5', C4', H5')
-                if (chiralVolume(c, ref[0], ref[1], h1) < 0) {
+                if (helixChiralVolume(c, ref[0], ref[1], h1) < 0) {
                     std::swap(h1, h2);
                 }
                 out.set("H5'", h1);
@@ -678,7 +513,9 @@ std::vector<Kind> parseIds(std::string_view value, int count) {
     return two;
 }
 
-}  // namespace
+}  // namespace helix_detail
+
+using namespace helix_detail;
 
 // --- public: templates ---------------------------------------------------------------------------
 
@@ -718,6 +555,10 @@ std::span<const std::string_view> baseHydrogenNames(char base) {
 
 std::span<const std::string_view> sugarHydrogenNames() {
     return kSugarHNames;
+}
+
+std::span<const std::string_view> helix_detail::backboneNames() {
+    return kBackboneNames;
 }
 
 // --- public: sequences ---------------------------------------------------------------------------
@@ -1102,7 +943,7 @@ std::vector<std::int64_t> parseStartNumbers(std::string_view value, int count) {
 
 // --- public: Watson-Crick helices ------------------------------------------------------------------
 
-namespace {
+namespace helix_detail {
 
 struct BuiltAtom {
     std::string name;
@@ -1204,7 +1045,7 @@ std::vector<std::string> mismatchNotes(const io::PdbStructure& s, const std::str
     return out;
 }
 
-}  // namespace
+}  // namespace helix_detail
 
 std::string buildHelix(std::string_view sequence, const HelixOptions& options, std::vector<std::string>* notes) {
     const std::string pairing = checkPairing(options.pairing ? std::optional<std::string_view>(*options.pairing)
@@ -1224,10 +1065,12 @@ std::string buildHelix(std::string_view sequence, const HelixOptions& options, s
     if (motif && (!duplex || pairing != "wc")) {
         throw BuildError("a triplex is built on the Watson-Crick duplex: choose a partner strand and pairing wc");
     }
+    std::string thirdSeq;
     if (motif) {
         ResolvedThird thirdStrand = resolveThird(
             resolved.sequence, options.third ? std::optional<std::string_view>(*options.third) : std::nullopt, *motif);
         resolved.notes.insert(resolved.notes.end(), thirdStrand.notes.begin(), thirdStrand.notes.end());
+        thirdSeq = std::move(thirdStrand.sequence);
     }
     const int count = motif ? 3 : 2;
     const std::vector<std::string> ids = parseChainIds(options.chains, count);
@@ -1248,18 +1091,18 @@ std::string buildHelix(std::string_view sequence, const HelixOptions& options, s
     if (std::find(kSchemes.begin(), kSchemes.end(), scheme) == kSchemes.end()) {
         throw BuildError("unknown residue name scheme " + repr(scheme) + " (choose from " + join(kSchemes, ", ") + ")");
     }
-    if (pairing != "wc" || motif) {
-        throw BuildError((motif ? "a triplex" : "pairing " + pairing) +
-                         " is built by the fitted helix builder (not available yet)");
-    }
+    const bool rebuilt = pairing != "wc" || motif.has_value();
 
     const std::string& seq = resolved.sequence;
     const std::size_t n = seq.size();
-    const std::vector<std::string> kinds = duplex ? pairTypes(seq, *resolved.partner) : std::vector<std::string>(n, "none");
+    const std::vector<std::string> kinds =
+        duplex && pairing == "wc" ? pairTypes(seq, *resolved.partner) : std::vector<std::string>(n, "none");
     const char hand = chirality[0];
 
     io::PdbStructure s;
     std::vector<Vec3> coords;
+    std::string kind;
+    FittedHelix fit;
     const auto addStrand = [&](const std::string& chain, std::int64_t first, const std::string& bases, bool partner) {
         std::vector<io::PdbResidue> seg;
         for (std::size_t j = 0; j < bases.size(); ++j) {
@@ -1282,9 +1125,42 @@ std::string buildHelix(std::string_view sequence, const HelixOptions& options, s
         }
         s.segments.push_back(std::move(seg));
     };
-    addStrand(ids[0], firsts[0], seq, false);
-    if (duplex) {  // strand 2 pairs residue n-1-j of strand 1 at the same level
-        addStrand(ids[1], firsts[1], *resolved.partner, true);
+    if (!rebuilt) {
+        addStrand(ids[0], firsts[0], seq, false);
+        if (duplex) {  // strand 2 pairs residue n-1-j of strand 1 at the same level
+            addStrand(ids[1], firsts[1], *resolved.partner, true);
+        }
+    } else {
+        kind = pairing != "wc" ? pairing : "triplex-" + *motif;
+        std::vector<std::string> sequences = {seq, *resolved.partner};
+        if (motif) {
+            sequences.push_back(thirdSeq);
+        }
+        fit = fittedHelix(kind, sequences, options.phosphate5, options.hydrogens, options);
+        for (std::size_t strand = 0; strand < fit.strands.size(); ++strand) {
+            std::vector<io::PdbResidue> seg;
+            for (std::size_t j = 0; j < fit.strands[strand].size(); ++j) {
+                FittedResidue& built = fit.strands[strand][j];
+                io::PdbResidue res;
+                res.name = std::string(1, built.base);
+                res.chain = ids[strand];
+                res.resseq = firsts[strand] + static_cast<std::int64_t>(j);
+                res.chirality = std::string(1, hand);
+                for (FittedAtom& a : built.atoms) {
+                    io::PdbAtom atom;
+                    atom.record = "ATOM";
+                    atom.name = a.name;
+                    atom.element = elementOf(a.name);
+                    res.atoms.push_back(std::move(atom));
+                    coords.push_back(a.xyz);
+                }
+                seg.push_back(std::move(res));
+            }
+            s.segments.push_back(std::move(seg));
+        }
+        for (Vec3& v : coords) {  // helix axis along z through the origin
+            v = matVec(fit.axisRotation, v) + fit.axisShift;
+        }
     }
     if (hand == 'L') {
         for (Vec3& v : coords) {
@@ -1312,6 +1188,7 @@ std::string buildHelix(std::string_view sequence, const HelixOptions& options, s
         }
     }
 
+    const std::vector<std::string> geometry = rebuilt ? modelNotes(s, fit.levels, kind) : std::vector<std::string>{};
     std::vector<std::string> out = resolved.notes;
     std::vector<std::string> renamed;
     for (std::string& note : convertNames(s, scheme, {}, options.terminals)) {
@@ -1335,38 +1212,81 @@ std::string buildHelix(std::string_view sequence, const HelixOptions& options, s
                          "of A5/LA5 ...); build without the 5'-phosphate for tleap");
     }
     const std::string handText = hand == 'D' ? "right-handed, D" : "left-handed, L: mirror image";
-    const std::string what = duplex ? "duplex of " + std::to_string(n) + " base pairs"
-                                    : "single strand of " + std::to_string(n) + " nucleotides";
+    std::string what = duplex ? "duplex of " + std::to_string(n) + " base pairs"
+                              : "single strand of " + std::to_string(n) + " nucleotides";
+    if (motif) {
+        what = "triplex of " + std::to_string(n) + " base triples";
+    }
     // D13: MDBridge names itself in the record
-    s.header = {"REMARK 951 MDBridge IDEAL A-FORM RNA (" + handText + "), " + what,
-                "REMARK 951 ARNOTT A-RNA FIBER MONOMER, TWIST " + fixed(kHelixTwist, 1) + " DEG, RISE " +
-                    fixed(kHelixRise, 2) + " A, HELIX AXIS Z",
-                "REMARK 951 STRAND " + ids[0] + " " + seq};
+    if (!rebuilt) {
+        s.header = {"REMARK 951 MDBridge IDEAL A-FORM RNA (" + handText + "), " + what,
+                    "REMARK 951 ARNOTT A-RNA FIBER MONOMER, TWIST " + fixed(kHelixTwist, 1) + " DEG, RISE " +
+                        fixed(kHelixRise, 2) + " A, HELIX AXIS Z",
+                    "REMARK 951 STRAND " + ids[0] + " " + seq};
+    } else {
+        const std::string form =
+            motif ? "WATSON-CRICK DUPLEX + " + upperAscii(*motif) + " THIRD STRAND"
+                  : "PAIRING " + std::string(pairingLw(pairing)) + " (" +
+                        (parallel(pairing) ? "PARALLEL" : "ANTIPARALLEL") + " STRANDS)";
+        s.header = {"REMARK 951 MDBridge IDEAL RNA (" + handText + "), " + what + ", " + form,
+                    "REMARK 951 NUCLEOTIDE OF PDB 4JRD, TWIST " + fixed(fit.twist, 1) + " DEG, RISE " +
+                        fixed(fit.rise, 2) + " A, HELIX AXIS Z",
+                    "REMARK 951 STRAND " + ids[0] + " " + seq};
+    }
     if (duplex) {
         s.header.push_back("REMARK 951 STRAND " + ids[1] + " " + *resolved.partner);
-        for (std::string& note : mismatchNotes(s, seq, *resolved.partner, kinds)) {
-            out.push_back(std::move(note));
-        }
-        const auto wobbles = std::count(kinds.begin(), kinds.end(), "wobble");
-        if (wobbles) {
-            out.push_back(std::to_string(wobbles) +
-                          " G·U pair(s) built with an approximate wobble geometry (bases turned in their plane about "
-                          "C1'); minimise before production");
+        if (!rebuilt) {
+            for (std::string& note : mismatchNotes(s, seq, *resolved.partner, kinds)) {
+                out.push_back(std::move(note));
+            }
+            const auto wobbles = std::count(kinds.begin(), kinds.end(), "wobble");
+            if (wobbles) {
+                out.push_back(std::to_string(wobbles) +
+                              " G·U pair(s) built with an approximate wobble geometry (bases turned in their plane "
+                              "about C1'); minimise before production");
+            }
         }
     }
+    if (motif) {
+        s.header.push_back("REMARK 951 STRAND " + ids[2] + " " + thirdSeq + " (THIRD STRAND, " +
+                           (*motif == "hoogsteen" ? "PARALLEL" : "ANTIPARALLEL") + " TO STRAND " + ids[0] + ")");
+    }
+    if (rebuilt) {
+        const std::string which =
+            motif ? "Triplex, " + std::string(triplexLabel(*motif)) +
+                        "; the Watson-Crick duplex and the third strand are fitted together (the Arnott A-form duplex "
+                        "leaves no room for a third strand)"
+                  : "Pairing " + pairing + ": " + std::string(pairingLabel(pairing));
+        out.push_back(which + "; helix twist " + fixed(fit.twist, 1) + "°, rise " + fixed(fit.rise, 2) +
+                      " Å, nucleotides (C3'-endo, anti) from PDB 4JRD with backbone torsions fitted to close the "
+                      "O3'-P links (reference helix: fit residual " + fixed(fit.cost, 2) + ", closest contacts " +
+                      fixed(fit.contact, 2) + " Å heavy atoms, " + fixed(fit.contactH, 2) + " Å H-H)");
+    }
+    out.insert(out.end(), geometry.begin(), geometry.end());
     std::size_t atomCount = 0;
     for (const auto& seg : s.segments) {
         for (const auto& res : seg) {
             atomCount += res.atoms.size();
         }
     }
-    out.push_back("Built an ideal A-form RNA " + what + " (" + handText + "): " + std::to_string(atomCount) + " atoms" +
-                  (options.hydrogens ? ", hydrogens included" : ", heavy atoms only"));
+    const std::string atomsNote =
+        std::to_string(atomCount) + " atoms" + (options.hydrogens ? ", hydrogens included" : ", heavy atoms only");
+    if (!rebuilt) {
+        out.push_back("Built an ideal A-form RNA " + what + " (" + handText + "): " + atomsNote);
+    } else {
+        const std::string kindText = motif ? "with a " + *motif + " third strand"
+                                           : "with " + std::string(pairingLw(pairing)) + " pairs";
+        out.push_back("Built an RNA " + what + " " + kindText + " (" + handText + "): " + atomsNote +
+                      "; a starting model: minimise before production");
+    }
     // CH-01: a residue number below -999 is refused by io::writePdb (below), before anything is written
     // CH-02: numbers above 9999 wrap (a PDB convention), now with renumber_residues' warning
     std::int64_t highest = firsts[0];
     if (duplex) {
         highest = std::max(highest, firsts[1]);
+    }
+    if (motif) {
+        highest = std::max(highest, firsts[2]);
     }
     if (highest + static_cast<std::int64_t>(n) - 1 > 9999) {
         out.emplace_back("WARNING: residue numbers above 9999 wrap in the PDB columns");

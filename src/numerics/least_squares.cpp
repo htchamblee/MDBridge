@@ -50,8 +50,10 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <limits>
+#include <optional>
 #include <stdexcept>
 
 #include "mdbridge/core/detail/numpy_sum.hpp"
@@ -181,6 +183,7 @@ public:
         : m_fun(fun), m_m(m), m_n(n), m_relStep(options.diffStep), m_threads(options.jacobianThreads) {
         if (options.jacSparsity) {
             m_sparse = true;
+            m_densify = options.denseFromSparsity;
             m_structure = *options.jacSparsity;
             m_groups = groupColumns(m_structure);
             m_groupCount = 0;
@@ -215,14 +218,14 @@ public:
         }
     }
 
-    bool sparse() const { return m_sparse; }
+    bool sparse() const { return m_sparse && !m_densify; }
 
     Jacobian operator()(std::span<const double> x0, std::span<const double> f0) const {
         const std::vector<double> h = absoluteStep(x0, m_relStep);
         Jacobian jac;
         jac.m = m_m;
         jac.n = m_n;
-        jac.sparse = m_sparse;
+        jac.sparse = m_sparse && !m_densify;
         const std::size_t evaluations = m_sparse ? m_groupCount : m_n;
         std::vector<std::vector<double>> points(evaluations, std::vector<double>(x0.begin(), x0.end()));
         for (std::size_t e = 0; e < evaluations; ++e) {
@@ -247,6 +250,20 @@ public:
                 const double dx = (x0[j] + h[j]) - x0[j];
                 for (std::size_t i = 0; i < m_m; ++i) {
                     jac.dense[i * m_n + j] = (values[j][i] - f0[i]) / dx;
+                }
+            }
+            return jac;
+        }
+        if (m_densify) {  // _sparse_difference(...).toarray()
+            jac.dense.assign(m_m * m_n, 0.0);
+            for (std::size_t j = 0; j < m_n; ++j) {
+                const std::size_t g = m_groups[j];
+                const double dx = points[g][j] - x0[j];
+                for (std::size_t k = m_colStart[j]; k < m_colStart[j + 1]; ++k) {
+                    if (m_colNonzero[k]) {
+                        const std::size_t i = m_colRows[k];
+                        jac.dense[i * m_n + j] = (values[g][i] - f0[i]) / dx;
+                    }
                 }
             }
             return jac;
@@ -291,6 +308,7 @@ private:
     std::optional<double> m_relStep;
     std::size_t m_threads;
     bool m_sparse = false;
+    bool m_densify = false;
     CsrMatrix m_structure;
     std::vector<std::size_t> m_groups;
     std::size_t m_groupCount = 0;
@@ -466,6 +484,322 @@ std::vector<std::vector<double>> qrEconomic(const std::vector<std::vector<double
         }
     }
     return q;
+}
+
+// The SVD of a square matrix a (n x n, row-major) as the exact subproblem needs it: singular values
+// (descending), right singular vectors and U.T y, without forming U. Householder bidiagonalisation
+// (y and V take the reflections), then implicit-shift QR sweeps on the bidiagonal (Golub and Kahan's
+// step with Wilkinson's shift; Golub and Van Loan, Matrix Computations, 8.6). nullopt when a diagonal
+// entry of the bidiagonal vanishes or the sweeps do not converge: the caller then uses the Jacobi SVD.
+std::optional<ThinSvd> bidiagonalSvd(std::vector<double> a, std::size_t n, std::vector<double>& y) {
+    std::vector<double> v(n * n, 0.0);
+    for (std::size_t i = 0; i < n; ++i) {
+        v[i * n + i] = 1.0;
+    }
+    std::vector<double> h(n);
+    for (std::size_t k = 0; k < n; ++k) {
+        // left reflection: zeros below a[k][k]; applied to a's columns k.. and to y
+        double norm = 0.0;
+        for (std::size_t i = k; i < n; ++i) {
+            norm += a[i * n + k] * a[i * n + k];
+        }
+        norm = std::sqrt(norm);
+        if (norm != 0.0) {
+            const double alpha = a[k * n + k] >= 0 ? -norm : norm;
+            for (std::size_t i = k; i < n; ++i) {
+                h[i] = a[i * n + k];
+            }
+            h[k] -= alpha;
+            double hh = 0.0;
+            for (std::size_t i = k; i < n; ++i) {
+                hh += h[i] * h[i];
+            }
+            for (std::size_t j = k + 1; j < n; ++j) {
+                double t = 0.0;
+                for (std::size_t i = k; i < n; ++i) {
+                    t += h[i] * a[i * n + j];
+                }
+                t = 2.0 * t / hh;
+                for (std::size_t i = k; i < n; ++i) {
+                    a[i * n + j] -= t * h[i];
+                }
+            }
+            double t = 0.0;
+            for (std::size_t i = k; i < n; ++i) {
+                t += h[i] * y[i];
+            }
+            t = 2.0 * t / hh;
+            for (std::size_t i = k; i < n; ++i) {
+                y[i] -= t * h[i];
+            }
+            a[k * n + k] = alpha;
+            for (std::size_t i = k + 1; i < n; ++i) {
+                a[i * n + k] = 0.0;
+            }
+        }
+        if (k + 2 > n) {
+            continue;
+        }
+        // right reflection: zeros right of a[k][k + 1]; applied to a's rows k + 1.. and to V
+        norm = 0.0;
+        for (std::size_t j = k + 1; j < n; ++j) {
+            norm += a[k * n + j] * a[k * n + j];
+        }
+        norm = std::sqrt(norm);
+        if (norm == 0.0) {
+            continue;
+        }
+        const double alpha = a[k * n + k + 1] >= 0 ? -norm : norm;
+        for (std::size_t j = k + 1; j < n; ++j) {
+            h[j] = a[k * n + j];
+        }
+        h[k + 1] -= alpha;
+        double hh = 0.0;
+        for (std::size_t j = k + 1; j < n; ++j) {
+            hh += h[j] * h[j];
+        }
+        const auto reflectRow = [&](double* row) {
+            double t = 0.0;
+            for (std::size_t j = k + 1; j < n; ++j) {
+                t += row[j] * h[j];
+            }
+            t = 2.0 * t / hh;
+            for (std::size_t j = k + 1; j < n; ++j) {
+                row[j] -= t * h[j];
+            }
+        };
+        for (std::size_t i = k + 1; i < n; ++i) {
+            reflectRow(&a[i * n]);
+        }
+        for (std::size_t i = 0; i < n; ++i) {
+            reflectRow(&v[i * n]);
+        }
+        a[k * n + k + 1] = alpha;
+        for (std::size_t j = k + 2; j < n; ++j) {
+            a[k * n + j] = 0.0;
+        }
+    }
+    // a is upper bidiagonal: QR sweeps on it (dense storage, every rotation touches a few entries)
+    const auto B = [&](std::size_t i, std::size_t j) -> double& { return a[i * n + j]; };
+    const auto givens = [](double f, double g, double& c, double& sn) {
+        const double r = std::hypot(f, g);
+        if (r == 0.0) {
+            c = 1.0;
+            sn = 0.0;
+        } else {
+            c = f / r;
+            sn = g / r;
+        }
+    };
+    std::size_t hi = n - 1;
+    std::size_t sweeps = 0;
+    while (hi > 0) {
+        for (std::size_t i = 0; i < hi; ++i) {
+            if (std::fabs(B(i, i + 1)) <= kEps * (std::fabs(B(i, i)) + std::fabs(B(i + 1, i + 1)))) {
+                B(i, i + 1) = 0.0;
+            }
+        }
+        if (B(hi - 1, hi) == 0.0) {
+            --hi;
+            continue;
+        }
+        std::size_t lo = hi - 1;
+        while (lo > 0 && B(lo - 1, lo) != 0.0) {
+            --lo;
+        }
+        for (std::size_t i = lo; i <= hi; ++i) {
+            if (B(i, i) == 0.0) {
+                return std::nullopt;
+            }
+        }
+        if (++sweeps > 100 * n) {
+            return std::nullopt;
+        }
+        const double dm = B(hi - 1, hi - 1), dn = B(hi, hi), em = B(hi - 1, hi);
+        const double el = hi - 1 > lo ? B(hi - 2, hi - 1) : 0.0;
+        const double t11 = dm * dm + el * el, t12 = dm * em, t22 = dn * dn + em * em;
+        const double delta = (t11 - t22) / 2.0;
+        const double denom = delta + (delta >= 0 ? 1.0 : -1.0) * std::hypot(delta, t12);
+        const double mu = denom == 0.0 ? t22 : t22 - t12 * t12 / denom;
+        double f = B(lo, lo) * B(lo, lo) - mu;
+        double g = B(lo, lo) * B(lo, lo + 1);
+        for (std::size_t k = lo; k < hi; ++k) {
+            double c = 1.0, sn = 0.0;
+            givens(f, g, c, sn);  // columns k, k + 1: [f g] -> [r 0]
+            for (std::size_t r = (k > lo ? k - 1 : lo); r <= k + 1; ++r) {
+                const double x = B(r, k), z = B(r, k + 1);
+                B(r, k) = c * x + sn * z;
+                B(r, k + 1) = -sn * x + c * z;
+            }
+            for (std::size_t r = 0; r < n; ++r) {
+                const double x = v[r * n + k], z = v[r * n + k + 1];
+                v[r * n + k] = c * x + sn * z;
+                v[r * n + k + 1] = -sn * x + c * z;
+            }
+            if (k > lo) {
+                B(k - 1, k + 1) = 0.0;
+            }
+            f = B(k, k);
+            g = B(k + 1, k);
+            givens(f, g, c, sn);  // rows k, k + 1: the bulge below the diagonal
+            for (std::size_t col = k; col <= std::min(hi, k + 2); ++col) {
+                const double x = B(k, col), z = B(k + 1, col);
+                B(k, col) = c * x + sn * z;
+                B(k + 1, col) = -sn * x + c * z;
+            }
+            B(k + 1, k) = 0.0;
+            const double yk = y[k], yk1 = y[k + 1];
+            y[k] = c * yk + sn * yk1;
+            y[k + 1] = -sn * yk + c * yk1;
+            if (k + 1 < hi) {
+                f = B(k, k + 1);
+                g = B(k, k + 2);
+            }
+        }
+    }
+    std::vector<double> sv(n);
+    for (std::size_t i = 0; i < n; ++i) {
+        sv[i] = B(i, i);
+        if (sv[i] < 0) {
+            sv[i] = -sv[i];
+            for (std::size_t r = 0; r < n; ++r) {
+                v[r * n + i] = -v[r * n + i];
+            }
+        }
+    }
+    std::vector<std::size_t> order(n);
+    for (std::size_t i = 0; i < n; ++i) {
+        order[i] = i;
+    }
+    std::stable_sort(order.begin(), order.end(), [&](std::size_t x, std::size_t z) { return sv[x] > sv[z]; });
+    ThinSvd out;
+    out.k = n;
+    out.s.resize(n);
+    out.v.resize(n * n);
+    std::vector<double> uf(n);
+    for (std::size_t r = 0; r < n; ++r) {
+        out.s[r] = sv[order[r]];
+        uf[r] = y[order[r]];
+        for (std::size_t i = 0; i < n; ++i) {
+            out.v[i * n + r] = v[i * n + order[r]];
+        }
+    }
+    y = std::move(uf);
+    return out;
+}
+
+// svd(J_h, full_matrices=False) and uf = U.T f for the exact subproblem. Rows of J_h that are all
+// zero (inactive one-sided terms) add nothing to U.T f (their row of U is zero), so they are left out
+// when at least n rows remain; a matrix that is then taller than wide is first reduced by
+// Householder reflections (J_h = Q R, R n x n upper triangular, Q.T applied to f), and U = Q U_R
+// gives uf = U_R.T (Q.T f)[:n]. The same numbers up to rounding as the SVD of the whole matrix,
+// much faster for the tall Jacobians of many contact terms.
+ThinSvd exactSvd(const std::vector<double>& a, std::size_t m, std::size_t n, const std::vector<double>& f,
+                 std::vector<double>& uf) {
+    std::vector<std::size_t> live;
+    live.reserve(m);
+    for (std::size_t i = 0; i < m; ++i) {
+        for (std::size_t j = 0; j < n; ++j) {
+            if (a[i * n + j] != 0.0) {
+                live.push_back(i);
+                break;
+            }
+        }
+    }
+    if (live.size() < n) {
+        live.resize(m);
+        for (std::size_t i = 0; i < m; ++i) {
+            live[i] = i;
+        }
+    }
+    const std::size_t rows = live.size();
+    if (rows < 2 * n) {  // not much taller than wide: the SVD of the rows themselves
+        std::vector<double> b(rows * n);
+        std::vector<double> fb(rows);
+        for (std::size_t r = 0; r < rows; ++r) {
+            std::copy(a.begin() + static_cast<std::ptrdiff_t>(live[r] * n),
+                      a.begin() + static_cast<std::ptrdiff_t>((live[r] + 1) * n), b.begin() + static_cast<std::ptrdiff_t>(r * n));
+            fb[r] = f[live[r]];
+        }
+        ThinSvd svd = thinSvd(b, rows, n);
+        uf.assign(svd.k, 0.0);
+        for (std::size_t r = 0; r < svd.k; ++r) {
+            double acc = 0.0;
+            for (std::size_t i = 0; i < rows; ++i) {
+                acc += svd.u[i * svd.k + r] * fb[i];
+            }
+            uf[r] = acc;
+        }
+        return svd;
+    }
+    // Householder QR, column-major copy of the live rows; qf = Q.T f
+    std::vector<double> w(rows * n);
+    std::vector<double> qf(rows);
+    for (std::size_t r = 0; r < rows; ++r) {
+        for (std::size_t j = 0; j < n; ++j) {
+            w[j * rows + r] = a[live[r] * n + j];
+        }
+        qf[r] = f[live[r]];
+    }
+    for (std::size_t j = 0; j < n; ++j) {
+        double* col = &w[j * rows];
+        double norm = 0.0;
+        for (std::size_t i = j; i < rows; ++i) {
+            norm += col[i] * col[i];
+        }
+        norm = std::sqrt(norm);
+        if (norm == 0.0) {
+            continue;
+        }
+        const double alpha = col[j] >= 0 ? -norm : norm;
+        // v = x - alpha e1 (stored in col[j..]), H = I - 2 v v.T / (v.T v)
+        col[j] -= alpha;
+        double vv = 0.0;
+        for (std::size_t i = j; i < rows; ++i) {
+            vv += col[i] * col[i];
+        }
+        const auto reflect = [&](double* y) {
+            double s = 0.0;
+            for (std::size_t i = j; i < rows; ++i) {
+                s += col[i] * y[i];
+            }
+            s = 2.0 * s / vv;
+            for (std::size_t i = j; i < rows; ++i) {
+                y[i] -= s * col[i];
+            }
+        };
+        for (std::size_t c = j + 1; c < n; ++c) {
+            reflect(&w[c * rows]);
+        }
+        reflect(qf.data());
+        col[j] = alpha;
+        for (std::size_t i = j + 1; i < rows; ++i) {
+            col[i] = 0.0;
+        }
+    }
+    std::vector<double> r(n * n, 0.0);  // row-major upper triangle
+    for (std::size_t i = 0; i < n; ++i) {
+        for (std::size_t j = i; j < n; ++j) {
+            r[i * n + j] = w[j * rows + i];
+        }
+    }
+    if (n >= 16) {  // large: the bidiagonal QR (much faster than Jacobi rotations)
+        std::vector<double> y(qf.begin(), qf.begin() + static_cast<std::ptrdiff_t>(n));
+        if (std::optional<ThinSvd> fast = bidiagonalSvd(r, n, y)) {
+            uf = std::move(y);
+            return std::move(*fast);
+        }
+    }
+    ThinSvd svd = thinSvd(r, n, n);
+    uf.assign(svd.k, 0.0);
+    for (std::size_t k = 0; k < svd.k; ++k) {
+        double acc = 0.0;
+        for (std::size_t i = 0; i < n; ++i) {
+            acc += svd.u[i * svd.k + k] * qf[i];
+        }
+        uf[k] = acc;
+    }
+    return svd;
 }
 
 // ---- the trust-region subproblems -------------------------------------------------------------
@@ -976,8 +1310,11 @@ LeastSquaresResult leastSquares(const ResidualFunction& fun, std::span<const dou
         throw std::invalid_argument("At least one of the tolerances must be higher than machine epsilon (2.22e-16).");
     }
     TrustRegionSolver trSolver = options.trSolver;
-    if (options.jacSparsity && trSolver == TrustRegionSolver::Exact) {
+    if (options.jacSparsity && trSolver == TrustRegionSolver::Exact && !options.denseFromSparsity) {
         throw std::invalid_argument("tr_solver='exact' is incompatible with `jac_sparsity`.");
+    }
+    if (options.denseFromSparsity && trSolver == TrustRegionSolver::Lsmr) {
+        throw std::invalid_argument("a Jacobian made dense from `jac_sparsity` is solved with tr_solver='exact'.");
     }
 
     std::vector<double> f = fun(std::span<const double>(x0));
@@ -1094,15 +1431,7 @@ LeastSquaresResult leastSquares(const ResidualFunction& fun, std::span<const dou
                     jhDense[i * n + j] *= d[j];
                 }
             }
-            svd = thinSvd(jhDense, m, n);
-            uf.assign(svd.k, 0.0);
-            for (std::size_t r = 0; r < svd.k; ++r) {
-                double acc = 0.0;
-                for (std::size_t i = 0; i < m; ++i) {
-                    acc += svd.u[i * svd.k + r] * f[i];
-                }
-                uf[r] = acc;
-            }
+            svd = exactSvd(jhDense, m, n, f, uf);
         } else {
             if (regularize) {
                 std::vector<double> sDir(n);

@@ -11,9 +11,8 @@
 // std::filesystem::filesystem_error, core::Cancelled); errorText() is what the windows show after
 // "ERROR: ".
 //
-// The other pairings and triplexes (W2-A) need no window change: buildHelix passes the pairing and
-// triplex to chem::buildHelix, which answers "... is built by the fitted helix builder (not
-// available yet)" until the fitted builder lands; helixInBackground() already sends those builds
+// The other pairings and triplexes (W2-A): buildHelix passes the pairing and triplex to
+// chem::buildHelix (its fitted builder, chem/helix_fit.cpp); helixInBackground() sends those builds
 // to the window's worker thread, as MDATK does.
 
 #include <cstdint>

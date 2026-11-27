@@ -218,13 +218,13 @@ HEX_FLOAT_RE = re.compile(r"^-?0x[0-9a-f]\.[0-9a-f]+p[+-][0-9]+$")  # float.hex(
 # * Powell's evaluation count of a global density fit (4423 / 4440, 5208 / 5159), its transform and
 #   CC staying within FITTED_TOLERANCE; compared within EVALUATIONS_TOLERANCE there, as the numerics
 #   tests compare SciPy's nfev without glibc (tests/numerics/test_optimize.cpp: 5 %);
-# * the least-squares closures of the non-Watson-Crick builds and triplexes: MDATK runs four passes
-#   of at most 40 evaluations with contact sets refreshed between them and loose LSMR tolerances
-#   (builder._CLOSE_PASSES, _CLOSE_LSMR; the same in 0.1.1), so a closure stops wherever its path has
-#   led (17 of the 24 rebuilt helices up to 2.8 Å apart, a close-contact note reworded). No tolerance
-#   covers that; there they are compared for what does not follow the path: inputs, record names,
-#   residues, chains and serial numbers, line and note counts, every other text with its numbers
-#   masked (_closure_problem). The command-line cases with "fitted" (cli_cases.json) get the same.
+# * the least-squares closures of the non-Watson-Crick builds and triplexes (CH-16, owner decision
+#   D17: continuation, every step converged) are reproducible within D10 on any kernel, but not bit
+#   for bit; there they are compared with D10 (_closure_problem: every atom within 0.05 Å, the heavy
+#   atoms within 0.01 Å RMSD, the notes' numbers within one unit of their last printed digit, the
+#   rest equal). The command-line cases with "fitted" (cli_cases.json) get the same. (MDATK's own
+#   closure, four truncated passes, landed up to 2.8 Å apart there and was compared with its numbers
+#   masked until W2-A.)
 # The probe: the flips of the fresh density_fit_cases.json equal the committed ones bit for bit
 # (None when the step did not run: everything is compared as before).
 KERNEL_PROBE = "tests/data/chem/density_fit_cases.json"
@@ -233,7 +233,6 @@ PATH_DEPENDENT = {"tests/data/chem/builder_fitted_cases.json", KERNEL_PROBE, CLI
 EVALUATIONS_TOLERANCE = 0.05
 EVALUATIONS_PATH_RE = re.compile(r"\$\.problems\[\d+\]\.fit_model\[\d+\]\.evaluations")
 REBUILT_PATH_RE = re.compile(r"\$\.rebuilt\[\d+\]")
-NUMBER_RE = re.compile(r"[-+]?\d+(?:\.\d+)?")
 PDB_ATOM_PREFIXES = ("ATOM  ", "HETATM")
 
 # files a generator writes that are deliberately not kept (tests/data/README.md)
@@ -660,42 +659,69 @@ def gui_fit_equal(rel: str, old: bytes, new: bytes, path_dependent: bool = False
     return True, "the placement within " + ("D10's tolerance (other kernels)" if path_dependent else "the chem tolerance")
 
 
-def _masked(text: str) -> str:
-    """A text with every number replaced and runs of spaces collapsed (a number's width may change)."""
-    return re.sub(r" +", " ", NUMBER_RE.sub("#", text))
+D10_RMSD, D10_ATOM = 0.01, 0.05  # Å: owner decision D10 for the rebuilt helices
+D10_NUMBER_RE = re.compile(r"-?\d+(?:\.\d+)?")
 
 
-def _lines_problem(x: str, y: str, what: str) -> str | None:
-    """Texts of a path-dependent result (PATH_DEPENDENT): the same lines; PDB atom records with the
-    same columns 1-30 (record, serial, name, residue, chain, number) and 55- (occupancy, B, element);
-    every other line equal with its numbers masked, a close-contact note in either wording (it lists
-    the contacts the closure ends with)."""
+def _d10_text_close(x: str, y: str) -> bool:
+    """D10's notes: equal but for their numbers (decimals and integers) within one unit of the last
+    printed digit (the spaces before a number may differ with its sign)."""
+    a, b = D10_NUMBER_RE.split(x), D10_NUMBER_RE.split(y)
+    if len(a) != len(b) or [t.rstrip(" ") for t in a[:-1]] + a[-1:] != [t.rstrip(" ") for t in b[:-1]] + b[-1:]:
+        return False
+    for p, q in zip(D10_NUMBER_RE.findall(x), D10_NUMBER_RE.findall(y)):
+        digits = len(p.split(".")[1]) if "." in p else 0
+        if (len(q.split(".")[1]) if "." in q else 0) != digits or abs(float(p) - float(q)) > 1.000001 * 10.0 ** -digits:
+            return False
+    return True
+
+
+def _d10_lines_problem(x: str, y: str, what: str) -> str | None:
+    """Texts of a rebuilt helix compared with D10 (owner decision; CH-16's closures are reproducible
+    within it on any kernel): the same lines; PDB atom records with the same columns 1-30 and 55-, every
+    atom within D10_ATOM and the heavy atoms within D10_RMSD; every other line as _d10_text_close."""
     a, b = x.split("\n"), y.split("\n")
     if len(a) != len(b):
         return f"{what}: {len(a)} / {len(b)} lines"
+    squares = []
     for i, (p, q) in enumerate(zip(a, b)):
         if p.startswith(PDB_ATOM_PREFIXES) or q.startswith(PDB_ATOM_PREFIXES):
-            same = p[:30] == q[:30] and p[54:] == q[54:]
-        else:
-            same = _masked(p) == _masked(q) or ("close contact" in p and "close contact" in q)
-        if not same:
+            if p[:30] != q[:30] or p[54:] != q[54:]:
+                return f"{what} line {i + 1}: {p[:WIDTH]!r} / {q[:WIDTH]!r}"
+            try:
+                d = math.dist([float(p[c:c + 8]) for c in (30, 38, 46)], [float(q[c:c + 8]) for c in (30, 38, 46)])
+            except ValueError:
+                return f"{what} line {i + 1}: unreadable coordinates"
+            if d > D10_ATOM:
+                return f"{what} line {i + 1}: {d:.3f} Å apart (D10: {D10_ATOM} Å)"
+            if not p[12:16].strip().lstrip("0123456789").startswith("H"):
+                squares.append(d * d)
+        elif not _d10_text_close(p, q):
             return f"{what} line {i + 1}: {p[:WIDTH]!r} / {q[:WIDTH]!r}"
+    if squares and math.sqrt(sum(squares) / len(squares)) > D10_RMSD:
+        return f"{what}: heavy-atom RMSD {math.sqrt(sum(squares) / len(squares)):.4f} Å (D10: {D10_RMSD} Å)"
     return None
 
 
 def _closure_problem(x: dict, y: dict, path: str) -> str | None:
-    """A rebuilt helix of builder_fitted_cases.json where the closures' path differs: inputs equal,
-    text and notes as _lines_problem, heavy atoms with the same chain, residue and name."""
+    """A rebuilt helix of builder_fitted_cases.json made with other kernels: inputs equal, text and
+    notes as _d10_lines_problem, the heavy atoms the same within D10."""
     if list(x) != list(y):
         return f"{path}: keys {list(x)} / {list(y)}"
     for key in x:
         if key == "text":
-            problem = _lines_problem(x[key], y[key], f"{path}.text")
+            problem = _d10_lines_problem(x[key], y[key], f"{path}.text")
         elif key == "notes":
             problem = (f"{path}.notes: {len(x[key])} / {len(y[key])} notes" if len(x[key]) != len(y[key])
-                       else _lines_problem("\n".join(x[key]), "\n".join(y[key]), f"{path}.notes"))
+                       else _d10_lines_problem("\n".join(x[key]), "\n".join(y[key]), f"{path}.notes"))
         elif key == "heavy":
-            problem = None if [r[:3] for r in x[key]] == [r[:3] for r in y[key]] else f"{path}.heavy: other atoms"
+            if [r[:3] for r in x[key]] != [r[:3] for r in y[key]]:
+                problem = f"{path}.heavy: other atoms"
+            else:
+                d = [math.dist(p[3:6], q[3:6]) for p, q in zip(x[key], y[key])]
+                rmsd = math.sqrt(sum(v * v for v in d) / max(len(d), 1))
+                problem = (f"{path}.heavy: RMSD {rmsd:.4f} Å, largest {max(d, default=0):.4f} Å (D10)"
+                           if rmsd > D10_RMSD or max(d, default=0) > D10_ATOM else None)
         else:
             problem = None if x[key] == y[key] else f"{path}.{key}: {x[key]!r} / {y[key]!r}"
         if problem:
@@ -718,7 +744,8 @@ def kernels_match(root: str) -> bool | None:
 
 def cli_closures_equal(old: bytes, new: bytes) -> tuple[bool, str]:
     """cli_cases.json where the pinned kernels differ (PATH_DEPENDENT): every case equal but the ones
-    with "fitted", whose stderr and written texts are compared as _lines_problem; the reason when not."""
+    with "fitted", whose stderr and written texts are compared as _d10_lines_problem; the reason when
+    not."""
     try:
         a, b = json.loads(old)["cases"], json.loads(new)["cases"]
     except (ValueError, KeyError, TypeError) as exc:
@@ -733,7 +760,7 @@ def cli_closures_equal(old: bytes, new: bytes) -> tuple[bool, str]:
         if "fitted" not in x or list(x) != list(y) \
                 or any(x[k] != y[k] for k in x if k not in ("stderr", "written")):
             return False, f"case {name}"
-        problem = _lines_problem(x["stderr"], y["stderr"], f"{name} stderr")
+        problem = _d10_lines_problem(x["stderr"], y["stderr"], f"{name} stderr")
         if not problem and list(x["written"]) != list(y["written"]):
             problem = f"{name}: written {list(x['written'])} / {list(y['written'])}"
         for file in x["written"] if not problem else ():
@@ -741,13 +768,13 @@ def cli_closures_equal(old: bytes, new: bytes) -> tuple[bool, str]:
             if list(p) != list(q) or any(p[k] != q[k] for k in p if k != "text"):
                 problem = f"{name} {file}"
             elif "text" in p:
-                problem = _lines_problem(p["text"], q["text"], f"{name} {file}")
+                problem = _d10_lines_problem(p["text"], q["text"], f"{name} {file}")
             if problem:
                 break
         if problem:
             return False, problem
         loose += 1
-    return True, f"{loose} fitted case(s) compared without their path-dependent numbers"
+    return True, f"{loose} fitted case(s) compared within D10"
 
 
 def fitted_equal(old: bytes, new: bytes, path_dependent: bool = False) -> tuple[bool, str]:
@@ -1051,7 +1078,8 @@ def main(argv=None) -> int:
     if other_kernels:
         print(f"OTHER KERNELS this CPU's pinned kernels do not give the reference machine's bits (the flips of "
               f"{KERNEL_PROBE} differ); path-dependent results ({', '.join(sorted(PATH_DEPENDENT))}) are "
-              f"compared without the numbers their path decides (regenerate_all.py KERNEL_PROBE)")
+              f"compared with their wider tolerances (D10 for the fitted helices, evaluation counts within "
+              f"{EVALUATIONS_TOLERANCE:.0%}; regenerate_all.py KERNEL_PROBE)")
     for rel, why in tolerated:
         within = ("numbers within the chem tolerance (FITTED)" if rel in FITTED or rel in FITTED_TEXT or rel in FITTED_GUI
                   else "the other kernels' structure check (OTHER KERNELS)" if rel == CLI_CASES

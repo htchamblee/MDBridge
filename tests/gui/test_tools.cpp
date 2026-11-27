@@ -382,9 +382,7 @@ void ToolTests::builderHelixWritesWhatTheCommandWrites() {
 }
 
 // MDATK tests/test_gui.py::test_builder_non_wc_helix_builds_in_the_background: the build runs on
-// the window's worker and the window stays responsive. The fitted helix builder (W2-A) is not there
-// yet: the library's "not available yet" is reported cleanly and nothing is written; once it lands
-// the file is written and the PENDING branch below goes.
+// the window's worker and the window stays responsive; the file is what the command line writes
 void ToolTests::builderNonWcHelixBuildsInTheBackground() {
     Fixture f;
     BuilderWindow* dlg = f.openBuilder();
@@ -401,17 +399,13 @@ void ToolTests::builderNonWcHelixBuildsInTheBackground() {
     QVERIFY(control<QPushButton>(dlg, "write")->isEnabled());
     QVERIFY(!control<QProgressBar>(dlg, "progress")->isVisible());
     const QString report = dlg->reportText();
-    if (report.contains(QStringLiteral("not available yet"))) {
-        QCOMPARE(report, QStringLiteral("ERROR: pairing hh is built by the fitted helix builder (not available yet)"));
-        QVERIFY(!fs::exists(out));
-        const core::Array entries = stepLog(f.project);  // as the command line: a failed step
-        QCOMPARE(entries.size(), std::size_t{1});
-        QCOMPARE(entryText(entries[0], "status"), std::string("failed"));
-        QCOMPARE(entryText(entries[0], "title"), std::string("Ideal parallel tHH D-RNA helix AAAA"));
-        QSKIP("PENDING(W2-A): the non-Watson-Crick pairings are not built yet; the window reports it cleanly");
-    }
     QVERIFY2(report.contains(QStringLiteral("Wrote")), qPrintable(report));
     QVERIFY(fs::exists(out));
+    QCOMPARE(runCommand({"build", "helix", "--seq", "AAAA", "--pairing", "hh", "-o", "cli_hh.pdb"}), 0);
+    QCOMPARE(readFile(out), readFile(f.dir / "cli_hh.pdb"));
+    const core::Array entries = stepLog(f.project);
+    QCOMPARE(entries.size(), std::size_t{1});
+    QCOMPARE(entryText(entries[0], "title"), std::string("Ideal parallel tHH D-RNA helix AAAA"));
 }
 
 void ToolTests::mutateAndFitWriteWhatTheCommandsWrite() {

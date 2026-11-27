@@ -391,6 +391,96 @@ TEST(LeastSquares, CallbackStops) {
     EXPECT_FALSE(r.success);
 }
 
+// MDBridge's extension (docs/DIFFERENCES.md NU-03): with denseFromSparsity the structure groups the
+// finite differences and the dense Jacobian goes to the exact subproblem, whose SVD of a tall matrix
+// leaves out the zero rows and reduces the rest by Householder QR (40 variables: the bidiagonal SVD).
+// A banded linear least-squares problem with one-sided (clipped) rows reaches the solution of its
+// normal equations, solved here by Cholesky (to the differences' rounding), and the same point as the
+// dense differences.
+TEST(LeastSquares, DenseFromSparsityAndTheTallExactSubproblem) {
+    constexpr std::size_t n = 40, bands = 3;
+    std::vector<std::size_t> rowOf, colOf;
+    std::vector<std::vector<std::pair<std::size_t, double>>> rows;
+    for (std::size_t i = 0; i < n; ++i) {  // band rows: x_i .. x_{i+2}
+        std::vector<std::pair<std::size_t, double>> row;
+        for (std::size_t k = 0; k < bands && i + k < n; ++k) {
+            row.emplace_back(i + k, 1.0 + 0.3 * std::sin(static_cast<double>(7 * i + 3 * k)));
+        }
+        rows.push_back(row);
+    }
+    for (std::size_t i = 0; i < n; ++i) {  // plain rows
+        rows.push_back({{i, 0.5 + 0.1 * std::cos(static_cast<double>(i))}});
+    }
+    std::vector<double> b(rows.size());
+    for (std::size_t r = 0; r < rows.size(); ++r) {
+        b[r] = std::sin(static_cast<double>(r) * 0.7) * 2.0;
+        for (const auto& [c, v] : rows[r]) {
+            rowOf.push_back(r);
+            colOf.push_back(c);
+            (void)v;
+        }
+    }
+    const std::size_t linear = rows.size();
+    for (std::size_t i = 0; i < n; ++i) {  // one-sided rows, inactive near the solution (zero rows)
+        rowOf.push_back(linear + i);
+        colOf.push_back(i);
+    }
+    const auto fun = [&](std::span<const double> x) {
+        std::vector<double> f(linear + n);
+        for (std::size_t r = 0; r < linear; ++r) {
+            double acc = -b[r];
+            for (const auto& [c, v] : rows[r]) acc += v * x[c];
+            f[r] = acc;
+        }
+        for (std::size_t i = 0; i < n; ++i) f[linear + i] = std::max(0.0, x[i] - 50.0);
+        return f;
+    };
+    // the normal equations A^T A x = A^T b of the linear rows, by Cholesky
+    std::vector<double> ata(n * n, 0.0), atb(n, 0.0);
+    for (std::size_t r = 0; r < linear; ++r) {
+        for (const auto& [c, v] : rows[r]) {
+            atb[c] += v * b[r];
+            for (const auto& [d, w] : rows[r]) ata[c * n + d] += v * w;
+        }
+    }
+    for (std::size_t j = 0; j < n; ++j) {
+        for (std::size_t k = 0; k < j; ++k) ata[j * n + j] -= ata[j * n + k] * ata[j * n + k];
+        ata[j * n + j] = std::sqrt(ata[j * n + j]);
+        for (std::size_t i = j + 1; i < n; ++i) {
+            for (std::size_t k = 0; k < j; ++k) ata[i * n + j] -= ata[i * n + k] * ata[j * n + k];
+            ata[i * n + j] /= ata[j * n + j];
+        }
+    }
+    std::vector<double> y(n), want(n);
+    for (std::size_t i = 0; i < n; ++i) {
+        double acc = atb[i];
+        for (std::size_t k = 0; k < i; ++k) acc -= ata[i * n + k] * y[k];
+        y[i] = acc / ata[i * n + i];
+    }
+    for (std::size_t i = n; i-- > 0;) {
+        double acc = y[i];
+        for (std::size_t k = i + 1; k < n; ++k) acc -= ata[k * n + i] * want[k];
+        want[i] = acc / ata[i * n + i];
+    }
+    const std::vector<double> x0(n, 1.0);
+    numerics::LeastSquaresOptions grouped;
+    grouped.ftol = grouped.xtol = grouped.gtol = 1e-12;
+    grouped.jacSparsity = numerics::CsrMatrix::pattern(linear + n, n, rowOf, colOf);
+    grouped.denseFromSparsity = true;
+    grouped.jacobianThreads = 3;
+    const auto a = numerics::leastSquares(fun, x0, grouped);
+    numerics::LeastSquaresOptions dense;
+    dense.ftol = dense.xtol = dense.gtol = 1e-12;
+    const auto d = numerics::leastSquares(fun, x0, dense);
+    EXPECT_TRUE(a.success) << a.message;
+    for (std::size_t i = 0; i < n; ++i) {
+        EXPECT_NEAR(a.x[i], want[i], 1e-6) << i;  // the differences' rounding: about 3e-8
+        EXPECT_NEAR(d.x[i], a.x[i], 1e-12) << i;
+    }
+    grouped.trSolver = numerics::TrustRegionSolver::Lsmr;
+    EXPECT_THROW(numerics::leastSquares(fun, x0, grouped), std::invalid_argument);
+}
+
 TEST(LeastSquares, ColumnGroupsAndPermutations) {
     for (const core::Value& c : cases("permutations")) {
         EXPECT_EQ(numerics::randomStatePermutation(0, count(at(c, "n"))), counts(at(c, "permutation")))

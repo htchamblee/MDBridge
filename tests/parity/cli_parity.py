@@ -103,9 +103,9 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)  # -I leaves the script's folder out
 import chem_common  # noqa: E402
 
-# numpy's and OpenBLAS' kernels pinned as in the chem generators, before the child imports numpy:
-# the fitted builds (non-Watson-Crick helices, triplexes: least-squares closures) land up to 0.8 A
-# apart with other kernels (OPENBLAS_CORETYPE=Haswell on the reference machine; CI run 45882807857)
+# numpy's and OpenBLAS' kernels pinned as in the chem generators, before the child imports numpy (the
+# fitted builds' closures follow CH-16's continuation, which is reproducible within D10 on any kernel;
+# MDATK's own closure landed up to 0.8 A apart with other kernels, CI run 45882807857)
 chem_common.pin_kernels()
 import improvements_cli  # noqa: E402
 import improvements_readers_pdb  # noqa: E402  MDBridge's reader warnings and errors (docs/DIFFERENCES.md)
@@ -215,8 +215,8 @@ CHEM = {"pdb", "build", "build helix", "build helix pairings", "build mutate", "
         "density simulate"}
 # Commands MDBridge does not have yet: their cases are written (--write) and skipped when comparing
 # (unless --include-pending) and by tests/cli/test_commands.cpp ("pending": true). Remove a command
-# here when it lands: the other pairings and triplexes of build helix come with milestone 6 W2-A.
-PENDING = {"build helix pairings"}
+# here when it lands (the other pairings and triplexes of build helix landed with milestone 6 W2-A).
+PENDING = set()
 
 
 # `list` without conda installations, and with a fake one: an installation whose base and three
