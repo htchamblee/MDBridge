@@ -27,6 +27,7 @@
 #include <unistd.h>
 #endif
 
+#include "mdbridge/analysis/context.hpp"
 #include "mdbridge/analysis/pipeline.hpp"
 #include "mdbridge/analysis/registry.hpp"
 #include "mdbridge/core/clock.hpp"
@@ -173,17 +174,20 @@ int commandInfo(CLI::App& command, const CommonArguments& common, Console& conso
         console.err << "info needs --project or --top\n";
         return 2;
     }
-    const core::System system = io::loadSystem(core::pathFromUtf8(project.inputs.topology),
-                                               toPaths(project.inputs.trajectories), project.inputs.dt_ps);
+    core::System system = io::loadSystem(core::pathFromUtf8(project.inputs.topology),
+                                         toPaths(project.inputs.trajectories), project.inputs.dt_ps);
     for (const std::string& warning : system.warnings) {  // "WARNING: <message>" on stderr
         core::logWarning(warning);
     }
     Value info = io::systemSummary(system);
+    // SEL-17 (MDATK 0.1.2): the groups are selected as the analyses select them, distance keywords
+    // periodic only with analyses.use_pbc
+    const analysis::AnalysisContext context(system, project);
     core::Table groups;
     for (const core::ResidueGroup& g : project.groups) {
         Value entry;
         try {
-            const core::AtomGroup atoms = core::select(system, "group:" + g.name, project.groups);
+            const core::AtomGroup atoms = context.select("group:" + g.name);
             const std::vector<std::int32_t> residues = atoms.residues();
             const core::Topology& t = atoms.topology();
             const auto label = [&t](std::int32_t r) {

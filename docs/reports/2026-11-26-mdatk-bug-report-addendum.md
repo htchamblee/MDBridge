@@ -587,6 +587,9 @@ None. The newest `origin/main` (2026-11-26 fetch) is still `1efa0ef` (0.1.1), th
 was checked against, so all 85 items MDATK-BUG-001 … 085 are present unchanged. (Correction to that
 report's Appendix B: AP-18 was only partly fixed in 0.1.0; the remaining part is 103 above.)
 
+MDATK's response to both reports (2026-11-27), including 099 here, is recorded in the first report under
+"MDATK's response".
+
 ## Appendix: items checked and left out
 
 - **Already in the first report** (not repeated): every AP item of the app-layer review: AP-01 → 001

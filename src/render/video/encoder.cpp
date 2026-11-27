@@ -70,11 +70,10 @@ int svtAv1Crf(int crf) {
 }
 
 int mpeg4Qscale(int crf) {
-    const int c = clampCrf(crf);
-    if (c <= 20) {
-        return 1 + (c + 5) / 10;  // round(1 + c / 10): 0 -> 1, 10 -> 2, 20 -> 3
-    }
-    return 3 + ((c - 20) * 28 + 15) / 31;  // 21 -> 4, 51 -> 31
+    // MDATK 0.1.2 rate_options: min(31, max(2, round(3 * 2 ** ((crf - 20) / 6)))), Python's round
+    // (half to even; nearbyint in the default rounding mode); 6 crf steps double the qscale
+    const double q = std::nearbyint(3.0 * std::pow(2.0, static_cast<double>(clampCrf(crf) - 20) / 6.0));
+    return std::clamp(static_cast<int>(q), 2, 31);
 }
 
 CodecChoice chooseCodec(std::string_view requested, int crf,

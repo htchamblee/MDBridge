@@ -170,7 +170,8 @@ def main():
                             # SEL-19: hints
                             "resnam G", "Target and name P", "name P and Aptamer", "group Target", "group Nope",
                             "group target", "(all x)", "(name P", "RESID 1", "namee P", "foo and name P",
-                            "Proteins", "sel:Target",
+                            "Proteins", "sel:Target", "resid 1 AND name P", "resid 1 Or (resid 2)",
+                            "NOT name P",
                             # SEL-22: why nothing matched
                             "group:Far", "group:FarSel", "group:Far or group:FarSel", "Far", "sel:resid 900",
                             "name P and resid 999", "name P or resid 999", "name Q and resid 1:3",

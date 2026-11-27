@@ -11,11 +11,13 @@
 #include <vector>
 
 #include <QComboBox>
+#include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
 #include <QPushButton>
 #include <QSpinBox>
 #include <QVBoxLayout>
+#include <QLayoutItem>
 
 #include "gui/forms/field_widgets.hpp"
 #include "gui/forms/form_context.hpp"
@@ -217,6 +219,7 @@ struct LayoutPage::Slot {
     SlotTextField* more = nullptr;
     SlotTextField* title = nullptr;
     SlotTextField* options = nullptr;
+    QPushButton* remove = nullptr;  // AP-08 (MDATK 0.1.2): "Remove this panel"
     QString autoTitle;          // MDATK's row["auto"]: the title that follows the data
     QString optionsError;       // the located form error of the options text ("" none)
     std::string path(const char* field) const { return "layout.panels." + std::to_string(k) + "." + field; }
@@ -247,6 +250,12 @@ LayoutPage::LayoutPage(forms::FormContext& context, QWidget* parent)
     m_slotBox->setContentsMargins(0, 0, 0, 0);
     m_slotBox->setSpacing(6);
     f->addWide(box);
+    auto* slotless = new QWidget;
+    slotless->setObjectName(QStringLiteral("layout.slotless"));
+    m_slotlessBox = new QVBoxLayout(slotless);
+    m_slotlessBox->setContentsMargins(0, 0, 0, 0);
+    m_slotlessBox->setSpacing(4);
+    f->addWide(slotless);
     m_stillFrame = new QSpinBox;
     m_stillFrame->setObjectName(QStringLiteral("layout.still_frame"));
     m_stillFrame->setRange(0, 1000000000);
@@ -322,7 +331,11 @@ void LayoutPage::rebuildSlots() {
         f->add(tr("Title"), slot->title);
         slot->options = new SlotTextField(context(), k, QStringLiteral("options"), QStringLiteral("{}"), QString(), this);
         f->add(tr("Options (JSON)"), slot->options);
+        slot->remove = makeButton(tr("Remove this panel"), toQString(slot->path("remove")),
+                                  tr("Empty this slot: the panels after it move up one slot"));
+        f->addButtons({slot->remove});
         Slot* raw = slot.get();
+        connect(raw->remove, &QPushButton::clicked, this, [this, raw] { removePanel(raw->k); });
         for (SlotTextField* t : {raw->more, raw->title, raw->options}) t->m_slot = raw;
         connect(raw->type, &QComboBox::activated, this, [this, raw] { onType(*raw); });
         connect(raw->data, &QComboBox::activated, this, [this, raw] { onData(*raw, false); });
@@ -512,6 +525,67 @@ void LayoutPage::refreshSlots(bool force) {
         if (!slot.options->dirty() && slot.optionsError.isEmpty()) slot.options->showText(optionsText(spec.options));
         --m_loading;
     }
+    for (const auto& s : m_slots) {
+        s->remove->setEnabled(static_cast<std::size_t>(s->k) < panels.size());  // an empty slot has none
+    }
+    refreshSlotless();
+}
+
+// AP-08 (MDATK 0.1.2 _more_panels_note): the panels beyond the preset's slots, each with "Remove".
+void LayoutPage::refreshSlotless() {
+    const std::vector<QString> now = slotlessPanels();
+    if (now == m_slotless) return;
+    m_slotless = now;
+    while (QLayoutItem* item = m_slotlessBox->takeAt(0)) {
+        if (QWidget* w = item->widget()) {
+            w->hide();
+            w->deleteLater();  // a Remove button may be the one being clicked
+        }
+        delete item;
+    }
+    if (now.empty()) return;
+    const auto n = static_cast<int>(now.size());
+    const QString note =
+        n == 1 ? tr("1 more panel of this project has no slot in this grid: kept (and saved), not drawn. A grid with "
+                    "more slots shows it again.")
+               : tr("%1 more panels of this project have no slot in this grid: kept (and saved), not drawn. A grid "
+                    "with more slots shows them again.")
+                     .arg(n);
+    QLabel* hint = makeHint(note);
+    hint->setObjectName(QStringLiteral("layout.slotless.note"));
+    m_slotlessBox->addWidget(hint);
+    for (int i = 0; i < n; ++i) {
+        const int index = slotCount() + i;
+        auto* row = new QWidget;
+        auto* line = new QHBoxLayout(row);
+        line->setContentsMargins(0, 0, 0, 0);
+        auto* label = new QLabel(now[static_cast<std::size_t>(i)], row);
+        label->setWordWrap(true);
+        QPushButton* remove = makeButton(tr("Remove"), QStringLiteral("layout.panels.%1.remove").arg(index),
+                                         tr("Remove this panel, which has no slot, from the project"), row);
+        line->addWidget(label, 1);
+        line->addWidget(remove, 0);
+        connect(remove, &QPushButton::clicked, this, [this, index] { removePanel(index); });
+        m_slotlessBox->addWidget(row);
+    }
+}
+
+std::vector<QString> LayoutPage::slotlessPanels() const {
+    const core::Project& project = context().document().project();
+    const std::vector<core::PanelSpec>& panels = project.layout.panels;
+    std::vector<QString> out;
+    for (std::size_t k = m_slots.size(); k < panels.size(); ++k) {
+        const core::PanelSpec& spec = panels[k];
+        const core::PanelType* pt = core::findPanelType(spec.type);
+        const QString type = pt ? toQString(std::string(pt->label)) : toQString(spec.type);
+        QString text = tr("Panel %1: %2").arg(static_cast<int>(k) + 1).arg(type);
+        const std::string what = !spec.title.empty()   ? spec.title
+                                 : !spec.series.empty() ? analysis::keyLabel(spec.series.front(), project)
+                                                        : std::string();
+        if (!what.empty()) text += QStringLiteral(" \u2013 ") + toQString(what);
+        out.push_back(text);
+    }
+    return out;
 }
 
 void LayoutPage::documentChanged(const core::DocumentChange& change) {
@@ -669,6 +743,31 @@ void LayoutPage::commitText(Slot& slot, const QString& field) {
     }
     if (k < project.layout.panels.size() && project.layout.panels[k].series == series) return;
     storeSlot(slot.k, tr("Set Panel %1 keys").arg(slot.k + 1), [&](core::PanelSpec& p) { p.series = series; });
+}
+
+bool LayoutPage::removePanel(int index) {
+    core::ProjectDocument& doc = context().document();
+    const std::vector<core::PanelSpec>& panels = doc.project().layout.panels;
+    if (index < 0 || static_cast<std::size_t>(index) >= panels.size()) return false;
+    for (const auto& slot : m_slots) {
+        // the editors after it would show the next panel: their unparsed text has to be fixed first
+        if (slot->k > index && !slot->optionsError.isEmpty()) {
+            emit logLine(tr("Panel not removed; fix this first: %1").arg(slot->optionsError));
+            return false;
+        }
+    }
+    if (index < slotCount()) {
+        Slot& slot = *m_slots[static_cast<std::size_t>(index)];
+        if (!slot.optionsError.isEmpty()) {  // its unparsed options go with it
+            slot.optionsError.clear();
+            context().setFormError(slot.path("options"), nullptr);
+            slot.options->flagChanged();
+        }
+    }
+    doc.edit(toStdString(tr("Remove panel %1").arg(index + 1)), [&](core::Project& p) {
+        p.layout.panels.erase(p.layout.panels.begin() + index);
+    });
+    return true;
 }
 
 bool LayoutPage::swapPanels(int from, int to) {

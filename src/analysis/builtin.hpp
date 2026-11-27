@@ -1,6 +1,9 @@
 #pragma once
 // Private helpers of the built-in analyses' descriptors.
 
+#include <cstddef>
+#include <cstdint>
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -27,6 +30,10 @@ struct MutableGroupFields {
     std::string* b = nullptr;
 };
 MutableGroupFields groupFields(core::Project& project, std::string_view section);
+
+// AN-20: the trajectory frames of a warning: "frame 2" or "frames 2, 5-7" (consecutive numbers
+// joined), with `count` set to their number. "" for none.
+std::string frameList(std::span<const std::int64_t> frames, std::size_t* count = nullptr);
 
 // The computation of an analysis whose port has not landed yet: throws
 // core::NamedError("NotImplementedError", "<name>: not implemented yet").

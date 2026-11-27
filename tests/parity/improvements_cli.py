@@ -13,6 +13,8 @@ expected data is MDATK's output with the improvement applied here, never edited 
     PRJ-02           RMSD setup warns when reference_frame is clamped
     PRJ-04           apply_override: "groups.--1.name: no list element '--1'"
     PRJ-05           load_project: "--frames: 'x' is not a frame number or range"
+    SEL-17           info selects the groups with periodic distance keywords only with use_pbc
+                     (MDATK 0.1.2)
     CLI-02           Pipeline.analyze reads the external data once before the frame loop
     CLI-08           export_frames checks every frame's coordinates before writing any file
     CMD-01           build_demo checks the frame count, the time step and the sequence first
@@ -288,6 +290,31 @@ def _patch_rmsd():  # PRJ-02
 
 
 def _patch_cli(cli):
+    original_info = cli.cmd_info
+
+    def cmd_info(args):  # SEL-17 (MDATK 0.1.2): the groups are selected periodic only with use_pbc
+        import improvements_selections
+        from mdatk import selections
+
+        load, select = cli.load_project, selections.select
+        loaded = {}
+
+        def load_project(a):
+            loaded["project"] = load(a)
+            return loaded["project"]
+
+        def select_open(universe, text, groups=(), allow_empty=False):
+            periodic = bool(loaded["project"].analyses.use_pbc)
+            return improvements_selections.select_mdbridge(selections, universe, text, groups, allow_empty,
+                                                           periodic=periodic)
+
+        cli.load_project, selections.select = load_project, select_open
+        try:
+            return original_info(args)
+        finally:
+            cli.load_project, selections.select = load, select
+
+    cli.cmd_info = cmd_info
     original_override = cli.apply_override
 
     def apply_override(project, assignment):  # PRJ-04

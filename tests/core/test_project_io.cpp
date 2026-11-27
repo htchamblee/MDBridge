@@ -497,10 +497,48 @@ TEST(ProjectIo, RecentListKeepsOtherSettings) {
     EXPECT_EQ(recentProjects(), std::vector<fs::path>{project});
     EXPECT_FALSE(fs::exists(settings.string() + ".tmp"));
 
-    // a file that is no TOML is replaced, as MDATK does
-    writeFile(settings, "recent = [\n");
+}
+
+// AP-17 (MDATK 0.1.2, _settings_to_change): a settings file that is no TOML is kept as
+// settings.toml.unreadable, with a warning, and a new one starts; one that cannot be read at all is
+// left alone and nothing is written.
+TEST(ProjectIo, UnreadableSettingsFileIsKept) {
+    TempDir dir;
+    const ScopedEnvironment config("XDG_CONFIG_HOME", (dir / "config").string());
+    const ScopedEnvironment appData("APPDATA", (dir / "config").string());
+    const fs::path settings = userSettingsPath();
+    fs::create_directories(settings.parent_path());
+    const fs::path project = dir / "p.mdatk.toml";
+    saveProject(project, Project{});
+    const fs::path kept = settings.string() + ".unreadable";
+    // cut off; Latin-1 text
+    const std::vector<std::string> files{"cat_proof = true\nrecent = [\n", "notes = \"caf\xE9\"\n"};
+    for (const std::string& broken : files) {
+        writeFile(settings, broken);
+        const LogCapture log;
+        addRecent(project);
+        EXPECT_EQ(recentProjects(), std::vector<fs::path>{project});
+        EXPECT_EQ(readFile(kept), broken);  // every byte kept
+        ASSERT_EQ(log.lines().size(), 1u);
+        const std::string& warning = log.lines()[0];
+        EXPECT_TRUE(warning.starts_with("WARNING: " + pathToUtf8(settings) + " cannot be read (")) << warning;
+        EXPECT_TRUE(warning.ends_with("): it is kept as " + pathToUtf8(kept) + " and a new settings file starts"))
+            << warning;
+        EXPECT_EQ(warning.find(pathToUtf8(settings) + ": "), std::string::npos) << warning;  // named once
+    }
+
+    // cannot be read (here: a folder): nothing is written, nothing is moved
+    fs::remove(settings);
+    fs::remove(kept);
+    fs::create_directories(settings);
+    const LogCapture log;
     addRecent(project);
-    EXPECT_EQ(recentProjects(), std::vector<fs::path>{project});
+    EXPECT_TRUE(fs::is_directory(settings));
+    EXPECT_FALSE(fs::exists(kept));
+    EXPECT_FALSE(fs::exists(settings.string() + ".tmp"));
+    ASSERT_EQ(log.lines().size(), 1u);
+    EXPECT_TRUE(log.lines()[0].starts_with("WARNING: could not update the recent projects list: "))
+        << log.lines()[0];
 }
 
 // D16: Linux keeps the recent list in MDATK's shared file and MDBridge's own settings in its own

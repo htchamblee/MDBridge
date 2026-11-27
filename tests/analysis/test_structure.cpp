@@ -401,6 +401,15 @@ TEST(StructureAnalyses, HeavyAtomsAndAromatic) {
            7, 0);
 }
 
+TEST(StructureAnalyses, BlownUpFramesAndBondGuess) {
+    // AN-20 (MDATK 0.1.2): a frame with a NaN trace atom (pdb_blown), or a NaN alignment reference
+    // (pdb_blown_reference), is stored unaligned and named in a warning (trace and atoms of each);
+    // AN-14 (MDATK 0.1.2's rule): a disulfide across residues 1 and 3, O3'-P across a chain break
+    report(runCases("systems_cases.json",
+                    [](std::string_view n) { return n == "pdb_blown" || n == "pdb_blown_reference" || n == "bonds"; }),
+           5, 0);
+}
+
 // ---------------------------------------------------------------- helpers
 
 TEST(StructureAnalyses, GuessElement) {

@@ -192,9 +192,9 @@ TEST(RmsdAnalysis, DemoDryVariants) {
 
 TEST(RmsdAnalysis, Systems) {
     Tally tally;
-    checkCaseFile("systems_cases.json", tally);
-    EXPECT_EQ(tally.cases, 11);
-    EXPECT_EQ(tally.results, 11);
+    checkCaseFile("systems_cases.json", tally);  // pdb_blown*: NaN for a blown-up fit frame (AN-20)
+    EXPECT_EQ(tally.cases, 13);
+    EXPECT_EQ(tally.results, 13);
 }
 
 // ---------------------------------------------------------------- hand-made checks

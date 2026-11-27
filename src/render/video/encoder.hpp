@@ -62,8 +62,9 @@ inline constexpr std::string_view kFallbackEncoder = "mpeg4";
 
 // x264 / x265 CRF (clamped to 0..51) -> SVT-AV1 CRF (0..63): round(crf * 63 / 51); 20 -> 25.
 int svtAv1Crf(int crf);
-// x264 / x265 CRF (clamped to 0..51) -> mpeg4 qscale (1..31, `-q:v`): the default crf 20 gives
-// MDATK's fixed `-q:v 3`; 1 + crf / 10 below 20, 3 + (crf - 20) * 28 / 31 above (rounded).
+// x264 / x265 CRF (clamped to 0..51) -> mpeg4 qscale (2..31, `-q:v`): round(3 * 2^((crf - 20) / 6))
+// clamped to 2..31 (MDATK 0.1.2): the default crf 20 gives MDATK's fixed `-q:v 3`, and 6 crf
+// steps double the qscale as they halve x264's bit rate (23 -> 4, 26 -> 6, 41 -> 31).
 int mpeg4Qscale(int crf);
 
 struct CodecChoice {

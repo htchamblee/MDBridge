@@ -6,7 +6,8 @@
 // atoms analysis guesses them from covalent radii on the first analysed frame (guessBonds; AN-13,
 // AN-14), its rows sorted by (i, j), and says so in a warning citing the radii (CIT-05); the
 // proximity members are 0 in every case (AN-15); unknown structure groups are named in a warning
-// (AN-21).
+// (AN-21); with align_frames, a frame whose trace points are not all finite is stored unaligned and
+// named in a warning (AN-20, MDATK 0.1.2).
 
 #include <algorithm>
 #include <array>
@@ -151,6 +152,58 @@ std::vector<float> positions32(const core::Frame& frame, const core::AtomGroup& 
     }
     return out;
 }
+
+bool allFinite(const std::vector<Vec3>& xyz) {
+    return std::all_of(xyz.begin(), xyz.end(), [](const Vec3& x) {
+        return std::isfinite(x[0]) && std::isfinite(x[1]) && std::isfinite(x[2]);
+    });
+}
+
+// AN-20 (MDATK 0.1.2): the frames whose trace points could not be superposed on the alignment
+// reference (a non-finite point there or in the reference) and were stored as they are, in one
+// warning: "structural view: frame 2 has non-finite trace coordinates; its trace is stored
+// unaligned" ("frames 2, 5-7 have ...; their traces are ..."; the atoms analysis: "its atoms are",
+// "their atoms are"), or the reference itself ("structural view: the alignment reference (frame 0)
+// has non-finite trace coordinates; the frames of the trace are stored unaligned").
+struct UnalignedWords {
+    const char* one;    // "its trace is"
+    const char* many;   // "their traces are"
+    const char* whole;  // "trace"
+};
+
+class UnalignedFrames {
+public:
+    void reset(std::size_t frames) { m_frame.assign(frames, -1); }
+    // frame k (trajectory frame `index`) was not aligned; a per-frame slot (concurrent process)
+    void mark(std::size_t k, std::int64_t index) { m_frame[k] = index; }
+    void warn(const AnalysisContext& context, bool referenceBad, std::int64_t reference,
+              const UnalignedWords& words) const {
+        if (referenceBad) {
+            if (m_frame.size() > 1) {
+                context.warn("structural view: the alignment reference (frame " + std::to_string(reference) +
+                             ") has non-finite trace coordinates; the frames of the " + words.whole +
+                             " are stored unaligned");
+            }
+            return;
+        }
+        std::vector<std::int64_t> frames;
+        for (const std::int64_t f : m_frame) {
+            if (f >= 0) {
+                frames.push_back(f);
+            }
+        }
+        if (frames.empty()) {
+            return;
+        }
+        std::size_t count = 0;
+        const std::string list = detail::frameList(frames, &count);
+        context.warn("structural view: " + list + (count == 1 ? " has" : " have") + " non-finite trace coordinates; " +
+                     (count == 1 ? words.one : words.many) + " stored unaligned");
+    }
+
+private:
+    std::vector<std::int64_t> m_frame;  // per analysed frame: its trajectory frame when not aligned, else -1
+};
 
 // (x - mc) @ r.T + rc, row by row
 void superpose(std::vector<Vec3>& xyz, const KabschResult& fit) {
@@ -380,6 +433,8 @@ public:
         m_coords.assign(n * m_residues.size() * 3, 0.0f);
         m_ionCoords.assign(n * m_ions.size() * 3, 0.0f);
         m_reference.reset();
+        m_referenceFinite = true;
+        m_unaligned.reset(n);
         const core::Topology& t = context().topology();
         m_chain = core::chainIds(t, m_residues);
         m_groupMember = groupMembership(context(), m_residues);
@@ -390,6 +445,8 @@ public:
     // The first analysed frame is the alignment reference and decides the links.
     void prepare(const core::Frame& first) override {
         m_reference = m_tracer->positions(first);
+        m_referenceFrame = first.index;
+        m_referenceFinite = allFinite(*m_reference);
         links(*m_reference);
     }
 
@@ -399,15 +456,24 @@ public:
         std::vector<Vec3> xyz = m_tracer->positions(frame);
         std::vector<Vec3> ions = positions(frame, m_ions);
         if (k != 0 && m_align && m_residues.size() >= 3) {  // the reference frame stays as it is
-            const KabschResult fit = kabsch(xyz, *m_reference);
-            superpose(xyz, fit);
-            superpose(ions, fit);
+            // AN-20 (MDATK 0.1.2): a blown-up frame cannot be superposed; it is stored as it is
+            if (m_referenceFinite && allFinite(xyz)) {
+                const KabschResult fit = kabsch(xyz, *m_reference);
+                superpose(xyz, fit);
+                superpose(ions, fit);
+            } else {
+                m_unaligned.mark(k, frame.index);
+            }
         }
         store(m_coords, k, xyz);
         store(m_ionCoords, k, ions);
     }
 
     core::AnalysisResult finalize() override {
+        if (m_align && m_residues.size() >= 3) {
+            m_unaligned.warn(context(), !m_referenceFinite, m_referenceFrame,
+                             {"its trace is", "their traces are", "trace"});
+        }
         const core::Topology& t = context().topology();
         std::vector<std::string> ionLabels;
         for (const std::int32_t a : m_ions.indices()) {
@@ -471,6 +537,9 @@ private:
     std::optional<TracePoints> m_tracer;
     core::AtomGroup m_ions;
     bool m_align = true;
+    bool m_referenceFinite = true;    // AN-20
+    std::int64_t m_referenceFrame = 0;
+    UnalignedFrames m_unaligned;
     std::vector<float> m_coords;
     std::vector<float> m_ionCoords;
     std::optional<std::vector<Vec3>> m_reference;
@@ -584,6 +653,8 @@ public:
         m_tracer.emplace(context().system().atoms(), m_residues, p.visual.trace_atoms);
         m_align = p.visual.align_frames;
         m_reference.reset();
+        m_referenceFinite = true;
+        m_unaligned.reset(frameCount());
         m_coords.assign(frameCount() * m_atoms.size() * 3, 0.0f);
         m_row = residueRowsOf(m_residues, m_atoms);
         m_bonds = topologyBondsAmong(m_atoms);
@@ -601,6 +672,8 @@ public:
     // (AN-13; MDATK: the frame current at setup, the rmsd reference frame when rmsd came first).
     void prepare(const core::Frame& first) override {
         m_reference = m_tracer->positions(first);
+        m_referenceFrame = first.index;
+        m_referenceFinite = allFinite(*m_reference);
         if (m_guessBonds) {
             m_bonds = guessBonds(m_atoms, first);
         }
@@ -611,12 +684,22 @@ public:
     void process(std::size_t k, const core::Frame& frame) override {
         std::vector<Vec3> xyz = positions(frame, m_atoms);
         if (k != 0 && m_align && m_tracer->size() >= 3) {  // the reference frame stays as it is
-            superpose(xyz, kabsch(m_tracer->positions(frame), *m_reference));
+            // AN-20 (MDATK 0.1.2): as the trace, a blown-up frame is stored as it is
+            const std::vector<Vec3> points = m_tracer->positions(frame);
+            if (m_referenceFinite && allFinite(points)) {
+                superpose(xyz, kabsch(points, *m_reference));
+            } else {
+                m_unaligned.mark(k, frame.index);
+            }
         }
         store(m_coords, k, xyz);
     }
 
     core::AnalysisResult finalize() override {
+        if (m_align && m_tracer->size() >= 3) {
+            m_unaligned.warn(context(), !m_referenceFinite, m_referenceFrame,
+                             {"its atoms are", "their atoms are", "atoms"});
+        }
         const core::Topology& t = context().topology();
         std::vector<std::string> names;
         std::vector<std::string> resnames;
@@ -649,6 +732,9 @@ private:
     std::optional<TracePoints> m_tracer;
     bool m_align = true;
     std::optional<std::vector<Vec3>> m_reference;
+    bool m_referenceFinite = true;  // AN-20
+    std::int64_t m_referenceFrame = 0;
+    UnalignedFrames m_unaligned;
     std::vector<float> m_coords;
     std::vector<std::int64_t> m_row;
     std::vector<std::int64_t> m_bonds;  // [m, 2] row-major
@@ -787,15 +873,10 @@ std::vector<std::int64_t> guessBonds(const core::AtomGroup& atoms, const core::F
         if (residueSize[static_cast<std::size_t>(ri)] < 2 || residueSize[static_cast<std::size_t>(rj)] < 2) {
             continue;
         }
-        if (ri != rj) {
-            // consecutive residues of one chain (segment and, when the file has them, chain ID)
-            const bool sameChain = t.residueSegment[static_cast<std::size_t>(ri)] ==
-                                       t.residueSegment[static_cast<std::size_t>(rj)] &&
-                                   (!t.chainIDs || (*t.chainIDs)[static_cast<std::size_t>(ai)] ==
-                                                       (*t.chainIDs)[static_cast<std::size_t>(aj)]);
-            if (std::abs(ri - rj) != 1 || !sameChain) {
-                continue;
-            }
+        // within a residue, between neighbouring residues (by index, whatever their chains: O3'-P
+        // across a chain break) and between two sulfurs of any residues (a disulfide; MDATK 0.1.2)
+        if (std::abs(ri - rj) > 1 && !(elements[ui] == "S" && elements[uj] == "S")) {
+            continue;
         }
         if (found.d[p] <= radius[ui] + radius[uj] + kBondTolerance) {
             out.push_back(i);

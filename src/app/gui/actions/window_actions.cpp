@@ -30,6 +30,7 @@
 #include "gui/pages/outputs_page.hpp"
 #include "gui/pages/structure_page.hpp"
 #include "gui/preview_widget.hpp"
+#include "mdbridge/analysis/context.hpp"
 #include "mdbridge/analysis/pipeline.hpp"
 #include "mdbridge/core/json.hpp"
 #include "mdbridge/core/paths.hpp"
@@ -332,15 +333,17 @@ bool WindowActions::inspectSystem() {
             const analysis::ResolvedInputs inputs = analyses.cleanedIfAvailable();
             std::vector<fs::path> trajectories;
             for (const std::string& t : inputs.trajectories) trajectories.push_back(core::pathFromUtf8(t));
-            const core::System system =
+            core::System system =
                 io::loadSystem(core::pathFromUtf8(inputs.topology), trajectories, project.inputs.dt_ps);
             for (const std::string& warning : system.warnings) reporter.log("WARNING: " + warning);
             const core::Value info = io::systemSummary(system);
             reporter.log(std::string("System (") + (inputs.topology != project.inputs.topology ? "cleaned" : "raw") +
                          " files): " + core::toJsonAscii(info, -1));
+            // SEL-17 (MDATK 0.1.2): selected as the analyses select them (periodic only with use_pbc)
+            const analysis::AnalysisContext context(system, project);
             for (const core::ResidueGroup& g : project.groups) {
                 try {
-                    const core::AtomGroup atoms = core::select(system, "group:" + g.name, project.groups);
+                    const core::AtomGroup atoms = context.select("group:" + g.name);
                     const std::vector<std::int32_t> residues = atoms.residues();
                     if (residues.empty()) {  // WA-04 (MDATK: "ERROR index 0 is out of bounds ...")
                         reporter.log("  group " + g.name + ": 0 atoms, 0 residues");

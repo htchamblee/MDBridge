@@ -32,9 +32,11 @@ std::vector<std::filesystem::path> recentProjects();
 // Puts `project` (made absolute) first in the list and writes the settings file, keeping every
 // other entry of the file as it was (MDATK 0.0.14 keeps RNAdo's cat_proof there; MDATK 0.0.4.1 and
 // MDBridge before wrote the list alone). The file is written to <file>.tmp and renamed over the old
-// one, so a crash never leaves half a file. A file that cannot be read or is not TOML is replaced
-// (as MDATK). A failure is logged as a warning ("could not update the recent projects list:
-// <reason>").
+// one, so a crash never leaves half a file. A file that is not TOML (or not UTF-8) is kept as
+// <file>.unreadable with a warning ("<file> cannot be read (<reason>): it is kept as
+// <file>.unreadable and a new settings file starts") and a new file starts; a file that cannot be
+// read at all is left alone and nothing is written (MDATK 0.1.2; AP-17). A failure is logged as a
+// warning ("could not update the recent projects list: <reason>").
 void addRecent(const std::filesystem::path& project);
 
 }  // namespace mdbridge::core

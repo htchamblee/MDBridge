@@ -3,8 +3,9 @@
 // MDATK's tests/test_gui.py test_canvas_shows_layout_with_example_data,
 // test_drag_rotates_structure_and_swaps_panels and test_slot_defaults_for_residue_panels_and_wheel_zoom,
 // one undo step per drag, Esc, AP-20 (rotation without rebuilding the figure) and the automatic
-// titles after a group rename (MDATK 0.1.1). The saved files of the same mouse paths are compared
-// with MDATK's by the canvas cases of mdbridge_gui_tests (tests/data/gui/canvas).
+// titles after a group rename (MDATK 0.1.1), and AP-08's Remove buttons (MDATK 0.1.2). The saved
+// files of the same mouse paths are compared with MDATK's by the canvas cases of mdbridge_gui_tests
+// (tests/data/gui/canvas).
 
 #include <algorithm>
 #include <array>
@@ -16,9 +17,11 @@
 #include <QApplication>
 #include <QComboBox>
 #include <QCoreApplication>
+#include <QLabel>
 #include <QLineEdit>
 #include <QLocale>
 #include <QMouseEvent>
+#include <QPushButton>
 #include <QSignalSpy>
 #include <QTemporaryDir>
 #include <QTest>
@@ -85,6 +88,7 @@ private slots:
     void wheelBurstIsOneUndoStep();
     void keyboardRotatesAndZooms();
     void titlesFollowAGroupRename();
+    void removePanelsAndPanelsWithoutSlot();
 
 private:
     bool settled() {
@@ -330,6 +334,79 @@ void CanvasTests::titlesFollowAGroupRename() {
     QVERIFY(p.layout.panels[0].title != before.layout.panels[0].title);
     QCOMPARE(p.layout.panels[1].title, std::string("RMSD"));
     QCOMPARE(p.layout.panels[2].title, std::string("My own"));
+}
+
+// AP-08 (MDATK 0.1.2): "Remove this panel" deletes a slot's panel (the panels after it move up, one
+// undo step; an empty slot has nothing to remove); the panels a smaller preset has no slot for are
+// listed with a note and a Remove each; a removal that would move unparsed options is refused.
+void CanvasTests::removePanelsAndPanelsWithoutSlot() {
+    app::pages::LayoutPage* page = layoutPage(*m_window);
+    QVERIFY(page);
+    core::ProjectDocument& doc = m_window->document();
+    const std::vector<core::PanelSpec> panels = doc.project().layout.panels;
+    QCOMPARE(panels.size(), std::size_t{4});
+    const auto button = [this](const QString& name) { return m_window->findChild<QPushButton*>(name); };
+    QVERIFY(page->slotlessPanels().empty());
+    QVERIFY(!m_window->findChild<QLabel*>(QStringLiteral("layout.slotless.note")));
+
+    // a smaller preset: three panels without a slot, listed in order
+    doc.set("layout.preset", core::Value(std::string("single")), "Set Grid preset");
+    QCOMPARE(page->slotCount(), 1);
+    const std::vector<QString> listed = page->slotlessPanels();
+    QCOMPARE(listed.size(), std::size_t{3});
+    QCOMPARE(listed[0], QStringLiteral("Panel 2: Time series \u2013 RMSD"));  // its title
+    QVERIFY(listed[1].startsWith(QStringLiteral("Panel 3: Time series \u2013 ")));  // its data's label
+    QVERIFY(listed[2].startsWith(QStringLiteral("Panel 4: Residue heatmap over time \u2013 ")));
+    QLabel* note = m_window->findChild<QLabel*>(QStringLiteral("layout.slotless.note"));
+    QVERIFY(note);
+    QVERIFY(note->text().startsWith(QStringLiteral("3 more panels of this project have no slot in this grid")));
+    QPushButton* third = button(QStringLiteral("layout.panels.2.remove"));
+    QVERIFY(third);
+    third->click();
+    QCOMPARE(doc.project().layout.panels.size(), std::size_t{3});
+    QCOMPARE(doc.project().layout.panels[2].type, panels[3].type);
+    QCOMPARE(QString::fromStdString(doc.undoLabel()), QStringLiteral("Remove panel 3"));
+    QCOMPARE(page->slotlessPanels().size(), std::size_t{2});
+    doc.undo();
+    QCOMPARE(doc.project().layout.panels, panels);
+    doc.undo();  // the preset
+    QCOMPARE(doc.project().layout.preset, std::string("large_plus_3"));
+    QVERIFY(page->slotlessPanels().empty());
+    QVERIFY(QTest::qWaitFor([this] { return !m_window->findChild<QLabel*>(QStringLiteral("layout.slotless.note")); }));
+
+    // a slot's panel: the panels after it move up, the last slot is empty and has nothing to remove
+    QPushButton* second = button(QStringLiteral("layout.panels.1.remove"));
+    QVERIFY(second && second->isEnabled());
+    second->click();
+    QCOMPARE(doc.project().layout.panels.size(), std::size_t{3});
+    QCOMPARE(doc.project().layout.panels[1], panels[2]);
+    QCOMPARE(doc.project().layout.panels[2], panels[3]);
+    QCOMPARE(page->slotState(1).title, QString());  // panel 3's (no title of its own)
+    QCOMPARE(page->slotState(2).type, QString::fromStdString(panels[3].type));
+    QVERIFY(!button(QStringLiteral("layout.panels.3.remove"))->isEnabled());
+    QVERIFY(button(QStringLiteral("layout.panels.2.remove"))->isEnabled());
+    doc.undo();
+    QCOMPARE(doc.project().layout.panels, panels);
+    QVERIFY(button(QStringLiteral("layout.panels.3.remove"))->isEnabled());
+
+    // options that do not parse in slot 3: removing a panel before it is refused, removing it is not
+    auto* options = m_window->findChild<QLineEdit*>(QStringLiteral("layout.panels.2.options"));
+    QVERIFY(options);
+    options->setText(QStringLiteral("{bad"));
+    emit options->textEdited(options->text());
+    emit options->editingFinished();
+    QVERIFY(!page->optionsProblem().isEmpty());
+    QSignalSpy logged(page, &app::pages::LayoutPage::logLine);
+    QVERIFY(!page->removePanel(0));
+    QCOMPARE(logged.count(), 1);
+    QVERIFY(logged.at(0).at(0).toString().startsWith(
+        QStringLiteral("Panel not removed; fix this first: Layout & panels")));
+    QCOMPARE(doc.project().layout.panels, panels);
+    QVERIFY(page->removePanel(3));  // after it: nothing moves
+    QVERIFY(page->removePanel(2));  // the panel itself: its options go with it
+    QVERIFY(page->optionsProblem().isEmpty());
+    QCOMPARE(doc.project().layout.panels.size(), std::size_t{2});
+    QVERIFY(settled());
 }
 
 int main(int argc, char** argv) {

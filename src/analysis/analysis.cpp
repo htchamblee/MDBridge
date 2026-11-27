@@ -1,6 +1,7 @@
 #include "mdbridge/analysis/analysis.hpp"
 
 #include <stdexcept>
+#include <string>
 
 #include "builtin.hpp"
 #include "mdbridge/analysis/registry.hpp"
@@ -50,6 +51,28 @@ GroupFields groupFields(const core::Project& project, std::string_view section) 
 MutableGroupFields groupFields(core::Project& project, std::string_view section) {
     const GroupFields fields = groupFields(static_cast<const core::Project&>(project), section);
     return {const_cast<std::string*>(fields.a), const_cast<std::string*>(fields.b)};
+}
+
+std::string frameList(std::span<const std::int64_t> frames, std::size_t* count) {
+    if (count) {
+        *count = frames.size();
+    }
+    std::string runs;
+    for (std::size_t k = 0; k < frames.size();) {
+        std::size_t end = k + 1;
+        while (end < frames.size() && frames[end] == frames[end - 1] + 1) {
+            ++end;
+        }
+        runs += (runs.empty() ? "" : ", ") + std::to_string(frames[k]);
+        if (end - k > 1) {
+            runs += "-" + std::to_string(frames[end - 1]);
+        }
+        k = end;
+    }
+    if (frames.empty()) {
+        return runs;
+    }
+    return (frames.size() == 1 ? "frame " : "frames ") + runs;
 }
 
 void notImplemented(const AnalysisDescriptor& descriptor) {

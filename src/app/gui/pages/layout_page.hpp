@@ -16,6 +16,10 @@
 //   changed or a panel is dragged onto it (and so do the empty slots before it, which hold what
 //   their editors show).
 // - AP-08: a preset with fewer slots keeps the panels beyond them; a larger preset shows them again.
+//   As MDATK 0.1.2: each slot's "Remove this panel" deletes its panel (the panels after it move up
+//   one slot), and the panels the preset has no slot for are listed below the slots, with a note
+//   ("2 more panels of this project have no slot in this grid: kept (and saved), not drawn. ...")
+//   and a "Remove" for each (MDATK 0.1.2: one "Remove" for all of them).
 // - AP-09 (MDATK 0.1.0): a swap or a preset change while a slot's options are no JSON object is
 //   refused ("Panels not swapped; fix this first: ...", "Grid preset not changed; fix this first:
 //   ..." with the preset put back).
@@ -78,6 +82,14 @@ public:
     bool swapPanels(int from, int to);
     // The located message of the first slot whose options do not parse ("" when all do).
     QString optionsProblem() const;
+    // AP-08 (MDATK 0.1.2): deletes panel `index` (0-based; a slot's, or one the preset has no slot
+    // for) as one undo step ("Remove panel 3"); the panels after it move up. Refused while a slot
+    // whose panel would move has options that do not parse ("Panel not removed; fix this first:
+    // ..."); the removed slot's own unparsed options go with it. False when nothing was removed.
+    bool removePanel(int index);
+    // The panels the preset has no slot for, as listed below the slots ("Panel 5: Time series –
+    // RMSD"), in order.
+    std::vector<QString> slotlessPanels() const;
 
     QComboBox* presetBox() const { return m_preset; }
     QSpinBox* stillFrame() const { return m_stillFrame; }
@@ -116,9 +128,12 @@ private:
     // Stores `change` of slot k's panel as one step (filling the empty slots up to k, AP-07).
     void storeSlot(int k, const QString& label, const std::function<void(core::PanelSpec&)>& change);
     void documentChanged(const core::DocumentChange& change);
+    void refreshSlotless();
 
     QComboBox* m_preset = nullptr;
     QVBoxLayout* m_slotBox = nullptr;
+    QVBoxLayout* m_slotlessBox = nullptr;  // AP-08: the note and the panels without a slot
+    std::vector<QString> m_slotless;       // what m_slotlessBox lists
     QSpinBox* m_stillFrame = nullptr;
     QPushButton* m_renderStill = nullptr;
     std::vector<std::unique_ptr<Slot>> m_slots;

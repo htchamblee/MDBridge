@@ -148,8 +148,9 @@ TEST(AnalysisImprovements, ExclusionsThroughOtherAtoms) {
     EXPECT_TRUE(analysis::energyBondedExclusions(a, b, 5, &none).empty());
 }
 
-// AN-14: covalent radii (a 2.05 Å disulfide is a bond, MDATK's 1.95 Å limit misses it), no bonds
-// between chains or to one-atom residues.
+// AN-14: covalent radii (a 2.05 Å disulfide is a bond, MDATK 0.0.4.1's 1.95 Å limit misses it), no
+// bonds to one-atom residues; MDATK 0.1.2's residue rule: neighbouring residues whatever their
+// chains, two sulfurs across any residues.
 TEST(AnalysisImprovements, CovalentRadiusBondGuess) {
     std::vector<MicroAtom> atoms{{"SG", 1, "CYS", "S"}, {"SG", 2, "CYS", "S"}, {"CB", 2, "CYS", "C"},
                                  {"MG", 3, "MG", "MG"}, {"C1", 4, "LIG", "C"}, {"CB", 1, "CYS", "C"}};
@@ -159,14 +160,27 @@ TEST(AnalysisImprovements, CovalentRadiusBondGuess) {
     const core::AtomGroup all = system.atoms();
     EXPECT_EQ(analysis::guessBonds(all, *system.currentFrame()), (std::vector<std::int64_t>{0, 1, 0, 5, 1, 2}));
 
-    // two chains: the last residue of A and the first of B are adjacent by index, not bonded
-    std::vector<MicroAtom> pair{{"C", 1, "AAA", "C"}, {"N", 2, "BBB", "N"}};
-    core::System chains = makeMicroSystem(pair, {{0, 0, 0, 1.4, 0, 0}});
-    auto t = std::make_shared<core::Topology>(*chains.topology);
-    t->segids.push_back(t->strings.intern("B"));
-    t->residueSegment[1] = 1;
-    chains.topology = t;
-    EXPECT_TRUE(analysis::guessBonds(chains.atoms(), *chains.currentFrame()).empty());
+    // a disulfide between residues 1 and 3; two carbons as close across them are no bond
+    std::vector<MicroAtom> bridge{{"SG", 1, "CYS", "S"}, {"CB", 1, "CYS", "C"}, {"CA", 2, "GLY", "C"},
+                                  {"C", 2, "GLY", "C"},  {"SG", 3, "CYS", "S"}, {"CB", 3, "CYS", "C"}};
+    core::System disulfide = makeMicroSystem(bridge, {{0, 0, 0, -1.8, 0, 0, 20, 0, 0, 21.5, 0, 0, 0, 2.05, 0,
+                                                       -1.8, 1.5, 0}});
+    EXPECT_EQ(analysis::guessBonds(disulfide.atoms(), *disulfide.currentFrame()),
+              (std::vector<std::int64_t>{0, 1, 0, 4, 2, 3, 4, 5}));
+
+    // two chains: neighbouring residues bond within bonding distance (O3'-P across a chain break),
+    // not farther apart (MDATK 0.0.4.1's rule; MDBridge before 0.1.2's design: never across chains)
+    std::vector<MicroAtom> pair{{"C3'", 1, "AAA", "C"}, {"O3'", 1, "AAA", "O"}, {"P", 2, "BBB", "P"},
+                                {"O5'", 2, "BBB", "O"}};
+    for (const double gap : {1.6, 3.0}) {
+        core::System chains = makeMicroSystem(pair, {{-1.43, 0, 0, 0, 0, 0, gap, 0, 0, gap + 1.6, 0, 0}});
+        auto t = std::make_shared<core::Topology>(*chains.topology);
+        t->segids.push_back(t->strings.intern("B"));
+        t->residueSegment[1] = 1;
+        chains.topology = t;
+        EXPECT_EQ(analysis::guessBonds(chains.atoms(), *chains.currentFrame()),
+                  gap < 2.0 ? (std::vector<std::int64_t>{0, 1, 1, 2, 2, 3}) : (std::vector<std::int64_t>{0, 1, 2, 3}));
+    }
 }
 
 // CIT-05: the atoms analysis says when it guesses its bonds, citing the covalent radii (once per

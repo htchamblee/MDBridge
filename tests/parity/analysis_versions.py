@@ -21,9 +21,10 @@ Per analysis, the improvements that bumped it (docs/DIFFERENCES.md; "periodic": 
                parm7: Amber residue templates, Amber atom types)
   hbonds 2     AN-09, AN-10 (guessed hydrogens); periodic; SEL-13 (donor / acceptor elements);
                distance-only pairs counted once (MDATK 0.1.0)
-  rmsd 2       AN-16 .. AN-18
+  rmsd 2       AN-16 .. AN-18; AN-20 (NaN for a blown-up fit frame, MDATK 0.1.2)
   proximity 2  AN-15; periodic; SEL-13 (heavy atoms)
-  atoms 3      AN-13, AN-14; SEL-13 (elements, heavy atoms, bond guess) (MDATK: 2)
+  atoms 3      AN-13, AN-14 (with MDATK 0.1.2's residue rule); AN-20 (blown-up frames unaligned);
+               SEL-13 (elements, heavy atoms, bond guess) (MDATK: 2)
   contacts 2   periodic; SEL-13 (heavy_only); a group against itself (MDATK 0.1.0), whose strand
                ends follow TOP-01's chains
   mg 2         periodic; SEL-13 (ligand / occupancy elements)
@@ -31,7 +32,8 @@ Per analysis, the improvements that bumped it (docs/DIFFERENCES.md; "periodic": 
   stacking 2   periodic, AN-12 (ring atoms by name: SEL-13 does not change it); NA-01 (CCD atom names)
   trace 5      SEL-13 (heavy-atom centroids of residues without a trace atom); TOP-01 (chains from
                bonds only when they hold the residues together) (MDATK: 4); its key covers every
-               group (MDATK 0.1.0; no new results); NA-01 (the per-row array backbone)
+               group (MDATK 0.1.0; no new results); NA-01 (the per-row array backbone); AN-20
+               (blown-up frames unaligned, MDATK 0.1.2)
 """
 
 import os
