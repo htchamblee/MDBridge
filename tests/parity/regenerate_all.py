@@ -73,8 +73,10 @@ Special cases handled here (tests/data/README.md):
   below: the density fits' flips, a 3 x 3 product and LAPACK's eigh, moved by a few ulps on one).
   There, and only there, the results that follow a path through such numbers (PATH_DEPENDENT: the
   global density fits' evaluation counts, the least-squares closures of the non-Watson-Crick builds
-  and of their command-line cases) are compared for what does not depend on the path; this is
-  printed, and every other number is compared as above.
+  and of their command-line cases, the GUI cases' density fits within D10's tolerances) are compared
+  for what does not depend on the path; this is printed, and every other number is compared as above.
+  The GUI cases with a density fit (FITTED_TEXT, FITTED_GUI below) are compared as the GUI harness
+  compares their "fitted" files.
   Everything else must match exactly.
 
 Committed files without a generator (NOT_GENERATED: the hand-made project files, the golden
@@ -182,11 +184,27 @@ FLOAT_TOLERANCE = 1e-12
 FITTED = {f"tests/data/chem/{n}" for n in ("annotate_cases.json", "dict_cases.json", "builder_cases.json",
                                             "builder_fitted_cases.json", "density_fit_cases.json")}
 FITTED_TOLERANCE = 1e-6
-# Texts with fitted numbers (milestone 6 W3-B: the structure builder window's density fit, Powell's
-# path through BLAS dot products): where their bytes differ, compared as FITTED strings (decimal
-# numbers within one unit of their last printed digit, the rest equal); the GUI harness compares the
-# case's "fitted" files the same way.
-FITTED_TEXT = {f"tests/data/gui/tools/builder_fit{n}" for n in (".json", "/out/in_fit.pdb", "/out/p.mdatk.toml")}
+# The GUI cases with a density fit (milestone 6: W3-B's tools/builder_fit, W3-A's canvas/density_fit;
+# make_gui_cases.py pins the kernels with chem_common.pin_kernels, its MDATK workers inherit them):
+# Powell's path runs through BLAS dot products, so where their bytes differ they are compared as the
+# GUI harness compares the case's "fitted" files (tests/data/README.md "gui"), with owner decision
+# D10's tolerances on runners with other kernels (KERNEL_PROBE, PATH_DEPENDENT below).
+# FITTED_TEXT: texts compared as FITTED strings (decimal numbers within one unit of their last printed
+# digit, the rest equal); with other kernels within the tolerance given (the case's 0.01 Å for the
+# fitted PDB, D10's CC 1e-3 for the reports and the step log).
+D10_ANGLE, D10_SHIFT, D10_CC = 0.5, 0.2, 1e-3  # degrees, Å at the model centre, fit_cc
+FITTED_TEXT = {"tests/data/gui/tools/builder_fit.json": D10_CC,
+               "tests/data/gui/tools/builder_fit/out/in_fit.pdb": 0.01,
+               "tests/data/gui/tools/builder_fit/out/p.mdatk.toml": D10_CC}
+# FITTED_GUI: canvas/density_fit's case (snapshots of the placement, the log) and the project files
+# its window saved. MDATK rounds the transform to 6 decimals and fit_cc to 4 and writes them as
+# Python floats ("1e-06", "6.3e-05"), so they are compared as values: a placement table (one with
+# `transform` and `anchor`) with its transform within FITTED_TOLERANCE (with other kernels: D10's
+# angle and shift at the model centre, the anchor's mean), fit_cc within FITTED_TOLERANCE (D10_CC),
+# fit_info and every other string as FITTED_TEXT, every other value equal; a project file parsed
+# (tomllib) that way and its text equal but for the [density] lines of transform, fit_cc, fit_info.
+FITTED_GUI = {"tests/data/gui/canvas/density_fit.json", "tests/data/gui/canvas/density_fit/out/p.mdatk.toml",
+              "tests/data/gui/canvas/density_fit/mdatk/p.mdatk.toml"}
 DECIMAL_RE = re.compile(r"-?\d+\.(\d+)")
 HEX_FLOAT_RE = re.compile(r"^-?0x[0-9a-f]\.[0-9a-f]+p[+-][0-9]+$")  # float.hex() of a finite float
 # Pinning does not give the reference machine's bits on every CI runner. On one (CI run 45898985841,
@@ -211,7 +229,7 @@ HEX_FLOAT_RE = re.compile(r"^-?0x[0-9a-f]\.[0-9a-f]+p[+-][0-9]+$")  # float.hex(
 # (None when the step did not run: everything is compared as before).
 KERNEL_PROBE = "tests/data/chem/density_fit_cases.json"
 CLI_CASES = "tests/data/cli/cli_cases.json"
-PATH_DEPENDENT = {"tests/data/chem/builder_fitted_cases.json", KERNEL_PROBE, CLI_CASES}
+PATH_DEPENDENT = {"tests/data/chem/builder_fitted_cases.json", KERNEL_PROBE, CLI_CASES, *FITTED_TEXT, *FITTED_GUI}
 EVALUATIONS_TOLERANCE = 0.05
 EVALUATIONS_PATH_RE = re.compile(r"\$\.problems\[\d+\]\.fit_model\[\d+\]\.evaluations")
 REBUILT_PATH_RE = re.compile(r"\$\.rebuilt\[\d+\]")
@@ -543,9 +561,9 @@ def numerically_equal(old: bytes, new: bytes) -> tuple[bool, str]:
     return (False, problem) if problem else (True, f"largest relative difference {worst[0]:.1e} ({worst[1]})")
 
 
-def _strings_close(x: str, y: str) -> bool:
-    """FITTED strings: equal but for decimal numbers within one unit of their last printed digit (the
-    spaces before a number may differ with its sign, as in PDB columns)."""
+def _strings_close(x: str, y: str, tolerance: float = 0.0) -> bool:
+    """FITTED strings: equal but for decimal numbers within one unit of their last printed digit or
+    `tolerance` (the spaces before a number may differ with its sign, as in PDB columns)."""
     a, b = DECIMAL_RE.split(x), DECIMAL_RE.split(y)
     if len(a) != len(b):
         return False
@@ -555,9 +573,91 @@ def _strings_close(x: str, y: str) -> bool:
         return False
     for p, q in zip(xs, ys):
         digits = len(p.split(".")[1])
-        if len(q.split(".")[1]) != digits or abs(float(p) - float(q)) > 1.000001 * 10.0 ** -digits:
+        if len(q.split(".")[1]) != digits or abs(float(p) - float(q)) > max(1.000001 * 10.0 ** -digits, tolerance):
             return False
     return True
+
+
+def _placement_difference(p: list, q: list, anchor) -> tuple[float, float]:
+    """Two placements (3 x 3 rotation row-major + translation): the angle in degrees of p q^T and
+    the distance between the points they move the model centre to (the anchor points' mean)."""
+    trace = sum(p[3 * i + m] * q[3 * i + m] for i in range(3) for m in range(3))
+    angle = math.degrees(math.acos(max(-1.0, min(1.0, (trace - 1.0) / 2.0))))
+    points = [a for a in (anchor or []) if isinstance(a, list) and len(a) == 3]
+    centre = [sum(a[k] for a in points) / max(len(points), 1) for k in range(3)]
+    shift = math.sqrt(sum((sum((p[3 * i + m] - q[3 * i + m]) * centre[m] for m in range(3)) + p[9 + i] - q[9 + i]) ** 2
+                          for i in range(3)))
+    return angle, shift
+
+
+def _gui_fit_problem(x, y, path: str, path_dependent: bool) -> str | None:
+    """FITTED_GUI values (parsed JSON or TOML); None when they agree, else where they do not."""
+    number = (int, float)
+    if isinstance(x, dict) and isinstance(y, dict):
+        if list(x) != list(y):
+            return f"{path}: keys {list(x)} / {list(y)}"
+        placement = "transform" in x and "anchor" in x
+        for k in x:
+            p, q, at = x[k], y[k], f"{path}.{k}"
+            if p == q:
+                continue
+            if placement and k == "transform" and isinstance(p, list) and isinstance(q, list) \
+                    and len(p) == len(q) == 12 and all(isinstance(v, number) for v in p + q):
+                if path_dependent:
+                    angle, shift = _placement_difference(p, q, x.get("anchor"))
+                    if angle > D10_ANGLE or shift > D10_SHIFT:
+                        return f"{at}: {angle:.3f}° / {shift:.3f} Å apart (D10: {D10_ANGLE}°, {D10_SHIFT} Å)"
+                    continue
+                far = [i for i, (a, b) in enumerate(zip(p, q)) if abs(a - b) > FITTED_TOLERANCE * max(1.0, abs(a), abs(b))]
+                if far:
+                    return f"{at}[{far[0]}]: {p[far[0]]!r} / {q[far[0]]!r}"
+            elif placement and k == "fit_cc" and isinstance(p, number) and isinstance(q, number):
+                if abs(p - q) > (D10_CC if path_dependent else FITTED_TOLERANCE * max(1.0, abs(p), abs(q))):
+                    return f"{at}: {p!r} / {q!r}"
+            else:
+                problem = _gui_fit_problem(p, q, at, path_dependent)
+                if problem:
+                    return problem
+        return None
+    if isinstance(x, list) and isinstance(y, list):
+        if len(x) != len(y):
+            return f"{path}: {len(x)} / {len(y)} entries"
+        return next((r for r in (_gui_fit_problem(p, q, f"{path}[{i}]", path_dependent)
+                                 for i, (p, q) in enumerate(zip(x, y))) if r), None)
+    if isinstance(x, str) and isinstance(y, str):
+        return None if _strings_close(x, y, D10_CC if path_dependent else 0.0) else f"{path}: strings differ"
+    return None if x == y and type(x) is type(y) else f"{path}: {x!r} / {y!r}"
+
+
+def gui_fit_equal(rel: str, old: bytes, new: bytes, path_dependent: bool = False) -> tuple[bool, str]:
+    """A FITTED_GUI file: JSON or a project file (TOML) compared as _gui_fit_problem; the reason when not."""
+    a, b = old.decode("utf-8"), new.decode("utf-8")
+    try:
+        if rel.endswith(".toml"):
+            import tomllib
+
+            x, y = tomllib.loads(a), tomllib.loads(b)
+        else:
+            x, y = json.loads(a), json.loads(b)
+    except ValueError as exc:
+        return False, f"cannot be read: {exc}"
+    problem = _gui_fit_problem(x, y, "$", path_dependent)
+    if problem:
+        return False, problem
+    if rel.endswith(".toml"):
+        def without_fitted(text):
+            out, density = [], False
+            for line in text.split("\n"):
+                if line.startswith("["):
+                    density = line == "[density]"
+                if density and line.startswith(("transform = ", "fit_cc = ", "fit_info = ")):
+                    line = line.split(" = ")[0] + " = <fitted>"
+                out.append(line)
+            return "\n".join(out)
+
+        if without_fitted(a) != without_fitted(b):
+            return False, "the text differs outside the [density] placement"
+    return True, "the placement within " + ("D10's tolerance (other kernels)" if path_dependent else "the chem tolerance")
 
 
 def _masked(text: str) -> str:
@@ -918,10 +1018,19 @@ def main(argv=None) -> int:
                 continue
             print(f"(fitted {rel}: beyond the chem tolerance at {why})")
         elif rel in FITTED_TEXT:
-            if _strings_close(old.decode("utf-8"), new.decode("utf-8")):
-                tolerated.append((rel, "decimals within their last printed digit"))
+            tolerance = FITTED_TEXT[rel] if other_kernels else 0.0
+            if _strings_close(old.decode("utf-8"), new.decode("utf-8"), tolerance):
+                tolerated.append((rel, "decimals within their last printed digit" +
+                                  (f" or {tolerance:g} (other kernels)" if tolerance else "")))
                 continue
-            print(f"(fitted {rel}: decimals beyond their last printed digit)")
+            print(f"(fitted {rel}: decimals beyond their last printed digit" +
+                  (f" or {tolerance:g})" if tolerance else ")"))
+        elif rel in FITTED_GUI:
+            ok, why = gui_fit_equal(rel, old, new, other_kernels)
+            if ok:
+                tolerated.append((rel, why))
+                continue
+            print(f"(fitted {rel}: {why})")
         elif rel == CLI_CASES and other_kernels:
             ok, why = cli_closures_equal(normalised(rel, old), normalised(rel, new))
             if ok:
@@ -944,7 +1053,7 @@ def main(argv=None) -> int:
               f"{KERNEL_PROBE} differ); path-dependent results ({', '.join(sorted(PATH_DEPENDENT))}) are "
               f"compared without the numbers their path decides (regenerate_all.py KERNEL_PROBE)")
     for rel, why in tolerated:
-        within = ("numbers within the chem tolerance (FITTED)" if rel in FITTED or rel in FITTED_TEXT
+        within = ("numbers within the chem tolerance (FITTED)" if rel in FITTED or rel in FITTED_TEXT or rel in FITTED_GUI
                   else "the other kernels' structure check (OTHER KERNELS)" if rel == CLI_CASES
                   else f"numbers within {FLOAT_TOLERANCE:g}")
         print(f"TOLERATED    {rel}: not byte-identical on this CPU (machine-dependent), {within}; {why}")

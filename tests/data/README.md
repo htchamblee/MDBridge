@@ -1160,7 +1160,12 @@ project (`.toml`), the `[density]` table's `transform` within 0.5° and 0.2 Å a
 (the mean of the expected anchor points), `fit_cc` within 1e-3 and `fit_info` as a text (the lines
 of these three keys left out of the line comparison); the snapshots' `density` tables the same way,
 and the log lines, the `density_status`, the tool reports and the other snapshot texts with their
-decimal numbers within one unit of their last printed digit. The generator needs GTK 3 with its
+decimal numbers within one unit of their last printed digit. The generator pins numpy's and
+OpenBLAS' kernels as the chem generators do (`chem_common.pin_kernels`, inherited by its MDATK
+workers); where the density fits' files still differ on another machine, `regenerate_all.py`
+compares them the same way (FITTED_TEXT: `tools/builder_fit`; FITTED_GUI: `canvas/density_fit`'s
+case and saved projects, the placement as values within the chem tolerance) and, on a runner whose
+kernels fail the probe (KERNEL_PROBE), within D10's tolerances. The generator needs GTK 3 with its
 introspection data, PyGObject and pycairo for its Python (pinned in
 `tests/parity/requirements-gui.txt`, built against the system's GTK: `libgirepository-2.0-dev`,
 `libcairo2-dev`, `gir1.2-gtk-3.0`) and Xvfb (started by the generator when `DISPLAY` is unset). It

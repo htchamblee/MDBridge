@@ -12,9 +12,11 @@ io/trajectories/demo_dry.nc, render/inputs/demo_dry_map.mrc) and point at them.
 Every case runs twice, each time in a child process of this script (--worker): as MDATK v0.0.4.1
 ("mdatk") and with MDBridge's window improvements (improvements_gui.py, "improved"). Both import
 MDATK's GTK 3 window (mdatk/gui/app.py) under the display of DISPLAY, or of an Xvfb this script
-starts (-displayfd), with render_common.setup(): numpy's and OpenBLAS' kernels pinned, Matplotlib
-with MDBridge's bundled fonts only (improvements_fonts.py), MDBridge's earlier improvements patched
-in. A case gets a new work folder (the current folder) and XDG_CONFIG_HOME / HOME folders of its
+starts (-displayfd), with numpy's and OpenBLAS' kernels pinned (chem_common.pin_kernels, set in
+this script's environment before numpy is imported and inherited by the workers; the density fits'
+files are compared across machines as regenerate_all.py's FITTED_TEXT / FITTED_GUI) and with
+render_common.setup(): Matplotlib with MDBridge's bundled fonts only (improvements_fonts.py),
+MDBridge's earlier improvements patched in. A case gets a new work folder (the current folder) and XDG_CONFIG_HOME / HOME folders of its
 own; the window is a MainWindow of a Gtk.Application, driven through its own methods and widgets
 (the binder's widgets, the slot editors, the canvas' press / motion / release / scroll handlers with
 synthetic events, save_project with the file dialog answered by the script), its canvas widget fixed
@@ -45,6 +47,11 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 if HERE not in sys.path:
     sys.path.insert(0, HERE)
 sys.dont_write_bytecode = True
+import chem_common  # noqa: E402
+
+# numpy's and OpenBLAS' kernels pinned before numpy is imported, as the chem generators pin them (the
+# density fits' Powell path runs through BLAS dot products); the MDATK workers inherit the environment
+chem_common.pin_kernels()
 
 CLOCK = "2026-11-25T12:00:00"           # the window's clock of every case
 INPUT_CLOCK = real_dt.datetime(2026, 11, 25, 11, 0, 0)  # input projects written by MDATK
