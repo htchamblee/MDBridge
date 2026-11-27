@@ -795,7 +795,13 @@ def build_cases():
         chem_case("build_helix_start_below_columns", [*helix, "--seq", "GGCAU", "--start=-1002,1", "-o", "h.pdb"]),
         chem_case("build_helix_start_wrap", [*helix, "--seq", "GGCAU", "--start", "9998,1", "-o", "h.pdb"]),  # CH-02
         chem_case("build_helix_hh", [*helix, "--seq", "AAAAAAAA", "--pairing", "hh", "-o", "h.pdb"], fitted=0.05),
-        chem_case("build_helix_reverse_wc", [*helix, "--seq", "GAUCAGUAGC", "--pairing", "reverse-wc", "-o", "h.pdb"],
+        # CH-18: RNA builds of the kinds RNA is not known to form are refused
+        chem_case("build_helix_reverse_wc", [*helix, "--seq", "GAUCAGUAGC", "--pairing", "reverse-wc", "-o", "h.pdb"]),
+        chem_case("build_helix_reverse_hoogsteen", [*helix, "--seq", "AAGAAGGAAG", "--pairing", "reverse-hoogsteen",
+                                                    "-o", "h.pdb"]),
+        chem_case("build_helix_purine_triplex", [*helix, "--seq", "AAGAGAAGGA", "--triplex", "reverse-hoogsteen",
+                                                 "-o", "h.pdb"]),
+        chem_case("build_helix_hoogsteen", [*helix, "--seq", "AAGAGAAGGA", "--pairing", "hoogsteen", "-o", "h.pdb"],
                   fitted=0.05),
         chem_case("build_helix_triplex", [*helix, "--seq", "AAGAGAAGGA", "--triplex", "hoogsteen", "--chains", "P,Q,R",
                                           "-o", "h.pdb"], fitted=0.05),

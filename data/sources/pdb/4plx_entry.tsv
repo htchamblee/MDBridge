@@ -1,0 +1,15 @@
+key	value
+_entry.id	4PLX
+_struct.title	Crystal structure of the triple-helical stability element at the 3' end of MALAT1
+_exptl.method	X-RAY DIFFRACTION
+_refine.ls_d_res_high	3.10
+_pdbx_database_status.recvd_initial_deposition_date	2014-05-19
+_citation.title	Structural insights into the stabilization of MALAT1 noncoding RNA by a bipartite triple helix.
+_citation.journal_abbrev	Nat.Struct.Mol.Biol.
+_citation.journal_volume	21
+_citation.page_first	633
+_citation.page_last	640
+_citation.year	2014
+_citation.pdbx_database_id_DOI	10.1038/nsmb.2844
+_citation.pdbx_database_id_PubMed	24952594
+_pdbx_audit_revision_history.revision_date (latest)	2023-12-27

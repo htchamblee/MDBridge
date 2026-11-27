@@ -18,6 +18,7 @@
 #include <optional>
 #include <sstream>
 #include <string>
+#include <tuple>
 #include <vector>
 
 #include <QAbstractButton>
@@ -28,6 +29,7 @@
 #include <QApplication>
 #include <QCheckBox>
 #include <QComboBox>
+#include <QStandardItemModel>
 #include <QDoubleSpinBox>
 #include <QLabel>
 #include <QLineEdit>
@@ -58,6 +60,7 @@
 #include "gui/tools/tool_actions.hpp"
 #include "gui/tools/tool_windows.hpp"
 #include "gui_harness.hpp"
+#include "mdbridge/chem/helix.hpp"
 #include "mdbridge/core/paths.hpp"
 #include "mdbridge/core/project_document.hpp"
 #include "mdbridge/core/project_file.hpp"
@@ -246,6 +249,7 @@ private slots:
     void pdbCleanWritesWhatTheCommandWrites();
     void builderHelixWritesWhatTheCommandWrites();
     void builderNonWcHelixBuildsInTheBackground();
+    void builderGreysOutWhatRnaDoesNotForm();
     void mutateAndFitWriteWhatTheCommandsWrite();
     void fitCancelIsLoggedAsCancelled();
     void closingDuringABuildAsks();
@@ -410,6 +414,41 @@ void ToolTests::builderNonWcHelixBuildsInTheBackground() {
     const core::Array entries = stepLog(f.project);
     QCOMPARE(entries.size(), std::size_t{1});
     QCOMPARE(entryText(entries[0], "title"), std::string("Ideal parallel tHH D-RNA helix AAAA"));
+}
+
+// CH-18: reverse-wc, reverse-hoogsteen and the purine-motif triplex are greyed out in their lists, with the
+// reason as the tooltip; set anyway (a project, a script), Check and Write report the library's error and
+// nothing is written (the step is logged as failed, as the command line's)
+void ToolTests::builderGreysOutWhatRnaDoesNotForm() {
+    Fixture f;
+    BuilderWindow* dlg = f.openBuilder();
+    for (const auto& [key, id, rna] :
+         {std::make_tuple("pairing", "reverse-wc", false), std::make_tuple("pairing", "reverse-hoogsteen", false),
+          std::make_tuple("triplex", "reverse-hoogsteen", false), std::make_tuple("pairing", "hoogsteen", true),
+          std::make_tuple("pairing", "hh", true), std::make_tuple("triplex", "hoogsteen", true)}) {
+        QComboBox* box = control<QComboBox>(dlg, key);
+        const int index = box->findData(QString::fromLatin1(id));
+        QVERIFY2(index >= 0, id);
+        auto* model = qobject_cast<QStandardItemModel*>(box->model());
+        QVERIFY(model);
+        QCOMPARE(model->item(index)->isEnabled(), rna);
+        const QString tip = box->itemData(index, Qt::ToolTipRole).toString();
+        QCOMPARE(tip.contains(QStringLiteral("RNA is not known to form")), !rna);
+    }
+    setText(dlg, "seq", QStringLiteral("AAGA"));
+    choose(dlg, "pairing", "reverse-wc");
+    dlg->setPage(QStringLiteral("helix"));
+    dlg->checkCurrent();
+    const QString message = QString::fromStdString(*chem::rnaRefusal("reverse-wc"));
+    QVERIFY2(dlg->reportText().contains(message), qPrintable(dlg->reportText()));
+    const fs::path out = f.dir / "rwc.pdb";
+    setText(dlg, "helix_out", qs(out));
+    dlg->runCurrent();
+    QVERIFY(QTest::qWaitFor([&] { return !dlg->busy(); }, 120000));
+    QCOMPARE(dlg->reportText(), QStringLiteral("ERROR: ") + message);
+    QVERIFY(!fs::exists(out));
+    QCOMPARE(runCommand({"build", "helix", "--seq", "AAGA", "--pairing", "reverse-wc", "-o", "cli_rwc.pdb"}), 1);
+    QVERIFY(!fs::exists(f.dir / "cli_rwc.pdb"));
 }
 
 void ToolTests::mutateAndFitWriteWhatTheCommandsWrite() {

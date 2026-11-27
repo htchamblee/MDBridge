@@ -1,8 +1,9 @@
 # Milestone 6: status
 
 Plan: `docs/specs/m6-plan.md`; owner decisions D1-D14 accepted (2026-11-26), D15 (CHD-01: guanine
-amino hydrogens follow the wwPDB CCD), D16 (CHD-02: non-WC builds in the fitted 4JRD frame) and D17
-(CH-16: a continuation closure for the non-WC builds, 2026-11-27).
+amino hydrogens follow the wwPDB CCD), D16 (CHD-02: non-WC builds in the fitted 4JRD frame), D17
+(CH-16: a continuation closure for the non-WC builds, 2026-11-27) and D18 (CH-18: realistic non-WC
+geometry; the kinds RNA does not form refused, 2026-11-27).
 
 ## Wave 0: done (CI green at a7cacc5)
 
@@ -34,11 +35,15 @@ the owner's D17 continuation closure (CH-16), made reproducible by a continuous 
 a unit trust radius; all 17 closures of the expected data agree within PDB rounding across BLAS
 kernels and 1e-8 start perturbations, the C++ builds within 0.001 Å of the patched MDATK's. `build
 helix --pairing / --triplex`, the builder window and the 5 command-line cases work; the regenerate
-job compares the rebuilt helices with D10 on runners with other kernels (no longer masked). The
-refitted reference helices (hoogsteen, reverse-hoogsteen and the triplexes) are provisional: an
-independent check against experimental structures is under way, and the reference geometry is a
-separable input (the reference fit's torsion term; MDATK's reference helices with the continuous
-closure converge as well).
+job compares the rebuilt helices with D10 on runners with other kernels (no longer masked). D18
+(CH-18, docs/reports/2026-11-27-non-wc-geometry.md): only hh's reference helix was realistic, so the
+Hoogsteen duplex and the pyrimidine-motif triplex now take their nucleotides, pairs, screw and
+stacking from the RNA triple helices of PDB 3P22, 4PLX, 6SVS and 7JNH (a restrained reference fit;
+uniform helices 33.3° / 3.02 Å and 31.6° / 3.16 Å, base planes 3.35 / 3.34 Å apart, experiment 30.5° /
+2.91 Å and 30.4° / 3.01 Å, 3.3 Å), the closure keeps their stacking, every reference fit scores
+contacts over twelve levels, pairs without a base-base H-bond are noted, and RNA builds of reverse-wc,
+reverse-hoogsteen and the purine-motif triplex are refused (library, command line, builder window).
+CH-17's refit of the reference helices is dropped (its smooth term stays in the closure).
 
 ## Wave 3: W3-A and W3-B done; W3-C remaining
 

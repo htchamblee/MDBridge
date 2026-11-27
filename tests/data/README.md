@@ -577,7 +577,7 @@ docstring:
 | `annotate_cases.json` | `make_annotate_cases.py` | built helices and crafted files; `annotate` with every option and engine (records, notes, text) |
 | `dict_cases.json`, `dictionaries/*.cif` | `make_dict_cases.py` (pytest: `tests/test_dictionaries.py`'s synthetic dictionaries) | `COMPONENTS`; `parse_smiles` (test strings, the components, a fuzzed set); `match_graph`; `check_smiles` / `identify_smiles`; `finish_dictionary` of synthetic acedrg / eLBOW dictionaries with every option; two dictionaries for `cli_parity.py`'s `dict finish` cases |
 | `builder_cases.json` | `make_builder_cases.py` | `check_helix` and the sequence functions; the A-form templates; Watson-Crick `build_helix` over its options; `mutate` and `parse_mutations` |
-| `builder_fitted_cases.json`, `maps/{helix_moved,strand_moved,strand_nan}.mrc` | `make_builder_cases.py` | the reference helix fits of the other pairings (start, the refined parameters `least_squares` reaches, cost, screw, torsions, contacts), `_pair_fit` of every canonical pair, the rebuilt helices (other pairings, triplexes, CH-16's continuation closure: text, notes, heavy-atom coordinates; read by `tests/chem/test_builder.cpp` within D10; built in parallel worker processes, `MDBRIDGE_GENERATOR_JOBS`), `fit_to_map` on the maps (one model with shifted columns takes the rewrite; read by `tests/chem/test_mutate.cpp`, the fits within D10's tolerance) |
+| `builder_fitted_cases.json`, `maps/{helix_moved,strand_moved,strand_nan}.mrc` | `make_builder_cases.py` | the reference helix fits of the kinds still built (hh, the Hoogsteen duplex, the pyrimidine-motif triplex; CH-18: start(s), the fit's parameters, cost, nfev, status, and the screw, torsions and contacts of those parameters), `_pair_fit` of every canonical pair (MDATK's H-bond fits; CH-18's kinds pose theirs from the RNA triple helices), the rebuilt helices (other pairings, triplexes, CH-16's continuation closure, CH-18's geometry; the refused kinds as errors: text, notes, heavy-atom coordinates; read by `tests/chem/test_builder.cpp` within D10; built in parallel worker processes, `MDBRIDGE_GENERATOR_JOBS`), `fit_to_map` on the maps (one model with shifted columns takes the rewrite; read by `tests/chem/test_mutate.cpp`, the fits within D10's tolerance) |
 | `density_fit_cases.json`, `maps/fit_*.mrc` | `make_density_fit_cases.py` (MDAnalysis: the demo frame) | `rotation_samples`, `_fft_size`, per model x map the `FitProblem`, CCs, flips, the coarse search's grid and peaks, `refine`, `fit_model` global and manual; errors (read by `tests/chem/test_density_fit.cpp`: fits within D10's tolerance) |
 
 numpy's and OpenBLAS' kernels are pinned (`chem_common.py`, as `make_analysis_cases.py`). The
@@ -1202,7 +1202,8 @@ closed). `needs` holds `tools` for these cases. The density fit's case (`builder
 Å; the case asks for less), the project's step log within the last printed digit;
 `regenerate_all.py` compares the fit case's files across machines by the chemistry's rule
 (FITTED_TEXT). The non-Watson-Crick builds are not in
-the cases until the fitted builder (W2-A) lands: their *Check* messages are.
+the cases until the fitted builder (W2-A) lands: their *Check* messages are (reverse-hoogsteen's now
+the CH-18 refusal).
 
 ## numerics: SciPy's numerics (milestone 6, W0-C)
 

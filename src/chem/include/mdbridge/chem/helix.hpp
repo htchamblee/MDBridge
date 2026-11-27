@@ -3,8 +3,10 @@
 // hydrogens, the sequence functions and the levelled messages the builder window and the planner
 // show (check_helix), the Watson-Crick helix (build_helix with pairing "wc", no triplex: a duplex or
 // a single strand of either hand, byte for byte as MDATK writes it; helix.cpp) and the other
-// pairings and triplexes (fitted on the 4JRD nucleotide; helix_fit.cpp), with MDBridge's fixes
-// (docs/DIFFERENCES.md CH-01, CH-02, CH-16, CH-17, CHD-01, CHD-02, D13 "REMARK 951 MDBridge IDEAL").
+// pairings and triplexes (hh fitted on the 4JRD nucleotide, the Hoogsteen duplex and the
+// pyrimidine-motif triplex on the RNA triple helices of PDB 3P22, 4PLX, 6SVS, 7JNH; helix_fit.cpp),
+// with MDBridge's fixes (docs/DIFFERENCES.md CH-01, CH-02, CH-16, CH-17, CH-18, CHD-01, CHD-02, D13
+// "REMARK 951 MDBridge IDEAL").
 //
 // Python's None is std::nullopt where MDATK tells it apart from "" (partner, pairing, triplex,
 // third, scheme). Errors are io::BuildError (io::PdbError for the CH-01 column check), with MDATK's
@@ -34,7 +36,8 @@ using io::BuildError;
 inline constexpr double kHelixTwist = 32.7;  // degrees per residue
 inline constexpr double kHelixRise = 2.81;   // Angstrom per residue
 
-// The pairings (PAIRINGS) and triplex motifs (TRIPLEX_MOTIFS) MDATK knows.
+// The pairings (PAIRINGS) and triplex motifs (TRIPLEX_MOTIFS) MDATK knows; RNA builds of
+// reverse-wc, reverse-hoogsteen and the reverse-hoogsteen triplex are refused (rnaRefusal, CH-18).
 inline constexpr std::array<std::string_view, 5> kPairings = {"wc", "reverse-wc", "hoogsteen", "reverse-hoogsteen",
                                                               "hh"};
 inline constexpr std::array<std::string_view, 2> kTriplexMotifs = {"hoogsteen", "reverse-hoogsteen"};
@@ -126,6 +129,12 @@ struct HelixMessage {
     std::string text;
     bool operator==(const HelixMessage&) const = default;
 };
+// The kinds RNA is not known to form (docs/DIFFERENCES.md CH-18): for a checked pairing and triplex
+// motif (nullopt: none) the error that refuses the build ("pairing reverse-wc: RNA is not known to
+// form the parallel reverse Watson-Crick (tWW) duplex; DNA and DNA-RNA hybrid builds of it will come
+// with DNA structure building"), nullopt for a kind that is built. Refused: the reverse-wc and
+// reverse-hoogsteen pairings and the reverse-hoogsteen (purine-motif) triplex.
+std::optional<std::string> rnaRefusal(std::string_view pairing, std::optional<std::string_view> motif = {});
 // check_helix: the sequence-level messages of a build request (every pairing and triplex).
 std::vector<HelixMessage> checkHelix(std::string_view sequence, std::optional<std::string_view> partner = "auto",
                                      std::optional<std::string_view> pairing = "wc",
@@ -160,9 +169,11 @@ struct HelixOptions {
 };
 
 // build_helix: the PDB text; the build notes are appended to `notes` (when given) only on success.
-// Watson-Crick duplexes and single strands byte for byte as MDATK builds them; the other pairings and
-// triplexes (chem/helix_fit.cpp) from converged fits of the 4JRD nucleotide, the strands closed by
-// continuation (docs/DIFFERENCES.md CH-16), within docs/specs/m6-plan.md D10 of the patched MDATK's.
+// Watson-Crick duplexes and single strands byte for byte as MDATK builds them (with CH-18's note of
+// pairs without a base-base H-bond); the other pairings and triplexes (chem/helix_fit.cpp) from
+// converged fits (hh: of the 4JRD nucleotide; hoogsteen and the pyrimidine-motif triplex: restrained
+// to the RNA triple helices, CH-18), the strands closed by continuation (docs/DIFFERENCES.md CH-16),
+// within docs/specs/m6-plan.md D10 of the patched MDATK's. The kinds rnaRefusal names throw.
 // A fitted build of ten levels takes seconds to minutes (reporter: progress, cancellation).
 std::string buildHelix(std::string_view sequence, const HelixOptions& options = {},
                        std::vector<std::string>* notes = nullptr);

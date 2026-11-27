@@ -9,6 +9,11 @@
 // planner step is milestone 7's), test_rebuilt_helices_have_no_close_contacts,
 // test_reverse_wc_bases_clear_their_own_sugars, test_sugar_steps_keep_c2_away_from_the_next_c5,
 // test_closed_strands_keep_the_pair_geometry and test_contact_report_includes_hydrogens_and_close_heavy_atoms.
+// CH-18 (docs/DIFFERENCES.md): MDATK's tests of reverse-wc, reverse-hoogsteen and the purine-motif
+// triplex check here that RNA builds of them are refused, and run on the kinds still built; the
+// Hoogsteen duplex and the pyrimidine-motif triplex have experimental (not 2.9 Å, coplanar) pairs; and
+// uniform helices over a turn of every kind are checked against the experimental geometry of
+// docs/reports/2026-11-27-non-wc-geometry.md (contacts, stacking, twist, rise).
 // Barnaba's Leontis-Westhof codes (MDATK skips them without barnaba) are not checked; tleap's and
 // the window's tests have other counterparts (tests/gui/test_tools.cpp).
 
@@ -22,6 +27,7 @@
 #include <iostream>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <regex>
 #include <set>
@@ -625,10 +631,7 @@ TEST(BuilderMdatk, HhDuplexMatches4jrd) {
 
 // test_pairings_build_the_intended_pairs
 TEST(BuilderMdatk, PairingsBuildTheIntendedPairs) {
-    const std::vector<std::pair<std::string, std::string>> cases = {{"reverse-wc", "GAUCAGUAGC"},
-                                                                    {"hoogsteen", "AAGAGAAGGA"},
-                                                                    {"reverse-hoogsteen", "AAGAAGGAAG"},
-                                                                    {"hh", "AAAAAAAA"}};
+    const std::vector<std::pair<std::string, std::string>> cases = {{"hoogsteen", "AAGAGAAGGA"}, {"hh", "AAAAAAAA"}};
     std::vector<Request> requests;
     for (const auto& [pairing, seq] : cases) requests.push_back({seq, fitted(pairing)});
     const std::vector<Built> built = buildAll(requests);
@@ -649,15 +652,32 @@ TEST(BuilderMdatk, PairingsBuildTheIntendedPairs) {
         EXPECT_FALSE(
             anyNote(built[k].notes, [](const std::string& n) { return n.find("mismatch") != std::string::npos; }));
     }
+    // CH-18: RNA is not known to form the parallel reverse-WC and the reverse-Hoogsteen duplexes
+    for (const auto& [pairing, what] :
+         {std::pair<std::string, std::string>{"reverse-wc", "the parallel reverse Watson-Crick (tWW) duplex"},
+          {"reverse-hoogsteen", "the reverse-Hoogsteen (tHW) duplex"}}) {
+        const std::string message = "pairing " + pairing + ": RNA is not known to form " + what +
+                                    "; DNA and DNA-RNA hybrid builds of it will come with DNA structure building";
+        try {
+            buildHelix("AAGAGAAGGA", fitted(pairing));
+            ADD_FAILURE() << pairing << " was built";
+        } catch (const BuildError& e) {
+            EXPECT_EQ(std::string(e.what()), message);
+        }
+        EXPECT_EQ(rnaRefusal(pairing), message);
+        EXPECT_EQ(checkHelix("AAGAGAAGGA", "auto", pairing), (std::vector<HelixMessage>{{"error", message}}));
+    }
+    EXPECT_EQ(rnaRefusal("hoogsteen"), std::nullopt);
+    EXPECT_EQ(rnaRefusal("hh"), std::nullopt);
+    EXPECT_EQ(rnaRefusal("wc"), std::nullopt);
 }
 
 // test_triplex_third_strand
 TEST(BuilderMdatk, TriplexThirdStrand) {
     const std::string seq = "AAGAGAAGGA";
-    const std::vector<Built> built =
-        buildAll({{seq, fitted("wc", "hoogsteen")}, {seq, fitted("wc", "reverse-hoogsteen")}});
-    for (const std::string motif : {"hoogsteen", "reverse-hoogsteen"}) {
-        const Built& b = built[motif == "hoogsteen" ? 0 : 1];
+    const std::vector<Built> built = buildAll({{seq, fitted("wc", "hoogsteen")}});
+    for (const std::string motif : {"hoogsteen"}) {
+        const Built& b = built[0];
         const io::PdbStructure s = io::readPdbText(b.text);
         EXPECT_EQ(s.chainIds(), (std::vector<std::string>{"A", "B", "C"}));
         ASSERT_EQ(s.segments.size(), 3u);
@@ -676,13 +696,26 @@ TEST(BuilderMdatk, TriplexThirdStrand) {
         EXPECT_TRUE(anyNote(b.notes, [](const std::string& n) { return startsWith(n, "Triplex, "); }));
         EXPECT_NE(b.text.find("THIRD STRAND"), std::string::npos);
     }
+    // CH-18: RNA is not known to form the purine-motif triplex
+    const std::string message =
+        "triplex reverse-hoogsteen: RNA is not known to form the purine-motif "
+        "(reverse-Hoogsteen) triplex; DNA and DNA-RNA hybrid builds of it will come with DNA "
+        "structure building";
+    try {
+        buildHelix(seq, fitted("wc", "reverse-hoogsteen"));
+        ADD_FAILURE() << "the purine-motif triplex was built";
+    } catch (const BuildError& e) {
+        EXPECT_EQ(std::string(e.what()), message);
+    }
+    EXPECT_EQ(rnaRefusal("wc", "reverse-hoogsteen"), message);
+    EXPECT_EQ(rnaRefusal("wc", "hoogsteen"), std::nullopt);
+    EXPECT_EQ(checkHelix(seq, "auto", "wc", "reverse-hoogsteen"), (std::vector<HelixMessage>{{"error", message}}));
 }
 
 // test_l_pairings_are_mirror_images
 TEST(BuilderMdatk, LPairingsAreMirrorImages) {
     const std::string seq = "AAGAGA";
-    const std::vector<HelixOptions> kinds = {fitted("hoogsteen"), fitted("reverse-wc"),
-                                             fitted("wc", "reverse-hoogsteen")};
+    const std::vector<HelixOptions> kinds = {fitted("hoogsteen"), fitted("hh"), fitted("wc", "hoogsteen")};
     std::vector<Request> requests;
     for (const HelixOptions& o : kinds) {
         requests.push_back({seq, o});
@@ -768,8 +801,8 @@ TEST(BuilderMdatk, PairingMismatchesMessagesAndErrors) {
 TEST(BuilderMdatk, PairingCliBuilds) {
     HelixOptions l = fitted("hoogsteen");
     l.chirality = "L";
-    HelixOptions tri = fitted("wc", "reverse-hoogsteen");
-    tri.third = "GAGAA";
+    HelixOptions tri = fitted("wc", "hoogsteen");  // MDATK's: the purine motif (third GAGAA), refused (CH-18)
+    tri.third = "UUCUC";
     tri.chains = "A,B,T";
     tri.start = "1,1,7";
     const std::vector<Built> built = buildAll({{"AAGAG", l}, {"AAGAG", tri}});
@@ -788,19 +821,44 @@ struct Mixed {
     std::optional<std::string> motif;
     std::string seq;
 };
-// MIXED: other pairs than the reference pair, strand-1 pyrimidines, mismatches
+// MIXED: other pairs than the reference pair, strand-1 pyrimidines, mismatches (MDATK's also
+// reverse-wc GAGGAUCA, AUGCAU, reverse-hoogsteen GAAGAG, AUGCAU and the purine-motif triplex AUGCAU:
+// refused, CH-18)
 const std::vector<Mixed>& mixed() {
-    static const std::vector<Mixed> cases = {
-        {"reverse-wc", {}, "GAGGAUCA"},      {"reverse-wc", {}, "AUGCAU"},         {"hoogsteen", {}, "GAGGAUCA"},
-        {"reverse-hoogsteen", {}, "GAAGAG"}, {"reverse-hoogsteen", {}, "AUGCAU"},  {"hh", {}, "GAGGAUCA"},
-        {"wc", "hoogsteen", "GAGGAUCA"},     {"wc", "reverse-hoogsteen", "AUGCAU"}};
+    static const std::vector<Mixed> cases = {{"hoogsteen", {}, "GAGGAUCA"},   {"hoogsteen", {}, "AUGCAU"},
+                                             {"hh", {}, "GAGGAUCA"},          {"hh", {}, "AUGCAU"},
+                                             {"wc", "hoogsteen", "GAGGAUCA"}, {"hoogsteen", {}, "AAGAGAAGGA"}};
     return cases;
 }
 
-std::vector<Built> buildWithHydrogens(const std::vector<Mixed>& cases) {
+// the builds of mixed sequences, each once in the test program (with or without hydrogens)
+std::vector<Built> buildCached(const std::vector<Mixed>& cases, bool hydrogens) {
+    static std::mutex mutex;
+    static std::map<std::string, Built> cache;
+    const auto key = [&](const Mixed& m) {
+        return m.pairing + "/" + m.motif.value_or("") + "/" + m.seq + (hydrogens ? "/H" : "");
+    };
     std::vector<Request> requests;
-    for (const Mixed& m : cases) requests.push_back({m.seq, fitted(m.pairing, m.motif, true)});
-    return buildAll(requests);
+    std::vector<std::string> keys;
+    {
+        const std::lock_guard<std::mutex> lock(mutex);
+        for (const Mixed& m : cases) {
+            if (!cache.count(key(m)) && std::find(keys.begin(), keys.end(), key(m)) == keys.end()) {
+                requests.push_back({m.seq, fitted(m.pairing, m.motif, hydrogens)});
+                keys.push_back(key(m));
+            }
+        }
+    }
+    const std::vector<Built> built = buildAll(requests);
+    const std::lock_guard<std::mutex> lock(mutex);
+    for (std::size_t k = 0; k < keys.size(); ++k) cache[keys[k]] = built[k];
+    std::vector<Built> out;
+    for (const Mixed& m : cases) out.push_back(cache.at(key(m)));
+    return out;
+}
+
+std::vector<Built> buildWithHydrogens(const std::vector<Mixed>& cases) {
+    return buildCached(cases, true);
 }
 
 // test_rebuilt_helices_have_no_close_contacts
@@ -828,11 +886,11 @@ TEST(BuilderMdatk, RebuiltHelicesHaveNoCloseContacts) {
     }
 }
 
-// test_reverse_wc_bases_clear_their_own_sugars
+// test_reverse_wc_bases_clear_their_own_sugars (reverse-wc is refused, CH-18: the kinds still built)
 TEST(BuilderMdatk, ReverseWcBasesClearTheirOwnSugars) {
-    const std::vector<std::string> seqs = {"UCUCAG", "GAGGAUCA", "AUGCAU"};
-    std::vector<Mixed> cases;
-    for (const std::string& seq : seqs) cases.push_back({"reverse-wc", {}, seq});
+    const std::vector<Mixed>& cases = mixed();
+    std::vector<std::string> seqs;
+    for (const Mixed& m : cases) seqs.push_back(m.pairing + " " + m.motif.value_or("") + " " + m.seq);
     const std::vector<Built> built = buildWithHydrogens(cases);
     for (std::size_t k = 0; k < seqs.size(); ++k) {
         const io::PdbStructure model = io::readPdbText(built[k].text);
@@ -863,8 +921,8 @@ TEST(BuilderMdatk, ReverseWcBasesClearTheirOwnSugars) {
 
 // test_sugar_steps_keep_c2_away_from_the_next_c5
 TEST(BuilderMdatk, SugarStepsKeepC2AwayFromTheNextC5) {
-    const std::vector<Mixed> cases = {
-        {"reverse-hoogsteen", {}, "AAGAGG"}, {"reverse-hoogsteen", {}, "GAAGAG"}, {"wc", "hoogsteen", "GAGGAG"}};
+    // MDATK's: reverse-hoogsteen AAGAGG, GAAGAG (refused, CH-18) and the triplex GAGGAG
+    const std::vector<Mixed> cases = {{"hoogsteen", {}, "AAGAGG"}, {"hh", {}, "GAAGAG"}, {"wc", "hoogsteen", "GAGGAG"}};
     const std::vector<Built> built = buildWithHydrogens(cases);
     for (std::size_t k = 0; k < cases.size(); ++k) {
         const io::PdbStructure model = io::readPdbText(built[k].text);
@@ -896,9 +954,15 @@ Vec baseNormal(const Coords& c, char base) {
 
 // test_closed_strands_keep_the_pair_geometry
 TEST(BuilderMdatk, ClosedStrandsKeepThePairGeometry) {
-    const std::vector<Mixed> cases = {{"reverse-wc", {}, "AUGCAU"},    {"reverse-wc", {}, "GAGGAUCA"},
-                                      {"hoogsteen", {}, "GAGGAUCA"},   {"reverse-hoogsteen", {}, "GAGGAUCA"},
-                                      {"wc", "hoogsteen", "GAGGAUCA"}, {"wc", "reverse-hoogsteen", "GAAGAG"}};
+    // MDATK's also reverse-wc AUGCAU, GAGGAUCA, reverse-hoogsteen GAGGAUCA and the purine-motif triplex
+    // GAAGAG (refused, CH-18); hh added. hh (the 4JRD A·A pair, 2.74 Å), the Hoogsteen duplex and the
+    // pyrimidine-motif triplex keep their experimental pairs: H-bonds 2.6-3.3 Å (MDATK's 2.8-3.0: its pairs are fitted
+    // to 2.9 Å), H...acceptor within 2.4 Å at 140 degrees or more, and the propeller of the RNA triple helices (bases
+    // within 20 degrees; MDATK's: 10, coplanar pairs)
+    const std::vector<Mixed> cases = {{"hoogsteen", {}, "GAGGAUCA"},
+                                      {"hoogsteen", {}, "AAGAGAAGGA"},
+                                      {"hh", {}, "AAGAAAGA"},
+                                      {"wc", "hoogsteen", "GAGGAUCA"}};
     const std::vector<Built> built = buildWithHydrogens(cases);
     for (std::size_t k = 0; k < cases.size(); ++k) {
         const Mixed& m = cases[k];
@@ -919,9 +983,15 @@ TEST(BuilderMdatk, ClosedStrandsKeepThePairGeometry) {
                 if (it == table->end()) continue;
                 const Coords ca = coordsOf(*a), cb = coordsOf(*b);
                 const std::string where = m.pairing + " " + m.seq + " " + a->label() + " " + b->label();
+                const bool experimental =
+                    m.pairing == "hoogsteen" || m.pairing == "hh" || m.motif == std::optional<std::string>("hoogsteen");
                 for (const auto& [x, y] : it->second) {
                     const double d = dist(ca.at(x), cb.at(y));
-                    EXPECT_TRUE(2.8 <= d && d <= 3.0) << where << " " << x << " " << y << " " << d;
+                    if (experimental) {
+                        EXPECT_TRUE(2.6 <= d && d <= 3.3) << where << " " << x << " " << y << " " << d;
+                    } else {
+                        EXPECT_TRUE(2.8 <= d && d <= 3.0) << where << " " << x << " " << y << " " << d;
+                    }
                     for (const auto& [don, acc, cd, cc] :
                          {std::make_tuple(x, y, &ca, &cb), std::make_tuple(y, x, &cb, &ca)}) {
                         std::vector<std::string> hs;
@@ -938,14 +1008,16 @@ TEST(BuilderMdatk, ClosedStrandsKeepThePairGeometry) {
                                 const double angle =
                                     std::acos(dot(u, v) / std::sqrt(dot(u, u)) / std::sqrt(dot(v, v))) * 180.0 /
                                     3.14159265358979323846;
-                                EXPECT_LE(dist(cd->at(h), cc->at(acc)), 2.05) << where << " " << h << " " << acc;
-                                EXPECT_GE(angle, 150.0) << where << " " << h << " " << acc;
+                                EXPECT_LE(dist(cd->at(h), cc->at(acc)), experimental ? 2.4 : 2.05)
+                                    << where << " " << h << " " << acc;
+                                EXPECT_GE(angle, experimental ? 140.0 : 150.0) << where << " " << h << " " << acc;
                             }
                         }
                     }
                 }
                 const Vec n1 = baseNormal(ca, key[0]), n2 = baseNormal(cb, key[1]);
-                EXPECT_LE(std::acos(std::min(1.0, std::fabs(dot(n1, n2)))) * 180.0 / 3.14159265358979323846, 10.0)
+                EXPECT_LE(std::acos(std::min(1.0, std::fabs(dot(n1, n2)))) * 180.0 / 3.14159265358979323846,
+                          experimental ? 20.0 : 10.0)
                     << where;
                 ++checked;
             }
@@ -1000,12 +1072,12 @@ TEST(BuilderMdatk, ContactReportIncludesHydrogensAndCloseHeavyAtoms) {
     }));
     // a heavy-atom model gets hydrogens for the check: the same report as with hydrogens
     const std::vector<Mixed> two(mixed().begin(), mixed().begin() + 2);
-    std::vector<Request> requests;
-    for (const Mixed& m : two) {
-        requests.push_back({m.seq, fitted(m.pairing, m.motif, true)});
-        requests.push_back({m.seq, fitted(m.pairing, m.motif, false)});
+    const std::vector<Built> withH = buildCached(two, true), heavyOnly = buildCached(two, false);
+    std::vector<Built> built;
+    for (std::size_t k = 0; k < two.size(); ++k) {
+        built.push_back(withH[k]);
+        built.push_back(heavyOnly[k]);
     }
-    const std::vector<Built> built = buildAll(requests);
     for (std::size_t k = 0; k < two.size(); ++k) {
         const auto report = [](const std::vector<std::string>& notes) {
             std::vector<std::string> out;
@@ -1017,6 +1089,183 @@ TEST(BuilderMdatk, ContactReportIncludesHydrogensAndCloseHeavyAtoms) {
         };
         EXPECT_EQ(report(built[2 * k + 1].notes), report(built[2 * k].notes)) << two[k].seq;
     }
+}
+
+// --- CH-18: the geometry of uniform helices over a turn, against experiment ----------------------------
+
+// the atoms of level k (strand 1 residue k, each partner's residue at that level): C1' and the base heavy
+// atoms, as docs/reports/2026-11-27-non-wc-geometry.md measures them
+std::vector<Vec> levelAtoms(const io::PdbStructure& s, std::size_t k, const std::vector<bool>& parallel, bool bases) {
+    std::vector<Vec> out;
+    const std::size_t n = s.segments[0].size();
+    for (std::size_t strand = 0; strand < s.segments.size(); ++strand) {
+        const io::PdbResidue& r = s.segments[strand][parallel[strand] ? k : n - 1 - k];
+        const Coords c = coordsOf(r);
+        if (!bases) out.push_back(c.at("C1'"));
+        for (const std::string_view a : baseAtomNames(baseOf(r))) out.push_back(c.at(std::string(a)));
+    }
+    return out;
+}
+
+// the screw (twist degrees, rise Å) of the rigid fit of level k onto level k + 1
+std::pair<double, double> stepScrew(const std::vector<Vec>& x, const std::vector<Vec>& y) {
+    Vec mx{}, my{};
+    for (std::size_t k = 0; k < x.size(); ++k)
+        for (std::size_t c = 0; c < 3; ++c) {
+            mx[c] += x[k][c] / static_cast<double>(x.size());
+            my[c] += y[k][c] / static_cast<double>(x.size());
+        }
+    core::Mat3 h{};
+    for (std::size_t k = 0; k < x.size(); ++k)
+        for (std::size_t p = 0; p < 3; ++p)
+            for (std::size_t q = 0; q < 3; ++q) h[p][q] += (x[k][p] - mx[p]) * (y[k][q] - my[q]);
+    const core::Svd3 svd = core::svd3x3(h);
+    core::Mat3 r{};
+    for (std::size_t i = 0; i < 3; ++i)
+        for (std::size_t j = 0; j < 3; ++j)
+            for (std::size_t k = 0; k < 3; ++k) r[i][j] += svd.vt[k][i] * svd.u[j][k];
+    if (core::det3(r) < 0) {
+        for (std::size_t i = 0; i < 3; ++i)
+            for (std::size_t j = 0; j < 3; ++j) r[i][j] -= 2.0 * svd.vt[2][i] * svd.u[j][2];
+    }
+    Vec t{};  // y = r x + t
+    for (std::size_t i = 0; i < 3; ++i) t[i] = my[i] - (r[i][0] * mx[0] + r[i][1] * mx[1] + r[i][2] * mx[2]);
+    const double angle = std::acos(std::clamp((r[0][0] + r[1][1] + r[2][2] - 1.0) / 2.0, -1.0, 1.0));
+    Vec axis = {r[2][1] - r[1][2], r[0][2] - r[2][0], r[1][0] - r[0][1]};
+    const double len = std::sqrt(dot(axis, axis));
+    axis = {axis[0] / len, axis[1] / len, axis[2] / len};
+    return {angle * 180.0 / 3.14159265358979323846, std::fabs(dot(axis, t))};
+}
+
+// the separation of the planes of the base heavy atoms of two levels along their mean normal
+double planeSeparation(const std::vector<Vec>& a, const std::vector<Vec>& b) {
+    const auto plane = [](std::vector<Vec> p) {
+        Vec m{};
+        for (const Vec& v : p)
+            for (std::size_t i = 0; i < 3; ++i) m[i] += v[i] / static_cast<double>(p.size());
+        for (Vec& v : p) v = sub(v, m);
+        return std::make_pair(m, core::svdRows3(p).vt[2]);
+    };
+    auto [ca, na] = plane(a);
+    auto [cb, nb] = plane(b);
+    if (dot(na, nb) < 0) nb = {-nb[0], -nb[1], -nb[2]};
+    Vec n = {na[0] + nb[0], na[1] + nb[1], na[2] + nb[2]};
+    const double len = std::sqrt(dot(n, n));
+    n = {n[0] / len, n[1] / len, n[2] / len};
+    return std::fabs(dot(sub(cb, ca), n));
+}
+
+// the stacking of consecutive bases of one strand: the perpendicular distance of each base's centroid from
+// the other's plane, averaged (the report's "stack perp")
+double baseStacking(const io::PdbResidue& a, const io::PdbResidue& b) {
+    const auto plane = [](const io::PdbResidue& r) {
+        const Coords c = coordsOf(r);
+        std::vector<Vec> p;
+        for (const std::string_view n : baseAtomNames(baseOf(r))) p.push_back(c.at(std::string(n)));
+        Vec m{};
+        for (const Vec& v : p)
+            for (std::size_t i = 0; i < 3; ++i) m[i] += v[i] / static_cast<double>(p.size());
+        for (Vec& v : p) v = sub(v, m);
+        return std::make_pair(m, core::svdRows3(p).vt[2]);
+    };
+    const auto [ca, na] = plane(a);
+    const auto [cb, nb] = plane(b);
+    const Vec v = sub(cb, ca);
+    return 0.5 * (std::fabs(dot(v, na)) + std::fabs(dot(v, nb)));
+}
+
+struct Uniform {
+    std::string pairing;
+    std::optional<std::string> motif;
+    char base;
+    double twistLow, twistHigh, riseLow, riseHigh;  // the experimental ranges of the report
+};
+
+// Uniform helices of 14 levels (more than a turn) of every non-Watson-Crick kind still built: no close
+// contacts in the builder's report (hydrogens included) or the test's own check, consecutive bases of
+// every strand stacked 3.0-3.7 Å apart (and the base planes of consecutive levels of the Hoogsteen
+// duplex and the triplex), twist and rise within the experimental ranges of docs/reports/
+// 2026-11-27-non-wc-geometry.md (hh 4JRD 42.3° / 3.76 Å; the Hoogsteen pairs of the RNA triple helices
+// 30.5° / 2.91 Å, their triples 30.4° / 3.01 Å; each within twice the spread of the experimental steps,
+// 2.9° / 0.3 Å and 2.2° / 0.21 Å). (The Watson-Crick A-form is MDATK's Arnott fibre model, built byte
+// for byte as MDATK builds it; its hydrogens have H2'-H8 / H6 contacts of 1.6-1.7 Å.)
+TEST(BuilderGeometry, UniformHelicesOverATurnAreStackedAndClear) {
+    const std::vector<Uniform> kinds = {{"hh", {}, 'A', 38.0, 46.0, 3.4, 4.1},
+                                        {"hoogsteen", {}, 'A', 24.7, 36.3, 2.3, 3.5},
+                                        {"hoogsteen", {}, 'G', 24.7, 36.3, 2.3, 3.5},
+                                        {"wc", "hoogsteen", 'A', 26.0, 34.8, 2.6, 3.45},
+                                        {"wc", "hoogsteen", 'G', 26.0, 34.8, 2.6, 3.45}};
+    std::vector<Request> requests;
+    for (const Uniform& u : kinds) requests.push_back({std::string(14, u.base), fitted(u.pairing, u.motif, true)});
+    const std::vector<Built> built = buildAll(requests);
+    for (std::size_t k = 0; k < kinds.size(); ++k) {
+        const Uniform& u = kinds[k];
+        const std::string where = u.pairing + " " + u.motif.value_or("") + " " + std::string(14, u.base);
+        const io::PdbStructure s = io::readPdbText(built[k].text);
+        EXPECT_EQ(closeContactsOf(s), std::vector<std::string>{}) << where;
+        EXPECT_TRUE(anyNote(built[k].notes, [](const std::string& n) { return startsWith(n, "No close contacts ("); }))
+            << where;
+        EXPECT_FALSE(anyNote(built[k].notes, [](const std::string& n) { return startsWith(n, "WARNING"); })) << where;
+        std::vector<bool> parallel = {true};
+        if (u.motif) {
+            parallel.push_back(false);
+            parallel.push_back(true);
+        } else {
+            parallel.push_back(u.pairing == "wc" ? false : parallelPairing(u.pairing));
+        }
+        ASSERT_EQ(s.segments.size(), parallel.size()) << where;
+        for (std::size_t level = 0; level + 1 < 14; ++level) {
+            const auto [twist, rise] =
+                stepScrew(levelAtoms(s, level, parallel, false), levelAtoms(s, level + 1, parallel, false));
+            const double layers =
+                planeSeparation(levelAtoms(s, level, parallel, true), levelAtoms(s, level + 1, parallel, true));
+            const std::string at = where + " step " + std::to_string(level + 1);
+            EXPECT_TRUE(u.twistLow <= twist && twist <= u.twistHigh) << at << ": twist " << twist;
+            EXPECT_TRUE(u.riseLow <= rise && rise <= u.riseHigh) << at << ": rise " << rise;
+            if (u.pairing != "hh") {  // the 4JRD A·A pair is not planar: its strands' stacking only
+                EXPECT_TRUE(3.0 <= layers && layers <= 3.7) << at << ": level planes " << layers;
+            }
+            std::string stacks;
+            for (const auto& seg : s.segments) {
+                const double stack = baseStacking(seg[level], seg[level + 1]);
+                EXPECT_TRUE(3.0 <= stack && stack <= 3.7) << at << " " << seg[level].label() << ": stacking " << stack;
+                stacks += " " + std::to_string(stack);
+            }
+            if (level == 0) {
+                std::cout << where << ": twist " << twist << " rise " << rise << " level planes " << layers
+                          << " stacking" << stacks << "\n";
+            }
+        }
+    }
+}
+
+// CH-18: a built pair whose bases have no N/O donor-acceptor pair within 3.5 Å is reported (hh U·U and
+// C·C; MDATK reports only the mismatch, not that it has no H-bond)
+TEST(BuilderGeometry, PairsWithoutABaseBaseHbondAreReported) {
+    const std::vector<Built> built = buildCached({{"hh", {}, "GAGGAUCA"}, {"hh", {}, "AUGCAU"}}, true);
+    const auto note = [](const std::vector<std::string>& notes) {
+        const auto it = std::find_if(notes.begin(), notes.end(), [](const std::string& n) {
+            return startsWith(n, "WARNING: ") && n.find("without a base-base H-bond") != std::string::npos;
+        });
+        return it == notes.end() ? std::string() : *it;
+    };
+    const std::string hh = note(built[0].notes);
+    EXPECT_TRUE(startsWith(hh, "WARNING: ")) << hh;
+    EXPECT_NE(hh.find("(no N/O donor-acceptor pair within 3.5 Å): "), std::string::npos) << hh;
+    EXPECT_NE(hh.find("A:6 U · B:6 U"), std::string::npos) << hh;
+    EXPECT_NE(hh.find("A:7 C · B:7 C"), std::string::npos) << hh;
+    EXPECT_EQ(hh.find("A:2 A · B:2 A"), std::string::npos) << hh;  // the A·A pairs have their H-bonds
+    // the note comes before the closing "Built ..." note
+    const auto pos = std::find(built[0].notes.begin(), built[0].notes.end(), hh);
+    ASSERT_NE(pos, built[0].notes.end());
+    EXPECT_TRUE(startsWith(*(pos + 1), "Built "));
+    // canonical pairs only: no note; a Watson-Crick mismatch without an H-bond: the note
+    EXPECT_EQ(note(buildOne("AAAAAAAA", fitted("hh")).notes), "");
+    EXPECT_EQ(note(buildOne("GGCAUC", HelixOptions{}).notes), "");
+    HelixOptions mism;
+    mism.partner = "GAUCCC";
+    const std::string wc = note(buildOne("GGCAUC", mism).notes);
+    EXPECT_TRUE(startsWith(wc, "WARNING: ")) << wc;
 }
 
 // cancellation through the reporter: a fitted build stops with core::Cancelled
@@ -1037,7 +1286,7 @@ TEST(Builder, FittedBuildIsCancellable) {
 
 // the same model for any number of finite-difference threads
 TEST(Builder, FittedBuildDoesNotDependOnTheThreadCount) {
-    HelixOptions one = fitted("reverse-wc", std::nullopt, true);
+    HelixOptions one = fitted("hoogsteen", std::nullopt, true);
     one.threads = 1;
     HelixOptions four = one;
     four.threads = 4;

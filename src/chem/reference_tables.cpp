@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <iterator>
 
 namespace mdbridge::chem::reference {
 
@@ -11,6 +12,7 @@ namespace {
 
 #include "component_tables.inc"
 #include "helix_tables.inc"
+#include "triplex_tables.inc"
 
 // The contiguous run of rows whose key equals `key` (the tables are grouped by their first field).
 template <typename Row, std::size_t N, typename Key>
@@ -33,6 +35,26 @@ std::span<const CylindricalBaseAtom> arnottBase(char base) {
 std::span<const CylindricalAtom> jrdNucleotide() { return kJrdNucleotide; }
 double jrdTwist() { return kJrdTwist; }
 double jrdRise() { return kJrdRise; }
+
+std::span<const TriplexAtom> triplexLevel(std::string_view level, int strand) {
+    const auto inLevel = [&](const TriplexAtom& a) { return a.level == level && a.strand == strand; };
+    const TriplexAtom* first = std::find_if(std::begin(kTriplexLevels), std::end(kTriplexLevels), inLevel);
+    const TriplexAtom* last =
+        std::find_if(first, std::end(kTriplexLevels), [&](const TriplexAtom& a) { return !inLevel(a); });
+    return {first, static_cast<std::size_t>(last - first)};
+}
+
+const TriplexScrew* triplexScrew(std::string_view kind) {
+    for (const TriplexScrew& s : kTriplexScrews) {
+        if (s.kind == kind) {
+            return &s;
+        }
+    }
+    return nullptr;
+}
+
+std::span<const TriplexHbond> triplexHbonds() { return kTriplexHbonds; }
+std::span<const TriplexPoseSpread> triplexPoseSpreads() { return kTriplexPoseSpreads; }
 
 std::span<const ComponentInfo> components() { return kComponents; }
 

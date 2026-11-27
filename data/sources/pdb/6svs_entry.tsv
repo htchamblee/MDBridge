@@ -1,0 +1,15 @@
+key	value
+_entry.id	6SVS
+_struct.title	Crystal Structure of U:A-U-rich RNA triple helix with 11 consecutive base triples
+_exptl.method	X-RAY DIFFRACTION
+_refine.ls_d_res_high	2.5
+_pdbx_database_status.recvd_initial_deposition_date	2019-09-18
+_citation.title	Molecular structure of a U&#8226;A-U-rich RNA triple helix with 11 consecutive base triples.
+_citation.journal_abbrev	Nucleic Acids Res.
+_citation.journal_volume	48
+_citation.page_first	3304
+_citation.page_last	3314
+_citation.year	2020
+_citation.pdbx_database_id_DOI	10.1093/nar/gkz1222
+_citation.pdbx_database_id_PubMed	31930330
+_pdbx_audit_revision_history.revision_date (latest)	2024-01-24

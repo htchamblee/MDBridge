@@ -838,6 +838,25 @@ void pairingMessages(std::string_view seq, std::string_view other, std::string_v
 
 }  // namespace
 
+std::optional<std::string> rnaRefusal(std::string_view pairing, std::optional<std::string_view> motif) {
+    std::string_view what;
+    if (motif) {
+        if (*motif == "reverse-hoogsteen") {
+            what = "the purine-motif (reverse-Hoogsteen) triplex";
+        }
+    } else if (pairing == "reverse-wc") {
+        what = "the parallel reverse Watson-Crick (tWW) duplex";
+    } else if (pairing == "reverse-hoogsteen") {
+        what = "the reverse-Hoogsteen (tHW) duplex";
+    }
+    if (what.empty()) {
+        return std::nullopt;
+    }
+    return (motif ? "triplex " + std::string(*motif) : "pairing " + std::string(pairing)) +
+           ": RNA is not known to form " + std::string(what) +
+           "; DNA and DNA-RNA hybrid builds of it will come with DNA structure building";
+}
+
 std::vector<HelixMessage> checkHelix(std::string_view sequence, std::optional<std::string_view> partner,
                                      std::optional<std::string_view> pairingName,
                                      std::optional<std::string_view> triplex, std::optional<std::string_view> third) {
@@ -855,6 +874,9 @@ std::vector<HelixMessage> checkHelix(std::string_view sequence, std::optional<st
         }
         if (motif && pairing != "wc") {
             throw BuildError("a triplex is built on the Watson-Crick duplex: choose pairing wc");
+        }
+        if (const std::optional<std::string> refused = rnaRefusal(pairing, motif)) {  // CH-18
+            throw BuildError(*refused);
         }
         if (motif) {
             thirdStrand = resolveThird(resolved.sequence, third, *motif);
@@ -1045,6 +1067,72 @@ std::vector<std::string> mismatchNotes(const io::PdbStructure& s, const std::str
     return out;
 }
 
+// CH-18: the base pairs (the strand-1 base with each partner at its level) whose bases have no N/O
+// donor-acceptor pair closer than kHbondNote, as one warning (none: nullopt)
+constexpr double kHbondNote = 3.5;
+
+std::optional<std::string> hbondNote(const io::PdbStructure& s, const std::string& seq, const std::string& partner,
+                                     const std::string& third, bool partnerParallel, bool thirdParallel) {
+    static const std::map<char, std::vector<std::string_view>> donors = {
+        {'A', {"N6"}}, {'G', {"N1", "N2"}}, {'C', {"N4"}}, {'U', {"N3"}}};
+    static const std::map<char, std::vector<std::string_view>> acceptors = {
+        {'A', {"N1", "N3", "N7"}}, {'G', {"O6", "N3", "N7"}}, {'C', {"O2", "N3"}}, {'U', {"O2", "O4"}}};
+    const auto coords = [](const io::PdbResidue& r) {
+        std::map<std::string, Vec3> out;
+        for (const io::PdbAtom& a : r.atoms) {
+            const std::array<double, 3> x = a.xyz();
+            out.emplace(a.name, Vec3{x[0], x[1], x[2]});
+        }
+        return out;
+    };
+    const auto bonded = [&](const std::map<std::string, Vec3>& r1, char b1, const std::map<std::string, Vec3>& r2,
+                            char b2) {
+        for (int side = 0; side < 2; ++side) {
+            const auto& dres = side == 0 ? r1 : r2;
+            const auto& ares = side == 0 ? r2 : r1;
+            for (const std::string_view x : donors.at(side == 0 ? b1 : b2)) {
+                for (const std::string_view y : acceptors.at(side == 0 ? b2 : b1)) {
+                    const auto dx = dres.find(std::string(x));
+                    const auto ay = ares.find(std::string(y));
+                    if (dx != dres.end() && ay != ares.end() && norm(dx->second - ay->second) < kHbondNote) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    };
+    const std::size_t n = seq.size();
+    std::vector<std::string> rows;
+    for (std::size_t k = 0; k < n; ++k) {
+        const io::PdbResidue& r1 = s.segments[0][k];
+        const auto c1 = coords(r1);
+        for (std::size_t idx = 1; idx < s.segments.size(); ++idx) {
+            const bool par = idx == 1 ? partnerParallel : thirdParallel;
+            const std::size_t j = par ? k : n - 1 - k;
+            const char b2 = (idx == 1 ? partner : third)[j];
+            const io::PdbResidue& r2 = s.segments[idx][j];
+            if (!bonded(c1, seq[k], coords(r2), b2)) {
+                rows.push_back(r1.chain + ":" + std::to_string(r1.resseq) + " " + std::string(1, seq[k]) + " · " +
+                               r2.chain + ":" + std::to_string(r2.resseq) + " " + std::string(1, b2));
+            }
+        }
+    }
+    if (rows.empty()) {
+        return std::nullopt;
+    }
+    std::string text = "WARNING: " + std::to_string(rows.size()) +
+                       " base pair(s) without a base-base H-bond (no N/O donor-acceptor pair within " +
+                       fixed(kHbondNote, 1) + " Å): ";
+    for (std::size_t k = 0; k < rows.size() && k < 8; ++k) {
+        text += (k ? ", " : "") + rows[k];
+    }
+    if (rows.size() > 8) {
+        text += " ...";
+    }
+    return text;
+}
+
 }  // namespace helix_detail
 
 std::string buildHelix(std::string_view sequence, const HelixOptions& options, std::vector<std::string>* notes) {
@@ -1064,6 +1152,9 @@ std::string buildHelix(std::string_view sequence, const HelixOptions& options, s
     }
     if (motif && (!duplex || pairing != "wc")) {
         throw BuildError("a triplex is built on the Watson-Crick duplex: choose a partner strand and pairing wc");
+    }
+    if (const std::optional<std::string> refused = rnaRefusal(pairing, motif)) {  // CH-18
+        throw BuildError(*refused);
     }
     std::string thirdSeq;
     if (motif) {
@@ -1092,6 +1183,7 @@ std::string buildHelix(std::string_view sequence, const HelixOptions& options, s
         throw BuildError("unknown residue name scheme " + repr(scheme) + " (choose from " + join(kSchemes, ", ") + ")");
     }
     const bool rebuilt = pairing != "wc" || motif.has_value();
+    const bool experimental = pairing == "hoogsteen" || (motif && *motif == "hoogsteen");  // CH-18
 
     const std::string& seq = resolved.sequence;
     const std::size_t n = seq.size();
@@ -1229,7 +1321,9 @@ std::string buildHelix(std::string_view sequence, const HelixOptions& options, s
                   : "PAIRING " + std::string(pairingLw(pairing)) + " (" +
                         (parallel(pairing) ? "PARALLEL" : "ANTIPARALLEL") + " STRANDS)";
         s.header = {"REMARK 951 MDBridge IDEAL RNA (" + handText + "), " + what + ", " + form,
-                    "REMARK 951 NUCLEOTIDE OF PDB 4JRD, TWIST " + fixed(fit.twist, 1) + " DEG, RISE " +
+                    std::string(experimental ? "REMARK 951 PDB 3P22 4PLX 6SVS 7JNH, TWIST "
+                                             : "REMARK 951 NUCLEOTIDE OF PDB 4JRD, TWIST ") +
+                        fixed(fit.twist, 1) + " DEG, RISE " +
                         fixed(fit.rise, 2) + " A, HELIX AXIS Z",
                     "REMARK 951 STRAND " + ids[0] + " " + seq};
     }
@@ -1257,9 +1351,14 @@ std::string buildHelix(std::string_view sequence, const HelixOptions& options, s
                         "; the Watson-Crick duplex and the third strand are fitted together (the Arnott A-form duplex "
                         "leaves no room for a third strand)"
                   : "Pairing " + pairing + ": " + std::string(pairingLabel(pairing));
-        out.push_back(which + "; helix twist " + fixed(fit.twist, 1) + "°, rise " + fixed(fit.rise, 2) +
-                      " Å, nucleotides (C3'-endo, anti) from PDB 4JRD with backbone torsions fitted to close the "
-                      "O3'-P links (reference helix: fit residual " + fixed(fit.cost, 2) + ", closest contacts " +
+        const std::string source =
+            experimental ? "nucleotides (C3'-endo, anti), base pairs and stacking from the RNA triple helices of PDB "
+                           "3P22, 4PLX, 6SVS and 7JNH (mean U·A-U triples), the helix, the pairs and the "
+                           "backbone torsions fitted to them and to close the O3'-P links"
+                         : "nucleotides (C3'-endo, anti) from PDB 4JRD with backbone torsions fitted to close the "
+                           "O3'-P links";
+        out.push_back(which + "; helix twist " + fixed(fit.twist, 1) + "°, rise " + fixed(fit.rise, 2) + " Å, " +
+                      source + " (reference helix: fit residual " + fixed(fit.cost, 2) + ", closest contacts " +
                       fixed(fit.contact, 2) + " Å heavy atoms, " + fixed(fit.contactH, 2) + " Å H-H)");
     }
     out.insert(out.end(), geometry.begin(), geometry.end());
@@ -1271,6 +1370,12 @@ std::string buildHelix(std::string_view sequence, const HelixOptions& options, s
     }
     const std::string atomsNote =
         std::to_string(atomCount) + " atoms" + (options.hydrogens ? ", hydrogens included" : ", heavy atoms only");
+    if (duplex) {  // CH-18: pairs without a base-base H-bond
+        if (std::optional<std::string> note = hbondNote(s, seq, *resolved.partner, thirdSeq, parallel(pairing),
+                                                        motif && *motif == "hoogsteen")) {
+            out.push_back(std::move(*note));
+        }
+    }
     if (!rebuilt) {
         out.push_back("Built an ideal A-form RNA " + what + " (" + handText + "): " + atomsNote);
     } else {

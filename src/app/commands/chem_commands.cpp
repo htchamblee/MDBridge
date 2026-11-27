@@ -751,17 +751,20 @@ ChemCommands::ChemCommands(CLI::App& app, CLI::App& density, const NetworkBacken
                               "(same length; mismatches / G·U allowed)"));
         choice(lastWins(h.add_option("--chirality", a.chirality, "D (right-handed) or L (mirror image)")), {"D", "L"});
         choice(lastWins(h.add_option("--pairing", a.pairing,
-                                     "wc: antiparallel Watson-Crick A-form (default); reverse-wc (trans WC/WC), "
-                                     "hoogsteen (cis WC/Hoogsteen, strand 1 the purine strand) and hh (trans "
-                                     "Hoogsteen/Hoogsteen A·A, as PDB 4JRD): parallel strands; reverse-hoogsteen (trans "
-                                     "WC/Hoogsteen): antiparallel")),
+                                     "wc: antiparallel Watson-Crick A-form (default); hoogsteen (cis WC/Hoogsteen, "
+                                     "strand 1 the purine strand) and hh (trans Hoogsteen/Hoogsteen A·A, as PDB "
+                                     "4JRD): parallel strands. reverse-wc (trans WC/WC, parallel) and "
+                                     "reverse-hoogsteen (trans WC/Hoogsteen, antiparallel) are refused: RNA is not "
+                                     "known to form them (DNA and DNA-RNA hybrid builds will come with DNA structure "
+                                     "building)")),
                toStrings(chem::kPairings));
         std::vector<std::string> triplexes{"none"};
         for (const std::string_view m : chem::kTriplexMotifs) triplexes.emplace_back(m);
         choice(lastWins(h.add_option("--triplex", a.triplex,
                                      "add a third strand on the Hoogsteen edge of the strand-1 purines: hoogsteen "
-                                     "(pyrimidine motif, parallel) or reverse-hoogsteen (purine motif, antiparallel); "
-                                     "needs --pairing wc")),
+                                     "(pyrimidine motif, parallel); needs --pairing wc. reverse-hoogsteen (purine "
+                                     "motif, antiparallel) is refused: RNA is not known to form it (DNA builds will "
+                                     "come with DNA structure building)")),
                triplexes);
         lastWins(h.add_option("--third-strand,--third", a.third,
                               "third strand 5'->3' (same length) or auto (the canonical motif bases)"));

@@ -1991,13 +1991,13 @@ which MDATK version's design it follows, and how it is tested.
 | PV-01 ... PV-03 | problems as you type | 01 checked as you type, 02 badges and the problems list, 03 the widgets' own problems |
 | PG-01 ... PG-06 | Structure view and Outputs pages | 01 rotation sliders, 02 chart format boxes, 03 chart styles, 04 density buttons (D2), 05 texts for the side bar, 06 a focused field destroyed |
 | GP-01 ... GP-05 | Input, Residue groups and Analyses pages | 01 renames cascade, 02 removed groups in use, 03 Groups from chains (D15), 04 Pick colour and the swatch, 05 texts naming MDAnalysis or Barnaba |
-| TW-01 ... TW-08 | the PDB clean-up and structure builder windows (milestone 6) | 01 hosted tools in the Workflow menu (D1), 02 *Check* of a file that is not UTF-8, 03 a cancelled fit, 04 closing during a build, 05 annotation engines without Barnaba, 06 a missing reference PDB named, 07 the other pairings pending (W2-A), 08 paths and files as the platform and the command line have them |
+| TW-01 ... TW-08 | the PDB clean-up and structure builder windows (milestone 6) | 01 hosted tools in the Workflow menu (D1), 02 *Check* of a file that is not UTF-8, 03 a cancelled fit, 04 closing during a build, 05 annotation engines without Barnaba, 06 a missing reference PDB named, 07 the other pairings built (W2-A), the kinds RNA does not form greyed out (CH-18), 08 paths and files as the platform and the command line have them |
 | JB-01 ... JB-04 | jobs and the log | 01 closing asks and waits, 02 the log never floods, 03 Copy / Save / dark styles, 04 failures |
 | WA-01 ... WA-09 | the window's actions | 01 job buttons while a job runs, 02 what blocks a job (D7), 03 Open video, 04 Inspect system, 05 cleaned files shown, 06 the desktop through Qt, 07 the still fits the screen, 08 Centre on model, 09 run citations |
 | WF-01 ... WF-03 | the density fit in the window (milestone 6 W3-A) | 01 one undo step, nothing on Cancel, 02 a map changed during the fit, 03 the reference frame reloaded only for new cleaned files |
 | LE-01 ... LE-10 | the canvas and the Layout & panels page | 01 the structure panel as the 3D view, 02 no drawing on the interface thread, 03 one drag one undo step, 04 MDATK's angles, 05 AP-07 ... AP-10 on the page, 06 data labels, 07 titles follow renames, 08 no frame announcement, 09 MDATK's pointer positions, 10 wheel bursts |
 | FONT-01 ... FONT-03 | Rendering: fonts and text | IBM Plex Serif in the interface and figures, Plex Math fallback, Plex Mono |
-| CH-01 ... CH-17, D7, D13 | Chemistry: PDB tools, annotation, builder, dictionaries, density fit (expected data; D-numbers of docs/specs/m6-plan.md) | 01 residue numbers below -999, 02 wrapped numbers reported, 03 one-character `--combine-into`, 04 CONECT records that cannot be remapped, 05 2'-deoxy residues with RNA names (0.1.0), 06 chain ends bonded to unknown residues (0.1.0), 07 three-character SEQRES names (0.0.17), 08 mutation specs without a chain (0.1.0), 09 hydrogens of mutated bases (D11), 10 unusable resolutions and spacings, 11 non-finite voxels, 12 `density fit --save` keeps paths, 13 missing input files named, 14 no Barnaba (D9), 15 reversed ranges, 16 the non-WC closure by continuation (D17), 17 a continuous backbone torsion term; D7 PubChem root, D13 program name in records, automatic density fit before rendering |
+| CH-01 ... CH-18, D7, D13 | Chemistry: PDB tools, annotation, builder, dictionaries, density fit (expected data; D-numbers of docs/specs/m6-plan.md) | 01 residue numbers below -999, 02 wrapped numbers reported, 03 one-character `--combine-into`, 04 CONECT records that cannot be remapped, 05 2'-deoxy residues with RNA names (0.1.0), 06 chain ends bonded to unknown residues (0.1.0), 07 three-character SEQRES names (0.0.17), 08 mutation specs without a chain (0.1.0), 09 hydrogens of mutated bases (D11), 10 unusable resolutions and spacings, 11 non-finite voxels, 12 `density fit --save` keeps paths, 13 missing input files named, 14 no Barnaba (D9), 15 reversed ranges, 16 the non-WC closure by continuation (D17), 17 a continuous backbone torsion term in the closure, 18 realistic non-WC geometry and the kinds RNA does not form refused (D18); D7 PubChem root, D13 program name in records, automatic density fit before rendering |
 | CHD-01, CHD-02 | Chemistry reference data | 01 guanine's H21 / H22 as the CCD (owner decision D15), 02 the fitted 4JRD screw frame, hh TWIST 41.7 (D16) |
 | DIC-01, DIC-02 | Chemistry: restraint dictionaries | 01 charges that are no finite number, 02 unbounded integers and full Unicode upper case; MDATK's SMILES checked against the CCD |
 | NU-01 ... NU-03 | Numerics | 01 pair search order and negative radii, 02 least_squares without LAPACK (iterates to rounding), 03 the exact subproblem with a structured Jacobian (dense from the sparsity, a faster SVD of tall matrices) |
@@ -2820,11 +2820,15 @@ their 520 px column at 100, 150 and 200 % (WN-11). Deliberate differences:
   file as PDB text (`no ATOM/HETATM records found (not a PDB file, or the path does not exist)`);
   the window says `ERROR: [Errno 2] No such file or directory: 'nowhere.pdb'`, as the command line.
   *Tested:* `gui/tools/pdb_tools_errors`.
-- **TW-07: the other pairings and triplexes are built by the library (W2-A).** The window offers
-  them as MDATK does and builds them on its worker thread through `chem::buildHelix`, whose fitted
-  builder (CH-16) landed with milestone 6 W2-A; until then the library answered `pairing hh is built
-  by the fitted helix builder (not available yet)`. Their *Check* messages are MDATK's; nothing in
-  the window changed (`tool_actions.cpp` passes the pairing through). *Tested:*
+- **TW-07: the other pairings and triplexes are built by the library (W2-A); the kinds RNA does not
+  form are greyed out (CH-18).** The window offers them as MDATK does and builds them on its worker
+  thread through `chem::buildHelix`, whose fitted builder (CH-16) landed with milestone 6 W2-A; until
+  then the library answered `pairing hh is built by the fitted helix builder (not available yet)`.
+  Their *Check* messages are MDATK's. The parallel reverse-WC and reverse-Hoogsteen pairings and the
+  purine-motif triplex stay in their lists (a project may name them) but are greyed out, their
+  tooltip giving `chem::rnaRefusal`'s reason; set anyway (a project, a script), *Check* and *Write*
+  report the library's error (`ERROR: pairing reverse-wc: RNA is not known to form ...`) and write
+  nothing, as the window reports any build error. *Tested:* `ToolTests::builderGreysOutWhatRnaDoesNotForm`,
   `ToolTests::builderNonWcHelixBuildsInTheBackground` (MDATK's
   `test_builder_non_wc_helix_builds_in_the_background`: the background build, the responsive window,
   the file the command line writes, the step log), `gui/tools/builder_helix` (the checks of hh,
@@ -3126,11 +3130,13 @@ make them reproducible within D10 on any kernel.
   step of reverse-hoogsteen AAGAAGGAAG jump into a kernel-dependent basin, 2.7 Å apart). `_pair_fit`, `_level_pose` and `_helix_fit` are converged (1e-14,
   5000 evaluations) with MDATK's tie rules. *Why:* a result that depends on the CPU and on 1e-14
   changes is not a model (CLAUDE.md "improve, don't copy bugs"); the owner: "Reliable geometry is
-  infinitely more important than runtime." *Result:* with CH-17 every closure of the expected data
-  converges in every step (no step at its evaluation limit, no halving needed) and lands on the same
-  model whatever the kernel: links 1.60-1.67 Å (no O3'-P gaps), canonical H-bonds 2.74-2.94 Å, no
-  close contacts but hh GAGGAUCA's one intra-residue O5'-O3' at 2.93 Å (MDATK's closure had it too,
-  and two more in reverse-wc AUGCAU). *Tested:* the expected data are
+  infinitely more important than runtime." For the Hoogsteen duplex and the triplex the closure also
+  keeps consecutive levels stacked (CH-18) and starts from their experimental nucleosides and
+  reference poses. *Result:* with CH-17 every closure of the expected data converges and lands on the
+  same model whatever the kernel: links 1.60-1.67 Å (no O3'-P gaps), no close contacts but hh
+  GAGGAUCA's one intra-residue O5'-O3' at 2.93 Å (MDATK's closure had it too) and the strand-1
+  pyrimidines' own C2'-O2 3.00 Å in the Hoogsteen kinds (the W2-A figures, measured on the reference
+  helices CH-18 replaced, were for the reverse kinds too). *Tested:* the expected data are
   MDATK patched the same way (improvements_chem.py `_patch_closure`; the column groups and finite
   differences written out with numpy's public API, equal to SciPy's `group_columns` /
   `approx_derivative`), checked for reproducibility before they were recorded (Python, the 17 closures under the pinned
@@ -3138,42 +3144,111 @@ make them reproducible within D10 on any kernel.
   perturbed by a relative 1e-8, two seeds: largest heavy-atom RMSD between any two runs 0.0010 Å,
   largest atom deviation 0.0022 Å, the notes equal within their printed rounding, the same solves;
   MDATK's own closure under such changes: up to 1.56 Å and 5.1 Å);
-  C++ `FittedCase/WithinD10OfMdatk` (all 24 rebuilt cases of builder_fitted_cases.json: heavy-atom RMSD to the patched MDATK's at most
-  0.0007 Å, every atom within 0.0015 Å, the notes equal within their printed rounding) and
+  C++ `FittedCase/WithinD10OfMdatk` (all 24 rebuilt cases of builder_fitted_cases.json, within D10 of
+  the patched MDATK's, the notes equal within their printed rounding) and
   the MDATK counterparts of test_builder.py (`BuilderMdatk.*`, below); on CI runners with other
   kernels the regenerate job compares the rebuilt helices and their command-line cases with D10
   (regenerate_all.py `_closure_problem`).
-- **CH-17 The backbone torsions' term is continuous** (0.1.1 has MDATK's term). *What:* MDATK scores
-  each O3'-P link torsion (epsilon, zeta, alpha) by (1 + cos 3θ) · 1.5 + wrap(θ − ref) / 120 (staggered,
-  tilted towards the 4JRD value); wrap jumps from +180 to −180, so the term jumps by 3 where θ crosses
-  ref + 180° (epsilon 34°, zeta 114°, alpha 118°) and the least-squares cost is discontinuous there.
-  MDATK's reference helices sit next to the jump (hoogsteen: strand 2 epsilon +26°, alpha 139°; the
-  triplexes' alpha 113° and 121°) and the closures creep against it: with MDATK's term, hoogsteen
-  AAGAGAAGGA's first solve used 20 000 evaluations at alpha 118.000°, and from t = 0.7 every step,
-  halved down to 1/320, still stopped at its limit (45 min of CPU in C++, the result wherever the creep
-  stopped); a 2° C1 ramp in place of the jump left a stiff trough in which hoogsteen GAGGAUCA crept as
-  long. MDBridge's tilt is smooth and periodic, a sin d + b sin 2d (d = θ − ref; a = 0.928955,
-  b = −0.225745, from a + 2b = 1.5 / π and a − b = 2 / √3): MDATK's slope at the reference (1/120 per
-  degree) and MDATK's values ±1 at the other staggered positions ±120°, so the three staggered wells
-  keep MDATK's preference. *Why:* a discontinuous cost has no minimum where a solver stops, so neither
-  continuation nor smaller steps make such a closure reproducible; with the smooth tilt every closure
-  of the 24 rebuilt cases converges in every step (no step at its limit, no halving needed; C++: all
-  24 builds in about a minute). *Consequences, provisional:* the reference helices whose torsions lay
-  beyond ±120° of their references are refitted from MDATK's starts: hoogsteen twist 41.2° / rise
-  3.55 Å (MDATK with CHD-02: 43.6° / 3.36 Å), reverse-hoogsteen 69.5° / 3.44 Å (44.5° / 3.34 Å), the
-  hoogsteen triplex 23.7° / 5.43 Å (23.7° / 5.41 Å), the reverse-hoogsteen triplex 16.8° / 5.80 Å
-  (7.3° / 5.84 Å); reverse-wc and hh are unchanged; REMARK 951 and the notes print the new values.
-  Which reference helices are the right ones is open (an independent comparison of every kind with
-  experimental structures is under way; both have a triplex rise of about 5.4 Å per level). The
-  reference geometry is a separable input: `kReferenceTerm` (helix_fit.cpp) and `REFERENCE_TERM`
-  (improvements_chem.py) choose the torsion term of the reference fit alone, the closure always uses
-  CH-17's; with MDATK's term the reference helices are MDATK's and the closures converge as well and
-  as reproducibly (every step of the 24 builds; Python under the pinned and Haswell kernels and a 1e-8
-  perturbation: 0.0008 Å heavy-atom RMSD, 0.0017 Å per atom at most; C++ within 0.001 Å of it; links,
-  H-bonds and contacts as above, more of the reverse-Hoogsteen helices' backbone torsions within 30° of
-  a staggered position: 0.62-0.77 against 0.40-0.48), so a change of the reference geometry means a
-  switch and new expected data, not new closure work. *Tested:* as CH-16 (the same expected
-  data; `improvements_chem.py` `_patch_torsions`, `continuous_link_residuals`, `torsion_tilt`).
+- **CH-17 The closure's backbone torsion term is continuous** (0.1.1 has MDATK's term). *What:* MDATK
+  scores each O3'-P link torsion (epsilon, zeta, alpha) by (1 + cos 3θ) · 1.5 + wrap(θ − ref) / 120
+  (staggered, tilted towards the 4JRD value); wrap jumps from +180 to −180, so the term jumps by 3
+  where θ crosses ref + 180° (epsilon 34°, zeta 114°, alpha 118°) and the least-squares cost is
+  discontinuous there. MDATK's reference helices sat next to the jump (hoogsteen: strand 2 epsilon
+  +26°, alpha 139°; the triplexes' alpha 113° and 121°) and the closures crept against it: with MDATK's
+  term, hoogsteen AAGAGAAGGA's first solve used 20 000 evaluations at alpha 118.000°, and from t = 0.7
+  every step, halved down to 1/320, still stopped at its limit (45 min of CPU in C++); a 2° C1 ramp in
+  place of the jump left a stiff trough in which hoogsteen GAGGAUCA crept as long. In the strand
+  closure (CH-16) MDBridge's tilt is smooth and periodic, a sin d + b sin 2d (d = θ − ref; a =
+  0.928955, b = −0.225745, from a + 2b = 1.5 / π and a − b = 2 / √3): MDATK's slope at the reference
+  (1/120 per degree) and MDATK's values ±1 at the other staggered positions ±120°, so the three
+  staggered wells keep MDATK's preference. *Why:* a discontinuous cost has no minimum where a solver
+  stops, so neither continuation nor smaller steps make such a closure reproducible. The reference
+  helices' fits keep MDATK's term (owner decision D18): W2-A's refit of them with the smooth term is
+  dropped, because its reverse-Hoogsteen helix (69.5° / 3.44 Å) had strands that interpenetrate from
+  five levels on (CH-18), and the reference geometry of the Hoogsteen duplex and the triplex is
+  CH-18's; the hh reference helix is MDATK's. *Tested:* as CH-16 (the same expected data;
+  `improvements_chem.py` `continuous_link_residuals`, `torsion_tilt`).
+- **CH-18 Realistic non-Watson-Crick geometry** (owner decision D18; MDATK 0.1.1 has the same
+  builder, so no MDATK version is followed: the design is MDBridge's). *What:* measured against
+  experimental structures (docs/reports/2026-11-27-non-wc-geometry.md), only hh's reference helix
+  (PDB 4JRD) was realistic; MDATK's (0.0.4.1 and 0.1.1) and W2-A's reference helices of the Hoogsteen
+  duplex, the reverse-Hoogsteen and parallel reverse-WC duplexes and both triplexes were unstacked
+  (levels 4.7-8 Å apart; experiment about 3.3 Å), because their fit has no stacking term and many
+  local minima, scores contacts only between levels 0-2, and the rigid C3'-endo 4JRD nucleotide
+  cannot form some of them. MDBridge:
+  - *Refuses* RNA builds of the kinds RNA is not known to form: the parallel reverse Watson-Crick
+    duplex (Pallan et al. 2007; Habibian et al. 2018), the reverse-Hoogsteen duplex and the
+    purine-motif (reverse-Hoogsteen) triplex (formed only when all three strands are DNA, Semerad &
+    Maher 1994): `BuildError("pairing reverse-wc: RNA is not known to form the parallel reverse
+    Watson-Crick (tWW) duplex; DNA and DNA-RNA hybrid builds of it will come with DNA structure
+    building")`, likewise `pairing reverse-hoogsteen` (the reverse-Hoogsteen (tHW) duplex) and
+    `triplex reverse-hoogsteen` (the purine-motif (reverse-Hoogsteen) triplex), from `build_helix`
+    and as `check_helix`'s one error, after MDATK's own request checks (an unknown pairing, a single
+    strand, a triplex on another pairing keep MDATK's errors). The names stay valid (project files,
+    `--pairing` / `--triplex` choices): they come back for DNA and DNA-RNA hybrids with DNA structure
+    building. `chem::rnaRefusal` names them; the builder window greys them out (TW-07); the command
+    line's help says so.
+  - *Takes the Hoogsteen duplex (`hoogsteen`) and the pyrimidine-motif triplex (`th`) from RNA
+    triple helices*, as hh takes its geometry from 4JRD (D16): the stacked U·A-U and C+·G-C triples of
+    the X-ray structures PDB 3P22 (KSHV PAN ENE + A9), 4PLX (MALAT1 ENE), 6SVS (an 11-triple U·A-U
+    helix) and 7JNH (a double ENE + A28): 60 U·A-U and 5 C+·G-C levels in 52 steps (data/sources/pdb
+    `triplex_levels.tsv`, the `*_triplex_atoms.tsv` extracts, wwPDB CC0; modified residues left out).
+    tools/gen_chem_tables.py (`triplex_tables`, pure Python) makes src/chem/triplex_tables.inc: the
+    mean triple of each type (generalised Procrustes of the nucleosides: C1', base, sugar), the mean
+    step (quaternions summed, moved centres averaged, C1' and base atoms as the report measures) whose
+    screw defines the helix frame (triplex 30.52° / 3.043 Å; the duplex's purine and Hoogsteen strands
+    30.62° / 2.996 Å), the steps' spreads (axis offsets, tilts, twist 1.9° / 2.9°, rise 0.22 / 0.30 Å),
+    the base-plane separation of consecutive levels (3.27 ± 0.08 Å, both), the U·A-U pairs' H-bonds
+    and the partners' pose spreads (7.4° / 6.7°, 0.53 / 0.57 Å per component). The builder: each
+    strand has its own template nucleotide (the 4JRD sugar and backbone superposed on the strand's
+    mean sugar, with its mean base; the bases as `_core_template` puts them, so mismatches and other
+    bases work as before); the canonical U·A, U·A-U pairs as in the mean triple; the C+·G and C+·G-C
+    pairs as in the mean C+·G-C triple refined so that their H-bonds lie within 2.8-3.1 Å (the 5-triple
+    mean has a 2.58 Å N2-O2 bond and a 1.6 Å O6-H41); other canonical pairs (strand-1 pyrimidines' WC
+    partners in the triplex) MDATK's H-bond fit on these nucleosides. The reference helix is a
+    restrained fit: MDATK's link residuals (MDATK's torsion term) and torsion priors, the screw about
+    the experimental one over the steps' spreads, the partner poses about the mean pose over the pose
+    spreads, the reference pairs' H-bonds about their experimental means, the stacking (base-plane
+    separation of consecutive levels) about the experimental mean, and the contacts of a level with
+    itself and the twelve levels after it (those within 6 Å scored, refreshed at each solution and the
+    solve repeated while the set grows, as CH-16's closure refreshes its pairs); from five torsion
+    starts, the lowest cost kept. The CH-16
+    closure of mixed sequences scores the same stacking for every step of these kinds (a step's two
+    levels). REMARK 951 names `PDB 3P22 4PLX 6SVS 7JNH`, the build note the source.
+  - *Scores contacts over the whole helix:* every reference fit (hh too) scores a level's contacts with
+    itself and the 12 levels after it (a turn at 30-42° per level; MDATK: levels 0-2), so a reference
+    helix whose strands meet several levels on cannot pass (W2-A's reverse-Hoogsteen refit had 145
+    close contacts in AAAAAAAA); the closure and the final notes already checked the whole model.
+  - *Notes base pairs without a base-base H-bond:* every build with a partner strand (Watson-Crick
+    too) adds "WARNING: N base pair(s) without a base-base H-bond (no N/O donor-acceptor pair within
+    3.5 Å): A:6 U · B:6 U, ..." before its closing "Built ..." note (MDATK's list style, eight at most),
+    for a strand-1 base and each partner at its level: hh's U·U and C·C mismatches (closest polar atoms
+    4.9-5.3 Å) had only the mismatch note; hh itself is not redesigned.
+  *Result* (uniform helices of 14 levels, the report's measures; experiment in brackets): hh 41.7° /
+  3.79 Å, strands stacked 3.59 Å (4JRD 42.3° / 3.76 Å, 3.50 Å); Hoogsteen duplex 33.3° / 3.02 Å, base
+  planes 3.35 Å apart, strands stacked 3.25 / 3.54 Å (30.5° / 2.91 Å, 3.3 Å); triplex 31.6° / 3.16 Å,
+  base planes 3.34 Å, strands 3.38 / 3.55 / 3.61 Å (30.4° / 3.01 Å, 3.27 Å); inclination 7-9° (9-11°);
+  no close contacts over the 14 levels, hydrogens included; links 1.61 Å; H-bonds 2.84-3.24 Å (2.83-3.11 Å
+  means); backbone A-form (alpha -65, beta 176, gamma 52 in the Watson-Crick and Hoogsteen strands)
+  but the purine strand's alpha -140 / gamma 121, inside the experimental purine strands' broad
+  alpha / gamma (gamma 40-200°, 20 of 110 residues at 100-120°, the crankshaft between g-/g+ and t/t).
+  Mixed sequences closed from these references keep the stacking: Hoogsteen AAGAGAAGGA base planes
+  3.45 ± 0.07 Å, G14 3.50 Å; triplex AAGAGAAGGA 3.48 ± 0.07 Å, G14 3.42 Å, without close
+  contacts but strand-1 pyrimidines' own C2'-O2 3.00 Å; without the closure's stacking term the triplex
+  steps opened to 3.7-3.9 Å. Checks against the NMR telomerase pseudoknots 2M8K and 2K96: see the
+  report (2M8K 33.0° / 3.36 Å, layers 3.48 Å; the hTR pseudoknots 28.7° / 3.72 Å). *Why:* a model whose
+  levels are 5-8 Å apart is no starting model ("Reliable geometry is infinitely more important than
+  runtime ... Fast and wrong serves no purpose"); kinds RNA does not form are no RNA models. *Cost:*
+  the reference fits take 0.2 s (Hoogsteen) and 0.7 s (triplex) in C++, once per process (scoring all
+  110 000 pairs of the triplex took 40 s), and seconds in Python. *Tested:* the expected data are MDATK patched the same way (improvements_chem.py
+  `_patch_ch18`, `exp_fit`, `table_pose`, `hbond_note`, the closure's stacking; reference cases with
+  `x`, `twist`, `rise`, `torsions` of one fit); C++ `FittedCase` (every rebuilt case, D10), the
+  MDATK counterparts run on the kinds still built with the refusals checked (`BuilderMdatk.*`),
+  `BuilderGeometry.UniformHelicesOverATurnAreStackedAndClear` (hh, Hoogsteen A / G, triplex A / G:
+  no close contacts, stacking 3.0-3.7 Å, twist and rise within twice the experimental spread),
+  `BuilderGeometry.PairsWithoutABaseBaseHbondAreReported`, `ToolTests::builderGreysOutWhatRnaDoesNotForm`,
+  the cli cases `build_helix_reverse_wc`, `build_helix_reverse_hoogsteen`, `build_helix_purine_triplex`
+  (refused) and `build_helix_hoogsteen`.
 - **W1-A: the PDB tools in C++** (`src/chem/pdbtools.cpp`, `chem/pdbtools.hpp`; milestone 6 W1-A).
   Every function of MDATK's `pdbtools.py` (section 1.1 of the plan) with CH-01, CH-03 ... CH-07,
   CH-13 and CH-15; byte for byte with every case of `pdbtools_cases.json`
@@ -3239,11 +3314,13 @@ make them reproducible within D10 on any kernel.
   so the render data no longer lists D9). *Tested:* cli_cases.json `render_density_auto_fit`,
   `RenderCommands.FfmpegPathIsNotUsedAndTheDensityMapIsFitted`.
 - **W2-A: the other pairings and triplexes in C++** (`src/chem/helix_fit.cpp`, `helix_internal.hpp`;
-  milestone 6 W2-A). MDATK's 4JRD nucleoside (`_core_template`, on CHD-02's frame), `_pair_fit`,
-  `_reference_level`, `_contact_pairs`, `_fit_residuals` and `_helix_fit` (the reference helices,
-  from `_HELIX_START`, cached per kind), `_level_pose`, `_close_levels` (CH-16, with CH-17's torsion
-  term), `_strand_heavy`, `_residue_atoms`, `_turn_terminal_hydroxyls`, `_axis_frame` and the notes
-  (`_model_notes`, `_geometry_notes`, `_close_contacts`, `_torsion_note`: circular means, as MDATK's)
+  milestone 6 W2-A; with CH-18 the experimental kinds and the refusals). MDATK's 4JRD nucleoside
+  (`_core_template`, on CHD-02's frame), `_pair_fit`, `_reference_level`, `_contact_pairs` (over 12
+  levels, CH-18), `_fit_residuals` and `_helix_fit` (hh's reference helix from `_HELIX_START`; the
+  Hoogsteen duplex's and the triplex's CH-18's restrained fits; cached per kind), `_level_pose`,
+  `_close_levels` (CH-16, with CH-17's torsion term and CH-18's stacking), `_strand_heavy`,
+  `_residue_atoms`, `_turn_terminal_hydroxyls`, `_axis_frame` and the notes (`_model_notes`,
+  `_geometry_notes`, `_close_contacts`, `_torsion_note`: circular means, as MDATK's)
   behind `chem::buildHelix`, so `build helix --pairing / --triplex` and the builder window build them
   (TW-07). MDATK's arithmetic where it is plain (in NumPy's order), the fits through
   `numerics::leastSquares` (TRF, exact subproblem; NU-03 for the closure) and `numerics::queryPairs`,
@@ -3251,21 +3328,23 @@ make them reproducible within D10 on any kernel.
   fitted build progress and cancellation (`core::Cancelled`, checked after every least-squares
   iteration), `HelixOptions::threads` the finite differences' threads (the result does not depend on
   their number). The caches (`_pair_fit`, `_level_pose`, `_helix_fit`) are shared and locked, so
-  builds may run on several threads. *Runtime:* a fitted build takes 0.2-13 s in C++ on one thread
-  (the 24 cases about a minute; the exact subproblem's SVD dominates, so more finite-difference
-  threads gain little), against 8-270 s for the same continuation in Python (the patched MDATK) and
-  2-12 s for MDATK's own four truncated passes. *Tested:* tests/chem/test_builder.cpp:
-  `Rebuilt/FittedCase.WithinD10OfMdatk` (all 24 rebuilt cases of builder_fitted_cases.json, D10:
-  heavy-atom RMSD at most 0.0007 Å, every atom within 0.0015 Å; records, names, header and notes equal
-  but for their numbers within one unit of the last printed digit), the 11 counterparts of MDATK's test_builder.py named in the plan
+  builds may run on several threads. *Runtime:* a fitted build takes seconds in C++ (a triplex of ten
+  levels about a minute on four threads, its reference fit 50 s once per process; the exact
+  subproblem's SVD dominates the closure), several minutes for the same continuation in Python (the
+  patched MDATK). *Tested:* tests/chem/test_builder.cpp:
+  `Rebuilt/FittedCase.WithinD10OfMdatk` (all 24 rebuilt cases of builder_fitted_cases.json, six of them
+  refused kinds and wrong requests, D10: heavy-atom RMSD and every atom within the D10 limits; records,
+  names, header and notes equal but for their numbers within one unit of the last printed digit), the
+  11 counterparts of MDATK's test_builder.py named in the plan (with CH-18 on the kinds still built)
   (`BuilderMdatk.HhDuplexMatches4jrd` against data/sources/pdb/4jrd_atoms.tsv,
   `PairingsBuildTheIntendedPairs`, `TriplexThirdStrand`, `LPairingsAreMirrorImages`,
   `PairingMismatchesMessagesAndErrors`, `PairingCliBuilds` (the builds of
   `test_pairing_cli_and_planner_step`; its command lines are cli_cases.json's), the four hydrogen and
   contact tests and `ContactReportIncludesHydrogensAndCloseHeavyAtoms`; Barnaba's codes, tleap and the
   planner step excepted), `Builder.FittedBuildIsCancellable`,
-  `Builder.FittedBuildDoesNotDependOnTheThreadCount`; the 5 `build helix` pairing / triplex cases of
-  cli_cases.json (no longer pending); `ToolTests::builderNonWcHelixBuildsInTheBackground`.
+  `Builder.FittedBuildDoesNotDependOnTheThreadCount`, CH-18's `BuilderGeometry.*`; the `build helix`
+  pairing / triplex cases of cli_cases.json (no longer pending; the refused kinds' as errors);
+  `ToolTests::builderNonWcHelixBuildsInTheBackground`.
 - **W2-C: the chem commands** (`src/app/commands/chem_commands.cpp`, `density_pipeline.cpp`,
   `pubchem.cpp`; milestone 6 W2-C). `pdb clean / check / to-lrna / annotate`, `build helix / mutate /
   fit`, `dict list / smiles / finish / pubchem` and `density fit / simulate` with MDATK's options,

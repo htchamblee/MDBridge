@@ -1,6 +1,9 @@
 // MDATK's structure builder, part 2 (mdatk/builder.py v0.0.4.1, MDATK's own code, ported): the other
-// pairings (reverse-wc, hoogsteen, reverse-hoogsteen, hh) and the triplexes. Every nucleotide is the
-// 4JRD nucleotide (in the fitted 4JRD screw's frame, CHD-02) carrying the Arnott base; partner bases
+// pairings (hoogsteen, hh; reverse-wc and reverse-hoogsteen are refused for RNA, CH-18) and the
+// pyrimidine-motif triplex. For hh every nucleotide is the 4JRD nucleotide (in the fitted 4JRD screw's
+// frame, CHD-02) carrying the Arnott base; the Hoogsteen duplex and the triplex take their
+// nucleotides, base triples, screw and stacking from the RNA triple helices of PDB 3P22, 4PLX, 6SVS,
+// 7JNH (src/chem/triplex_tables.inc), their reference helix a restrained fit to them (CH-18); partner bases
 // are placed on the H-bond edges (_pair_fit), the helix is the screw that repeats the reference level
 // with closed O3'-P links and no close contacts (_helix_fit), mismatches are moved off the bases they
 // would hit (_level_pose), and a helix whose levels differ is closed jointly (_close_levels) - by
@@ -20,6 +23,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <iterator>
 #include <limits>
 #include <map>
 #include <mutex>
@@ -512,14 +516,9 @@ struct Pose {
     Vec3 shift{};
 };
 
-// _pair_fit
-Pose pairFitUncached(std::string_view rule, char b1, char b2) {
-    if (rule == "hh" && b1 == 'A' && b2 == 'A') {
-        return {Mat3{Vec3{-1.0, 0.0, 0.0}, Vec3{0.0, -1.0, 0.0}, Vec3{0.0, 0.0, 1.0}}, Vec3{0.0, 0.0, 0.0}};
-    }
+// _pair_fit's H-bond fit of the nucleoside t2 (base b2) on t1 (base b1)
+Pose pairFitOn(std::string_view rule, char b1, char b2, const Atoms& t1, const Atoms& t2) {
     const std::span<const PairHbond> bonds = pairHbonds(rule, b1, b2);
-    const Atoms& t1 = coreTemplate(b1);
-    const Atoms& t2 = coreTemplate(b2);
     const auto [ring1, n1] = basePlane(t1, b1);
     const auto [ring2, n2] = basePlane(t2, b2);
     std::vector<Vec3> a, b;
@@ -621,6 +620,14 @@ Pose pairFitUncached(std::string_view rule, char b1, char b2) {
     return best->second;
 }
 
+// _pair_fit
+Pose pairFitUncached(std::string_view rule, char b1, char b2) {
+    if (rule == "hh" && b1 == 'A' && b2 == 'A') {
+        return {Mat3{Vec3{-1.0, 0.0, 0.0}, Vec3{0.0, -1.0, 0.0}, Vec3{0.0, 0.0, 1.0}}, Vec3{0.0, 0.0, 0.0}};
+    }
+    return pairFitOn(rule, b1, b2, coreTemplate(b1), coreTemplate(b2));
+}
+
 std::mutex& cacheMutex() {
     static std::mutex m;
     return m;
@@ -637,6 +644,241 @@ Pose pairFit(std::string_view rule, char b1, char b2) {
         }
     }
     const Pose pose = pairFitUncached(rule, b1, b2);
+    const std::lock_guard<std::mutex> lock(cacheMutex());
+    cache.emplace(key, pose);
+    return pose;
+}
+
+// --- the experimental kinds (CH-18) ------------------------------------------------------------------
+//
+// The Hoogsteen duplex and the pyrimidine-motif triplex take their geometry from the mean base triples
+// of RNA triple helices (reference::triplexLevel, tools/gen_chem_tables.py triplex_tables): each strand
+// has its own template nucleotide (the 4JRD nucleotide's sugar and backbone superposed on the strand's
+// mean sugar, with the mean base), whose nucleosides carry the Arnott bases as _core_template puts them
+// on the 4JRD nucleotide; the canonical U·A-U pairs are posed as in the mean triples, the C+·G-C pairs
+// so too but refined to H-bonds of 2.8-3.1 A (tablePose). The reference helix is a restrained fit
+// (expResiduals), the closure keeps the stacking (Closure::m_stack). tests/parity/improvements_chem.py
+// patches MDATK the same way.
+
+bool experimentalKind(std::string_view kind) {
+    return kind == "hoogsteen" || kind == "triplex-hoogsteen";
+}
+
+// the table strand (0 purine, 1 Watson-Crick, 2 Hoogsteen) of a strand of an experimental kind
+std::size_t tableStrand(std::string_view kind, std::size_t strand) {
+    return kind == "hoogsteen" && strand == 1 ? 2 : strand;
+}
+
+constexpr std::array<std::string_view, 7> kTriplexSugar = {"C2'", "O2'", "C3'", "O3'", "C4'", "O4'", "C5'"};
+constexpr std::size_t kContactLevels = 12;  // levels after a reference level whose contacts its fit scores
+constexpr std::array<std::array<double, 3>, 5> kReferenceStarts = {
+    {{0.0, 58.0, 174.0}, {-10.0, 60.0, 160.0}, {10.0, 50.0, 190.0}, {0.0, 80.0, 150.0}, {0.0, 120.0, 180.0}}};
+constexpr std::array<double, 6> kReferenceScaleScrew = {1.0, 1.0, 5.0, 5.0, 5.0, 0.3};
+constexpr std::array<double, 6> kReferenceScalePose = {3.0, 3.0, 3.0, 0.2, 0.2, 0.2};
+
+// the mean triple atoms of a level ("AUU", "GCC") and table strand, in the tables' order
+Atoms tableAtoms(std::string_view level, std::size_t strand) {
+    Atoms out;
+    for (const reference::TriplexAtom& a : reference::triplexLevel(level, static_cast<int>(strand))) {
+        out.items.push_back({std::string(a.name), Vec3{a.x, a.y, a.z}});
+    }
+    if (out.items.empty()) {
+        throw std::logic_error("no triplex table for level " + std::string(level));
+    }
+    return out;
+}
+
+Mat3 transposed(const Mat3& m) {
+    return {Vec3{m[0][0], m[1][0], m[2][0]}, Vec3{m[0][1], m[1][1], m[2][1]}, Vec3{m[0][2], m[1][2], m[2][2]}};
+}
+
+// the template nucleotide of table strand t: the 4JRD nucleotide without its base, superposed by C1' and
+// its sugar atoms on the mean nucleoside of the strand in the U·A-U triples, and that nucleoside's base
+Atoms strandNucleotide(std::size_t t, char& templateBase) {
+    templateBase = std::string_view("AUU")[t];
+    const Atoms table = tableAtoms("AUU", t);
+    Atoms jrd;
+    for (const reference::CylindricalAtom& a : reference::jrdNucleotide()) {
+        jrd.set(a.name, cartesian(a.r, a.phi, a.z));
+    }
+    std::vector<Vec3> mob = {jrd.at("C1'")}, ref = {table.at("C1'")};
+    for (const std::string_view n : kTriplexSugar) {
+        mob.push_back(jrd.at(n));
+        ref.push_back(table.at(n));
+    }
+    const std::vector<double> ones(mob.size(), 1.0);
+    const Kabsch k = kabsch(mob, ref, ones);
+    Atoms out;
+    for (const TemplateAtom& a : jrd.items) {
+        if (!contains(baseAtomNames('A'), a.name)) {
+            out.items.push_back({a.name, kabschMove(k, a.xyz)});
+        }
+    }
+    for (const std::string_view n : baseAtomNames(templateBase)) {
+        out.set(n, table.at(n));
+    }
+    return out;
+}
+
+// _core_template on the template nucleotide of table strand t (the Arnott base of `base` on its
+// glycosidic frame, the base and ring hydrogens; C: H3+)
+const Atoms& expCore(std::size_t t, char base) {
+    static const std::map<std::pair<std::size_t, char>, Atoms> cache = [] {
+        std::map<std::pair<std::size_t, char>, Atoms> out;
+        for (std::size_t strand = 0; strand < 3; ++strand) {
+            char tb = 'A';
+            const Atoms nuc = strandNucleotide(strand, tb);
+            for (const char b : std::string_view("ACGU")) {
+                const Atoms arn = templateAtoms(b, false);
+                const Glycosidic ga = glycosidic(tb);
+                const Glycosidic gb = glycosidic(b);
+                const std::array<Vec3, 4> mob = {arn.at("C1'"), arn.at(gb.n), arn.at(gb.a), arn.at(gb.b)};
+                const std::array<Vec3, 4> ref = {nuc.at("C1'"), nuc.at(ga.n), nuc.at(ga.a), nuc.at(ga.b)};
+                const std::array<double, 4> weights = {2.0, 2.0, 1.0, 1.0};
+                const Kabsch k = kabsch(mob, ref, weights);
+                Atoms heavy;
+                for (const TemplateAtom& a : nuc.items) {
+                    if (!contains(baseAtomNames(tb), a.name)) {
+                        heavy.items.push_back(a);
+                    }
+                }
+                for (const std::string_view name : baseAtomNames(b)) {
+                    heavy.set(name, kabschMove(k, arn.at(name)));
+                }
+                Atoms core = heavy;
+                for (const TemplateAtom& h : hydrogens(heavy, b).items) {
+                    if (contains(baseHydrogenNames(b), h.name) || contains(kSugarH, h.name)) {
+                        core.items.push_back(h);
+                    }
+                }
+                if (b == 'C') {
+                    const Vec3 n3 = heavy.at("N3");
+                    core.set("H3+", n3 - kBondNH * unit(unit(heavy.at("C2") - n3) + unit(heavy.at("C4") - n3)));
+                }
+                out[{strand, b}] = std::move(core);
+            }
+        }
+        return out;
+    }();
+    return cache.at({t, base});
+}
+
+// the nucleoside of `base` on `strand` of `kind`
+const Atoms& kindCore(std::string_view kind, std::size_t strand, char base) {
+    return experimentalKind(kind) ? expCore(tableStrand(kind, strand), base) : coreTemplate(base);
+}
+
+// the canonical pairs the tables pose: (level, table strand) of (rule, strand-1 base, partner), or none
+std::optional<std::pair<std::string_view, std::size_t>> tablePair(std::string_view rule, char b1, char b2) {
+    if (rule != "wc" && rule != "hoogsteen") {
+        return std::nullopt;
+    }
+    const std::size_t t = rule == "wc" ? 1 : 2;
+    if (b1 == 'A' && b2 == 'U') {
+        return std::make_pair(std::string_view("AUU"), t);
+    }
+    if (b1 == 'G' && b2 == 'C') {
+        return std::make_pair(std::string_view("GCC"), t);
+    }
+    return std::nullopt;
+}
+
+// Angstrom: the band the H-bonds of the refined C+·G-C pairs are brought into, and the scale of a miss
+constexpr double kGcHbondLow = 2.8;
+constexpr double kGcHbondHigh = 3.1;
+constexpr double kGcHbondSd = 0.05;
+
+// the pose of the table strand's core of b2 on the purine core of b1 as in the mean triple (each core
+// superposed, unweighted, on C1', its base and sugar atoms there). The C+·G-C mean (5 triples; its
+// N2-O2 2.58 A, its O6-H41 1.6 A) is refined: the partner moved (about its C1') as little as the U·A-U
+// pose spreads allow while its H-bonds come into kGcHbondLow - kGcHbondHigh.
+Pose tablePoseUncached(std::string_view rule, char b1, char b2) {
+    const auto [level, t] = *tablePair(rule, b1, b2);
+    const Atoms a1 = tableAtoms(level, 0);
+    const Atoms a2 = tableAtoms(level, t);
+    const auto fit = [](const Atoms& core, const Atoms& table) {
+        std::vector<Vec3> mob, ref;
+        for (const TemplateAtom& a : table.items) {
+            mob.push_back(core.at(a.name));
+            ref.push_back(a.xyz);
+        }
+        const std::vector<double> ones(mob.size(), 1.0);
+        return kabsch(mob, ref, ones);
+    };
+    const Atoms& c1 = expCore(0, b1);
+    const Atoms& c2 = expCore(t, b2);
+    const Kabsch k1 = fit(c1, a1);
+    const Kabsch k2 = fit(c2, a2);
+    const Mat3 r1t = transposed(k1.rotation);
+    const Vec3 shift =
+        matVec(r1t, (k2.referenceCentre - matVec(k2.rotation, k2.mobileCentre)) - k1.referenceCentre) + k1.mobileCentre;
+    const Pose table = {matMul(r1t, k2.rotation), shift};
+    if (level == "AUU") {
+        return table;
+    }
+    double rotSd = 1.0, shiftSd = 1.0;
+    for (const reference::TriplexPoseSpread& ps : reference::triplexPoseSpreads()) {
+        if (ps.strand == static_cast<int>(t)) {
+            rotSd = ps.rotation;
+            shiftSd = ps.shift;
+        }
+    }
+    const Atoms start = movedAtoms(c2, table.rot, table.shift);
+    const Vec3 centre = start.at("C1'");
+    const std::span<const PairHbond> bonds = pairHbonds(rule, b1, b2);
+    const auto residuals = [&](std::span<const double> p) {
+        const Mat3 r = rotvec({radians(p[0]), radians(p[1]), radians(p[2])});
+        std::vector<double> res;
+        for (std::size_t k = 0; k < 6; ++k) {
+            res.push_back(p[k] / (k < 3 ? rotSd : shiftSd));
+        }
+        for (const PairHbond& hb : bonds) {
+            const Vec3 y = (matVec(r, start.at(hb.atom2) - centre) + centre) + Vec3{p[3], p[4], p[5]};
+            const double d = norm(c1.at(hb.atom1) - y);
+            res.push_back((clip0(kGcHbondLow - d) + clip0(d - kGcHbondHigh)) / kGcHbondSd);
+        }
+        return res;
+    };
+    const numerics::LeastSquaresResult sol =
+        numerics::leastSquares(residuals, std::vector<double>(6, 0.0), smallFitOptions());
+    const Mat3 r = rotvec({radians(sol.x[0]), radians(sol.x[1]), radians(sol.x[2])});
+    return {matMul(r, table.rot), (matVec(r, table.shift - centre) + centre) + Vec3{sol.x[3], sol.x[4], sol.x[5]}};
+}
+
+Pose tablePose(std::string_view rule, char b1, char b2) {
+    static std::map<std::string, Pose> cache;
+    const std::string key = std::string(rule) + ":" + b1 + b2;
+    {
+        const std::lock_guard<std::mutex> lock(cacheMutex());
+        const auto it = cache.find(key);
+        if (it != cache.end()) {
+            return it->second;
+        }
+    }
+    const Pose pose = tablePoseUncached(rule, b1, b2);
+    const std::lock_guard<std::mutex> lock(cacheMutex());
+    cache.emplace(key, pose);
+    return pose;
+}
+
+// a canonical pair (rule, b1, b2) of `strand` of `kind`: _pair_fit; for the experimental kinds the
+// mean triples' pose, or the H-bond fit on the kind's nucleosides
+Pose kindPairFit(std::string_view kind, std::size_t strand, std::string_view rule, char b1, char b2) {
+    if (!experimentalKind(kind)) {
+        return pairFit(rule, b1, b2);
+    }
+    static std::map<std::string, Pose> cache;
+    const std::string key = std::string(kind) + ":" + std::to_string(strand) + ":" + std::string(rule) + ":" + b1 + b2;
+    {
+        const std::lock_guard<std::mutex> lock(cacheMutex());
+        const auto it = cache.find(key);
+        if (it != cache.end()) {
+            return it->second;
+        }
+    }
+    const Pose pose = tablePair(rule, b1, b2)
+                          ? tablePose(rule, b1, b2)
+                          : pairFitOn(rule, b1, b2, kindCore(kind, 0, b1), kindCore(kind, strand, b2));
     const std::lock_guard<std::mutex> lock(cacheMutex());
     cache.emplace(key, pose);
     return pose;
@@ -874,15 +1116,12 @@ int linkPath(char base1, std::string_view a, char base2, std::string_view b) {
 
 // --- the reference helix (_helix_fit) ------------------------------------------------------------------
 //
-// The reference helix of a kind (its screw and every strand's chi change, gamma and beta) is the one
-// input the builds take from it: the uniform helices are it, and every closure (CH-16) starts on it.
-// It is separable from the closure: what defines it is helixStart() (the fit's start), screwPrior()
-// and the torsion term of its fit (kReferenceTerm: CH-17's continuous term, or MDATK's, which gives
-// MDATK's reference helices); changing those changes the reference geometry without touching the
-// closure. Whether MDATK's or the refitted reference helices are the right ones is open (docs/
-// DIFFERENCES.md CH-17).
-constexpr TorsionTerm kReferenceTerm = TorsionTerm::Continuous;
-
+// The reference helix of a kind (its screw and every strand's chi change, gamma and beta; for the
+// experimental kinds also the partners' poses) is the one input the builds take from it: the uniform
+// helices are it, and every closure (CH-16) starts on it. hh: MDATK's fit of the torsions on the 4JRD
+// screw, with MDATK's link-torsion term (CH-17's smooth term is the closure's only); the contacts
+// of a level with itself and the kContactLevels levels after it (MDATK: two). The experimental
+// kinds: expFit (CH-18).
 struct ReferenceLevel {
     std::vector<Atoms> placed;
     Vec3 centre{}, n{}, e1{}, e2{};
@@ -957,22 +1196,23 @@ struct HelixKind {
     ContactPairs pairs;
 };
 
-ContactPairs contactPairs(const HelixKind& h) {
-    const std::vector<Vec3> q(h.strands.size(), Vec3{0.0, 58.0, 174.0});
+// _contact_pairs of the reference level `placed`, over levels 0 .. kContactLevels (MDATK: 0 .. 2)
+ContactPairs contactPairsOf(const std::vector<StrandSpec>& strands, const std::vector<Atoms>& placed) {
+    const std::vector<Vec3> q(strands.size(), Vec3{0.0, 58.0, 174.0});
     Screw dummy;
     dummy.twist = 30.0;
     dummy.rise = 3.0;
-    const LevelAtoms la = levelAtoms(h.ref.placed, h.strands, q, dummy);
+    const LevelAtoms la = levelAtoms(placed, strands, q, dummy);
     const std::size_t count = la.names.size();
     std::vector<char> bases(count);
     std::vector<int> cls(count);
     for (std::size_t i = 0; i < count; ++i) {
-        bases[i] = h.strands[la.owner[i]].base;
+        bases[i] = strands[la.owner[i]].base;
         cls[i] = atomClass(bases[i], la.names[i]);
     }
     std::set<std::tuple<std::size_t, std::string, std::size_t, std::string>> hbonded;
-    for (std::size_t s = 1; s < h.strands.size(); ++s) {
-        for (const PairHbond& hb : pairHbonds(h.strands[s].rule, h.strands[0].base, h.strands[s].base)) {
+    for (std::size_t s = 1; s < strands.size(); ++s) {
+        for (const PairHbond& hb : pairHbonds(strands[s].rule, strands[0].base, strands[s].base)) {
             hbonded.insert({0, std::string(hb.atom1), s, std::string(hb.atom2)});
             hbonded.insert({s, std::string(hb.atom2), 0, std::string(hb.atom1)});
         }
@@ -980,7 +1220,7 @@ ContactPairs contactPairs(const HelixKind& h) {
     ContactPairs out;
     for (std::size_t i = 0; i < count; ++i) {
         for (std::size_t j = 0; j < count; ++j) {
-            for (int level = 0; level < 3; ++level) {
+            for (int level = 0; level <= static_cast<int>(kContactLevels); ++level) {
                 if (level == 0 && j <= i) {
                     continue;
                 }
@@ -989,8 +1229,8 @@ ContactPairs contactPairs(const HelixKind& h) {
                 if (s == t && level == 0) {
                     path = bondPath(bases[i], la.names[i], la.names[j]);
                 } else if (s == t && level == 1) {
-                    path = h.strands[s].step > 0 ? linkPath(bases[i], la.names[i], bases[j], la.names[j])
-                                                 : linkPath(bases[j], la.names[j], bases[i], la.names[i]);
+                    path = strands[s].step > 0 ? linkPath(bases[i], la.names[i], bases[j], la.names[j])
+                                               : linkPath(bases[j], la.names[j], bases[i], la.names[i]);
                 }
                 if (path < 4 || (level == 0 && hbonded.count({s, la.names[i], t, la.names[j]}))) {
                     continue;
@@ -1010,6 +1250,10 @@ ContactPairs contactPairs(const HelixKind& h) {
     return out;
 }
 
+ContactPairs contactPairs(const HelixKind& h) {
+    return contactPairsOf(h.strands, h.ref.placed);
+}
+
 // _unpack_fit
 UnpackedFit unpackFit(const HelixKind& h, std::span<const double> p) {
     UnpackedFit out;
@@ -1027,19 +1271,28 @@ UnpackedFit unpackFit(const HelixKind& h, std::span<const double> p) {
     return out;
 }
 
-// _level_distances
-std::vector<double> levelDistances(const HelixKind& h, const UnpackedFit& u) {
-    const LevelAtoms la = levelAtoms(h.ref.placed, h.strands, u.q, u.screw);
-    const ScrewLevel one = screwAt(u.screw, 1), two = screwAt(u.screw, 2);
-    std::vector<std::array<Vec3, 3>> levels(la.xyz.size());
-    for (std::size_t i = 0; i < la.xyz.size(); ++i) {
-        levels[i] = {la.xyz[i], one(la.xyz[i]), two(la.xyz[i])};
+// _level_distances: the contact pairs' distances, levels 0 .. kContactLevels
+std::vector<double> distancesOf(const ContactPairs& pairs, const std::vector<Atoms>& placed,
+                                const std::vector<StrandSpec>& strands, const std::vector<Vec3>& q,
+                                const Screw& screw) {
+    const LevelAtoms la = levelAtoms(placed, strands, q, screw);
+    const std::size_t nl = kContactLevels + 1;
+    std::vector<Vec3> levels(la.xyz.size() * nl);
+    for (std::size_t k = 0; k < nl; ++k) {
+        const ScrewLevel op = screwAt(screw, static_cast<double>(k));
+        for (std::size_t i = 0; i < la.xyz.size(); ++i) {
+            levels[i * nl + k] = k == 0 ? la.xyz[i] : op(la.xyz[i]);
+        }
     }
-    std::vector<double> d(h.pairs.i.size());
+    std::vector<double> d(pairs.i.size());
     for (std::size_t k = 0; k < d.size(); ++k) {
-        d[k] = norm(la.xyz[h.pairs.i[k]] - levels[h.pairs.j[k]][static_cast<std::size_t>(h.pairs.level[k])]);
+        d[k] = norm(la.xyz[pairs.i[k]] - levels[pairs.j[k] * nl + static_cast<std::size_t>(pairs.level[k])]);
     }
     return d;
+}
+
+std::vector<double> levelDistances(const HelixKind& h, const UnpackedFit& u) {
+    return distancesOf(h.pairs, h.ref.placed, h.strands, u.q, u.screw);
 }
 
 // _fit_residuals
@@ -1051,7 +1304,7 @@ std::vector<double> fitResiduals(const HelixKind& h, std::span<const double> p) 
         const ScrewLevel op = screwAt(u.screw, h.strands[s].step);
         const std::array<double, 6> link =
             linkResiduals(here.at("C4'"), here.at("C3'"), here.at("O3'"), op(here.at("P")), op(here.at("O5'")),
-                          op(here.at("C5'")), kReferenceTerm);
+                          op(here.at("C5'")), TorsionTerm::Mdatk);
         out.insert(out.end(), link.begin(), link.end());
         const std::array<double, 4> prior = torsionPriors(u.q[s][0], u.q[s][1], u.q[s][2]);
         out.insert(out.end(), prior.begin(), prior.end());
@@ -1068,6 +1321,302 @@ std::vector<double> fitResiduals(const HelixKind& h, std::span<const double> p) 
         out.push_back(clip0(h.pairs.limit[k] - d[k]) / kFitContactWeight);
     }
     return out;
+}
+
+// --- the experimental kinds' reference helix (CH-18) ----------------------------------------------------
+
+// the screw of parameters p[0..5] about the tables' screw of `kind`: the axis offset in the plane through
+// the tables' origin (u1 = axis x (1, 0, 0) normalised, u2 = axis x u1), tilts t1, t2 (degrees: axis
+// cos t1 cos t2 a0 + sin t2 u1 - sin t1 cos t2 u2), twist and rise changes
+Screw expScrew(std::string_view kind, std::span<const double> p) {
+    const reference::TriplexScrew& sc = *reference::triplexScrew(kind);
+    const Vec3 a0 = {sc.ax, sc.ay, sc.az};
+    const Vec3 o0 = {sc.ox, sc.oy, sc.oz};
+    const Vec3 u1 = unit(cross(a0, {1.0, 0.0, 0.0}));
+    const Vec3 u2 = cross(a0, u1);
+    const double t1 = radians(p[2]), t2 = radians(p[3]);
+    Screw out;
+    out.axis = ((std::cos(t1) * std::cos(t2)) * a0 + std::sin(t2) * u1) - (std::sin(t1) * std::cos(t2)) * u2;
+    out.origin = (o0 + p[0] * u1) + p[1] * u2;
+    out.twist = sc.twist + p[4];
+    out.rise = sc.rise + p[5];
+    return out;
+}
+
+// the reference level of an experimental kind at p: strand 1's nucleoside as it is, each partner's on its
+// tables pose moved by p's rotation (degrees, about its C1') and shift
+std::vector<Atoms> expLevel(std::string_view kind, std::span<const double> p) {
+    const std::vector<StrandSpec> spec = helices(kind);
+    std::vector<Atoms> out = {kindCore(kind, 0, spec[0].base)};
+    for (std::size_t s = 1; s < spec.size(); ++s) {
+        const Pose pose = tablePose(spec[s].rule, spec[0].base, spec[s].base);
+        Atoms core = movedAtoms(kindCore(kind, s, spec[s].base), pose.rot, pose.shift);
+        const std::size_t o = 6 + 6 * (s - 1);
+        const Mat3 r = rotvec({radians(p[o]), radians(p[o + 1]), radians(p[o + 2])});
+        const Vec3 c = core.at("C1'");
+        const Vec3 d = {p[o + 3], p[o + 4], p[o + 5]};
+        for (TemplateAtom& a : core.items) {
+            a.xyz = (matVec(r, a.xyz - c) + c) + d;
+        }
+        out.push_back(std::move(core));
+    }
+    return out;
+}
+
+// the separation of the least-squares planes of two point sets along their mean normal
+double planeSeparation(const std::vector<Vec3>& a, const std::vector<Vec3>& b) {
+    const auto plane = [](const std::vector<Vec3>& pts) {
+        const Vec3 c = mean(pts);
+        std::vector<Vec3> d;
+        for (const Vec3& x : pts) {
+            d.push_back(x - c);
+        }
+        return std::make_pair(c, core::svdRows3(d).vt[2]);
+    };
+    const auto [ca, na] = plane(a);
+    auto [cb, nb] = plane(b);
+    if (dot(na, nb) < 0) {
+        nb = -nb;
+    }
+    const Vec3 n = unit(na + nb);
+    return std::fabs(dot(cb - ca, n));
+}
+
+const ContactPairs& expPairs(std::string_view kind) {
+    static const std::map<std::string, ContactPairs> cache = [] {
+        std::map<std::string, ContactPairs> out;
+        for (const std::string kd : {"hoogsteen", "triplex-hoogsteen"}) {
+            const std::vector<double> zero(6 + 6 * (helices(kd).size() - 1), 0.0);
+            out[kd] = contactPairsOf(helices(kd), expLevel(kd, zero));
+        }
+        return out;
+    }();
+    return cache.at(std::string(kind));
+}
+
+// The restrained reference fit of an experimental kind: MDATK's link residuals and torsion priors of
+// every strand, the screw's parameters over the tables' step spreads, the partner poses' moves over the
+// tables' pose spreads, the reference pairs' H-bonds about the tables' means, the separation of
+// consecutive base planes about the tables' mean, and the contacts (CONTACT_FIT) of a level with itself
+// and the kContactLevels levels after it (`pairs`: those scored, expPairs or a part of them). p: screw
+// (6), per partner pose (6), per strand torsions (3).
+std::vector<double> expResiduals(std::string_view kind, std::span<const double> p, const ContactPairs& pairs) {
+    const std::vector<StrandSpec> spec = helices(kind);
+    const std::size_t ns = spec.size();
+    const std::size_t npose = 6 * (ns - 1);
+    const reference::TriplexScrew& sc = *reference::triplexScrew(kind);
+    const Screw screw = expScrew(kind, p);
+    const std::vector<Atoms> placed = expLevel(kind, p);
+    std::vector<Vec3> q;
+    for (std::size_t s = 0; s < ns; ++s) {
+        q.push_back({p[6 + npose + 3 * s], p[7 + npose + 3 * s], p[8 + npose + 3 * s]});
+    }
+    std::vector<double> out;
+    for (std::size_t s = 0; s < ns; ++s) {
+        const Atoms here = nucleotideOf(placed[s], spec[s].base, false, q[s]);
+        const ScrewLevel op = screwAt(screw, spec[s].step);
+        const std::array<double, 6> link =
+            linkResiduals(here.at("C4'"), here.at("C3'"), here.at("O3'"), op(here.at("P")), op(here.at("O5'")),
+                          op(here.at("C5'")), TorsionTerm::Mdatk);
+        out.insert(out.end(), link.begin(), link.end());
+        const std::array<double, 4> prior = torsionPriors(q[s][0], q[s][1], q[s][2]);
+        out.insert(out.end(), prior.begin(), prior.end());
+    }
+    for (std::size_t k = 0; k < 6; ++k) {
+        out.push_back(p[k] / sc.sd[k]);
+    }
+    for (std::size_t s = 1; s < ns; ++s) {
+        const int t = static_cast<int>(tableStrand(kind, s));
+        double rot = 1.0, shift = 1.0;
+        for (const reference::TriplexPoseSpread& ps : reference::triplexPoseSpreads()) {
+            if (ps.strand == t) {
+                rot = ps.rotation;
+                shift = ps.shift;
+            }
+        }
+        const std::size_t o = 6 + 6 * (s - 1);
+        for (std::size_t k = 0; k < 6; ++k) {
+            out.push_back(p[o + k] / (k < 3 ? rot : shift));
+        }
+    }
+    for (std::size_t s = 1; s < ns; ++s) {
+        for (const PairHbond& hb : pairHbonds(spec[s].rule, spec[0].base, spec[s].base)) {
+            for (const reference::TriplexHbond& t : reference::triplexHbonds()) {
+                if (t.rule == spec[s].rule && t.atom1 == hb.atom1 && t.atom2 == hb.atom2) {
+                    out.push_back((norm(placed[0].at(hb.atom1) - placed[s].at(hb.atom2)) - t.mean) / t.sd);
+                }
+            }
+        }
+    }
+    std::vector<Vec3> bases;
+    for (std::size_t s = 0; s < ns; ++s) {
+        for (const std::string_view n : baseAtomNames(spec[s].base)) {
+            bases.push_back(placed[s].at(n));
+        }
+    }
+    std::vector<Vec3> next;
+    const ScrewLevel one = screwAt(screw, 1);
+    for (const Vec3& x : bases) {
+        next.push_back(one(x));
+    }
+    out.push_back((planeSeparation(bases, next) - sc.stack) / sc.stackSd);
+    const std::vector<double> d = distancesOf(pairs, placed, spec, q, screw);
+    for (std::size_t k = 0; k < d.size(); ++k) {
+        out.push_back(clip0(pairs.limit[k] - d[k]) / kFitContactWeight);
+    }
+    return out;
+}
+
+constexpr double kReferenceCutoff = 6.0;  // Angstrom: the contact pairs a restrained fit scores
+constexpr int kReferenceRounds = 20;
+
+// the indices of the contact pairs within kReferenceCutoff at p
+std::vector<std::size_t> expNear(std::string_view kind, std::span<const double> p) {
+    const std::vector<StrandSpec> spec = helices(kind);
+    const std::size_t ns = spec.size();
+    const std::size_t npose = 6 * (ns - 1);
+    std::vector<Vec3> q;
+    for (std::size_t s = 0; s < ns; ++s) {
+        q.push_back({p[6 + npose + 3 * s], p[7 + npose + 3 * s], p[8 + npose + 3 * s]});
+    }
+    const std::vector<double> d = distancesOf(expPairs(kind), expLevel(kind, p), spec, q, expScrew(kind, p));
+    std::vector<std::size_t> out;
+    for (std::size_t k = 0; k < d.size(); ++k) {
+        if (d[k] < kReferenceCutoff) {
+            out.push_back(k);
+        }
+    }
+    return out;
+}
+
+ContactPairs subsetOf(const ContactPairs& all, const std::vector<std::size_t>& index) {
+    ContactPairs out;
+    for (const std::size_t k : index) {
+        out.i.push_back(all.i[k]);
+        out.j.push_back(all.j[k]);
+        out.level.push_back(all.level[k]);
+        out.limit.push_back(all.limit[k]);
+        out.heavy.push_back(all.heavy[k]);
+        out.hh.push_back(all.hh[k]);
+    }
+    return out;
+}
+
+struct ExpFit {
+    std::vector<double> x;
+    double cost = 0.0;
+    std::size_t nfev = 0;
+    int status = 0;
+    Screw screw;
+    std::vector<Vec3> torsions;
+    std::vector<Pose> poses;  // per strand (index 0 unused): the reference pair's pose
+    double contact = 0.0;
+    double contactH = 0.0;
+};
+
+ExpFit expFitUncached(const std::string& kind, const core::Reporter* reporter, std::size_t threads) {
+    const std::vector<StrandSpec> spec = helices(kind);
+    const std::size_t ns = spec.size();
+    const std::size_t npose = 6 * (ns - 1);
+    numerics::LeastSquaresOptions o = smallFitOptions();
+    o.xScale.assign(kReferenceScaleScrew.begin(), kReferenceScaleScrew.end());
+    for (std::size_t s = 1; s < ns; ++s) {
+        o.xScale.insert(o.xScale.end(), kReferenceScalePose.begin(), kReferenceScalePose.end());
+    }
+    for (std::size_t k = 0; k < 3 * ns; ++k) {
+        o.xScale.push_back(10.0);
+    }
+    o.jacobianThreads = threads ? threads : std::max<std::size_t>(1, std::thread::hardware_concurrency());
+    const numerics::LeastSquaresCallback callback = [reporter](std::span<const double>, double, std::size_t,
+                                                               std::size_t) {
+        if (reporter) {
+            reporter->checkCancel();
+        }
+        return false;
+    };
+    expPairs(kind);  // the static tables before the threads use them
+    std::optional<numerics::LeastSquaresResult> best;
+    for (const std::array<double, 3>& start : kReferenceStarts) {
+        std::vector<double> x(6 + npose, 0.0);
+        for (std::size_t s = 0; s < ns; ++s) {
+            x.insert(x.end(), start.begin(), start.end());
+        }
+        // the contact pairs within kReferenceCutoff scored, those within it at a solution added (in the
+        // pairs' order) and the solve repeated from there while the set grows
+        std::vector<std::size_t> active = expNear(kind, x);
+        numerics::LeastSquaresResult sol;
+        std::size_t nfev = 0;
+        for (int round = 0; round < kReferenceRounds; ++round) {
+            const ContactPairs pairs = subsetOf(expPairs(kind), active);
+            sol = numerics::leastSquares(
+                [&kind, &pairs](std::span<const double> p) { return expResiduals(kind, p, pairs); }, x, o, callback);
+            nfev += sol.nfev;
+            x = sol.x;
+            std::vector<std::size_t> grown;
+            const std::vector<std::size_t> near = expNear(kind, x);
+            std::set_union(active.begin(), active.end(), near.begin(), near.end(), std::back_inserter(grown));
+            if (grown.size() == active.size()) {
+                break;
+            }
+            active = std::move(grown);
+        }
+        sol.nfev = nfev;
+        if (!best || sol.cost < best->cost - 1e-9) {
+            best = std::move(sol);
+        }
+    }
+    ExpFit out;
+    out.x = best->x;
+    out.cost = best->cost;
+    out.nfev = best->nfev;
+    out.status = best->status;
+    out.screw = expScrew(kind, out.x);
+    out.poses.resize(ns);
+    for (std::size_t s = 1; s < ns; ++s) {
+        const Pose p0 = tablePose(spec[s].rule, spec[0].base, spec[s].base);
+        const std::size_t k = 6 + 6 * (s - 1);
+        const Mat3 r = rotvec({radians(out.x[k]), radians(out.x[k + 1]), radians(out.x[k + 2])});
+        const Vec3 c = matVec(p0.rot, kindCore(kind, s, spec[s].base).at("C1'")) + p0.shift;
+        out.poses[s] = {matMul(r, p0.rot),
+                        (matVec(r, p0.shift - c) + c) + Vec3{out.x[k + 3], out.x[k + 4], out.x[k + 5]}};
+    }
+    for (std::size_t s = 0; s < ns; ++s) {
+        out.torsions.push_back({out.x[6 + npose + 3 * s], out.x[7 + npose + 3 * s], out.x[8 + npose + 3 * s]});
+    }
+    const ContactPairs& pairs = expPairs(kind);
+    const std::vector<double> d = distancesOf(pairs, expLevel(kind, out.x), spec, out.torsions, out.screw);
+    out.contact = out.contactH = std::numeric_limits<double>::infinity();
+    for (std::size_t k = 0; k < d.size(); ++k) {
+        if (pairs.heavy[k]) out.contact = std::min(out.contact, d[k]);
+        if (pairs.hh[k]) out.contactH = std::min(out.contactH, d[k]);
+    }
+    return out;
+}
+
+ExpFit expFit(const std::string& kind, const core::Reporter* reporter = nullptr, std::size_t threads = 0) {
+    static std::map<std::string, ExpFit> cache;
+    static std::mutex fitMutex;  // one fit of a kind at a time (it is cached)
+    const std::lock_guard<std::mutex> fitLock(fitMutex);
+    {
+        const std::lock_guard<std::mutex> lock(cacheMutex());
+        const auto it = cache.find(kind);
+        if (it != cache.end()) {
+            return it->second;
+        }
+    }
+    ExpFit fit = expFitUncached(kind, reporter, threads);
+    const std::lock_guard<std::mutex> lock(cacheMutex());
+    cache.emplace(kind, fit);
+    return fit;
+}
+
+// the pose of the reference partner of `strand` (its rule's pair with the strand-1 reference base)
+Pose referencePose(const std::string& kind, std::size_t strand) {
+    const std::vector<StrandSpec> spec = helices(kind);
+    if (experimentalKind(kind)) {
+        return expFit(kind).poses[strand];
+    }
+    return pairFit(spec[strand].rule, spec[0].base, spec[strand].base);
 }
 
 struct HelixFitResult {
@@ -1114,7 +1663,11 @@ HelixFitResult helixFitUncached(const std::string& kind, const core::Reporter* r
     return out;
 }
 
-HelixFitResult helixFit(const std::string& kind, const core::Reporter* reporter) {
+HelixFitResult helixFit(const std::string& kind, const core::Reporter* reporter, std::size_t threads = 0) {
+    if (experimentalKind(kind)) {
+        const ExpFit f = expFit(kind, reporter, threads);
+        return {f.screw, f.torsions, f.cost, f.contact, f.contactH};
+    }
     static std::map<std::string, HelixFitResult> cache;
     static std::mutex fitMutex;  // one fit of a kind at a time (it is cached)
     const std::lock_guard<std::mutex> fitLock(fitMutex);
@@ -1140,13 +1693,16 @@ Pose levelPoseUncached(const std::string& kind, std::size_t strand, const std::s
     const std::string_view rule = spec[strand].rule;
     const char a = level[0], b = level[strand];
     if (canonical(rule, a, b)) {
-        return pairFit(rule, a, b);
+        if (experimentalKind(kind) && a == spec[0].base && b == spec[strand].base) {
+            return referencePose(kind, strand);
+        }
+        return kindPairFit(kind, strand, rule, a, b);
     }
-    const Pose p0 = pairFit(rule, spec[0].base, spec[strand].base);
-    std::vector<Atoms> others = {coreTemplate(a)};
+    const Pose p0 = referencePose(kind, strand);
+    std::vector<Atoms> others = {kindCore(kind, 0, a)};
     for (std::size_t t = 1; t < strand; ++t) {
         const Pose pt = levelPose(kind, t, level.substr(0, t + 1));
-        others.push_back(movedAtoms(coreTemplate(level[t]), pt.rot, pt.shift));
+        others.push_back(movedAtoms(kindCore(kind, t, level[t]), pt.rot, pt.shift));
     }
     const auto selected = [](const Atoms& coords, char base, std::vector<Vec3>& xyz, std::vector<int>& cls) {
         for (const TemplateAtom& x : coords.items) {
@@ -1163,7 +1719,7 @@ Pose levelPoseUncached(const std::string& kind, std::size_t strand, const std::s
     for (std::size_t t = 0; t < others.size(); ++t) {
         selected(others[t], level[t], fixedXyz, fixedCls);
     }
-    const Atoms start = movedAtoms(coreTemplate(b), p0.rot, p0.shift);
+    const Atoms start = movedAtoms(kindCore(kind, strand, b), p0.rot, p0.shift);
     std::vector<Vec3> mobile;
     std::vector<int> mobileCls;
     selected(start, b, mobile, mobileCls);
@@ -1300,13 +1856,17 @@ public:
         m_n = m_placed[0].size();
         m_width = 6 + 3 * m_ns;
         const std::vector<StrandSpec> spec = helices(kind);
+        if (experimentalKind(kind)) {  // CH-18: the stacking of consecutive levels kept at the experiment's
+            const reference::TriplexScrew& sc = *reference::triplexScrew(kind);
+            m_stack = {sc.stack, sc.stackSd};
+        }
         // per partner nucleoside: the reference pose and the rigid move to its _level_pose pose
         m_moves.resize(m_ns);
         for (std::size_t s = 1; s < m_ns; ++s) {
-            const Pose ref = pairFit(spec[s].rule, spec[0].base, spec[s].base);
+            const Pose ref = referencePose(kind, s);  // CH-18: the kind's reference pose and nucleosides
             for (std::size_t k = 0; k < m_n; ++k) {
                 Move mv;
-                mv.ref = screwed(movedAtoms(coreTemplate(m_bases[s][k]), ref.rot, ref.shift),
+                mv.ref = screwed(movedAtoms(kindCore(kind, s, m_bases[s][k]), ref.rot, ref.shift),
                                  screwAt(screw, static_cast<double>(k)));
                 std::vector<Vec3> P, Q;
                 for (const TemplateAtom& a : m_placed[s][k].items) {
@@ -1556,8 +2116,26 @@ private:
                 out.push_back(x[k * m_width + c] / kLevelShift);
             }
         }
+        if (m_stack) {
+            for (std::size_t k = 0; k + 1 < m_n; ++k) {
+                out.push_back((planeSeparation(levelBases(atoms, k), levelBases(atoms, k + 1)) - m_stack->first) /
+                              m_stack->second);
+            }
+        }
         for (const ClosurePair& pr : pairs) {
             out.push_back(clip0(pr.limit - norm(atoms[pr.p] - atoms[pr.q])) / kClosureWeight);
+        }
+        return out;
+    }
+
+    // the base heavy atoms of every strand at level k (strand order, base_names order)
+    std::vector<Vec3> levelBases(const std::vector<Vec3>& atoms, std::size_t k) const {
+        std::vector<Vec3> out;
+        for (std::size_t s = 0; s < m_ns; ++s) {
+            const std::size_t count = baseAtomNames(m_bases[s][k]).size();
+            for (std::size_t i = 0; i < count; ++i) {
+                out.push_back(atoms[(s * m_n + k) * kSlots + kStrandNames.size() + i]);
+            }
         }
         return out;
     }
@@ -1586,6 +2164,12 @@ private:
                     lo.push_back(k);
                     hi.push_back(k);
                 }
+            }
+        }
+        if (m_stack) {
+            for (std::size_t k = 0; k + 1 < m_n; ++k) {
+                lo.push_back(k);
+                hi.push_back(k + 1);
             }
         }
         for (const ClosurePair& p : pairs) {
@@ -1744,6 +2328,7 @@ private:
     }
 
     std::vector<std::vector<Atoms>> m_placed;
+    std::optional<std::pair<double, double>> m_stack;  // CH-18: (mean, sd) of the base-plane separation
     std::vector<std::string> m_bases;
     std::vector<int> m_steps;
     const HelixOptions& m_options;
@@ -1918,14 +2503,14 @@ FittedHelix fittedHelix(const std::string& kind, const std::vector<std::string>&
     if (reporter) {
         reporter->progress(0.0, "fitting the reference helix");
     }
-    const HelixFitResult fit = helixFit(kind, reporter);
+    const HelixFitResult fit = helixFit(kind, reporter, options.threads);
     const std::vector<StrandSpec> spec = helices(kind);
     const Screw& screw = fit.screw;
     const std::string& seq = sequences[0];
     const std::size_t n = seq.size();
     std::vector<std::vector<Atoms>> placed(spec.size());
     for (std::size_t k = 0; k < n; ++k) {
-        placed[0].push_back(screwed(coreTemplate(seq[k]), screwAt(screw, static_cast<double>(k))));
+        placed[0].push_back(screwed(kindCore(kind, 0, seq[k]), screwAt(screw, static_cast<double>(k))));
     }
     std::vector<std::string> levelBases = {seq};
     std::vector<std::string> atLevel(n);
@@ -1946,8 +2531,8 @@ FittedHelix fittedHelix(const std::string& kind, const std::vector<std::string>&
             const bool isCanonical = canonical(st.rule, a, b);
             const Pose pose = levelPose(kind, s, atLevel[k]);
             uniform = uniform && a == spec[0].base && b == st.base;
-            placed[s].push_back(
-                screwed(movedAtoms(coreTemplate(b), pose.rot, pose.shift), screwAt(screw, static_cast<double>(k))));
+            placed[s].push_back(screwed(movedAtoms(kindCore(kind, s, b), pose.rot, pose.shift),
+                                        screwAt(screw, static_cast<double>(k))));
             FitLevel lv;
             lv.level = k;
             lv.bases = std::string(1, a) + b;

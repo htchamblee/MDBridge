@@ -8,6 +8,10 @@
 //   `_BACKBONE` / `_BASES`;
 // * the 4JRD nucleotide (PDB 4JRD chain A residue 10) in the frame of the screw of that duplex, with
 //   the screw's twist and rise (MDATK: `_JRD_NUCLEOTIDE`, `JRD_TWIST`, `JRD_RISE`; CHD-02);
+// * the experimental geometry of the Hoogsteen duplex and the pyrimidine-motif triplex (CH-18): the
+//   mean U·A-U and C+·G-C base triples of the RNA triple helices of PDB 3P22, 4PLX, 6SVS, 7JNH in the
+//   helix frame of their screw, the screws of both kinds with the spreads of the experimental steps,
+//   the pairs' H-bond distances and the partner nucleosides' pose spreads (src/chem/triplex_tables.inc);
 // * the wwPDB CCD's L-ribonucleotides 0A 0C 0G 0U as MDATK's dictionaries.py `COMPONENTS` describes
 //   the parents (standard atom names, phosphate deprotonated), how the two hydrogens of a CH2 / NH2
 //   group are named from coordinates (CHD-01) and the signs of the L-ribose chiral volumes.
@@ -30,6 +34,51 @@ struct CylindricalBaseAtom {
     double r;
     double phi;
     double z;
+};
+
+// One atom of a mean experimental base triple: level "AUU" (U·A-U) or "GCC" (C+·G-C), strand 0
+// purine, 1 Watson-Crick partner, 2 Hoogsteen (third-strand) partner; Cartesian, Angstrom.
+struct TriplexAtom {
+    std::string_view level;
+    int strand;
+    std::string_view name;
+    double x;
+    double y;
+    double z;
+};
+
+// The experimental screw of a kind ("triplex-hoogsteen", "hoogsteen"): origin and unit axis (one level
+// on is a turn of -twist degrees about the axis and a move of -rise Angstrom along it), the standard
+// deviations of the experimental steps' axis offsets (2, Angstrom), tilts (2, degrees), twist and rise
+// about it (tools/gen_chem_tables.py step_parameters), the mean separation of consecutive base planes
+// and its standard deviation, the number of steps.
+struct TriplexScrew {
+    std::string_view kind;
+    double ox, oy, oz;
+    double ax, ay, az;
+    double twist;
+    double rise;
+    double sd[6];
+    double stack;
+    double stackSd;
+    int steps;
+};
+
+// Donor-acceptor distance of a U·A-U pair ("wc" / "hoogsteen" rule; purine atom, partner atom).
+struct TriplexHbond {
+    std::string_view rule;
+    std::string_view atom1;
+    std::string_view atom2;
+    double mean;
+    double sd;
+};
+
+// RMS per component of a U·A-U partner's rotation (degrees) and C1' shift (Angstrom) about its mean
+// pose relative to the purine nucleoside, by table strand (1, 2).
+struct TriplexPoseSpread {
+    int strand;
+    double rotation;
+    double shift;
 };
 
 struct ComponentInfo {
@@ -87,6 +136,13 @@ std::span<const CylindricalBaseAtom> arnottBase(char base);
 std::span<const CylindricalAtom> jrdNucleotide();
 double jrdTwist();
 double jrdRise();
+
+// The mean triple atoms of a level ("AUU" / "GCC") and strand (0 .. 2), in the tables' order.
+std::span<const TriplexAtom> triplexLevel(std::string_view level, int strand);
+// The screw of "triplex-hoogsteen" or "hoogsteen" (nullptr for another kind).
+const TriplexScrew* triplexScrew(std::string_view kind);
+std::span<const TriplexHbond> triplexHbonds();
+std::span<const TriplexPoseSpread> triplexPoseSpreads();
 
 std::span<const ComponentInfo> components();
 // The rows of one component (code 0A ...), in the standard residue's order; empty for an unknown code.

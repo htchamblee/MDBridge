@@ -13,6 +13,11 @@ Writes, deterministically and only from the committed extracts:
   towards -z, x towards the C1' atom of A10 (phi 0, z 0 there). Derived numbers are rounded to
   1e-6 (Angstrom, degrees), far below their meaning, so that the last bits of libm do not reach
   the file.
+* src/chem/triplex_tables.inc: the experimental geometry of the Hoogsteen duplex and the
+  pyrimidine-motif triplex (docs/DIFFERENCES.md CH-18): mean U·A-U and C+·G-C triples, the screws,
+  their spreads, from the RNA triple helices of PDB 3P22, 4PLX, 6SVS, 7JNH (data/sources/pdb/
+  triplex_levels.tsv, *_triplex_atoms.tsv); triplex_tables() (see its section) also gives them to
+  tests/parity/improvements_chem.py.
 * src/chem/component_tables.inc: the L-ribonucleotides 0A 0C 0G 0U of the wwPDB CCD
   (data/sources/ccd/ribonucleotide_*.tsv) in the form MDATK's restraint dictionaries use: heavy
   atoms, bonds and hydrogens under the names of the standard residue (H61 / H62, H5' / H5'' ...,
@@ -47,6 +52,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SOURCES = os.path.join(ROOT, "data", "sources")
 HELIX_INC = os.path.join(ROOT, "src", "chem", "helix_tables.inc")
 COMPONENT_INC = os.path.join(ROOT, "src", "chem", "component_tables.inc")
+TRIPLEX_INC = os.path.join(ROOT, "src", "chem", "triplex_tables.inc")
 
 BASES = ("A", "C", "G", "U")
 L_CODES = {"0A": "A", "0C": "C", "0G": "G", "0U": "U"}
@@ -443,6 +449,366 @@ def ccd_notes():
     return notes
 
 
+# --- RNA triple helices (CH-18) -------------------------------------------------------------------
+#
+# The experimental reference geometry of the builder's Hoogsteen duplex ('hoogsteen': the purine
+# strand and the Hoogsteen strand) and pyrimidine-motif triplex ('th': purine, Watson-Crick and
+# Hoogsteen strands): the stacked U·A-U and C+·G-C base triples of the RNA crystal structures in
+# TRIPLEX_ENTRIES (data/sources/pdb/triplex_levels.tsv, the ATOM records in <id>_triplex_atoms.tsv).
+#
+# * Levels: each triple's three nucleosides (C1', the base heavy atoms, the sugar ring with O2',
+#   O3', C5'). The mean level of each type (U·A-U, C+·G-C) is their generalised Procrustes mean
+#   (unweighted superpositions onto the mean, repeated until it no longer changes); the C+·G-C mean
+#   is then superposed onto the U·A-U mean by the glycosidic frames (C1', N9 C4 C8 / N1 C2 C6) of
+#   the three strands, which puts both in one level frame.
+# * Steps (C1' and base atoms, as the report measures them): two triples whose purine, Watson-Crick and Hoogsteen residues are linked O3'-P (< 2 A)
+#   to each other's 3' / 5' / 3' neighbour. The step of the level frame is the mean (quaternions
+#   summed, translations averaged) of mean(k)^-1 o mean(k + 1), each mean superposed onto its
+#   experimental level; its screw defines the helix frame: z along the axis (one level on: a turn by
+#   -twist about z and a move of -rise along z, MDATK's _Screw), x through the C1' of the U·A-U
+#   purine, z 0 there. The duplex screw ('hoogsteen') is the same mean over the same steps with the
+#   purine and Hoogsteen strands only, written in the same frame.
+# * Spreads (the restraints of the reference fit): per step the screw's axis offset (two components
+#   in the plane z 0), axis tilts (two angles), twist and rise about the mean screw: their standard
+#   deviations; the separation of the base planes of consecutive levels (all base heavy atoms of the
+#   kind's strands) and its standard deviation; the donor-acceptor distances of the U·A-U triples'
+#   Watson-Crick and Hoogsteen pairs; the RMS rotation (degrees) and C1' shift (A) per component of
+#   a U·A-U partner nucleoside about its mean pose relative to the purine nucleoside.
+TRIPLEX_ENTRIES = ("3P22", "4PLX", "6SVS", "7JNH")
+TRIPLEX_BASE_ATOMS = {"A": ("N9", "C8", "N7", "C5", "C6", "N6", "N1", "C2", "N3", "C4"),
+                      "G": ("N9", "C8", "N7", "C5", "C6", "O6", "N1", "C2", "N2", "N3", "C4"),
+                      "C": ("N1", "C2", "O2", "N3", "C4", "N4", "C5", "C6"),
+                      "U": ("N1", "C2", "O2", "N3", "C4", "O4", "C5", "C6")}
+TRIPLEX_SUGAR = ("C2'", "O2'", "C3'", "O3'", "C4'", "O4'", "C5'")
+TRIPLEX_GLYCOSIDIC = {"A": ("C1'", "N9", "C4", "C8"), "G": ("C1'", "N9", "C4", "C8"),
+                      "C": ("C1'", "N1", "C2", "C6"), "U": ("C1'", "N1", "C2", "C6")}
+TRIPLEX_HBONDS = (("wc", "N1", "N3"), ("wc", "N6", "O4"), ("hoogsteen", "N7", "N3"), ("hoogsteen", "N6", "O4"))
+TRIPLEX_KINDS = (("triplex-hoogsteen", (0, 1, 2)), ("hoogsteen", (0, 2)))
+TRIPLEX_STRANDS = ("purine", "wc", "hoogsteen")
+
+
+def nucleoside_names(base):
+    return ("C1'",) + TRIPLEX_BASE_ATOMS[base] + TRIPLEX_SUGAR
+
+
+def triplex_residues(entry):
+    out = {}
+    for r in read_tsv("pdb", f"{entry.lower()}_triplex_atoms.tsv"):
+        if r["label_alt_id"] not in (".", "A") or r["pdbx_PDB_model_num"] != "1":
+            continue
+        res = out.setdefault((r["auth_asym_id"], int(r["auth_seq_id"])), {"comp": r["label_comp_id"], "atoms": {}})
+        res["atoms"].setdefault(r["label_atom_id"],
+                                [float(r["Cartn_x"]), float(r["Cartn_y"]), float(r["Cartn_z"])])
+    return out
+
+
+def _linked(a, b):
+    """O3' of a bonded to P of b."""
+    return "O3'" in a["atoms"] and "P" in b["atoms"] and norm(sub(a["atoms"]["O3'"], b["atoms"]["P"])) < 2.0
+
+
+def triplex_data():
+    """(levels, steps): levels [(entry, type 'AUU' / 'GCC', [3 residues])]; steps [(index k, index k+1)]."""
+    levels, keys = [], []
+    for entry in TRIPLEX_ENTRIES:
+        res = triplex_residues(entry)
+        for row in read_tsv("pdb", "triplex_levels.tsv"):
+            if row["entry"] != entry:
+                continue
+            trio = [res[(row[f"{s}_chain"], int(row[f"{s}_seq"]))] for s in TRIPLEX_STRANDS]
+            kind = "".join(r["comp"] for r in trio)
+            if kind not in ("AUU", "GCC"):
+                raise SystemExit(f"{entry} level {row['level']}: triple {kind} (expected U·A-U or C+·G-C)")
+            missing = [(s, n) for s, r in zip(TRIPLEX_STRANDS, trio) for n in nucleoside_names(r["comp"])
+                       if n not in r["atoms"]]
+            if missing:
+                raise SystemExit(f"{entry} level {row['level']}: atoms {missing} missing")
+            p, w, t = (r["atoms"] for r in trio)
+            for x, y, d in ((p["N1"], w["N3"], "Watson-Crick N1-N3"), (p["N7"], t["N3"], "Hoogsteen N7-N3")):
+                if norm(sub(x, y)) > 3.7:
+                    raise SystemExit(f"{entry} level {row['level']}: {d} {norm(sub(x, y)):.2f} A")
+            levels.append((entry, kind, trio))
+            keys.append((entry, row))
+    steps = []
+    for i, (ea, _ka, a) in enumerate(levels):
+        for j, (eb, _kb, b) in enumerate(levels):
+            if ea == eb and _linked(a[0], b[0]) and _linked(b[1], a[1]) and _linked(a[2], b[2]):
+                steps.append((i, j))
+    return levels, steps
+
+
+def level_points(trio, strands=(0, 1, 2)):
+    return [r["atoms"][n] for s in strands for r in (trio[s],) for n in nucleoside_names(r["comp"])]
+
+
+def moved(r, t, points):
+    return [add(mat_vec(r, x), t) for x in points]
+
+
+def mat_mul(a, b):
+    return [[sum(a[i][k] * b[k][j] for k in range(3)) for j in range(3)] for i in range(3)]
+
+
+def transpose(a):
+    return [[a[j][i] for j in range(3)] for i in range(3)]
+
+
+def procrustes_mean(sets):
+    """Generalised Procrustes mean of point sets (each superposed onto the mean, until it is stable)."""
+    mean = [list(x) for x in sets[0]]
+    for _ in range(200):
+        fitted = [moved(*superpose(points, mean)[1:], points) for points in sets]
+        new = [scale([sum(f[i][c] for f in fitted) for c in range(3)], 1.0 / len(fitted)) for i in range(len(mean))]
+        new = moved(*superpose(new, mean)[1:], new)
+        change = max(norm(sub(a, b)) for a, b in zip(new, mean))
+        mean = new
+        if change < 1e-12:
+            break
+    return mean
+
+
+def quat_matrix(q):
+    w, x, y, z = q
+    n = math.sqrt(w * w + x * x + y * y + z * z)
+    w, x, y, z = w / n, x / n, y / n, z / n
+    return [[w * w + x * x - y * y - z * z, 2 * (x * y - w * z), 2 * (x * z + w * y)],
+            [2 * (x * y + w * z), w * w - x * x + y * y - z * z, 2 * (y * z - w * x)],
+            [2 * (x * z - w * y), 2 * (y * z + w * x), w * w - x * x - y * y + z * z]]
+
+
+def matrix_quat(r):
+    w = math.sqrt(max(0.0, 1.0 + r[0][0] + r[1][1] + r[2][2])) / 2.0
+    return [w, (r[2][1] - r[1][2]) / (4 * w), (r[0][2] - r[2][0]) / (4 * w), (r[1][0] - r[0][1]) / (4 * w)]
+
+
+def screw_of(r, t):
+    """(angle degrees, unit axis (right-hand rule), translation along it, point on the axis) of x -> R x + t."""
+    w, x, y, z = matrix_quat(r)
+    v = [x, y, z]
+    angle = 2.0 * math.atan2(norm(v), w)
+    axis = unit(v)
+    d = dot(axis, t)
+    t_perp = sub(t, scale(axis, d))
+    point = scale(add(t_perp, scale(cross(axis, t_perp), 1.0 / math.tan(angle / 2.0))), 0.5)
+    return math.degrees(angle), axis, d, point
+
+
+def symmetric_min_eigenvector(m):
+    """Unit eigenvector of the smallest eigenvalue of a symmetric 3 x 3 matrix (cyclic Jacobi)."""
+    a = [row[:] for row in m]
+    v = [[1.0 if i == j else 0.0 for j in range(3)] for i in range(3)]
+    for _ in range(100):
+        if sum(a[i][j] ** 2 for i in range(3) for j in range(3) if i != j) < 1e-30:
+            break
+        for p_ in range(2):
+            for q in range(p_ + 1, 3):
+                if abs(a[p_][q]) < 1e-300:
+                    continue
+                theta = (a[q][q] - a[p_][p_]) / (2.0 * a[p_][q])
+                t = math.copysign(1.0, theta) / (abs(theta) + math.sqrt(theta * theta + 1.0))
+                c = 1.0 / math.sqrt(t * t + 1.0)
+                s = t * c
+                for k in range(3):
+                    akp, akq = a[k][p_], a[k][q]
+                    a[k][p_], a[k][q] = c * akp - s * akq, s * akp + c * akq
+                for k in range(3):
+                    apk, aqk = a[p_][k], a[q][k]
+                    a[p_][k], a[q][k] = c * apk - s * aqk, s * apk + c * aqk
+                for k in range(3):
+                    vkp, vkq = v[k][p_], v[k][q]
+                    v[k][p_], v[k][q] = c * vkp - s * vkq, s * vkp + c * vkq
+    best = min(range(3), key=lambda i: a[i][i])
+    return unit([v[k][best] for k in range(3)])
+
+
+def plane(points):
+    c = scale([sum(x[i] for x in points) for i in range(3)], 1.0 / len(points))
+    m = [[sum((x[i] - c[i]) * (x[j] - c[j]) for x in points) for j in range(3)] for i in range(3)]
+    return c, symmetric_min_eigenvector(m)
+
+
+def plane_separation(a, b):
+    ca, na = plane(a)
+    cb, nb = plane(b)
+    if dot(na, nb) < 0:
+        nb = scale(nb, -1.0)
+    n = unit(add(na, nb))
+    return abs(dot(sub(cb, ca), n))
+
+
+def mean_sd(values):
+    m = sum(values) / len(values)
+    return m, math.sqrt(sum((v - m) ** 2 for v in values) / (len(values) - 1))
+
+
+def perp_basis(a):
+    u1 = unit(cross(a, [1.0, 0.0, 0.0]))
+    return u1, cross(a, u1)
+
+
+def step_parameters(r, t, origin, axis):
+    """(offset 1, offset 2, tilt 1, tilt 2, twist, rise) of the step x -> R x + t about the screw
+    (origin, axis): the step's axis a = cos t1 cos t2 axis + sin t2 u1 - sin t1 cos t2 u2 meets the
+    plane through origin normal to axis at origin + o1 u1 + o2 u2 (u1 = axis x (1, 0, 0) normalised,
+    u2 = axis x u1); its twist and rise as _Screw has them (a turn of -twist about a)."""
+    angle, u, d, point = screw_of(r, t)
+    a = scale(u, -1.0)
+    u1, u2 = perp_basis(axis)
+    s = dot(sub(origin, point), axis) / dot(a, axis)
+    q = add(point, scale(a, s))
+    t2 = math.degrees(math.asin(max(-1.0, min(1.0, dot(a, u1)))))
+    t1 = -math.degrees(math.atan2(dot(a, u2), dot(a, axis)))
+    return [dot(sub(q, origin), u1), dot(sub(q, origin), u2), t1, t2, angle, d]
+
+
+def subset(points, trio, strands):
+    out, k = [], 0
+    for s in range(3):
+        n = len(nucleoside_names(trio[s]["comp"]))
+        if s in strands:
+            out += points[k:k + n]
+        k += n
+    return out
+
+
+def bases_only(points, trio, strands):
+    """The C1' and base atoms of the points of a level's strands (level_points order)."""
+    flags = [n not in TRIPLEX_SUGAR for s in strands for n in nucleoside_names(trio[s]["comp"])]
+    return [x for x, keep in zip(points, flags) if keep]
+
+
+def triplex_tables():
+    """The CH-18 tables (see the section comment): {"levels": {type: [[(name, x, y, z)] per strand]},
+    "screws": {kind: {"origin", "axis", "twist", "rise", "sd" (6), "stack", "stack_sd", "steps"}},
+    "hbonds": [(rule, atom1, atom2, mean, sd)], "pose_sd": [(strand, rotation deg, shift A)],
+    "counts": {type: levels}}, rounded to 1e-6."""
+    levels, steps = triplex_data()
+    by_type = {}
+    for i, (_e, kind, trio) in enumerate(levels):
+        by_type.setdefault(kind, []).append(i)
+    means = {kind: procrustes_mean([level_points(levels[i][2]) for i in idx]) for kind, idx in by_type.items()}
+    first = {kind: levels[idx[0]][2] for kind, idx in by_type.items()}
+
+    def glyco(kind):
+        out = []
+        trio = first[kind]
+        for s in range(3):
+            names = nucleoside_names(trio[s]["comp"])
+            off = sum(len(nucleoside_names(trio[x]["comp"])) for x in range(s))
+            out += [means[kind][off + names.index(n)] for n in TRIPLEX_GLYCOSIDIC[trio[s]["comp"]]]
+        return out
+    for kind in means:
+        if kind != "AUU":
+            _q, r, t = superpose(glyco(kind), glyco("AUU"))
+            means[kind] = moved(r, t, means[kind])
+
+    def step_moves(strands):
+        out = []
+        for i, j in steps:
+            (_e, ka, a), (_f, kb, b) = levels[i], levels[j]
+            _q, ra, ta = superpose(bases_only(subset(means[ka], first[ka], strands), first[ka], strands),
+                                   bases_only(level_points(a, strands), a, strands))
+            _q, rb, tb = superpose(bases_only(subset(means[kb], first[kb], strands), first[kb], strands),
+                                   bases_only(level_points(b, strands), b, strands))
+            rat = transpose(ra)
+            out.append((mat_mul(rat, rb), mat_vec(rat, sub(tb, ta))))
+        return out
+
+    def mean_move(moves, centre):
+        """The mean move about centre: quaternions summed (signs aligned with the first), the moved
+        centres averaged (a mean of translations would depend on the origin)."""
+        q0 = matrix_quat(moves[0][0])
+        acc = [0.0] * 4
+        for r, _t in moves:
+            q = matrix_quat(r)
+            sign = 1.0 if sum(a * b for a, b in zip(q, q0)) >= 0 else -1.0
+            acc = [a + sign * b for a, b in zip(acc, q)]
+        rm = quat_matrix(acc)
+        c = scale([sum(add(mat_vec(r, centre), t)[k] for r, t in moves) for k in range(3)], 1.0 / len(moves))
+        return rm, sub(c, mat_vec(rm, centre))
+
+    def centroid(points):
+        return scale([sum(x[k] for x in points) for k in range(3)], 1.0 / len(points))
+
+    # the helix frame from the triplex screw
+    tri_moves = step_moves((0, 1, 2))
+    tri_mean = mean_move(tri_moves, centroid(means["AUU"]))
+    angle, u, d, point = screw_of(*tri_mean)
+    ez = scale(u, -1.0)
+    c1 = sub(means["AUU"][0], point)
+    ex = unit(sub(c1, scale(ez, dot(c1, ez))))
+    ey = cross(ez, ex)
+    z0 = dot(c1, ez)
+    frame = [ex, ey, ez]
+
+    def to_frame(x):
+        v = mat_vec(frame, sub(x, point))
+        return [v[0], v[1], v[2] - z0]
+    frame_means = {kind: [to_frame(x) for x in pts] for kind, pts in means.items()}
+
+    def frame_move(r, t):
+        """x -> R x + t in frame coordinates y = F (x - p) - z0 e: y -> F R F^T y + F (R p + t - p) +
+        (F R F^T - 1) z0 e."""
+        rf = mat_mul(mat_mul(frame, r), transpose(frame))
+        e = [0.0, 0.0, z0]
+        shift = add(mat_vec(frame, sub(add(mat_vec(r, point), t), point)), sub(mat_vec(rf, e), e))
+        return rf, shift
+
+    out = {"levels": {}, "screws": {}, "hbonds": [], "pose_sd": [], "counts": {}}
+    for kind, pts in frame_means.items():
+        trio = first[kind]
+        rows, k = [], 0
+        for s in range(3):
+            names = nucleoside_names(trio[s]["comp"])
+            rows.append([(n, *[rounded(v) for v in pts[k + i]]) for i, n in enumerate(names)])
+            k += len(names)
+        out["levels"][kind] = rows
+        out["counts"][kind] = len(by_type[kind])
+    for name, strands in TRIPLEX_KINDS:
+        raw = step_moves(strands)
+        moves = [frame_move(r, t) for r, t in raw]
+        angle, u, d, point_f = screw_of(*frame_move(*mean_move(raw, centroid(subset(means["AUU"], first["AUU"],
+                                                                                    strands)))))
+        axis = scale(u, -1.0)
+        s = -point_f[2] / axis[2]
+        origin = add(point_f, scale(axis, s))
+        params = [step_parameters(r, t, origin, axis) for r, t in moves]
+        sds = [mean_sd([p[c] for p in params])[1] for c in range(6)]
+        seps = []
+        for i, j in steps:
+            pa = [x for st in strands for x in (levels[i][2][st]["atoms"][n] for n in TRIPLEX_BASE_ATOMS[levels[i][2][st]["comp"]])]
+            pb = [x for st in strands for x in (levels[j][2][st]["atoms"][n] for n in TRIPLEX_BASE_ATOMS[levels[j][2][st]["comp"]])]
+            seps.append(plane_separation(pa, pb))
+        stack, stack_sd = mean_sd(seps)
+        out["screws"][name] = {"origin": [rounded(v) for v in origin], "axis": [rounded(v) for v in axis],
+                               "twist": rounded(angle), "rise": rounded(d), "sd": [rounded(v) for v in sds],
+                               "stack": rounded(stack), "stack_sd": rounded(stack_sd), "steps": len(moves)}
+    auu = [levels[i][2] for i in by_type["AUU"]]
+    for rule, x, y in TRIPLEX_HBONDS:
+        s = 1 if rule == "wc" else 2
+        m, sd = mean_sd([norm(sub(t[0]["atoms"][x], t[s]["atoms"][y])) for t in auu])
+        out["hbonds"].append((rule, x, y, rounded(m), rounded(sd)))
+    mean_level = means["AUU"]
+    n0 = len(nucleoside_names("A"))
+    nu = len(nucleoside_names("U"))
+    for s in (1, 2):
+        off = n0 + (s - 1) * nu
+        ref0, refs = mean_level[:n0], mean_level[off:off + nu]
+        c1 = refs[0]
+        rot2, shift2 = [], []
+        for t in auu:
+            pts = level_points(t)
+            _q, r, tt = superpose(pts[:n0], ref0)  # the experimental level onto the mean by its purine
+            partner = moved(r, tt, pts[off:off + nu])
+            (w, qx, qy, qz), rr, t2 = superpose(refs, partner)
+            ang = 2.0 * math.atan2(math.sqrt(qx * qx + qy * qy + qz * qz), w)
+            vec = scale(unit([qx, qy, qz]), math.degrees(ang)) if ang > 1e-12 else [0.0, 0.0, 0.0]
+            rot2 += [v * v for v in vec]
+            shift2 += [v * v for v in sub(add(mat_vec(rr, c1), t2), c1)]
+        out["pose_sd"].append((s, rounded(math.sqrt(sum(rot2) / len(rot2))), rounded(math.sqrt(sum(shift2) / len(shift2)))))
+    return out
+
+
 # --- C++ output -----------------------------------------------------------------------------------
 
 def cpp_str(s):
@@ -481,6 +847,46 @@ def helix_inc():
               f"inline constexpr double kJrdRise = {cpp_num(rise)};  // Angstrom per level",
               "inline constexpr CylindricalAtom kJrdNucleotide[] = {"]
     lines += [f"    {{{cpp_str(n)}, {cpp_num(r)}, {cpp_num(p)}, {cpp_num(z)}}}," for n, r, p, z in jrd]
+    lines += ["};"]
+    return "\n".join(lines) + "\n"
+
+
+def triplex_inc():
+    t = triplex_tables()
+    lines = [
+        "// Generated by tools/gen_chem_tables.py from data/sources/pdb/triplex_levels.tsv and",
+        "// data/sources/pdb/{3p22,4plx,6svs,7jnh}_triplex_atoms.tsv (PDB 3P22, 4PLX, 6SVS, 7JNH, CC0): the",
+        "// experimental geometry of the builder's Hoogsteen duplex and pyrimidine-motif triplex (docs/",
+        "// DIFFERENCES.md CH-18; tools/gen_chem_tables.py triplex_tables). Do not edit.",
+        "// Included inside a namespace that defines TriplexAtom, TriplexScrew, TriplexHbond and",
+        "// TriplexPoseSpread (mdbridge/chem/reference_tables.hpp).",
+        "",
+        f"// mean levels ({t['counts']['AUU']} U·A-U and {t['counts']['GCC']} C+·G-C triples) in the helix frame of the "
+        "triplex screw:",
+        "// strand 0 purine, 1 Watson-Crick, 2 Hoogsteen; C1', base heavy atoms, C2' O2' C3' O3' C4' O4' C5'",
+        "inline constexpr TriplexAtom kTriplexLevels[] = {"]
+    for kind in ("AUU", "GCC"):
+        for strand, rows in enumerate(t["levels"][kind]):
+            lines += [f"    {{{cpp_str(kind)}, {strand}, {cpp_str(n)}, {cpp_num(x)}, {cpp_num(y)}, {cpp_num(z)}}},"
+                      for n, x, y, z in rows]
+    lines += ["};", "",
+              "// per kind: the screw (origin, axis; a turn of -twist about the axis and a move of -rise along it",
+              "// per level), the standard deviations of the steps' axis offsets (2, Angstrom), axis tilts (2,",
+              "// degrees), twist and rise about it, the base-plane separation of consecutive levels and its",
+              "// standard deviation, the number of steps",
+              "inline constexpr TriplexScrew kTriplexScrews[] = {"]
+    for kind, sc in t["screws"].items():
+        nums = ", ".join(cpp_num(v) for v in sc["origin"] + sc["axis"] + [sc["twist"], sc["rise"]])
+        sds = ", ".join(cpp_num(v) for v in sc["sd"])
+        lines.append(f"    {{{cpp_str(kind)}, {nums}, {{{sds}}}, {cpp_num(sc['stack'])}, {cpp_num(sc['stack_sd'])}, "
+                     f"{sc['steps']}}},")
+    lines += ["};", "", "// donor-acceptor distances (mean, standard deviation, Angstrom) of the U·A-U triples' pairs",
+              "inline constexpr TriplexHbond kTriplexHbonds[] = {"]
+    lines += [f"    {{{cpp_str(r)}, {cpp_str(a)}, {cpp_str(b)}, {cpp_num(m)}, {cpp_num(sd)}}}," for r, a, b, m, sd in t["hbonds"]]
+    lines += ["};", "", "// RMS per component of a U·A-U partner's rotation (degrees) and C1' shift (Angstrom) about its",
+              "// mean pose relative to the purine nucleoside, by table strand",
+              "inline constexpr TriplexPoseSpread kTriplexPoseSpreads[] = {"]
+    lines += [f"    {{{st}, {cpp_num(rot)}, {cpp_num(sh)}}}," for st, rot, sh in t["pose_sd"]]
     lines += ["};"]
     return "\n".join(lines) + "\n"
 
@@ -681,7 +1087,7 @@ def main() -> int:
     if len(sys.argv) != 2:
         raise SystemExit(__doc__.split("\n\n")[1])
     mdatk = sys.argv[1]
-    for path, text in ((HELIX_INC, helix_inc()), (COMPONENT_INC, component_inc())):
+    for path, text in ((HELIX_INC, helix_inc()), (COMPONENT_INC, component_inc()), (TRIPLEX_INC, triplex_inc())):
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "w", encoding="utf-8", newline="\n") as fh:
             fh.write(text)
