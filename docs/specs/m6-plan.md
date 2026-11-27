@@ -509,6 +509,19 @@ primary sources; docs/DIFFERENCES.md "Chemistry reference data"):
   to convergence with TRF's exact subproblem and a sorted, stable contact refresh), which is reproducible
   within D10 and gives better geometry. Owner: "Reliable geometry is infinitely more important than
   runtime"; runtime is not a constraint. The expected data come from MDATK patched the same way.
+- **D18 Realistic non-Watson-Crick geometry (CH-18)** (decided 2026-11-27): measured against
+  experimental structures (`docs/reports/2026-11-27-non-wc-geometry.md`), only hh's reference helix
+  (4JRD) is realistic. MDATK's (0.0.4.1, unchanged in 0.1.1) hoogsteen, reverse-hoogsteen,
+  reverse-wc, th and trh helices are unstacked: levels 4.7-8 Å apart against about 3.3 Å.
+  - Owner: fix this before W2-A merges.
+  - The hoogsteen duplex and the th (pyrimidine-motif) triplex take stacked reference geometry from
+    RNA triplex structures: viral and cellular elements such as the KSHV PAN ENE (3P22) and the MALAT1
+    ENE (4PLX), with 6SVS and 7JNH, and the telomerase pseudoknots 2M8K and 2K96 as checks.
+  - RNA is not known to form the reverse-wc duplex, the reverse-hoogsteen duplex or the trh
+    (purine-motif) triplex. RNA builds of these are refused, with a message saying so. They come back
+    for DNA and DNA-RNA hybrids (the owner's example: HBV) with DNA structure building.
+  - The CH-17 refit of the reference helices is dropped: its reverse-hoogsteen strands interpenetrate
+    from 5 levels on. CH-17's smooth term stays in the closure.
 
 ## 8. Risks
 

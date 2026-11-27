@@ -47,6 +47,7 @@
 
 #include "commands.hpp"
 #include "gui/dialogs/prompts.hpp"
+#include "gui/display_path.hpp"
 #include "gui/forms/field_widgets.hpp"
 #include "gui/jobs/job_runner.hpp"
 #include "gui/jobs/log_view.hpp"
@@ -83,6 +84,9 @@ std::string readFile(const fs::path& path) {
 }
 
 QString qs(const fs::path& path) { return QString::fromStdString(core::pathToUtf8(path)); }
+// A path as the windows show it (gui::displayPath, WN-12): '\\' throughout on Windows, where the
+// fixture's folder is Qt's '/' path joined to a name by '\\'; unchanged elsewhere.
+QString shown(const fs::path& path) { return app::gui::displayPath(path); }
 
 std::vector<std::string> residueNames(const std::string& text) {
     std::vector<std::string> out;
@@ -316,7 +320,7 @@ void ToolTests::pdbToolsWindowChecksAndCleans() {
     QVERIFY(text.find("REMARK 950 ENGINE builtin") != std::string::npos && text.find("REMARK 950 DBN") != std::string::npos);
     QCOMPARE(residueNames(text), names);
     // the host's log and the project's step log (MDATK's logged: no command line)
-    QCOMPARE(f.log().back(), "PDB clean-up: wrote " + core::pathToUtf8(out));
+    QCOMPARE(QString::fromStdString(f.log().back()), QStringLiteral("PDB clean-up: wrote ") + shown(out));
     const core::Array entries = stepLog(f.project);
     QCOMPARE(entries.size(), std::size_t{2});
     QCOMPARE(entryText(entries[1], "step"), std::string("pdb clean"));
@@ -517,7 +521,7 @@ void ToolTests::hostedWithoutTheAnalysisWindow() {
         setText(&pdb, "input", qs(kFourResidues));
         setText(&pdb, "output", qs(dir / "out.pdb"));
         pdb.runClean();
-        QCOMPARE(host.log, QStringList{QStringLiteral("PDB clean-up: wrote ") + qs(dir / "out.pdb")});
+        QCOMPARE(host.log, QStringList{QStringLiteral("PDB clean-up: wrote ") + shown(dir / "out.pdb")});
         QCOMPARE(stepLog(host.project).size(), std::size_t{1});
     }
     host.project.clear();  // an unsaved project: nothing is logged
@@ -528,7 +532,7 @@ void ToolTests::hostedWithoutTheAnalysisWindow() {
         setText(&builder, "helix_out", qs(dir / "gc.pdb"));
         builder.runCurrent();
         QVERIFY(fs::exists(dir / "gc.pdb"));
-        QCOMPARE(host.log.back(), QStringLiteral("Structure builder: wrote ") + qs(dir / "gc.pdb"));
+        QCOMPARE(host.log.back(), QStringLiteral("Structure builder: wrote ") + shown(dir / "gc.pdb"));
     }
     QCOMPARE(stepLog(dir / "q.mdatk.toml").size(), std::size_t{1});
 }
