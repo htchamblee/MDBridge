@@ -39,7 +39,8 @@ Nucleotide components (ccd/l_deoxyribonucleotide_atoms.tsv): kIndLDeoxyribonucle
 CCD's L-deoxyribonucleotides (0DA, 0DC, 0DG, 0DT) with their base, and kIndComponentAtomNames the
 atoms of those that the CCD names otherwise than the same atom of the standard residue (0DA's N9A
 ... HN61, H2P; 0DT's C5M), with the standard name. The residue readers (io::parseResidueName,
-io::standardAtomName) use them.
+io::standardAtomName) use them. kIndModifiedRibonucleotides (ccd/protonated_cytidine_components.tsv)
+lists the modified ribonucleotides MDBridge writes (CH) with their parent base.
 
 Residue-scoped ion elements (MDBridge's own rule, beyond MDAnalysis). The name-only rules cannot
 tell a calcium ion named CA from a carbon alpha, so kIndResidueAtomElements lists (residue name,
@@ -129,6 +130,7 @@ def nucleic_residues() -> set[str]:
     # Amber OL15/OL3 + CHARMM36 residues that carry a base (N1 or N9); not caps such as OHE.
     out |= {r["residue"] for r in OMM if r["group"] == "nucleic" and r["atom"] in ("N1", "N9")}
     out |= {a["alias"] for a in ALIASES if a["kind"] == "residue" and a["type"] == "Nucleic"}
+    out |= {code for code, _base in modified_ribonucleotides()}  # CH-22: the CCD's CH (MDBridge writes it)
     return out
 
 
@@ -419,6 +421,18 @@ def hg_cl_residues() -> tuple[list[str], list[str]]:
 
 # --- output ---------------------------------------------------------------------------------------
 
+def modified_ribonucleotides() -> list[tuple[str, str]]:
+    """The CCD's modified ribonucleotides MDBridge writes (ccd/protonated_cytidine_components.tsv: the
+    N3-protonated cytidine CH of the builder's C+, docs/DIFFERENCES.md CH-21 / CH-22): (code, parent
+    base) from the component's mon_nstd_parent_comp_id, released RNA-linking components only."""
+    out = []
+    for r in read_tsv("ccd", "protonated_cytidine_components.tsv"):
+        if r["release_status"] != "REL" or r["type"] != "RNA LINKING" or r["parent"] not in ("A", "C", "G", "U"):
+            raise SystemExit(f"{r['comp_id']}: not a released RNA-linking component of a standard parent")
+        out.append((r["comp_id"], r["parent"]))
+    return sorted(out)
+
+
 def l_deoxyribonucleotides() -> tuple[list[tuple[str, str]], list[tuple[str, str, str]]]:
     """The CCD's L-DNA mirror images of DA DC DG DT (ccd/l_deoxyribonucleotide_atoms.tsv): (residue,
     base) and (residue, atom name, standard atom name) for the atoms named otherwise than in the
@@ -549,6 +563,12 @@ def main() -> int:
             "// DA, DC, DG or DT (their mirror images), sorted.",
             "inline constexpr IndResidueBase kIndLDeoxyribonucleotides[] = {"]
     for res, b in ldna:
+        out.append(f"    {{{cstr(res)}, '{b}'}},")
+    out += ["};", "",
+            "// The CCD's modified ribonucleotides MDBridge writes and reads as their parent (D-RNA): the",
+            "// N3-protonated cytidine CH (mon_nstd_parent_comp_id C), sorted.",
+            "inline constexpr IndResidueBase kIndModifiedRibonucleotides[] = {"]
+    for res, b in modified_ribonucleotides():
         out.append(f"    {{{cstr(res)}, '{b}'}},")
     out += ["};", "",
             "struct IndComponentAtomName {",

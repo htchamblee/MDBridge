@@ -241,6 +241,27 @@ TEST(AtomSelection, CutoffsBeyondTheBox) {
 }
 
 // A million atoms: string matching runs once per distinct value, boolean logic on masks.
+// CH-22: the builder's C+ (the CCD's N3-protonated cytidine CH) is nucleic, its base atoms nucleicbase
+TEST(AtomSelection, ProtonatedCytidineIsNucleic) {
+    Topology t;
+    const std::uint32_t names[] = {t.strings.intern("P"), t.strings.intern("C4'"), t.strings.intern("N3"),
+                                   t.strings.intern("HN3")};
+    for (std::size_t r = 0; r < 2; ++r) {
+        for (const std::uint32_t name : names) {
+            t.names.push_back(name);
+            t.atomResidue.push_back(static_cast<std::int32_t>(r));
+        }
+        t.resids.push_back(static_cast<std::int64_t>(r + 1));
+        t.residueSegment.push_back(0);
+    }
+    t.resnames = {t.strings.intern("CH"), t.strings.intern("G")};
+    t.segids = {t.strings.intern("A")};
+    t.masses = std::vector<double>(t.names.size(), 12.011);
+    t.finish();
+    EXPECT_EQ(selectAtoms(t, nullptr, "nucleic").size(), 8u);
+    EXPECT_EQ(selectAtoms(t, nullptr, "nucleicbase and resname CH").size(), 1u);  // N3
+}
+
 TEST(AtomSelection, MillionAtoms) {
     auto topology = std::make_shared<Topology>();
     Topology& t = *topology;

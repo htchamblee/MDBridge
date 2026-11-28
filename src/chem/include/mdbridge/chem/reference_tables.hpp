@@ -67,6 +67,13 @@ struct TriplexScrew {
     int sites;
     double inclination;    // degrees: the levels' base planes against the steps' axes
     double inclinationSd;
+    // D19: the extremes of the experimental steps (each step measured on its levels' C1' and common base
+    // atoms): twist (degrees), rise (Angstrom), inclination (degrees), and per strand (the kind's strand
+    // order; 0 past its strands) the largest stacking of consecutive bases (Angstrom)
+    double twistRange[2];
+    double riseRange[2];
+    double inclinationRange[2];
+    double stackMax[3];
 };
 
 // Donor-acceptor distance of a U·A-U pair ("wc" / "hoogsteen" rule; purine atom, partner atom): mean and

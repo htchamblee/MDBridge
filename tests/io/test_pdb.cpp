@@ -10,6 +10,7 @@
 #include <gtest/gtest.h>
 
 #include "mdbridge/core/errors.hpp"
+#include "mdbridge/core/text.hpp"
 #include "mdbridge/io/pdb.hpp"
 #include "test_support.hpp"
 
@@ -202,7 +203,14 @@ TEST(Pdb, ParseResidueName) {
         EXPECT_EQ(parsed->sugar, str(e[1])) << name;
         EXPECT_EQ(std::string(1, parsed->chirality), str(e[2])) << name;
         EXPECT_EQ(parsed->terminal, str(e[3])) << name;
+        EXPECT_EQ(parsed->component, io::pythonUpper(core::pythonStrip(name)) == "CH" ? "CH" : "") << name;
     }
+    // CH-22: the CCD's N3-protonated cytidine (the builder's C+) is a D-RNA C
+    const auto ch = io::parseResidueName(" ch ");
+    ASSERT_TRUE(ch.has_value());
+    EXPECT_EQ(ch->base, 'C');
+    EXPECT_EQ(ch->component, "CH");
+    EXPECT_FALSE(io::parseResidueName("CH5").has_value());
 }
 
 // NA-01 (MDATK 0.1.x pdbtools.has_backbone_atoms / standard_atom_name; data/sources/ccd)

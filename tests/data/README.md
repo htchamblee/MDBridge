@@ -627,15 +627,19 @@ checks the tables' chemistry (bond lengths, links, compositions).
 python3 -I -B tools/gen_chem_tables.py /tmp/mdatk   # src/chem/helix_tables.inc, component_tables.inc, triplex_tables.inc
 ```
 
-`BuilderGeometry.ExperimentalKindsMatchTheRnaTripleHelices` (tests/chem/test_builder.cpp) holds the
-experimental ranges of these steps, measured as docs/reports/2026-11-27-non-wc-geometry.md measures
-them (the rigid fit of C1' and the base atoms both residues of a strand have; the base planes of all
-strands; strand stacking; the inclination of a level's base plane to the step's axis): purine and
-Hoogsteen strands (53 steps) twist 21.6-37.7°, rise 2.55-3.93 Å, base planes 3.06-3.49 Å, inclination
-3.0-17.1°, stacking at most 3.42 / 3.71 Å; the triples twist 26.9-34.9°, rise 2.78-3.78 Å, base planes
-3.13-3.49 Å, inclination 0.7-14.2°, stacking at most 3.42 / 3.79 / 3.71 Å; links C3'-O3'-P 117.1-124.6°,
-O3'-P-O5' 100.2-106.4°, epsilon −188 ... −101°; and the tables' means (30.48° / 3.007 Å / 3.270 Å and
-30.40° / 3.021 Å / 3.263 Å). Change them with the data, not by hand: they are the report's numbers.
+`BuilderGeometry.ExperimentalKindsMatchTheRnaTripleHelices` and `TriplexGTractMatchesTheRnaTripleHelices`
+(tests/chem/test_builder.cpp) hold every step of the builds within the experimental steps' extremes,
+measured as docs/reports/2026-11-27-non-wc-geometry.md measures them (the rigid fit of C1' and the base
+atoms both residues of a strand have; the base planes of all strands; strand stacking; the inclination of
+a level's base plane to the step's axis). The extremes of twist, rise, inclination and each strand's
+stacking are those of `src/chem/triplex_tables.inc` (`TriplexScrew::twistRange` ...; the closure's walls,
+docs/DIFFERENCES.md CH-18 / D19): purine and Hoogsteen strands (53 steps) twist 21.6-37.7°, rise
+2.55-3.93 Å, inclination 3.0-17.1°, stacking at most 3.42 / 3.71 Å; the triples twist 26.9-34.9°, rise
+2.78-3.78 Å, inclination 0.7-14.2°, stacking at most 3.42 / 3.79 / 3.71 Å; within 0.05° / 0.005 Å (the
+PDB text's 0.001 Å coordinates, the walls' stiffness). The test's own numbers are the report's: base
+planes at most 3.49 Å (3.06-3.49 / 3.13-3.49 Å); links C3'-O3'-P 117.1-124.6°, O3'-P-O5' 100.2-106.4°,
+epsilon −188 ... −101°; the uniform helices against the tables' means (30.48° / 3.007 Å / 3.270 Å and
+30.40° / 3.021 Å / 3.263 Å). Change them with the data, not by hand.
 
 The workflow generators' tables and helper texts of milestone 7 (W0-C) are regenerated and compared
 the same way: `tools/gen_workflow_tables.py` writes `src/workflow/tables.inc` (force fields, water

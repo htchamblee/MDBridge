@@ -116,10 +116,11 @@ inline constexpr TriplexAtom kTriplexLevels[] = {
 // degrees), twist and rise about it, the base-plane separation of consecutive levels and its
 // standard deviation (over the independent steps: the copies of one molecule's step averaged), the
 // number of steps and of independent steps, the inclination of the levels' base planes to the
-// steps' axes (degrees) and its standard deviation
+// steps' axes (degrees) and its standard deviation; the experimental steps' extremes of twist,
+// rise and inclination, and per strand the largest stacking of consecutive bases
 inline constexpr TriplexScrew kTriplexScrews[] = {
-    {"triplex-hoogsteen", 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 30.399508, 3.021365, {0.442668, 0.823814, 2.551169, 3.87291, 1.849889, 0.195765}, 3.262746, 0.069666, 53, 24, 9.188352, 1.925215},
-    {"hoogsteen", 0.010208, -0.081194, 0.0, 0.010806, -0.004134, 0.999933, 30.481513, 3.007413, {0.561034, 1.231934, 3.313935, 5.228575, 3.064608, 0.262976}, 3.270134, 0.077715, 53, 24, 9.860483, 2.706705},
+    {"triplex-hoogsteen", 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 30.399508, 3.021365, {0.442668, 0.823814, 2.551169, 3.87291, 1.849889, 0.195765}, 3.262746, 0.069666, 53, 24, 9.087516, 2.048449, {26.893019, 34.924734}, {2.777073, 3.783198}, {0.660679, 14.215093}, {3.418755, 3.792209, 3.709582}},
+    {"hoogsteen", 0.010208, -0.081194, 0.0, 0.010806, -0.004134, 0.999933, 30.481513, 3.007413, {0.561034, 1.231934, 3.313935, 5.228575, 3.064608, 0.262976}, 3.270134, 0.077715, 53, 24, 9.844474, 2.724518, {21.591322, 37.721778}, {2.545577, 3.928593}, {3.028758, 17.144938}, {3.418755, 3.709582, 0.0}},
 };
 
 // donor-acceptor distances (mean, standard deviation over the independent U·A-U triples, Angstrom) of

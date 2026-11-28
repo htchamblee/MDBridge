@@ -1057,6 +1057,13 @@ std::optional<ResidueName> parseResidueName(std::string_view name) {
             return ResidueName{value.first, value.second, 'D', ""};
         }
     }
+    // CH-22: the modified ribonucleotides MDBridge writes (the CCD's CH: C+), read as their parent
+    const std::string utf8 = toUtf8(n);
+    for (const auto& component : core::detail::tables::kIndModifiedRibonucleotides) {
+        if (utf8 == component.residue) {
+            return ResidueName{component.base, "rna", 'D', "", std::string(component.residue)};
+        }
+    }
     // ^([RL0D]?)([ACGTU])([53N]?)$
     std::size_t i = 0;
     char pre = 0;

@@ -111,6 +111,9 @@ struct ResidueName {
     std::string sugar;  // "rna" / "dna"
     char chirality = 'D';  // 'D' / 'L'
     std::string terminal;  // "", "5", "3", "N"
+    // CH-22: the CCD code of a modified ribonucleotide read as its parent (CH, the N3-protonated
+    // cytidine: base C, D-RNA; core's kIndModifiedRibonucleotides), "" for the others
+    std::string component;
     bool operator==(const ResidueName&) const = default;
 };
 std::optional<ResidueName> parseResidueName(std::string_view name);

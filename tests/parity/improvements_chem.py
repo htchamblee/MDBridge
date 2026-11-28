@@ -612,6 +612,7 @@ def continuous_link_residuals(a, b):
 CLOSURE_STEPS = 10
 CLOSURE_MAX_HALVINGS = 5          # down to 1 / 320 of the interval
 CLOSURE_WEIGHT = 0.01             # contact weight (MDATK's last pass)
+RANGE_WALL = (0.1, 0.01, 0.1)     # D19: twist (deg), rise / stacking (A), inclination (deg) beyond the extremes
 CLOSURE_TOL = 1e-10
 CLOSURE_MAX_NFEV = 1000           # evaluation limit of a step that may still be halved
 CLOSURE_FINAL_NFEV = 20000        # ... of the t = 0 solve and of the smallest steps
@@ -783,8 +784,14 @@ def _patch_closure():
             bs = origin - rs @ origin - screw.rise * u_axis
             step_ref = step_parameters(rs, bs, origin, u_axis)
             tilt_sd = screws[kind]["incl_sd"]
+            # D19: every step held within the experimental steps' extremes
+            sc_ = screws[kind]
+            walls = (np.array([sc_["twist_range"][0], sc_["rise_range"][0], sc_["incl_range"][0]]),
+                     np.array([sc_["twist_range"][1], sc_["rise_range"][1], sc_["incl_range"][1]]),
+                     list(sc_["stack_max"]))
         else:
             step_sd = None
+            walls = None
         pose_sd = {st: (rot, sh) for st, rot, sh in triplex()["pose_sd"]}
         tab_hb = {(rule, x, y): (m, sd) for rule, x, y, m, sd in triplex()["hbonds"]}
         hbonds = []  # (p, q, level, low, high, sd): atom indices of the H-bonded base atoms
@@ -966,8 +973,45 @@ def _patch_closure():
                                           for s_ in range(n_s)]) for k in range(n)]
                 out.append(np.array([(plane_separation(levels[k], levels[k + 1]) - stack[0]) / stack[1]
                                      for k in range(n - 1)]))
+            if walls is not None:  # D19: the steps as measured on the atoms, within the experimental extremes
+                a = xyz.reshape(n_s, n, n_atoms_slot, 3)
+                out.append(np.array([w_ for k in range(n - 1) for w_ in wall_residuals(a, k)]))
             out.append(np.clip(viol, 0.0, None) / CLOSURE_WEIGHT)
             return np.concatenate(out)
+
+        def wall_residuals(a, k):
+            """Step k as the report measures it: the screw of level k onto k + 1 by their C1' and common base
+            atoms (twist, rise), level k's base plane against its axis (inclination); each strand's stacking."""
+            c1, nb = names.index("C1'"), len(names)
+            p_, q_ = [], []
+            for s_ in range(n_s):
+                n0, n1 = B.BASE_NAMES[bases[s_][k]], B.BASE_NAMES[bases[s_][k + 1]]
+                p_.append(a[s_, k, c1])
+                q_.append(a[s_, k + 1, c1])
+                for i, nm in enumerate(n0):
+                    for j, nm1 in enumerate(n1):
+                        if nm == nm1:
+                            p_.append(a[s_, k, nb + i])
+                            q_.append(a[s_, k + 1, nb + j])
+            r, mc, rc = kabsch(np.array(p_), np.array(q_), np.ones(len(p_)))
+            t = rc - r @ mc
+            w = math.sqrt(max(0.0, 1.0 + r[0, 0] + r[1, 1] + r[2, 2])) / 2.0
+            v = np.array([r[2, 1] - r[1, 2], r[0, 2] - r[2, 0], r[1, 0] - r[0, 1]]) / (4 * w)
+            u = v / np.linalg.norm(v)
+            level = np.concatenate([a[s_, k, nb:nb + len(B.BASE_NAMES[bases[s_][k]])] for s_ in range(n_s)])
+            nrm = np.linalg.svd(level - level.mean(axis=0))[2][2]
+            m = np.array([math.degrees(2.0 * math.atan2(np.linalg.norm(v), w)), abs(float(u @ t)),
+                          math.degrees(math.acos(min(1.0, abs(float(nrm @ u)))))])
+            lo_, hi_, stack_hi = walls
+            out = list((np.clip(lo_ - m, 0.0, None) + np.clip(m - hi_, 0.0, None)) / np.array(RANGE_WALL))
+            for s_ in range(n_s):
+                x0 = a[s_, k, nb:nb + len(B.BASE_NAMES[bases[s_][k]])]
+                x1 = a[s_, k + 1, nb:nb + len(B.BASE_NAMES[bases[s_][k + 1]])]
+                ca, cb = x0.mean(axis=0), x1.mean(axis=0)
+                na, nb_ = np.linalg.svd(x0 - ca)[2][2], np.linalg.svd(x1 - cb)[2][2]
+                st = 0.5 * (abs(float((cb - ca) @ na)) + abs(float((cb - ca) @ nb_)))
+                out.append(max(0.0, st - stack_hi[s_]) / RANGE_WALL[1])
+            return out
 
         def structure():  # MDATK's level spans
             lo, hi = [], []
@@ -988,6 +1032,9 @@ def _patch_closure():
             if stack:
                 lo += list(range(n - 1))
                 hi += list(range(1, n))
+            if walls is not None:
+                lo += list(np.repeat(np.arange(n - 1), 3 + n_s))
+                hi += list(np.repeat(np.arange(1, n), 3 + n_s))
             lo = np.concatenate([np.asarray(lo, dtype=np.intp), pairs["lo"]])
             hi = np.concatenate([np.asarray(hi, dtype=np.intp), pairs["hi"]])
             level = np.arange(n * width) // width

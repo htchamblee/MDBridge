@@ -388,6 +388,7 @@ TEST(Shading, OneLetterNeedsABackbone) {  // NA-01 (MDATK 0.1.x one_letter's bac
     EXPECT_EQ(oneLetter("LDA", false), "X");  // the detergent
     EXPECT_EQ(oneLetter("LA", false), "X");   // a lanthanum ion
     EXPECT_EQ(oneLetter("0DT", std::nullopt), "T");
+    EXPECT_EQ(oneLetter("CH", true), "C");  // CH-22: the builder's C+ (the CCD's CH)
     EXPECT_EQ(oneLetter("HIS", false), "H");  // amino acids keep their code
     mdbridge::core::AnalysisResult trace;
     EXPECT_FALSE(backboneFlags(trace).has_value());

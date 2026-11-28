@@ -7,6 +7,7 @@
 #include <string>
 #include <utility>
 
+#include "mdbridge/core/detail/data_tables.hpp"
 #include "mdbridge/core/text.hpp"
 #include "mdbridge/io/pdb.hpp"
 
@@ -104,6 +105,11 @@ char baseLetter(std::string_view resname) {
     const std::string r = upperAscii(core::pythonStrip(resname));
     if (r == "PSU" || r == "PU") {
         return 'U';
+    }
+    for (const auto& component : core::detail::tables::kIndModifiedRibonucleotides) {  // CH-22: CH as C
+        if (r == component.residue) {
+            return component.base;
+        }
     }
     if (r.size() <= 4) {
         const std::string_view head = std::string_view(r).substr(0, 3);
