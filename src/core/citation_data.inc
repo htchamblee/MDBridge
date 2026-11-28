@@ -66,6 +66,11 @@ inline constexpr std::string_view kResourceKeys53[] = {
     "jorgensen1983",
     "joung2008",
     "li2013"};
+inline constexpr std::string_view kResourceKeys54[] = {
+    "mittonfry2010",
+    "brown2014",
+    "ruszkowska2020",
+    "torabi2021"};
 
 inline constexpr Reference kReferences[] = {
     Reference{
@@ -1084,6 +1089,68 @@ inline constexpr Reference kReferences[] = {
         .url = "",
         .verified = "crossref:https://api.crossref.org/works/10.1021/jp505875v",
     },
+    Reference{
+        .key = "mittonfry2010",
+        .text =
+            "Mitton-Fry R. M., DeGregorio S. J., Wang J., Steitz T. A., Steitz J. A. Science "
+            "2010, 330, 1244-1247. doi:10.1126/science.1195858",
+        .bibtex =
+            "@article{mittonfry2010,\n  author = {Mitton-Fry, R. M. and DeGregorio, S. J. and "
+            "Wang, J. and Steitz, T. A. and Steitz, J. A.},\n  title = {{Poly(A) tail recognition "
+            "by a viral RNA element through assembly of a triple helix}},\n  journal = "
+            "{Science},\n  year = {2010},\n  volume = {330},\n  number = {6008},\n  pages = "
+            "{1244--1247},\n  doi = {10.1126/science.1195858}\n}",
+        .doi = "10.1126/science.1195858",
+        .url = "",
+        .verified = "crossref:https://api.crossref.org/works/10.1126/science.1195858",
+    },
+    Reference{
+        .key = "brown2014",
+        .text =
+            "Brown J. A., Bulkley D., Wang J., Valenstein M. L., Yario T. A., Steitz T. A., "
+            "Steitz J. A. Nat. Struct. Mol. Biol. 2014, 21, 633-640. doi:10.1038/nsmb.2844",
+        .bibtex =
+            "@article{brown2014,\n  author = {Brown, J. A. and Bulkley, D. and Wang, J. and "
+            "Valenstein, M. L. and Yario, T. A. and Steitz, T. A. and Steitz, J. A.},\n  title = "
+            "{{Structural insights into the stabilization of MALAT1 noncoding RNA by a bipartite "
+            "triple helix}},\n  journal = {Nature Structural \\& Molecular Biology},\n  year = "
+            "{2014},\n  volume = {21},\n  number = {7},\n  pages = {633--640},\n  doi = "
+            "{10.1038/nsmb.2844}\n}",
+        .doi = "10.1038/nsmb.2844",
+        .url = "",
+        .verified = "crossref:https://api.crossref.org/works/10.1038/nsmb.2844",
+    },
+    Reference{
+        .key = "ruszkowska2020",
+        .text =
+            "Ruszkowska A., Ruszkowski M., Hulewicz J. P., Dauter Z., Brown J. A. Nucleic Acids "
+            "Res. 2020, 48, 3304-3314. doi:10.1093/nar/gkz1222",
+        .bibtex =
+            "@article{ruszkowska2020,\n  author = {Ruszkowska, A. and Ruszkowski, M. and "
+            "Hulewicz, J. P. and Dauter, Z. and Brown, J. A.},\n  title = {{Molecular structure "
+            "of a U\302\267A-U-rich RNA triple helix with 11 consecutive base triples}},\n  "
+            "journal = {Nucleic Acids Research},\n  year = {2020},\n  volume = {48},\n  number = "
+            "{6},\n  pages = {3304--3314},\n  doi = {10.1093/nar/gkz1222}\n}",
+        .doi = "10.1093/nar/gkz1222",
+        .url = "",
+        .verified = "crossref:https://api.crossref.org/works/10.1093/nar/gkz1222",
+    },
+    Reference{
+        .key = "torabi2021",
+        .text =
+            "Torabi S.-F., Vaidya A. T., Tycowski K. T., DeGregorio S. J., Wang J., Shu M.-D., "
+            "Steitz T. A., Steitz J. A. Science 2021, 371, eabe6523. doi:10.1126/science.abe6523",
+        .bibtex =
+            "@article{torabi2021,\n  author = {Torabi, S.-F. and Vaidya, A. T. and Tycowski, K. "
+            "T. and DeGregorio, S. J. and Wang, J. and Shu, M.-D. and Steitz, T. A. and Steitz, "
+            "J. A.},\n  title = {{RNA stabilization by a poly(A) tail 3'-end binding pocket and "
+            "other modes of poly(A)-RNA interaction}},\n  journal = {Science},\n  year = {2021},\n"
+            "  volume = {371},\n  number = {6529},\n  pages = {eabe6523},\n  doi = "
+            "{10.1126/science.abe6523}\n}",
+        .doi = "10.1126/science.abe6523",
+        .url = "",
+        .verified = "crossref:https://api.crossref.org/works/10.1126/science.abe6523",
+    },
 };
 
 inline constexpr Resource kResources[] = {
@@ -1417,6 +1484,16 @@ inline constexpr Resource kResources[] = {
         .name = "Generic Lennard-Jones table of the energy analysis (Amber atom types and ions)",
         .keys = kResourceKeys53,
         .note = "topologies without atom types; docs/GENERIC_LJ.md",
+    },
+    Resource{
+        .id = "pdb-triplexes",
+        .name =
+            "RNA triple helices, PDB 3P22, 4PLX, 6SVS, 7JNH (MDBridge Hoogsteen duplexes and "
+            "triplexes)",
+        .keys = kResourceKeys54,
+        .note =
+            "Base triples, stacking and helix of the Hoogsteen duplex and the pyrimidine-motif "
+            "triplex in the structure builder.",
     },
 };
 

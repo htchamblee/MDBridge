@@ -227,8 +227,16 @@ struct FittedAtom {
     std::string name;
     Vec3 xyz;
 };
+// The rotation vector (radians, angle 0 ... pi) of a rotation matrix; near pi the axis comes from the
+// diagonal (the off-diagonal differences vanish there).
+Vec3 rotationVector(const Mat3& r);
+// The restrained reference fit of an experimental kind (hoogsteen, triplex-hoogsteen) computed afresh
+// (not the builder's cached one) with `threads` finite-difference threads: its parameters.
+std::vector<double> referenceFitFresh(const std::string& kind, std::size_t threads);
+
 struct FittedResidue {
     char base = 'A';
+    bool protonated = false;  // D19 / CH-21: the C+ of a G·C+ Hoogsteen pair (the CCD's CH; with hydrogens HN3)
     std::vector<FittedAtom> atoms;
 };
 

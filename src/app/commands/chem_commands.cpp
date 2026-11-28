@@ -407,7 +407,11 @@ int buildRun(ChemCommands::Arguments& a, Console& console, const std::vector<std
         entry.summary = joined(notes);
         if (a.helix->parsed()) {  // the template sources
             const bool other = a.pairing != "wc" || !(a.triplex.empty() || a.triplex == "none");
-            entry.citations = other ? keysFor({"arnott-arna", "pdb-4jrd"}) : keysFor({"arnott-arna"});
+            // D19: the Hoogsteen duplex and the pyrimidine-motif triplex also cite their RNA triple helices
+            const bool triplexes = a.pairing == "hoogsteen" || (a.pairing == "wc" && a.triplex == "hoogsteen");
+            entry.citations = triplexes ? keysFor({"arnott-arna", "pdb-4jrd", "pdb-triplexes"})
+                              : other   ? keysFor({"arnott-arna", "pdb-4jrd"})
+                                        : keysFor({"arnott-arna"});
         }
     });
     if (cc) {
@@ -752,8 +756,9 @@ ChemCommands::ChemCommands(CLI::App& app, CLI::App& density, const NetworkBacken
         choice(lastWins(h.add_option("--chirality", a.chirality, "D (right-handed) or L (mirror image)")), {"D", "L"});
         choice(lastWins(h.add_option("--pairing", a.pairing,
                                      "wc: antiparallel Watson-Crick A-form (default); hoogsteen (cis WC/Hoogsteen, "
-                                     "strand 1 the purine strand) and hh (trans Hoogsteen/Hoogsteen A·A, as PDB "
-                                     "4JRD): parallel strands. reverse-wc (trans WC/WC, parallel) and "
+                                     "strand 1 the purine strand: A and G only) and hh (trans Hoogsteen/Hoogsteen "
+                                     "A·A, as PDB 4JRD: A only): parallel strands. reverse-wc (trans WC/WC, "
+                                     "parallel) and "
                                      "reverse-hoogsteen (trans WC/Hoogsteen, antiparallel) are refused: RNA is not "
                                      "known to form them (DNA and DNA-RNA hybrid builds will come with DNA structure "
                                      "building)")),
@@ -761,8 +766,9 @@ ChemCommands::ChemCommands(CLI::App& app, CLI::App& density, const NetworkBacken
         std::vector<std::string> triplexes{"none"};
         for (const std::string_view m : chem::kTriplexMotifs) triplexes.emplace_back(m);
         choice(lastWins(h.add_option("--triplex", a.triplex,
-                                     "add a third strand on the Hoogsteen edge of the strand-1 purines: hoogsteen "
-                                     "(pyrimidine motif, parallel); needs --pairing wc. reverse-hoogsteen (purine "
+                                     "add a third strand on the Hoogsteen edge of the strand-1 purines (strand 1 A "
+                                     "and G only): hoogsteen (pyrimidine motif, parallel); needs --pairing wc. "
+                                     "reverse-hoogsteen (purine "
                                      "motif, antiparallel) is refused: RNA is not known to form it (DNA builds will "
                                      "come with DNA structure building)")),
                triplexes);

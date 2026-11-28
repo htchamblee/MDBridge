@@ -118,8 +118,9 @@ bool helixInBackground(const HelixRequest& request);
 // *Check*: check_helix's messages, "LEVEL: text" per line.
 std::string helixCheckReport(const HelixRequest& request);
 // *Write PDB*: step "build helix", "Ideal <kind> <D|L>-RNA helix <sequence>", citations arnott-arna
-// (+ pdb-4jrd for the fitted pairings). `reporter`: the job's (progress, cancel), unused by the
-// Watson-Crick builder.
+// (+ pdb-4jrd for the fitted pairings, + pdb-triplexes for the Hoogsteen duplex and the triplex).
+// `reporter`: the job's (progress, cancel): the fitted builds poll it, a build cancelled at its end
+// writes nothing (core::Cancelled); the Watson-Crick builder does not use it.
 ToolResult buildHelix(const HelixRequest& request, const std::filesystem::path& project,
                       const core::Reporter& reporter = core::Reporter());
 

@@ -273,7 +273,8 @@ def pair_fit_cases():
     return out
 
 
-# the kinds RNA is not known to form are refused (CH-18): their requests are kept as error cases
+# the kinds RNA is not known to form are refused (CH-18), and so are the sequences a kind cannot pair (D19:
+# strand-1 pyrimidines of the Hoogsteen kinds, hh's non-A levels): their requests are kept as error cases
 REBUILT = [("reverse-wc", None, "GAGGAUCA", {"hydrogens": True}), ("hoogsteen", None, "GAGGAUCA", {"hydrogens": True}),
            ("reverse-hoogsteen", None, "GAAGAG", {"hydrogens": True}), ("hh", None, "GAGGAUCA", {"hydrogens": True}),
            ("wc", "hoogsteen", "GAGGAUCA", {"hydrogens": True}), ("wc", "reverse-hoogsteen", "AUGCAU", {"hydrogens": True}),
@@ -286,7 +287,8 @@ REBUILT = [("reverse-wc", None, "GAGGAUCA", {"hydrogens": True}), ("hoogsteen", 
            ("wc", "hoogsteen", "AAGAG", {"partner": "none"}), ("reverse-wc", "hoogsteen", "AAGAG", {}),
            ("hoogsteen", None, "AAAAAAAAAAAA", {"hydrogens": True}),
            ("wc", "hoogsteen", "AAAAAAAAAAAA", {"hydrogens": True}),
-           ("hoogsteen", None, "GGGGGGGG", {}), ("wc", "hoogsteen", "GGAGGA", {}), ("hoogsteen", None, "A", {})]
+           ("hoogsteen", None, "GGGGGGGG", {}), ("wc", "hoogsteen", "GGAGGA", {}), ("hoogsteen", None, "A", {}),
+           ("hoogsteen", None, "AGGAAG", {"hydrogens": True}), ("hh", None, "AAAA", {"partner": "AACA"})]
 
 
 def heavy_coordinates(text):

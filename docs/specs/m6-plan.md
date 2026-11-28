@@ -522,6 +522,28 @@ primary sources; docs/DIFFERENCES.md "Chemistry reference data"):
     for DNA and DNA-RNA hybrids (the owner's example: HBV) with DNA structure building.
   - The CH-17 refit of the reference helices is dropped: its reverse-hoogsteen strands interpenetrate
     from 5 levels on. CH-17's smooth term stays in the closure.
+- **D19 Sequences a kind cannot pair; C+; crystal and solution (CH-18 revised, CH-19 ... CH-21)** (decided
+  2026-11-27, after the review of CH-18). Owner: "Reliable geometry is infinitely more important than
+  runtime. It could take 1,000 times longer if that's what it takes to produce realistic geometry."
+  1. Hoogsteen-kind builds (the Hoogsteen duplex, the pyrimidine-motif triplex) with a U or C on strand 1,
+     the strand whose Hoogsteen edge must be a purine's, are refused, the message naming the positions
+     (the owner chose "refuse" over warn or keep).
+  2. hh builds accept A·A levels only; other bases are refused (hh is the poly(rA) duplex of 4JRD).
+  3. C+·G Hoogsteen pairs (C+·G-C triples, Hoogsteen C·G pairs): the cytidine is the wwPDB CCD's
+     N3-protonated cytidine `CH` (atom names and definition from the CCD entry, data/sources, generated
+     tables), with its N3 proton when hydrogens are written: "Use the CCD code for protonated cytosine,
+     CH. If a downstream program can't read it, we will address it when that program is used. We should
+     start out using CCD standards." Without hydrogens the residue is still `CH` (CH-21).
+  4. Crystal and solution: "Exotic geometry with only crystallographic data should be handled while
+     bearing in mind that its native solution conformation may differ somewhat from what it adopts
+     under crystallization." Physical checks stay strict (no clashes, H-bond lengths, link lengths and
+     angles, stacking within the experimental range: chemistry, not crystal artefacts). Twist and rise
+     are approximate: the crystal mean stays the target, the spreads are computed over independent
+     structures (NCS and crystallographic copies of one molecule counted once) and used in restraints
+     and tests; end-of-run and lattice-contact layers are checked for their effect on the statistics
+     (the interior set is used if leaving them out moves a mean by more than its spread). The docs say
+     the geometry is crystal-derived and that the solution conformation may differ by a few degrees
+     of twist per step (to be quantified; NMR: 2M8K 33.0° / 3.36 Å; the hTR pseudoknots 28.7° / 3.72 Å).
 
 ## 8. Risks
 

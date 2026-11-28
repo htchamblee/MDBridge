@@ -75,5 +75,6 @@ std::span<const HydrogenPosition> hydrogenPositions(std::string_view residue) {
 }
 
 std::span<const ChiralCentre> lRiboseChirality() { return kLChirality; }
+const ProtonatedBase& protonatedCytidine() { return kProtonatedCytidine; }
 
 }  // namespace mdbridge::chem::reference

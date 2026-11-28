@@ -61,3 +61,53 @@ The decision is recorded as D18 in `docs/specs/m6-plan.md`.
 
 The scripts and measurements are in the session scratchpad (`geomcheck/`) and are not part of the
 repository. The coordinates come from wwPDB entries (CC0).
+
+## Final geometry (owner decision D19, 2026-11-27, evening)
+
+A review of the CH-18 builds found the uniform A and G helices sound but the mixed sequences strained
+(C3'-O3'-P up to 127.9°, stacking 0.2 Å loose, the Hoogsteen duplex's steps alternating 28.3° / 38.8°),
+the reference fits 2.7° (duplex) and 0.12 Å (triplex) off their screw, a 3.00 Å contact between
+stacked bases and statistics that counted copies of one molecule as independent. D19 (docs/specs/
+m6-plan.md) and docs/DIFFERENCES.md CH-18 (revised), CH-19 ... CH-21 record what changed:
+
+- the strand-1 pyrimidines of the Hoogsteen kinds and hh's non-A levels are refused (CH-19); the C+
+  of the G·C+ Hoogsteen pairs is the CCD's N3-protonated cytidine CH (CH-21);
+- the statistics count each molecule once (24 independent steps of 53; CH-20), and the selection of
+  the triples is a committed tool (`tools/select_pdb_triplexes.py`; it added 4PLX C75·C38-C15);
+- the reference fit is restrained to the experimental means by their standard errors, the contact
+  walls follow the report's limits (0.1 Å outside), stacked bases are kept from H-bonding, and the
+  closure moves every partner within its level with its pairs' H-bonds, the steps and the levels'
+  tilt restrained to the experiment.
+
+**The numbers of this report's first section.** The table at the top (30.5° / 2.91 Å over 55 steps for
+the Hoogsteen pairs, 30.4° / 3.01 Å for the triples) was measured on the check's own selection, which
+counted a pair as Hoogsteen-paired with a looser criterion (it included the 6SVS steps A76-A78 and
+A78-A107, whose Hoogsteen N6-O4 is 3.76 Å, or whose residue is modified) and every copy of a molecule.
+The builder's numbers are those of `data/sources/pdb/triplex_levels.tsv` (53 steps; the means over
+the 24 independent steps: duplex 30.48° / 3.007 Å, triplex 30.40° / 3.021 Å, base planes 3.270 / 3.263
+Å; CH-18's table had 30.62° / 2.996 Å and 30.52° / 3.043 Å over all 52 steps of its selection).
+
+**Crystal and solution.** The geometry is crystal-derived (X-ray, 2.5-3.1 Å). The NMR structures
+differ: the telomerase pseudoknot 2M8K 33.0° / 3.36 Å with base planes 3.48 Å apart, the hTR
+pseudoknots 28.7° / 3.72 Å. The solution conformation may differ by a few degrees of twist per step (to
+be quantified). Leaving out the end-of-run steps or the steps
+with a lattice contact moves no mean by its spread (data/sources/pdb/README.md), so every step is used.
+The physical checks (contacts, H-bonds, link lengths and angles, stacking) are held strictly; twist
+and rise are crystal values.
+
+**Final numbers** (C++ builds with hydrogens, the measures of this report; every step of every model;
+experiment: the steps of the table, minimum-maximum, the means over the independent steps):
+
+{{FINALTABLE}}
+
+Still outside the experiment: the purine strand's stacking reaches 3.48 Å in the mixed Hoogsteen
+duplexes (experimental maximum 3.42 Å) and the Watson-Crick strand's 3.81 Å in the mixed triplex
+(3.79 Å); the inclination of one triplex step reaches 14.7° (the triples' maximum 14.2°, the
+Hoogsteen pairs' 17.1°); the pyrimidine strands stack 3.5-3.6 Å on average against 3.41-3.42 Å. The
+uniform helices' twist stays 1.0° (triplex) and 1.4° (duplex) above the experimental mean: without the
+backbone torsion terms the restrained fit sits on the mean screw (30.6-30.7°), but the rigid C3'-endo
+4JRD backbone with MDATK's staggered torsion preferences then needs eclipsed torsions or clashes; the
+offset is within the steps' spread (1.85° / 3.06°) and within the expected crystal-solution difference.
+
+The scripts and measurements of this check are in the session scratchpad (`w2af/meas.py` and its
+outputs), not in the repository.

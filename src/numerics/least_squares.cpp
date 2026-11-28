@@ -55,6 +55,8 @@
 #include <limits>
 #include <optional>
 #include <stdexcept>
+#include <utility>
+#include <vector>
 
 #include "mdbridge/core/detail/numpy_sum.hpp"
 #include "numerics_internal.hpp"
@@ -688,14 +690,80 @@ std::optional<ThinSvd> bidiagonalSvd(std::vector<double> a, std::size_t n, std::
     return out;
 }
 
+// From this many columns the tall exact subproblem is reduced by row-wise Givens rotations that skip the
+// zeros of the rows (a Jacobian whose rows span a few levels each: work and fill ~ rows x band^2 instead of
+// rows x n^2 for the Householder QR); the same R up to the signs of its rows and rounding.
+constexpr std::size_t kGivensColumns = 200;
+
+// R (n x n, row-major upper triangle) and y = (Q.T f)[:n] of the rows `live` of a (m x n, row-major) by
+// Givens rotations, the rows taken in the order of their first non-zero column (then their index), each
+// rotated into R from that column on, over the non-zero span of the row and of R's rows only.
+void givensQr(const std::vector<double>& a, const std::vector<double>& d, std::size_t n,
+              const std::vector<std::size_t>& live, const std::vector<double>& f, std::vector<double>& r,
+              std::vector<double>& y) {
+    std::vector<std::pair<std::size_t, std::size_t>> order;  // (first non-zero column, row)
+    order.reserve(live.size());
+    for (const std::size_t i : live) {
+        std::size_t first = n;
+        for (std::size_t j = 0; j < n; ++j) {
+            if (a[i * n + j] != 0.0) {
+                first = j;
+                break;
+            }
+        }
+        order.emplace_back(first, i);
+    }
+    std::sort(order.begin(), order.end());
+    std::vector<std::size_t> rowEnd(n, 0);  // one past the last non-zero of R's row j (0: empty)
+    std::vector<double> row(n);
+    for (const auto& [first, i] : order) {
+        if (first == n) {
+            continue;
+        }
+        std::size_t end = first;
+        for (std::size_t j = first; j < n; ++j) {
+            row[j] = a[i * n + j] * d[j];
+            if (row[j] != 0.0) {
+                end = j + 1;
+            }
+        }
+        double b = f[i];
+        for (std::size_t j = first; j < end; ++j) {
+            const double v = row[j];
+            if (v == 0.0) {
+                continue;
+            }
+            double* rj = &r[j * n];
+            const double diag = rj[j];
+            const double h = std::hypot(diag, v);
+            const double c = diag / h, sn = v / h;
+            const std::size_t stop = std::max(end, rowEnd[j]);
+            for (std::size_t k = j; k < stop; ++k) {
+                const double t = rj[k];
+                rj[k] = c * t + sn * row[k];
+                row[k] = c * row[k] - sn * t;
+            }
+            row[j] = 0.0;
+            const double t = y[j];
+            y[j] = c * t + sn * b;
+            b = c * b - sn * t;
+            rowEnd[j] = stop;
+            end = stop;
+        }
+        for (std::size_t j = first; j < end; ++j) {
+            row[j] = 0.0;
+        }
+    }
+}
+
 // svd(J_h, full_matrices=False) and uf = U.T f for the exact subproblem. Rows of J_h that are all
 // zero (inactive one-sided terms) add nothing to U.T f (their row of U is zero), so they are left out
 // when at least n rows remain; a matrix that is then taller than wide is first reduced by
 // Householder reflections (J_h = Q R, R n x n upper triangular, Q.T applied to f), and U = Q U_R
 // gives uf = U_R.T (Q.T f)[:n]. The same numbers up to rounding as the SVD of the whole matrix,
 // much faster for the tall Jacobians of many contact terms.
-ThinSvd exactSvd(const std::vector<double>& a, std::size_t m, std::size_t n, const std::vector<double>& f,
-                 std::vector<double>& uf) {
+ThinSvd exactSvd(const std::vector<double>& a, const std::vector<double>& d, std::size_t m, std::size_t n,
+                 const std::vector<double>& f, std::vector<double>& uf) {
     std::vector<std::size_t> live;
     live.reserve(m);
     for (std::size_t i = 0; i < m; ++i) {
@@ -717,8 +785,9 @@ ThinSvd exactSvd(const std::vector<double>& a, std::size_t m, std::size_t n, con
         std::vector<double> b(rows * n);
         std::vector<double> fb(rows);
         for (std::size_t r = 0; r < rows; ++r) {
-            std::copy(a.begin() + static_cast<std::ptrdiff_t>(live[r] * n),
-                      a.begin() + static_cast<std::ptrdiff_t>((live[r] + 1) * n), b.begin() + static_cast<std::ptrdiff_t>(r * n));
+            for (std::size_t j = 0; j < n; ++j) {
+                b[r * n + j] = a[live[r] * n + j] * d[j];
+            }
             fb[r] = f[live[r]];
         }
         ThinSvd svd = thinSvd(b, rows, n);
@@ -732,12 +801,31 @@ ThinSvd exactSvd(const std::vector<double>& a, std::size_t m, std::size_t n, con
         }
         return svd;
     }
+    if (n >= kGivensColumns) {  // large and sparse (the closure of a long helix): row-wise Givens QR
+        std::vector<double> r(n * n, 0.0);
+        std::vector<double> y(n, 0.0);
+        givensQr(a, d, n, live, f, r, y);
+        if (std::optional<ThinSvd> fast = bidiagonalSvd(r, n, y)) {
+            uf = std::move(y);
+            return std::move(*fast);
+        }
+        ThinSvd svd = thinSvd(r, n, n);
+        uf.assign(svd.k, 0.0);
+        for (std::size_t k = 0; k < svd.k; ++k) {
+            double acc = 0.0;
+            for (std::size_t i = 0; i < n; ++i) {
+                acc += svd.u[i * svd.k + k] * y[i];
+            }
+            uf[k] = acc;
+        }
+        return svd;
+    }
     // Householder QR, column-major copy of the live rows; qf = Q.T f
     std::vector<double> w(rows * n);
     std::vector<double> qf(rows);
     for (std::size_t r = 0; r < rows; ++r) {
         for (std::size_t j = 0; j < n; ++j) {
-            w[j * rows + r] = a[live[r] * n + j];
+            w[j * rows + r] = a[live[r] * n + j] * d[j];
         }
         qf[r] = f[live[r]];
     }
@@ -1419,19 +1507,13 @@ LeastSquaresResult leastSquares(const ResidualFunction& fun, std::span<const dou
         };
         ThinSvd svd;
         std::vector<double> uf;
-        std::vector<double> jhDense;
         std::vector<std::vector<double>> S;
         std::array<double, 4> BS{};
         std::array<double, 2> gS{};
         std::size_t dimS = 0;
         if (trSolver == TrustRegionSolver::Exact) {
-            jhDense = J.dense;
-            for (std::size_t i = 0; i < m; ++i) {
-                for (std::size_t j = 0; j < n; ++j) {
-                    jhDense[i * n + j] *= d[j];
-                }
-            }
-            svd = exactSvd(jhDense, m, n, f, uf);
+            // J_h = J diag(d), scaled where exactSvd reads it (no m x n copy: long closures' memory)
+            svd = exactSvd(J.dense, d, m, n, f, uf);
         } else {
             if (regularize) {
                 std::vector<double> sDir(n);
@@ -1506,7 +1588,7 @@ LeastSquaresResult leastSquares(const ResidualFunction& fun, std::span<const dou
                 for (std::size_t i = 0; i < m; ++i) {
                     double acc = 0.0;
                     for (std::size_t j = 0; j < n; ++j) {
-                        acc += jhDense[i * n + j] * stepH[j];
+                        acc += (J.dense[i * n + j] * d[j]) * stepH[j];  // J_h's entries as before
                     }
                     Js[i] = acc;
                 }

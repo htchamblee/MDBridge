@@ -40,6 +40,7 @@ entry	level	triple	purine_chain	purine_seq	wc_chain	wc_seq	hoogsteen_chain	hoogs
 4PLX	19	C+·G-C	C	71	C	42	C	12
 4PLX	20	U·A-U	C	73	C	40	C	13
 4PLX	21	U·A-U	C	74	C	39	C	14
+4PLX	22	U·A-U	C	75	C	38	C	15
 6SVS	1	U·A-U	A	69	A	50	A	7
 6SVS	2	U·A-U	A	70	A	49	A	8
 6SVS	3	U·A-U	A	71	A	48	A	9

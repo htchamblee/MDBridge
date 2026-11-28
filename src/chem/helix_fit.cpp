@@ -44,11 +44,37 @@
 #include "mdbridge/core/errors.hpp"
 #include "mdbridge/core/linalg.hpp"
 #include "mdbridge/core/progress.hpp"
+#include "mdbridge/core/text.hpp"
 #include "mdbridge/numerics/least_squares.hpp"
 #include "mdbridge/numerics/pairs.hpp"
 #include "mdbridge/chem/reference_tables.hpp"
 
 namespace mdbridge::chem::helix_detail {
+
+Vec3 rotationVector(const Mat3& r) {
+    const double c = ((r[0][0] + r[1][1] + r[2][2]) - 1.0) / 2.0;
+    const double ax = r[2][1] - r[1][2], ay = r[0][2] - r[2][0], az = r[1][0] - r[0][1];
+    // atan2 of sine and cosine: well conditioned at every angle (acos of the cosine is not near pi)
+    const double th = std::atan2(std::sqrt(ax * ax + ay * ay + az * az) / 2.0, c);
+    if (th < 1e-12) {
+        return {0.0, 0.0, 0.0};
+    }
+    if (th > 3.141592653589793 - 1e-6) {  // near pi: the axis from R = 2 u u.T - I (sin too small)
+        Vec3 u{};
+        std::size_t big = 0;
+        for (std::size_t i = 0; i < 3; ++i) {
+            u[i] = std::sqrt(std::max(0.0, (r[i][i] + 1.0) / 2.0));
+            if (u[i] > u[big]) big = i;
+        }
+        for (std::size_t i = 0; i < 3; ++i) {  // signs relative to the largest component
+            if (i != big && r[big][i] + r[i][big] < 0) u[i] = -u[i];
+        }
+        const double len = std::sqrt(u[0] * u[0] + u[1] * u[1] + u[2] * u[2]);
+        return {u[0] / len * th, u[1] / len * th, u[2] / len * th};
+    }
+    const double s = std::sqrt(ax * ax + ay * ay + az * az);
+    return {ax / s * th, ay / s * th, az / s * th};
+}
 
 namespace {
 
@@ -60,6 +86,12 @@ constexpr double kLink = 1.607;   // Å, O3'-P
 constexpr double kLinkLow = 1.5;  // LINK_RANGE
 constexpr double kLinkHigh = 1.7;
 constexpr double kClashNb = 2.4;    // Å, heavy atoms three bonds apart
+// D19: the link angles the notes accept (degrees; the RNA triple helices of CH-18: C3'-O3'-P 119.7 +- 1.1,
+// O3'-P-O5' 103.1 +- 1.1, about four standard deviations)
+constexpr double kC3O3PLow = 115.0;
+constexpr double kC3O3PHigh = 124.0;
+constexpr double kO3PO5Low = 99.0;
+constexpr double kO3PO5High = 108.0;
 constexpr double kJrdChi = -170.0;  // chi of the nucleosides of _core (dchi 0)
 constexpr double kChiLow = -185.0;  // CHI_RANGE
 constexpr double kChiHigh = -145.0;
@@ -89,6 +121,10 @@ struct ContactTable {
 };
 constexpr ContactTable kContactFit = {3.1, 2.7, 2.1, 1.8, 2.4};
 constexpr ContactTable kContactReport = {3.0, 2.6, 2.0, 1.6, 1.9};
+// D19: the walls of the experimental kinds' reference fits and closures, 0.1 A outside CONTACT_REPORT
+// (MDATK's CONTACT_FIT keeps hydrogens 2.4 A from heavy atoms, which the experimental helices'
+// backbones, hydrogens placed by the builder's rules, do not; stacked bases: see stackedLimit)
+constexpr ContactTable kContactFitExp = {3.1, 2.7, 2.1, 1.7, 2.0};
 
 // The closure (CH-16): continuation in kSteps steps, a step halved while its solve stops on its
 // evaluation limit or its contact pairs need many refreshes (tests/parity/improvements_chem.py
@@ -100,6 +136,7 @@ constexpr double kClosureTol = 1e-10;
 constexpr std::size_t kClosureMaxNfev = 1000;
 constexpr std::size_t kClosureFinalNfev = 20000;
 constexpr double kClosureCutoff = 4.5;
+constexpr double kPolishMargin = 1e-9;  // D19: the final solve from the reference torsions wins by more
 constexpr int kRoundsOk = 4;
 constexpr int kMaxRounds = 50;
 constexpr double kSmallFitTol = 1e-14;  // _pair_fit, _level_pose, _helix_fit
@@ -207,17 +244,6 @@ Mat3 rotvec(const Vec3& v) {
         return identity();
     }
     return turnMatrix({v[0] / th, v[1] / th, v[2] / th}, degrees(th));
-}
-
-// the rotation vector (radians) of a rotation matrix (angle below pi)
-Vec3 rotationVector(const Mat3& r) {
-    const double c = ((r[0][0] + r[1][1] + r[2][2]) - 1.0) / 2.0;
-    const double th = std::acos(std::min(1.0, std::max(-1.0, c)));
-    if (th < 1e-12) {
-        return {0.0, 0.0, 0.0};
-    }
-    const double s = 2.0 * std::sin(th);
-    return {(r[2][1] - r[1][2]) / s * th, (r[0][2] - r[2][0]) / s * th, (r[1][0] - r[0][1]) / s * th};
 }
 
 // x @ rot.T + shift
@@ -977,7 +1003,8 @@ std::array<double, 4> torsionPriors(double dchi, double gamma, double beta) {
 bool polarH(std::string_view name) {
     static constexpr std::array<std::string_view, 11> polar = {"H1",  "H3",  "H21",  "H22",  "H41", "H42",
                                                                "H61", "H62", "HO2'", "HO5'", "HO3'"};
-    return contains(polar, name);
+    // D19 / CH-21: also the N3 proton of the C+ (the CCD's CH: HN3), H-bonded in its Hoogsteen pair
+    return contains(polar, name) || name == reference::protonatedCytidine().proton;
 }
 
 // _atom_class
@@ -1031,6 +1058,21 @@ LimitMatrix limitMatrix(const ContactTable& table) {
 const LimitMatrix& fitLimits() {
     static const LimitMatrix m = limitMatrix(kContactFit);
     return m;
+}
+// the experimental kinds' fits and closures (D19): kContactFitExp
+const LimitMatrix& expFitLimits() {
+    static const LimitMatrix m = limitMatrix(kContactFitExp);
+    return m;
+}
+const LimitMatrix& fitLimitsOf(std::string_view kind) {
+    return experimentalKind(kind) ? expFitLimits() : fitLimits();
+}
+
+// D19: two base atoms of different levels (stacked bases) do not H-bond: an N/O pair that could
+// (CONTACT_FIT's hbond limit) is kept as far apart as other heavy atoms (the experimental helices'
+// closest such pair, A N1 - U N3 of the next level: 3.15 A)
+double stackedLimit(double limit) {
+    return limit == kContactFitExp.hbond ? kContactFitExp.heavy : limit;
 }
 const LimitMatrix& reportLimits() {
     static const LimitMatrix m = limitMatrix(kContactReport);
@@ -1196,8 +1238,10 @@ struct HelixKind {
     ContactPairs pairs;
 };
 
-// _contact_pairs of the reference level `placed`, over levels 0 .. kContactLevels (MDATK: 0 .. 2)
-ContactPairs contactPairsOf(const std::vector<StrandSpec>& strands, const std::vector<Atoms>& placed) {
+// _contact_pairs of the reference level `placed`, over levels 0 .. kContactLevels (MDATK: 0 .. 2); the
+// experimental kinds with their walls (expFitLimits, stackedLimit)
+ContactPairs contactPairsOf(const std::vector<StrandSpec>& strands, const std::vector<Atoms>& placed,
+                            bool experimental) {
     const std::vector<Vec3> q(strands.size(), Vec3{0.0, 58.0, 174.0});
     Screw dummy;
     dummy.twist = 30.0;
@@ -1235,7 +1279,11 @@ ContactPairs contactPairsOf(const std::vector<StrandSpec>& strands, const std::v
                 if (path < 4 || (level == 0 && hbonded.count({s, la.names[i], t, la.names[j]}))) {
                     continue;
                 }
-                const double limit = limitOf(fitLimits(), cls[i], cls[j]);
+                double limit = limitOf(experimental ? expFitLimits() : fitLimits(), cls[i], cls[j]);
+                if (experimental && level > 0 && contains(baseAtomNames(bases[i]), la.names[i]) &&
+                    contains(baseAtomNames(bases[j]), la.names[j])) {
+                    limit = stackedLimit(limit);
+                }
                 if (limit > 0) {
                     out.i.push_back(i);
                     out.j.push_back(j);
@@ -1251,7 +1299,7 @@ ContactPairs contactPairsOf(const std::vector<StrandSpec>& strands, const std::v
 }
 
 ContactPairs contactPairs(const HelixKind& h) {
-    return contactPairsOf(h.strands, h.ref.placed);
+    return contactPairsOf(h.strands, h.ref.placed, false);
 }
 
 // _unpack_fit
@@ -1387,7 +1435,7 @@ const ContactPairs& expPairs(std::string_view kind) {
         std::map<std::string, ContactPairs> out;
         for (const std::string kd : {"hoogsteen", "triplex-hoogsteen"}) {
             const std::vector<double> zero(6 + 6 * (helices(kd).size() - 1), 0.0);
-            out[kd] = contactPairsOf(helices(kd), expLevel(kd, zero));
+            out[kd] = contactPairsOf(helices(kd), expLevel(kd, zero), true);
         }
         return out;
     }();
@@ -1422,16 +1470,19 @@ std::vector<double> expResiduals(std::string_view kind, std::span<const double> 
         const std::array<double, 4> prior = torsionPriors(q[s][0], q[s][1], q[s][2]);
         out.insert(out.end(), prior.begin(), prior.end());
     }
+    // D19: the reference helix is the mean helix: its screw, poses, H-bonds and stacking are restrained by
+    // the standard errors of the experimental means (spread / sqrt(independent steps or triples))
+    const double stepSe = std::sqrt(static_cast<double>(sc.sites));
     for (std::size_t k = 0; k < 6; ++k) {
-        out.push_back(p[k] / sc.sd[k]);
+        out.push_back(p[k] / (sc.sd[k] / stepSe));
     }
     for (std::size_t s = 1; s < ns; ++s) {
         const int t = static_cast<int>(tableStrand(kind, s));
         double rot = 1.0, shift = 1.0;
         for (const reference::TriplexPoseSpread& ps : reference::triplexPoseSpreads()) {
             if (ps.strand == t) {
-                rot = ps.rotation;
-                shift = ps.shift;
+                rot = ps.rotation / std::sqrt(static_cast<double>(ps.sites));
+                shift = ps.shift / std::sqrt(static_cast<double>(ps.sites));
             }
         }
         const std::size_t o = 6 + 6 * (s - 1);
@@ -1443,7 +1494,8 @@ std::vector<double> expResiduals(std::string_view kind, std::span<const double> 
         for (const PairHbond& hb : pairHbonds(spec[s].rule, spec[0].base, spec[s].base)) {
             for (const reference::TriplexHbond& t : reference::triplexHbonds()) {
                 if (t.rule == spec[s].rule && t.atom1 == hb.atom1 && t.atom2 == hb.atom2) {
-                    out.push_back((norm(placed[0].at(hb.atom1) - placed[s].at(hb.atom2)) - t.mean) / t.sd);
+                    out.push_back((norm(placed[0].at(hb.atom1) - placed[s].at(hb.atom2)) - t.mean) /
+                                  (t.sd / std::sqrt(static_cast<double>(t.sites))));
                 }
             }
         }
@@ -1459,7 +1511,7 @@ std::vector<double> expResiduals(std::string_view kind, std::span<const double> 
     for (const Vec3& x : bases) {
         next.push_back(one(x));
     }
-    out.push_back((planeSeparation(bases, next) - sc.stack) / sc.stackSd);
+    out.push_back((planeSeparation(bases, next) - sc.stack) / (sc.stackSd / stepSe));
     const std::vector<double> d = distancesOf(pairs, placed, spec, q, screw);
     for (std::size_t k = 0; k < d.size(); ++k) {
         out.push_back(clip0(pairs.limit[k] - d[k]) / kFitContactWeight);
@@ -1726,7 +1778,7 @@ Pose levelPoseUncached(const std::string& kind, std::size_t strand, const std::s
     std::vector<double> limit(mobile.size() * fixedXyz.size());
     for (std::size_t i = 0; i < mobile.size(); ++i) {
         for (std::size_t j = 0; j < fixedXyz.size(); ++j) {
-            limit[i * fixedXyz.size() + j] = limitOf(fitLimits(), mobileCls[i], fixedCls[j]);
+            limit[i * fixedXyz.size() + j] = limitOf(fitLimitsOf(kind), mobileCls[i], fixedCls[j]);
         }
     }
     std::vector<Vec3> planar;
@@ -1840,6 +1892,26 @@ const ContactTables& contactTables() {
     return tables;
 }
 
+// The step parameters (offset 1, offset 2 (Angstrom), tilt 1, tilt 2, twist (degrees), rise (Angstrom))
+// of the rigid move x -> r x + t about the screw (origin, axis): tools/gen_chem_tables.py step_parameters
+std::array<double, 6> stepParameters(const Mat3& r, const Vec3& t, const Vec3& origin, const Vec3& axis) {
+    const double w = std::sqrt(std::max(0.0, 1.0 + r[0][0] + r[1][1] + r[2][2])) / 2.0;
+    const Vec3 v = {(r[2][1] - r[1][2]) / (4 * w), (r[0][2] - r[2][0]) / (4 * w), (r[1][0] - r[0][1]) / (4 * w)};
+    const double angleRad = 2.0 * std::atan2(norm(v), w);
+    const Vec3 u = unit(v);
+    const double d = dot(u, t);
+    const Vec3 perp = t - d * u;
+    const Vec3 point = 0.5 * (perp + (1.0 / std::tan(angleRad / 2.0)) * cross(u, perp));
+    const Vec3 a = -u;
+    const Vec3 u1 = unit(cross(axis, {1.0, 0.0, 0.0}));
+    const Vec3 u2 = cross(axis, u1);
+    const double sAt = dot(origin - point, axis) / dot(a, axis);
+    const Vec3 q = point + sAt * a;
+    const double t2 = degrees(std::asin(std::clamp(dot(a, u1), -1.0, 1.0)));
+    const double t1 = -degrees(std::atan2(dot(a, u2), dot(a, axis)));
+    return {dot(q - origin, u1), dot(q - origin, u2), t1, t2, degrees(angleRad), d};
+}
+
 struct ClosurePair {
     std::size_t p, q;
     double limit;
@@ -1854,11 +1926,57 @@ public:
         : m_placed(std::move(placed)), m_bases(bases), m_steps(steps), m_options(options) {
         m_ns = m_placed.size();
         m_n = m_placed[0].size();
-        m_width = 6 + 3 * m_ns;
+        m_screw = screw;
         const std::vector<StrandSpec> spec = helices(kind);
+        m_offsets = experimentalKind(kind) && m_ns > 1;
+        m_offBase = 6 + 3 * m_ns;
+        m_width = m_offBase + (m_offsets ? 6 * (m_ns - 1) : 0);
         if (experimentalKind(kind)) {  // CH-18: the stacking of consecutive levels kept at the experiment's
             const reference::TriplexScrew& sc = *reference::triplexScrew(kind);
             m_stack = {sc.stack, sc.stackSd};
+            {
+                std::array<double, 6> sd{};
+                for (std::size_t c = 0; c < 6; ++c) sd[c] = sc.sd[c];
+                m_stepSd = sd;
+                m_tiltSd = sc.inclinationSd;
+                const Mat3 rs = turnMatrix(unit(screw.axis), -screw.twist);
+                const Vec3 bs = (screw.origin - matVec(rs, screw.origin)) - screw.rise * unit(screw.axis);
+                m_stepRef = stepParameters(rs, bs, screw.origin, unit(screw.axis));
+            }
+        }
+        if (m_offsets) {  // per partner: the pose spreads, the H-bonds of its canonical pairs
+            m_poseSd.assign(m_ns, {1.0, 1.0});
+            for (std::size_t st = 1; st < m_ns; ++st) {
+                for (const reference::TriplexPoseSpread& ps : reference::triplexPoseSpreads()) {
+                    if (ps.strand == static_cast<int>(tableStrand(kind, st))) m_poseSd[st] = {ps.rotation, ps.shift};
+                }
+                for (std::size_t k = 0; k < m_n; ++k) {
+                    const char a = m_bases[0][k], b = m_bases[st][k];
+                    if (!canonical(spec[st].rule, a, b)) continue;
+                    const std::span<const std::string_view> sa = baseSlotNames(a), sb = baseSlotNames(b);
+                    for (const PairHbond& hb : pairHbonds(spec[st].rule, a, b)) {
+                        HbondRestraint h;
+                        h.p = (0 * m_n + k) * kSlots + kStrandNames.size() +
+                              static_cast<std::size_t>(std::find(sa.begin(), sa.end(), hb.atom1) - sa.begin());
+                        h.q = (st * m_n + k) * kSlots + kStrandNames.size() +
+                              static_cast<std::size_t>(std::find(sb.begin(), sb.end(), hb.atom2) - sb.begin());
+                        h.level = k;
+                        h.low = kGcHbondLow;
+                        h.high = kGcHbondHigh;
+                        h.sd = kGcHbondSd;
+                        if (a == 'A' && b == 'U') {
+                            for (const reference::TriplexHbond& t : reference::triplexHbonds()) {
+                                if (t.rule == spec[st].rule && t.atom1 == hb.atom1 && t.atom2 == hb.atom2) {
+                                    h.low = h.high = t.mean;
+                                    h.sd = t.sd;
+                                }
+                            }
+                        }
+                        m_hbonds.push_back(h);
+                        m_hbondAtoms.insert({std::min(h.p, h.q), std::max(h.p, h.q)});
+                    }
+                }
+            }
         }
         // per partner nucleoside: the reference pose and the rigid move to its _level_pose pose
         m_moves.resize(m_ns);
@@ -1904,6 +2022,7 @@ public:
             }
             m_order.push_back(std::move(o));
         }
+        m_start = start;
         m_x.assign(m_n * m_width, 0.0);
         for (std::size_t k = 0; k < m_n; ++k) {
             for (std::size_t s = 0; s < m_ns; ++s) {
@@ -1915,7 +2034,7 @@ public:
         m_scale.resize(m_n * m_width);
         for (std::size_t k = 0; k < m_n; ++k) {
             for (std::size_t c = 0; c < m_width; ++c) {
-                m_scale[k * m_width + c] = c < 3 ? 3.0 : c < 6 ? 0.2 : 10.0;
+                m_scale[k * m_width + c] = c < 3 ? 3.0 : c < 6 ? 0.2 : c < m_offBase ? 10.0 : (c - m_offBase) % 6 < 3 ? 3.0 : 0.2;
             }
         }
         if (m_options.reporter) {
@@ -1930,6 +2049,21 @@ public:
             m_x = advance(m_x, static_cast<double>(i) / kSteps, static_cast<double>(i + 1) / kSteps, 0);
         }
         setGeometry(1.0);
+        // D19: the end of the path, and a solve from it with every nucleotide's torsions back on the
+        // reference helix's; the lower cost is kept (the path alone can end in a higher minimum of the
+        // purine strand's alpha / gamma that a 1e-8 change of a start avoids)
+        std::vector<double> alt = m_x;
+        for (std::size_t k = 0; k < m_n; ++k) {
+            for (std::size_t s = 0; s < m_ns; ++s) {
+                for (std::size_t c = 0; c < 3; ++c) {
+                    alt[k * m_width + 6 + 3 * s + c] = m_start[s][c];
+                }
+            }
+        }
+        alt = step(alt, 1.0, kClosureFinalNfev, false).first;
+        if (cost(alt) < cost(m_x) - kPolishMargin) {
+            m_x = std::move(alt);
+        }
     }
 
     // torsions of strand s by level
@@ -1950,8 +2084,10 @@ public:
             const Mat3 rot = levelRotation(m_x, k);
             const Vec3 shift = {m_x[k * m_width + 3], m_x[k * m_width + 4], m_x[k * m_width + 5]};
             for (std::size_t s = 0; s < m_ns; ++s) {
+                const auto [orot, oc, od] = offsetOf(m_x, s, k);
                 for (TemplateAtom& a : out[s][k].items) {
-                    a.xyz = (matVec(rot, a.xyz - m_centre[k]) + m_centre[k]) + shift;
+                    const Vec3 y = (matVec(orot, a.xyz - oc) + oc) + od;
+                    a.xyz = (matVec(rot, y - m_centre[k]) + m_centre[k]) + shift;
                 }
             }
         }
@@ -1968,6 +2104,14 @@ private:
         std::vector<std::array<Vec3, 12>> sugar;
         std::vector<std::array<Vec3, kBaseSlots>> base;
     };
+
+    // the partner offset of (strand s, level k): rotation (about its C1' at the current t) and shift
+    std::tuple<Mat3, Vec3, Vec3> offsetOf(std::span<const double> x, std::size_t s, std::size_t k) const {
+        if (!m_offsets || s == 0) return {identity(), Vec3{0.0, 0.0, 0.0}, Vec3{0.0, 0.0, 0.0}};
+        const std::size_t v = k * m_width + m_offBase + 6 * (s - 1);
+        return {rotvec({radians(x[v]), radians(x[v + 1]), radians(x[v + 2])}), m_geometry.c1[s * m_n + k],
+                Vec3{x[v + 3], x[v + 4], x[v + 5]}};
+    }
 
     Mat3 levelRotation(const std::vector<double>& x, std::size_t k) const {
         return rodrigues({radians(x[k * m_width]), radians(x[k * m_width + 1]), radians(x[k * m_width + 2])});
@@ -2032,7 +2176,12 @@ private:
             for (std::size_t k = 0; k < m_n; ++k) {
                 const std::size_t at = s * m_n + k;
                 const Vec3 shift = {x[k * m_width + 3], x[k * m_width + 4], x[k * m_width + 5]};
-                const auto move = [&](const Vec3& y) {
+                Mat3 orot{};  // no structured bindings: the lambda below captures them
+                Vec3 oc{}, od{};
+                std::tie(orot, oc, od) = offsetOf(x, s, k);
+                const bool off = m_offsets && s > 0;
+                const auto move = [&](const Vec3& y0) {
+                    const Vec3 y = off ? (matVec(orot, y0 - oc) + oc) + od : y0;
                     return (matVec(rot[k], y - m_centre[k]) + m_centre[k]) + shift;
                 };
                 std::array<Vec3, 12> sugar{};
@@ -2116,6 +2265,39 @@ private:
                 out.push_back(x[k * m_width + c] / kLevelShift);
             }
         }
+        if (m_offsets) {
+            for (std::size_t k = 0; k < m_n; ++k) {
+                for (std::size_t st = 1; st < m_ns; ++st) {
+                    const std::size_t v = k * m_width + m_offBase + 6 * (st - 1);
+                    for (std::size_t c = 0; c < 6; ++c) {
+                        out.push_back(x[v + c] / (c < 3 ? m_poseSd[st].first : m_poseSd[st].second));
+                    }
+                }
+            }
+            for (const HbondRestraint& h : m_hbonds) {
+                const double d = norm(atoms[h.p] - atoms[h.q]);
+                out.push_back((clip0(h.low - d) + clip0(d - h.high)) / h.sd);
+            }
+        }
+        if (m_stepSd) {  // D19: the levels' tilt (their rotation off the axis) over the inclination's spread
+            const Vec3 u = unit(m_screw.axis);
+            for (std::size_t k = 0; k < m_n; ++k) {
+                const Vec3 w = {x[k * m_width], x[k * m_width + 1], x[k * m_width + 2]};
+                const Vec3 perp = w - dot(w, u) * u;
+                for (std::size_t c = 0; c < 3; ++c) {
+                    out.push_back(perp[c] / m_tiltSd);
+                }
+            }
+        }
+        if (m_stepSd) {
+            for (std::size_t k = 0; k + 1 < m_n; ++k) {
+                const auto [ma, mb] = stepMove(x, k);
+                const std::array<double, 6> p = stepParameters(ma, mb, m_screw.origin, unit(m_screw.axis));
+                for (std::size_t c = 0; c < 6; ++c) {
+                    out.push_back((p[c] - m_stepRef[c]) / (*m_stepSd)[c]);
+                }
+            }
+        }
         if (m_stack) {
             for (std::size_t k = 0; k + 1 < m_n; ++k) {
                 out.push_back((planeSeparation(levelBases(atoms, k), levelBases(atoms, k + 1)) - m_stack->first) /
@@ -2126,6 +2308,35 @@ private:
             out.push_back(clip0(pr.limit - norm(atoms[pr.p] - atoms[pr.q])) / kClosureWeight);
         }
         return out;
+    }
+
+    // 0.5 |r|^2 with the pairs scored so far
+    double cost(const std::vector<double>& x) const {
+        double acc = 0.0;
+        for (const double v : residuals(x, m_pairs)) {
+            acc += v * v;
+        }
+        return 0.5 * acc;
+    }
+
+    // the move of level k onto level k + 1 (x -> A x + b): T(k + 1) o S o T(k)^-1, T the level moves
+    std::pair<Mat3, Vec3> stepMove(std::span<const double> x, std::size_t k) const {
+        const auto level = [&](std::size_t j) {
+            const Mat3 r = rodrigues({radians(x[j * m_width]), radians(x[j * m_width + 1]), radians(x[j * m_width + 2])});
+            const Vec3 sh = {x[j * m_width + 3], x[j * m_width + 4], x[j * m_width + 5]};
+            return std::make_pair(r, (m_centre[j] + sh) - matVec(r, m_centre[j]));
+        };
+        const auto [r0, b0] = level(k);
+        const auto [r1, b1] = level(k + 1);
+        const Vec3 u = unit(m_screw.axis);
+        const Mat3 rs = turnMatrix(u, -m_screw.twist);
+        const Vec3 bs = (m_screw.origin - matVec(rs, m_screw.origin)) - m_screw.rise * u;
+        const Mat3 r0t = transposed(r0);
+        const Vec3 b0i = -1.0 * matVec(r0t, b0);
+        // S o T0^-1: x -> rs (r0t x + b0i) + bs
+        const Mat3 a1 = matMul(rs, r0t);
+        const Vec3 c1 = matVec(rs, b0i) + bs;
+        return {matMul(r1, a1), matVec(r1, c1) + b1};
     }
 
     // the base heavy atoms of every strand at level k (strand order, base_names order)
@@ -2163,6 +2374,34 @@ private:
                 for (int c = 0; c < 3; ++c) {
                     lo.push_back(k);
                     hi.push_back(k);
+                }
+            }
+        }
+        if (m_offsets) {
+            for (std::size_t k = 0; k < m_n; ++k) {
+                for (std::size_t c = 0; c < 6 * (m_ns - 1); ++c) {
+                    lo.push_back(k);
+                    hi.push_back(k);
+                }
+            }
+            for (const HbondRestraint& h : m_hbonds) {
+                lo.push_back(h.level);
+                hi.push_back(h.level);
+            }
+        }
+        if (m_stepSd) {
+            for (std::size_t k = 0; k < m_n; ++k) {
+                for (int c = 0; c < 3; ++c) {
+                    lo.push_back(k);
+                    hi.push_back(k);
+                }
+            }
+        }
+        if (m_stepSd) {
+            for (std::size_t k = 0; k + 1 < m_n; ++k) {
+                for (int c = 0; c < 6; ++c) {
+                    lo.push_back(k);
+                    hi.push_back(k + 1);
                 }
             }
         }
@@ -2218,13 +2457,20 @@ private:
             if (sp == sq && kp == kq) {
                 keep = tables.inside[code(sp, kp)][ip * kSlots + iq];
             }
+            if (m_offsets && sp != sq && kp == kq && ip >= nStrand && iq >= nStrand) {
+                // the partners move within their level: their bases are scored, but for the pairs' H-bonds
+                keep = m_hbondAtoms.count({std::min(p, q), std::max(p, q)}) == 0;
+            }
             if (sp == sq && dk == stepP) {  // q follows p on its strand
                 keep = tables.link[code(sp, kp)][code(sq, kq)][ip * kSlots + iq];
             }
             if (sp == sq && -dk == stepP) {  // p follows q
                 keep = tables.link[code(sq, kq)][code(sp, kp)][iq * kSlots + ip];
             }
-            const double limit = limitOf(fitLimits(), m_cls[p], m_cls[q]);
+            double limit = limitOf(m_offsets ? expFitLimits() : fitLimits(), m_cls[p], m_cls[q]);
+            if (m_offsets && kp != kq && ip >= nStrand && iq >= nStrand) {
+                limit = stackedLimit(limit);
+            }
             keep = keep && limit > 0;
             if (!keep) {
                 continue;
@@ -2327,7 +2573,20 @@ private:
         return advance(advance(x, t0, mid, halvings + 1), mid, t1, halvings + 1);
     }
 
+    struct HbondRestraint {
+        std::size_t p = 0, q = 0, level = 0;
+        double low = 0.0, high = 0.0, sd = 1.0;
+    };
     std::vector<std::vector<Atoms>> m_placed;
+    Screw m_screw;
+    bool m_offsets = false;
+    std::size_t m_offBase = 0;
+    std::vector<std::pair<double, double>> m_poseSd;
+    std::vector<HbondRestraint> m_hbonds;
+    std::set<std::pair<std::size_t, std::size_t>> m_hbondAtoms;  // the atom pairs of m_hbonds
+    std::optional<std::array<double, 6>> m_stepSd;
+    std::array<double, 6> m_stepRef{};
+    double m_tiltSd = 1.0;
     std::optional<std::pair<double, double>> m_stack;  // CH-18: (mean, sd) of the base-plane separation
     std::vector<std::string> m_bases;
     std::vector<int> m_steps;
@@ -2339,6 +2598,7 @@ private:
     std::vector<int> m_cls;
     std::vector<std::vector<std::size_t>> m_order;
     std::vector<double> m_x, m_scale;
+    std::vector<Vec3> m_start;  // the reference helix's torsions per strand
     Geometry m_geometry;
     std::vector<Vec3> m_centre;
     std::vector<ClosurePair> m_pairs;
@@ -2374,7 +2634,8 @@ std::vector<Atoms> strandHeavy(const std::vector<Atoms>& placed, const std::stri
 }
 
 // _residue_atoms: one rebuilt nucleotide in the order of _strand_residue
-FittedResidue residueAtoms(const Atoms& heavy, char base, bool five, bool three, bool phosphate5, bool withHydrogens) {
+FittedResidue residueAtoms(const Atoms& heavy, char base, bool five, bool three, bool phosphate5, bool withHydrogens,
+                           bool protonated) {
     Atoms t = heavy;
     std::vector<FittedAtom> first, last;
     if (five) {
@@ -2394,6 +2655,7 @@ FittedResidue residueAtoms(const Atoms& heavy, char base, bool five, bool three,
     }
     FittedResidue out;
     out.base = base;
+    out.protonated = protonated;
     out.atoms = first;
     for (const std::string_view name : backboneNames()) {
         if (const Vec3* v = t.find(name)) {
@@ -2409,6 +2671,12 @@ FittedResidue residueAtoms(const Atoms& heavy, char base, bool five, bool three,
         const Atoms hyd = hydrogens(heavy, base);
         for (const std::string_view name : sugarHydrogenNames()) {
             out.atoms.push_back({std::string(name), hyd.at(name)});
+        }
+        if (protonated) {  // the CCD's CH: its N3 proton (as the builder places N-H: the ring bonds' bisector)
+            const reference::ProtonatedBase& ch = reference::protonatedCytidine();
+            const Vec3 n3 = heavy.at(ch.heavy);
+            out.atoms.push_back(
+                {std::string(ch.proton), n3 - kBondNH * unit(unit(heavy.at("C2") - n3) + unit(heavy.at("C4") - n3))});
         }
         for (const std::string_view name : baseHydrogenNames(base)) {
             out.atoms.push_back({std::string(name), hyd.at(name)});
@@ -2568,19 +2836,30 @@ FittedHelix fittedHelix(const std::string& kind, const std::vector<std::string>&
         }
         placed = closure.moved();
     }
+    // D19 / CH-21: the cytidines of the canonical G·C+ Hoogsteen pairs are C+ (the CCD has no L form)
+    const std::string hand = core::pythonStrip(options.chirality);
+    const bool dHanded = hand != "L" && hand != "l";
     for (std::size_t s = 0; s < spec.size(); ++s) {
         std::vector<Atoms> nucleosides = placed[s];
         std::string bases = levelBases[s];
         std::vector<Vec3> q = torsions[s];
+        std::vector<bool> plus(n, false);
+        if (s > 0 && spec[s].rule == "hoogsteen" && dHanded) {
+            for (const FitLevel& lv : out.levels[s - 1]) {
+                plus[lv.level] = lv.canonical && lv.bases == "GC";
+            }
+        }
         if (spec[s].step < 0) {
             std::reverse(nucleosides.begin(), nucleosides.end());
             std::reverse(bases.begin(), bases.end());
             std::reverse(q.begin(), q.end());
+            std::reverse(plus.begin(), plus.end());
         }
         const std::vector<Atoms> heavy = strandHeavy(nucleosides, bases, q);
         std::vector<FittedResidue> residues;
         for (std::size_t j = 0; j < heavy.size(); ++j) {
-            residues.push_back(residueAtoms(heavy[j], bases[j], j == 0, j + 1 == n, phosphate5, withHydrogens));
+            residues.push_back(
+                residueAtoms(heavy[j], bases[j], j == 0, j + 1 == n, phosphate5, withHydrogens, plus[j]));
         }
         out.strands.push_back(std::move(residues));
     }
@@ -2747,6 +3026,7 @@ std::vector<std::string> geometryNotes(const std::vector<std::string>& labels, c
     struct Link {
         std::size_t a, b;
         double d;
+        double c3o3p = 0.0, o3po5 = 0.0;  // D19: the link's bond angles (degrees; 0: an atom missing)
     };
     std::vector<Link> links;
     for (const std::vector<std::size_t>& seg : segments) {
@@ -2754,18 +3034,55 @@ std::vector<std::string> geometryNotes(const std::vector<std::string>& labels, c
             const Vec3* o3 = lastOf(resAtoms[seg[k]], "O3'");
             const Vec3* p = lastOf(resAtoms[seg[k + 1]], "P");
             if (o3 && p) {
-                links.push_back({seg[k], seg[k + 1], norm(*o3 - *p)});
+                Link l{seg[k], seg[k + 1], norm(*o3 - *p)};
+                const Vec3* c3 = lastOf(resAtoms[seg[k]], "C3'");
+                const Vec3* o5 = lastOf(resAtoms[seg[k + 1]], "O5'");
+                if (c3 && o5) {
+                    l.c3o3p = angle(*c3, *o3, *p);
+                    l.o3po5 = angle(*o3, *p, *o5);
+                }
+                links.push_back(l);
             }
         }
     }
     if (!links.empty()) {
         double lo = links[0].d, hi = links[0].d;
+        double a1 = links[0].c3o3p, b1 = a1, a2 = links[0].o3po5, b2 = a2;
         for (const Link& l : links) {
             lo = std::min(lo, l.d);
             hi = std::max(hi, l.d);
+            a1 = std::min(a1, l.c3o3p);
+            b1 = std::max(b1, l.c3o3p);
+            a2 = std::min(a2, l.o3po5);
+            b2 = std::max(b2, l.o3po5);
         }
         out.push_back("O3'-P links: " + fixed(lo, 2) + "-" + fixed(hi, 2) + " Å over " + std::to_string(links.size()) +
-                      " links (ideal " + fixed(kLink, 2) + " Å)");
+                      " links (ideal " + fixed(kLink, 2) + " Å); angles C3'-O3'-P " + fixed(a1, 1) + "-" +
+                      fixed(b1, 1) + "°, O3'-P-O5' " + fixed(a2, 1) + "-" + fixed(b2, 1) + "°");
+        std::vector<std::string> strained;  // D19: outside the RNA crystal structures' range
+        for (const Link& l : links) {
+            std::string what;
+            if (!(kC3O3PLow <= l.c3o3p && l.c3o3p <= kC3O3PHigh)) {
+                what = "C3'-O3'-P " + fixed(l.c3o3p, 1) + "°";
+            }
+            if (!(kO3PO5Low <= l.o3po5 && l.o3po5 <= kO3PO5High)) {
+                what += (what.empty() ? "" : ", ") + std::string("O3'-P-O5' ") + fixed(l.o3po5, 1) + "°";
+            }
+            if (!what.empty()) {
+                strained.push_back(labels[l.a] + "-" + labels[l.b] + " " + what);
+            }
+        }
+        if (!strained.empty()) {
+            std::string text;
+            for (std::size_t k = 0; k < std::min<std::size_t>(8, strained.size()); ++k) {
+                text += (k ? "; " : "") + strained[k];
+            }
+            out.push_back("WARNING: " + std::to_string(strained.size()) +
+                          " O3'-P link(s) with a strained angle (C3'-O3'-P outside " + fixed(kC3O3PLow, 0) + "-" +
+                          fixed(kC3O3PHigh, 0) + "°, O3'-P-O5' outside " + fixed(kO3PO5Low, 0) + "-" +
+                          fixed(kO3PO5High, 0) + "°; RNA crystal structures 119.7 ± 1.1° and 103.1 ± 1.1°; minimise "
+                          "before use): " + text + (strained.size() > 8 ? " ..." : ""));
+        }
         std::vector<std::string> gaps;
         for (const Link& l : links) {
             if (!(kLinkLow <= l.d && l.d <= kLinkHigh)) {
@@ -2973,13 +3290,36 @@ std::vector<std::string> modelNotes(const io::PdbStructure& s, const std::vector
             if (lv.canonical && (lv.bases == "GC" || lv.bases == "CG")) ++plus;
         }
     }
-    if (plus) {
-        out.push_back(std::to_string(plus) +
-                      " G·C+ Hoogsteen pair(s): the cytosine is written as plain C (N3 "
-                      "unprotonated); protonate N3 (C+) for the force field or restrain the pair (at neutral pH it "
-                      "is weak)");
+    if (plus) {  // D19 / CH-21: written as the CCD's N3-protonated cytidine CH (D only)
+        bool hydrogens = false, mirror = false;
+        for (const auto& seg : s.segments) {
+            for (const io::PdbResidue& r : seg) {
+                mirror = mirror || r.chirality == "L";
+                for (const io::PdbAtom& a : r.atoms) {
+                    hydrogens = hydrogens || (!a.name.empty() && a.name[0] == 'H');
+                }
+            }
+        }
+        const std::string code(reference::protonatedCytidine().code);
+        const std::string proton(reference::protonatedCytidine().proton);
+        if (mirror) {
+            out.push_back(std::to_string(plus) +
+                          " G·C+ Hoogsteen pair(s): the cytosine is written as plain C (N3 unprotonated; the CCD has "
+                          "no N3-protonated L-cytidine); protonate N3 (C+) for the force field or restrain the pair (at "
+                          "neutral pH it is weak)");
+        } else {
+            out.push_back(std::to_string(plus) + " G·C+ Hoogsteen pair(s): the cytosine is N3-protonated (C+), residue " +
+                          code + " (the CCD's N3-protonated cytidine" +
+                          (hydrogens ? ", with " + proton : "; " + proton + " comes with the hydrogens") +
+                          "); at neutral pH the pair is weak: restrain it for the simulation");
+        }
     }
     return out;
+}
+
+// the reference fit of an experimental kind, not cached (tests: the fit does not depend on the threads)
+std::vector<double> referenceFitFresh(const std::string& kind, std::size_t threads) {
+    return expFitUncached(kind, nullptr, threads).x;
 }
 
 }  // namespace mdbridge::chem::helix_detail

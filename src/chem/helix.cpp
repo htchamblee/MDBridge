@@ -831,8 +831,8 @@ void pairingMessages(std::string_view seq, std::string_view other, std::string_v
                                       firstEight(pyr)});
     }
     if (gc) {
-        out.push_back({"info", "G·C+ Hoogsteen pairs need N3-protonated cytosine (C+); written as plain C "
-                               "(protonate or restrain for the simulation)"});
+        out.push_back({"info", "G·C+ Hoogsteen pairs need N3-protonated cytosine (C+): written as CH, the CCD's "
+                               "N3-protonated cytidine (HN3 with the hydrogens; L: plain C; restrain the pair for the simulation)"});
     }
 }
 
@@ -852,9 +852,46 @@ std::optional<std::string> rnaRefusal(std::string_view pairing, std::optional<st
     if (what.empty()) {
         return std::nullopt;
     }
+    // the purine-motif triplex forms only with three DNA strands (Semerad & Maher 1994): no hybrids
     return (motif ? "triplex " + std::string(*motif) : "pairing " + std::string(pairing)) +
-           ": RNA is not known to form " + std::string(what) +
-           "; DNA and DNA-RNA hybrid builds of it will come with DNA structure building";
+           ": RNA is not known to form " + std::string(what) + "; DNA" +
+           (motif ? "" : " and DNA-RNA hybrid") + " builds of it will come with DNA structure building";
+}
+
+std::optional<std::string> sequenceRefusal(std::string_view pairing, std::optional<std::string_view> motif,
+                                           std::string_view sequence, std::string_view partner) {
+    std::vector<std::string> rows;
+    std::string head;
+    if (pairing == "hh" && !motif) {
+        for (std::size_t k = 0; k < sequence.size(); ++k) {
+            const char b = k < partner.size() ? partner[k] : 'A';
+            if (sequence[k] != 'A' || b != 'A') {
+                rows.push_back(std::to_string(k + 1) + ":" + sequence[k] + "·" + b);
+            }
+        }
+        head = "pairing hh: the parallel duplex of PDB 4JRD has A·A pairs only; other bases at ";
+    } else if ((pairing == "hoogsteen" && !motif) || (pairing == "wc" && motif && *motif == "hoogsteen")) {
+        for (std::size_t k = 0; k < sequence.size(); ++k) {
+            if (sequence[k] == 'C' || sequence[k] == 'U') {
+                rows.push_back(std::to_string(k + 1) + ":" + sequence[k]);
+            }
+        }
+        head = motif ? "triplex hoogsteen: the third strand pairs with the Hoogsteen edge of strand 1, which must be "
+                       "a purine (A, G); strand 1 has U or C at "
+                     : "pairing hoogsteen: strand 2 pairs with the Hoogsteen edge of strand 1, which must be a purine "
+                       "(A, G); strand 1 has U or C at ";
+    }
+    if (rows.empty()) {
+        return std::nullopt;
+    }
+    std::string text = head;
+    for (std::size_t k = 0; k < rows.size() && k < 8; ++k) {
+        text += (k ? ", " : "") + rows[k];
+    }
+    if (rows.size() > 8) {
+        text += " ...";
+    }
+    return text;
 }
 
 std::vector<HelixMessage> checkHelix(std::string_view sequence, std::optional<std::string_view> partner,
@@ -877,6 +914,12 @@ std::vector<HelixMessage> checkHelix(std::string_view sequence, std::optional<st
         }
         if (const std::optional<std::string> refused = rnaRefusal(pairing, motif)) {  // CH-18
             throw BuildError(*refused);
+        }
+        if (resolved.partner) {
+            if (const std::optional<std::string> refused =  // D19
+                sequenceRefusal(pairing, motif, resolved.sequence, *resolved.partner)) {
+                throw BuildError(*refused);
+            }
         }
         if (motif) {
             thirdStrand = resolveThird(resolved.sequence, third, *motif);
@@ -929,8 +972,9 @@ std::vector<HelixMessage> checkHelix(std::string_view sequence, std::optional<st
                                           firstEight(mism)});
         }
         if (cgc) {
-            out.push_back({"info", "C+·G-C triples need N3-protonated cytosine (C+) in the third strand; written "
-                                   "as plain C (protonate or restrain for the simulation)"});
+            out.push_back({"info", "C+·G-C triples need N3-protonated cytosine (C+) in the third strand: written as "
+                                   "CH, the CCD's N3-protonated cytidine (HN3 with the hydrogens; L: plain C; restrain the triple "
+                                   "for the simulation)"});
         }
     }
     const std::vector<std::string> kinds = pairTypes(seq, other);
@@ -1156,6 +1200,12 @@ std::string buildHelix(std::string_view sequence, const HelixOptions& options, s
     if (const std::optional<std::string> refused = rnaRefusal(pairing, motif)) {  // CH-18
         throw BuildError(*refused);
     }
+    if (duplex) {
+        if (const std::optional<std::string> refused =  // D19
+            sequenceRefusal(pairing, motif, resolved.sequence, *resolved.partner)) {
+            throw BuildError(*refused);
+        }
+    }
     std::string thirdSeq;
     if (motif) {
         ResolvedThird thirdStrand = resolveThird(
@@ -1292,6 +1342,15 @@ std::string buildHelix(std::string_view sequence, const HelixOptions& options, s
         renamed = {"Residue names " +
                    std::string(hand == 'D' ? "A, C, G, U" : "0A, 0C, 0G, 0U (the CCD L-ribonucleotides)") +
                    ", ATOM records"};
+    }
+    if (rebuilt) {  // D19 / CH-21: the C+ of the G·C+ Hoogsteen pairs, the CCD's N3-protonated cytidine
+        for (std::size_t strand = 0; strand < fit.strands.size(); ++strand) {
+            for (std::size_t j = 0; j < fit.strands[strand].size(); ++j) {
+                if (fit.strands[strand][j].protonated) {
+                    s.segments[strand][j].name = std::string(reference::protonatedCytidine().code);
+                }
+            }
+        }
     }
     out.insert(out.end(), renamed.begin(), renamed.end());
     if (scheme == "pdb") {

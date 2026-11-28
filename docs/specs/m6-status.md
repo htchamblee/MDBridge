@@ -2,8 +2,9 @@
 
 Plan: `docs/specs/m6-plan.md`; owner decisions D1-D14 accepted (2026-11-26), D15 (CHD-01: guanine
 amino hydrogens follow the wwPDB CCD), D16 (CHD-02: non-WC builds in the fitted 4JRD frame), D17
-(CH-16: a continuation closure for the non-WC builds, 2026-11-27) and D18 (CH-18: realistic non-WC
-geometry; the kinds RNA does not form refused, 2026-11-27).
+(CH-16: a continuation closure for the non-WC builds, 2026-11-27), D18 (CH-18: realistic non-WC
+geometry; the kinds RNA does not form refused, 2026-11-27) and D19 (CH-19 ... CH-21: sequences a kind
+cannot pair refused, C+ as the CCD's CH, statistics over independent structures, 2026-11-27).
 
 ## Wave 0: done (CI green at a7cacc5)
 
@@ -32,18 +33,27 @@ W2-B mutations and fit-to-map, W2-C the `pdb`, `build` and `density` commands an
 automatic fit (merged at bf1f67d). W2-A, the other pairings and triplexes (`src/chem/helix_fit.cpp`):
 the owner's D17 continuation closure (CH-16), made reproducible by a continuous backbone torsion term
 (CH-17: MDATK's term jumps at ref + 180°, where its reference helices sit) and solves that start with
-a unit trust radius; all 17 closures of the expected data agree within PDB rounding across BLAS
-kernels and 1e-8 start perturbations, the C++ builds within 0.001 Å of the patched MDATK's. `build
+a unit trust radius; the closures of the expected data agree within PDB rounding across BLAS
+kernels and 1e-8 start perturbations (8 closures, 0.0002 Å heavy-atom RMSD, 0.0014 Å for one atom), the C++ builds within 0.001 Å of the patched
+MDATK's. `build
 helix --pairing / --triplex`, the builder window and the 5 command-line cases work; the regenerate
 job compares the rebuilt helices with D10 on runners with other kernels (no longer masked). D18
 (CH-18, docs/reports/2026-11-27-non-wc-geometry.md): only hh's reference helix was realistic, so the
 Hoogsteen duplex and the pyrimidine-motif triplex now take their nucleotides, pairs, screw and
 stacking from the RNA triple helices of PDB 3P22, 4PLX, 6SVS and 7JNH (a restrained reference fit;
-uniform helices 33.3° / 3.02 Å and 31.6° / 3.16 Å, base planes 3.35 / 3.34 Å apart, experiment 30.5° /
-2.91 Å and 30.4° / 3.01 Å, 3.3 Å), the closure keeps their stacking, every reference fit scores
+at first uniform helices 33.3° / 3.02 Å and 31.6° / 3.16 Å, base planes 3.35 / 3.34 Å apart), the closure keeps their stacking, every reference fit scores
 contacts over twelve levels, pairs without a base-base H-bond are noted, and RNA builds of reverse-wc,
 reverse-hoogsteen and the purine-motif triplex are refused (library, command line, builder window).
-CH-17's refit of the reference helices is dropped (its smooth term stays in the closure).
+CH-17's refit of the reference helices is dropped (its smooth term stays in the closure). D19, after
+the review of CH-18: strand-1 pyrimidines of the Hoogsteen kinds and hh's non-A levels are refused
+(CH-19); the statistics count each crystal molecule once and the triples' selection is a tool (CH-20);
+the C+ of G·C+ Hoogsteen pairs is the CCD's CH, with HN3 (CH-21); the reference fits are restrained
+by the experimental means' standard errors and the closure also moves the partners within their
+levels with their pairs, steps and tilt restrained: uniform helices 31.9° / 3.02 Å and 31.4° / 3.05 Å
+(experiment 30.5° / 3.01 Å and 30.4° / 3.02 Å), mixed sequences with every step, link angle and
+stacked pair within the experimental ranges (strand stacking within 0.07 Å, one inclination within
+0.5° of them; docs/reports/2026-11-27-non-wc-geometry.md "Final geometry"). The builder window's
+*Cancel* now stops a fitted build (code review), long closures use a row-wise Givens QR (NU-03).
 
 ## Wave 3: W3-A and W3-B done; W3-C remaining
 

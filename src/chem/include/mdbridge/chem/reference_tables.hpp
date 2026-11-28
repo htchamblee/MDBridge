@@ -51,7 +51,9 @@ struct TriplexAtom {
 // on is a turn of -twist degrees about the axis and a move of -rise Angstrom along it), the standard
 // deviations of the experimental steps' axis offsets (2, Angstrom), tilts (2, degrees), twist and rise
 // about it (tools/gen_chem_tables.py step_parameters), the mean separation of consecutive base planes
-// and its standard deviation, the number of steps.
+// and its standard deviation, the number of steps and of independent steps (sites: the copies of one
+// molecule in a crystal counted once; the standard deviations are over the sites), the inclination of the
+// levels' base planes to the steps' axes and its standard deviation.
 struct TriplexScrew {
     std::string_view kind;
     double ox, oy, oz;
@@ -62,15 +64,20 @@ struct TriplexScrew {
     double stack;
     double stackSd;
     int steps;
+    int sites;
+    double inclination;    // degrees: the levels' base planes against the steps' axes
+    double inclinationSd;
 };
 
-// Donor-acceptor distance of a U·A-U pair ("wc" / "hoogsteen" rule; purine atom, partner atom).
+// Donor-acceptor distance of a U·A-U pair ("wc" / "hoogsteen" rule; purine atom, partner atom): mean and
+// standard deviation over the independent triples, their number.
 struct TriplexHbond {
     std::string_view rule;
     std::string_view atom1;
     std::string_view atom2;
     double mean;
     double sd;
+    int sites;
 };
 
 // RMS per component of a U·A-U partner's rotation (degrees) and C1' shift (Angstrom) about its mean
@@ -79,6 +86,7 @@ struct TriplexPoseSpread {
     int strand;
     double rotation;
     double shift;
+    int sites;  // independent triples
 };
 
 struct ComponentInfo {
@@ -126,6 +134,15 @@ struct ChiralCentre {
     int sign;
 };
 
+// A CCD component that is a standard base with one proton more (the N3-protonated cytidine CH, the C+ of
+// the builder's G·C+ Hoogsteen pairs): its code, the base, the extra hydrogen and its heavy atom.
+struct ProtonatedBase {
+    std::string_view code;
+    char base;
+    std::string_view proton;
+    std::string_view heavy;
+};
+
 // Arnott monomer: backbone heavy atoms (P OP1 OP2 O5' C5' C4' O4' C3' O3' C2' O2' C1').
 std::span<const CylindricalAtom> arnottBackbone();
 // Arnott monomer: the heavy atoms of base A, C, G or U (empty for any other letter), CCD order.
@@ -152,5 +169,7 @@ std::span<const ComponentHydrogen> componentHydrogens(std::string_view code);
 // The rules of one residue (A C G U or 0A 0C 0G 0U).
 std::span<const HydrogenPosition> hydrogenPositions(std::string_view residue);
 std::span<const ChiralCentre> lRiboseChirality();
+// The CCD's N3-protonated cytidine (CH, HN3 on N3; tools/gen_chem_tables.py protonated_cytidine).
+const ProtonatedBase& protonatedCytidine();
 
 }  // namespace mdbridge::chem::reference

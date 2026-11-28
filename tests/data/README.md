@@ -506,8 +506,8 @@ with 1. The chem commands of milestone 6 (`pdb clean / check / to-lrna / annotat
 mutate / fit`, `dict list / smiles / finish / pubchem`, `density fit / simulate`, and `render` with a
 map and `auto_fit`) have their cases too; each records the chem commands it `needs`, and a case is
 marked `pending` while one of them is in cli_parity.py's `PENDING` (skipped when comparing and by the
-C++ test; since milestone 6 W2-C only `build helix pairings`, the other pairings and triplexes of
-W2-A): their inputs come from
+C++ test; `PENDING` has been empty since milestone 6 W2-A, which brought the other pairings and
+triplexes): their inputs come from
 `build helix` run first, `chem/maps` and `chem/dictionaries`; MDATK runs with `improvements_chem.py`
 and the command line in `sys.argv` (the step log records it), the step log's `time` / `duration_s`
 are masked, and `dict pubchem` asks a stand-in PubChem on 127.0.0.1 (`MDBRIDGE_PUBCHEM_URL`, owner
@@ -577,7 +577,7 @@ docstring:
 | `annotate_cases.json` | `make_annotate_cases.py` | built helices and crafted files; `annotate` with every option and engine (records, notes, text) |
 | `dict_cases.json`, `dictionaries/*.cif` | `make_dict_cases.py` (pytest: `tests/test_dictionaries.py`'s synthetic dictionaries) | `COMPONENTS`; `parse_smiles` (test strings, the components, a fuzzed set); `match_graph`; `check_smiles` / `identify_smiles`; `finish_dictionary` of synthetic acedrg / eLBOW dictionaries with every option; two dictionaries for `cli_parity.py`'s `dict finish` cases |
 | `builder_cases.json` | `make_builder_cases.py` | `check_helix` and the sequence functions; the A-form templates; Watson-Crick `build_helix` over its options; `mutate` and `parse_mutations` |
-| `builder_fitted_cases.json`, `maps/{helix_moved,strand_moved,strand_nan}.mrc` | `make_builder_cases.py` | the reference helix fits of the kinds still built (hh, the Hoogsteen duplex, the pyrimidine-motif triplex; CH-18: start(s), the fit's parameters, cost, nfev, status, and the screw, torsions and contacts of those parameters), `_pair_fit` of every canonical pair (MDATK's H-bond fits; CH-18's kinds pose theirs from the RNA triple helices), the rebuilt helices (other pairings, triplexes, CH-16's continuation closure, CH-18's geometry; the refused kinds as errors: text, notes, heavy-atom coordinates; read by `tests/chem/test_builder.cpp` within D10; built in parallel worker processes, `MDBRIDGE_GENERATOR_JOBS`), `fit_to_map` on the maps (one model with shifted columns takes the rewrite; read by `tests/chem/test_mutate.cpp`, the fits within D10's tolerance) |
+| `builder_fitted_cases.json`, `maps/{helix_moved,strand_moved,strand_nan}.mrc` | `make_builder_cases.py` | the reference helix fits of the kinds still built (hh, the Hoogsteen duplex, the pyrimidine-motif triplex; CH-18: start(s), the fit's parameters, cost, nfev, status, and the screw, torsions and contacts of those parameters), `_pair_fit` of every canonical pair (MDATK's H-bond fits; CH-18's kinds pose theirs from the RNA triple helices), the rebuilt helices (other pairings, triplexes, CH-16's continuation closure, CH-18's geometry; the refused kinds (CH-18) and sequences (CH-19) as errors: text, notes, heavy-atom coordinates; read by `tests/chem/test_builder.cpp` within D10; built in parallel worker processes, `MDBRIDGE_GENERATOR_JOBS`), `fit_to_map` on the maps (one model with shifted columns takes the rewrite; read by `tests/chem/test_mutate.cpp`, the fits within D10's tolerance) |
 | `density_fit_cases.json`, `maps/fit_*.mrc` | `make_density_fit_cases.py` (MDAnalysis: the demo frame) | `rotation_samples`, `_fft_size`, per model x map the `FitProblem`, CCs, flips, the coarse search's grid and peaks, `refine`, `fit_model` global and manual; errors (read by `tests/chem/test_density_fit.cpp`: fits within D10's tolerance) |
 
 numpy's and OpenBLAS' kernels are pinned (`chem_common.py`, as `make_analysis_cases.py`). The
@@ -612,16 +612,30 @@ atom <= 0.05 Å; fits: 0.5°, 0.2 Å, CC 1e-3; plan 4.1). To regenerate, with an
 
 The chemistry reference tables of milestone 6 are not test data but are regenerated (and compared)
 by the same job: `tools/gen_chem_tables.py` writes `src/chem/helix_tables.inc` (the Arnott A-RNA
-monomer from `data/sources/helix`, the 4JRD nucleotide and screw from `data/sources/pdb`) and
+monomer from `data/sources/helix`, the 4JRD nucleotide and screw from `data/sources/pdb`),
 `src/chem/component_tables.inc` (the CCD's L-ribonucleotides 0A 0C 0G 0U from
-`data/sources/ccd/ribonucleotide_*.tsv`), pure Python and deterministic, and compares them with
+`data/sources/ccd/ribonucleotide_*.tsv`, the N3-protonated cytidine CH from
+`protonated_cytidine_*.tsv`) and `src/chem/triplex_tables.inc` (the mean base triples, screws and
+spreads of the RNA triple helices PDB 3P22, 4PLX, 6SVS and 7JNH from `data/sources/pdb/triplex_levels.tsv`
+and the `*_triplex_atoms.tsv` extracts; every site, a molecule's copies counted once:
+data/sources/pdb/README.md, docs/DIFFERENCES.md CH-18, CH-20), pure Python and deterministic, and compares them with
 MDATK 0.0.4.1's embedded tables (`builder.py`, `dictionaries.py`): a difference that is not one of
 its documented ones (docs/DIFFERENCES.md CHD-01, CHD-02) fails the step. `tests/chem/test_reference_tables.cpp`
 checks the tables' chemistry (bond lengths, links, compositions).
 
 ```bash
-python3 -I -B tools/gen_chem_tables.py /tmp/mdatk   # src/chem/helix_tables.inc, component_tables.inc
+python3 -I -B tools/gen_chem_tables.py /tmp/mdatk   # src/chem/helix_tables.inc, component_tables.inc, triplex_tables.inc
 ```
+
+`BuilderGeometry.ExperimentalKindsMatchTheRnaTripleHelices` (tests/chem/test_builder.cpp) holds the
+experimental ranges of these steps, measured as docs/reports/2026-11-27-non-wc-geometry.md measures
+them (the rigid fit of C1' and the base atoms both residues of a strand have; the base planes of all
+strands; strand stacking; the inclination of a level's base plane to the step's axis): purine and
+Hoogsteen strands (53 steps) twist 21.6-37.7°, rise 2.55-3.93 Å, base planes 3.06-3.49 Å, inclination
+3.0-17.1°, stacking at most 3.42 / 3.71 Å; the triples twist 26.9-34.9°, rise 2.78-3.78 Å, base planes
+3.13-3.49 Å, inclination 0.7-14.2°, stacking at most 3.42 / 3.79 / 3.71 Å; links C3'-O3'-P 117.1-124.6°,
+O3'-P-O5' 100.2-106.4°, epsilon −188 ... −101°; and the tables' means (30.48° / 3.007 Å / 3.270 Å and
+30.40° / 3.021 Å / 3.263 Å). Change them with the data, not by hand: they are the report's numbers.
 
 The analysis module of milestone 3 (`src/analysis/`, tested by `tests/analysis/`) is checked against
 the files of `analysis/`, written by six generators (in the order `regenerate_all.py` runs them):
@@ -1201,9 +1215,9 @@ closed). `needs` holds `tools` for these cases. The density fit's case (`builder
 `fitted` (above): the fitted PDB's coordinates within 0.01 Å (D10's fit agreement is 0.5° and 0.2
 Å; the case asks for less), the project's step log within the last printed digit;
 `regenerate_all.py` compares the fit case's files across machines by the chemistry's rule
-(FITTED_TEXT). The non-Watson-Crick builds are not in
-the cases until the fitted builder (W2-A) lands: their *Check* messages are (reverse-hoogsteen's now
-the CH-18 refusal).
+(FITTED_TEXT). The non-Watson-Crick builds are in the cases since W2-A (`builder_helix`: the *Check*
+messages of hh, reverse Hoogsteen, now the CH-18 refusal, and a triplex); their built models are
+compared in `chem/builder_fitted_cases.json` and the command-line cases.
 
 ## numerics: SciPy's numerics (milestone 6, W0-C)
 

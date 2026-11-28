@@ -801,6 +801,10 @@ def build_cases():
                                                     "-o", "h.pdb"]),
         chem_case("build_helix_purine_triplex", [*helix, "--seq", "AAGAGAAGGA", "--triplex", "reverse-hoogsteen",
                                                  "-o", "h.pdb"]),
+        # D19 (CH-19): sequences a built kind cannot pair are refused, the positions named
+        chem_case("build_helix_hoogsteen_pyrimidines", [*helix, "--seq", "GAGGAUCA", "--pairing", "hoogsteen",
+                                                        "-o", "h.pdb"]),
+        chem_case("build_helix_hh_not_a", [*helix, "--seq", "AAGAA", "--pairing", "hh", "-o", "h.pdb"]),
         chem_case("build_helix_hoogsteen", [*helix, "--seq", "AAGAGAAGGA", "--pairing", "hoogsteen", "-o", "h.pdb"],
                   fitted=0.05),
         chem_case("build_helix_triplex", [*helix, "--seq", "AAGAGAAGGA", "--triplex", "hoogsteen", "--chains", "P,Q,R",

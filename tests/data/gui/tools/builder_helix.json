@@ -559,7 +559,7 @@
     "tool": {
      "name": "builder",
      "open": true,
-     "report": "INFO: partner strand: tHH partners of strand 1 (A·A, C·C, G·G, U·U), parallel\nINFO: trans Hoogsteen/Hoogsteen A·A (as PDB 4JRD), parallel: 4 pairs, 2 canonical tHH, 2 mismatched\nWARNING: mismatched pairs (no tHH pair) start from the reference A·A pair, are moved off the bases they would hit and are reported: 3:G·G, 4:G·G"
+     "report": "ERROR: pairing hh: the parallel duplex of PDB 4JRD has A·A pairs only; other bases at 3:G·G, 4:G·G"
     }
    },
    {
@@ -587,7 +587,7 @@
     "tool": {
      "name": "builder",
      "open": true,
-     "report": "INFO: partner strand: Watson-Crick complement\nINFO: third strand: U·A, C+·G on the strand-1 purines, parallel to strand 1\nINFO: triplex (pyrimidine motif: Hoogsteen third strand parallel to the purine strand (U·A-U, C+·G-C)): 4 canonical base triple(s), 0 mismatched\nINFO: C+·G-C triples need N3-protonated cytosine (C+) in the third strand; written as plain C (protonate or restrain for the simulation)\nINFO: 4 base pairs: 4 Watson-Crick, 0 G·U wobble, 0 mismatched"
+     "report": "INFO: partner strand: Watson-Crick complement\nINFO: third strand: U·A, C+·G on the strand-1 purines, parallel to strand 1\nINFO: triplex (pyrimidine motif: Hoogsteen third strand parallel to the purine strand (U·A-U, C+·G-C)): 4 canonical base triple(s), 0 mismatched\nINFO: C+·G-C triples need N3-protonated cytosine (C+) in the third strand: written as CH, the CCD's N3-protonated cytidine (HN3 with the hydrogens; L: plain C; restrain the triple for the simulation)\nINFO: 4 base pairs: 4 Watson-Crick, 0 G·U wobble, 0 mismatched"
     }
    },
    {

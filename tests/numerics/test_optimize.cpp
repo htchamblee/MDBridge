@@ -397,8 +397,9 @@ TEST(LeastSquares, CallbackStops) {
 // A banded linear least-squares problem with one-sided (clipped) rows reaches the solution of its
 // normal equations, solved here by Cholesky (to the differences' rounding), and the same point as the
 // dense differences.
-TEST(LeastSquares, DenseFromSparsityAndTheTallExactSubproblem) {
-    constexpr std::size_t n = 40, bands = 3;
+// 40 variables: the Householder QR of the tall matrix; 240: the row-wise Givens QR (200 or more, NU-03)
+void denseFromSparsityCase(std::size_t n) {
+    constexpr std::size_t bands = 3;
     std::vector<std::size_t> rowOf, colOf;
     std::vector<std::vector<std::pair<std::size_t, double>>> rows;
     for (std::size_t i = 0; i < n; ++i) {  // band rows: x_i .. x_{i+2}
@@ -479,6 +480,11 @@ TEST(LeastSquares, DenseFromSparsityAndTheTallExactSubproblem) {
     }
     grouped.trSolver = numerics::TrustRegionSolver::Lsmr;
     EXPECT_THROW(numerics::leastSquares(fun, x0, grouped), std::invalid_argument);
+}
+
+TEST(LeastSquares, DenseFromSparsityAndTheTallExactSubproblem) {
+    denseFromSparsityCase(40);
+    denseFromSparsityCase(240);
 }
 
 TEST(LeastSquares, ColumnGroupsAndPermutations) {

@@ -252,6 +252,7 @@ private slots:
     void builderGreysOutWhatRnaDoesNotForm();
     void mutateAndFitWriteWhatTheCommandsWrite();
     void fitCancelIsLoggedAsCancelled();
+    void helixCancelStopsTheFittedBuild();
     void closingDuringABuildAsks();
     void hostedWithoutTheAnalysisWindow();
     void everyControlIsNamedAndReachable();
@@ -514,6 +515,30 @@ void ToolTests::fitCancelIsLoggedAsCancelled() {
     QCOMPARE(entryText(entries[1], "step"), std::string("build fit"));
     QCOMPARE(entryText(entries[1], "status"), std::string("cancelled"));
     QVERIFY(entries[1].find("files") == nullptr);
+}
+
+// A fitted helix build cancelled while it closes its strands stops (the fit and the closure poll the job's
+// cancel): nothing is written and the step is logged as cancelled, not as succeeded
+void ToolTests::helixCancelStopsTheFittedBuild() {
+    Fixture f;
+    BuilderWindow* dlg = f.openBuilder();
+    setText(dlg, "seq", QStringLiteral("AAGAGAAGGAAGAGAAGGAA"));
+    choose(dlg, "pairing", "hoogsteen");
+    const fs::path out = f.dir / "hoogsteen.pdb";
+    setText(dlg, "helix_out", qs(out));
+    dlg->setPage(QStringLiteral("helix"));
+    dlg->runCurrent();
+    QVERIFY(dlg->busy());
+    QVERIFY(QTest::qWaitFor([&] { return dlg->jobs().fraction() > 0.05; }, 120000));  // the closure has begun
+    click(dlg, "cancel");
+    QVERIFY(QTest::qWaitFor([&] { return !dlg->busy(); }, 120000));
+    QCOMPARE(dlg->reportText(), QStringLiteral("Cancelled: the helix build stopped, nothing was written."));
+    QVERIFY(!fs::exists(out));
+    const core::Array entries = stepLog(f.project);
+    QCOMPARE(entries.size(), std::size_t{1});
+    QCOMPARE(entryText(entries[0], "step"), std::string("build helix"));
+    QCOMPARE(entryText(entries[0], "status"), std::string("cancelled"));
+    QVERIFY(entries[0].find("files") == nullptr);
 }
 
 // TW-04 (JB-01): closing the builder while it builds asks; Cancel keeps it, Close cancels and waits
