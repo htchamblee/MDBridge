@@ -123,7 +123,8 @@ DATA_TABLES = "src/core/include/mdbridge/core/detail/data_tables_independent.inc
 TABLES = ["src/core/unicode_tables.inc", "src/core/case_tables.inc", "src/core/citation_data.inc",
           "src/core/step_types.inc", "src/core/panel_tables.inc", DATA_TABLES, "src/core/selection_tables.inc",
           "src/io/pdb_tables.inc", "src/analysis/covalent_radii.inc", "src/analysis/energy_lj_tables.inc",
-          "src/render/core/mpl_colors.inc", "src/chem/helix_tables.inc", "src/chem/component_tables.inc"]
+          "src/render/core/mpl_colors.inc", "src/chem/helix_tables.inc", "src/chem/component_tables.inc",
+          "src/workflow/tables.inc", "src/workflow/helpers"]
 SOURCES = "data/sources"  # committed inputs of tools/gen_data_tables.py, copied into the fresh tree
 FONTS = "data/fonts"  # the bundled fonts the render generators give Matplotlib (improvements_fonts.py), copied too
 
@@ -340,6 +341,13 @@ STEPS = [
     # A-RNA, PDB 4JRD), checked against MDATK's embedded tables
     Step("chem_tables", "tools/gen_chem_tables.py", lambda ctx: [M(ctx)],
          ["src/chem/helix_tables.inc", "src/chem/component_tables.inc"], flags=["-I", "-B"]),
+    # the workflow generators' tables (milestone 7 W0-C; AmberTools names, NBfix19 / 0BPh, the Mg2+ sets
+    # when data/sources/mg holds them) and the six small helper scripts' texts (D4), checked against
+    # MDATK's tables and its embed output
+    Step("workflow_tables", "tools/gen_workflow_tables.py", lambda ctx: [M(ctx)], ["src/workflow/tables.inc"],
+         flags=["-I", "-B"]),
+    Step("workflow_helpers", "tools/extract_workflow_helpers.py", lambda ctx: [M(ctx)], ["src/workflow/helpers"],
+         flags=["-I", "-B"]),
     # project files: MDATK's own files (fixed clock), the hand-made ones, and what MDATK reads from them
     Step("projects", "tests/parity/make_projects.py", lambda ctx: ["--fixed-clock", d(ctx, "projects")],
          [f"{DATA}/projects/{n}" for n in ("default.mdatk.toml", "full.mdatk.toml", "split.mdatk.toml",

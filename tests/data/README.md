@@ -625,6 +625,21 @@ checks the tables' chemistry (bond lengths, links, compositions).
 python3 -I -B tools/gen_chem_tables.py /tmp/mdatk   # src/chem/helix_tables.inc, component_tables.inc
 ```
 
+The workflow generators' tables and helper texts of milestone 7 (W0-C) are regenerated and compared
+the same way: `tools/gen_workflow_tables.py` writes `src/workflow/tables.inc` (force fields, water
+models, strip masks from `data/sources/amber/leap_files.tsv`; NBfix19 / 0BPh from
+`data/sources/nbfix/nbfix_pairs.tsv`; the microMg / nanoMg sets from `data/sources/mg` when its
+extracts are there, see its README; MDATK's own labels, comment lines and citation texts) and fails
+on any difference from MDATK 0.0.4.1's tables; `tools/extract_workflow_helpers.py` writes the six
+small helper scripts' bodies (`src/workflow/helpers/*.py`, `helpers.sha256`) and checks that the
+scripts rebuilt from them in `embed`'s layout equal MDATK's `embed` output, and that their published
+numbers equal `data/sources/nbfix` (CP, TIP4P/2005). Both are standard library only.
+
+```bash
+python3 -I -B tools/gen_workflow_tables.py /tmp/mdatk        # src/workflow/tables.inc
+python3 -I -B tools/extract_workflow_helpers.py /tmp/mdatk   # src/workflow/helpers/
+```
+
 The analysis module of milestone 3 (`src/analysis/`, tested by `tests/analysis/`) is checked against
 the files of `analysis/`, written by six generators (in the order `regenerate_all.py` runs them):
 

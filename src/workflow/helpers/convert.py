@@ -1,0 +1,158 @@
+import copy
+import math
+import re
+import sys
+
+KCAL_TO_KJ = 4.184
+
+
+def unique_type_names(parm):
+    """Rename atom types so each Lennard-Jones type index has its own name.
+
+    Returns {lj index (0-based): [names]}."""
+    index = [int(t) - 1 for t in parm.parm_data["ATOM_TYPE_INDEX"]]
+    by_name = {}
+    for atom, t in zip(parm.atoms, index):
+        by_name.setdefault(atom.type, set()).add(t)
+    used = set(by_name)
+    rename = {}
+    for name, idxs in by_name.items():
+        for k, t in enumerate(sorted(idxs)):
+            if k == 0:
+                rename[(name, t)] = name
+                continue
+            n = k
+            new = f"{name}x{n}"
+            while new in used:
+                n += 1
+                new = f"{name}x{n}"
+            used.add(new)
+            rename[(name, t)] = new
+    for atom, t in zip(parm.atoms, index):
+        new = rename[(atom.type, t)]
+        if new != atom.type:
+            if atom.atom_type is not None and hasattr(atom.atom_type, "name"):
+                at = copy.copy(atom.atom_type)
+                at.name = new
+                atom.atom_type = at
+            atom.type = new
+    names = {}
+    for (name, t), new in rename.items():
+        names.setdefault(t, set()).add(new)
+    return {t: sorted(v) for t, v in names.items()}
+
+
+def modified_pairs(parm_data, rel_tol=1e-5):
+    """[(i, j, rmin, eps)] for type pairs whose LJ terms differ from the combining rule."""
+    ntypes = int(parm_data["POINTERS"][1])
+    nbi = parm_data["NONBONDED_PARM_INDEX"]
+    acoef = parm_data["LENNARD_JONES_ACOEF"]
+    bcoef = parm_data["LENNARD_JONES_BCOEF"]
+    radius, depth = [], []
+    for i in range(ntypes):
+        k = nbi[ntypes * i + i] - 1
+        a, b = (acoef[k], bcoef[k]) if k >= 0 else (0.0, 0.0)
+        if a > 0 and b > 0:
+            radius.append((2 * a / b) ** (1 / 6) / 2)
+            depth.append(b * b / (4 * a))
+        else:
+            radius.append(0.0)
+            depth.append(0.0)
+    out = []
+    for i in range(ntypes):
+        for j in range(i + 1, ntypes):
+            k = nbi[ntypes * i + j] - 1
+            if k < 0:
+                continue
+            a, b = acoef[k], bcoef[k]
+            rij = radius[i] + radius[j]
+            eij = math.sqrt(depth[i] * depth[j])
+            ac, bc = eij * rij ** 12, 2 * eij * rij ** 6
+            if abs(a - ac) <= rel_tol * max(abs(ac), 1e-12) and abs(b - bc) <= rel_tol * max(abs(bc), 1e-12):
+                continue
+            if a <= 0 or b <= 0:
+                raise ValueError(f"LJ pair {i + 1}-{j + 1} has A={a}, B={b}: cannot express it as sigma/epsilon")
+            out.append((i, j, (2 * a / b) ** (1 / 6), b * b / (4 * a)))
+    return out
+
+
+def insert_pair_sections(top_text, pairs, names):
+    """Add [ nonbond_params ] (and [ pairtypes ] when gen-pairs = yes) after [ atomtypes ]."""
+    lines = top_text.splitlines()
+    fudge_lj, gen_pairs = 1.0, "no"
+    for k, line in enumerate(lines):
+        if re.match(r"^\[\s*defaults\s*\]", line.strip()):
+            for nxt in lines[k + 1:]:
+                if nxt.strip() and not nxt.strip().startswith(";"):
+                    f = nxt.split()
+                    gen_pairs = f[2].lower() if len(f) > 2 else "no"
+                    fudge_lj = float(f[3]) if len(f) > 3 else 1.0
+                    break
+            break
+    nb = ["[ nonbond_params ]",
+          "; off-diagonal Lennard-Jones pairs of the Amber topology (e.g. NBfix19 / 0BPh, Mg2+ pair terms)",
+          ";  i          j        func  sigma (nm)        epsilon (kJ/mol)"]
+    pt = ["[ pairtypes ]",
+          f"; 1-4 interactions of the same pairs (epsilon x fudgeLJ {fudge_lj:g})",
+          ";  i          j        func  sigma (nm)        epsilon (kJ/mol)"]
+    for i, j, rmin, eps in pairs:
+        sigma = rmin / 2 ** (1 / 6) / 10.0
+        for na in names.get(i, []):
+            for nb_name in names.get(j, []):
+                nb.append(f"{na:<10s} {nb_name:<10s} 1  {sigma:.8e}  {eps * KCAL_TO_KJ:.8e}")
+                pt.append(f"{na:<10s} {nb_name:<10s} 1  {sigma:.8e}  {eps * KCAL_TO_KJ * fudge_lj:.8e}")
+    block = nb + [""] + (pt + [""] if gen_pairs == "yes" else [])
+    # insert before the first section after [ atomtypes ]
+    out, state, inserted = [], "", False
+    for line in lines:
+        m = re.match(r"^\[\s*([A-Za-z_]+)\s*\]", line.strip())
+        if m and not inserted:
+            name = m.group(1).lower()
+            if state == "atomtypes" and name != "atomtypes":
+                out.extend(block)
+                inserted = True
+            state = name
+        out.append(line)
+    if not inserted:
+        raise ValueError("no [ atomtypes ] section found in the GROMACS topology")
+    return "\n".join(out) + "\n", gen_pairs == "yes"
+
+
+def main(argv, allow_nbfix_loss=False):
+    if len(argv) != 4 or argv[0] in ("-h", "--help"):
+        print("usage: python3 THIS_SCRIPT TOPOLOGY.parm7 COORDINATES.rst7 OUT.top OUT.gro", file=sys.stderr)
+        return 2
+    import parmed as pmd
+
+    top, crd, out_top, out_gro = argv
+    parm = pmd.load_file(top, xyz=crd)
+    if "LENNARD_JONES_CCOEF" in getattr(parm, "flag_list", []):
+        print("ERROR: the topology has 12-6-4 (C4) terms, which GROMACS cannot represent", file=sys.stderr)
+        return 1
+    pairs = modified_pairs(parm.parm_data)
+    names = unique_type_names(parm) if pairs else {}
+    parm.save(out_top, format="gromacs", overwrite=True)
+    parm.save(out_gro, overwrite=True)
+    if pairs:
+        with open(out_top) as fh:
+            text = fh.read()
+        if re.search(r"^\[\s*nonbond_params\s*\]", text, re.M):
+            print("ParmEd already wrote [ nonbond_params ]; left unchanged", file=sys.stderr)
+        else:
+            try:
+                text, with_pairs = insert_pair_sections(text, pairs, names)
+            except ValueError as exc:
+                if not allow_nbfix_loss:
+                    print(f"ERROR: {exc}", file=sys.stderr)
+                    return 1
+                print(f"WARNING: {exc}; off-diagonal pairs are lost", file=sys.stderr)
+            else:
+                with open(out_top, "w") as fh:
+                    fh.write(text)
+                n = sum(len(names.get(i, [])) * len(names.get(j, [])) for i, j, _r, _e in pairs)
+                print(f"kept {len(pairs)} modified Lennard-Jones type pairs as {n} [ nonbond_params ] "
+                      f"entries" + (" (+ [ pairtypes ] for 1-4)" if with_pairs else
+                                    "; gen-pairs is 'no', so 1-4 terms of these pairs are unchanged"),
+                      file=sys.stderr)
+    print(f"wrote {out_top} and {out_gro}", file=sys.stderr)
+    return 0
