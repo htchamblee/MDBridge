@@ -62,6 +62,13 @@ Not adopted yet; it takes effect only after legal review and a formal change of 
    the analysis cache (`src/analysis/cache.cpp`) follow numpy's documented format
    (`numpy.lib.format`, NEP 1) and the ZIP application note; zlib does the compression.
 
+   Published parameters and program names used by the workflow generators (milestone 7) are
+   recorded as facts in `data/sources/amber`, `nbfix` and `mg` with their sources (rows in
+   `data/sources/ATTRIBUTION.md`); no AmberTools or ParmEd file is copied. The microMg / nanoMg Mg²⁺
+   parameter files of github.com/bio-phys carry no licence, so neither they nor extracts of them are
+   committed until the owner decides (`data/sources/mg/README.md`). The helper scripts the generated
+   workflows carry (`src/workflow/helpers/`) are MDATK's own code, written byte for byte.
+
    MDAnalysis (LGPL) defines the behaviour MDBridge reproduces, but none of its code may be
    copied or translated: reimplement from observed behaviour or from behaviour-only descriptions
    written by someone else (clean room). Its data tables are not used either: residue, atom-name,

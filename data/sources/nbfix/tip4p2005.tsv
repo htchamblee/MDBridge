@@ -1,0 +1,7 @@
+parameter	value	unit	source
+epsilon_over_k	93.2	K	Abascal & Vega, J. Chem. Phys. 123, 234505 (2005), Table I (cited)
+sigma	3.1589	angstrom	Abascal & Vega 2005, Table I (cited)
+q_h	0.5564	e	Abascal & Vega 2005, Table I (cited); q(M) = -2 q(H)
+d_om	0.1546	angstrom	Abascal & Vega 2005, Table I (cited)
+r_oh	0.9572	angstrom	Abascal & Vega 2005, section II (cited; the TIP4P geometry)
+hoh_angle	104.52	degree	Abascal & Vega 2005, section II (cited; the TIP4P geometry)

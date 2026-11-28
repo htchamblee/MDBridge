@@ -1,0 +1,76 @@
+import re
+import sys
+
+
+def is_nucleic(resname):
+    core = resname.strip().upper().rstrip("0123456789")
+    if core.endswith("N") and len(core) > 1:
+        core = core[:-1]
+    if len(core) > 1 and core[0] in "RDL":
+        core = core[1:]
+    return core in ("A", "C", "G", "U", "T")
+
+
+def add_posres(top_text, itp_pattern, force=1000.0):
+    """Return (new topology text, {itp name: itp text})."""
+    lines = top_text.splitlines()
+    out = []
+    itps = {}
+    mol = None
+    section = None
+    atoms = []
+
+    def close_molecule():
+        if mol is None or not atoms:
+            return
+        name = itp_pattern.format(mol=re.sub(r"[^A-Za-z0-9-]+", "-", mol).strip("-") or "mol")
+        body = ["; position restraints on nucleic-acid heavy atoms (written by MDATK)",
+                "[ position_restraints ]", ";  ai  funct    fcx    fcy    fcz"]
+        body += [f"{a:6d}     1 {force:7.1f} {force:7.1f} {force:7.1f}" for a in atoms]
+        itps[name] = "\n".join(body) + "\n"
+        out.extend(["", "#ifdef POSRES", f'#include "{name}"', "#endif", ""])
+
+    for line in lines:
+        stripped = line.strip()
+        m = re.match(r"^\[\s*([A-Za-z_]+)\s*\]", stripped)
+        if m:
+            new_section = m.group(1).lower()
+            if new_section in ("moleculetype", "system"):
+                close_molecule()
+                mol = None
+                atoms = []
+            section = new_section
+            out.append(line)
+            continue
+        if section == "moleculetype" and stripped and not stripped.startswith(";") and mol is None:
+            mol = stripped.split()[0]
+        elif section == "atoms" and stripped and not stripped.startswith((";", "#")):
+            fields = stripped.split()
+            if len(fields) >= 5:
+                nr, resname, atom = int(fields[0]), fields[3], fields[4]
+                if is_nucleic(resname) and not atom.upper().startswith("H"):
+                    atoms.append(nr)
+        out.append(line)
+    close_molecule()
+    return "\n".join(out) + "\n", itps
+
+
+def main(argv, itp_pattern, force):
+    if len(argv) != 1 or argv[0] in ("-h", "--help"):
+        print("usage: python3 THIS_SCRIPT TOPOLOGY.top   (edited in place)", file=sys.stderr)
+        return 2
+    with open(argv[0]) as fh:
+        text = fh.read()
+    if "#ifdef POSRES" in text:
+        print(f"{argv[0]} already includes position restraints - unchanged", file=sys.stderr)
+        return 0
+    new_text, itps = add_posres(text, itp_pattern, force)
+    if not itps:
+        print("WARNING: no nucleic-acid molecule found; no position restraints added", file=sys.stderr)
+    for name, body in itps.items():
+        with open(name, "w") as fh:
+            fh.write(body)
+        print(f"wrote {name} ({body.count(chr(10)) - 3} atoms)", file=sys.stderr)
+    with open(argv[0], "w") as fh:
+        fh.write(new_text)
+    return 0
