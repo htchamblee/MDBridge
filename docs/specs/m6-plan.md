@@ -546,7 +546,8 @@ primary sources; docs/DIFFERENCES.md "Chemistry reference data"):
      duplexes solved both ways: about 1-3° of mean twist and up to about 0.2 Å of rise, either
      direction; docs/reports/2026-11-28-crystal-vs-solution.md; NMR: 2M8K 33.0° / 3.36 Å; the hTR
      pseudoknots 28.7° / 3.72 Å).
-  5. (2026-11-28) "We write CH, so we must read it": MDBridge's name-based tools (pdb check, clean and
+  5. (2026-11-28) "Fix the CH recognition now"; "try tightening the tilt restraint, hate to leave
+     options for improvement on the table": MDBridge's name-based tools (pdb check, clean and
      the schemes, annotate, secondary structure, mutate, selections, renderers) read CH as a C, from
      the CCD entry's parent (CH-22). The single steps past the experimental extremes are brought
      inside: a tighter tilt restraint was tried and did not do it; walls at the experimental steps'

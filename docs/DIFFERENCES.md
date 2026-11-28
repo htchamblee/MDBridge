@@ -3518,7 +3518,7 @@ make them reproducible within D10 on any kernel.
   `BuilderGeometry.ProtonatedCytidinesAreTheCcdsCh`, `BuilderMdatk.TriplexThirdStrand`,
   `PairingsBuildTheIntendedPairs`, the rebuilt case hoogsteen AGGAAG with hydrogens (improvements_chem.py
   `plus_note`, `convert_names_ch`, `_residue_atoms`).
-- **CH-22 MDBridge's tools read the CH they write** (owner: "we write CH, so we must read it"; MDATK
+- **CH-22 MDBridge's tools read the CH they write** (owner decision of 2026-11-28: "fix the CH recognition now"; MDATK
   0.0.4.1 to 0.1.2 do not know CH). *What:* MDATK's name-based nucleotide recognition
   (`parse_residue_name`) knows A / C / G / U in its naming schemes and aliases only, so a file with the
   builder's C+ (CH, CH-21) read back loses that residue: `pdb check` leaves it out of the chain's
