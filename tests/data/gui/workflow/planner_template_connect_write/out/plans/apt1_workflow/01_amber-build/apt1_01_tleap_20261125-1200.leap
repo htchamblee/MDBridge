@@ -1,0 +1,17 @@
+# Solvate and add ions (OL3+CP) for project apt1, step 01
+# written by MDBridge <VERSION>
+source leaprc.RNA.OL3
+source leaprc.water.spce
+addAtomTypes { { "LD" "O" "sp3" } { "LH" "O" "sp3" } }
+addAtomTypes { { "OR" "O" "sp3" } }
+loadamberparams frcmod.cp
+loadOff RNA_CP.lib
+mol = loadpdb "apt1_01_lrna_20261125-1200.pdb"
+solvateoct mol SPCBOX 15.0
+
+addIonsRand mol Na+ 0
+
+check mol
+saveamberparm mol apt1_01_tleap_20261125-1200.parm7 apt1_01_tleap_20261125-1200.rst7
+savepdb mol apt1_01_tleap_20261125-1200.pdb
+quit

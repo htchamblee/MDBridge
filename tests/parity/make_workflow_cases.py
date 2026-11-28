@@ -81,6 +81,12 @@ def plan(nodes, edges=(), name="golden", stamp=STAMP, use_stamp=True, step_folde
             "nodes": nodes, "edges": [list(e) for e in edges]}
 
 
+# the items a step type's default case shows besides D11 (which every generated text shows)
+DEFAULT_ITEMS = {"amber-build": ["D3", "D9"], "restraint-dicts": ["D3"], "structure-builder": ["WG-18", "D6"],
+                 "farfar2": ["WG-07"], "simrna": ["WG-07", "WG-08", "WG-09"], "farfar2-models": ["WG-09"],
+                 "rnamake": ["WG-09"]}
+
+
 def build_cases():
     from mdatk.config import Project
     from mdatk.workflows import TOOLS
@@ -164,7 +170,10 @@ def build_cases():
     for name in sorted(TOOLS):
         tool = TOOLS[name]
         for label, change in variants(tool):
-            tool_case(name, label, change)
+            items = DEFAULT_ITEMS.get(name, []) if label == "default" else []
+            if (name, label) in (("vmd", "render=movie"), ("amber-build", "split_types=False")):
+                items = ["WG-09"] if name == "vmd" else ["D9"]
+            tool_case(name, label, change, items=items)
         for label, change in record_variants(tool):
             tool_case(name, label, change)
         if name == "vmd":

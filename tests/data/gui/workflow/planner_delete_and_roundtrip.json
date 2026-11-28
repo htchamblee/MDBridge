@@ -1,0 +1,290 @@
+{
+ "format": "mdbridge-gui-case",
+ "version": 1,
+ "description": "Project Planner: the amber-gromacs template, the GROMACS step deleted with its connections, a note typed in the details pane, the project saved and opened again",
+ "source": "MDATK v0.0.4.1's GTK window driven by tests/parity/make_gui_cases.py, with MDBridge's window improvements (tests/parity/improvements_gui.py)",
+ "clock": "2026-11-25T12:00:00",
+ "items": [],
+ "mdatk_test": "tests/test_workflow_gui.py::test_planner_delete_and_project_roundtrip",
+ "needs": [
+  "lossless",
+  "snapshot",
+  "start",
+  "workflow"
+ ],
+ "canvas": {
+  "width": 960,
+  "height": 540
+ },
+ "files": {
+  "p.mdatk.toml": "gui/workflow/planner_delete_and_roundtrip/in/p.mdatk.toml"
+ },
+ "start": {
+  "project": "p.mdatk.toml"
+ },
+ "actions": [
+  {
+   "action": "wf.planner.open"
+  },
+  {
+   "action": "wf.planner.template",
+   "name": "amber-gromacs"
+  },
+  {
+   "action": "wf.planner.select",
+   "node": "n2"
+  },
+  {
+   "action": "wf.planner.delete"
+  },
+  {
+   "action": "wf.planner.add",
+   "tool": "note",
+   "x": 40,
+   "y": 600
+  },
+  {
+   "action": "wf.planner.note",
+   "node": "n2",
+   "text": "check the Mg count"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "workflow": {
+    "planner": true
+   }
+  },
+  {
+   "action": "save"
+  },
+  {
+   "action": "open",
+   "path": "p.mdatk.toml"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "workflow": {
+    "planner": true
+   }
+  }
+ ],
+ "expected": {
+  "p.mdatk.toml": "gui/workflow/planner_delete_and_roundtrip/out/p.mdatk.toml"
+ },
+ "log": [
+  "Saved project {case_dir}/p.mdatk.toml",
+  "Opened project {case_dir}/p.mdatk.toml"
+ ],
+ "outcome": {
+  "snapshots": [
+   {
+    "action": 6,
+    "workflow": {
+     "planner": {
+      "open": true,
+      "nodes": [
+       [
+        "n1",
+        "amber-build",
+        1,
+        "",
+        40.0,
+        40.0
+       ],
+       [
+        "n2",
+        "note",
+        0,
+        "",
+        40.0,
+        600.0
+       ]
+      ],
+      "edges": [],
+      "issues": [
+       [
+        "01 · Amber · system build",
+        "error",
+        "Starting structure (PDB): connect a step that produces it or choose a file"
+       ],
+       [
+        "01 · Amber · system build",
+        "info",
+        "the CP library and parameters are generated from AmberTools' RNA.lib and parm10.dat when the script runs (AMBERHOME or tleap on PATH)"
+       ]
+      ],
+      "naming": {
+       "project": "apt1",
+       "stamp": "",
+       "use_stamp": true,
+       "step_folders": true,
+       "shown": "20261125-1200 (set on first write)"
+      },
+      "status": "1 steps · 0 connections · 1 errors · 0 warnings · folder {case_dir}/plans/apt1_workflow"
+     }
+    }
+   },
+   {
+    "action": 9,
+    "workflow": {
+     "planner": {
+      "open": true,
+      "nodes": [
+       [
+        "n1",
+        "amber-build",
+        1,
+        "",
+        40.0,
+        40.0
+       ],
+       [
+        "n2",
+        "note",
+        0,
+        "",
+        40.0,
+        600.0
+       ]
+      ],
+      "edges": [],
+      "issues": [
+       [
+        "01 · Amber · system build",
+        "error",
+        "Starting structure (PDB): connect a step that produces it or choose a file"
+       ],
+       [
+        "01 · Amber · system build",
+        "info",
+        "the CP library and parameters are generated from AmberTools' RNA.lib and parm10.dat when the script runs (AMBERHOME or tleap on PATH)"
+       ]
+      ],
+      "naming": {
+       "project": "apt1",
+       "stamp": "",
+       "use_stamp": true,
+       "step_folders": true,
+       "shown": "20261125-1200 (set on first write)"
+      },
+      "status": "1 steps · 0 connections · 1 errors · 0 warnings · folder {case_dir}/plans/apt1_workflow"
+     }
+    }
+   }
+  ],
+  "settings": "gui/workflow/planner_delete_and_roundtrip/settings.after.toml"
+ },
+ "mdatk": {
+  "expected": {
+   "p.mdatk.toml": "gui/workflow/planner_delete_and_roundtrip/mdatk/p.mdatk.toml"
+  },
+  "snapshots": [
+   {
+    "action": 6,
+    "workflow": {
+     "planner": {
+      "open": true,
+      "nodes": [
+       [
+        "n1",
+        "amber-build",
+        1,
+        "",
+        40.0,
+        40.0
+       ],
+       [
+        "n2",
+        "note",
+        0,
+        "",
+        40.0,
+        600.0
+       ]
+      ],
+      "edges": [],
+      "issues": [
+       [
+        "01 · Amber · system build",
+        "error",
+        "Starting structure (PDB): connect a step that produces it or choose a file"
+       ],
+       [
+        "01 · Amber · system build",
+        "info",
+        "the CP library and parameters are generated from AmberTools' RNA.lib and parm10.dat when the script runs (AMBERHOME or tleap on PATH)"
+       ],
+       [
+        "01 · Amber · system build",
+        "info",
+        "tleap gives HO the same Lennard-Jones type as water HW (both zero) and O2 the same as carbonyl O, so 'changeLJPair @%HO ...' also changes water-H and carbonyl-O pairs; tick 'Separate HO and O2 Lennard-Jones types first' if that is not intended"
+       ]
+      ],
+      "naming": {
+       "project": "apt1",
+       "stamp": "",
+       "use_stamp": true,
+       "step_folders": true,
+       "shown": "20261125-1200 (set on first write)"
+      },
+      "status": "1 steps · 0 connections · 1 errors · 0 warnings · folder {case_dir}/plans/apt1_workflow"
+     }
+    }
+   },
+   {
+    "action": 9,
+    "workflow": {
+     "planner": {
+      "open": true,
+      "nodes": [
+       [
+        "n1",
+        "amber-build",
+        1,
+        "",
+        40.0,
+        40.0
+       ],
+       [
+        "n2",
+        "note",
+        0,
+        "",
+        40.0,
+        600.0
+       ]
+      ],
+      "edges": [],
+      "issues": [
+       [
+        "01 · Amber · system build",
+        "error",
+        "Starting structure (PDB): connect a step that produces it or choose a file"
+       ],
+       [
+        "01 · Amber · system build",
+        "info",
+        "the CP library and parameters are generated from AmberTools' RNA.lib and parm10.dat when the script runs (AMBERHOME or tleap on PATH)"
+       ],
+       [
+        "01 · Amber · system build",
+        "info",
+        "tleap gives HO the same Lennard-Jones type as water HW (both zero) and O2 the same as carbonyl O, so 'changeLJPair @%HO ...' also changes water-H and carbonyl-O pairs; tick 'Separate HO and O2 Lennard-Jones types first' if that is not intended"
+       ]
+      ],
+      "naming": {
+       "project": "apt1",
+       "stamp": "",
+       "use_stamp": true,
+       "step_folders": true,
+       "shown": "20261125-1200 (set on first write)"
+      },
+      "status": "1 steps · 0 connections · 1 errors · 0 warnings · folder {case_dir}/plans/apt1_workflow"
+     }
+    }
+   }
+  ]
+ }
+}

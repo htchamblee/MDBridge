@@ -220,7 +220,8 @@ PENDING = {"build helix pairings"}
 # The workflow commands (milestone 7, docs/specs/m7-plan.md 1.8): recorded in "needs" like the chem commands
 # (the step log's time is masked in their files) and pending until W2-E lands them; their texts are masked
 # as improvements_workflow.mask() masks them (WORKFLOW_MASKS below).
-WORKFLOW = {f"workflow {c}" for c in ("tools", "check", "write", "run", "generate", "template", "restraints")}
+WORKFLOW = {"workflow"} | {f"workflow {c}" for c in ("tools", "check", "write", "run", "generate", "template",
+                                                     "restraints")}
 CHEM |= WORKFLOW
 PENDING |= WORKFLOW
 
@@ -1006,8 +1007,8 @@ def wf_case(name, argv, plans=(), before=None, run=False, wstamp=False, setup_ex
         setup.update({"bin/vmd": FAKE_VMD, "bin/vmd-fails": VMD_FAILS})
     c = case(name, argv, WF_DEMO, setup, before=before,
              env=WF_ENV, executable=["bin/vmd", "bin/vmd-fails"] if run else None, **kw)
-    if wstamp:
-        c["wstamp"] = True
+    if wstamp or (argv[1:2] == ["generate"] and not {"--stamp", "--no-stamp"} & set(argv)):
+        c["wstamp"] = True  # the stamp of the clock (generate without a project stamp)
     return c
 
 

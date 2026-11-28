@@ -468,9 +468,10 @@ STEPS = [
     # milestone 5: MDATK's GTK window driven by action scripts (W0-A; under Xvfb, which it starts
     # when DISPLAY is unset): open / save of the projects above, per page edits, the AP items, canvas
     # actions on the demo files; milestone 6 W3-B: the PDB clean-up and structure builder windows
-    # (tools); reads the committed MDATK 0.1.1 file when mdatk_latest was skipped
+    # (tools); milestone 7 W0-A: the Project Planner and the script wizard (workflow; reads the workflow
+    # fixtures); reads the committed MDATK 0.1.1 file when mdatk_latest was skipped
     Step("gui", "tests/parity/make_gui_cases.py", lambda ctx: [M(ctx), d(ctx)],
-         [f"{DATA}/gui/{topic}" for topic in ("roundtrip", "pages", "ap", "canvas", "tools")], gui=True,
+         [f"{DATA}/gui/{topic}" for topic in ("roundtrip", "pages", "ap", "canvas", "tools", "workflow")], gui=True,
          before=copy_committed(f"{DATA}/project-file/mdatk-0.1.1/plan.mdatk.toml")),
 ]
 
