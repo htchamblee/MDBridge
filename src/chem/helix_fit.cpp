@@ -113,6 +113,9 @@ constexpr double kZeta = -66.0;
 constexpr double kBondCH2 = 1.09;
 constexpr double kLevelRotation = 10.0;  // LEVEL_MOVE: degrees, Å
 constexpr double kLevelShift = 0.8;
+// D19: the stiffness of the walls at the experimental steps' extremes: twist (degrees), rise and stacking
+// (Angstrom), inclination (degrees) beyond the extreme by this much weigh as much as one standard deviation
+constexpr std::array<double, 3> kRangeWall = {0.1, 0.01, 0.1};
 constexpr double kFitContactWeight = 0.03;
 
 // CONTACT_FIT / CONTACT_REPORT
@@ -1939,6 +1942,13 @@ public:
                 for (std::size_t c = 0; c < 6; ++c) sd[c] = sc.sd[c];
                 m_stepSd = sd;
                 m_tiltSd = sc.inclinationSd;
+                // D19: every step held within the experimental steps' extremes
+                m_walls = true;
+                m_lo = {sc.twistRange[0], sc.riseRange[0], sc.inclinationRange[0]};
+                m_hi = {sc.twistRange[1], sc.riseRange[1], sc.inclinationRange[1]};
+                for (std::size_t st = 0; st < m_ns; ++st) {
+                    m_stackHi[st] = sc.stackMax[st];
+                }
                 const Mat3 rs = turnMatrix(unit(screw.axis), -screw.twist);
                 const Vec3 bs = (screw.origin - matVec(rs, screw.origin)) - screw.rise * unit(screw.axis);
                 m_stepRef = stepParameters(rs, bs, screw.origin, unit(screw.axis));
@@ -2304,6 +2314,17 @@ private:
                               m_stack->second);
             }
         }
+        if (m_walls) {  // D19: the steps as measured on the atoms, within the experimental steps' extremes
+            for (std::size_t k = 0; k + 1 < m_n; ++k) {
+                const std::array<double, 3> measured = measuredStep(atoms, k);
+                for (std::size_t c = 0; c < 3; ++c) {
+                    out.push_back((clip0(m_lo[c] - measured[c]) + clip0(measured[c] - m_hi[c])) / kRangeWall[c]);
+                }
+                for (std::size_t st = 0; st < m_ns; ++st) {
+                    out.push_back(clip0(strandStacking(atoms, st, k) - m_stackHi[st]) / kRangeWall[1]);
+                }
+            }
+        }
         for (const ClosurePair& pr : pairs) {
             out.push_back(clip0(pr.limit - norm(atoms[pr.p] - atoms[pr.q])) / kClosureWeight);
         }
@@ -2337,6 +2358,61 @@ private:
         const Mat3 a1 = matMul(rs, r0t);
         const Vec3 c1 = matVec(rs, b0i) + bs;
         return {matMul(r1, a1), matVec(r1, c1) + b1};
+    }
+
+    // D19: step k as the report and the tables' extremes measure it (docs/reports/2026-11-27-non-wc-geometry.md):
+    // the screw of the move of level k onto k + 1 by their C1' and common base atoms (twist, rise), the
+    // inclination of level k's base plane against that screw's axis
+    std::array<double, 3> measuredStep(const std::vector<Vec3>& atoms, std::size_t k) const {
+        std::vector<Vec3> a, b;
+        for (std::size_t s = 0; s < m_ns; ++s) {
+            const std::size_t i0 = (s * m_n + k) * kSlots, i1 = (s * m_n + k + 1) * kSlots;
+            a.push_back(atoms[i0 + kSlotC1]);
+            b.push_back(atoms[i1 + kSlotC1]);
+            const auto n0 = baseAtomNames(m_bases[s][k]);
+            const auto n1 = baseAtomNames(m_bases[s][k + 1]);
+            for (std::size_t i = 0; i < n0.size(); ++i) {
+                for (std::size_t j = 0; j < n1.size(); ++j) {
+                    if (n0[i] == n1[j]) {
+                        a.push_back(atoms[i0 + kStrandNames.size() + i]);
+                        b.push_back(atoms[i1 + kStrandNames.size() + j]);
+                    }
+                }
+            }
+        }
+        const std::vector<double> ones(a.size(), 1.0);
+        const Kabsch kb = kabsch(a, b, ones);
+        const Mat3& r = kb.rotation;
+        const Vec3 t = kb.referenceCentre - matVec(r, kb.mobileCentre);
+        const double w = std::sqrt(std::max(0.0, 1.0 + r[0][0] + r[1][1] + r[2][2])) / 2.0;
+        const Vec3 v = {(r[2][1] - r[1][2]) / (4 * w), (r[0][2] - r[2][0]) / (4 * w), (r[1][0] - r[0][1]) / (4 * w)};
+        const Vec3 u = unit(v);
+        const std::vector<Vec3> bases = levelBases(atoms, k);
+        const Vec3 c = mean(bases);
+        std::vector<Vec3> d;
+        for (const Vec3& x : bases) d.push_back(x - c);
+        const Vec3 nrm = core::svdRows3(d).vt[2];
+        return {degrees(2.0 * std::atan2(norm(v), w)), std::fabs(dot(u, t)),
+                degrees(std::acos(std::min(1.0, std::fabs(dot(nrm, u)))))};
+    }
+
+    // D19: the stacking of strand s's bases at levels k and k + 1 (the mean distance of each base's
+    // centre from the other's plane)
+    double strandStacking(const std::vector<Vec3>& atoms, std::size_t s, std::size_t k) const {
+        const auto plane = [&](std::size_t j) {
+            const std::size_t count = baseAtomNames(m_bases[s][j]).size();
+            std::vector<Vec3> pts;
+            for (std::size_t i = 0; i < count; ++i) {
+                pts.push_back(atoms[(s * m_n + j) * kSlots + kStrandNames.size() + i]);
+            }
+            const Vec3 c = mean(pts);
+            for (Vec3& x : pts) x = x - c;
+            return std::make_pair(c, core::svdRows3(pts).vt[2]);
+        };
+        const auto [ca, na] = plane(k);
+        const auto [cb, nb] = plane(k + 1);
+        const Vec3 v = cb - ca;
+        return 0.5 * (std::fabs(dot(v, na)) + std::fabs(dot(v, nb)));
     }
 
     // the base heavy atoms of every strand at level k (strand order, base_names order)
@@ -2409,6 +2485,14 @@ private:
             for (std::size_t k = 0; k + 1 < m_n; ++k) {
                 lo.push_back(k);
                 hi.push_back(k + 1);
+            }
+        }
+        if (m_walls) {
+            for (std::size_t k = 0; k + 1 < m_n; ++k) {
+                for (std::size_t c = 0; c < 3 + m_ns; ++c) {
+                    lo.push_back(k);
+                    hi.push_back(k + 1);
+                }
             }
         }
         for (const ClosurePair& p : pairs) {
@@ -2587,6 +2671,9 @@ private:
     std::optional<std::array<double, 6>> m_stepSd;
     std::array<double, 6> m_stepRef{};
     double m_tiltSd = 1.0;
+    bool m_walls = false;                // D19: the experimental steps' extremes (twist, rise, inclination;
+    std::array<double, 3> m_lo{}, m_hi{};  // the strands' stacking)
+    std::array<double, 3> m_stackHi{};
     std::optional<std::pair<double, double>> m_stack;  // CH-18: (mean, sd) of the base-plane separation
     std::vector<std::string> m_bases;
     std::vector<int> m_steps;

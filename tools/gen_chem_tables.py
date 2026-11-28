@@ -703,6 +703,19 @@ def subset(points, trio, strands):
     return out
 
 
+def matched_points(a, b, strands):
+    """The C1' and base atoms that two levels' residues of each strand both have (a U·A-U and a C+·G-C level:
+    C1', N9 ... C4 of the purine, N1 ... C6 but O4 / N4 of the pyrimidines), as two point lists."""
+    p, q = [], []
+    for s in strands:
+        ra, rb = a[s], b[s]
+        for n in ("C1'",) + TRIPLEX_BASE_ATOMS[ra["comp"]]:
+            if n in TRIPLEX_BASE_ATOMS[rb["comp"]] or n == "C1'":
+                p.append(ra["atoms"][n])
+                q.append(rb["atoms"][n])
+    return p, q
+
+
 def bases_only(points, trio, strands):
     """The C1' and base atoms of the points of a level's strands (level_points order)."""
     flags = [n not in TRIPLEX_SUGAR for s in strands for n in nucleoside_names(trio[s]["comp"])]
@@ -712,7 +725,7 @@ def bases_only(points, trio, strands):
 def triplex_tables():
     """The CH-18 tables (see the section comment): {"levels": {type: [[(name, x, y, z)] per strand]},
     "screws": {kind: {"origin", "axis", "twist", "rise", "sd" (6), "stack", "stack_sd", "steps", "sites",
-    "incl", "incl_sd"}},
+    "incl", "incl_sd", "twist_range", "rise_range", "incl_range" ([min, max]), "stack_max" (per strand)}},
     "hbonds": [(rule, atom1, atom2, mean, sd)], "pose_sd": [(strand, rotation deg, shift A)],
     "counts": {type: levels}, "sites": {type: independent levels}}, rounded to 1e-6. The copies of one
     molecule in a crystal count once: the means are weighted by 1 / copies, the standard deviations are
@@ -814,23 +827,34 @@ def triplex_tables():
         origin = add(point_f, scale(axis, s))
         params = [step_parameters(r, t, origin, axis) for r, t in moves]
         sds = [mean_sd(site_means([p[c] for p in params], step_sites))[1] for c in range(6)]
-        seps, incl = [], []
+        seps, incl, twists, rises, stacking = [], [], [], [], [[] for _ in strands]
         for (i, j), (r, t) in zip(steps, raw):
             pa = [x for st in strands for x in (levels[i][2][st]["atoms"][n] for n in TRIPLEX_BASE_ATOMS[levels[i][2][st]["comp"]])]
             pb = [x for st in strands for x in (levels[j][2][st]["atoms"][n] for n in TRIPLEX_BASE_ATOMS[levels[j][2][st]["comp"]])]
             seps.append(plane_separation(pa, pb))
             # inclination: the level's base plane against the step's axis (the steps of the experimental
             # levels themselves: the move of level i onto level j by their C1' and base atoms)
-            _q, rr, tt = superpose(bases_only(level_points(levels[i][2], strands), levels[i][2], strands),
-                                   bases_only(level_points(levels[j][2], strands), levels[j][2], strands))
-            _a, u_step, _d, _p = screw_of(rr, tt)
+            _q, rr, tt = superpose(*matched_points(levels[i][2], levels[j][2], strands))
+            twist_step, u_step, rise_step, _p = screw_of(rr, tt)
             incl.append(math.degrees(math.acos(min(1.0, abs(dot(plane(pa)[1], u_step))))))
+            twists.append(twist_step)
+            rises.append(abs(rise_step))
+            for k, st in enumerate(strands):  # each strand's stacking: its bases' centres from the other's plane
+                ca, na = plane([levels[i][2][st]["atoms"][n] for n in TRIPLEX_BASE_ATOMS[levels[i][2][st]["comp"]]])
+                cb, nb = plane([levels[j][2][st]["atoms"][n] for n in TRIPLEX_BASE_ATOMS[levels[j][2][st]["comp"]]])
+                v = sub(cb, ca)
+                stacking[k].append(0.5 * (abs(dot(v, na)) + abs(dot(v, nb))))
         stack, stack_sd = mean_sd(site_means(seps, step_sites))
         incl_mean, incl_sd = mean_sd(site_means(incl, step_sites))
         out["screws"][name] = {"origin": [rounded(v) for v in origin], "axis": [rounded(v) for v in axis],
                                "twist": rounded(angle), "rise": rounded(d), "sd": [rounded(v) for v in sds],
                                "stack": rounded(stack), "stack_sd": rounded(stack_sd), "steps": len(moves),
-                               "sites": len(set(step_sites)), "incl": rounded(incl_mean), "incl_sd": rounded(incl_sd)}
+                               "sites": len(set(step_sites)), "incl": rounded(incl_mean), "incl_sd": rounded(incl_sd),
+                               # D19: the extremes of the experimental steps (every step, not the sites' means)
+                               "twist_range": [rounded(min(twists)), rounded(max(twists))],
+                               "rise_range": [rounded(min(rises)), rounded(max(rises))],
+                               "incl_range": [rounded(min(incl)), rounded(max(incl))],
+                               "stack_max": [rounded(max(v)) for v in stacking]}
     auu = [levels[i][2] for i in by_type["AUU"]]
     auu_sites = [levels[i][3] for i in by_type["AUU"]]
     for rule, x, y in TRIPLEX_HBONDS:
@@ -925,13 +949,17 @@ def triplex_inc():
               "// degrees), twist and rise about it, the base-plane separation of consecutive levels and its",
               "// standard deviation (over the independent steps: the copies of one molecule's step averaged), the",
               "// number of steps and of independent steps, the inclination of the levels' base planes to the",
-              "// steps' axes (degrees) and its standard deviation",
+              "// steps' axes (degrees) and its standard deviation; the experimental steps' extremes of twist,",
+              "// rise and inclination, and per strand the largest stacking of consecutive bases",
               "inline constexpr TriplexScrew kTriplexScrews[] = {"]
     for kind, sc in t["screws"].items():
         nums = ", ".join(cpp_num(v) for v in sc["origin"] + sc["axis"] + [sc["twist"], sc["rise"]])
         sds = ", ".join(cpp_num(v) for v in sc["sd"])
         lines.append(f"    {{{cpp_str(kind)}, {nums}, {{{sds}}}, {cpp_num(sc['stack'])}, {cpp_num(sc['stack_sd'])}, "
-                     f"{sc['steps']}, {sc['sites']}, {cpp_num(sc['incl'])}, {cpp_num(sc['incl_sd'])}}},")
+                     f"{sc['steps']}, {sc['sites']}, {cpp_num(sc['incl'])}, {cpp_num(sc['incl_sd'])}, "
+                     + ", ".join("{" + ", ".join(cpp_num(v) for v in sc[key]) + "}"
+                                 for key in ("twist_range", "rise_range", "incl_range"))
+                     + ", {" + ", ".join(cpp_num(v) for v in (sc["stack_max"] + [0.0] * 3)[:3]) + "}},")
     sites = t["sites"]["AUU"]
     lines += ["};", "", "// donor-acceptor distances (mean, standard deviation over the independent U·A-U triples, Angstrom) of",
               "// the U·A-U triples' pairs, the number of independent triples",

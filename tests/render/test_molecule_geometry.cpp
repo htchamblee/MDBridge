@@ -309,10 +309,10 @@ TEST(MoleculeGeometry, NamesAndLetters) {
     EXPECT_EQ(normaliseName("C1*"), "C1'");
     EXPECT_EQ(normaliseName("O1P"), "OP1");
     std::string letters;
-    for (const char* r : {"G", "RA5", "C3", "DT", "PSU", "U5", "MG", "LYS"}) {
+    for (const char* r : {"G", "RA5", "C3", "DT", "PSU", "U5", "MG", "LYS", "CH"}) {
         letters += baseLetter(r);
     }
-    EXPECT_EQ(letters, "GACTUU??");
+    EXPECT_EQ(letters, "GACTUU??C");  // CH-22: the builder's C+ (the CCD's CH) is a C
     const Value& data = loadJson("topology.json");
     for (const Value& pair : list(at(data, "normalise_name"))) {
         EXPECT_EQ(normaliseName(str(list(pair)[0])), str(list(pair)[1])) << str(list(pair)[0]);

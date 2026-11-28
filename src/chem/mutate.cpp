@@ -24,6 +24,7 @@
 
 #include "mdbridge/chem/helix.hpp"
 #include "mdbridge/chem/pdbtools.hpp"
+#include "mdbridge/chem/reference_tables.hpp"
 #include "mdbridge/chem/secstruct.hpp"
 #include "mdbridge/core/json.hpp"
 #include "mdbridge/core/linalg.hpp"
@@ -440,7 +441,12 @@ core::Value volumesValue(const SugarChirality& c) {
 
 // Replace the base of `res` in place; returns the notes
 Notes swapBase(PdbResidue& res, char base) {
-    const char old = io::parseResidueName(res.name)->base;
+    const io::ResidueName oldInfo = *io::parseResidueName(res.name);
+    const char old = oldInfo.base;
+    // CH-22: the extra proton of a modified ribonucleotide (CH's HN3) is one of its base atoms
+    const std::string_view extraProton =
+        oldInfo.component == reference::protonatedCytidine().code ? reference::protonatedCytidine().proton
+                                                                   : std::string_view();
     const AtomCoords coords = res.coords();
     const Glycosidic go = glycosidic(old);
     const std::array<std::string_view, 4> oldFrame = {"C1'", go.n, go.a, go.b};
@@ -508,7 +514,8 @@ Notes swapBase(PdbResidue& res, char base) {
         const bool isSugar = name.find('\'') != std::string::npos || sugarExtra(name);
         if (isSugar) {
             keep.push_back(a);
-        } else if (anyBaseName(name) || contains(baseAtomNames(old), name)) {
+        } else if (anyBaseName(name) || contains(baseAtomNames(old), name) ||
+                   (!extraProton.empty() && name == extraProton)) {
             if (!insertAt) {
                 insertAt = keep.size();
             }
@@ -714,6 +721,10 @@ std::vector<Mutation> parseMutations(std::span<const std::string> items) {
 
 std::string mutatedName(std::string_view name, char base) {
     const std::string up = io::pythonUpper(core::pythonStrip(name));
+    // CH-22: a modified ribonucleotide (the CCD's CH) mutated is its new base, unmodified
+    if (const std::optional<io::ResidueName> info = io::parseResidueName(up); info && !info->component.empty()) {
+        return std::string(1, base);
+    }
     static const std::map<char, std::string_view> aliases = {{'A', "ADE"}, {'C', "CYT"}, {'G', "GUA"}, {'U', "URA"}};
     if (up == "ADE" || up == "CYT" || up == "GUA" || up == "URA" || up == "URI") {
         return std::string(aliases.at(base));

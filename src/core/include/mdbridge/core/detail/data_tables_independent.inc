@@ -26,11 +26,11 @@ inline constexpr std::string_view kIndProteinResidues[] = {
 // Residue names of nucleic acids: PDB, Amber OL15/OL3 (5/3/N ends), CHARMM36, OpenMM pdbNames aliases.
 inline constexpr std::string_view kIndNucleicResidues[] = {
     "A", "A3", "A5", "ADE", "AN", "C", "C3", "C5",
-    "CN", "CYT", "DA", "DA3", "DA5", "DAD", "DAN", "DC",
-    "DC3", "DC5", "DCN", "DCY", "DG", "DG3", "DG5", "DGN",
-    "DGU", "DI", "DT", "DT3", "DT5", "DTN", "G", "G3",
-    "G5", "GN", "GUA", "I", "THY", "U", "U3", "U5",
-    "UN", "URA",
+    "CH", "CN", "CYT", "DA", "DA3", "DA5", "DAD", "DAN",
+    "DC", "DC3", "DC5", "DCN", "DCY", "DG", "DG3", "DG5",
+    "DGN", "DGU", "DI", "DT", "DT3", "DT5", "DTN", "G",
+    "G3", "G5", "GN", "GUA", "I", "THY", "U", "U3",
+    "U5", "UN", "URA",
 };
 
 // Residue names of water: PDB HOH, Amber solvents.lib, GROMACS SOL, CHARMM36, OpenMM pdbNames aliases.
@@ -2508,6 +2508,12 @@ inline constexpr IndResidueBase kIndLDeoxyribonucleotides[] = {
     {"0DC", 'C'},
     {"0DG", 'G'},
     {"0DT", 'T'},
+};
+
+// The CCD's modified ribonucleotides MDBridge writes and reads as their parent (D-RNA): the
+// N3-protonated cytidine CH (mon_nstd_parent_comp_id C), sorted.
+inline constexpr IndResidueBase kIndModifiedRibonucleotides[] = {
+    {"CH", 'C'},
 };
 
 struct IndComponentAtomName {

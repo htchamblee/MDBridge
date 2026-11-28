@@ -13,7 +13,11 @@ extract data/sources/ccd/l_deoxyribonucleotide_atoms.tsv (as tools/gen_data_tabl
   base-pair detector and the sequence panel (through the trace's per-row `backbone` flags) leave out
   a lanthanum ion LA, radium RA or a detergent LDA;
 * the atoms that the CCD names its own way in 0DA / 0DT (N9A ..., C5M) are read by their standard
-  names (N9 ..., C7) by the base-pair detector, the stacking rings and the molecule topology.
+  names (N9 ..., C7) by the base-pair detector, the stacking rings and the molecule topology;
+* parse_residue_name also reads the CCD's modified ribonucleotides that the builder writes (the
+  N3-protonated cytidine CH of a C+, as its parent C, D-RNA; docs/DIFFERENCES.md CH-22), from
+  data/sources/ccd/protonated_cytidine_components.tsv (mon_nstd_parent_comp_id), as
+  tools/gen_data_tables.py's kIndModifiedRibonucleotides.
 
 apply_mdatk() patches the imported MDATK modules (idempotent); improvements_analyses.apply_mdatk()
 calls it. parse_residue_name(name) is the improved function for generators that record it alone.
@@ -26,6 +30,7 @@ import re
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
 CCD = os.path.join(ROOT, "data", "sources", "ccd", "l_deoxyribonucleotide_atoms.tsv")
+CCD_MODIFIED = os.path.join(ROOT, "data", "sources", "ccd", "protonated_cytidine_components.tsv")
 
 _LDNA = re.compile(r"^LD([ACGT])([53N]?)$")
 
@@ -41,7 +46,14 @@ def _ccd_tables():
     return bases, own
 
 
+def _modified_ribonucleotides():
+    with open(CCD_MODIFIED, encoding="utf-8", newline="") as fh:
+        return {r["comp_id"]: r["parent"] for r in csv.DictReader(fh, delimiter="\t")
+                if r["release_status"] == "REL" and r["type"] == "RNA LINKING"}
+
+
 L_DEOXY, STANDARD_NAMES = _ccd_tables()
+MODIFIED_RNA = _modified_ribonucleotides()  # CH-22: {"CH": "C"}
 _original_parse = None
 _applied = False
 
@@ -55,7 +67,7 @@ def standard_atom_name(resname: str, name: str) -> str:
 
 
 def parse_residue_name(name):
-    """MDATK 0.0.4.1's parse_residue_name, then the L-DNA names."""
+    """MDATK 0.0.4.1's parse_residue_name, then the L-DNA names and the CCD's CH (CH-22)."""
     global _original_parse
     if _original_parse is None:
         from mdatk import pdbtools
@@ -67,6 +79,8 @@ def parse_residue_name(name):
     from mdatk.pdbtools import ResidueName
     if n in L_DEOXY:
         return ResidueName(L_DEOXY[n], "dna", "L", "")
+    if n in MODIFIED_RNA:
+        return ResidueName(MODIFIED_RNA[n], "rna", "D", "")
     m = _LDNA.match(n)
     return ResidueName(m.group(1), "dna", "L", m.group(2)) if m else None
 

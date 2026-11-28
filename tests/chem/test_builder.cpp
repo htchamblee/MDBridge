@@ -44,7 +44,9 @@
 
 #include "../../src/chem/helix_internal.hpp"
 #include "mdbridge/chem/reference_tables.hpp"
+#include "mdbridge/chem/annotate.hpp"
 #include "mdbridge/chem/helix.hpp"
+#include "mdbridge/chem/mutate.hpp"
 #include "mdbridge/chem/pdbtools.hpp"
 #include "mdbridge/core/errors.hpp"
 #include "mdbridge/core/json.hpp"
@@ -760,12 +762,10 @@ TEST(BuilderMdatk, LPairingsAreMirrorImages) {
         const std::string n = std::to_string(rl.size());
         io::PdbStructure lcopy = lh, dcopy = d;
         EXPECT_EQ(assignChirality(lcopy).at(0), "Chirality (sugar geometry): " + n + " L and 0 D nucleotides");
-        // the D build's C+ are CH (CH-21), which the PDB tools' name-based nucleotide recognition does not know
+        // the D build's C+ are CH (CH-21), which the PDB tools read as C nucleotides (CH-22)
         const auto ch = std::count_if(rd.begin(), rd.end(), [](const io::PdbResidue* r) { return r->name == "CH"; });
         EXPECT_EQ(ch, k == 1 ? 0 : 2);
-        EXPECT_EQ(assignChirality(dcopy).at(0), "Chirality (sugar geometry): 0 L and " +
-                                                     std::to_string(rd.size() - static_cast<std::size_t>(ch)) +
-                                                     " D nucleotides");
+        EXPECT_EQ(assignChirality(dcopy).at(0), "Chirality (sugar geometry): 0 L and " + n + " D nucleotides");
         for (const io::PdbResidue* r : rl) {
             EXPECT_TRUE(r->name == "0A" || r->name == "0C" || r->name == "0G" || r->name == "0U") << r->name;
         }
@@ -1238,20 +1238,33 @@ std::pair<std::vector<Vec>, std::vector<Vec>> matchedLevelAtoms(const io::PdbStr
 
 // D19: the geometry of the experimental kinds against the RNA triple helices they come from (the
 // steps of data/sources/pdb/triplex_levels.tsv measured as docs/reports/2026-11-27-non-wc-geometry.md
-// measures them; tests/chem/test_builder.cpp's helpers). Ranges: the experimental steps' minimum and
-// maximum (every step of a model must lie within them), the means of the tables (the uniform helices).
+// measures them; tests/chem/test_builder.cpp's helpers). Ranges: the experimental steps' extremes of twist,
+// rise, inclination and each strand's stacking (the generated tables, tools/gen_chem_tables.py, which the
+// closure's walls hold the steps within), the largest base-plane separation, the means of the tables (the
+// uniform helices).
 struct ExperimentRange {
     double twistLow, twistHigh, riseLow, riseHigh, planesHigh, inclinationHigh;
     std::vector<double> stackHigh;  // per strand (strand 1, partners in the model's chain order)
     double twistMean, riseMean, planesMean;
 };
 const ExperimentRange& experimentRange(bool triplex) {
-    // purine + Hoogsteen strands (53 steps, 24 independent) and the triples: tests/data/README.md
-    static const ExperimentRange duplex = {21.6, 37.7, 2.55, 3.93, 3.49, 17.1, {3.42, 3.71}, 30.48, 3.007, 3.270};
-    static const ExperimentRange triple = {26.9, 34.9, 2.78, 3.78, 3.49, 14.2, {3.42, 3.79, 3.71},
-                                           30.40, 3.021, 3.263};
+    static const auto of = [](std::string_view kind) {
+        const reference::TriplexScrew& sc = *reference::triplexScrew(kind);
+        const std::size_t strands = kind == "hoogsteen" ? 2 : 3;
+        return ExperimentRange{sc.twistRange[0], sc.twistRange[1], sc.riseRange[0], sc.riseRange[1],
+                               3.49,  // purine + Hoogsteen strands and the triples: tests/data/README.md
+                               sc.inclinationRange[1], std::vector<double>(sc.stackMax, sc.stackMax + strands),
+                               sc.twist, sc.rise, sc.stack};
+    };
+    static const ExperimentRange duplex = of("hoogsteen");
+    static const ExperimentRange triple = of("triplex-hoogsteen");
     return triplex ? triple : duplex;
 }
+
+// a model's steps are measured on its PDB text (coordinates to 0.001 Å) and the closure's walls are stiff,
+// not hard: within these of the experimental extremes
+constexpr double kAngleTolerance = 0.05;   // degrees
+constexpr double kLengthTolerance = 0.005;  // Å
 
 double angleDeg(const Vec& a, const Vec& b, const Vec& c) {
     const Vec u = sub(a, b), v = sub(c, b);
@@ -1276,8 +1289,10 @@ void checkAgainstExperiment(const Built& built, bool triplex, const std::string&
         const StepScrew st = stepScrewOf(from, to);
         const std::vector<Vec> here = levelAtoms(s, level, parallel, true);
         const double layers = planeSeparation(here, levelAtoms(s, level + 1, parallel, true));
-        EXPECT_TRUE(e.twistLow <= st.twist && st.twist <= e.twistHigh) << at << ": twist " << st.twist;
-        EXPECT_TRUE(e.riseLow <= st.rise && st.rise <= e.riseHigh) << at << ": rise " << st.rise;
+        EXPECT_TRUE(e.twistLow - kAngleTolerance <= st.twist && st.twist <= e.twistHigh + kAngleTolerance)
+            << at << ": twist " << st.twist;
+        EXPECT_TRUE(e.riseLow - kLengthTolerance <= st.rise && st.rise <= e.riseHigh + kLengthTolerance)
+            << at << ": rise " << st.rise;
         EXPECT_TRUE(3.0 <= layers && layers <= e.planesHigh) << at << ": level planes " << layers;
         // inclination: the level's base plane against the step's axis
         Vec m{};
@@ -1288,14 +1303,11 @@ void checkAgainstExperiment(const Built& built, bool triplex, const std::string&
         const Vec normal = core::svdRows3(p).vt[2];
         const double incl =
             std::acos(std::min(1.0, std::fabs(dot(normal, st.axis)))) * 180.0 / 3.14159265358979323846;
-        // achieved: within 0.5° of the experimental maximum (the triplex AAGAGAAGGA: 14.7°, experiment 14.2°)
-        EXPECT_LE(incl, e.inclinationHigh + 0.5) << at << ": inclination";
+        EXPECT_LE(incl, e.inclinationHigh + kAngleTolerance) << at << ": inclination";
         for (std::size_t strand = 0; strand < s.segments.size(); ++strand) {
             const auto& seg = s.segments[strand];
             const double stack = baseStacking(seg[level], seg[level + 1]);
-            // achieved: within 0.07 Å of the experimental maximum of the strand (mixed sequences exceed it by up
-            // to 0.06 Å; docs/reports/2026-11-27-non-wc-geometry.md, D19)
-            EXPECT_TRUE(3.0 <= stack && stack <= e.stackHigh[strand] + 0.07)
+            EXPECT_TRUE(3.0 <= stack && stack <= e.stackHigh[strand] + kLengthTolerance)
                 << at << " " << seg[level].label() << ": stacking " << stack;
         }
         // stacked bases do not H-bond: their N/O atoms 3.05 Å apart or more (experiment: 2.82 Å, the U O4 pairs
@@ -1386,6 +1398,14 @@ TEST(BuilderGeometry, ExperimentalKindsMatchTheRnaTripleHelices) {
     }
 }
 
+// D19: a triplex of 14 C+·G-C triples, whose steps went past the experimental extremes before the closure's
+// walls (twist 35.6°, inclination 17.6°: docs/reports/2026-11-27-non-wc-geometry.md); its own test, as it
+// takes the longest of the builds here (5-7 minutes on one thread)
+TEST(BuilderGeometry, TriplexGTractMatchesTheRnaTripleHelices) {
+    const std::vector<Built> built = buildWithHydrogens({{"wc", "hoogsteen", std::string(14, 'G')}});
+    checkAgainstExperiment(built[0], true, "triplex GGGGGGGGGGGGGG", false);
+}
+
 // D19: the kinds that are built refuse the sequences they cannot pair (the positions named)
 TEST(BuilderGeometry, SequencesAKindCannotPairAreRefused) {
     const auto refused = [](const std::string& seq, HelixOptions o) {
@@ -1459,6 +1479,37 @@ TEST(BuilderGeometry, ProtonatedCytidinesAreTheCcdsCh) {
               (HelixMessage{"info", "G·C+ Hoogsteen pairs need N3-protonated cytosine (C+): written as CH, the CCD's "
                                     "N3-protonated cytidine (HN3 with the hydrogens; L: plain C; restrain the pair for "
                                     "the simulation)"}));
+}
+
+// CH-22: what the builder writes, the PDB tools read: a G·C+ Hoogsteen helix with hydrogens, its CH residues
+// C nucleotides for pdb check (sequence, chirality count, not "other residues"), annotate (the sequence),
+// clean's naming schemes (CH kept) and mutate (CH -> G drops HN3)
+TEST(BuilderGeometry, ProtonatedCytidinesReadBackAsC) {
+    const Built built = buildOne("AGGA", fitted("hoogsteen", std::nullopt, true));
+    const io::PdbStructure s = io::readPdbText(built.text);
+    ASSERT_EQ(s.segments[1][1].name, "CH");
+    std::string partner;
+    for (const io::PdbResidue& r : s.segments[1]) {
+        partner += r.name == "CH" ? 'C' : io::parseResidueName(r.name)->base;
+    }
+    const std::string info = core::toJsonAscii(check(PdbSource::text(built.text)));
+    EXPECT_NE(info.find("\"sequence\": \"" + partner + "\""), std::string::npos) << info;
+    EXPECT_NE(info.find("\"other_residues\": {}"), std::string::npos) << info;
+    EXPECT_NE(info.find("Chirality (sugar geometry): 0 L and 8 D nucleotides"), std::string::npos) << info;
+    const AnnotationResult a = annotate(s);
+    EXPECT_NE(std::find(a.records.begin(), a.records.end(), "REMARK 950 SEQ   " + partner), a.records.end());
+    for (const std::string& n : a.notes) {
+        EXPECT_EQ(n.find("CH"), std::string::npos) << n;  // no note of a residue it cannot read
+    }
+    io::PdbStructure named = s;
+    convertNames(named, "amber");
+    EXPECT_EQ(named.segments[1][1].name, "CH");
+    EXPECT_EQ(named.segments[1][0].name, "U5");
+    const io::PdbResidue& c = s.segments[1][1];
+    const MutateResult m = mutate(PdbSource::text(built.text), c.chain + ":" + std::to_string(c.resseq) + "G");
+    const io::PdbStructure mutated = io::readPdbText(m.text);
+    EXPECT_EQ(mutated.segments[1][1].name, "G");
+    EXPECT_EQ(coordsOf(mutated.segments[1][1]).count("HN3"), 0u);
 }
 
 // CH-18: a built pair whose bases have no N/O donor-acceptor pair within 3.5 Å is reported (MDATK

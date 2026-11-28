@@ -9,7 +9,7 @@ amino hydrogens follow the wwPDB CCD), D16 (CHD-02: non-WC builds in the fitted 
 (CH-16: a continuation closure for the non-WC builds, 2026-11-27), D18 (CH-18: realistic non-WC
 geometry; RNA builds of the kinds RNA does not form refused, 2026-11-27) and D19 (CH-18 revised,
 CH-19 ... CH-21: sequences a kind cannot pair refused, C+ as the CCD's CH, statistics over independent
-structures, 2026-11-27).
+structures, 2026-11-27; CH-22, the tools read CH, and the closure's walls, 2026-11-28).
 
 Reports kept for reference (`docs/reports/`):
 
@@ -69,9 +69,11 @@ the review of CH-18: strand-1 pyrimidines of the Hoogsteen kinds and hh's non-A 
 the C+ of G·C+ Hoogsteen pairs is the CCD's CH, with HN3 (CH-21); the reference fits are restrained
 by the experimental means' standard errors and the closure also moves the partners within their
 levels with their pairs, steps and tilt restrained: uniform helices 31.9° / 3.02 Å and 31.4° / 3.05 Å
-(experiment 30.5° / 3.01 Å and 30.4° / 3.02 Å), mixed sequences with every link angle and stacked
-pair and nearly every step within the experimental ranges (exceptions, single triplex steps and
-strand stacking up to 0.08 Å over: docs/reports/2026-11-27-non-wc-geometry.md "Final geometry"). The builder window's
+(experiment 30.5° / 3.01 Å and 30.4° / 3.02 Å), mixed sequences with every link angle, stacked
+pair and step within the experimental ranges (the closure's walls at the experimental steps' extremes
+of twist, rise, inclination and strand stacking, 2026-11-28: docs/reports/2026-11-27-non-wc-geometry.md
+"Final geometry"). MDBridge's PDB tools, selections and renderers read the CH they write as a C
+(CH-22). The builder window's
 *Cancel* now stops a fitted build (code review), long closures use a row-wise Givens QR (NU-03).
 ## Wave 3: done (W3-A / W3-B: CI green at 5f404b0)
 
@@ -97,5 +99,5 @@ strand stacking up to 0.08 Å over: docs/reports/2026-11-27-non-wc-geometry.md "
   what, why, the MDATK version compared and its C++ and command-line tests; the citation keys of the
   chem commands; DIC-01 / DIC-02 checked on 0.1.2).
 
-W2-A's DIFFERENCES entries: CH-16 ... CH-21, TW-07, NU-03 and "W2-A"; its report:
+W2-A's DIFFERENCES entries: CH-16 ... CH-22, TW-07, NU-03 and "W2-A"; its report:
 docs/reports/2026-11-27-non-wc-geometry.md ("Final geometry").

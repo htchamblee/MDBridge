@@ -436,6 +436,7 @@ std::optional<io::ResidueName> nucleotide(const PdbResidue& residue) {
         }
         if (c2 && !o2) {
             info->sugar = "dna";
+            info->component.clear();  // CH-22: a deoxy CH is no CCD CH
         }
     }
     return info;
@@ -715,7 +716,10 @@ Notes convertNames(PdbStructure& structure, std::string_view scheme, const Range
                 term.clear();
                 keptPhosphate.push_back(res.label());
             }
-            const std::string name = schemeName(nt->base, chir, term, scheme);
+            // CH-22: a modified ribonucleotide (the CCD's CH) keeps its CCD code in every scheme (D only;
+            // the CCD has no L form, an L one takes its parent's name)
+            const std::string name =
+                !nt->component.empty() && chir == 'D' ? nt->component : schemeName(nt->base, chir, term, scheme);
             const bool singleLUnit = segTerm == "N" && chir == 'L' && nt->terminal == "5";  // LA5 for LAN
             if (terminals && !nt->terminal.empty() && nt->terminal != segTerm && !singleLUnit) {
                 termMismatch.push_back(res.label());  // the old name shows the misplaced terminal
