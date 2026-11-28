@@ -1,0 +1,18 @@
+# Plan golden
+
+Written by MDBridge <VERSION> on <DATE>. File names follow `<project>_<step>_<tool>_<time>.<ext>` with time stamp `20261015-1432`.
+
+## 03 · Structure builder (MDATK)
+
+Folder: `03_build`  
+Type: Structure builder (MDATK)
+
+Inputs:
+- pdb: `/golden/inputs/pdb.pdb`
+
+Outputs:
+- pdb: `03_build/golden_03_mutant_20261015-1432.pdb`
+
+Checks:
+- WARNING: Model (PDB): file not found (yet): /golden/inputs/pdb.pdb
+- ERROR: no mutations given (e.g. A:5G, B:20C)

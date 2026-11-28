@@ -1,0 +1,13 @@
+# Plan golden
+
+Written by MDBridge <VERSION> on <DATE>. File names follow `<project>_<step>_<tool>_<time>.<ext>` with time stamp `20261015-1432`.
+
+## Existing file
+
+Type: Existing file
+
+Outputs:
+- file: `/golden/inputs/none.map`
+
+Checks:
+- WARNING: file not found (yet): /golden/inputs/none.map

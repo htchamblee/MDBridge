@@ -1,0 +1,25 @@
+#!/bin/bash
+# Master script of plan golden - written by MDBridge <VERSION> on <DATE>.
+# Runs the main script of every step in plan order.  Scripts marked 'run separately'
+# (e.g. production runs for a cluster) are listed but not started.
+
+set -eo pipefail
+cd "$(dirname "$0")"
+
+# 01 · Rosetta · FARFAR2 (rna_denovo)
+#   (not written: the step has errors)
+
+# 02 · Rosetta · FARFAR2 models (cluster / extract / DSSR)
+#   (not run: reads from 01 · Rosetta · FARFAR2 (rna_denovo), which has errors)
+
+# 03 · Amber · system build
+#   (not run: reads from 01 · Rosetta · FARFAR2 (rna_denovo), which has errors)
+
+# 04 · Amber · helix restraints
+#   (not run: reads from 01 · Rosetta · FARFAR2 (rna_denovo), which has errors)
+
+# 05 · Amber · MD stages
+#   (not run: reads from 01 · Rosetta · FARFAR2 (rna_denovo), which has errors)
+
+# 06 · VMD · visualisation
+#   (not run: reads from 01 · Rosetta · FARFAR2 (rna_denovo), which has errors)

@@ -1,0 +1,35 @@
+; em: stage 1
+; written by MDBridge <VERSION>
+integrator              = md
+nsteps                  = 50000
+dt                      = 0.002
+continuation            = no
+
+; output
+nstenergy               = 5000
+nstlog                  = 5000
+nstxout-compressed      = 5000
+
+; interactions
+cutoff-scheme           = Verlet
+nstlist                 = 10
+pbc                     = xyz
+coulombtype             = PME
+rcoulomb                = 1.0
+rvdw                    = 1.0
+DispCorr                = EnerPres
+constraints             = none
+
+; temperature
+tcoupl                  = V-rescale
+tc-grps                 = System
+tau-t                   = 0.1
+ref-t                   = 300.0
+
+; pressure
+pcoupl                  = no
+
+; velocities
+gen-vel                 = yes
+gen-temp                = 300.0
+gen-seed                = -1

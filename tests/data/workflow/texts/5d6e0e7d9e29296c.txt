@@ -1,0 +1,11 @@
+microMg Mg2+ for TIP4P/2005 water (Grotz & Schwierz, JCTC 18, 526 (2022), doi:10.1021/acs.jctc.1c00791); sigma 0.09011 nm, epsilon 712.674442 kJ/mol; Cl- co-optimised with Mg2+ (CXY): sigma 0.503464 nm, epsilon 0.042887 kJ/mol
+MASS
+Mg2+ 24.305
+MG   24.305
+Cl-  35.45
+
+NONB
+  Mg2+     0.50572528  170.33327964
+  MG       0.50572528  170.33327964
+  Cl-      2.82559616  0.01025024
+

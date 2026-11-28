@@ -1,0 +1,15 @@
+# Plan golden
+
+Written by MDBridge <VERSION> on <DATE>. File names follow `<project>_<step>_<tool>_<time>.<ext>` with time stamp `20261015-1432`.
+
+## MDATK analysis
+
+Type: MDATK analysis
+
+Inputs:
+- topology: `/golden/inputs/topology.parm7`
+- trajectory: `/golden/inputs/trajectory.nc`
+
+Checks:
+- WARNING: Topology: file not found (yet): /golden/inputs/topology.parm7
+- WARNING: Trajectory: file not found (yet): /golden/inputs/trajectory.nc

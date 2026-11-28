@@ -1,0 +1,18 @@
+# Plan golden
+
+Written by MDBridge <VERSION> on <DATE>. File names follow `<project>_<step>_<tool>_<time>.<ext>` with time stamp `20261015-1432`.
+
+## 03 · VMD · visualisation
+
+Folder: `03_vmd`  
+Type: VMD · visualisation
+
+Inputs:
+- topology: `/golden/my inputs/topology.parm7`
+- trajectory: `/golden/my inputs/trajectory.nc`
+
+Files written: `golden_03_vmd_20261015-1432.tcl`, `golden_03_vmd_20261015-1432.sh`
+
+Checks:
+- WARNING: Topology: file not found (yet): /golden/my inputs/topology.parm7
+- WARNING: Trajectory: file not found (yet): /golden/my inputs/trajectory.nc

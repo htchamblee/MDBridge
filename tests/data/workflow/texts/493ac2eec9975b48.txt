@@ -1,0 +1,80 @@
+#!/bin/bash
+# Restraint dictionaries (acedrg) for 0A5 0A3 0C5 0C3 0G5 0G3 0U5 0U3
+# Project golden, step 01 - written by MDBridge <VERSION> on <DATE>.
+# MDBridge only writes this script; review it, then run it with: bash golden_01_dicts_20261015-1432.sh
+# Please cite (AceDRG (CCP4), wwPDB Chemical Component Dictionary):
+#   - Long F., Nicholls R. A., Emsley P., Gražulis S., Merkys A., Vaitkus A., Murshudov G. N. Acta
+#     Cryst. D 2017, 73, 112-122. doi:10.1107/S2059798317000067
+#   - Agirre J., et al. Acta Cryst. D 2023, 79, 449-461. doi:10.1107/S2059798323003595
+#   - Westbrook J. D., Shao C., Feng Z., Zhuravleva M., Velankar S., Young J. Bioinformatics 2015,
+#     31, 1274-1278. doi:10.1093/bioinformatics/btu789
+
+set -eo pipefail
+cd "$(dirname "$0")"
+
+# MDBridge: the mdbridge program on PATH, unless MDBRIDGE names another
+MDBRIDGE="${MDBRIDGE:-mdbridge}"
+
+command -v acedrg >/dev/null || { echo "ERROR: acedrg not found on PATH" >&2; exit 1; }
+
+# 0A5: L-ADENOSINE (5'-TERMINAL, 5'-OH) - SMILES from the MDATK table
+rm -rf work_0A5 && mkdir -p work_0A5
+( cd work_0A5 && acedrg -i ../golden_01_0A5_20261015-1432.smi -r 0A5 -o 0A5 ) > work_0A5/acedrg.log 2>&1 \
+    || { echo "ERROR: acedrg failed for 0A5 (see work_0A5/acedrg.log)" >&2; exit 1; }
+"$MDBRIDGE" dict finish work_0A5 --code 0A5 --group RNA -o golden_01_0A5_20261015-1432.cif
+[ -s "golden_01_0A5_20261015-1432.cif" ] || { echo "ERROR: mdbridge dict finish did not write golden_01_0A5_20261015-1432.cif" >&2; exit 1; }
+
+# 0A3: L-ADENOSINE-5'-MONOPHOSPHATE (3'-TERMINAL, NO OP3) - SMILES from the MDATK table
+# generated with the leaving atom OP3; 'finish' removes it
+rm -rf work_0A3 && mkdir -p work_0A3
+( cd work_0A3 && acedrg -i ../golden_01_0A3_20261015-1432.smi -r 0A3 -o 0A3 ) > work_0A3/acedrg.log 2>&1 \
+    || { echo "ERROR: acedrg failed for 0A3 (see work_0A3/acedrg.log)" >&2; exit 1; }
+"$MDBRIDGE" dict finish work_0A3 --code 0A3 --group RNA -o golden_01_0A3_20261015-1432.cif
+[ -s "golden_01_0A3_20261015-1432.cif" ] || { echo "ERROR: mdbridge dict finish did not write golden_01_0A3_20261015-1432.cif" >&2; exit 1; }
+
+# 0C5: L-CYTIDINE (5'-TERMINAL, 5'-OH) - SMILES from the MDATK table
+rm -rf work_0C5 && mkdir -p work_0C5
+( cd work_0C5 && acedrg -i ../golden_01_0C5_20261015-1432.smi -r 0C5 -o 0C5 ) > work_0C5/acedrg.log 2>&1 \
+    || { echo "ERROR: acedrg failed for 0C5 (see work_0C5/acedrg.log)" >&2; exit 1; }
+"$MDBRIDGE" dict finish work_0C5 --code 0C5 --group RNA -o golden_01_0C5_20261015-1432.cif
+[ -s "golden_01_0C5_20261015-1432.cif" ] || { echo "ERROR: mdbridge dict finish did not write golden_01_0C5_20261015-1432.cif" >&2; exit 1; }
+
+# 0C3: L-CYTIDINE-5'-MONOPHOSPHATE (3'-TERMINAL, NO OP3) - SMILES from the MDATK table
+# generated with the leaving atom OP3; 'finish' removes it
+rm -rf work_0C3 && mkdir -p work_0C3
+( cd work_0C3 && acedrg -i ../golden_01_0C3_20261015-1432.smi -r 0C3 -o 0C3 ) > work_0C3/acedrg.log 2>&1 \
+    || { echo "ERROR: acedrg failed for 0C3 (see work_0C3/acedrg.log)" >&2; exit 1; }
+"$MDBRIDGE" dict finish work_0C3 --code 0C3 --group RNA -o golden_01_0C3_20261015-1432.cif
+[ -s "golden_01_0C3_20261015-1432.cif" ] || { echo "ERROR: mdbridge dict finish did not write golden_01_0C3_20261015-1432.cif" >&2; exit 1; }
+
+# 0G5: L-GUANOSINE (5'-TERMINAL, 5'-OH) - SMILES from the MDATK table
+rm -rf work_0G5 && mkdir -p work_0G5
+( cd work_0G5 && acedrg -i ../golden_01_0G5_20261015-1432.smi -r 0G5 -o 0G5 ) > work_0G5/acedrg.log 2>&1 \
+    || { echo "ERROR: acedrg failed for 0G5 (see work_0G5/acedrg.log)" >&2; exit 1; }
+"$MDBRIDGE" dict finish work_0G5 --code 0G5 --group RNA -o golden_01_0G5_20261015-1432.cif
+[ -s "golden_01_0G5_20261015-1432.cif" ] || { echo "ERROR: mdbridge dict finish did not write golden_01_0G5_20261015-1432.cif" >&2; exit 1; }
+
+# 0G3: L-GUANOSINE-5'-MONOPHOSPHATE (3'-TERMINAL, NO OP3) - SMILES from the MDATK table
+# generated with the leaving atom OP3; 'finish' removes it
+rm -rf work_0G3 && mkdir -p work_0G3
+( cd work_0G3 && acedrg -i ../golden_01_0G3_20261015-1432.smi -r 0G3 -o 0G3 ) > work_0G3/acedrg.log 2>&1 \
+    || { echo "ERROR: acedrg failed for 0G3 (see work_0G3/acedrg.log)" >&2; exit 1; }
+"$MDBRIDGE" dict finish work_0G3 --code 0G3 --group RNA -o golden_01_0G3_20261015-1432.cif
+[ -s "golden_01_0G3_20261015-1432.cif" ] || { echo "ERROR: mdbridge dict finish did not write golden_01_0G3_20261015-1432.cif" >&2; exit 1; }
+
+# 0U5: L-URIDINE (5'-TERMINAL, 5'-OH) - SMILES from the MDATK table
+rm -rf work_0U5 && mkdir -p work_0U5
+( cd work_0U5 && acedrg -i ../golden_01_0U5_20261015-1432.smi -r 0U5 -o 0U5 ) > work_0U5/acedrg.log 2>&1 \
+    || { echo "ERROR: acedrg failed for 0U5 (see work_0U5/acedrg.log)" >&2; exit 1; }
+"$MDBRIDGE" dict finish work_0U5 --code 0U5 --group RNA -o golden_01_0U5_20261015-1432.cif
+[ -s "golden_01_0U5_20261015-1432.cif" ] || { echo "ERROR: mdbridge dict finish did not write golden_01_0U5_20261015-1432.cif" >&2; exit 1; }
+
+# 0U3: L-URIDINE-5'-MONOPHOSPHATE (3'-TERMINAL, NO OP3) - SMILES from the MDATK table
+# generated with the leaving atom OP3; 'finish' removes it
+rm -rf work_0U3 && mkdir -p work_0U3
+( cd work_0U3 && acedrg -i ../golden_01_0U3_20261015-1432.smi -r 0U3 -o 0U3 ) > work_0U3/acedrg.log 2>&1 \
+    || { echo "ERROR: acedrg failed for 0U3 (see work_0U3/acedrg.log)" >&2; exit 1; }
+"$MDBRIDGE" dict finish work_0U3 --code 0U3 --group RNA -o golden_01_0U3_20261015-1432.cif
+[ -s "golden_01_0U3_20261015-1432.cif" ] || { echo "ERROR: mdbridge dict finish did not write golden_01_0U3_20261015-1432.cif" >&2; exit 1; }
+
+echo "Restraint dictionaries: golden_01_0A5_20261015-1432.cif golden_01_0A3_20261015-1432.cif golden_01_0C5_20261015-1432.cif golden_01_0C3_20261015-1432.cif golden_01_0G5_20261015-1432.cif golden_01_0G3_20261015-1432.cif golden_01_0U5_20261015-1432.cif golden_01_0U3_20261015-1432.cif"

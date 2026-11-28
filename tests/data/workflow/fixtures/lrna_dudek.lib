@@ -1,0 +1,73 @@
+!!index array str
+ "LA"
+ "LC"
+ "LG"
+ "LU"
+ "LA5"
+ "LC5"
+ "LG5"
+ "LU5"
+ "LA3"
+ "LC3"
+ "LG3"
+ "LU3"
+!entry.LA.unit.atoms table  str name  str type  int typex  int resx  int flags  int seq  int elmnt  dbl chg
+ "P" "P" 0 1 131072 1 15 1.1662
+ "O5'" "LD" 0 1 131072 2 8 -0.4989
+!entry.LA.unit.name single str
+ "LA"
+!entry.LC.unit.atoms table  str name  str type  int typex  int resx  int flags  int seq  int elmnt  dbl chg
+ "P" "P" 0 1 131072 1 15 1.1662
+ "O5'" "LD" 0 1 131072 2 8 -0.4989
+!entry.LC.unit.name single str
+ "LC"
+!entry.LG.unit.atoms table  str name  str type  int typex  int resx  int flags  int seq  int elmnt  dbl chg
+ "P" "P" 0 1 131072 1 15 1.1662
+ "O5'" "LD" 0 1 131072 2 8 -0.4989
+!entry.LG.unit.name single str
+ "LG"
+!entry.LU.unit.atoms table  str name  str type  int typex  int resx  int flags  int seq  int elmnt  dbl chg
+ "P" "P" 0 1 131072 1 15 1.1662
+ "O5'" "LD" 0 1 131072 2 8 -0.4989
+!entry.LU.unit.name single str
+ "LU"
+!entry.LA5.unit.atoms table  str name  str type  int typex  int resx  int flags  int seq  int elmnt  dbl chg
+ "P" "P" 0 1 131072 1 15 1.1662
+ "O5'" "LD" 0 1 131072 2 8 -0.4989
+!entry.LA5.unit.name single str
+ "LA5"
+!entry.LC5.unit.atoms table  str name  str type  int typex  int resx  int flags  int seq  int elmnt  dbl chg
+ "P" "P" 0 1 131072 1 15 1.1662
+ "O5'" "LD" 0 1 131072 2 8 -0.4989
+!entry.LC5.unit.name single str
+ "LC5"
+!entry.LG5.unit.atoms table  str name  str type  int typex  int resx  int flags  int seq  int elmnt  dbl chg
+ "P" "P" 0 1 131072 1 15 1.1662
+ "O5'" "LD" 0 1 131072 2 8 -0.4989
+!entry.LG5.unit.name single str
+ "LG5"
+!entry.LU5.unit.atoms table  str name  str type  int typex  int resx  int flags  int seq  int elmnt  dbl chg
+ "P" "P" 0 1 131072 1 15 1.1662
+ "O5'" "LD" 0 1 131072 2 8 -0.4989
+!entry.LU5.unit.name single str
+ "LU5"
+!entry.LA3.unit.atoms table  str name  str type  int typex  int resx  int flags  int seq  int elmnt  dbl chg
+ "P" "P" 0 1 131072 1 15 1.1662
+ "O5'" "LD" 0 1 131072 2 8 -0.4989
+!entry.LA3.unit.name single str
+ "LA3"
+!entry.LC3.unit.atoms table  str name  str type  int typex  int resx  int flags  int seq  int elmnt  dbl chg
+ "P" "P" 0 1 131072 1 15 1.1662
+ "O5'" "LD" 0 1 131072 2 8 -0.4989
+!entry.LC3.unit.name single str
+ "LC3"
+!entry.LG3.unit.atoms table  str name  str type  int typex  int resx  int flags  int seq  int elmnt  dbl chg
+ "P" "P" 0 1 131072 1 15 1.1662
+ "O5'" "LD" 0 1 131072 2 8 -0.4989
+!entry.LG3.unit.name single str
+ "LG3"
+!entry.LU3.unit.atoms table  str name  str type  int typex  int resx  int flags  int seq  int elmnt  dbl chg
+ "P" "P" 0 1 131072 1 15 1.1662
+ "O5'" "LD" 0 1 131072 2 8 -0.4989
+!entry.LU3.unit.name single str
+ "LU3"

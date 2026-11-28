@@ -1,0 +1,24 @@
+# Base-pair restraints for phenix.real_space_refine (Phenix 2.x) - written by MDBridge <VERSION>
+# Source: typed secondary structure, numbered continuously from 1
+pdb_interpretation {
+  secondary_structure {
+    enabled = True
+    nucleic_acid {
+      base_pair {
+        base1 = "chain 'A' and resid 1"
+        base2 = "chain 'A' and resid 14"
+        saenger_class = 19
+      }
+      base_pair {
+        base1 = "chain 'A' and resid 3"
+        base2 = "chain 'A' and resid 12"
+        saenger_class = 19
+      }
+      base_pair {
+        base1 = "chain 'A' and resid 5"
+        base2 = "chain 'A' and resid 10"
+        saenger_class = 19
+      }
+    }
+  }
+}

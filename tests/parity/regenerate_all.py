@@ -408,8 +408,13 @@ STEPS = [
          + [f"{DATA}/chem/maps/{n}.mrc" for n in BUILDER_MAPS]),
     Step("density_fit", "tests/parity/make_density_fit_cases.py", lambda ctx: [M(ctx), d(ctx, "chem")],
          [f"{DATA}/chem/density_fit_cases.json"] + [f"{DATA}/chem/maps/{n}.mrc" for n in DENSITY_FIT_MAPS]),
+    # milestone 7: the workflow layer (W0-A; improvements_workflow.py applied, docs/specs/m7-plan.md 4.2):
+    # every template and step type with one change at a time, the plan-time checks on fixtures it writes
+    # (and on topology/demo_dry.parm7), plan-level cases and graph edits; texts stored once by SHA-256
+    case_step("workflow_cases", "make_workflow_cases.py", "workflow"),
     # the commands of the command line on files the steps above wrote (demo system, loader, export
-    # and map files, the parameter log of projects/, the chem steps' maps and dictionaries)
+    # and map files, the parameter log of projects/, the chem steps' maps and dictionaries, the workflow
+    # fixtures)
     Step("cli", "tests/parity/cli_parity.py", lambda ctx: ["--mdatk", M(ctx), "--write", d(ctx, "cli/cli_cases.json")],
          [f"{DATA}/cli/cli_cases.json"]),
     case_step("rigid", "make_rigid_cases.py", "rigid"),

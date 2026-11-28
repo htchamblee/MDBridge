@@ -1,0 +1,33 @@
+#!/bin/bash
+# Rosetta FARFAR2: 12 rna_denovo runs, 6 at a time
+# Project apt1, step 01 - written by MDBridge <VERSION> on <DATE>.
+# MDBridge only writes this script; review it, then run it with: bash apt1_01_farfar2_20261015-1432.sh
+# Each run works in runs/rNN and writes ../../apt1_01_farfar2-rNN_20261015-1432.out.
+# Please cite (Rosetta, FARFAR2):
+#   - Leman J. K., Weitzner B. D., Lewis S. M., Adolf-Bryfogle J., Alam N., Alford R. F., Aprahamian
+#     M., Baker D., Barlow K. A., Barth P., et al. Nat. Methods 2020, 17, 665-680.
+#     doi:10.1038/s41592-020-0848-2
+#   - Watkins A. M., Rangan R., Das R. Structure 2020, 28, 963-976. doi:10.1016/j.str.2020.05.011
+
+cd "$(dirname "$0")"
+
+FLAGS=apt1_01_farfar2_20261015-1432.flags
+
+run_one() {
+  I=$1
+  N=$(printf "%02d" "$I")
+  mkdir -p "runs/r$N" && cd "runs/r$N" || return 1
+  nice rna_denovo @../../$FLAGS -out:file:silent ../../apt1_01_farfar2-r${N}_20261015-1432.out -run:jran $((3000 + I)) \
+    > ../../apt1_01_farfar2-r${N}_20261015-1432.log 2>&1 || { echo "run $N failed - see apt1_01_farfar2-r${N}_20261015-1432.log" >&2; : > "$FAILED/$N"; return 1; }
+}
+export -f run_one
+FAILED=$(mktemp -d)
+export FLAGS FAILED
+
+# a failed run does not stop the others and leaves fewer models; the step fails when every run failed
+seq 1 12 | xargs -P 6 -I{} bash -c 'run_one {}' || true
+NFAILED=$(ls "$FAILED" | wc -l); rm -rf "$FAILED"
+if [ "$NFAILED" -ge 12 ]; then echo "ERROR: every rna_denovo run failed (see above)" >&2; exit 1; fi
+if [ "$NFAILED" -gt 0 ]; then echo "WARNING: $NFAILED of 12 rna_denovo runs failed (see above): their models are missing" >&2; fi
+
+echo "Silent files: apt1_01_farfar2-r*_20261015-1432.out"

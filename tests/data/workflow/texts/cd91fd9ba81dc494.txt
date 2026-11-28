@@ -1,0 +1,17 @@
+# Solvate and add ions (OL3+CP) for project golden, step 03
+# written by MDBridge <VERSION>
+source leaprc.RNA.OL3
+source leaprc.water.fb3
+addAtomTypes { { "LD" "O" "sp3" } { "LH" "O" "sp3" } }
+addAtomTypes { { "OR" "O" "sp3" } }
+loadamberparams frcmod.cp
+loadOff RNA_CP.lib
+mol = loadpdb "golden_03_lrna_20261015-1432.pdb"
+solvateoct mol FB3BOX 15.0
+
+addIonsRand mol Na+ 0
+
+check mol
+saveamberparm mol golden_03_tleap_20261015-1432.parm7 golden_03_tleap_20261015-1432.rst7
+savepdb mol golden_03_tleap_20261015-1432.pdb
+quit

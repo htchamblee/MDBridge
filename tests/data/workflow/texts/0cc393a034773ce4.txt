@@ -1,0 +1,39 @@
+#!/bin/bash
+# GROMACS: conversion and MD stages
+# Project golden, step 03 - written by MDBridge <VERSION> on <DATE>.
+# MDBridge only writes this script; review it, then run it with: bash golden_03_gromacs_20261015-1432.sh
+# GROMACS 2024+.
+# Please cite (GROMACS, ACPYPE):
+#   - Abraham M. J., Murtola T., Schulz R., Páll S., Smith J. C., Hess B., Lindahl E. SoftwareX
+#     2015, 1-2, 19-25. doi:10.1016/j.softx.2015.06.001
+#   - Sousa da Silva A. W., Vranken W. F. BMC Res. Notes 2012, 5, 367. doi:10.1186/1756-0500-5-367
+
+set -eo pipefail
+cd "$(dirname "$0")"
+
+GMX="gmx"
+
+# Convert the Amber topology / coordinates with acpype
+rm -rf golden_03_acpype_20261015-1432.amb2gmx
+acpype -p /golden/inputs/topology.parm7 -x /golden/inputs/coordinates.rst7 -b golden_03_acpype_20261015-1432
+cp golden_03_acpype_20261015-1432.amb2gmx/golden_03_acpype_20261015-1432_GMX.top golden_03_convert_20261015-1432.top
+cp golden_03_acpype_20261015-1432.amb2gmx/golden_03_acpype_20261015-1432_GMX.gro golden_03_convert_20261015-1432.gro
+[ -s "golden_03_convert_20261015-1432.top" ] || { echo "ERROR: acpype did not write golden_03_convert_20261015-1432.top" >&2; exit 1; }
+
+# Position restraints for the RNA (used by stages with define = -DPOSRES)
+python3 golden_03_posre_20261015-1432.py golden_03_convert_20261015-1432.top
+
+# em
+$GMX grompp -f golden_03_em_20261015-1432.mdp -c golden_03_convert_20261015-1432.gro -p golden_03_convert_20261015-1432.top -o golden_03_em_20261015-1432.tpr -maxwarn 0
+$GMX mdrun -deffnm golden_03_em_20261015-1432 -nb gpu -pme gpu -bonded gpu
+[ -s "golden_03_em_20261015-1432.gro" ] || { echo "ERROR: mdrun (em) did not write golden_03_em_20261015-1432.gro" >&2; exit 1; }
+
+# nvt
+$GMX grompp -f golden_03_nvt_20261015-1432.mdp -c golden_03_em_20261015-1432.gro -r golden_03_em_20261015-1432.gro -p golden_03_convert_20261015-1432.top -o golden_03_nvt_20261015-1432.tpr -maxwarn 0
+$GMX mdrun -deffnm golden_03_nvt_20261015-1432 -nb gpu -pme gpu -bonded gpu
+[ -s "golden_03_nvt_20261015-1432.gro" ] || { echo "ERROR: mdrun (nvt) did not write golden_03_nvt_20261015-1432.gro" >&2; exit 1; }
+
+# npt
+$GMX grompp -f golden_03_npt_20261015-1432.mdp -c golden_03_nvt_20261015-1432.gro -r golden_03_nvt_20261015-1432.gro -t golden_03_nvt_20261015-1432.cpt -p golden_03_convert_20261015-1432.top -o golden_03_npt_20261015-1432.tpr -maxwarn 0
+$GMX mdrun -deffnm golden_03_npt_20261015-1432 -nb gpu -pme gpu -bonded gpu
+[ -s "golden_03_npt_20261015-1432.gro" ] || { echo "ERROR: mdrun (npt) did not write golden_03_npt_20261015-1432.gro" >&2; exit 1; }
