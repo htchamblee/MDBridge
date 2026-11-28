@@ -3394,21 +3394,24 @@ make them reproducible within D10 on any kernel.
   *Result* (the report's measures, hydrogens included; docs/reports/2026-11-27-non-wc-geometry.md
   "Final geometry"; experiment, the RNA triple helices' steps, in brackets): uniform Hoogsteen duplex
   31.9° / 3.02 Å, base planes 3.29 Å (30.5° / 3.01 Å, 3.27 Å), triplex 31.4° / 3.05 Å, 3.28 Å (30.4° /
-  3.02 Å, 3.26 Å); mixed sequences (AAGAGAAGGA, GAGA..., G14, 32 levels) every step within the
-  experimental range of twist, rise and base planes, base planes 3.28-3.34 Å, inclination at most
-  14.7° (17.1°; the triples 14.2°), links 1.61 Å with C3'-O3'-P 119.1-121.9° and O3'-P-O5'
-  101.7-105.1° (117.1-124.6°, 100.2-106.4°), epsilon −174 ... −148° (−188 ... −101°), H-bonds
-  2.78-3.05 Å, stacked-base N/O pairs 3.10 Å or more apart, no close contacts; strand stacking within
-  0.07 Å of the experimental maximum of each strand (purine strand at most 3.48 Å against 3.42 Å, the
-  Watson-Crick strand at most 3.81 Å against 3.79 Å); hh 41.7° / 3.79 Å, strands stacked 3.59 Å (4JRD
-  42.3° / 3.76 Å, 3.50 Å). The uniform helices' twist stays 1.0° (triplex) and 1.4° (duplex) above the
+  3.02 Å, 3.26 Å); mixed sequences (AAGAGAAGGA, GAGA..., G14, 32 levels): base planes 3.28-3.35 Å
+  (3.06-3.49 Å), links 1.61 Å with C3'-O3'-P 117.1-121.9° and O3'-P-O5' 101.7-105.1° (117.1-124.6°,
+  100.2-106.4°; before D19 up to 127.9°), epsilon −171 ... −148° (−188 ... −101°), H-bonds 2.78-3.05 Å,
+  stacked-base N/O pairs 3.10 Å or more apart (before: 3.00 Å), no close contacts; the Hoogsteen
+  duplexes' steps all within the experimental twist (27.6-35.5°), rise (2.74-3.19 Å) and inclination
+  (7.2-14.5°); the triplexes' too but for single steps: twist 35.6° in G14 (34.9°), rise 2.73 Å in the
+  32-level mixed triplex (2.78 Å), inclination 17.5-17.6° there and in G14 (14.2°); strand stacking
+  within 0.07 Å of the experimental maximum of each strand but the 32-level triplex's Watson-Crick and
+  Hoogsteen strands (3.85 / 3.79 Å against 3.79 / 3.71 Å); hh 41.7° / 3.79 Å, strands stacked 3.59 Å
+  (4JRD 42.3° / 3.76 Å, 3.50 Å). The table: docs/reports/2026-11-27-non-wc-geometry.md "Final
+  geometry". The uniform helices' twist stays 1.0° (triplex) and 1.4° (duplex) above the
   experimental mean (1.5-2.3 standard errors): without the backbone torsion terms the fit sits on the
   mean screw, but the rigid 4JRD backbone then clashes; the geometry is crystal-derived and the
   solution conformation may differ by a few degrees of twist per step anyway (to be quantified; CH-20). *Why:* a model whose
   levels are 5-8 Å apart is no starting model ("Reliable geometry is infinitely more important than
   runtime ... Fast and wrong serves no purpose"); kinds RNA does not form are no RNA models. *Cost:*
   the reference fits take 0.3 s (Hoogsteen) and 0.4 s (triplex) in C++, once per process; a mixed
-  closure 40 s (Hoogsteen AAGAGAAGGA), 80 s (triplex AAGAGAAGGA), 6 min (triplex G14), 59 min (Hoogsteen) and 1 h 51 min (triplex) for 32 levels while other jobs shared the four cores
+  closure 50 s (Hoogsteen AAGAGAAGGA), 75 s (triplex AAGAGAAGGA), 5 min (triplex G14), 33 min (Hoogsteen) and 87 min (triplex) for 32 levels while other jobs shared the four cores
   for 32 levels (the exact subproblem's QR by row-wise Givens rotations from 200 variables on,
   numerics NU-03); minutes to tens of minutes in Python. *Tested:* the expected data are MDATK patched
   the same way (improvements_chem.py `_patch_ch18`, `exp_fit`, `table_pose`, `hbond_note`,
@@ -3570,10 +3573,13 @@ make them reproducible within D10 on any kernel.
   iteration), `HelixOptions::threads` the finite differences' threads (the result does not depend on
   their number). The caches (`_pair_fit`, `_level_pose`, `_helix_fit`) are shared and locked, so
   builds may run on several threads. *Runtime* (C++, four threads, D19's closure): a uniform helix
-  0.3-0.5 s (the reference fit, once per process), a mixed one 40-80 s for ten levels, 6 min for the
-  triplex G14, 59 min (Hoogsteen) and 1 h 51 min (triplex) for 32 levels while other jobs shared the four cores for 32 levels; the exact subproblem dominates (for 200 variables or more
+  0.3-0.5 s (the reference fit, once per process), a mixed one 50-75 s for ten levels, 5 min for the
+  triplex G14, 33 min (Hoogsteen) and 87 min (triplex) for 32 levels while other jobs shared the four cores for 32 levels; the exact subproblem dominates (for 200 variables or more
   its QR is row-wise Givens, NU-03), memory grows with the dense Jacobian (rows x variables:
-  peaks of 276 MB and 588 MB for those 32-level builds); several to tens of minutes for the same continuation in Python (the patched MDATK). *Tested:* tests/chem/test_builder.cpp:
+  peaks of 276 MB and 588 MB for those 32-level builds; the scaled Jacobian is no longer copied). A
+  64-level build was not run to completion (one was lost to a machine restart); with work about rows
+  x band² per iteration and more iterations, expect several hours and about 0.6-1.2 GB for 64 levels:
+  the practical limit is a few dozen levels per build); several to tens of minutes for the same continuation in Python (the patched MDATK). *Tested:* tests/chem/test_builder.cpp:
   `Rebuilt/FittedCase.WithinD10OfMdatk` (all 26 rebuilt cases of builder_fitted_cases.json, 13 of them
   errors: 4 kinds refused by CH-18, 5 sequences refused by CH-19, 4 wrong requests; D10: heavy-atom RMSD and every atom within the D10 limits; records,
   names, header and notes equal but for their numbers within one unit of the last printed digit), the

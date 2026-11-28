@@ -98,12 +98,35 @@ and rise are crystal values.
 **Final numbers** (C++ builds with hydrogens, the measures of this report; every step of every model;
 experiment: the steps of the table, minimum-maximum, the means over the independent steps):
 
-{{FINALTABLE}}
+| model | twist ° | rise Å | base planes Å | inclination ° | strand stacking Å | C3'-O3'-P ° | O3'-P-O5' ° | epsilon ° | pair N/O Å | stacked N/O min Å | contacts |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| experiment, Hoogsteen pairs (53 steps) | 30.7 (21.6-37.7) | 2.96 (2.55-3.93) | 3.28 (3.06-3.49) | 10.3 (3.0-17.1) | 3.21 (≤3.42) / 3.42 (≤3.71) | 119.8 (117.1-124.6) | 103.1 (100.2-106.4) | -188 … -101 | 2.80 (2.57-3.02) | 2.82 | - |
+| experiment, triples (53 steps) | 30.6 (26.9-34.9) | 3.04 (2.78-3.78) | 3.27 (3.13-3.49) | 9.0 (0.7-14.2) | 3.21 (≤3.42) / 3.41 (≤3.79) / 3.42 (≤3.71) | 119.7 (117.1-124.6) | 103.1 (100.2-106.4) | -188 … -101 | 2.81 (2.41-3.17) | 2.82 | - |
+| hoA14 | 31.9 (31.9-31.9) | 3.02 (3.02-3.02) | 3.29 (3.29-3.29) | 6.9 (6.9-6.9) | 3.29 (≤3.29) / 3.57 (≤3.57) | 119.9 (117.9-121.9) | 103.7 (102.3-105.1) | -161 … -149 | 2.83 (2.83-2.83) | 3.28 | 0 |
+| hoG14 | 32.3 (27.6-34.2) | 2.94 (2.79-3.07) | 3.31 (3.28-3.34) | 11.4 (9.3-14.5) | 3.15 (≤3.24) / 3.52 (≤3.58) | 120.0 (119.3-120.5) | 104.2 (103.9-104.4) | -163 … -152 | 2.83 (2.79-2.98) | 3.10 | 0 |
+| hoGA14 | 32.6 (30.1-35.5) | 2.97 (2.77-3.08) | 3.30 (3.28-3.32) | 9.6 (7.3-12.8) | 3.20 (≤3.40) / 3.54 (≤3.59) | 120.1 (119.6-120.6) | 104.2 (103.9-104.5) | -164 … -156 | 2.83 (2.78-2.97) | 3.15 | 0 |
+| hoMix10 | 32.3 (29.2-33.7) | 2.97 (2.84-3.13) | 3.30 (3.28-3.34) | 10.2 (7.3-13.0) | 3.20 (≤3.47) / 3.55 (≤3.64) | 119.9 (119.4-120.4) | 104.2 (104.0-104.4) | -164 … -154 | 2.83 (2.79-2.86) | 3.10 | 0 |
+| hoMix32 | 32.1 (28.2-35.0) | 2.98 (2.74-3.19) | 3.32 (3.28-3.35) | 10.1 (7.2-14.0) | 3.22 (≤3.42) / 3.58 (≤3.75) | 120.0 (119.4-120.6) | 104.2 (103.9-104.5) | -167 … -150 | 2.85 (2.79-2.99) | 3.10 | 0 |
+| thA14 | 31.4 (31.4-31.4) | 3.05 (3.05-3.05) | 3.28 (3.28-3.28) | 7.5 (7.5-7.5) | 3.31 (≤3.31) / 3.54 (≤3.54) / 3.58 (≤3.58) | 119.5 (117.1-121.4) | 103.6 (101.7-104.7) | -161 … -148 | 2.84 (2.83-2.86) | 3.14 | 0 |
+| thG14 | 32.0 (29.1-35.6) | 3.04 (2.82-3.19) | 3.30 (3.28-3.31) | 11.1 (8.6-17.6) | 3.23 (≤3.40) / 3.56 (≤3.71) / 3.58 (≤3.72) | 119.8 (119.6-120.6) | 104.1 (103.9-104.6) | -164 … -153 | 2.83 (2.79-3.05) | 3.10 | 0 |
+| thMix10 | 31.6 (29.8-32.8) | 3.05 (2.83-3.17) | 3.30 (3.28-3.31) | 9.1 (5.7-14.7) | 3.26 (≤3.43) / 3.59 (≤3.81) / 3.60 (≤3.69) | 119.9 (119.6-120.6) | 104.2 (103.9-104.5) | -163 … -154 | 2.84 (2.79-3.01) | 3.10 | 0 |
+| thMix32 | 31.5 (28.3-34.5) | 3.04 (2.73-3.24) | 3.30 (3.28-3.32) | 10.8 (6.1-17.5) | 3.27 (≤3.46) / 3.60 (≤3.85) / 3.61 (≤3.79) | 119.9 (119.6-120.7) | 104.2 (103.9-104.5) | -171 … -149 | 2.84 (2.79-3.03) | 3.10 | 0 |
+| hhA14 | 41.7 (41.7-41.8) | 3.79 (3.79-3.79) | 3.79 (3.79-3.79) | 0.0 (0.0-0.0) | 3.59 (≤3.59) / 3.59 (≤3.59) | 120.7 (120.6-120.7) | 103.4 (103.4-103.4) | -146 … -145 | 2.74 (2.74-2.74) | 3.66 | 0 |
 
-Still outside the experiment: the purine strand's stacking reaches 3.48 Å in the mixed Hoogsteen
-duplexes (experimental maximum 3.42 Å) and the Watson-Crick strand's 3.81 Å in the mixed triplex
-(3.79 Å); the inclination of one triplex step reaches 14.7° (the triples' maximum 14.2°, the
-Hoogsteen pairs' 17.1°); the pyrimidine strands stack 3.5-3.6 Å on average against 3.41-3.42 Å. The
+(ho: the Hoogsteen duplex, th: the pyrimidine-motif triplex; A14 / G14: 14 levels of A / G; GA14:
+GAGA...; Mix10: AAGAGAAGGA; Mix32: AGGAAGAGAAGGAAGAGGAAAGAGAAGGAGAA. Means with the range over the
+steps (or links, pairs); strand stacking per strand, mean and maximum; "pair N/O": the closest
+donor-acceptor pair of a level's paired bases; "stacked N/O": the closest N/O pair of bases at
+consecutive levels; contacts: the builder report's limits, hydrogens included.)
+
+Still outside the experiment: the purine strand's stacking reaches 3.47 Å in the mixed Hoogsteen
+duplex (experimental maximum 3.42 Å), the triplex's Watson-Crick and Hoogsteen strands 3.85 and 3.79 Å
+in the 32-level mixed triplex (3.79 / 3.71 Å); the inclination of a triplex step reaches 14.7° in
+AAGAGAAGGA, 17.5° in the 32-level mixed triplex and 17.6° in G14 (the triples' maximum 14.2°, the
+Hoogsteen pairs' 17.1°); the triplex G14 has one step of 35.6° (34.9°) and the 32-level mixed triplex
+one rise of 2.73 Å (2.78 Å); the pyrimidine strands stack 3.5-3.6 Å on average against 3.41-3.42 Å.
+These are single steps at C+·G-C levels and helix ends; the cause is not isolated (the tilt
+restraint's spread, 1.9°, does not keep them; a tighter one was not tried). The
 uniform helices' twist stays 1.0° (triplex) and 1.4° (duplex) above the experimental mean: without the
 backbone torsion terms the restrained fit sits on the mean screw (30.6-30.7°), but the rigid C3'-endo
 4JRD backbone with MDATK's staggered torsion preferences then needs eclipsed torsions or clashes; the

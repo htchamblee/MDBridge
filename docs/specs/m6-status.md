@@ -69,9 +69,9 @@ the review of CH-18: strand-1 pyrimidines of the Hoogsteen kinds and hh's non-A 
 the C+ of G·C+ Hoogsteen pairs is the CCD's CH, with HN3 (CH-21); the reference fits are restrained
 by the experimental means' standard errors and the closure also moves the partners within their
 levels with their pairs, steps and tilt restrained: uniform helices 31.9° / 3.02 Å and 31.4° / 3.05 Å
-(experiment 30.5° / 3.01 Å and 30.4° / 3.02 Å), mixed sequences with every step, link angle and
-stacked pair within the experimental ranges (strand stacking within 0.07 Å, one inclination within
-0.5° of them; docs/reports/2026-11-27-non-wc-geometry.md "Final geometry"). The builder window's
+(experiment 30.5° / 3.01 Å and 30.4° / 3.02 Å), mixed sequences with every link angle and stacked
+pair and nearly every step within the experimental ranges (exceptions, single triplex steps and
+strand stacking up to 0.08 Å over: docs/reports/2026-11-27-non-wc-geometry.md "Final geometry"). The builder window's
 *Cancel* now stops a fitted build (code review), long closures use a row-wise Givens QR (NU-03).
 ## Wave 3: done (W3-A / W3-B: CI green at 5f404b0)
 
