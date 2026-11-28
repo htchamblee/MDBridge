@@ -76,7 +76,7 @@ Each module is a library with a C++ API; only `app` depends on Qt widgets.
 | `chem` | PDB hygiene (L-RNA detection, naming schemes, chains, renumbering), base pairs, dot-bracket, annotation, helix builder, mutations, dictionary renaming, the rigid-body density fit | core, io, numerics |
 | `analysis` | RMSD, contacts, H-bonds, Mg/O-Mg-O, stacking, energy, trace/proximity; parallel over frames; result cache | core, io, chem |
 | `render` | Vulkan scene (trace, cartoon, licorice, surfaces, density shadow), panels and charts, video encoding; usable headless for batch videos | core, io, analysis, chem, numerics |
-| `workflow` | planner model, step types and checks; generators written in Lua and loaded from `.lua` files (users can add steps) | core, chem |
+| `workflow` | planner model, step types and checks; generators written in Lua and loaded from `.lua` files (users can add steps). Its Lua host (`src/workflow/lua`, target `mdbridge_lua_host`: the sandboxed state, limits, `Value` <-> Lua, the determinism lint) runs on the vendored Lua 5.4 (`third_party/lua`) | core, chem |
 | `app` | Qt GUI and the CLI: two thin front ends over the same libraries. The PDB clean-up and structure builder windows (`gui/tools`) know only a small host interface (`tools/host.hpp`: the project, its step log, messages, Save), which the analysis window implements; milestone 7 hosts them in RNAdo (owner decision D1 of milestone 6) | all |
 
 Analyses run in one pass over the frames, frame-parallel (`runAnalyses`, `analysis.hpp`): one
