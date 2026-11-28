@@ -1,0 +1,16 @@
+#!/bin/bash
+# Master script of plan golden - written by MDBridge <VERSION> on <DATE>.
+# Runs the main script of every step in plan order.  Scripts marked 'run separately'
+# (e.g. production runs for a cluster) are listed but not started.
+
+set -eo pipefail
+cd "$(dirname "$0")"
+
+# 01 · Restraint dictionaries · acedrg / eLBOW
+bash "01_dicts/golden_01_dicts_20261015-1432.sh"
+
+# 02 · Phenix · real-space refinement
+#   (not written: the step has errors)
+
+# 03 · Coot · real-space refinement (batch)
+#   (not written: the step has errors)

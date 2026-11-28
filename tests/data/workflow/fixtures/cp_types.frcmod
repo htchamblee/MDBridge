@@ -1,0 +1,9 @@
+CP phosphate oxygens (test file)
+MASS
+OP 16.00
+OR 16.00
+
+NONB
+  OP 1.7493 0.2100
+  OR 1.6837 0.1700
+

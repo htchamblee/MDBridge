@@ -1,0 +1,48 @@
+# Plan golden
+
+Written by MDBridge <VERSION> on <DATE>. File names follow `<project>_<step>_<tool>_<time>.<ext>` with time stamp `20261015-1432`.
+
+## 01 · Structure builder (MDATK)
+
+Folder: `01_build`  
+Type: Structure builder (MDATK)  
+MDBridge: `mdbridge` from PATH (MDBRIDGE in the scripts overrides it)
+
+Outputs:
+- pdb: `01_build/golden_01_helix_20261015-1432.pdb`
+- secstruct: `01_build/golden_01_helix_20261015-1432.secstruct`
+
+Files written: `golden_01_build_20261015-1432.sh`, `golden_01_helix_20261015-1432.secstruct`
+
+## 02 · Amber · system build
+
+Folder: `02_amber-build`  
+Type: Amber · system build  
+MDBridge: `mdbridge` from PATH (MDBRIDGE in the scripts overrides it)
+
+Inputs:
+- structure: `01_build/golden_01_helix_20261015-1432.pdb` (from 01 · Structure builder (MDATK))
+
+Outputs:
+- topology: `02_amber-build/golden_02_parmed_20261015-1432.parm7`
+- coordinates: `02_amber-build/golden_02_tleap_20261015-1432.rst7`
+- pdb: `02_amber-build/golden_02_tleap_20261015-1432.pdb`
+
+Files written: `golden_02_cp-lib_20261015-1432.py`, `golden_02_prep_20261015-1432.py`, `golden_02_tleap_20261015-1432.leap`, `golden_02_parmed_20261015-1432.in`, `golden_02_amber-build_20261015-1432.sh`
+
+## 03 · Restraint dictionaries · acedrg / eLBOW
+
+Folder: `03_dicts`  
+Type: Restraint dictionaries · acedrg / eLBOW  
+MDBridge: `mdbridge` from PATH (MDBRIDGE in the scripts overrides it)
+
+Inputs:
+- structure: `/golden/inputs/model.pdb`
+
+Outputs:
+- dictionaries: `03_dicts/golden_03_0A5_20261015-1432.cif`, `03_dicts/golden_03_0A3_20261015-1432.cif`, `03_dicts/golden_03_0C5_20261015-1432.cif`, `03_dicts/golden_03_0C3_20261015-1432.cif`, `03_dicts/golden_03_0G5_20261015-1432.cif`, `03_dicts/golden_03_0G3_20261015-1432.cif`, `03_dicts/golden_03_0U5_20261015-1432.cif`, `03_dicts/golden_03_0U3_20261015-1432.cif`
+
+Files written: `golden_03_0A5_20261015-1432.smi`, `golden_03_0A3_20261015-1432.smi`, `golden_03_0C5_20261015-1432.smi`, `golden_03_0C3_20261015-1432.smi`, `golden_03_0G5_20261015-1432.smi`, `golden_03_0G3_20261015-1432.smi`, `golden_03_0U5_20261015-1432.smi`, `golden_03_0U3_20261015-1432.smi`, `golden_03_dicts_20261015-1432.sh`
+
+Checks:
+- WARNING: Model (PDB): file not found (yet): /golden/inputs/model.pdb

@@ -1,0 +1,85 @@
+#
+# NBfix19 + 0BPh + nanoMg pairs on the solvated topology
+# ParmEd input written by MDBridge <VERSION>
+#
+# Give HO and O2 their own Lennard-Jones types so the pair changes below do not also
+# apply to atom types tleap merged with them (water HW, carbonyl O)
+addLJType @%HO
+#
+# Off-diagonal Lennard-Jones parameters replacing the external gHBfix19 H-bond correction
+# potential (Kuehrova & Mlynsky et al., JCTC 2019) with the NBfix19 modification;
+# for details, see Mlynsky V., Kuehrova P., Bussi G., Otyepka M., Sponer J., and Banas P., 2026
+#
+# IMPORTANT: this assumes that the topology was built with the OL3 RNA force field (Zgarbova et al.,
+# JCTC 2011) further adjusted by the phosphate oxygen van der Waals correction (CP) by Steinbrecher
+# et al., JCTC 2012; other force fields may have different atom types and need different atom masks
+#
+# NBfix modification of -NH...N- interactions according to the gHBfix19 potential
+# all A_N6(H61/H62), C_N4(H41/H42), G_N2(H21/H22), G_N1(H1), and U_N3(H3) hydrogens share same and
+# unique atom type H
+# A(N1), A(N3), A(N7), C(N3), G(N3), and G(N7) share same NB and NC atom types, but these are also share
+# with, e.g., N, NA, N2 .., so we need to split it
+addLJType @%NB,NC
+changeLJPair @%NB,NC @%H 2.1 0.63
+#
+# NBfix modification of -OH...bO/nbO- interactions according to the gHBfix19 potential
+# all 2'-OH hydrogens (i.e., HO2', HO3', and HO5') share same and unique atom type HO
+# all bridging (bO; O5' and O3') and nonbridging (nbO; O1P and O2P) phosphate oxygens share same and
+# unique atom types OR and OP
+changeLJPair @%HO @%OP 2.73 0.01
+changeLJPair @%HO @%OR 3.03 0.01
+#
+# Additional parameters from 0BPh
+changeLJPair @%H5 @%OR 2.8808 0.0505
+changeLJPair @%H4 @%OR 2.9308 0.0505
+#
+# L-RNA pairs: bridging phosphate oxygens of the L-RNA library have the type LD
+changeLJPair @%HO @%LD 3.03 0.01
+changeLJPair @%H5 @%LD 2.8808 0.0505
+changeLJPair @%H4 @%LD 2.9308 0.0505
+#
+# nanoMg Mg2+ for SPC/E water: Grotz & Schwierz, JCTC 18, 526 (2022), doi:10.1021/acs.jctc.1c00791
+# The ion's own Lennard-Jones terms come from golden_03_mg_20261015-1432.frcmod (Mg2+-water follows the
+# Lorentz-Berthelot rule); below are the authors' explicit Mg2+-RNA pair terms for every
+# parmBSC0chiOL3 atom type, converted from
+# https://github.com/bio-phys/optimizedMgFFs/blob/1df53e9c94fc14a97864ac35c6951085bb60d1c0/ff_Mg_spce.itp
+# (Rmin_ij = 2^(1/6) sigma_ij, epsilon in kcal/mol).  They come after every addLJType,
+# which would reset the pair terms of the atoms it moves to a new type.
+changeLJPair :MG @%C 2.77151778 1.02645205
+changeLJPair :MG @%C4 2.77151778 1.02645205
+changeLJPair :MG @%C5 2.77151778 1.02645205
+changeLJPair :MG @%CA 2.77151778 1.02645205
+changeLJPair :MG @%CB 2.77151778 1.02645205
+changeLJPair :MG @%CI 2.77151778 1.15770602
+changeLJPair :MG @%CP 2.77151778 1.02645205
+changeLJPair :MG @%CQ 2.77151778 1.02645205
+changeLJPair :MG @%CS 2.77151778 1.02645205
+changeLJPair :MG @%CT 2.77151778 1.15770602
+changeLJPair :MG @%H 1.31872283 0.43857035
+changeLJPair :MG @%H1 2.19284087 0.43857035
+changeLJPair :MG @%H2 2.08177071 0.43857035
+changeLJPair :MG @%H4 2.21727656 0.42868183
+changeLJPair :MG @%H5 2.16174148 0.42868183
+changeLJPair :MG @%HA 2.27281164 0.42868183
+changeLJPair :MG @%HO 0.65230187 0.00000000
+changeLJPair :MG @%N\* 2.67821959 1.44315807
+changeLJPair :MG @%N2 2.67821959 1.44315807
+changeLJPair :MG @%NA 2.67821959 1.44315807
+changeLJPair :MG @%NB 2.67821959 1.44315807
+changeLJPair :MG @%NC 2.67821959 1.44315807
+changeLJPair :MG @%O 2.49739553 1.60398052
+changeLJPair :MG @%O2 2.49739553 1.60398052
+changeLJPair :MG @%OH 2.56381446 1.60550776
+changeLJPair :MG @%OS 2.52238600 1.44315807
+changeLJPair :MG @%P 2.98476899 1.56532470
+# phosphate oxygens retyped by the CP correction (O2 -> OP, OS -> OR) get the O2 / OS terms;
+# ParmEd skips these two lines when no atom has those types
+changeLJPair :MG @%OP 2.49739553 1.60398052
+changeLJPair :MG @%OR 2.52238600 1.44315807
+# non-standard atom types (e.g. an L-RNA library) with the terms of their chemical twin
+# LD as OS
+changeLJPair :MG @%LD 2.52238600 1.44315807
+# Mg2+-Cl- pair term (optimised with the Smith-Dang (Cl) Cl- model)
+changeLJPair :MG :Cl- 4.85518714 0.33428451
+#
+outparm golden_03_parmed_20261015-1432.parm7

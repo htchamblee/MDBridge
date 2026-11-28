@@ -1,0 +1,9 @@
+nanoMg Mg2+ for SPC/E water (Grotz & Schwierz, JCTC 18, 526 (2022), doi:10.1021/acs.jctc.1c00791); sigma 0.104643 nm, epsilon 470.698354 kJ/mol
+MASS
+Mg2+ 24.305
+MG   24.305
+
+NONB
+  Mg2+     0.58728898  112.49960660
+  MG       0.58728898  112.49960660
+

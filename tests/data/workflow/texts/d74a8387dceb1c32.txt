@@ -1,0 +1,20 @@
+# Plan golden
+
+Written by MDBridge <VERSION> on <DATE>. File names follow `<project>_<step>_<tool>_<time>.<ext>` with time stamp `20261015-1432`.
+
+## 03 · Rosetta · FARFAR2 models (cluster / extract / DSSR)
+
+Folder: `03_farfar2-models`  
+Type: Rosetta · FARFAR2 models (cluster / extract / DSSR)
+
+Inputs:
+- silent: `/golden/inputs/silent.silent`
+
+Outputs:
+- best: `03_farfar2-models/golden_03_model-01_20261015-1432.pdb`
+- models: `03_farfar2-models/golden_03_model-01_20261015-1432.pdb`, `03_farfar2-models/golden_03_model-02_20261015-1432.pdb`, `03_farfar2-models/golden_03_model-03_20261015-1432.pdb`, `03_farfar2-models/golden_03_model-04_20261015-1432.pdb`, `03_farfar2-models/golden_03_model-05_20261015-1432.pdb`, `03_farfar2-models/golden_03_model-06_20261015-1432.pdb`, `03_farfar2-models/golden_03_model-07_20261015-1432.pdb`, `03_farfar2-models/golden_03_model-08_20261015-1432.pdb`, `03_farfar2-models/golden_03_model-09_20261015-1432.pdb`, `03_farfar2-models/golden_03_model-10_20261015-1432.pdb`
+
+Files written: `golden_03_farfar2-models_20261015-1432.sh`
+
+Checks:
+- WARNING: Silent files: file not found (yet): /golden/inputs/silent.silent

@@ -244,7 +244,8 @@ TEST(ProjectFileGolden, ReplaysMdatkSequence) {
 // settings comment, the record quirk and the unnormalised values come out as MDATK writes them.
 TEST(ProjectFileGolden, PlannerProjectsRewriteIdentically) {
     for (const char* name : {"golden_all_tools.mdatk.toml", "golden_edge_cases.mdatk.toml",
-                             "golden_test_every_entry.mdatk.toml", "golden_test_saved_in_project.mdatk.toml"}) {
+                             "golden_test_every_entry.mdatk.toml", "golden_test_saved_in_project.mdatk.toml",
+                             "golden_nondefault.mdatk.toml", "golden_written_stamp.mdatk.toml"}) {
         FakeClock clock(localDateTime(2026, 10, 15, 14, 32, 0));
         EXPECT_EQ(projectText(fromFile(kWorkflowGolden / name)), readFile(kWorkflowGolden / name)) << name;
     }

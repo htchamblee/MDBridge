@@ -1,0 +1,37 @@
+#!/bin/bash
+# RNAMake design_rna
+# Project golden, step 03 - written by MDBridge <VERSION> on <DATE>.
+# MDBridge only writes this script; review it, then run it with: bash golden_03_rnamake_20261015-1432.sh
+# Please cite (RNAMake):
+#   - Yesselman J. D., Eiler D., Carlson E. D., Gotrik M. R., d'Aquino A. E., Ooms A. N., Kladwang
+#     W., Carlson P. D., Shi X., Costantino D. A., et al. Nat. Nanotechnol. 2019, 14, 866-873.
+#     doi:10.1038/s41565-019-0517-8
+
+set -eo pipefail
+cd "$(dirname "$0")"
+
+export RNAMAKE="${RNAMAKE:?set RNAMAKE to the RNAMake folder}"
+
+# The design PDBs of an earlier run go first
+rm -f design.*.pdb golden_03_design-[0-9]*_20261015-1432.pdb
+
+# Build motif paths between the base pairs, optimise sequences, score designs
+design_rna \
+  -pdb /golden/inputs/structure.pdb \
+  -start_bp  \
+  -end_bp  \
+  -designs 10 \
+  -out_file golden_03_design_20261015-1432.out \
+  -score_file golden_03_design_20261015-1432.scores \
+  -search.max_size 999999 \
+  -seqs_per_design 1 \
+  -pdbs > golden_03_design_20261015-1432.log 2>&1
+[ -s "golden_03_design_20261015-1432.scores" ] || { echo "ERROR: design_rna did not write golden_03_design_20261015-1432.scores" >&2; exit 1; }
+
+# Number the design PDBs (RNAMake writes design.0.pdb, design.1.pdb ...)
+for f in design.*.pdb; do
+  [ -e "$f" ] || continue
+  K=${f#design.}; K=${K%.pdb}
+  N=$(printf "%02d" $((K + 1)))
+  mv "$f" "golden_03_design-${N}_20261015-1432.pdb"
+done

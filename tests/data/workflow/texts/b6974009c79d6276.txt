@@ -1,0 +1,15 @@
+# Plan golden
+
+Written by MDBridge <VERSION> on <DATE>. File names follow `<project>_<step>_<tool>_<time>.<ext>` with time stamp `20261015-1432`.
+
+## 03 · Restraint dictionaries · acedrg / eLBOW
+
+Folder: `03_dicts`  
+Type: Restraint dictionaries · acedrg / eLBOW
+
+Inputs:
+- structure: `/golden/inputs/structure.pdb`
+
+Checks:
+- WARNING: Model (PDB): file not found (yet): /golden/inputs/structure.pdb
+- ERROR: type the residue codes

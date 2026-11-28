@@ -1,0 +1,12 @@
+Unrestrained min, helix pairs held
+&cntrl
+  imin=1, maxcyc=2000, ncyc=500,
+  ntmin=1,
+  ntb=1, ntp=0, cut=10.0,
+  ntc=1, ntf=1,
+  ntr=0,
+  nmropt=1,
+  ntpr=100,
+/
+&wt type='END' /
+DISANG=my-plan_02_helix_20261125-1200.dist

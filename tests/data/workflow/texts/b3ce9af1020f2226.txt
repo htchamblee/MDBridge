@@ -1,0 +1,22 @@
+# Plan golden
+
+Written by MDBridge <VERSION> on <DATE>. File names follow `<project>_<step>_<tool>_<time>.<ext>` with time stamp `20261015-1432`.
+
+## 03 · Phenix · real-space refinement
+
+Folder: `03_phenix-rsr`  
+Type: Phenix · real-space refinement
+
+Inputs:
+- model: `<ROOT>/inputs/model.pdb`
+- map: `/golden/inputs/map.map`
+
+Outputs:
+- refined: `03_phenix-rsr/golden_03_refined_20261015-1432.pdb`
+- log: `03_phenix-rsr/golden_03_phenix-rsr_20261015-1432.log`
+
+Files written: `golden_03_phenix-rsr_20261015-1432.sh`
+
+Checks:
+- WARNING: Density map: file not found (yet): /golden/inputs/map.map
+- WARNING: Phenix does not recognise the residue names LG5 x2, LG x2, LC x2, LA x2, LU x2, LC3 x2 (Amber-style names); convert with 'mdatk pdb clean --scheme ccd' first

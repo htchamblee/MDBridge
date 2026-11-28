@@ -1,0 +1,14 @@
+# Plan golden
+
+Written by MDBridge <VERSION> on <DATE>. File names follow `<project>_<step>_<tool>_<time>.<ext>` with time stamp `20261015-1432`.
+
+## 03 · Restraint dictionaries · acedrg / eLBOW
+
+Folder: `03_dicts`  
+Type: Restraint dictionaries · acedrg / eLBOW
+
+Inputs:
+- structure: `<ROOT>/inputs/model.pdb`
+
+Checks:
+- ERROR: the model has no L-RNA chain ends (0A5/0A3 ... in CCD naming); choose the residues by hand

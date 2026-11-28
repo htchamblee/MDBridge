@@ -1,0 +1,27 @@
+# Plan golden
+
+Written by MDBridge <VERSION> on <DATE>. File names follow `<project>_<step>_<tool>_<time>.<ext>` with time stamp `20261015-1432`.
+
+## 03 · Amber · MD stages
+
+Folder: `03_amber-md`  
+Type: Amber · MD stages
+
+Inputs:
+- topology: `/golden/inputs/topology.parm7`
+- coordinates: `/golden/inputs/coordinates.rst7`
+- restraints: `/golden/inputs/restraints.dist`
+
+Outputs:
+- topology: `/golden/inputs/topology.parm7`
+- restart: `03_amber-md/golden_03_eq-free_20261015-1432.rst7`
+- trajectory: `03_amber-md/golden_03_eq-free_20261015-1432.nc`
+- dry_pdb: `03_amber-md/golden_03_dry_20261015-1432.pdb`
+
+Files written: `golden_03_eq-free_20261015-1432.in`, `golden_03_amber-md_20261015-1432.sh`
+
+Checks:
+- WARNING: Topology (parm7): file not found (yet): /golden/inputs/topology.parm7
+- WARNING: Coordinates (rst7): file not found (yet): /golden/inputs/coordinates.rst7
+- WARNING: Restraints (DISANG): file not found (yet): /golden/inputs/restraints.dist
+- WARNING: stage eq-free: heating from 0 K at constant pressure can collapse the box; heat in NVT first

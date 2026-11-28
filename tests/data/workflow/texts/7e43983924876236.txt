@@ -1,0 +1,63 @@
+# Plan golden
+
+Written by MDBridge <VERSION> on <DATE>. File names follow `<project>_<step>_<tool>_<time>.<ext>` with time stamp `20261015-1432`.
+
+## 01 · Structure builder (MDATK)
+
+Folder: `01_build`  
+Type: Structure builder (MDATK)
+
+Outputs:
+- pdb: `01_build/golden_01_helix_20261015-1432.pdb`
+
+Checks:
+- ERROR: enter the sequence
+
+## 02 · Amber · system build
+
+Folder: `02_amber-build`  
+Type: Amber · system build  
+MDBridge: `mdbridge` from PATH (MDBRIDGE in the scripts overrides it)
+
+Inputs:
+- structure: `01_build/golden_01_helix_20261015-1432.pdb` (from 01 · Structure builder (MDATK))
+
+Outputs:
+- topology: `02_amber-build/golden_02_parmed_20261015-1432.parm7`
+- coordinates: `02_amber-build/golden_02_tleap_20261015-1432.rst7`
+- pdb: `02_amber-build/golden_02_tleap_20261015-1432.pdb`
+
+Files written: `golden_02_cp-lib_20261015-1432.py`, `golden_02_prep_20261015-1432.py`, `golden_02_tleap_20261015-1432.leap`, `golden_02_parmed_20261015-1432.in`, `golden_02_amber-build_20261015-1432.sh`
+
+## 03 · Amber · helix restraints
+
+Folder: `03_amber-restraints`  
+Type: Amber · helix restraints
+
+Inputs:
+- topology: `02_amber-build/golden_02_parmed_20261015-1432.parm7` (from 02 · Amber · system build)
+
+Outputs:
+- restraints: `03_amber-restraints/golden_03_helix_20261015-1432.dist`
+
+Checks:
+- WARNING: Secondary structure: 01 · Structure builder (MDATK) does not produce this file with its current settings
+- ERROR: enter the secondary structure (dot-bracket and sequence) or connect a secondary-structure file
+
+## 04 · Amber · MD stages
+
+Folder: `04_amber-md`  
+Type: Amber · MD stages
+
+Inputs:
+- topology: `02_amber-build/golden_02_parmed_20261015-1432.parm7` (from 02 · Amber · system build)
+- coordinates: `02_amber-build/golden_02_tleap_20261015-1432.rst7` (from 02 · Amber · system build)
+- restraints: `03_amber-restraints/golden_03_helix_20261015-1432.dist` (from 03 · Amber · helix restraints)
+
+Outputs:
+- topology: `02_amber-build/golden_02_parmed_20261015-1432.parm7`
+- restart: `04_amber-md/golden_04_prod_20261015-1432.rst7`
+- trajectory: `04_amber-md/golden_04_prod_20261015-1432.nc`
+- dry_pdb: `04_amber-md/golden_04_dry_20261015-1432.pdb`
+
+Files written: `golden_04_min1_20261015-1432.in`, `golden_04_min2_20261015-1432.in`, `golden_04_heat_20261015-1432.in`, `golden_04_eq_20261015-1432.in`, `golden_04_eq-free_20261015-1432.in`, `golden_04_prod_20261015-1432.in`, `golden_04_amber-md_20261015-1432.sh`, `golden_04_amber-prod_20261015-1432.sh`

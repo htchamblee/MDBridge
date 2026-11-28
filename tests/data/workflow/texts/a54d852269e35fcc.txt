@@ -1,0 +1,22 @@
+#!/bin/bash
+# Master script of plan golden - written by MDBridge <VERSION> on <DATE>.
+# Runs the main script of every step in plan order.  Scripts marked 'run separately'
+# (e.g. production runs for a cluster) are listed but not started.
+
+set -eo pipefail
+cd "$(dirname "$0")"
+
+# 01 · Amber · system build
+#   (not written: the step has errors)
+
+# 02 · Amber · helix restraints
+#   (not run: reads from 01 · Amber · system build, which has errors)
+
+# 03 · Amber · MD stages
+#   (not run: reads from 01 · Amber · system build, which has errors)
+
+# 04 · VMD · visualisation
+#   (not run: reads from 01 · Amber · system build, which has errors)
+
+# 05 · Amber · helix restraints
+bash "05_amber-restraints/golden_05_amber-restraints_20261015-1432.sh"

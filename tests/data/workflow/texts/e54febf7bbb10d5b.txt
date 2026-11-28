@@ -1,0 +1,22 @@
+# Plan golden
+
+Written by MDBridge <VERSION> on <DATE>. File names follow `<project>_<step>_<tool>_<time>.<ext>` with time stamp `20261015-1432`.
+
+## 03 · SimRNA · folding
+
+Folder: `03_simrna`  
+Type: SimRNA · folding
+
+Inputs:
+- structure: `/golden/my inputs/structure.pdb`
+- secstruct: `/golden/my inputs/secstruct.secstruct`
+
+Outputs:
+- trajectory: `03_simrna/golden_03_simrna-all_20261015-1432.trafl`
+- best: `03_simrna/golden_03_model-01_20261015-1432.pdb`
+- models: `03_simrna/golden_03_model-01_20261015-1432.pdb`, `03_simrna/golden_03_model-02_20261015-1432.pdb`, `03_simrna/golden_03_model-03_20261015-1432.pdb`, `03_simrna/golden_03_model-04_20261015-1432.pdb`, `03_simrna/golden_03_model-05_20261015-1432.pdb`
+
+Checks:
+- WARNING: Start PDB (-p): file not found (yet): /golden/my inputs/structure.pdb
+- WARNING: Secondary structure: file not found (yet): /golden/my inputs/secstruct.secstruct
+- ERROR: the secondary-structure file must exist when the files are written (or connect a step that knows it)

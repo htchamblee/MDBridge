@@ -1,0 +1,21 @@
+# rna_denovo flags written by MDBridge <VERSION> for project golden, step 02
+# paths are relative to the run folders (runs/rNN)
+-fasta ../../golden_02_farfar2_20261015-1432.fasta
+-secstruct_file ../../golden_02_farfar2_20261015-1432.secstruct
+-nstruct 100
+-cycles 50000
+-minimize_rna true
+-fixed_stems
+-rna:denovo:bps_moves false
+-heat
+-close_loops
+-fuzz_fragments 5
+-autofilter false
+-filter_lores_base_pairs false
+-filter_chain_closure true
+-filter_chain_closure_halfway false
+-filter_chain_closure_distance 15.0
+-rna:denovo:minimize:minimizer_use_coordinate_constraints
+-rna:denovo:out:dump
+-set_weights coordinate_constraint 1 linear_chainbreak 10.0
+-run:constant_seed

@@ -1,0 +1,21 @@
+# Plan golden
+
+Written by MDBridge <VERSION> on <DATE>. File names follow `<project>_<step>_<tool>_<time>.<ext>` with time stamp `20261015-1432`.
+
+## 03 · RNAMake · design
+
+Folder: `03_rnamake`  
+Type: RNAMake · design
+
+Inputs:
+- structure: `/golden/inputs/structure.pdb`
+
+Outputs:
+- designs: `03_rnamake/golden_03_design-01_20261015-1432.pdb`, `03_rnamake/golden_03_design-02_20261015-1432.pdb`, `03_rnamake/golden_03_design-03_20261015-1432.pdb`, `03_rnamake/golden_03_design-04_20261015-1432.pdb`, `03_rnamake/golden_03_design-05_20261015-1432.pdb`, `03_rnamake/golden_03_design-06_20261015-1432.pdb`, `03_rnamake/golden_03_design-07_20261015-1432.pdb`, `03_rnamake/golden_03_design-08_20261015-1432.pdb`, `03_rnamake/golden_03_design-09_20261015-1432.pdb`, `03_rnamake/golden_03_design-10_20261015-1432.pdb`
+- best: `03_rnamake/golden_03_design-01_20261015-1432.pdb`
+
+Checks:
+- WARNING: Scaffold (PDB): file not found (yet): /golden/inputs/structure.pdb
+- ERROR: give the start bp (e.g. A222-A251)
+- ERROR: give the end bp (e.g. A222-A251)
+- WARNING: an exhaustive search with a large maximum size can run for a very long time

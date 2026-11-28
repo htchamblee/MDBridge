@@ -1,0 +1,103 @@
+# Plan golden
+
+Written by MDBridge <VERSION> on <DATE>. File names follow `<project>_<step>_<tool>_<time>.<ext>` with time stamp `20261015-1432`.
+
+## 01 · Rosetta · FARFAR2 (rna_denovo)
+
+Folder: `01_farfar2`  
+Type: Rosetta · FARFAR2 (rna_denovo)
+
+Outputs:
+- silent: `01_farfar2/golden_01_farfar2-r01_20261015-1432.out`, `01_farfar2/golden_01_farfar2-r02_20261015-1432.out`, `01_farfar2/golden_01_farfar2-r03_20261015-1432.out`, `01_farfar2/golden_01_farfar2-r04_20261015-1432.out`, `01_farfar2/golden_01_farfar2-r05_20261015-1432.out`, `01_farfar2/golden_01_farfar2-r06_20261015-1432.out`, `01_farfar2/golden_01_farfar2-r07_20261015-1432.out`, `01_farfar2/golden_01_farfar2-r08_20261015-1432.out`, `01_farfar2/golden_01_farfar2-r09_20261015-1432.out`, `01_farfar2/golden_01_farfar2-r10_20261015-1432.out`, `01_farfar2/golden_01_farfar2-r11_20261015-1432.out`, `01_farfar2/golden_01_farfar2-r12_20261015-1432.out`
+- fasta: `01_farfar2/golden_01_farfar2_20261015-1432.fasta`
+- secstruct: `01_farfar2/golden_01_farfar2_20261015-1432.secstruct`
+
+Checks:
+- ERROR: enter the RNA sequence
+- WARNING: -fixed_stems needs a secondary structure
+
+## 02 · Rosetta · FARFAR2 models (cluster / extract / DSSR)
+
+Folder: `02_farfar2-models`  
+Type: Rosetta · FARFAR2 models (cluster / extract / DSSR)
+
+Inputs:
+- silent: `01_farfar2/golden_01_farfar2-r01_20261015-1432.out`, `01_farfar2/golden_01_farfar2-r02_20261015-1432.out`, `01_farfar2/golden_01_farfar2-r03_20261015-1432.out`, `01_farfar2/golden_01_farfar2-r04_20261015-1432.out`, `01_farfar2/golden_01_farfar2-r05_20261015-1432.out`, `01_farfar2/golden_01_farfar2-r06_20261015-1432.out`, `01_farfar2/golden_01_farfar2-r07_20261015-1432.out`, `01_farfar2/golden_01_farfar2-r08_20261015-1432.out`, `01_farfar2/golden_01_farfar2-r09_20261015-1432.out`, `01_farfar2/golden_01_farfar2-r10_20261015-1432.out`, `01_farfar2/golden_01_farfar2-r11_20261015-1432.out`, `01_farfar2/golden_01_farfar2-r12_20261015-1432.out` (from 01 · Rosetta · FARFAR2 (rna_denovo))
+
+Outputs:
+- best: `02_farfar2-models/golden_02_model-01_20261015-1432.pdb`
+- models: `02_farfar2-models/golden_02_model-01_20261015-1432.pdb`, `02_farfar2-models/golden_02_model-02_20261015-1432.pdb`, `02_farfar2-models/golden_02_model-03_20261015-1432.pdb`, `02_farfar2-models/golden_02_model-04_20261015-1432.pdb`, `02_farfar2-models/golden_02_model-05_20261015-1432.pdb`, `02_farfar2-models/golden_02_model-06_20261015-1432.pdb`, `02_farfar2-models/golden_02_model-07_20261015-1432.pdb`, `02_farfar2-models/golden_02_model-08_20261015-1432.pdb`, `02_farfar2-models/golden_02_model-09_20261015-1432.pdb`, `02_farfar2-models/golden_02_model-10_20261015-1432.pdb`
+
+Files written: `golden_02_farfar2-models_20261015-1432.sh`
+
+## 03 · Amber · system build
+
+Folder: `03_amber-build`  
+Type: Amber · system build  
+MDBridge: `mdbridge` from PATH (MDBRIDGE in the scripts overrides it)
+
+Inputs:
+- structure: `02_farfar2-models/golden_02_model-01_20261015-1432.pdb` (from 02 · Rosetta · FARFAR2 models (cluster / extract / DSSR))
+
+Outputs:
+- topology: `03_amber-build/golden_03_parmed_20261015-1432.parm7`
+- coordinates: `03_amber-build/golden_03_tleap_20261015-1432.rst7`
+- pdb: `03_amber-build/golden_03_tleap_20261015-1432.pdb`
+
+Files written: `golden_03_cp-lib_20261015-1432.py`, `golden_03_prep_20261015-1432.py`, `golden_03_tleap_20261015-1432.leap`, `golden_03_parmed_20261015-1432.in`, `golden_03_amber-build_20261015-1432.sh`
+
+## 04 · Amber · helix restraints
+
+Folder: `04_amber-restraints`  
+Type: Amber · helix restraints
+
+Inputs:
+- topology: `03_amber-build/golden_03_parmed_20261015-1432.parm7` (from 03 · Amber · system build)
+- secstruct: `01_farfar2/golden_01_farfar2_20261015-1432.secstruct` (from 01 · Rosetta · FARFAR2 (rna_denovo))
+
+Outputs:
+- restraints: `04_amber-restraints/golden_04_helix_20261015-1432.dist`
+
+Files written: `golden_04_helix_20261015-1432.py`, `golden_04_amber-restraints_20261015-1432.sh`
+
+Checks:
+- WARNING: the secondary structure contains no restrainable base pairs
+
+## 05 · Amber · MD stages
+
+Folder: `05_amber-md`  
+Type: Amber · MD stages
+
+Inputs:
+- topology: `03_amber-build/golden_03_parmed_20261015-1432.parm7` (from 03 · Amber · system build)
+- coordinates: `03_amber-build/golden_03_tleap_20261015-1432.rst7` (from 03 · Amber · system build)
+- restraints: `04_amber-restraints/golden_04_helix_20261015-1432.dist` (from 04 · Amber · helix restraints)
+
+Outputs:
+- topology: `03_amber-build/golden_03_parmed_20261015-1432.parm7`
+- restart: `05_amber-md/golden_05_prod_20261015-1432.rst7`
+- trajectory: `05_amber-md/golden_05_prod_20261015-1432.nc`
+- dry_pdb: `05_amber-md/golden_05_dry_20261015-1432.pdb`
+- dry_topology: `05_amber-md/golden_05_dry_20261015-1432.parm7`
+- dry_trajectory: `05_amber-md/golden_05_dry-prod_20261015-1432.nc`
+
+Files written: `golden_05_min1_20261015-1432.in`, `golden_05_min2_20261015-1432.in`, `golden_05_heat_20261015-1432.in`, `golden_05_eq_20261015-1432.in`, `golden_05_eq-free_20261015-1432.in`, `golden_05_prod_20261015-1432.in`, `golden_05_amber-md_20261015-1432.sh`, `golden_05_amber-prod_20261015-1432.sh`
+
+## MDATK analysis
+
+Type: MDATK analysis
+
+Inputs:
+- topology: `03_amber-build/golden_03_parmed_20261015-1432.parm7` (from 05 · Amber · MD stages)
+- trajectory: `05_amber-md/golden_05_prod_20261015-1432.nc` (from 05 · Amber · MD stages)
+
+## 06 · VMD · visualisation
+
+Folder: `06_vmd`  
+Type: VMD · visualisation
+
+Inputs:
+- topology: `05_amber-md/golden_05_dry_20261015-1432.parm7` (from 05 · Amber · MD stages)
+- trajectory: `05_amber-md/golden_05_dry-prod_20261015-1432.nc` (from 05 · Amber · MD stages)
+
+Files written: `golden_06_vmd_20261015-1432.tcl`, `golden_06_vmd_20261015-1432.sh`

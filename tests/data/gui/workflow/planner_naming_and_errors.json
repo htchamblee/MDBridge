@@ -1,0 +1,1149 @@
+{
+ "format": "mdbridge-gui-case",
+ "version": 1,
+ "description": "Project Planner: the naming bar (project name, no step folders, time stamp off and on, New stamp twice within a minute: WG-15), a step with errors written after the question (no, then yes: the master skips its readers, WG-02), the details pane's title and step number",
+ "source": "MDATK v0.0.4.1's GTK window driven by tests/parity/make_gui_cases.py, with MDBridge's window improvements (tests/parity/improvements_gui.py)",
+ "clock": "2026-11-25T12:00:00",
+ "items": [
+  "WG-02",
+  "WG-15"
+ ],
+ "mdatk_test": "",
+ "needs": [
+  "answers",
+  "lossless",
+  "snapshot",
+  "start",
+  "workflow"
+ ],
+ "canvas": {
+  "width": 960,
+  "height": 540
+ },
+ "files": {
+  "p.mdatk.toml": "gui/workflow/planner_naming_and_errors/in/p.mdatk.toml"
+ },
+ "start": {
+  "project": "p.mdatk.toml"
+ },
+ "actions": [
+  {
+   "action": "wf.planner.open"
+  },
+  {
+   "action": "wf.planner.template",
+   "name": "amber"
+  },
+  {
+   "action": "wf.planner.naming",
+   "project": "my plan",
+   "folders": false
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "workflow": {
+    "planner": true
+   }
+  },
+  {
+   "action": "wf.planner.new_stamp"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "workflow": {
+    "planner": true
+   }
+  },
+  {
+   "action": "wf.planner.new_stamp"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "workflow": {
+    "planner": true
+   }
+  },
+  {
+   "action": "wf.planner.write",
+   "answers": {
+    "errors": "no"
+   }
+  },
+  {
+   "action": "wf.planner.write",
+   "answers": {
+    "errors": "yes"
+   }
+  },
+  {
+   "action": "wf.planner.details",
+   "node": "n2",
+   "title": "Helix restraints",
+   "step": 5
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "workflow": {
+    "planner": true
+   }
+  },
+  {
+   "action": "save"
+  }
+ ],
+ "expected": {
+  "p.mdatk.toml": "gui/workflow/planner_naming_and_errors/out/p.mdatk.toml",
+  "plans/my-plan_workflow/my-plan_00_plan_20261125-1202.md": "gui/workflow/planner_naming_and_errors/out/plans/my-plan_workflow/my-plan_00_plan_20261125-1202.md",
+  "plans/my-plan_workflow/my-plan_00_plan_20261125-1202.sh": "gui/workflow/planner_naming_and_errors/out/plans/my-plan_workflow/my-plan_00_plan_20261125-1202.sh",
+  "plans/my-plan_workflow/my-plan_03_amber-md_20261125-1202.sh": "gui/workflow/planner_naming_and_errors/out/plans/my-plan_workflow/my-plan_03_amber-md_20261125-1202.sh",
+  "plans/my-plan_workflow/my-plan_03_amber-prod_20261125-1202.sh": "gui/workflow/planner_naming_and_errors/out/plans/my-plan_workflow/my-plan_03_amber-prod_20261125-1202.sh",
+  "plans/my-plan_workflow/my-plan_03_eq-free_20261125-1202.in": "gui/workflow/planner_naming_and_errors/out/plans/my-plan_workflow/my-plan_03_eq-free_20261125-1202.in",
+  "plans/my-plan_workflow/my-plan_03_eq_20261125-1202.in": "gui/workflow/planner_naming_and_errors/out/plans/my-plan_workflow/my-plan_03_eq_20261125-1202.in",
+  "plans/my-plan_workflow/my-plan_03_heat_20261125-1202.in": "gui/workflow/planner_naming_and_errors/out/plans/my-plan_workflow/my-plan_03_heat_20261125-1202.in",
+  "plans/my-plan_workflow/my-plan_03_min1_20261125-1202.in": "gui/workflow/planner_naming_and_errors/out/plans/my-plan_workflow/my-plan_03_min1_20261125-1202.in",
+  "plans/my-plan_workflow/my-plan_03_min2_20261125-1202.in": "gui/workflow/planner_naming_and_errors/out/plans/my-plan_workflow/my-plan_03_min2_20261125-1202.in",
+  "plans/my-plan_workflow/my-plan_03_prod_20261125-1202.in": "gui/workflow/planner_naming_and_errors/out/plans/my-plan_workflow/my-plan_03_prod_20261125-1202.in"
+ },
+ "log": [
+  "Project Planner: Wrote 10 files to {case_dir}/plans/my-plan_workflow (2 steps skipped)",
+  "Master script: {case_dir}/plans/my-plan_workflow/my-plan_00_plan_20261125-1202.sh",
+  "Saved project {case_dir}/p.mdatk.toml"
+ ],
+ "outcome": {
+  "questions": [
+   {
+    "action": 8,
+    "kind": "errors",
+    "text": "Some steps have errors",
+    "detail": "• 01 · Amber · system build: Starting structure (PDB): connect a step that produces it or choose a file\n• 02 · Amber · helix restraints: enter the secondary structure (dot-bracket and sequence) or connect a secondary-structure file\n\nWrite the other steps anyway? Steps with errors are skipped.",
+    "answer": "no"
+   },
+   {
+    "action": 9,
+    "kind": "errors",
+    "text": "Some steps have errors",
+    "detail": "• 01 · Amber · system build: Starting structure (PDB): connect a step that produces it or choose a file\n• 02 · Amber · helix restraints: enter the secondary structure (dot-bracket and sequence) or connect a secondary-structure file\n\nWrite the other steps anyway? Steps with errors are skipped.",
+    "answer": "yes"
+   }
+  ],
+  "snapshots": [
+   {
+    "action": 3,
+    "workflow": {
+     "planner": {
+      "open": true,
+      "nodes": [
+       [
+        "n1",
+        "amber-build",
+        1,
+        "",
+        40.0,
+        40.0
+       ],
+       [
+        "n2",
+        "amber-restraints",
+        2,
+        "",
+        320.0,
+        230.0
+       ],
+       [
+        "n3",
+        "amber-md",
+        3,
+        "",
+        600.0,
+        40.0
+       ],
+       [
+        "n4",
+        "mdatk",
+        0,
+        "",
+        880.0,
+        40.0
+       ]
+      ],
+      "edges": [
+       [
+        "n1",
+        "topology",
+        "n2",
+        "topology"
+       ],
+       [
+        "n1",
+        "topology",
+        "n3",
+        "topology"
+       ],
+       [
+        "n1",
+        "coordinates",
+        "n3",
+        "coordinates"
+       ],
+       [
+        "n2",
+        "restraints",
+        "n3",
+        "restraints"
+       ],
+       [
+        "n3",
+        "topology",
+        "n4",
+        "topology"
+       ],
+       [
+        "n3",
+        "trajectory",
+        "n4",
+        "trajectory"
+       ]
+      ],
+      "issues": [
+       [
+        "01 · Amber · system build",
+        "error",
+        "Starting structure (PDB): connect a step that produces it or choose a file"
+       ],
+       [
+        "01 · Amber · system build",
+        "info",
+        "the CP library and parameters are generated from AmberTools' RNA.lib and parm10.dat when the script runs (AMBERHOME or tleap on PATH)"
+       ],
+       [
+        "02 · Amber · helix restraints",
+        "error",
+        "enter the secondary structure (dot-bracket and sequence) or connect a secondary-structure file"
+       ],
+       [
+        "03 · Amber · MD stages",
+        "info",
+        "no environment setup: pmemd and cpptraj must be on PATH when the script runs"
+       ],
+       [
+        "MDATK analysis",
+        "info",
+        "topology comes from 03 · Amber · MD stages; the file exists once that step has run"
+       ],
+       [
+        "MDATK analysis",
+        "info",
+        "trajectory comes from 03 · Amber · MD stages; the file exists once that step has run"
+       ]
+      ],
+      "naming": {
+       "project": "my plan",
+       "stamp": "",
+       "use_stamp": true,
+       "step_folders": false,
+       "shown": "20261125-1200 (set on first write)"
+      },
+      "status": "3 steps · 6 connections · 2 errors · 0 warnings · folder {case_dir}/plans/my-plan_workflow"
+     }
+    }
+   },
+   {
+    "action": 5,
+    "workflow": {
+     "planner": {
+      "open": true,
+      "nodes": [
+       [
+        "n1",
+        "amber-build",
+        1,
+        "",
+        40.0,
+        40.0
+       ],
+       [
+        "n2",
+        "amber-restraints",
+        2,
+        "",
+        320.0,
+        230.0
+       ],
+       [
+        "n3",
+        "amber-md",
+        3,
+        "",
+        600.0,
+        40.0
+       ],
+       [
+        "n4",
+        "mdatk",
+        0,
+        "",
+        880.0,
+        40.0
+       ]
+      ],
+      "edges": [
+       [
+        "n1",
+        "topology",
+        "n2",
+        "topology"
+       ],
+       [
+        "n1",
+        "topology",
+        "n3",
+        "topology"
+       ],
+       [
+        "n1",
+        "coordinates",
+        "n3",
+        "coordinates"
+       ],
+       [
+        "n2",
+        "restraints",
+        "n3",
+        "restraints"
+       ],
+       [
+        "n3",
+        "topology",
+        "n4",
+        "topology"
+       ],
+       [
+        "n3",
+        "trajectory",
+        "n4",
+        "trajectory"
+       ]
+      ],
+      "issues": [
+       [
+        "01 · Amber · system build",
+        "error",
+        "Starting structure (PDB): connect a step that produces it or choose a file"
+       ],
+       [
+        "01 · Amber · system build",
+        "info",
+        "the CP library and parameters are generated from AmberTools' RNA.lib and parm10.dat when the script runs (AMBERHOME or tleap on PATH)"
+       ],
+       [
+        "02 · Amber · helix restraints",
+        "error",
+        "enter the secondary structure (dot-bracket and sequence) or connect a secondary-structure file"
+       ],
+       [
+        "03 · Amber · MD stages",
+        "info",
+        "no environment setup: pmemd and cpptraj must be on PATH when the script runs"
+       ],
+       [
+        "MDATK analysis",
+        "info",
+        "topology comes from 03 · Amber · MD stages; the file exists once that step has run"
+       ],
+       [
+        "MDATK analysis",
+        "info",
+        "trajectory comes from 03 · Amber · MD stages; the file exists once that step has run"
+       ]
+      ],
+      "naming": {
+       "project": "my plan",
+       "stamp": "20261125-1201",
+       "use_stamp": true,
+       "step_folders": false,
+       "shown": "20261125-1201"
+      },
+      "status": "3 steps · 6 connections · 2 errors · 0 warnings · folder {case_dir}/plans/my-plan_workflow"
+     }
+    }
+   },
+   {
+    "action": 7,
+    "workflow": {
+     "planner": {
+      "open": true,
+      "nodes": [
+       [
+        "n1",
+        "amber-build",
+        1,
+        "",
+        40.0,
+        40.0
+       ],
+       [
+        "n2",
+        "amber-restraints",
+        2,
+        "",
+        320.0,
+        230.0
+       ],
+       [
+        "n3",
+        "amber-md",
+        3,
+        "",
+        600.0,
+        40.0
+       ],
+       [
+        "n4",
+        "mdatk",
+        0,
+        "",
+        880.0,
+        40.0
+       ]
+      ],
+      "edges": [
+       [
+        "n1",
+        "topology",
+        "n2",
+        "topology"
+       ],
+       [
+        "n1",
+        "topology",
+        "n3",
+        "topology"
+       ],
+       [
+        "n1",
+        "coordinates",
+        "n3",
+        "coordinates"
+       ],
+       [
+        "n2",
+        "restraints",
+        "n3",
+        "restraints"
+       ],
+       [
+        "n3",
+        "topology",
+        "n4",
+        "topology"
+       ],
+       [
+        "n3",
+        "trajectory",
+        "n4",
+        "trajectory"
+       ]
+      ],
+      "issues": [
+       [
+        "01 · Amber · system build",
+        "error",
+        "Starting structure (PDB): connect a step that produces it or choose a file"
+       ],
+       [
+        "01 · Amber · system build",
+        "info",
+        "the CP library and parameters are generated from AmberTools' RNA.lib and parm10.dat when the script runs (AMBERHOME or tleap on PATH)"
+       ],
+       [
+        "02 · Amber · helix restraints",
+        "error",
+        "enter the secondary structure (dot-bracket and sequence) or connect a secondary-structure file"
+       ],
+       [
+        "03 · Amber · MD stages",
+        "info",
+        "no environment setup: pmemd and cpptraj must be on PATH when the script runs"
+       ],
+       [
+        "MDATK analysis",
+        "info",
+        "topology comes from 03 · Amber · MD stages; the file exists once that step has run"
+       ],
+       [
+        "MDATK analysis",
+        "info",
+        "trajectory comes from 03 · Amber · MD stages; the file exists once that step has run"
+       ]
+      ],
+      "naming": {
+       "project": "my plan",
+       "stamp": "20261125-1202",
+       "use_stamp": true,
+       "step_folders": false,
+       "shown": "20261125-1202"
+      },
+      "status": "3 steps · 6 connections · 2 errors · 0 warnings · folder {case_dir}/plans/my-plan_workflow"
+     }
+    }
+   },
+   {
+    "action": 11,
+    "workflow": {
+     "planner": {
+      "open": true,
+      "nodes": [
+       [
+        "n1",
+        "amber-build",
+        1,
+        "",
+        40.0,
+        40.0
+       ],
+       [
+        "n2",
+        "amber-restraints",
+        5,
+        "Helix restraints",
+        320.0,
+        230.0
+       ],
+       [
+        "n3",
+        "amber-md",
+        3,
+        "",
+        600.0,
+        40.0
+       ],
+       [
+        "n4",
+        "mdatk",
+        0,
+        "",
+        880.0,
+        40.0
+       ]
+      ],
+      "edges": [
+       [
+        "n1",
+        "topology",
+        "n2",
+        "topology"
+       ],
+       [
+        "n1",
+        "topology",
+        "n3",
+        "topology"
+       ],
+       [
+        "n1",
+        "coordinates",
+        "n3",
+        "coordinates"
+       ],
+       [
+        "n2",
+        "restraints",
+        "n3",
+        "restraints"
+       ],
+       [
+        "n3",
+        "topology",
+        "n4",
+        "topology"
+       ],
+       [
+        "n3",
+        "trajectory",
+        "n4",
+        "trajectory"
+       ]
+      ],
+      "issues": [
+       [
+        "01 · Amber · system build",
+        "error",
+        "Starting structure (PDB): connect a step that produces it or choose a file"
+       ],
+       [
+        "01 · Amber · system build",
+        "info",
+        "the CP library and parameters are generated from AmberTools' RNA.lib and parm10.dat when the script runs (AMBERHOME or tleap on PATH)"
+       ],
+       [
+        "05 · Helix restraints",
+        "error",
+        "enter the secondary structure (dot-bracket and sequence) or connect a secondary-structure file"
+       ],
+       [
+        "03 · Amber · MD stages",
+        "info",
+        "no environment setup: pmemd and cpptraj must be on PATH when the script runs"
+       ],
+       [
+        "MDATK analysis",
+        "info",
+        "topology comes from 03 · Amber · MD stages; the file exists once that step has run"
+       ],
+       [
+        "MDATK analysis",
+        "info",
+        "trajectory comes from 03 · Amber · MD stages; the file exists once that step has run"
+       ]
+      ],
+      "naming": {
+       "project": "my plan",
+       "stamp": "20261125-1202",
+       "use_stamp": true,
+       "step_folders": false,
+       "shown": "20261125-1202"
+      },
+      "status": "3 steps · 6 connections · 2 errors · 0 warnings · folder {case_dir}/plans/my-plan_workflow"
+     }
+    }
+   }
+  ],
+  "settings": "gui/workflow/planner_naming_and_errors/settings.after.toml"
+ },
+ "mdatk": {
+  "expected": {
+   "p.mdatk.toml": "gui/workflow/planner_naming_and_errors/mdatk/p.mdatk.toml",
+   "plans/my-plan_workflow/my-plan_00_plan_20261125-1200.md": "gui/workflow/planner_naming_and_errors/mdatk/plans/my-plan_workflow/my-plan_00_plan_20261125-1200.md",
+   "plans/my-plan_workflow/my-plan_00_plan_20261125-1200.sh": "gui/workflow/planner_naming_and_errors/mdatk/plans/my-plan_workflow/my-plan_00_plan_20261125-1200.sh",
+   "plans/my-plan_workflow/my-plan_00_plan_20261125-1202.md": null,
+   "plans/my-plan_workflow/my-plan_00_plan_20261125-1202.sh": null,
+   "plans/my-plan_workflow/my-plan_03_amber-md_20261125-1200.sh": "gui/workflow/planner_naming_and_errors/mdatk/plans/my-plan_workflow/my-plan_03_amber-md_20261125-1200.sh",
+   "plans/my-plan_workflow/my-plan_03_amber-md_20261125-1202.sh": null,
+   "plans/my-plan_workflow/my-plan_03_amber-prod_20261125-1200.sh": "gui/workflow/planner_naming_and_errors/mdatk/plans/my-plan_workflow/my-plan_03_amber-prod_20261125-1200.sh",
+   "plans/my-plan_workflow/my-plan_03_amber-prod_20261125-1202.sh": null,
+   "plans/my-plan_workflow/my-plan_03_eq-free_20261125-1200.in": "gui/workflow/planner_naming_and_errors/mdatk/plans/my-plan_workflow/my-plan_03_eq-free_20261125-1200.in",
+   "plans/my-plan_workflow/my-plan_03_eq-free_20261125-1202.in": null,
+   "plans/my-plan_workflow/my-plan_03_eq_20261125-1200.in": "gui/workflow/planner_naming_and_errors/mdatk/plans/my-plan_workflow/my-plan_03_eq_20261125-1200.in",
+   "plans/my-plan_workflow/my-plan_03_eq_20261125-1202.in": null,
+   "plans/my-plan_workflow/my-plan_03_heat_20261125-1200.in": "gui/workflow/planner_naming_and_errors/mdatk/plans/my-plan_workflow/my-plan_03_heat_20261125-1200.in",
+   "plans/my-plan_workflow/my-plan_03_heat_20261125-1202.in": null,
+   "plans/my-plan_workflow/my-plan_03_min1_20261125-1200.in": "gui/workflow/planner_naming_and_errors/mdatk/plans/my-plan_workflow/my-plan_03_min1_20261125-1200.in",
+   "plans/my-plan_workflow/my-plan_03_min1_20261125-1202.in": null,
+   "plans/my-plan_workflow/my-plan_03_min2_20261125-1200.in": "gui/workflow/planner_naming_and_errors/mdatk/plans/my-plan_workflow/my-plan_03_min2_20261125-1200.in",
+   "plans/my-plan_workflow/my-plan_03_min2_20261125-1202.in": null,
+   "plans/my-plan_workflow/my-plan_03_prod_20261125-1200.in": "gui/workflow/planner_naming_and_errors/mdatk/plans/my-plan_workflow/my-plan_03_prod_20261125-1200.in",
+   "plans/my-plan_workflow/my-plan_03_prod_20261125-1202.in": null
+  },
+  "log": [
+   "Project Planner: Wrote 10 files to {case_dir}/plans/my-plan_workflow (2 steps skipped)",
+   "Master script: {case_dir}/plans/my-plan_workflow/my-plan_00_plan_20261125-1200.sh",
+   "Saved project {case_dir}/p.mdatk.toml"
+  ],
+  "snapshots": [
+   {
+    "action": 3,
+    "workflow": {
+     "planner": {
+      "open": true,
+      "nodes": [
+       [
+        "n1",
+        "amber-build",
+        1,
+        "",
+        40.0,
+        40.0
+       ],
+       [
+        "n2",
+        "amber-restraints",
+        2,
+        "",
+        320.0,
+        230.0
+       ],
+       [
+        "n3",
+        "amber-md",
+        3,
+        "",
+        600.0,
+        40.0
+       ],
+       [
+        "n4",
+        "mdatk",
+        0,
+        "",
+        880.0,
+        40.0
+       ]
+      ],
+      "edges": [
+       [
+        "n1",
+        "topology",
+        "n2",
+        "topology"
+       ],
+       [
+        "n1",
+        "topology",
+        "n3",
+        "topology"
+       ],
+       [
+        "n1",
+        "coordinates",
+        "n3",
+        "coordinates"
+       ],
+       [
+        "n2",
+        "restraints",
+        "n3",
+        "restraints"
+       ],
+       [
+        "n3",
+        "topology",
+        "n4",
+        "topology"
+       ],
+       [
+        "n3",
+        "trajectory",
+        "n4",
+        "trajectory"
+       ]
+      ],
+      "issues": [
+       [
+        "01 · Amber · system build",
+        "error",
+        "Starting structure (PDB): connect a step that produces it or choose a file"
+       ],
+       [
+        "01 · Amber · system build",
+        "info",
+        "the CP library and parameters are generated from AmberTools' RNA.lib and parm10.dat when the script runs (AMBERHOME or tleap on PATH)"
+       ],
+       [
+        "01 · Amber · system build",
+        "info",
+        "tleap gives HO the same Lennard-Jones type as water HW (both zero) and O2 the same as carbonyl O, so 'changeLJPair @%HO ...' also changes water-H and carbonyl-O pairs; tick 'Separate HO and O2 Lennard-Jones types first' if that is not intended"
+       ],
+       [
+        "02 · Amber · helix restraints",
+        "error",
+        "enter the secondary structure (dot-bracket and sequence) or connect a secondary-structure file"
+       ],
+       [
+        "03 · Amber · MD stages",
+        "info",
+        "no environment setup: pmemd and cpptraj must be on PATH when the script runs"
+       ],
+       [
+        "MDATK analysis",
+        "info",
+        "topology comes from 03 · Amber · MD stages; the file exists once that step has run"
+       ],
+       [
+        "MDATK analysis",
+        "info",
+        "trajectory comes from 03 · Amber · MD stages; the file exists once that step has run"
+       ]
+      ],
+      "naming": {
+       "project": "my plan",
+       "stamp": "",
+       "use_stamp": true,
+       "step_folders": false,
+       "shown": "20261125-1200 (set on first write)"
+      },
+      "status": "3 steps · 6 connections · 2 errors · 0 warnings · folder {case_dir}/plans/my-plan_workflow"
+     }
+    }
+   },
+   {
+    "action": 5,
+    "workflow": {
+     "planner": {
+      "open": true,
+      "nodes": [
+       [
+        "n1",
+        "amber-build",
+        1,
+        "",
+        40.0,
+        40.0
+       ],
+       [
+        "n2",
+        "amber-restraints",
+        2,
+        "",
+        320.0,
+        230.0
+       ],
+       [
+        "n3",
+        "amber-md",
+        3,
+        "",
+        600.0,
+        40.0
+       ],
+       [
+        "n4",
+        "mdatk",
+        0,
+        "",
+        880.0,
+        40.0
+       ]
+      ],
+      "edges": [
+       [
+        "n1",
+        "topology",
+        "n2",
+        "topology"
+       ],
+       [
+        "n1",
+        "topology",
+        "n3",
+        "topology"
+       ],
+       [
+        "n1",
+        "coordinates",
+        "n3",
+        "coordinates"
+       ],
+       [
+        "n2",
+        "restraints",
+        "n3",
+        "restraints"
+       ],
+       [
+        "n3",
+        "topology",
+        "n4",
+        "topology"
+       ],
+       [
+        "n3",
+        "trajectory",
+        "n4",
+        "trajectory"
+       ]
+      ],
+      "issues": [
+       [
+        "01 · Amber · system build",
+        "error",
+        "Starting structure (PDB): connect a step that produces it or choose a file"
+       ],
+       [
+        "01 · Amber · system build",
+        "info",
+        "the CP library and parameters are generated from AmberTools' RNA.lib and parm10.dat when the script runs (AMBERHOME or tleap on PATH)"
+       ],
+       [
+        "01 · Amber · system build",
+        "info",
+        "tleap gives HO the same Lennard-Jones type as water HW (both zero) and O2 the same as carbonyl O, so 'changeLJPair @%HO ...' also changes water-H and carbonyl-O pairs; tick 'Separate HO and O2 Lennard-Jones types first' if that is not intended"
+       ],
+       [
+        "02 · Amber · helix restraints",
+        "error",
+        "enter the secondary structure (dot-bracket and sequence) or connect a secondary-structure file"
+       ],
+       [
+        "03 · Amber · MD stages",
+        "info",
+        "no environment setup: pmemd and cpptraj must be on PATH when the script runs"
+       ],
+       [
+        "MDATK analysis",
+        "info",
+        "topology comes from 03 · Amber · MD stages; the file exists once that step has run"
+       ],
+       [
+        "MDATK analysis",
+        "info",
+        "trajectory comes from 03 · Amber · MD stages; the file exists once that step has run"
+       ]
+      ],
+      "naming": {
+       "project": "my plan",
+       "stamp": "20261125-1200",
+       "use_stamp": true,
+       "step_folders": false,
+       "shown": "20261125-1200"
+      },
+      "status": "3 steps · 6 connections · 2 errors · 0 warnings · folder {case_dir}/plans/my-plan_workflow"
+     }
+    }
+   },
+   {
+    "action": 7,
+    "workflow": {
+     "planner": {
+      "open": true,
+      "nodes": [
+       [
+        "n1",
+        "amber-build",
+        1,
+        "",
+        40.0,
+        40.0
+       ],
+       [
+        "n2",
+        "amber-restraints",
+        2,
+        "",
+        320.0,
+        230.0
+       ],
+       [
+        "n3",
+        "amber-md",
+        3,
+        "",
+        600.0,
+        40.0
+       ],
+       [
+        "n4",
+        "mdatk",
+        0,
+        "",
+        880.0,
+        40.0
+       ]
+      ],
+      "edges": [
+       [
+        "n1",
+        "topology",
+        "n2",
+        "topology"
+       ],
+       [
+        "n1",
+        "topology",
+        "n3",
+        "topology"
+       ],
+       [
+        "n1",
+        "coordinates",
+        "n3",
+        "coordinates"
+       ],
+       [
+        "n2",
+        "restraints",
+        "n3",
+        "restraints"
+       ],
+       [
+        "n3",
+        "topology",
+        "n4",
+        "topology"
+       ],
+       [
+        "n3",
+        "trajectory",
+        "n4",
+        "trajectory"
+       ]
+      ],
+      "issues": [
+       [
+        "01 · Amber · system build",
+        "error",
+        "Starting structure (PDB): connect a step that produces it or choose a file"
+       ],
+       [
+        "01 · Amber · system build",
+        "info",
+        "the CP library and parameters are generated from AmberTools' RNA.lib and parm10.dat when the script runs (AMBERHOME or tleap on PATH)"
+       ],
+       [
+        "01 · Amber · system build",
+        "info",
+        "tleap gives HO the same Lennard-Jones type as water HW (both zero) and O2 the same as carbonyl O, so 'changeLJPair @%HO ...' also changes water-H and carbonyl-O pairs; tick 'Separate HO and O2 Lennard-Jones types first' if that is not intended"
+       ],
+       [
+        "02 · Amber · helix restraints",
+        "error",
+        "enter the secondary structure (dot-bracket and sequence) or connect a secondary-structure file"
+       ],
+       [
+        "03 · Amber · MD stages",
+        "info",
+        "no environment setup: pmemd and cpptraj must be on PATH when the script runs"
+       ],
+       [
+        "MDATK analysis",
+        "info",
+        "topology comes from 03 · Amber · MD stages; the file exists once that step has run"
+       ],
+       [
+        "MDATK analysis",
+        "info",
+        "trajectory comes from 03 · Amber · MD stages; the file exists once that step has run"
+       ]
+      ],
+      "naming": {
+       "project": "my plan",
+       "stamp": "20261125-1200",
+       "use_stamp": true,
+       "step_folders": false,
+       "shown": "20261125-1200"
+      },
+      "status": "3 steps · 6 connections · 2 errors · 0 warnings · folder {case_dir}/plans/my-plan_workflow"
+     }
+    }
+   },
+   {
+    "action": 11,
+    "workflow": {
+     "planner": {
+      "open": true,
+      "nodes": [
+       [
+        "n1",
+        "amber-build",
+        1,
+        "",
+        40.0,
+        40.0
+       ],
+       [
+        "n2",
+        "amber-restraints",
+        5,
+        "Helix restraints",
+        320.0,
+        230.0
+       ],
+       [
+        "n3",
+        "amber-md",
+        3,
+        "",
+        600.0,
+        40.0
+       ],
+       [
+        "n4",
+        "mdatk",
+        0,
+        "",
+        880.0,
+        40.0
+       ]
+      ],
+      "edges": [
+       [
+        "n1",
+        "topology",
+        "n2",
+        "topology"
+       ],
+       [
+        "n1",
+        "topology",
+        "n3",
+        "topology"
+       ],
+       [
+        "n1",
+        "coordinates",
+        "n3",
+        "coordinates"
+       ],
+       [
+        "n2",
+        "restraints",
+        "n3",
+        "restraints"
+       ],
+       [
+        "n3",
+        "topology",
+        "n4",
+        "topology"
+       ],
+       [
+        "n3",
+        "trajectory",
+        "n4",
+        "trajectory"
+       ]
+      ],
+      "issues": [
+       [
+        "01 · Amber · system build",
+        "error",
+        "Starting structure (PDB): connect a step that produces it or choose a file"
+       ],
+       [
+        "01 · Amber · system build",
+        "info",
+        "the CP library and parameters are generated from AmberTools' RNA.lib and parm10.dat when the script runs (AMBERHOME or tleap on PATH)"
+       ],
+       [
+        "01 · Amber · system build",
+        "info",
+        "tleap gives HO the same Lennard-Jones type as water HW (both zero) and O2 the same as carbonyl O, so 'changeLJPair @%HO ...' also changes water-H and carbonyl-O pairs; tick 'Separate HO and O2 Lennard-Jones types first' if that is not intended"
+       ],
+       [
+        "05 · Helix restraints",
+        "error",
+        "enter the secondary structure (dot-bracket and sequence) or connect a secondary-structure file"
+       ],
+       [
+        "03 · Amber · MD stages",
+        "info",
+        "no environment setup: pmemd and cpptraj must be on PATH when the script runs"
+       ],
+       [
+        "MDATK analysis",
+        "info",
+        "topology comes from 03 · Amber · MD stages; the file exists once that step has run"
+       ],
+       [
+        "MDATK analysis",
+        "info",
+        "trajectory comes from 03 · Amber · MD stages; the file exists once that step has run"
+       ]
+      ],
+      "naming": {
+       "project": "my plan",
+       "stamp": "20261125-1200",
+       "use_stamp": true,
+       "step_folders": false,
+       "shown": "20261125-1200"
+      },
+      "status": "3 steps · 6 connections · 2 errors · 0 warnings · folder {case_dir}/plans/my-plan_workflow"
+     }
+    }
+   }
+  ]
+ }
+}

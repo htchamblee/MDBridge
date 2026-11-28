@@ -1,0 +1,32 @@
+# Plan golden
+
+Written by MDBridge <VERSION> on <DATE>. File names follow `<project>_<step>_<tool>_<time>.<ext>` with time stamp `20261015-1432`.
+
+## 02 · Rosetta · FARFAR2 models (cluster / extract / DSSR)
+
+Folder: `02_farfar2-models`  
+Type: Rosetta · FARFAR2 models (cluster / extract / DSSR)
+
+Inputs:
+- silent: `/golden/inputs/a.out`
+
+Outputs:
+- best: `02_farfar2-models/golden_02_model-01_20261015-1432.pdb`
+- models: `02_farfar2-models/golden_02_model-01_20261015-1432.pdb`, `02_farfar2-models/golden_02_model-02_20261015-1432.pdb`, `02_farfar2-models/golden_02_model-03_20261015-1432.pdb`, `02_farfar2-models/golden_02_model-04_20261015-1432.pdb`, `02_farfar2-models/golden_02_model-05_20261015-1432.pdb`, `02_farfar2-models/golden_02_model-06_20261015-1432.pdb`, `02_farfar2-models/golden_02_model-07_20261015-1432.pdb`, `02_farfar2-models/golden_02_model-08_20261015-1432.pdb`, `02_farfar2-models/golden_02_model-09_20261015-1432.pdb`, `02_farfar2-models/golden_02_model-10_20261015-1432.pdb`
+
+Files written: `golden_02_farfar2-models_20261015-1432.sh`
+
+Checks:
+- WARNING: Silent files: file not found (yet): /golden/inputs/a.out
+
+## 02 · SimRNA · folding
+
+Folder: `02_simrna`  
+Type: SimRNA · folding
+
+Outputs:
+- trajectory: `02_simrna/golden_02_simrna-all_20261015-1432.trafl`
+- best: `02_simrna/golden_02_model-01_20261015-1432.pdb`
+- models: `02_simrna/golden_02_model-01_20261015-1432.pdb`, `02_simrna/golden_02_model-02_20261015-1432.pdb`, `02_simrna/golden_02_model-03_20261015-1432.pdb`, `02_simrna/golden_02_model-04_20261015-1432.pdb`, `02_simrna/golden_02_model-05_20261015-1432.pdb`
+
+Files written: `golden_02_simrna_20261015-1432.config`, `golden_02_simrna_20261015-1432.seq`, `golden_02_simrna_20261015-1432.ss`, `golden_02_simrna_20261015-1432.sh`, `golden_02_simrna-cluster_20261015-1432.sh`

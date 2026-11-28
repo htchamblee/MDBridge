@@ -1,0 +1,90 @@
+#!/bin/bash
+# Amber MD stages
+# Project golden, step 03 - written by MDBridge <VERSION> on <DATE>.
+# MDBridge only writes this script; review it, then run it with: bash golden_03_amber-md_20261015-1432.sh
+# Amber 26; engine pmemd.cuda.
+# Please cite (AmberTools, pmemd (Amber), CPPTRAJ):
+#   - Case D. A., Aktulga H. M., Belfon K., Cerutti D. S., Cisneros G. A., Cruzeiro V. W. D.,
+#     Forouzesh N., Giese T. J., Götz A. W., Gohlke H., et al. J. Chem. Inf. Model. 2023, 63,
+#     6183-6191. doi:10.1021/acs.jcim.3c01153
+#   - Salomon-Ferrer R., Götz A. W., Poole D., Le Grand S., Walker R. C. J. Chem. Theory Comput.
+#     2013, 9, 3878-3888. doi:10.1021/ct400314y
+#   - Götz A. W., Williamson M. J., Xu D., Poole D., Le Grand S., Walker R. C. J. Chem. Theory
+#     Comput. 2012, 8, 1542-1555. doi:10.1021/ct200909j
+#   - Roe D. R., Cheatham T. E. J. Chem. Theory Comput. 2013, 9, 3084-3095. doi:10.1021/ct400341p
+
+set -eo pipefail
+cd "$(dirname "$0")"
+
+PMEMD="pmemd.cuda"
+TOP="/golden/inputs/topology.parm7"
+
+# a stage counts as finished when its output has the final timing lines
+# (pmemd: "Total wall time", sander: "Run   done at")
+finished() { [ -s "$1" ] && grep -qE "Total wall time|Run +done at" "$1"; }
+
+# min1: Minimize water/ions, RNA restrained
+if finished golden_03_min1_20261015-1432.out; then
+  echo "min1: already finished - skipping"
+else
+  $PMEMD -O -i golden_03_min1_20261015-1432.in -p "$TOP" -c /golden/inputs/coordinates.rst7 -ref /golden/inputs/coordinates.rst7 -o golden_03_min1_20261015-1432.out -r golden_03_min1_20261015-1432.rst7 -inf golden_03_min1_20261015-1432.mdinfo
+fi
+[ -s "golden_03_min1_20261015-1432.rst7" ] || { echo "ERROR: pmemd (min1) did not write golden_03_min1_20261015-1432.rst7" >&2; exit 1; }
+
+# min2: Unrestrained min, helix pairs held
+if finished golden_03_min2_20261015-1432.out; then
+  echo "min2: already finished - skipping"
+else
+  $PMEMD -O -i golden_03_min2_20261015-1432.in -p "$TOP" -c golden_03_min1_20261015-1432.rst7 -ref golden_03_min1_20261015-1432.rst7 -o golden_03_min2_20261015-1432.out -r golden_03_min2_20261015-1432.rst7 -inf golden_03_min2_20261015-1432.mdinfo
+fi
+[ -s "golden_03_min2_20261015-1432.rst7" ] || { echo "ERROR: pmemd (min2) did not write golden_03_min2_20261015-1432.rst7" >&2; exit 1; }
+
+# heat: Heat 0 -> 300 K, helix pairs held
+if finished golden_03_heat_20261015-1432.out; then
+  echo "heat: already finished - skipping"
+else
+  $PMEMD -O -i golden_03_heat_20261015-1432.in -p "$TOP" -c golden_03_min2_20261015-1432.rst7 -ref golden_03_min2_20261015-1432.rst7 -o golden_03_heat_20261015-1432.out -r golden_03_heat_20261015-1432.rst7 -x golden_03_heat_20261015-1432.nc -inf golden_03_heat_20261015-1432.mdinfo
+fi
+[ -s "golden_03_heat_20261015-1432.rst7" ] || { echo "ERROR: pmemd (heat) did not write golden_03_heat_20261015-1432.rst7" >&2; exit 1; }
+
+# eq-001 (segment 1/2): NPT eq, light restraint
+if finished golden_03_eq-001_20261015-1432.out; then
+  echo "eq-001: already finished - skipping"
+else
+  $PMEMD -O -i golden_03_eq_20261015-1432.in -p "$TOP" -c golden_03_heat_20261015-1432.rst7 -ref golden_03_heat_20261015-1432.rst7 -o golden_03_eq-001_20261015-1432.out -r golden_03_eq-001_20261015-1432.rst7 -x golden_03_eq-001_20261015-1432.nc -inf golden_03_eq-001_20261015-1432.mdinfo
+fi
+[ -s "golden_03_eq-001_20261015-1432.rst7" ] || { echo "ERROR: pmemd (eq-001) did not write golden_03_eq-001_20261015-1432.rst7" >&2; exit 1; }
+
+# eq-002 (segment 2/2): NPT eq, light restraint
+if finished golden_03_eq-002_20261015-1432.out; then
+  echo "eq-002: already finished - skipping"
+else
+  $PMEMD -O -i golden_03_eq_20261015-1432.in -p "$TOP" -c golden_03_eq-001_20261015-1432.rst7 -ref golden_03_eq-001_20261015-1432.rst7 -o golden_03_eq-002_20261015-1432.out -r golden_03_eq-002_20261015-1432.rst7 -x golden_03_eq-002_20261015-1432.nc -inf golden_03_eq-002_20261015-1432.mdinfo
+fi
+[ -s "golden_03_eq-002_20261015-1432.rst7" ] || { echo "ERROR: pmemd (eq-002) did not write golden_03_eq-002_20261015-1432.rst7" >&2; exit 1; }
+
+# eq-001-001 (segment 1/2): Unrestrained NPT eq
+if finished golden_03_eq-001-001_20261015-1432.out; then
+  echo "eq-001-001: already finished - skipping"
+else
+  $PMEMD -O -i golden_03_eq-001_20261015-1432.in -p "$TOP" -c golden_03_eq-002_20261015-1432.rst7 -ref golden_03_eq-002_20261015-1432.rst7 -o golden_03_eq-001-001_20261015-1432.out -r golden_03_eq-001-001_20261015-1432.rst7 -x golden_03_eq-001-001_20261015-1432.nc -inf golden_03_eq-001-001_20261015-1432.mdinfo
+fi
+[ -s "golden_03_eq-001-001_20261015-1432.rst7" ] || { echo "ERROR: pmemd (eq-001-001) did not write golden_03_eq-001-001_20261015-1432.rst7" >&2; exit 1; }
+
+# eq-001-002 (segment 2/2): Unrestrained NPT eq
+if finished golden_03_eq-001-002_20261015-1432.out; then
+  echo "eq-001-002: already finished - skipping"
+else
+  $PMEMD -O -i golden_03_eq-001_20261015-1432.in -p "$TOP" -c golden_03_eq-001-001_20261015-1432.rst7 -ref golden_03_eq-001-001_20261015-1432.rst7 -o golden_03_eq-001-002_20261015-1432.out -r golden_03_eq-001-002_20261015-1432.rst7 -x golden_03_eq-001-002_20261015-1432.nc -inf golden_03_eq-001-002_20261015-1432.mdinfo
+fi
+[ -s "golden_03_eq-001-002_20261015-1432.rst7" ] || { echo "ERROR: pmemd (eq-001-002) did not write golden_03_eq-001-002_20261015-1432.rst7" >&2; exit 1; }
+
+# Strip a dry PDB of eq-001-002 for visual checks
+cpptraj << EOF
+parm "$TOP"
+trajin golden_03_eq-001-002_20261015-1432.rst7
+strip :WAT,HOH,Na+,Cl-,K+,MG
+trajout golden_03_dry_20261015-1432.pdb pdb
+run
+EOF
+[ -s "golden_03_dry_20261015-1432.pdb" ] || { echo "ERROR: cpptraj did not write golden_03_dry_20261015-1432.pdb" >&2; exit 1; }
