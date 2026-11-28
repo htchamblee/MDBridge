@@ -87,7 +87,8 @@ with `-fsanitize=... -fno-omit-frame-pointer -fno-sanitize-recover=all`: MDBridg
 fetched libraries and the vendored ducc0 alike (Qt, FFmpeg and the Vulkan driver are prebuilt and
 stay uninstrumented, but their allocations are still checked for leaks). Configure the C compiler
 too, so zlib is built by the same GCC as the rest (one sanitizer runtime); RHEL / Rocky need the
-`libasan libubsan` packages. CI's `sanitizers` job does this on Rocky Linux 9 on every push:
+`libasan libubsan` packages. CI's `sanitizers` job does this on Rocky Linux 9 on every push, with the
+tests in three shards of their own builds (`ctest ... -I 1,,3`, `2,,3`, `3,,3`: every third test):
 
 ```bash
 cmake -S . -B build/sanitize -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_C_COMPILER=gcc-11 \

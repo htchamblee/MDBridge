@@ -5,7 +5,8 @@
 #                glibc check, smoke test with the Vulkan view (lavapipe) and the software view;
 #                the LGPL FFmpeg + SVT-AV1 libraries (packaging/ffmpeg) built there, cached
 # - sanitizers:  the build and every test with AddressSanitizer (leaks included) and
-#                UndefinedBehaviorSanitizer on Rocky Linux 9 / GCC 11 (MDBRIDGE_SANITIZE)
+#                UndefinedBehaviorSanitizer on Rocky Linux 9 / GCC 11 (MDBRIDGE_SANITIZE); the
+#                tests in three shards (each its own build), every test in exactly one
 # - appimage-*:  the AppImage on Ubuntu 22.04 (with Vulkan) and on a bare Rocky Linux 9 (command
 #                line without X11 / OpenGL / fonts, whose text image must equal the linux job's,
 #                then the interface without a Vulkan driver)
@@ -204,9 +205,17 @@ jobs:
     # behaviour fails the job. Qt, FFmpeg and Mesa are prebuilt, so not instrumented (their
     # allocations are still checked for leaks); tests/sanitizers/lsan.supp lists the few leaks of
     # such libraries that are suppressed, each with its reason, never one of MDBridge's.
+    #
+    # The tests are split into three shards by ctest's test number (-I k,,3: every third test,
+    # starting at k), so the builder's long tests (up to 28 min each instrumented) fall into
+    # different shards. Run 46128609685 ran them all in one job: 30 min build + 81 min tests of 120.
     runs-on: ubuntu-latest
     container: rockylinux:9
-    timeout-minutes: 120
+    timeout-minutes: 120  # each shard about 30 min build + 30 min tests
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     env:
       LC_ALL: C.UTF-8
     steps:
@@ -264,7 +273,7 @@ jobs:
             -DMDBRIDGE_WARNINGS_AS_ERRORS=ON -DMDBRIDGE_SANITIZE=address,undefined "${ffmpeg[@]}"
           cmake --build build/sanitize
 
-      - name: Unit and GUI tests under the sanitizers
+      - name: Unit and GUI tests under the sanitizers (shard ${{ matrix.shard }} of 3)
         env:
           MDBRIDGE_REQUIRE_VULKAN: "1"  # the Vulkan tests on lavapipe, as in the linux job (the GUI tests set offscreen)
           # time limits of the tests scaled for the slower instrumented code (tests/core/time_scale.hpp)
@@ -275,9 +284,12 @@ jobs:
           VK_LOADER_DISABLE_DYNAMIC_LIBRARY_UNLOADING: "1"
           ASAN_OPTIONS: detect_leaks=1:abort_on_error=1:detect_stack_use_after_return=1:check_initialization_order=1
           UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
+          SHARD: ${{ matrix.shard }}
         run: |
           export LSAN_OPTIONS="suppressions=$PWD/tests/sanitizers/lsan.supp:print_suppressions=1"
-          ctest --test-dir build/sanitize --output-on-failure --parallel 4
+          ctest --test-dir build/sanitize --output-on-failure --parallel 4 -I "$SHARD,,3"
+          # the window's Vulkan tests (one executable, outside ctest) in the first shard only
+          [ "$SHARD" = 1 ] || exit 0
           MDBRIDGE_REQUIRE_VULKAN_WINDOW=1 xvfb-run -a -s "-screen 0 1024x768x24" build/sanitize/tests/mdbridge_vulkan_window_tests
 
   appimage-ubuntu:
@@ -593,7 +605,9 @@ jobs:
     # tree, which must equal the committed files byte for byte (one CPU-dependent file within a
     # tolerance: see the script); no build needed
     runs-on: ubuntu-24.04
-    timeout-minutes: 90  # make_builder_cases.py: the CH-16 closures (some 20 min of CPU, in parallel workers)
+    # make_builder_cases.py: the CH-16 closures (some 20 min of CPU, in parallel workers); with
+    # milestone 7's workflow cases the job took 76 min (run 46128609685)
+    timeout-minutes: 120
     env:
       LC_ALL: C.UTF-8
     steps:
