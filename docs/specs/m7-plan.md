@@ -347,9 +347,14 @@ whose order reaches output (ordered arrays or `mdb.sorted_pairs`), no `tostring`
 
 ### 4.5 User-added `.lua` steps: sandbox and versioning
 
-- Where: built-in generators are compiled in (`src/workflow/lua/*.lua` as resources). User steps are
-  read from `<config>/mdbridge/steps/*.lua` only, after the user enabled them in the settings (D8);
-  never from a project folder (opening a shared project must not run code).
+- Where (owner decision D8): built-in generators are compiled in (`src/workflow/lua/*.lua` as
+  resources). User steps are read, without an opt-in, from `<config>/mdbridge/steps/*.lua`, from the
+  project's own `steps/*.lua` beside the project file, and from any further folders listed in the
+  settings or in the project (`[workflow] step_folders`, relative to the project file, so a project
+  and its steps travel together). Order of precedence: project folders, then the settings' folders,
+  then the user folder; a step defined in more than one place is taken from the first and a warning
+  names every file. The step log records each user step's file path and SHA-256, so a run can be
+  reproduced on another machine.
 - Sandbox: a fresh `_ENV` per file with only `mdb`, `string`, `table`, `math` (no `math.random`
   seeding from time), `utf8`; `load` of text only; a memory cap (allocator, e.g. 256 MiB) and an
   instruction budget per call (hook), both reported as the step's issue
@@ -453,7 +458,7 @@ Lua modules `amber_common.lua`, `secstruct.lua`), `lua/lint.*`; `src/app/command
 | **W3-A RNAdo program** | W1-A, M6 W3-B host | `rnado` executable (AppImage action, Start-menu entry, `rnado [PROJECT] [--open wizard\|pdb\|builder]`), the host interface extended (run / stop scripts, use for analysis), the PDB clean-up and builder windows moved, the analysis window's Workflow menu opening RNAdo, co-editing (RNAdo saves only `[workflow]`, re-reads first; the analysis window merges) | GUI cases; both programs on one file keep each other's changes |
 | **W3-B Planner window** | W3-A, W2 | canvas, toolbar, naming bar, details pane, write / run with confirmation, *Open folder*, *Use for analysis*, undo for plan edits (M5's edit model) | the planner GUI cases; Qt Test at 100 / 150 / 200 % scale |
 | **W3-C Script wizard** | W3-A, W2, M5 forms | forms and record editor from the schema, files page, issues, live preview, write / run | `test_standalone_wizard_every_tool`, `test_wizard_stage_editor` counterparts |
-| **W3-D User steps** | W1-B | loading from the user folder (D8), settings page listing them with errors, an example step and its documentation | a user step appears in *Add step*, writes files, cannot read files or run longer than its budget |
+| **W3-D User steps** | W1-B | loading from the user, project and listed folders with their precedence (D8), settings page listing them with errors, an example step and its documentation | a user step appears in *Add step*, writes files, cannot read files or run longer than its budget |
 | **W3-E Docs** | all | DIFFERENCES "Workflow" (every WG item: what, why, how tested, version followed), LICENSING (Lua), ATTRIBUTION (Mg sets, NBfix / 0BPh, CP, TIP4P/2005), ARCHITECTURE status, `docs/specs/m7-status.md` | reviewed against the code |
 
 ### Critical path and parallelism
@@ -464,12 +469,14 @@ input files). W1-A is on every path but has no runtime risk; W2-B ... W2-D are i
 other and of W2-A once W1-B is done. Three agents in wave 0, three in wave 1, five in wave 2, four or
 five in wave 3. The non-WC builder step waits for M6 W2-A only for its non-WC cases.
 
-Packages needing owner decisions first: W0-B (D1), W0-C (D4, D5), W1-B (D2), W1-C (D12), W2-A (D3, D9),
+Packages that depended on the owner decisions (all decided): W0-B (D1), W0-C (D4, D5), W1-B (D2), W1-C (D12), W2-A (D3, D9),
 W2-C (D6), W2-D (D3), W3-A (D7), W3-D (D8), all generators (D11), scope (D10).
 
 ---------------------------------------------------------------------------------------------------
 
-## 7. Owner decisions (one line each, with recommendation)
+## 7. Owner decisions (decided 2026-11-28)
+
+The owner accepted every recommendation below except D8, which was changed as written there.
 
 - **D1 Lua runtime**: recommend Lua 5.4 (MIT) vendored unmodified in `third_party/lua`, pinned by
   SHA-256, compiled as C++, with an own value-in / value-out binding (no sol2, LuaJIT or Luau).
@@ -491,8 +498,11 @@ W2-C (D6), W2-D (D3), W3-A (D7), W3-D (D8), all generators (D11), scope (D10).
   `<python> -m mdatk` (the option key stays).
 - **D7 GUI host**: recommend confirming M5 D1: planner, wizard, PDB clean-up and builder in the
   `rnado` program with co-editing, opened from the analysis window's Workflow menu.
-- **D8 User `.lua` steps**: recommend loading them only from `<config>/mdbridge/steps/`, off until
-  enabled in the settings, never from project folders, sandboxed as in 4.5.
+- **D8 User `.lua` steps** (owner, 2026-11-28: the recommendation of the user folder only was too
+  conservative; projects must be shareable between machines with their steps, and the user organizes
+  them as they see fit): loaded without an opt-in from the user folder, the project's `steps/` and
+  folders listed in the settings or the project, in that precedence from the project down (4.5);
+  the sandbox of 4.5 stays (it also keeps the generators deterministic).
 - **D9 Physics fixes of 0.0.5-0.0.8 in M7**: recommend adopting the L-RNA Mg²⁺ pair terms of the D
   twins, both Mg type names in the frcmod, *Separate HO and O2 types* on for new projects, the dry
   pass without Mg lines and the planner's lanthanide-trap error; leave *Check the final topology* for
@@ -527,8 +537,11 @@ W2-C (D6), W2-D (D3), W3-A (D7), W3-D (D8), all generators (D11), scope (D10).
 4. **Plan-time file reads**: L-RNA detection, the solute count, the direct DISANG file, dictionary
    codes and Phenix pairs depend on input files, so cases need real fixtures. Mitigation: the
    generator copies them into the case folders; the C++ tests read the same files.
-5. **Sandbox and security of user steps** (D8): Lua code from a shared folder would run with the
-   user's rights. Mitigation: no `io` / `os`, user folder only, opt-in, limits.
+5. **Sandbox and security of user steps** (D8): Lua code in a shared project runs when the project
+   is opened. The owner judges this an unlikely attack vector and chose project folders for sharing.
+   Mitigation: the sandbox (no `io` / `os` / `package` / `debug`, files only through the binding,
+   memory and time limits), the step log naming each file with its SHA-256, and a warning for a step
+   defined in more than one place.
 6. **GUI scope**: RNAdo, planner canvas, wizard and co-editing are large (0.1.2's GUI has grown to
    12 000 lines). Mitigation: 0.0.4.1's features only (D10), M5's forms, jobs and edit model reused,
    co-editing limited to "RNAdo writes only the plan".
