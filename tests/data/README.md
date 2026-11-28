@@ -512,8 +512,11 @@ triplexes): their inputs come from
 and the command line in `sys.argv` (the step log records it), the step log's `time` / `duration_s`
 are masked, and `dict pubchem` asks a stand-in PubChem on 127.0.0.1 (`MDBRIDGE_PUBCHEM_URL`, owner
 decision D7; `{pubchem}` in `env`). Cases with `fitted` (rebuilt helices: 0.05; density fits: 0.6)
-compare their texts with their decimal numbers within that absolute tolerance (D10) and the white
-space between them free, keep files of any size as text, and keep maps as their header (`{"map":
+compare their texts with their decimal numbers and the builder's torsion means (MDATK prints them in
+whole degrees) within that absolute tolerance (D10) or one unit of the expected number's last printed
+digit, whichever is larger (two values within the tolerance can round to neighbouring numbers: the
+mean gamma 115.38° of `build_helix_step_log_pairing` prints 116 on Rocky Linux 9, CI run
+46153824178), every other integer exact, and the white space between them free, keep files of any size as text, and keep maps as their header (`{"map":
 ...}`, cli_parity.py `map_summary`), compared the same way. tests/cli/test_commands.cpp runs the
 `dict pubchem` cases with its own stand-in transport (the same answers). numpy's and OpenBLAS' kernels are pinned (`chem_common.pin_kernels`, as in the chem
 generators): with other kernels the least-squares closures of the non-Watson-Crick and triplex builds

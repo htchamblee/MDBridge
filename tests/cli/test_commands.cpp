@@ -506,22 +506,39 @@ std::vector<std::string> npzDifferences(const Value& expected, const fs::path& p
     return problems;
 }
 
-// cli_parity.py texts_close (FITTED): equal but for their decimal numbers, which differ by at most
-// `tolerance`, and for white space between them.
+// One unit of a printed number's last digit (cli_parity.py last_unit): 0.01 for 2.75, 1e-07 for
+// 1.9e-06, 1 for 116
+double lastUnit(const std::string& number) {
+    const std::size_t e = number.find('e');
+    const std::string mantissa = number.substr(0, e);
+    const std::size_t dot = mantissa.find('.');
+    const int digits = dot == std::string::npos ? 0 : static_cast<int>(mantissa.size() - dot - 1);
+    const int exponent = e == std::string::npos ? 0 : std::stoi(number.substr(e + 1));
+    return std::pow(10.0, exponent - digits);
+}
+
+// cli_parity.py texts_close (FITTED): equal but for their decimal numbers and the builder's torsion
+// means, which differ by at most `tolerance` or one unit of the expected number's last printed digit
+// (whichever is larger: two values within the tolerance can round to neighbouring printed numbers),
+// and for white space between them.
 bool textsClose(const std::string& expected, const std::string& actual, double tolerance) {
-    static const std::regex number{R"(-?\d+(?:\.\d+(?:e[-+]?\d+)?|e[-+]?\d+))"};  // 0.25, 1.9e-05, 7e-06
+    // 0.25, 1.9e-05, 7e-06; the torsion means MDATK prints in whole degrees ("... A: alpha -144 beta
+    // 179 gamma 116 ..."; group 2); every other integer (atoms, links, residue numbers) is text
+    static const std::regex number{
+        R"(-?\d+(?:\.\d+(?:e[-+]?\d+)?|e[-+]?\d+)|(\b(?:alpha|beta|gamma|delta|epsilon|zeta|chi) )(-?\d+)(?![\d.e]))"};
     struct Split {
         std::vector<std::string> parts;
-        std::vector<double> numbers;
+        std::vector<std::string> numbers;
     };
     const auto split = [](const std::string& text) {
         Split out;
         std::size_t last = 0;
         for (auto it = std::sregex_iterator(text.begin(), text.end(), number); it != std::sregex_iterator(); ++it) {
-            const std::size_t at = static_cast<std::size_t>(it->position());
+            const int group = (*it)[2].matched ? 2 : 0;  // a torsion mean: its name stays text
+            const std::size_t at = static_cast<std::size_t>(it->position(group));
             out.parts.push_back(text.substr(last, at - last));
-            out.numbers.push_back(std::stod(it->str()));
-            last = at + static_cast<std::size_t>(it->length());
+            out.numbers.push_back(it->str(group));
+            last = at + static_cast<std::size_t>(it->length(group));
         }
         out.parts.push_back(text.substr(last));
         return out;
@@ -550,7 +567,8 @@ bool textsClose(const std::string& expected, const std::string& actual, double t
         return false;
     }
     for (std::size_t i = 0; i < a.numbers.size(); ++i) {
-        if (!(std::abs(a.numbers[i] - b.numbers[i]) <= tolerance)) {
+        const double allowed = std::max(tolerance, 1.000001 * lastUnit(a.numbers[i]));
+        if (!(std::abs(std::stod(a.numbers[i]) - std::stod(b.numbers[i])) <= allowed)) {
             return false;
         }
     }
@@ -650,6 +668,34 @@ bool drawsFigures(const Value& c) {
         }
     }
     return false;
+}
+
+// The fitted cases' comparison: a printed number may differ by the tolerance or one unit of its last
+// digit (the hoogsteen AAGA / UUUU build's mean gamma of strand A, 115.38 degrees, printed 115 on
+// Ubuntu and 116 on Rocky Linux 9: CI run 46153824178); counts stay exact
+TEST(Commands, FittedTextsAllowARoundingOfTheLastDigit) {
+    const std::string e = "A: alpha -144 beta 179 gamma 115 delta 79 chi -170; 163 atoms, 4 base pairs; 2.8 Å; "
+                          "119.7-120.3°; x 1.9e-05";
+    const auto with = [&e](std::string_view from, std::string_view to) {
+        std::string out = e;
+        out.replace(out.find(from), from.size(), to);
+        return out;
+    };
+    EXPECT_TRUE(textsClose(e, e, 0.05));
+    EXPECT_TRUE(textsClose(e, with("gamma 115", "gamma 116"), 0.05));
+    EXPECT_TRUE(textsClose(e, with("chi -170", "chi -169"), 0.05));
+    EXPECT_FALSE(textsClose(e, with("gamma 115", "gamma 117"), 0.05));
+    EXPECT_FALSE(textsClose(e, with("163 atoms", "164 atoms"), 0.05));
+    EXPECT_FALSE(textsClose(e, with("4 base", "5 base"), 0.05));
+    EXPECT_TRUE(textsClose(e, with("2.8 Å", "2.9 Å"), 0.05));
+    EXPECT_FALSE(textsClose(e, with("2.8 Å", "3.0 Å"), 0.05));
+    EXPECT_TRUE(textsClose(e, with("-120.3", "-120.4"), 0.05));
+    EXPECT_TRUE(textsClose(e, with("1.9e-05", "2.0e-05"), 0.05));
+    EXPECT_FALSE(textsClose(e, with("gamma 115", "gammax 115"), 0.05));
+    EXPECT_FALSE(textsClose(e, with("gamma 115", "gammax 116"), 0.05));
+    EXPECT_DOUBLE_EQ(lastUnit("116"), 1.0);
+    EXPECT_DOUBLE_EQ(lastUnit("2.75"), 0.01);
+    EXPECT_DOUBLE_EQ(lastUnit("1.9e-06"), 1e-07);
 }
 
 TEST(Commands, MatchMdatk) {

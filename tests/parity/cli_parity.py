@@ -1915,22 +1915,38 @@ def differences(c, expected, actual):
     return problems
 
 
-NUMBER_RE = re.compile(r"-?\d+(?:\.\d+(?:e[-+]?\d+)?|e[-+]?\d+)")  # 0.25, 1.9e-05, 7e-06
+# 0.25, 1.9e-05, 7e-06; and the builder's backbone torsion means, which MDATK prints in whole degrees
+# ("Backbone torsions ...: A: alpha -144 beta 179 gamma 116 ..."): measured, not counts. Every other
+# integer (atoms, links, residue numbers) is text and compared exactly.
+TORSIONS = ("alpha", "beta", "gamma", "delta", "epsilon", "zeta", "chi")
+NUMBER_RE = re.compile(r"-?\d+(?:\.\d+(?:e[-+]?\d+)?|e[-+]?\d+)|(?:"
+                       + "|".join(rf"(?<=\b{t} )" for t in TORSIONS) + r")-?\d+(?![\d.e])")
+
+
+def last_unit(number):
+    """One unit of `number`'s last printed digit: 0.01 for 2.75, 1e-07 for 1.9e-06, 1 for 116."""
+    mantissa, _, exponent = number.partition("e")
+    digits = len(mantissa.partition(".")[2])
+    return 10.0 ** (int(exponent or 0) - digits)
 
 
 def texts_close(expected, actual, tolerance):
-    """FITTED: the texts equal but for their decimal numbers, which differ by at most ``tolerance`` (an
-    absolute tolerance: D10's for the fitted cases), and for white space between them: a PDB coordinate
-    field keeps its width (the spaces before a number differ with its sign), and the project file
-    writes a list of numbers on one line or one number per line by the line's length (density.transform
-    of a fit), with a trailing comma in the second form."""
+    """FITTED: the texts equal but for their decimal numbers (and the torsion means, NUMBER_RE), which
+    differ by at most ``tolerance`` (an absolute tolerance: D10's for the fitted cases) or one unit of
+    the expected number's last printed digit, whichever is larger: two values within the tolerance can
+    round to neighbouring printed numbers (the mean gamma of strand A of hoogsteen AAGA / UUUU is
+    115.38 degrees on Ubuntu and rounds to 116 on Rocky Linux 9, CI run 46153824178, with every atom
+    within 0.05 Å), and for white space between them: a PDB coordinate field keeps its width (the
+    spaces before a number differ with its sign), and the project file writes a list of numbers on one
+    line or one number per line by the line's length (density.transform of a fit), with a trailing
+    comma in the second form."""
     def canon(part):
         return re.sub(r"\s+", "", part).replace(",]", "]")
 
     a, b = NUMBER_RE.split(expected), NUMBER_RE.split(actual)
     if len(a) != len(b) or [canon(x) for x in a] != [canon(x) for x in b]:
         return False
-    return all(abs(float(x) - float(y)) <= tolerance
+    return all(abs(float(x) - float(y)) <= max(tolerance, 1.000001 * last_unit(x))
                for x, y in zip(NUMBER_RE.findall(expected), NUMBER_RE.findall(actual)))
 
 
