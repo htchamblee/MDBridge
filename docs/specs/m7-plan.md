@@ -231,6 +231,7 @@ side (`improvements_workflow.py`).
 | Cluster job scripts, cluster profiles, estimated wall times, `<project>_00_submit_<stamp>.sh`, `mdatk cluster` | 0.1.0 (:167-200) | later |
 | Missing programs reported before a step runs; setup file | 0.0.15 (:400-414) | later |
 | New step types: `namd-mdff`, `user-script`, `model-check`, `rosetta-audit`, `frame-check`, `register-census`, `ensemble-compare`, `map-model-score`, `body-hybrids`, `decoy-interface`; templates `amber-mdff`, `decoy-validation`; file sets (`collection` ports) and kind `table` | 0.0.8-0.0.15 | later (D10) |
+| Helper scripts: `prep_pdb` keeps phosphate-only residues and drops Rosetta virtual residues (VRT / XXX), `helix_dist` and `gmx_posre` handle DNA / L-DNA names | 0.0.13 and later | later (post-parity; owner, 2026-11-28: M7 writes the 0.0.4.1 texts, D4) |
 | Amber: generated L-RNA / L-DNA libraries, DNA force fields, RNA force field *None*, per-stage dry trajectories, production stage options, three-character names only | 0.0.8-0.1.0 | later |
 | Wizard *Commands* tab; planner layout (boxes keep apart, outlined connections, scrolling while dragging, select all, write selected); cat-proof mode | 0.0.12-0.0.15 | later |
 | File naming, step folders, master and summary names, roles, `finished()` stage skipping, option keys, CLI names and JSON | 0.0.4.1 ... 0.1.2 (unchanged; 0.0.8's golden test pins 0.0.7's output) | convention |

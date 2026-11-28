@@ -18,9 +18,8 @@ Mg2+-Cl- pair and every Mg2+-RNA pair (`[ nonbond_params ]`). Nothing else of th
 the copied RNA atom types, molecule definitions) is written. Units: sigma in nm, epsilon in kJ/mol.
 
 Writes OUT_DIR/mg_sets.tsv and OUT_DIR/mg_rna_pairs.tsv (default OUT_DIR: data/sources/mg).
-NOTE: the three repositories carry no licence (data/sources/mg/README.md); the extracts are not
-committed until the owner decides how the numbers may be recorded. tools/gen_workflow_tables.py
-uses them when they are present.
+The repositories state no licence; the numbers are recorded as facts (owner's decision of
+2026-11-28, data/sources/mg/README.md). tools/gen_workflow_tables.py builds the Mg2+ tables from them.
 
 Checks (printed; a failure stops the run): every Mg2+-RNA pair of a set is the Lorentz-Berthelot
 pair of the ion and the RNA type (the file's own `[ atomtypes ]` row of that type) scaled by one

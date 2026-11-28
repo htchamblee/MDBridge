@@ -1,0 +1,15 @@
+model	water	file	ion_type	ion_sigma_nm	ion_epsilon_kj_per_mol	ion_line	chloride_type	chloride_sigma_nm	chloride_epsilon_kj_per_mol	chloride_line	mg_cl_sigma_nm	mg_cl_epsilon_kj_per_mol	mg_cl_line
+micro	tip3p	Magnesium-FFs/ff_Mg.itp	mMg	0.101934	235.804213166223	22	CXY	0.440939	0.283829	25	0.48782511	0.8180958	61
+nano	tip3p	Magnesium-FFs/ff_Mg.itp	nMg	0.102534	389.798801356	23	CXY	0.440939	0.283829	25	0.4883651	1.0518375	91
+micro	spce	optimizedMgFFs/ff_Mg_spce.itp	mMg	0.103643	290.584188	22	Cl	0.439443	0.4155978	25	0.431753	1.0989365	57
+nano	spce	optimizedMgFFs/ff_Mg_spce.itp	nMg	0.104643	470.698354	23	Cl	0.439443	0.4155978	25	0.432548	1.3986464	87
+micro	opc	MgFF_OPC/ff_Mg_opc.itp	mMg	0.103643	290.584188	39	Cl	0.439443	0.4155978	42	0.431753	1.0989365	74
+nano	opc	MgFF_OPC/ff_Mg_opc.itp	nMg	0.104643	470.698354	40	Cl	0.439443	0.4155978	42	0.432548	1.3986464	104
+micro	fb3	optimizedMgFFs/ff_Mg_tip3pfb.itp	mMg	0.103203543645	311.377007	22	CXY	0.493358	0.050960	24	0.474266	0.398343	57
+nano	fb3	optimizedMgFFs/ff_Mg_tip3pfb.itp	nMg	0.103403543645	380.380222	23	CXY	0.493358	0.050960	24	0.474425	0.440274	87
+micro	tip4pew	optimizedMgFFs/ff_Mg_tip4pew.itp	mMg	0.090965	647.628446	22	CXY	0.498225	0.048805	24	0.468406	0.562205	57
+nano	tip4pew	optimizedMgFFs/ff_Mg_tip4pew.itp	nMg	0.092565	760.063940	23	CXY	0.498225	0.048805	24	0.469678	0.609055	87
+micro	tip4pd	optimizedMgFFs/ff_Mg_tip4pd.itp	mMg	0.096035	621.504072	22	CXY	0.509112	0.035496	24	0.481091	0.469690	57
+nano	tip4pd	optimizedMgFFs/ff_Mg_tip4pd.itp	nMg	0.097035	680.009868	23	CXY	0.509112	0.035496	24	0.481886	0.491300	87
+micro	tip4p2005	optimizedMgFFs/ff_Mg_tip4p2005.itp	mMg	0.090110	712.674442	22	CXY	0.503464	0.042887	24	0.471891	0.552851	57
+nano	tip4p2005	optimizedMgFFs/ff_Mg_tip4p2005.itp	nMg	0.091310	774.618078	23	CXY	0.503464	0.042887	24	0.472845	0.576377	87

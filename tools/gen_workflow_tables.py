@@ -9,9 +9,8 @@ The names and numbers come from the public-source extracts in data/sources only:
   names of the strip masks (tools/extract_leap_files.py, checked against AmberTools 26);
 * data/sources/nbfix/nbfix_pairs.tsv: the NBfix19 and 0BPh pair terms;
 * data/sources/mg/mg_sets.tsv, mg_rna_pairs.tsv: the microMg / nanoMg sets of Grotz, Cruz-Leon &
-  Schwierz (tools/extract_mg_params.py). These extracts are not committed while the licence
-  question of data/sources/mg/README.md is open; without them the Mg2+ tables are left out
-  (`kHaveMgSets = false`) and the run says so. --mg-extracts reads them from DIR instead (made by
+  Schwierz (tools/extract_mg_params.py; numbers recorded as facts, data/sources/mg/README.md);
+  without them the Mg2+ tables are left out (`kHaveMgSets = false`) and the run says so. --mg-extracts reads them from DIR instead (made by
   tools/extract_mg_params.py --out DIR), to check them against MDATK; with --out the tables go to
   FILE, not into the repository.
 

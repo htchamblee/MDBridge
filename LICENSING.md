@@ -65,8 +65,9 @@ Not adopted yet; it takes effect only after legal review and a formal change of 
    Published parameters and program names used by the workflow generators (milestone 7) are
    recorded as facts in `data/sources/amber`, `nbfix` and `mg` with their sources (rows in
    `data/sources/ATTRIBUTION.md`); no AmberTools or ParmEd file is copied. The microMg / nanoMg Mg²⁺
-   parameter files of github.com/bio-phys carry no licence, so neither they nor extracts of them are
-   committed until the owner decides (`data/sources/mg/README.md`). The helper scripts the generated
+   parameter files of github.com/bio-phys state no licence: they are not copied; their numbers are
+   recorded as facts with file and line, and the papers cited (owner's decision of 2026-11-28,
+   `data/sources/mg/README.md`). The helper scripts the generated
    workflows carry (`src/workflow/helpers/`) are MDATK's own code, written byte for byte.
 
    MDAnalysis (LGPL) defines the behaviour MDBridge reproduces, but none of its code may be
