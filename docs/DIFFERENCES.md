@@ -3086,8 +3086,9 @@ differences:
 The chem module's expected data (tests/data/chem, `cli/cli_cases.json`'s pending chem cases) records
 MDBridge's behaviour where it deliberately differs from MDATK v0.0.4.1 (docs/specs/m6-plan.md section
 5, owner decisions D7, D9, D11 ... D13): the generators patch MDATK on the test side
-(`tests/parity/improvements_chem.py`, one function per item). The C++ code lands with the packages
-named; W3-C completes these entries with the C++ tests. *Tested (expected data):*
+(`tests/parity/improvements_chem.py`, one function per item). Each entry names its C++ tests; the
+command-line cases also run in-process (`Commands.MatchMdatk`, tests/cli/test_commands.cpp, every
+case that draws nothing). *Tested (expected data):*
 `tests/parity/make_pdbtools_cases.py`, `make_annotate_cases.py`, `make_builder_cases.py`,
 `make_dict_cases.py`, `make_density_fit_cases.py` and the `pdb_*`, `build_*`, `dict_*`, `density_*`
 cases of `cli_parity.py`. The regenerate job's own tolerance: on a CI runner whose pinned kernels do
@@ -3116,7 +3117,9 @@ make them reproducible within D10 on any kernel.
 - **CH-02 Wrapped numbers of built helices are reported** (not fixed in 0.1.1; 0.1.2 warns too, 093).
   `build helix --start 9998,1`
   wrapped to `B   0` silently; the build notes end with the renumbering's "WARNING: residue numbers
-  above 9999 wrap in the PDB columns". Cases: `helices` `start 9998,1`, `build_helix_start_wrap`.
+  above 9999 wrap in the PDB columns". *Why:* the wrap gives a residue the number of another without a
+  word, while `pdb clean --renumber` warns of the same wrap. Cases: `helices` `start 9998,1`,
+  `build_helix_start_wrap`.
   *C++ (builder, W1-D):* `chem::buildHelix` (src/chem/helix.cpp) names and records its residues with
   W1-A's `chem::convertNames` / `chem::setRecords`, gets CH-01's `PDBError` from `io::writePdb` (no
   check of its own) and appends CH-02's warning after the build notes; tests/chem/test_helix.cpp `HelixCases.WatsonCrickHelices`
@@ -3124,28 +3127,35 @@ make them reproducible within D10 on any kernel.
 - **CH-03 `--combine-into` takes one character** (not fixed in 0.1.1; 0.1.2 refuses `XY` too, 089). `XY`
   was accepted, the notes said chain
   XY and the file had X; now `PDBError("chain ids must be single characters")`, as `restore_chains`.
-  *Tested:* `pdbtools_cases.json` (`combine_chains` into `XY`, `clean` test call),
-  `test_split_and_combine_chains`.
+  *Tested:* `pdbtools_cases.json` (`combine_chains` into `XY`, `clean` test call;
+  `PdbTools.Operations`), `test_split_and_combine_chains`, cli_cases.json
+  `pdb_clean_combine_into_two_letters`.
 - **CH-04 CONECT records that cannot be remapped are reported** (not fixed in 0.1.1; 0.1.2 has the same
   note, 090). With repeated input
   serials `--keep-conect` dropped every CONECT record while the note said they were kept; the note is
   "WARNING: dropped N CONECT records: the input's atom serials repeat, so they cannot be remapped".
-  *Tested:* `clean` of input 9, `test_conect_strip_and_remap`.
+  *Why:* the note said the opposite of what happened. *Tested:* `clean` of input 9 (`PdbTools.Clean`),
+  `test_conect_strip_and_remap`, cli_cases.json `pdb_clean_keep_conect_repeated_serials`.
 - **CH-05 2'-deoxy residues with RNA names are DNA** (follows MDATK 0.1.0, `pdbtools._nucleotide`).
-  CHARMM's ADE / CYT / GUA and pre-2007 A / C / G on a sugar with C2' and no O2' were renamed as RNA;
-  they are DNA and keep their names. *Tested:* inputs 12 and 13 of `pdbtools_cases.json`.
+  CHARMM's ADE / CYT / GUA and pre-2007 A / C / G on a sugar with C2' and no O2' were renamed as RNA
+  (`G5`, `A3`); they are DNA and keep their names (`chem::nucleotide`). *Why:* an RNA name on a DNA
+  residue describes another molecule. *Tested:* inputs 12 and 13 of `pdbtools_cases.json`
+  (`PdbTools.Operations`, `PdbTools.Clean`).
 - **CH-06 A chain end bonded to an unknown residue is no end** (follows MDATK 0.1.0, `_terminals` /
   `_bonded_on`, without its LINK records). A nucleotide whose O3' / P is within 2.0 Å of a PSU or
-  5'-GTP beside it in the segment keeps its internal name and gets no 5'-phosphate warning.
-  *Tested:* input 11 of `pdbtools_cases.json` (`chem::segmentTerminals`).
+  5'-GTP beside it in the segment keeps its internal name and gets no 5'-phosphate warning; MDATK
+  0.0.4.1 named it as a chain end (`C5`) and warned. *Why:* a nucleotide bonded to its neighbour is
+  no chain end. *Tested:* input 11 of `pdbtools_cases.json` (`chem::segmentTerminals`;
+  `PdbTools.Operations`, `PdbTools.Clean`).
 - **CH-07 SEQRES names have three characters** (follows MDATK 0.0.17, `_seqres_names`, its notes).
-  Longer nucleotide names (LDA5 ...) and MDATK's Amber-style L-DNA LDx are written as their CCD
-  component (0DA ...), other long names as UNK with a WARNING. The M2 writer `io::seqresLines` and
-  io/pdb/pdb_cases.json still record 0.0.4.1's four-character SEQRES of the crafted `LONG` residue:
-  W1-A changed both: `chem::seqresNames` chooses the names and `io::seqresLines` refuses a name of
-  more than three characters (`PdbError`), and make_pdb_cases.py applies improvements_chem, so
-  `seqres_chains` holds the three-character names. *Tested:* inputs 14 and 15 of
-  `pdbtools_cases.json`, `tests/io/test_pdb.cpp`.
+  MDATK 0.0.4.1 wrote longer names in four columns (`LDA5   C   A   U`), which shifts the record's
+  fixed fields. Longer nucleotide names (LDA5 ...) and MDATK's Amber-style L-DNA LDx are written as
+  their CCD component (0DA ...), other long names as UNK with a WARNING. The M2 writer
+  `io::seqresLines` and io/pdb/pdb_cases.json still recorded 0.0.4.1's four-character SEQRES of the
+  crafted `LONG` residue: W1-A changed both: `chem::seqresNames` chooses the names and
+  `io::seqresLines` refuses a name of more than three characters (`PdbError`), and make_pdb_cases.py
+  applies improvements_chem, so `seqres_chains` holds the three-character names. *Tested:* inputs 14
+  and 15 of `pdbtools_cases.json`, `tests/io/test_pdb.cpp`.
 - **CH-08 Mutation specs without a chain read the whole number** (follows MDATK 0.1.0,
   `_MUTATION_RE`): `15G` is residue 15 of the blank chain, not residue 5 of chain 1.
   *C++ (W2-B):* `chem::parseMutations` (src/chem/mutate.cpp) matches 0.1.0's expression by hand on
@@ -3176,40 +3186,52 @@ make them reproducible within D10 on any kernel.
   non-finite `--spacing` "the grid spacing must be positive" (`--spacing 0` stays the default). The
   library refuses it too: `chem::FitProblem` (so `fitModel`) throws FitError "the resolution must be
   a positive number of Å" for a NaN or infinite resolution, MDATK's message for zero and negative
-  ones (*Tested:* `DensityFit.NonFiniteResolutionIsRefused`, `DensityFit.ErrorsAsMdatk`).
-- **CH-11 Non-finite voxels carry no density in a fit** (RN-30's rule; MDATK-BUG-060). The fit's
+  ones. *Why:* numpy's message names neither the option nor the problem. *Tested:*
+  `DensityFit.NonFiniteResolutionIsRefused`, `DensityFit.ErrorsAsMdatk`, cli_cases.json
+  `build_fit_resolution_nan`, `density_fit_resolution_nan`, `density_simulate_resolution_nan`,
+  `density_simulate_spacing_negative`.
+- **CH-11 Non-finite voxels carry no density in a fit** (RN-30's rule; MDATK-BUG-060; not fixed in
+  0.1.1; 0.1.2 reads them as no density and counts them too, report item 091). The fit's
   Gaussian smoothing spread one NaN voxel over 9^3 voxels (a 0.0° fit became 0.1°, the CC changed);
   MDBridge fits a copy with them as 0, centres a local start on the finite voxels (RN-33's level) and
   ends the fit message with "; N non-finite map voxel(s) read as no density". In C++ `chem::FitProblem`
   keeps a copy of the map with them as 0 (`nonFiniteVoxels()` counts them) and `chem::fitModel` adds
   the note; `centreTransform` uses `numerics::densityCentroid`, which skips them (*Tested:*
   `DensityFit.NonFiniteVoxelsCarryNoDensity`, and the `fit_nan.mrc` case of
-  `Cases/DensityFitProblem.AsMdatk`).
-- **CH-12 `density fit --save` keeps the project's paths** (MDATK-BUG-006 on the command line; ED-02).
+  `Cases/DensityFitProblem.AsMdatk`; on the command line cli_cases.json `build_fit_nan_voxel`).
+- **CH-12 `density fit --save` keeps the project's paths** (MDATK-BUG-006 on the command line; ED-02;
+  not fixed in 0.1.1; 0.1.2 keeps them too, report item 087).
   MDATK saved every path absolute; the project file is written with its paths as it had them and the
   fit's density settings, a relative `--map` relative to the project folder, and `--save OTHER` rebases
   the relative paths (Save As). Without `--project` (a new file from `--top` / `--traj`) MDATK's save is
   kept. In C++ the command opens the project in the edit model (`core::ProjectDocument`), sets the
   density fields in one edit and saves (`save()`, or `saveAs()` for another file, which rebases), so
-  the file is what the analysis window writes. *Tested:* cli_cases.json `density_fit_save`,
-  `density_fit_save_as`, `density_fit_then_placed` (MDATK patched by improvements_chem.py
-  `_save_as_written`).
+  the file is what the analysis window writes. *Why:* absolute paths break a project that is moved or
+  shared with its files (MDATK-BUG-006: data loss). *Tested:* cli_cases.json `density_fit_save`,
+  `density_fit_save_as`, `density_fit_save_without_project`, `density_fit_then_placed` (MDATK patched
+  by improvements_chem.py `_save_as_written`), in-process by `Commands.MatchMdatk`.
 - **CH-13 Missing input files are named** (not fixed in 0.1.1; 0.1.2 names them too, 095). A name that is
-  not a file was parsed as PDB text
-  ("no ATOM/HETATM records found ..."); the commands report "[Errno 2] No such file or directory:
-  'x.pdb'" (a folder: "[Errno 21] Is a directory") for their inputs and `--chain-reference`; PDB text
-  given to the library is unchanged. In C++ an input is `chem::PdbSource::text` or `::file` (a file
-  that cannot be opened throws `std::filesystem::filesystem_error`, which the commands report as
-  above); text is never taken for a path, so `clean` of text without a title names its FASTA
-  entries `structure` (MDATK used the text as a file name when it had no newline). *Tested:*
-  `test_models_header_trailer_and_anisou`, `test_clean_end_to_end_from_path`; on the command line
-  cli_cases.json `pdb_clean_missing`, `pdb_clean_folder`, `pdb_check_missing`,
-  `pdb_annotate_missing`, `pdb_clean_chain_reference_missing`, `build_mutate_missing`,
-  `build_fit_missing_model`.
-- **CH-14 No Barnaba** (owner decision D9; DIFFERENCES "No Barnaba"). `pdb annotate`'s `auto` is the
-  builtin engine; `--engine barnaba` runs it with "WARNING: Barnaba is not available in MDBridge; using
-  the builtin detector"; the stacking note has no `pip install barnaba` hint; no STACK records, no
-  barnaba citation.
+  not a file was parsed as PDB text ("no ATOM/HETATM records found ...", without the name); the
+  commands report "[Errno 2] No such file or directory: 'x.pdb'" (a folder: "[Errno 21] Is a
+  directory") for their inputs and `--chain-reference`; PDB text given to the library is unchanged.
+  In C++ an input is `chem::PdbSource::text` or `::file` (a file that cannot be opened throws
+  `std::filesystem::filesystem_error`, which the commands report as above); text is never taken for
+  a path, so `clean` of text without a title names its FASTA entries `structure` (MDATK used the
+  text as a file name when it had no newline). *Tested:* `test_models_header_trailer_and_anisou`,
+  `test_clean_end_to_end_from_path`; on the command line cli_cases.json `pdb_clean_missing`,
+  `pdb_clean_folder`, `pdb_check_missing`, `pdb_annotate_missing`,
+  `pdb_clean_chain_reference_missing`, `build_mutate_missing`, `build_fit_missing_model`.
+- **CH-14 No Barnaba** (owner decision D9; DIFFERENCES "No Barnaba"; no MDATK version is followed:
+  every MDATK uses Barnaba when it is installed). MDATK's `auto` ran Barnaba when it was installed and
+  otherwise the builtin engine, whose stacking note said "install barnaba (pip install barnaba) for
+  stacking and non-canonical pairs"; `--engine barnaba` without it failed with that hint.
+  `pdb annotate`'s `auto` is the builtin engine; `--engine barnaba` runs it with "WARNING: Barnaba is
+  not available in MDBridge; using the builtin detector"; the stacking note has no `pip install
+  barnaba` hint; no STACK records, no barnaba citation. *Why:* Barnaba is GPL and never bundled or
+  run. *Tested:* the `auto` and `barnaba` cases of `annotate_cases.json`
+  (`Annotate.EveryCaseOfAnnotateCases`), `AnnotateMdatk.test_barnaba_records`,
+  `test_real_barnaba_annotation`, `test_clean_drops_stale_annotation_master_and_missing_barnaba`,
+  cli_cases.json `pdb_annotate_barnaba`; the window: TW-05.
 - **CH-15 Reversed residue ranges are errors** (not fixed in 0.1.1; an error in 0.1.2 too, 096, which
   lets RNAdo's model maps keep reversed sides: `parse_ranges(reversed_ok=True)`, for milestone 7's port
   of frames.py). `A:4-1` matched nothing ("the L ranges
@@ -3471,9 +3493,9 @@ make them reproducible within D10 on any kernel.
   Every function of MDATK's `pdbtools.py` (section 1.1 of the plan) with CH-01, CH-03 ... CH-07,
   CH-13 and CH-15; byte for byte with every case of `pdbtools_cases.json`
   (`tests/chem/test_pdbtools.cpp`) and 31 counterparts of MDATK's `tests/test_pdbtools.py`
-  (`test_pdbtools_mdatk.cpp`; the embedded-copy test comes with milestone 7, the command-line test's
-  commands with W2-C). The generator's `clean` cases with a chain reference now record which input
-  was the reference (one case named input 2 for input 0).
+  (`test_pdbtools_mdatk.cpp`; the embedded-copy test comes with milestone 7; the command-line test's
+  commands came with W2-C, cli_cases.json's `pdb_*` cases). The generator's `clean` cases with a
+  chain reference now record which input was the reference (one case named input 2 for input 0).
 - **W1-B: the base-pair annotation in C++** (`src/chem/annotate.cpp`, `chem/annotate.hpp`; milestone
   6 W1-B). MDATK's `annotate.py` (section 1.2 of the plan) on io's PDB model with the builtin detector
   the `basepairs` analysis uses (`chem::PairDetector`, unchanged; no code moved), D13 and CH-14 (D9):
@@ -3484,7 +3506,8 @@ make them reproducible within D10 on any kernel.
   strict UTF-8 as `io::readPdbFile`). Byte for byte with every case of `annotate_cases.json` (216
   option cases and 5 Structure cases, `tests/chem/test_annotate.cpp`) and 8 counterparts of MDATK's
   `tests/test_annotate.py` (the Barnaba tests check the builtin engine with the warning; the
-  command-line test checks the library call, the command and its step log come with W2-C).
+  command-line test checks the library call; the command and its step log came with W2-C,
+  cli_cases.json's `pdb_annotate*` cases).
 - **W2-B: base mutations and the fit to a map in C++** (`src/chem/mutate.cpp`, `chem/mutate.hpp`,
   `src/chem/fit_to_map.cpp`, `chem/fit_to_map.hpp`; milestone 6 W2-B). MDATK's `parse_mutations`,
   `mutated_name`, `_partners` (W1-B's `chem::PairDetector`), `_swap_base`, `mutate`, `_atom_element`,
@@ -3571,17 +3594,19 @@ make them reproducible within D10 on any kernel.
   defaults, notes (stderr, prefixed `pdbtools:`, `annotate:`, `build:`, `dictionaries:`), output files,
   JSON (`pdb check`, `dict list --json`, `build fit`, `density fit` / `simulate`, printed as
   `json.dumps(indent=2)`: `core::toJsonAscii`) and step-log entries (step, title, the command line as
-  `" ".join(sys.argv[1:])`, files, summary, citations `arnott1972` / + `pdb-4jrd` for `build helix` (+ `pdb-triplexes`, keys `mittonfry2010`,
-  `brown2014`, `ruszkowska2020`, `torabi2021`, for the Hoogsteen duplex and the pyrimidine-motif triplex),
-  `ccd` for `dict finish`). `Pipeline.density_frame_atoms` / `fit_density` / `ensure_density_fit` are
-  `app::densityFrameAtoms`, `fitDensity`, `ensureDensityFit` (for the analysis window's buttons too,
+  `" ".join(sys.argv[1:])`, files, summary, citations: for `build helix` the resources `arnott-arna`
+  (key `arnott1972`) and, for the other pairings, `pdb-4jrd` (`safaee2013`), for the Hoogsteen duplex
+  and the pyrimidine-motif triplex also `pdb-triplexes` (`mittonfry2010`, `brown2014`,
+  `ruszkowska2020`, `torabi2021`; D19); `ccd` (`westbrook2015ccd`) for `dict finish`).
+  `Pipeline.density_frame_atoms` / `fit_density` / `ensure_density_fit` are `app::densityFrameAtoms`,
+  `fitDensity`, `ensureDensityFit` (for the analysis window's buttons too,
   W3-A). Differences beyond the CH items: a group without its action prints its help and gives 2 (as
   MDATK); numbers read as Python's `float()` / `int()` (`nan`, `1_000`); a map that cannot be written
   names the operating system's reason (`io::writeMap`: "[Errno 2] No such file or directory" for a
   missing folder, where it said "Permission denied" for every failure). The non-Watson-Crick pairings
   and triplexes of `build helix` came with W2-A (their 5 cases were pending in cli_parity.py until
   then).
-  *Tested:* every non-pending case of cli_cases.json (421 against the `mdbridge` program with Qt and
+  *Tested:* every case of cli_cases.json (none pending since W2-A; 423 against the `mdbridge` program with Qt and
   FFmpeg; in-process by `Commands.MatchMdatk` those that draw nothing, with the step log's time masked
   and the fitted cases' numbers within their tolerance), which include the command lines of MDATK's
   `test_cli_and_step_log` tests of test_pdbtools.py, test_annotate.py, test_builder.py,
@@ -3655,13 +3680,13 @@ counterparts of MDATK's tests named after them).
   `_score` counts but that change no mapping (the match is unique up to OP2 / OP3). The SMILES are
   kept, as `dict list` / `dict smiles` print them and acedrg / eLBOW read either form. *Tested:*
   `Dictionaries.SmilesAgreeWithTheCcd`.
-- **DIC-01 Charges that are no finite number** (not fixed in MDATK 0.1.1). `_dictionary_graph` read
-  `_chem_comp_atom.charge` with `int(round(float(q)))`: `inf` (or `1e400`) ended the finish in an
+- **DIC-01 Charges that are no finite number** (not fixed in MDATK 0.1.1 or 0.1.2).
+  `_dictionary_graph` read `_chem_comp_atom.charge` with `int(round(float(q)))`: `inf` (or `1e400`) ended the finish in an
   uncaught `OverflowError: cannot convert float infinity to integer`. MDBridge reads a charge that is
   not a finite number of at most 10^6 as no formal charge, as MDATK already does for NaN, `?` and
   partial charges. *Tested:* `Dictionaries.NonFiniteChargesAreNoFormalCharges`.
-- **DIC-02 Unbounded integers and full Unicode upper case** (not fixed). Python reads hydrogen counts
-  and charges of any size in SMILES brackets (`[CH99999999999999999999]`) and upper-cases residue
+- **DIC-02 Unbounded integers and full Unicode upper case** (not fixed in 0.1.1 or 0.1.2). Python
+  reads hydrogen counts and charges of any size in SMILES brackets (`[CH99999999999999999999]`) and upper-cases residue
   codes with the full Unicode mapping (`ﬁ1` becomes the code `FI1`). MDBridge refuses a bracket count
   or charge above 10^6 as "SMILES: cannot read the atom [...]" and upper-cases ASCII letters only, so a
   code with other characters is refused as typed ("residue code '0é5': use 1-5 letters / digits";

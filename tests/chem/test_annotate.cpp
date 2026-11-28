@@ -598,7 +598,7 @@ TEST(AnnotateMdatk, test_barnaba_records) {
               (chem::Notes{std::string(chem::kBarnabaNote), "Annotated 2 base pair(s) with the builtin engine"}));
 }
 
-// The command and its step log come with W2-C; here the library call `pdb annotate in.pdb -o out.pdb
+// The command and its step log: tests/data/cli cases (W2-C); here the library call `pdb annotate in.pdb -o out.pdb
 // --no-stacking` makes, and `--engine barnaba` succeeding with the warning (MDATK: exit 1, not installed).
 TEST(AnnotateMdatk, test_cli_annotate_logs_step) {
     const TempDir dir;

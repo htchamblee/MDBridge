@@ -2,13 +2,19 @@
 
 Status: agreed plan; milestones 1 (skeleton), 2 (`core` + `io`, with the commands `init`, `info`,
 `export-pdb` and `density info`), 3 (`analysis`: the ten analyses, `analyze` and `list`, the
-cache, the frame-parallel runner) and 4 (`render`: figures, charts, the structure view with the
+cache, the frame-parallel runner), 4 (`render`: figures, charts, the structure view with the
 software and Vulkan renderers, MP4 video with bundled LGPL FFmpeg, the commands `render`, `charts`
 and `preview`) and 5 (`app`: MDATK's analysis window in Qt Widgets with its six pages, the canvas
 layout editor whose structure panel is the 3D view, jobs, undo, recovery copies, and the commands
-`demo`, `clean` and `citations`) done, milestone 6 (`chem`) next. The C++ successor of MDATK is
-named **MDBridge** and lives in its own repository (`htchamblee/MDBridge`). The Python package MDATK (v0.0.4.1) is frozen as
-the reference implementation and receives bug fixes only.
+`demo`, `clean` and `citations`) are done. Milestone 6 (`chem`) is done (`docs/specs/m6-status.md`):
+PDB hygiene, annotation, restraint dictionaries and SMILES, the Watson-Crick helix builder, mutations,
+the other pairings and triplexes of the helix builder (fitted, from 4JRD and RNA triple helices),
+the density fit, the `numerics` library, the commands `pdb`, `build`, `dict` and `density fit` /
+`simulate`, the density fit in the window and the PDB clean-up and structure builder windows.
+Milestone 7 (`workflow`) is planned (`docs/specs/m7-plan.md`). The C++ successor of MDATK is named
+**MDBridge** and lives in its own repository (`htchamblee/MDBridge`). MDATK v0.0.4.1 is the parity
+reference; MDATK itself is still developed (0.1.2 at the time of writing), and MDBridge follows later
+MDATK's designs where they fix 0.0.4.x issues (`CLAUDE.md`).
 
 ## Why
 
@@ -38,13 +44,19 @@ a source build does not pollute the system.
 - Trajectories and topologies: own readers and writers (parm7, PDB, GRO, DCD, XTC/TRR, AMBER NetCDF
   and ASCII, MRC/CCP4, mmCIF), matched to what MDAnalysis reads; chemfiles was dropped in
   milestone 2 because it reads these formats differently and parity needs MDAnalysis' behaviour
-- Linear algebra: Eigen; neighbour search: own cell list / nanoflann
+- Linear algebra: Eigen; neighbour search: own cell list / nanoflann. So far neither is used: the
+  3 x 3 and k x 3 SVDs (`core/linalg.hpp`), the analyses' cell grid and the pair search of
+  `numerics` are MDBridge's own
+- Numerics: what MDATK takes from SciPy, ported with SciPy's notice (ndimage filters and
+  interpolation, Powell / Brent, `least_squares` TRF with LSMR) or vendored unmodified (SciPy's FFT,
+  ducc0, `third_party/ducc0`), so results follow SciPy's (milestone 6, owner decisions D3, D4)
 - Video: FFmpeg libraries, own LGPL-only build (no x264); AV1 (SVT-AV1) in MP4 by default, FFmpeg's
   `mpeg4` as the fallback (milestone 4, owner decision D1)
 - Scripting: embedded Lua for script/wizard generators
 - Interim only: an embedded, private Python interpreter inside the bundle for pieces not yet
   ported (never visible to the user, never installed on the system), with permissively
-  licensed packages only
+  licensed packages only. Not needed so far: milestones 1-6 ported everything they cover, and no
+  build bundles Python (`docs/specs/m7-plan.md` 4.6)
 
 Dependency rule: every bundled dependency is permissive (MIT, BSD, Apache, zlib, Boost, ...)
 or LGPL, so the licence chosen after legal review (see `LICENSING.md`) is not constrained.
@@ -61,11 +73,11 @@ Each module is a library with a C++ API; only `app` depends on Qt widgets.
 | `core` | data model (topology, coordinates, selections, residue groups), `.mdatk.toml` project file, step log, citations, settings | - |
 | `io` | trajectory/topology readers, NetCDF/parm7, PDB read/write, MRC/CCP4 maps, mmCIF dictionaries | core |
 | `numerics` | the SciPy pieces MDATK uses, ported (ndimage filters and interpolation, Powell / Brent, `least_squares` TRF with LSMR, `cKDTree.query_pairs`) or vendored (SciPy's ducc0 FFT, `third_party/ducc0`), and `density_centroid` | core, io |
-| `chem` | PDB hygiene (L-RNA detection, naming schemes, chains, renumbering), base pairs, dot-bracket, annotation, helix builder, mutations, dictionary renaming | core, io, numerics |
+| `chem` | PDB hygiene (L-RNA detection, naming schemes, chains, renumbering), base pairs, dot-bracket, annotation, helix builder, mutations, dictionary renaming, the rigid-body density fit | core, io, numerics |
 | `analysis` | RMSD, contacts, H-bonds, Mg/O-Mg-O, stacking, energy, trace/proximity; parallel over frames; result cache | core, io, chem |
-| `render` | Vulkan scene (trace, cartoon, licorice, surfaces, density shadow), panels and charts, video encoding; usable headless for batch videos | core, analysis, numerics |
+| `render` | Vulkan scene (trace, cartoon, licorice, surfaces, density shadow), panels and charts, video encoding; usable headless for batch videos | core, io, analysis, chem, numerics |
 | `workflow` | planner model, step types and checks; generators written in Lua and loaded from `.lua` files (users can add steps) | core, chem |
-| `app` | Qt GUI and the CLI: two thin front ends over the same libraries | all |
+| `app` | Qt GUI and the CLI: two thin front ends over the same libraries. The PDB clean-up and structure builder windows (`gui/tools`) know only a small host interface (`tools/host.hpp`: the project, its step log, messages, Save), which the analysis window implements; milestone 7 hosts them in RNAdo (owner decision D1 of milestone 6) | all |
 
 Analyses run in one pass over the frames, frame-parallel (`runAnalyses`, `analysis.hpp`): one
 thread reads the trajectory in order, worker threads run each analysis' per-frame step, and
@@ -76,7 +88,8 @@ else the environment variable `MDBRIDGE_THREADS` (a positive integer; `1` is the
 else the hardware concurrency capped at 16.
 
 PDB hygiene stays in C++ (it shares chirality and base logic with the builder and analyses);
-Lua generators call it rather than reimplement it.
+Lua generators call it rather than reimplement it, through `chem/generator_api.hpp` (value-in /
+value-out functions with MDATK's messages, milestone 6).
 
 External programs (cpptraj, Amber, GROMACS, Rosetta, SimRNA, RNAMake, Phenix, Coot, acedrg,
 eLBOW, VMD) stay external: they are validated, published tools that keep users' work

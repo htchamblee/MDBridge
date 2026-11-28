@@ -8,7 +8,7 @@ manage a language runtime: a Linux AppImage and a Windows installer.
 The plan (modules, libraries, migration order, definition of done) is in
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-## Status: milestone 5 done (the interface, `app`); next: milestone 6 (`chem`)
+## Status: milestone 6 done (`chem`); next: milestone 7 (`workflow`)
 
 **Milestone 1, the skeleton**, proved the delivery path before any science moved:
 
@@ -154,10 +154,59 @@ window driven by the same action scripts (`tests/parity/make_gui_cases.py`; 42 r
   listed by id with their tests in [docs/DIFFERENCES.md](docs/DIFFERENCES.md) ("Interface: index of
   the ids"); the plan in [docs/specs/m5-plan.md](docs/specs/m5-plan.md).
 
-Next, milestone 6 (`chem`, docs/ARCHITECTURE.md "Migration order"): PDB hygiene and base-pair
-annotation, the PDB clean-up and structure builder windows and density fitting; the workflow
-planner and script wizard (RNAdo) follow in milestone 7. Their menu entries are there, disabled,
-until then.
+**Milestone 6, `chem`**, is MDATK's chemistry layer: PDB clean-up, base-pair annotation, the
+structure builder, restraint dictionaries and the density fit, checked against MDATK itself in CI:
+
+- **PDB clean-up** (`pdb clean`, `pdb check`, `pdb to-lrna`): ChimeraX repair, L-RNA detection from
+  the sugar geometry (`--l-ranges` forces it), residue names in the `amber`, `ccd`, `rosetta` or
+  `pdb` scheme (`--scheme`), chain ids from a reference PDB, a list or the TER segments, split,
+  combined and sorted chains, renumbering, SEQRES and FASTA, 5'-phosphates removed (`--strip-5p`).
+  `pdb check` prints the chains, sequences, names and sugar chirality as JSON.
+- **Annotation** (`pdb annotate`): REMARK 950 base-pair and dot-bracket records from MDBridge's
+  builtin detector. Barnaba (GPL) is not used: `--engine barnaba` runs the builtin detector with a
+  warning.
+- **Structure builder** (`build helix`, `build mutate`, `build fit`): ideal A-form RNA helices,
+  right- or left-handed (`--chirality D` / `L`), single strands or duplexes with mismatches and G·U
+  pairs, in any naming scheme, with hydrogens (`--hydrogens`) and a 5'-phosphate (`--phosphate5`) on
+  request; base mutations that keep the glycosidic frame and change the paired partner too, with
+  hydrogens on the new base when the model has them; rigid-body fits of a model into a density map
+  (`--search global` or `local`). The other pairings (`--pairing hh`, `hoogsteen`) and the
+  pyrimidine-motif triplex (`--triplex hoogsteen`) are built by a fitted builder: hh as PDB 4JRD, the
+  Hoogsteen duplex and the triplex with the base triples, stacking and screw of RNA triple helices
+  (PDB 3P22, 4PLX, 6SVS, 7JNH), the C+ of G·C+ Hoogsteen pairs as the CCD's CH; the kinds RNA is not
+  known to form (`reverse-wc`, `reverse-hoogsteen`, the purine-motif triplex) and sequences a kind
+  cannot pair (U or C on strand 1 of the Hoogsteen kinds, other bases than A in hh) are refused
+  (docs/DIFFERENCES.md CH-16 ... CH-21).
+- **Restraint dictionaries** (`dict list`, `dict smiles`, `dict finish`, `dict pubchem`): the SMILES
+  of the L-ribonucleotides for acedrg and eLBOW, and their dictionaries renamed to the atom names of
+  the wwPDB Chemical Component Dictionary (CCD) components 0A, 0C, 0G, 0U and their 5' / 3'
+  variants. `dict pubchem` asks PubChem for a compound, only when run.
+- **Density fit** (`density fit`, `density simulate`): MDATK's rigid-body fit of the structure into
+  the project's map (a global search over rotations with FFT translations, then Powell refinement;
+  `--save` stores the placement and keeps the project's paths as they were), and maps simulated from
+  a frame. `render` and `preview` fit a shown map that has no placement first (`density.auto_fit`).
+  The search runs on several threads; the result does not depend on their number.
+- **Windows**: *Global search* and *Refine* on the Structure view page run the fit as a job with
+  progress and Cancel; the placement found is one undo step. *PDB clean-up…* and *Structure
+  builder…* (pages *Ideal helix*, *Mutate*, *Fit to map*) in the Workflow menu write what the
+  commands write for the same options.
+- **Reference data**: the builder's and the dictionaries' tables come from primary sources in
+  `data/sources/` (the CCD components A, C, G, U and 0A, 0C, 0G, 0U, PDB 4JRD, the Arnott A-RNA fibre
+  coordinates), checked against MDATK's embedded tables. Where they disagree MDBridge follows the
+  source: guanine's H21 / H22 are named as the CCD names them.
+- **Numerics**: the SciPy pieces MDATK uses (the FFT, ndimage filters, Powell's method,
+  `least_squares`) in `src/numerics`: SciPy's own FFT (ducc0) vendored, the rest ported, each tested
+  against SciPy.
+- **Deliberate differences** (the CH items: residue numbers that do not fit the PDB columns refused,
+  mutation specs without a chain, hydrogens of mutated bases, non-finite map voxels, `density fit
+  --save` keeping relative paths, missing files named, ...) are listed by id with their tests in
+  [docs/DIFFERENCES.md](docs/DIFFERENCES.md) ("Chemistry"); the plan in
+  [docs/specs/m6-plan.md](docs/specs/m6-plan.md).
+
+Next, milestone 7 (`workflow`, docs/ARCHITECTURE.md "Migration order";
+[docs/specs/m7-plan.md](docs/specs/m7-plan.md)): the script generators of every step type in Lua,
+the Project Planner, the script wizard and the runner (RNAdo). The planner's and the wizard's menu
+entries are there, disabled, until then.
 
 ## Using it
 
@@ -174,6 +223,9 @@ chmod +x MDBridge-0.1.0-x86_64.AppImage
 ./MDBridge-0.1.0-x86_64.AppImage render -p run.mdatk.toml                 # analyses, video, charts, PDBs
 ./MDBridge-0.1.0-x86_64.AppImage charts -p run.mdatk.toml --formats png,svg
 ./MDBridge-0.1.0-x86_64.AppImage preview -p run.mdatk.toml --frame 10 --output frame10.png
+./MDBridge-0.1.0-x86_64.AppImage pdb clean model.pdb --scheme amber --renumber -o clean.pdb
+./MDBridge-0.1.0-x86_64.AppImage build helix --seq GGCAUGCC --chirality L -o l_helix.pdb
+./MDBridge-0.1.0-x86_64.AppImage density fit -p run.mdatk.toml --map map.mrc --resolution 6 --save
 ./MDBridge-0.1.0-x86_64.AppImage --help
 ```
 
@@ -199,13 +251,16 @@ ctest --test-dir build
 |---|---|
 | `src/core` | data model and project files (no Qt): plain TOML data, MDATK's file formats, JSON |
 | `src/io` | topology, trajectory, PDB, density-map and dictionary readers and writers (no Qt) |
-| `src/chem` | secondary structure: dot-bracket notation, builtin base-pair detection (no Qt) |
+| `src/numerics` | the SciPy pieces MDATK uses: FFT, ndimage filters and interpolation, Powell, `least_squares`, pair search (no Qt) |
+| `src/chem` | PDB hygiene, base pairs and dot-bracket notation, annotation, the structure builder, mutations, restraint dictionaries, the density fit (no Qt) |
 | `src/analysis` | the analyses, their registry, the frame-parallel runner, the cache and the `analyze` pipeline (no Qt) |
 | `src/render` | figures, charts, panels, the molecule's 3D geometry, the software and Vulkan renderers, video encoding and the 3D view (`core`, `molecule`, `video`: no Qt; the rest Qt GUI, no widgets) |
-| `src/app` | the Qt interface and the command line, two thin front ends over the libraries |
+| `src/app` | the Qt interface (with the PDB clean-up and structure builder windows, `gui/tools`) and the command line, two thin front ends over the libraries |
 | `tests` | unit tests (GoogleTest), fixtures and MDATK's reference reading of them, parity scripts |
 | `packaging` | AppImage and Windows installer builds, the LGPL FFmpeg build, smoke test, licence texts, icon |
-| `tools` | developer tools (shader compilation, Qt and lavapipe download, Matplotlib table generation) |
+| `third_party` | vendored source: SciPy's FFT (ducc0), unmodified and checked by SHA-256 |
+| `data` | the bundled fonts, the icon and desktop entry, and the public-source extracts the generated tables are made from (`data/sources`) |
+| `tools` | developer tools (shader compilation, Qt and lavapipe download, the extracts of `data/sources` and the tables generated from them, ducc0 vendoring) |
 
 ## Licence
 

@@ -8,7 +8,7 @@
 | CMake | 3.25 or newer | 3.25 or newer (Visual Studio's own is fine) |
 | Qt | 6.5 or newer with Vulkan support (releases use 6.11.3) | same, the `msvc2022_64` build |
 | Build tool | Ninja (or Make) | Visual Studio's MSBuild |
-| Python 3 | parity scripts, smoke test, shader compiler wrapper | same |
+| Python 3 | parity scripts, smoke test, shader compiler wrapper, table generators (none needed to build) | same |
 
 GCC and MSVC are the only supported compilers. Clang is not supported: builds and CI do not use it,
 and code need not compile with it.
@@ -21,7 +21,9 @@ program loads the user's at run time.
 One dependency is vendored instead: the FFT that SciPy 1.18.1 runs (ducc0 0.40.0, BSD-3-Clause),
 copied unmodified from SciPy's source release into `third_party/ducc0` by `tools/vendor_ducc0.py`
 and compiled with the numerics library. CMake checks every file against
-`third_party/ducc0/SHA256SUMS` when it configures, so an edited copy stops the build.
+`third_party/ducc0/SHA256SUMS` when it configures, so an edited copy stops the build;
+`python -I -B tools/vendor_ducc0.py scipy-1.18.1.tar.gz --check` compares the copy with SciPy's
+source release (PyPI), and without `--check` writes it again.
 
 ### Getting Qt
 
@@ -62,9 +64,10 @@ libxkbcommon-x11`). Useful options: `-DMDBRIDGE_WARNINGS_AS_ERRORS=ON` (as in CI
 `-DMDBRIDGE_BUILD_APP=OFF` (only the Qt-free libraries - `core`, `io`, `analysis`, the render core
 and panels, molecule geometry, software and offscreen Vulkan renderers, video encoder - the command
 line's MDATK commands and their tests: no Qt needed; `build/tests/mdbridge_commands_cli` then offers
-`demo`, `init`, `info`, `list`, `clean`, `analyze`, `export-pdb`, `citations` and `density info` for
-`tests/parity/cli_parity.py --mdbridge`; `render`, `charts`, `preview` and `demo --run` need the Qt
-build).
+`demo`, `init`, `info`, `list`, `clean`, `analyze`, `export-pdb`, `citations`, `density info` / `fit`
+/ `simulate`, `pdb`, `build` and `dict` for `tests/parity/cli_parity.py --mdbridge`; `render`,
+`charts`, `preview` and `demo --run` need the Qt build, `dict pubchem` the `mdbridge` program's
+network access).
 
 ### Sanitizers (AddressSanitizer, UndefinedBehaviorSanitizer)
 
@@ -204,7 +207,12 @@ Installed packages can be used instead with `-DMDBRIDGE_USE_SYSTEM_DEPS=ON` (zli
 
 - `ctest`: unit tests of `core` (every fixture in `tests/data/projects` must read exactly as MDATK
   reads it: `tests/data/expected`), of the Vulkan probe, and a check that the committed SPIR-V
-  matches the shader sources.
+  matches the shader sources. The chemistry and numerics suites (`mdbridge_chem_tests`,
+  `mdbridge_numerics_tests`) compare with the cases recorded from MDATK and SciPy (`tests/data/chem`,
+  `tests/data/numerics`): byte for byte, or for fitted results within the tolerances of
+  `docs/specs/m6-plan.md` (owner decision D10). The FFT test is bit for bit with glibc's libm; with
+  another C library (MSVC's) it and the Powell tests allow the tolerances `docs/DIFFERENCES.md`
+  "Numerics" gives.
 - GUI tests (`ctest -L gui`; Qt Test, part of Qt's `qtbase`, test-only), one program per part of the
   interface, all on Qt's `offscreen` platform (no display needed; `MDBRIDGE_GUI_TEST_PLATFORM=xcb`
   shows the windows) with `QT_FORCE_STDERR_LOGGING=1` (so Windows prints their report). The window
@@ -221,6 +229,9 @@ Installed packages can be used instead with `-DMDBRIDGE_USE_SYSTEM_DEPS=ON` (zli
   | `gui.actions` | `mdbridge_gui_actions_tests` | Render, still, exports, cleaning, desktop actions, result dialogs (the video parts need FFmpeg) |
   | `gui.pages`, `gui.group_pages` | `mdbridge_gui_pages_tests`, `mdbridge_gui_group_pages_tests` | the settings pages |
   | `gui.forms`, `gui.problems`, `gui.jobs` | `mdbridge_gui_forms_tests`, `..._problems_tests`, `..._jobs_tests` | field widgets, problems as you type, job runner and log view |
+  | `gui.tools` | `mdbridge_gui_tools_tests` | the PDB clean-up and structure builder windows: the files they write against the commands', *Check*, the fit on a worker thread and its Cancel, closing during a build, a host other than the analysis window, names and Tab order |
+  | `gui.tools.scale150`, `gui.tools.scale200` | same | the tool windows' names, column fit and screenshots at `QT_SCALE_FACTOR` 1.5 and 2 |
+  | `gui.script` | `mdbridge_gui_script_tests` | `mdbridge gui PROJECT --script FILE`, the action scripts of the smoke test |
 
   Run one function: `QT_QPA_PLATFORM=offscreen build/release/tests/mdbridge_gui_window_tests
   tabOrderVisitsEveryField`. Screenshots (every page, canvas drags, result dialogs; never compared)
@@ -250,13 +261,33 @@ Installed packages can be used instead with `-DMDBRIDGE_USE_SYSTEM_DEPS=ON` (zli
 - Reproducible test data (CI job `regenerate`): `tests/parity/regenerate_all.py` runs every
   generator of `tests/data/README.md` and `tools/gen_*.py` into a fresh folder and compares the
   result with the committed files byte for byte (unified-diff excerpts, exit status 1 on any
-  difference). CI runs it on Ubuntu 24.04 with Python 3.13, MDATK v0.0.4.1 and the pinned
-  environment of `tests/parity/requirements-regenerate.txt` (MDAnalysis 2.11.0, numpy 2.5.5,
-  scipy 1.18.1, pytest). Locally, about 25 seconds:
+  difference). CI runs it on Ubuntu 24.04 with Python 3.13, MDATK v0.0.4.1, MDATK 0.1.1 (for the
+  steps that record a later MDATK's project files) and the pinned environment of
+  `tests/parity/requirements-regenerate.txt` (MDAnalysis 2.11.0, numpy 2.5.5, scipy 1.18.1, pytest);
+  MDATK's render commands need the `ffmpeg` executable, and MDATK's GTK 3 window (the `gui` step)
+  needs GTK 3, Xvfb and PyGObject / pycairo built against it (`tests/parity/requirements-gui.txt`;
+  `.github/workflows/ci.yml` has the commands):
   ```bash
   python3 -m venv /tmp/regen && /tmp/regen/bin/pip install --no-deps -r tests/parity/requirements-regenerate.txt
-  python3 tests/parity/regenerate_all.py --mdatk /tmp/mdatk --out /tmp/fresh --python /tmp/regen/bin/python
+  python3 tests/parity/regenerate_all.py --mdatk /tmp/mdatk --mdatk-latest /tmp/mdatk-latest --out /tmp/fresh \
+    --python /tmp/regen/bin/python --pytest-python /tmp/regen/bin/python --gui-python /tmp/regen/bin/python
   ```
+  `--list` names the steps, `--only STEP ...` runs some of them. The chemistry steps (milestone 6)
+  are `chem_tables` (`tools/gen_chem_tables.py`: the builder's and the dictionaries' tables from
+  `data/sources/`, compared with MDATK's embedded tables), `pdbtools`, `annotate`, `dict`, `builder`
+  and `density_fit` (MDATK's chem layer with `tests/parity/improvements_chem.py`'s patches), the
+  `pdb_*`, `build_*`, `dict_*` and `density_*` cases of `cli`, `numerics` (SciPy alone) and the
+  `tools` cases of `gui`. All but `chem_tables` and `pdbtools` (pure Python) pin numpy's and
+  OpenBLAS' kernels before numpy loads (`tests/parity/chem_common.py` `pin_kernels`: OpenBLAS's Nehalem kernels, one thread, numpy's
+  x86-64 dispatch limited to X86_V2), so their numbers are the same on most machines. Where the
+  bytes of a fitted result (density fits, Kabsch, least-squares fits) still differ, the job compares
+  its numbers within the chem tolerance; on a runner whose pinned kernels give other bits than the
+  reference machine's (its probe: the density fits' flips), the results whose path depends on them
+  get the wider comparison the script describes (`KERNEL_PROBE`, `PATH_DEPENDENT`), and the job says
+  so. The extracts in `data/sources/` are inputs, not regenerated: `tools/extract_ccd.py` cuts them
+  from the wwPDB CCD (`components.cif.gz`), `tools/extract_pdb_entry.py` from a PDB entry's mmCIF and
+  `tools/extract_arnott.py` from AmberTools' `nucgen.dat` (the last two check the download's
+  SHA-256); each folder's README names the files and dates.
 
 The interface has check options for automation: `mdbridge gui PROJECT --renderer vulkan
 --screenshot view.png` renders a few frames, saves the 3D view, prints a JSON report and quits;
