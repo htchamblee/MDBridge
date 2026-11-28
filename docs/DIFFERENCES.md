@@ -2070,7 +2070,7 @@ which MDATK version's design it follows, and how it is tested.
 | WF-01 ... WF-03 | the density fit in the window (milestone 6 W3-A) | 01 one undo step, nothing on Cancel, 02 a map changed during the fit, 03 the reference frame reloaded only for new cleaned files |
 | LE-01 ... LE-10 | the canvas and the Layout & panels page | 01 the structure panel as the 3D view, 02 no drawing on the interface thread, 03 one drag one undo step, 04 MDATK's angles, 05 AP-07 ... AP-10 on the page, 06 data labels, 07 titles follow renames, 08 no frame announcement, 09 MDATK's pointer positions, 10 wheel bursts |
 | FONT-01 ... FONT-03 | Rendering: fonts and text | IBM Plex Serif in the interface and figures, Plex Math fallback, Plex Mono |
-| CH-01 ... CH-21, D7, D13 | Chemistry: PDB tools, annotation, builder, dictionaries, density fit (expected data; D-numbers of docs/specs/m6-plan.md) | 01 residue numbers below -999, 02 wrapped numbers reported, 03 one-character `--combine-into`, 04 CONECT records that cannot be remapped, 05 2'-deoxy residues with RNA names (0.1.0), 06 chain ends bonded to unknown residues (0.1.0), 07 three-character SEQRES names (0.0.17), 08 mutation specs without a chain (0.1.0), 09 hydrogens of mutated bases (D11), 10 unusable resolutions and spacings, 11 non-finite voxels, 12 `density fit --save` keeps paths, 13 missing input files named, 14 no Barnaba (D9), 15 reversed ranges, 16 the non-WC closure by continuation (D17), 17 a continuous backbone torsion term in the closure, 18 realistic non-WC geometry and the kinds RNA does not form refused (D18); D7 PubChem root, D13 program name in records, automatic density fit before rendering |
+| CH-01 ... CH-21, D7, D13 | Chemistry: PDB tools, annotation, builder, dictionaries, density fit (expected data; D-numbers of docs/specs/m6-plan.md) | 01 residue numbers below -999, 02 wrapped numbers reported, 03 one-character `--combine-into`, 04 CONECT records that cannot be remapped, 05 2'-deoxy residues with RNA names (0.1.0), 06 chain ends bonded to unknown residues (0.1.0), 07 three-character SEQRES names (0.0.17), 08 mutation specs without a chain (0.1.0), 09 hydrogens of mutated bases (D11), 10 unusable resolutions and spacings, 11 non-finite voxels, 12 `density fit --save` keeps paths, 13 missing input files named, 14 no Barnaba (D9), 15 reversed ranges, 16 the non-WC closure by continuation (D17), 17 a continuous backbone torsion term in the closure, 18 realistic non-WC geometry and the kinds RNA does not form refused (D18), 19 pyrimidines on the Hoogsteen strand and non-A hh levels refused (D19), 20 statistics over independent structures and crystal against solution, 21 C+ as the CCD's CH (D19); D7 PubChem root, D13 program name in records, automatic density fit before rendering |
 | CHD-01, CHD-02 | Chemistry reference data | 01 guanine's H21 / H22 as the CCD (owner decision D15), 02 the fitted 4JRD screw frame, hh TWIST 41.7 (D16) |
 | DIC-01, DIC-02 | Chemistry: restraint dictionaries | 01 charges that are no finite number, 02 unbounded integers and full Unicode upper case; MDATK's SMILES checked against the CCD |
 | NU-01 ... NU-03 | Numerics | 01 pair search order and negative radii, 02 least_squares without LAPACK (iterates to rounding), 03 the exact subproblem with a structured Jacobian (dense from the sparsity, a faster SVD of tall matrices) |
@@ -3407,12 +3407,12 @@ make them reproducible within D10 on any kernel.
   geometry". The uniform helices' twist stays 1.0° (triplex) and 1.4° (duplex) above the
   experimental mean (1.5-2.3 standard errors): without the backbone torsion terms the fit sits on the
   mean screw, but the rigid 4JRD backbone then clashes; the geometry is crystal-derived and the
-  solution conformation may differ by a few degrees of twist per step anyway (to be quantified; CH-20). *Why:* a model whose
+  solution conformation may differ from it by about 1-3° of twist per step anyway (CH-20). *Why:* a model whose
   levels are 5-8 Å apart is no starting model ("Reliable geometry is infinitely more important than
   runtime ... Fast and wrong serves no purpose"); kinds RNA does not form are no RNA models. *Cost:*
   the reference fits take 0.3 s (Hoogsteen) and 0.4 s (triplex) in C++, once per process; a mixed
   closure 50 s (Hoogsteen AAGAGAAGGA), 75 s (triplex AAGAGAAGGA), 5 min (triplex G14), 33 min (Hoogsteen) and 87 min (triplex) for 32 levels while other jobs shared the four cores
-  for 32 levels (the exact subproblem's QR by row-wise Givens rotations from 200 variables on,
+  (the exact subproblem's QR by row-wise Givens rotations from 200 variables on,
   numerics NU-03); minutes to tens of minutes in Python. *Tested:* the expected data are MDATK patched
   the same way (improvements_chem.py `_patch_ch18`, `exp_fit`, `table_pose`, `hbond_note`,
   `_patch_closure`'s offsets, pair, step and tilt terms; reference cases with `x`, `twist`, `rise`,
@@ -3460,7 +3460,16 @@ make them reproducible within D10 on any kernel.
   rise are crystal values: the reference fits keep the crystal means as targets, the closure's steps
   and the tests use the spreads. The notes and docs say that the geometry is crystal-derived: the NMR
   structures differ (2M8K 33.0° / 3.36 Å, base planes 3.48 Å; the hTR pseudoknots 28.7° / 3.72 Å), and
-  the solution conformation may differ by a few degrees of twist per step (to be quantified).
+  the solution conformation may differ. No triplex or Hoogsteen duplex has both a crystal and a
+  solution structure in the PDB, so the difference was measured on duplexes solved both ways, with one
+  method (`tools/crystal_solution/`, docs/reports/2026-11-28-crystal-vs-solution.md). The purine-rich
+  RNA·DNA hybrid r(GAAGAGAAGC)·d(GCTTCTCTTC), crystal 404D (Conn et al. 1999) against NMR 1RRD (Gyi
+  et al. 1998), is twisted 1.5° less in the crystal (2.6° in the interior), with rise +0.16 Å. The
+  Dickerson-Drew dodecamer differs by +0.4° (−1.4° in the interior), and an A-RNA with tandem G·U pairs
+  (2G3S against 1EKD) by +1.8°. So the solution conformation may differ by about 1-3° of mean twist
+  and up to about 0.2 Å of rise, in either direction. Crystal end steps are 2-4.5° more twisted than
+  the crystal's own centre (packing); the NMR ends are not. The 3-5° of Istrate et al. 2019 compares
+  HNA·RNA duplexes of different sequences. Step-to-step variation is not smaller in the crystals.
   *Why:* copies of one molecule are not independent measurements (the owner: "Exotic geometry with
   only crystallographic data should be handled while bearing in mind that its native solution
   conformation may differ somewhat from what it adopts under crystallization"). *Tested:*
