@@ -17,6 +17,8 @@ import argparse
 import hashlib
 import os
 import sys
+import time
+import urllib.error
 import urllib.request
 import xml.etree.ElementTree as ET
 
@@ -26,9 +28,28 @@ REPOSITORY = "https://download.qt.io/online/qtsdkrepository"
 HOSTS = {"linux": "linux_x64", "win": "windows_x86"}
 
 
+RETRY_WAITS = (10, 30, 90)  # seconds before the 2nd, 3rd and 4th attempt
+
+
 def fetch(url: str) -> bytes:
-    with urllib.request.urlopen(url, timeout=120) as response:
-        return response.read()
+    """The body of `url`. A timeout, a dropped connection or a server error (5xx) is tried again
+    after each of RETRY_WAITS (download.qt.io has stalled for minutes: CI run 46138428547); a
+    client error (404: the other repository layout) is raised at once."""
+    for attempt, wait in enumerate((*RETRY_WAITS, None), start=1):
+        try:
+            with urllib.request.urlopen(url, timeout=120) as response:
+                return response.read()
+        except urllib.error.HTTPError as error:
+            if error.code < 500 or wait is None:
+                raise
+            reason = f"HTTP {error.code}"
+        except (urllib.error.URLError, TimeoutError, ConnectionError) as error:
+            if wait is None:
+                raise
+            reason = str(getattr(error, "reason", error))
+        print(f"{url}: {reason} (attempt {attempt}); again in {wait} s", file=sys.stderr, flush=True)
+        time.sleep(wait)
+    raise AssertionError("unreachable")
 
 
 def find_package(version: str, arch: str):
