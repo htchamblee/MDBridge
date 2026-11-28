@@ -1,0 +1,20 @@
+#!/bin/bash
+# Coot batch real-space refinement (Coot 1.x)
+# Project golden, step 03 - written by MDBridge <VERSION> on <DATE>.
+# MDBridge only writes this script; review it, then run it with: bash golden_03_coot-rsr_20261015-1432.sh
+# 10-residue zones overlapping by 3, 2 cycle(s), zones found at run time.
+# Please cite (Coot):
+#   - Emsley P., Lohkamp B., Scott W. G., Cowtan K. Acta Cryst. D 2010, 66, 486-501.
+#     doi:10.1107/S0907444910007493
+#   - Casañal A., Lohkamp B., Emsley P. Protein Sci. 2020, 29, 1055-1064. doi:10.1002/pro.3791
+
+set -eo pipefail
+cd "$(dirname "$0")"
+
+command -v coot >/dev/null || { echo "ERROR: coot not found on PATH" >&2; exit 1; }
+
+rm -f golden_03_refined_20261015-1432.pdb
+coot --no-graphics --script golden_03_coot-rsr_20261015-1432.py < /dev/null > golden_03_coot-rsr_20261015-1432.log 2>&1 \
+    || { echo "ERROR: Coot failed (see golden_03_coot-rsr_20261015-1432.log)" >&2; exit 1; }
+[ -s "golden_03_refined_20261015-1432.pdb" ] || { echo "ERROR: Coot did not write golden_03_refined_20261015-1432.pdb" >&2; exit 1; }
+echo "Refined model: golden_03_refined_20261015-1432.pdb"

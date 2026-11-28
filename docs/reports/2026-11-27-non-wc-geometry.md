@@ -89,8 +89,10 @@ the 24 independent steps: duplex 30.48° / 3.007 Å, triplex 30.40° / 3.021 Å,
 
 **Crystal and solution.** The geometry is crystal-derived (X-ray, 2.5-3.1 Å). The NMR structures
 differ: the telomerase pseudoknot 2M8K 33.0° / 3.36 Å with base planes 3.48 Å apart, the hTR
-pseudoknots 28.7° / 3.72 Å. The solution conformation may differ by a few degrees of twist per step (to
-be quantified). Leaving out the end-of-run steps or the steps
+pseudoknots 28.7° / 3.72 Å. No triplex or Hoogsteen duplex has been solved both ways; measured on
+duplexes that have (docs/reports/2026-11-28-crystal-vs-solution.md), the solution conformation may
+differ by about 1-3° of mean twist and up to about 0.2 Å of rise, in either direction, and crystal end
+steps are distorted by packing. Leaving out the end-of-run steps or the steps
 with a lattice contact moves no mean by its spread (data/sources/pdb/README.md), so every step is used.
 The physical checks (contacts, H-bonds, link lengths and angles, stacking) are held strictly; twist
 and rise are crystal values.

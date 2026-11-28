@@ -1,0 +1,20 @@
+#!/bin/bash
+# VMD
+# Project golden, step 03 - written by MDBridge <VERSION> on <DATE>.
+# MDBridge only writes this script; review it, then run it with: bash golden_03_vmd_20261015-1432.sh
+# Please cite (VMD, Tachyon ray tracer, FFmpeg):
+#   - Humphrey W., Dalke A., Schulten K. J. Mol. Graph. 1996, 14, 33-38.
+#     doi:10.1016/0263-7855(96)00018-5
+#   - Stone J. E. An Efficient Library for Parallel Ray Tracing and Animation. MS thesis, Computer
+#     Science Department, University of Missouri-Rolla, 1998.
+#   - FFmpeg Developers. FFmpeg. https://ffmpeg.org
+
+set -eo pipefail
+cd "$(dirname "$0")"
+
+# the frames of an earlier run go first
+rm -f frames/frame.*.tga
+vmd -dispdev text -e golden_03_vmd_20261015-1432.tcl
+
+# join the frames into a movie
+ffmpeg -y -framerate 24 -i frames/frame.%05d.tga -c:v libx264 -pix_fmt yuv420p -vf "pad=ceil(iw/2)*2:ceil(ih/2)*2" golden_03_movie_20261015-1432.mp4

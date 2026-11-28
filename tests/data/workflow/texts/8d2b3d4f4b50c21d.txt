@@ -1,0 +1,9 @@
+microMg Mg2+ for TIP3P water (Grotz, Cruz-Leon & Schwierz, JCTC 17, 2530 (2021), doi:10.1021/acs.jctc.0c01281); sigma 0.101934 nm, epsilon 235.804213166223 kJ/mol
+MASS
+Mg2+ 24.305
+MG   24.305
+
+NONB
+  Mg2+     0.57208523  56.35855955
+  MG       0.57208523  56.35855955
+

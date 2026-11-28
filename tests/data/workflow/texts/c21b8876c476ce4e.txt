@@ -1,0 +1,9 @@
+microMg Mg2+ for SPC/E water (Grotz & Schwierz, JCTC 18, 526 (2022), doi:10.1021/acs.jctc.1c00791); sigma 0.103643 nm, epsilon 290.584188 kJ/mol
+MASS
+Mg2+ 24.305
+MG   24.305
+
+NONB
+  Mg2+     0.58167667  69.45128776
+  MG       0.58167667  69.45128776
+

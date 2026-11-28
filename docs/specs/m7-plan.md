@@ -307,6 +307,9 @@ cases. The Coot script (refine.py) and the embedded helpers are MDATK's own code
   master and summary. Output `tests/data/workflow/cases/*.json` plus the files as text.
 - `improvements_workflow.py`: the WG patches applied to MDATK on the test side (as `improvements_*.py`),
   each naming the MDATK version whose design it follows.
+  Masking as built (W0-A, accepted): the version after the program's name (`MDBridge <VERSION>`),
+  dates (`<DATE>`) and the plan folder (`<ROOT>`) are masked; the name MDBridge itself stays in the
+  expected text (D11 sets it), so a file that names the wrong program fails the comparison.
 - `make_workflow_goldens.py` (exists, M5): extended with plans that hold every step type's
   non-default settings, saved stamps and scratch records.
 - `cli_parity.py`: cases for every `workflow` command and option of 1.8, `--set` records, errors, the
@@ -408,6 +411,9 @@ follows that design. Each lands as a DIFFERENCES entry (prefix WG).
 | WG-16 | Cancel stops the script's process group but not a program the script started in another session that is still running after the script ended (runner.py:56-69, read; 0.1.0's report) | the run ends every process the script started (the M5 process runner's job object / process group, kept until the last child exits) | fixed in 0.1.0: adopt |
 | WG-17 | On Windows hand-picked paths are written as `C:\data\x.pdb` into bash scripts that run on Linux / WSL (plan.py:268-278, read; needs Windows to show) | a warning naming the path: "a Windows path in a script for Linux / WSL; copy the file next to the plan or give its Linux path" | not handled |
 | WG-18 | The structure-builder script depends on the environment of the writing program (`$APPIMAGE`, frozen or not; buildstep.py:259-268, read), so the same plan writes different files | `mdbridge` by its path when the program is an AppImage, else `mdbridge` on PATH (D6), recorded in the plan summary | not changed |
+| WG-19 | The FARFAR2 models script annotates only two-digit models with DSSR: the loop globs `<project>_<NN>_model-[0-9][0-9]_<stamp>.pdb` (farfar2.py:470-472) while the models are numbered `%02d`, so models 100 on are skipped (ran, W0-A: `n_models = 105`, a stand-in `extract_pdbs` and `x3dna-dssr` on PATH: 105 models written, 99 annotated) | the loop globs `model-[0-9]*` (the same pattern as WG-09's removal) | fixed in 0.1.0: adopt |
+| WG-20 | SimRNA without clustering promises the output `trajectory` `<project>_<NN>_simrna-all_<stamp>.trafl` (simrna.py:144-149) but only the clustering script writes it (ran, W0-A: `cluster = false`, a stand-in SimRNA: both runs wrote their `.trafl`, the run script ended with status 0, the promised file is missing), so a step reading the trajectory gets nothing | the run script ends with `# all replica trajectories of all runs`, `cat runs/r*/*.trafl > <all>.trafl` and the check that it was written | fixed in 0.1.0: adopt |
+| WG-21 | The GROMACS position-restraint helper (`posre.py`, scripts/gmx_posre.py:15-21) does not take the L-DNA names LDA LDC LDG LDT (and their terminal and N variants) for nucleic acid, so an L-DNA strand runs unrestrained (ran, W0-A: `is_nucleic` gives False for LDA, LDA5, LDT3; MDATK 0.0.4.1 itself names no L-DNA, but MDBridge's names do, NA-01) | 0.1.0's `is_nucleic`: an `LD` prefix before the base letter; every name recognised before is recognised as before (the helper's only change, D4) | fixed in 0.1.0: adopt |
 
 Not bugs, kept: `fortran_float`'s 7 significant digits outside [1e-4, 1e7) (base.py:310-314; no
 default reaches it), plan order of independent steps by canvas position, the master's "run separately"
@@ -445,9 +451,9 @@ Lua modules `amber_common.lua`, `secstruct.lua`), `lua/lint.*`; `src/app/command
 
 | Package | Needs | Content | Acceptance |
 |---|---|---|---|
-| **W2-A Amber** | W1-A, W1-B | `amber-build` (prep, CP library, TIP4P/2005, L-RNA through `mdbridge pdb clean` (D3), Mg sets, 12-6-4, ParmEd, two-pass), `amber-restraints` (+ the C++ `workflow restraints`), `amber-md` (stages, segments, production, engines, dry outputs); WG-01, WG-04 ... WG-06, WG-11, D9 | every Amber case byte for byte; the Amber tests of 1.10 |
-| **W2-B GROMACS and VMD** | W1-A, W1-B | `gromacs` (conversion helpers, mdp, posre, mdrun flags), `vmd` (Tcl, groups, movie) | their cases; amber2gmx / posre helper tests run with `python3` |
-| **W2-C Modelling** | W1-A, W1-B | `farfar2`, `farfar2-models`, `simrna`, `rnamake`, `structure-builder` (D6; non-WC pairings once M6 W2-A lands); WG-07 ... WG-10, WG-18 | their cases; the fake-Rosetta test; builder planner-step tests |
+| **W2-A Amber** | W1-A, W1-B | `amber-build` (prep, CP library, TIP4P/2005, L-RNA through `mdbridge pdb clean` (D3), Mg sets, 12-6-4, ParmEd, two-pass), `amber-restraints` (+ the C++ `workflow restraints`), `amber-md` (stages, segments, production, engines, dry outputs); WG-01, WG-04 ... WG-06, WG-11, D9 (with D9's `split_types` default in `tools/gen_step_types.py`, `src/core/step_types.inc` and the M5 project goldens in one commit: see D9's note) | every Amber case byte for byte; the Amber tests of 1.10 |
+| **W2-B GROMACS and VMD** | W1-A, W1-B | `gromacs` (conversion helpers, mdp, posre, mdrun flags), `vmd` (Tcl, groups, movie); WG-09 (VMD frames), WG-21 | their cases; amber2gmx / posre helper tests run with `python3` |
+| **W2-C Modelling** | W1-A, W1-B | `farfar2`, `farfar2-models`, `simrna`, `rnamake`, `structure-builder` (D6; non-WC pairings once M6 W2-A lands); WG-07 ... WG-10, WG-18 ... WG-20 | their cases; the fake-Rosetta test; builder planner-step tests |
 | **W2-D Refinement and planning** | W1-A, W1-B | `restraint-dicts` (D3), `phenix-rsr`, `coot-rsr`, `note`, `input-file`, `mdatk` | their cases; test_refine counterparts; the dictionary-step tests incl. the fake acedrg run |
 | **W2-E Commands** | W1-A, W1-C (grows with W2-A ... D) | `workflow tools / check / write / run / generate / template / restraints` | every `cli_parity.py` workflow case |
 
@@ -507,6 +513,14 @@ The owner accepted every recommendation below except D8, which was changed as wr
   twins, both Mg type names in the frcmod, *Separate HO and O2 types* on for new projects, the dry
   pass without Mg lines and the planner's lanthanide-trap error; leave *Check the final topology* for
   the post-parity phase.
+  Note (W0-A): *Separate HO and O2 types* on by default changes the `split_types` default of the
+  amber-build schema, which `tools/gen_step_types.py` takes from MDATK into `src/core/step_types.inc`, and
+  with it the M5 project goldens that hold normalised amber-build settings
+  (`tests/data/project-file/workflow/golden_*.mdatk.toml`, written by `make_workflow_goldens.py` without
+  the improvements) and any other expected data with a normalised amber-build node. The package that
+  implements D9 (W2-A) changes them together in one commit: the default in `gen_step_types.py` (on the
+  test side `improvements_workflow.py` already sets it), the regenerated `step_types.inc`, and
+  `make_workflow_goldens.py` with the D9 default applied, its goldens regenerated.
 - **D10 0.1.x features**: recommend none in M7 beyond D7 and D9 (no cluster jobs, budgets, previous
   runs, supersede, folder tags, new step types, `user-script`); they start the post-parity phase.
 - **D11 Program name and dates in generated files**: recommend "written by MDBridge <version>" /

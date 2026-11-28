@@ -1,0 +1,38 @@
+#!/bin/bash
+# SimRNA: cluster the lowest-energy frames and rebuild all-atom models
+# Project apt1, step 07 - written by MDBridge <VERSION> on <DATE>.
+# MDBridge only writes this script; review it, then run it with: bash apt1_07_simrna-cluster_20261015-1432.sh
+# Please cite (SimRNA):
+#   - Boniecki M. J., Lach G., Dawson W. K., Tomala K., Lukasz P., Soltysinski T., Rother K. M.,
+#     Bujnicki J. M. Nucleic Acids Res. 2016, 44, e63. doi:10.1093/nar/gkv1479
+
+set -eo pipefail
+cd "$(dirname "$0")"
+
+SIMRNA_DIR="${SIMRNA:?set SIMRNA to the SimRNA installation folder}"
+ln -sfn "$SIMRNA_DIR/data" data
+
+# all replica trajectories of all runs
+cat runs/r*/*.trafl > apt1_07_simrna-all_20261015-1432.trafl
+[ -s "apt1_07_simrna-all_20261015-1432.trafl" ] || { echo "ERROR: SimRNA did not write apt1_07_simrna-all_20261015-1432.trafl" >&2; exit 1; }
+REF=$(ls runs/r*/*-000001.pdb 2>/dev/null | head -n 1 || true)
+[ -n "$REF" ] || { echo "ERROR: no first-frame PDB found in runs/" >&2; exit 1; }
+
+# the clusters and models of an earlier run go first: another threshold names its clusters
+# differently, and the loop below would read them
+rm -f apt1_07_simrna-all_20261015-1432_thrs*_clust* apt1_07_model-[0-9]*_20261015-1432.pdb
+# cluster the lowest 1 % of frames at 1.2 Å
+clustering apt1_07_simrna-all_20261015-1432.trafl 0.01 1.2 > apt1_07_simrna-cluster_20261015-1432.log 2>&1
+
+# rebuild the first 5 cluster representatives as all-atom models
+K=0
+for C in apt1_07_simrna-all_20261015-1432_thrs*_clust[0-9][0-9].trafl; do
+  [ -e "$C" ] || continue
+  K=$((K + 1))
+  [ $K -gt 5 ] && break
+  N=$(printf "%02d" "$K")
+  SimRNA_trafl2pdbs "$REF" "$C" 1 AA > /dev/null
+  AA="${C%.trafl}-000001_AA.pdb"
+  [ -s "$AA" ] && mv "$AA" "apt1_07_model-${N}_20261015-1432.pdb"
+done
+[ -s "apt1_07_model-01_20261015-1432.pdb" ] || { echo "ERROR: SimRNA_trafl2pdbs did not write apt1_07_model-01_20261015-1432.pdb" >&2; exit 1; }

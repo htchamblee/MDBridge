@@ -1,0 +1,38 @@
+# Plan golden
+
+Written by MDBridge <VERSION> on <DATE>. File names follow `<project>_<step>_<tool>_<time>.<ext>` with time stamp `20261015-1432`.
+
+## 02 · Rosetta · FARFAR2 models (cluster / extract / DSSR)
+
+Folder: `.`  
+Type: Rosetta · FARFAR2 models (cluster / extract / DSSR)
+
+Inputs:
+- silent: `/golden/inputs/a.out`
+
+Outputs:
+- best: `golden_02_model-01_20261015-1432.pdb`
+- models: `golden_02_model-01_20261015-1432.pdb`, `golden_02_model-02_20261015-1432.pdb`, `golden_02_model-03_20261015-1432.pdb`, `golden_02_model-04_20261015-1432.pdb`, `golden_02_model-05_20261015-1432.pdb`, `golden_02_model-06_20261015-1432.pdb`, `golden_02_model-07_20261015-1432.pdb`, `golden_02_model-08_20261015-1432.pdb`, `golden_02_model-09_20261015-1432.pdb`, `golden_02_model-10_20261015-1432.pdb`
+
+Files written: `golden_02_farfar2-models_20261015-1432.sh`
+
+Checks:
+- WARNING: Silent files: file not found (yet): /golden/inputs/a.out
+
+## 02 · SimRNA · folding
+
+Folder: `.`  
+Type: SimRNA · folding
+
+Outputs:
+- trajectory: `golden_02_simrna-all_20261015-1432.trafl`
+- best: `golden_02_model-01_20261015-1432.pdb`
+- models: `golden_02_model-01_20261015-1432.pdb`, `golden_02_model-02_20261015-1432.pdb`, `golden_02_model-03_20261015-1432.pdb`, `golden_02_model-04_20261015-1432.pdb`, `golden_02_model-05_20261015-1432.pdb`
+
+Checks:
+- ERROR: output 'best': golden_02_model-01_20261015-1432.pdb is also written by 02 · Rosetta · FARFAR2 models (cluster / extract / DSSR); give one of them another file name
+- ERROR: output 'models': golden_02_model-01_20261015-1432.pdb is also written by 02 · Rosetta · FARFAR2 models (cluster / extract / DSSR); give one of them another file name
+- ERROR: output 'models': golden_02_model-02_20261015-1432.pdb is also written by 02 · Rosetta · FARFAR2 models (cluster / extract / DSSR); give one of them another file name
+- ERROR: output 'models': golden_02_model-03_20261015-1432.pdb is also written by 02 · Rosetta · FARFAR2 models (cluster / extract / DSSR); give one of them another file name
+- ERROR: output 'models': golden_02_model-04_20261015-1432.pdb is also written by 02 · Rosetta · FARFAR2 models (cluster / extract / DSSR); give one of them another file name
+- ERROR: output 'models': golden_02_model-05_20261015-1432.pdb is also written by 02 · Rosetta · FARFAR2 models (cluster / extract / DSSR); give one of them another file name

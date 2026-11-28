@@ -1,0 +1,62 @@
+# Plan golden
+
+Written by MDBridge <VERSION> on <DATE>. File names follow `<project>_<step>_<tool>_<time>.<ext>` with time stamp `20261015-1432`.
+
+## 01 · Amber · system build
+
+Folder: `01_amber-build`  
+Type: Amber · system build  
+MDBridge: `mdbridge` from PATH (MDBRIDGE in the scripts overrides it)
+
+Inputs:
+- structure: `/golden/inputs/structure.pdb`
+
+Outputs:
+- topology: `01_amber-build/golden_01_parmed_20261015-1432.parm7`
+- coordinates: `01_amber-build/golden_01_tleap_20261015-1432.rst7`
+- pdb: `01_amber-build/golden_01_tleap_20261015-1432.pdb`
+
+Files written: `golden_01_cp-lib_20261015-1432.py`, `golden_01_prep_20261015-1432.py`, `golden_01_tleap_20261015-1432.leap`, `golden_01_parmed_20261015-1432.in`, `golden_01_amber-build_20261015-1432.sh`
+
+Checks:
+- WARNING: Starting structure (PDB): file not found (yet): /golden/inputs/structure.pdb
+
+## 02 · Amber · helix restraints
+
+Folder: `02_amber-restraints`  
+Type: Amber · helix restraints
+
+Inputs:
+- topology: `01_amber-build/golden_01_parmed_20261015-1432.parm7` (from 01 · Amber · system build)
+
+Outputs:
+- restraints: `02_amber-restraints/golden_02_helix_20261015-1432.dist`
+
+Checks:
+- ERROR: enter the secondary structure (dot-bracket and sequence) or connect a secondary-structure file
+
+## 03 · Amber · MD stages
+
+Folder: `03_amber-md`  
+Type: Amber · MD stages
+
+Inputs:
+- topology: `01_amber-build/golden_01_parmed_20261015-1432.parm7` (from 01 · Amber · system build)
+- coordinates: `01_amber-build/golden_01_tleap_20261015-1432.rst7` (from 01 · Amber · system build)
+- restraints: `02_amber-restraints/golden_02_helix_20261015-1432.dist` (from 02 · Amber · helix restraints)
+
+Outputs:
+- topology: `01_amber-build/golden_01_parmed_20261015-1432.parm7`
+- restart: `03_amber-md/golden_03_prod_20261015-1432.rst7`
+- trajectory: `03_amber-md/golden_03_prod_20261015-1432.nc`
+- dry_pdb: `03_amber-md/golden_03_dry_20261015-1432.pdb`
+
+Files written: `golden_03_min1_20261015-1432.in`, `golden_03_min2_20261015-1432.in`, `golden_03_heat_20261015-1432.in`, `golden_03_eq_20261015-1432.in`, `golden_03_eq-free_20261015-1432.in`, `golden_03_prod_20261015-1432.in`, `golden_03_amber-md_20261015-1432.sh`, `golden_03_amber-prod_20261015-1432.sh`
+
+## MDATK analysis
+
+Type: MDATK analysis
+
+Inputs:
+- topology: `01_amber-build/golden_01_parmed_20261015-1432.parm7` (from 03 · Amber · MD stages)
+- trajectory: `03_amber-md/golden_03_prod_20261015-1432.nc` (from 03 · Amber · MD stages)

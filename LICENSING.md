@@ -36,7 +36,7 @@ Not adopted yet; it takes effect only after legal review and a formal change of 
    | SVT-AV1 | BSD 3-Clause Clear + AOM Patent License 1.0 | OK (the AV1 encoder; shared library) | milestone 4 (video) |
    | IBM Plex Serif, Plex Math, Plex Mono (IBM's releases `@ibm/plex-serif@2.0.0`, `@ibm/plex-math@1.1.0`, `@ibm/plex-mono@2.5.0`) | SIL Open Font License 1.1 (permissive; modified fonts must not use the reserved name "Plex"; may be bundled and embedded) | OK (unmodified, compiled in; licence in `packaging/licenses/IBM-Plex-OFL-1.1.txt`; replaced the DejaVu fonts of milestone 4) | milestone 5 (interface and figures) |
    | ducc0 FFT 0.40.0, as SciPy 1.18.1 vendors it (`third_party/ducc0`, pinned by SHA-256 and checked at configure time; `tools/vendor_ducc0.py`) | BSD-3-Clause (offered as BSD-3-Clause or GPL-2.0-or-later; MDBridge takes BSD-3-Clause) | OK (compiled in, unmodified; licence in `packaging/licenses/ducc0-LICENSE.txt`; owner decision D3 of milestone 6) | milestone 6 (density fit) |
-   | Lua | MIT | OK | planned |
+   | Lua 5.4.9 (PUC-Rio's release, `third_party/lua`, pinned by SHA-256 and checked at configure time; `tools/vendor_lua.py`) | MIT | OK (compiled in as C++, unmodified; only the core and the base, string, table, math and utf8 libraries; licence in `packaging/licenses/lua-LICENSE.txt`; owner decision D1 of milestone 7) | milestone 7 (workflow generators) |
    | Python, NumPy, SciPy | PSF / BSD-3 | not bundled: no Python interpreter is embedded (the interim plan of `docs/ARCHITECTURE.md` was not needed); what MDBridge uses of NumPy and SciPy is ported (rows below) or vendored (ducc0, above). Scripts MDBridge writes that run Python use the user's own `python3` (`docs/specs/m7-plan.md` 4.6) | - |
    | MDAnalysis | LGPL | not bundled: its behaviour is reimplemented without its code (clean room, below); the parity jobs run it only to record expected data | - |
    | Barnaba | GPL v3 | never bundled; replaced by MDBridge's own base-pair annotation | - |
@@ -61,6 +61,13 @@ Not adopted yet; it takes effect only after legal review and a formal change of 
    against Matplotlib's output (no FreeType or HarfBuzz code used); the `.npy` / `.npz` files of
    the analysis cache (`src/analysis/cache.cpp`) follow numpy's documented format
    (`numpy.lib.format`, NEP 1) and the ZIP application note; zlib does the compression.
+
+   Published parameters and program names used by the workflow generators (milestone 7) are
+   recorded as facts in `data/sources/amber`, `nbfix` and `mg` with their sources (rows in
+   `data/sources/ATTRIBUTION.md`); no AmberTools or ParmEd file is copied. The microMg / nanoMg Mg²⁺
+   parameter files of github.com/bio-phys carry no licence, so neither they nor extracts of them are
+   committed until the owner decides (`data/sources/mg/README.md`). The helper scripts the generated
+   workflows carry (`src/workflow/helpers/`) are MDATK's own code, written byte for byte.
 
    MDAnalysis (LGPL) defines the behaviour MDBridge reproduces, but none of its code may be
    copied or translated: reimplement from observed behaviour or from behaviour-only descriptions

@@ -7,3 +7,5 @@ tests/data/** -text
 *.ttf binary
 # vendored third-party code keeps its exact bytes (third_party/ducc0/SHA256SUMS)
 third_party/** -text
+# the helper texts generated workflows carry, byte for byte (src/workflow/helpers/helpers.sha256)
+src/workflow/helpers/** -text

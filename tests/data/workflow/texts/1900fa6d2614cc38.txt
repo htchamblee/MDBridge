@@ -1,0 +1,24 @@
+# Plan golden
+
+Written by MDBridge <VERSION> on <DATE>. File names follow `<project>_<step>_<tool>_<time>.<ext>` with time stamp `20261015-1432`.
+
+## 03 · Coot · real-space refinement (batch)
+
+Folder: `03_coot-rsr`  
+Type: Coot · real-space refinement (batch)
+
+Inputs:
+- model: `/golden/inputs/model.pdb`
+- map: `/golden/inputs/map.map`
+- dictionaries: `/golden/inputs/dictionaries.cif`
+
+Outputs:
+- refined: `03_coot-rsr/golden_03_refined_20261015-1432.pdb`
+- log: `03_coot-rsr/golden_03_coot-rsr_20261015-1432.log`
+
+Files written: `golden_03_coot-rsr_20261015-1432.py`, `golden_03_coot-rsr_20261015-1432.sh`
+
+Checks:
+- WARNING: Model (PDB): file not found (yet): /golden/inputs/model.pdb
+- WARNING: Density map: file not found (yet): /golden/inputs/map.map
+- WARNING: Restraint dictionaries: file not found (yet): /golden/inputs/dictionaries.cif

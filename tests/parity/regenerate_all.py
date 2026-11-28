@@ -124,7 +124,7 @@ TABLES = ["src/core/unicode_tables.inc", "src/core/case_tables.inc", "src/core/c
           "src/core/step_types.inc", "src/core/panel_tables.inc", DATA_TABLES, "src/core/selection_tables.inc",
           "src/io/pdb_tables.inc", "src/analysis/covalent_radii.inc", "src/analysis/energy_lj_tables.inc",
           "src/render/core/mpl_colors.inc", "src/chem/helix_tables.inc", "src/chem/component_tables.inc",
-          "src/chem/triplex_tables.inc"]
+          "src/chem/triplex_tables.inc", "src/workflow/tables.inc", "src/workflow/helpers"]
 SOURCES = "data/sources"  # committed inputs of tools/gen_data_tables.py, copied into the fresh tree
 FONTS = "data/fonts"  # the bundled fonts the render generators give Matplotlib (improvements_fonts.py), copied too
 
@@ -342,6 +342,13 @@ STEPS = [
     Step("chem_tables", "tools/gen_chem_tables.py", lambda ctx: [M(ctx)],
          ["src/chem/helix_tables.inc", "src/chem/component_tables.inc", "src/chem/triplex_tables.inc"],
          flags=["-I", "-B"]),
+    # the workflow generators' tables (milestone 7 W0-C; AmberTools names, NBfix19 / 0BPh, the Mg2+ sets
+    # when data/sources/mg holds them) and the six small helper scripts' texts (D4), checked against
+    # MDATK's tables and its embed output
+    Step("workflow_tables", "tools/gen_workflow_tables.py", lambda ctx: [M(ctx)], ["src/workflow/tables.inc"],
+         flags=["-I", "-B"]),
+    Step("workflow_helpers", "tools/extract_workflow_helpers.py", lambda ctx: [M(ctx)], ["src/workflow/helpers"],
+         flags=["-I", "-B"]),
     # project files: MDATK's own files (fixed clock), the hand-made ones, and what MDATK reads from them
     Step("projects", "tests/parity/make_projects.py", lambda ctx: ["--fixed-clock", d(ctx, "projects")],
          [f"{DATA}/projects/{n}" for n in ("default.mdatk.toml", "full.mdatk.toml", "split.mdatk.toml",
@@ -410,8 +417,13 @@ STEPS = [
          + [f"{DATA}/chem/maps/{n}.mrc" for n in BUILDER_MAPS]),
     Step("density_fit", "tests/parity/make_density_fit_cases.py", lambda ctx: [M(ctx), d(ctx, "chem")],
          [f"{DATA}/chem/density_fit_cases.json"] + [f"{DATA}/chem/maps/{n}.mrc" for n in DENSITY_FIT_MAPS]),
+    # milestone 7: the workflow layer (W0-A; improvements_workflow.py applied, docs/specs/m7-plan.md 4.2):
+    # every template and step type with one change at a time, the plan-time checks on fixtures it writes
+    # (and on topology/demo_dry.parm7), plan-level cases and graph edits; texts stored once by SHA-256
+    case_step("workflow_cases", "make_workflow_cases.py", "workflow"),
     # the commands of the command line on files the steps above wrote (demo system, loader, export
-    # and map files, the parameter log of projects/, the chem steps' maps and dictionaries)
+    # and map files, the parameter log of projects/, the chem steps' maps and dictionaries, the workflow
+    # fixtures)
     Step("cli", "tests/parity/cli_parity.py", lambda ctx: ["--mdatk", M(ctx), "--write", d(ctx, "cli/cli_cases.json")],
          [f"{DATA}/cli/cli_cases.json"]),
     case_step("rigid", "make_rigid_cases.py", "rigid"),
@@ -465,9 +477,10 @@ STEPS = [
     # milestone 5: MDATK's GTK window driven by action scripts (W0-A; under Xvfb, which it starts
     # when DISPLAY is unset): open / save of the projects above, per page edits, the AP items, canvas
     # actions on the demo files; milestone 6 W3-B: the PDB clean-up and structure builder windows
-    # (tools); reads the committed MDATK 0.1.1 file when mdatk_latest was skipped
+    # (tools); milestone 7 W0-A: the Project Planner and the script wizard (workflow; reads the workflow
+    # fixtures); reads the committed MDATK 0.1.1 file when mdatk_latest was skipped
     Step("gui", "tests/parity/make_gui_cases.py", lambda ctx: [M(ctx), d(ctx)],
-         [f"{DATA}/gui/{topic}" for topic in ("roundtrip", "pages", "ap", "canvas", "tools")], gui=True,
+         [f"{DATA}/gui/{topic}" for topic in ("roundtrip", "pages", "ap", "canvas", "tools", "workflow")], gui=True,
          before=copy_committed(f"{DATA}/project-file/mdatk-0.1.1/plan.mdatk.toml")),
 ]
 

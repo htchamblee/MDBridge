@@ -1,0 +1,36 @@
+# Plan golden
+
+Written by MDBridge <VERSION> on <DATE>. File names follow `<project>_<step>_<tool>_<time>.<ext>` with time stamp `20261015-1432`.
+
+## 01 · Amber · MD stages
+
+Folder: `01_amber-md`  
+Type: Amber · MD stages
+
+Inputs:
+- topology: `/golden/inputs/t.parm7`
+- coordinates: `/golden/inputs/c.rst7`
+
+Outputs:
+- topology: `/golden/inputs/t.parm7`
+- restart: `01_amber-md/golden_01_min1_20261015-1432.rst7`
+- dry_pdb: `01_amber-md/golden_01_dry_20261015-1432.pdb`
+
+Files written: `golden_01_min1_20261015-1432.in`, `golden_01_amber-md_20261015-1432.sh`
+
+Checks:
+- WARNING: Topology (parm7): file not found (yet): /golden/inputs/t.parm7
+- WARNING: Coordinates (rst7): file not found (yet): /golden/inputs/c.rst7
+
+## 02 · VMD · visualisation
+
+Folder: `02_vmd`  
+Type: VMD · visualisation
+
+Inputs:
+- topology: `/golden/inputs/t.parm7` (from 01 · Amber · MD stages)
+
+Files written: `golden_02_vmd_20261015-1432.tcl`, `golden_02_vmd_20261015-1432.sh`
+
+Checks:
+- WARNING: 01 · Amber · MD stages no longer produces 'trajectory'; that connection is ignored

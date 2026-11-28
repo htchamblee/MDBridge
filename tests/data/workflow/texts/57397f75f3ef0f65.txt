@@ -1,0 +1,54 @@
+# VMD script written by MDBridge <VERSION> for project golden, step 03
+# run: vmd -e golden_03_vmd_20261015-1432.tcl
+
+set mol [mol new {/golden/inputs/topology.parm7} type parm7 waitfor all]
+mol addfile {/golden/inputs/trajectory.nc} type netcdf first 0 last -1 step 1 waitfor all
+
+mol delrep 0 $mol
+display resize 1280 960
+display projection Orthographic
+display depthcue off
+color Display Background white
+axes location Off
+
+color change rgb 23 0.165 0.471 0.839 ;# Aptamer
+color change rgb 24 0.922 0.408 0.204 ;# Target
+
+mol representation NewCartoon 0.300000 10.000000 4.100000 0
+mol color ColorID 23
+mol selection {resid 1 to 12}
+mol material AOShiny
+mol addrep $mol
+mol representation NewCartoon 0.300000 10.000000 4.100000 0
+mol color ColorID 24
+mol selection {resid 13 to 24}
+mol material AOShiny
+mol addrep $mol
+mol representation Licorice 0.200000 12.000000 12.000000
+mol color ColorID 23
+mol selection {(resid 1 to 12) and nucleic and not backbone and noh}
+mol material AOShiny
+mol addrep $mol
+mol representation Licorice 0.200000 12.000000 12.000000
+mol color ColorID 24
+mol selection {(resid 13 to 24) and nucleic and not backbone and noh}
+mol material AOShiny
+mol addrep $mol
+mol representation VDW 0.600000 12.000000
+mol color ColorID 19
+mol selection {resname MG Mg MG2}
+mol material AOShiny
+mol addrep $mol
+
+# superpose every frame on the first
+set ref [atomselect $mol {nucleic and name P C4'} frame 0]
+set cur [atomselect $mol {nucleic and name P C4'}]
+set all [atomselect $mol all]
+set n [molinfo $mol get numframes]
+for {set f 0} {$f < $n} {incr f} {
+  $cur frame $f
+  $all frame $f
+  $all move [measure fit $cur $ref]
+}
+
+display resetview

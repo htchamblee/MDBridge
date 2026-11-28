@@ -1,0 +1,9 @@
+nanoMg Mg2+ for OPC water (Grotz & Schwierz, J. Chem. Phys. 156, 114501 (2022), doi:10.1063/5.0087292); sigma 0.104643 nm, epsilon 470.698354 kJ/mol
+MASS
+Mg2+ 24.305
+MG   24.305
+
+NONB
+  Mg2+     0.58728898  112.49960660
+  MG       0.58728898  112.49960660
+

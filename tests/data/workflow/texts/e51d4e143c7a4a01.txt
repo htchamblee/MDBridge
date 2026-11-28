@@ -1,0 +1,20 @@
+# Plan golden
+
+Written by MDBridge <VERSION> on <DATE>. File names follow `<project>_<step>_<tool>_<time>.<ext>` with time stamp `20261015-1432`.
+
+## 00 · Amber · system build
+
+Folder: `00_amber-build`  
+Type: Amber · system build
+
+Inputs:
+- structure: `/golden/inputs/structure.pdb`
+
+Outputs:
+- topology: `00_amber-build/golden_00_parmed_20261015-1432.parm7`
+- coordinates: `00_amber-build/golden_00_tleap_20261015-1432.rst7`
+- pdb: `00_amber-build/golden_00_tleap_20261015-1432.pdb`
+
+Checks:
+- WARNING: Starting structure (PDB): file not found (yet): /golden/inputs/structure.pdb
+- ERROR: step numbers start at 1

@@ -1,0 +1,20 @@
+# Plan golden
+
+Written by MDBridge <VERSION> on <DATE>. File names follow `<project>_<step>_<tool>_<time>.<ext>` with time stamp `20261015-1432`.
+
+## 03 · Amber · system build
+
+Folder: `03_amber-build`  
+Type: Amber · system build
+
+Inputs:
+- structure: `/golden/inputs/structure.pdb`
+
+Outputs:
+- topology: `03_amber-build/golden_03_parmed_20261015-1432.parm7`
+- coordinates: `03_amber-build/golden_03_tleap_20261015-1432.rst7`
+- pdb: `03_amber-build/golden_03_tleap_20261015-1432.pdb`
+
+Checks:
+- WARNING: Starting structure (PDB): file not found (yet): /golden/inputs/structure.pdb
+- ERROR: L-RNA atom type LQ has no Mg²⁺ pair reference: without one microMg binds those atoms several times too strongly; write e.g. LQ:OS under L-RNA atom types

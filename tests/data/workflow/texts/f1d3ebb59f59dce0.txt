@@ -1,0 +1,28 @@
+#!/bin/bash
+# GROMACS: conversion and MD stages
+# Project golden, step 03 - written by MDBridge <VERSION> on <DATE>.
+# MDBridge only writes this script; review it, then run it with: bash golden_03_gromacs_20261015-1432.sh
+# GROMACS 2024+.
+# Please cite (GROMACS):
+#   - Abraham M. J., Murtola T., Schulz R., Páll S., Smith J. C., Hess B., Lindahl E. SoftwareX
+#     2015, 1-2, 19-25. doi:10.1016/j.softx.2015.06.001
+
+set -eo pipefail
+cd "$(dirname "$0")"
+
+GMX="gmx"
+
+# em
+$GMX grompp -f golden_03_em_20261015-1432.mdp -c /golden/inputs/coordinates.rst7 -p /golden/inputs/topology.parm7 -o golden_03_em_20261015-1432.tpr -maxwarn 0
+$GMX mdrun -deffnm golden_03_em_20261015-1432 -nb gpu -pme gpu -bonded gpu
+[ -s "golden_03_em_20261015-1432.gro" ] || { echo "ERROR: mdrun (em) did not write golden_03_em_20261015-1432.gro" >&2; exit 1; }
+
+# nvt
+$GMX grompp -f golden_03_nvt_20261015-1432.mdp -c golden_03_em_20261015-1432.gro -r golden_03_em_20261015-1432.gro -p /golden/inputs/topology.parm7 -o golden_03_nvt_20261015-1432.tpr -maxwarn 0
+$GMX mdrun -deffnm golden_03_nvt_20261015-1432 -nb gpu -pme gpu -bonded gpu
+[ -s "golden_03_nvt_20261015-1432.gro" ] || { echo "ERROR: mdrun (nvt) did not write golden_03_nvt_20261015-1432.gro" >&2; exit 1; }
+
+# npt
+$GMX grompp -f golden_03_npt_20261015-1432.mdp -c golden_03_nvt_20261015-1432.gro -r golden_03_nvt_20261015-1432.gro -t golden_03_nvt_20261015-1432.cpt -p /golden/inputs/topology.parm7 -o golden_03_npt_20261015-1432.tpr -maxwarn 0
+$GMX mdrun -deffnm golden_03_npt_20261015-1432 -nb gpu -pme gpu -bonded gpu
+[ -s "golden_03_npt_20261015-1432.gro" ] || { echo "ERROR: mdrun (npt) did not write golden_03_npt_20261015-1432.gro" >&2; exit 1; }

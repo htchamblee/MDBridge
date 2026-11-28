@@ -1,0 +1,41 @@
+#
+# NBfix19 + 0BPh on the solvated topology
+# ParmEd input written by MDBridge <VERSION>
+#
+# Give HO and O2 their own Lennard-Jones types so the pair changes below do not also
+# apply to atom types tleap merged with them (water HW, carbonyl O)
+addLJType @%HO
+#
+# Off-diagonal Lennard-Jones parameters replacing the external gHBfix19 H-bond correction
+# potential (Kuehrova & Mlynsky et al., JCTC 2019) with the NBfix19 modification;
+# for details, see Mlynsky V., Kuehrova P., Bussi G., Otyepka M., Sponer J., and Banas P., 2026
+#
+# IMPORTANT: this assumes that the topology was built with the OL3 RNA force field (Zgarbova et al.,
+# JCTC 2011) further adjusted by the phosphate oxygen van der Waals correction (CP) by Steinbrecher
+# et al., JCTC 2012; other force fields may have different atom types and need different atom masks
+#
+# NBfix modification of -NH...N- interactions according to the gHBfix19 potential
+# all A_N6(H61/H62), C_N4(H41/H42), G_N2(H21/H22), G_N1(H1), and U_N3(H3) hydrogens share same and
+# unique atom type H
+# A(N1), A(N3), A(N7), C(N3), G(N3), and G(N7) share same NB and NC atom types, but these are also share
+# with, e.g., N, NA, N2 .., so we need to split it
+addLJType @%NB,NC
+changeLJPair @%NB,NC @%H 2.1 0.63
+#
+# NBfix modification of -OH...bO/nbO- interactions according to the gHBfix19 potential
+# all 2'-OH hydrogens (i.e., HO2', HO3', and HO5') share same and unique atom type HO
+# all bridging (bO; O5' and O3') and nonbridging (nbO; O1P and O2P) phosphate oxygens share same and
+# unique atom types OR and OP
+changeLJPair @%HO @%OP 2.73 0.01
+changeLJPair @%HO @%OR 3.03 0.01
+#
+# Additional parameters from 0BPh
+changeLJPair @%H5 @%OR 2.8808 0.0505
+changeLJPair @%H4 @%OR 2.9308 0.0505
+#
+# L-RNA pairs: bridging phosphate oxygens of the L-RNA library have the type LD
+changeLJPair @%HO @%LD 3.03 0.01
+changeLJPair @%H5 @%LD 2.8808 0.0505
+changeLJPair @%H4 @%LD 2.9308 0.0505
+#
+outparm golden_03_parmed_20261015-1432.parm7

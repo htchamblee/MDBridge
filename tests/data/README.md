@@ -637,6 +637,21 @@ Hoogsteen strands (53 steps) twist 21.6-37.7°, rise 2.55-3.93 Å, base planes 3
 O3'-P-O5' 100.2-106.4°, epsilon −188 ... −101°; and the tables' means (30.48° / 3.007 Å / 3.270 Å and
 30.40° / 3.021 Å / 3.263 Å). Change them with the data, not by hand: they are the report's numbers.
 
+The workflow generators' tables and helper texts of milestone 7 (W0-C) are regenerated and compared
+the same way: `tools/gen_workflow_tables.py` writes `src/workflow/tables.inc` (force fields, water
+models, strip masks from `data/sources/amber/leap_files.tsv`; NBfix19 / 0BPh from
+`data/sources/nbfix/nbfix_pairs.tsv`; the microMg / nanoMg sets from `data/sources/mg` when its
+extracts are there, see its README; MDATK's own labels, comment lines and citation texts) and fails
+on any difference from MDATK 0.0.4.1's tables; `tools/extract_workflow_helpers.py` writes the six
+small helper scripts' bodies (`src/workflow/helpers/*.py`, `helpers.sha256`) and checks that the
+scripts rebuilt from them in `embed`'s layout equal MDATK's `embed` output, and that their published
+numbers equal `data/sources/nbfix` (CP, TIP4P/2005). Both are standard library only.
+
+```bash
+python3 -I -B tools/gen_workflow_tables.py /tmp/mdatk        # src/workflow/tables.inc
+python3 -I -B tools/extract_workflow_helpers.py /tmp/mdatk   # src/workflow/helpers/
+```
+
 The analysis module of milestone 3 (`src/analysis/`, tested by `tests/analysis/`) is checked against
 the files of `analysis/`, written by six generators (in the order `regenerate_all.py` runs them):
 
@@ -1237,6 +1252,90 @@ and `regenerate_all.py` compares the file as JSON within a relative 1e-12 where 
 ```bash
 /opt/mdbridge-venv/bin/python -I -B tests/parity/make_numerics_cases.py tests/data/numerics
 ```
+
+## workflow: the Project Planner's step types (milestone 7, W0-A)
+
+`tests/parity/make_workflow_cases.py` runs MDATK v0.0.4.1's workflow layer (`mdatk/workflows`: the
+sixteen step types, the plan, its master script and summary, the templates, the graph edits) on cases and
+records what it writes, for `src/workflow` (`tests/workflow/*.cpp`, docs/specs/m7-plan.md 4.2 and 4.3).
+The case design is MDATK 0.1.2's `tests/golden.py` (the owner's code) with full texts. MDATK runs with
+MDBridge's workflow improvements (`tests/parity/improvements_workflow.py`: WG-01 ... WG-21 of the plan's
+section 5 and the owner decisions D3, D6, D9, D11, D13, D14, each named in that file with the MDATK version
+whose design it follows; it applies `improvements_chem.py` and `improvements_citations.py` first, since the
+plan-time checks read files with the chem layer and the scripts cite with MDBridge's table), and once more
+as MDATK v0.0.4.1, whose output is recorded where it differs (beyond D11's program name).
+
+| Path | Content |
+|---|---|
+| `workflow/fixtures/` | the input files the plan-time checks read, written by the generator: `d_duplex.pdb`, `l_duplex.pdb` (MDATK's builder, GGCAUC / GAUGCC with Amber names, D and L), `dl_duplex.pdb` (a D and an L duplex), `blank_chains.pdb` (the D duplex with blank chain ids, both strands numbered 1-6: WG-06), `annotated.pdb` (the D duplex with REMARK 950 PAIR records, the builtin engine), `hairpin.secstruct` / `hairpin_no_sequence.secstruct` (WG-10), `lrna_a0.lib` / `lrna_dudek.lib` (minimal OFF libraries with A0-style and Dudek-style L units: D9's lanthanide check), `cp_types.frcmod`. Cases also read `topology/demo_dry.parm7` (the direct DISANG file) |
+| `workflow/cases/<group>.json` | `{"stamp", "root", "texts", "cases": [...]}`, one case per line; the groups are `templates`, `plan`, `graph` and one per step type |
+| `workflow/texts/<id>.txt` | every generated text once, named by the first 16 hex digits of the SHA-256 of its (masked) UTF-8 bytes |
+
+A case: `name`, `items` (the WG / D ids it shows; D11 shows in every generated text), `workflow`
+(`project_name`, `stamp`, `use_stamp`, `step_folders`, `nodes` with `id`, `tool`, `step`, `title`, `x`, `y`,
+`settings` (only the values that differ from MDBridge's defaults: the plan normalises them) and `files`
+(hand-picked inputs), `edges` as `[source, output, target, input]`), `groups` (the residue groups the plan
+is resolved with: a new project's, or none), `fixtures` (plan-folder path -> file under `tests/data`, copied
+into the plan folder first), `mdatk_test` (the MDATK test it follows, where one does) and `result`:
+
+* `issues`: `[node id ("" for the plan), level, message, keys]` in `Plan.all_issues()` order; `order`;
+* `steps`: per node `label`, `ok`, `describe`, `resources`, `folder`, `inputs` / `outputs` as port values
+  (`paths`, `kind`, `data` (an RNA model as its chains, dot-bracket and pairs), `source`, `source_label`),
+  and for steps that generate `files`: `[{name, role, description, text}]` (`text`: the id in `texts/`, the
+  text as written: a final newline added when the generator gave none, `eol_added`). A step with errors is
+  not written; its generator's files are recorded all the same (`forced`; `exception` when it raised);
+* `write`: `Plan.write()` of the whole plan: `written` (plan-relative path -> `text` id and `mode`, 755 for
+  scripts), `skipped`, `master`, `summary`, `stamp` (the plan's afterwards).
+
+`mdatk`, where present, is MDATK v0.0.4.1's own result where it differs: `issues`, `texts` (step files as
+`<node>/<name>` and the master and summary by path -> the first 16 hex digits of the SHA-256 of MDATK's
+text; null: a file MDATK does not write), `skipped`, or `crash` (the exception MDATK raises, e.g. on a NaN
+setting). `graph` cases hold `ops` (planner edits: add_node, connect, remove_node, apply_template,
+next_step, new_node_id, scratch_node, single_step_plan, analysis_inputs) and the result of each (or the
+error's type and message), and the final nodes and edges.
+
+Texts are masked as `improvements_workflow.mask()` masks them (D11; MDATK 0.1.2's golden test does the
+same): the version after the program's name -> `<VERSION>` ("written by MDBridge <VERSION>"), every date
+YYYY-MM-DD -> `<DATE>`, and the plan folder -> `<ROOT>` (a case's plan folder is a temporary folder; its
+fixtures live in `<ROOT>/inputs`). The C++ tests mask MDBridge's output the same way. Dummy inputs are
+`/golden/inputs/<port>.<kind>` (they do not exist), hand-picked paths with spaces `/golden/my inputs/...`
+(WG-01). The stamp is `20261015-1432`.
+
+The cases: every template with a dummy file for each unconnected input, the farfar2-amber chain of MDATK's
+`test_all_generated_scripts_pass_bash_syntax_check` (with SimRNA, RNAMake, GROMACS) and the amber template
+written whole on `d_duplex.pdb`; every step type with its defaults, then each check box flipped and each
+radio / combo choice taken, one at a time (the defaults are MDBridge's: D9 turns `split_types` on), each
+record template of the repeated sections as a list of its own (9 Amber stages, 5 GROMACS stages) and each
+check box / choice of the record options on the first default record it applies to; typed secondary
+structures with G-U and U-G pairs (wobble off / on); amber-md segments, ramps, continuation, production
+and stage-name collisions (WG-04, WG-05); NaN / infinite settings (WG-11, WG-12, D13); the Mg²⁺ sets with
+L-RNA types and two-pass builds (D9); the fixtures above (L-RNA detection and the lanthanide trap, the
+solute count, the direct DISANG file, dictionary codes, the Phenix pairs from an annotation, Coot's
+residue names, mutations, existing files); spaced paths for every step type (WG-01); and plan cases
+(names, stamps, step folders, unknown types, duplicate ids, loops, edges to missing or changed ports,
+wrong kinds, two connections into one input, connected and chosen files, shared step numbers, the shared
+outputs of WG-03, the master and summary of WG-02, notes, titles, the steps that run MDBridge: D3, D6).
+Every `.sh` text passes `bash -n` and every `.py` text parses (MDATK's test, kept).
+
+```bash
+/opt/mdbridge-venv/bin/python -I -B tests/parity/make_workflow_cases.py /tmp/mdatk tests/data/workflow
+```
+
+The generator runs its two passes in child processes (`--worker`), builds the fixtures in a third
+(`--fixtures`, numpy's kernels pinned as in the chem generators) and needs MDATK's dependencies
+(MDAnalysis is imported by the citation patches). The output is the same with any `PYTHONHASHSEED`.
+
+The workflow commands (`workflow tools / check / write / run / generate / template / restraints`) have
+cases in `cli/cli_cases.json` (`cli_parity.py` `workflow_cases()`), recorded with
+`improvements_workflow.apply_cli()` (also WG-02's `run` and D14's stale check with `--force`) and pending
+until W2-E lands the commands: plans in project files written by the case, the demo files and
+`workflow/fixtures/d_duplex.pdb` as inputs, stand-ins of VMD on PATH for `run` and `--run` (one prints its
+arguments, one fails), and their texts masked as above (`{wstamp}` for the stamp of a plan written without
+one, from the clock). `project-file/workflow/` gains `golden_nondefault.mdatk.toml` (every step type with
+every option changed, scratch records, the naming keys) and `golden_written_stamp.mdatk.toml` (the stamp a
+first write fixes), written by MDATK itself (`make_workflow_goldens.py`, without the improvements: they test
+the project file). `gui/workflow/` holds MDATK's `tests/test_workflow_gui.py` scenarios as action scripts
+(`make_gui_cases.py`, section "gui"; actions `wf.*`, need `workflow`).
 
 ## Checking that the data is reproducible
 

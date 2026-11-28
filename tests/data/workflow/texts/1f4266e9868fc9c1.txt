@@ -1,0 +1,212 @@
+# Coot batch real-space refinement - written by MDBridge <VERSION> for Coot 1.x (runs in Coot 0.9 and 1.x).
+# Started without graphics by the step's shell script; for interactive refinement open the model
+# and the map in Coot yourself.
+from __future__ import print_function
+
+import sys
+import traceback
+
+MODEL = '/golden/inputs/model.pdb'
+MAP = '/golden/inputs/map.map'
+DICTIONARIES = ['/golden/inputs/dictionaries.cif']
+OUTPUT = 'golden_03_refined_20261015-1432.pdb'
+RANGES = []  # (chain or None, first, last); empty: every residue
+ZONE_SIZE = 10
+OVERLAP = 3
+CYCLES = 2
+WEIGHT_MODE = 'fixed'  # 'default', 'auto' or 'fixed'
+WEIGHT = 60.0
+TORSIONS = False
+ZONES = None  # found in the model when the script runs
+
+# Coot functions: tried in this order in the 'coot' module (Coot 1.x; also present in 0.9) and
+# among the global functions Coot 0.9 defines for scripts.
+API_NAMES = {
+    'read_pdb': ('read_pdb',),
+    'read_map': ('handle_read_ccp4_map',),
+    'set_refinement_map': ('set_imol_refinement_map',),
+    'read_dictionary': ('read_cif_dictionary',),
+    'immediate_replacement': ('set_refinement_immediate_replacement',),
+    'refine_zone': ('refine_zone',),
+    'accept': ('accept_regularizement', 'accept_moving_atoms'),
+    'write_pdb': ('write_pdb_file',),
+    'set_weight': ('set_matrix',),
+    'auto_weight': ('auto_weight_for_refinement',),
+    'torsions': ('set_refine_with_torsion_restraints',),
+    'exit': ('coot_real_exit',),
+}
+REQUIRED = ['read_pdb', 'read_map', 'set_refinement_map', 'read_dictionary', 'immediate_replacement', 'refine_zone', 'accept', 'write_pdb']
+
+
+def _namespaces():
+    spaces = []
+    for module in ('coot', 'coot_utils'):
+        try:
+            spaces.append(vars(__import__(module)))
+        except ImportError:
+            pass
+    spaces.append(globals())
+    try:
+        import __main__
+        spaces.append(vars(__main__))
+    except ImportError:
+        pass
+    return spaces
+
+
+def coot_api():
+    """{role: function} for the Coot functions this script uses (None for missing optional ones)."""
+    spaces = _namespaces()
+    api, missing = {}, []
+    for role, names in API_NAMES.items():
+        api[role] = None
+        for name in names:
+            found = [space[name] for space in spaces if callable(space.get(name))]
+            if found:
+                api[role] = found[0]
+                break
+        if api[role] is None and role in REQUIRED:
+            missing.append('/'.join(names))
+    if missing:
+        raise RuntimeError('Coot functions not found: ' + ', '.join(missing))
+    return api
+
+
+def pdb_residues(text):
+    """[(chain, [residue numbers in file order])] of the polymer residues of PDB text (first model).
+
+    Water and single-atom residues (ions) are left out."""
+    water = ("HOH", "WAT", "H2O", "DOD", "SOL", "TIP", "TIP3", "T3P", "T4P", "SPC", "OPC")
+    chains, counts, order = {}, {}, []
+    for line in text.splitlines():
+        record = line[:6].strip()
+        if record == "ENDMDL":
+            break
+        if record not in ("ATOM", "HETATM") or len(line) < 26:
+            continue
+        name, chain = line[17:20].strip(), line[21:22]
+        try:
+            resseq = int(line[22:26])
+        except ValueError:
+            continue
+        key = (chain, resseq, line[26:27])
+        if key not in counts:
+            counts[key] = 0
+            order.append((key, name))
+        counts[key] += 1
+    for key, name in order:
+        if name.upper() in water or counts[key] < 2:
+            continue
+        numbers = chains.setdefault(key[0], [])
+        if key[1] not in numbers:
+            numbers.append(key[1])
+    seen = []
+    for key, _name in order:
+        if key[0] in chains and key[0] not in seen:
+            seen.append(key[0])
+    return [(c, chains[c]) for c in seen]
+
+
+def refinement_zones(residues, ranges, size, overlap):
+    """Overlapping windows [(chain, first, last)] of ``size`` residues sharing ``overlap`` residues.
+
+    ``residues`` is the output of pdb_residues; ``ranges`` a list of (chain or None, first, last) limiting
+    the refined residues (empty: everything; chain None: every chain).  Windows never span residues that
+    are not refined; the last window of a stretch ends at its last residue."""
+    step = max(1, size - overlap)
+    zones = []
+    for chain, numbers in residues:
+        stretches, current = [], []
+        for n in numbers:
+            wanted = not ranges or any((c is None or c == chain) and a <= n <= b for c, a, b in ranges)
+            if wanted:
+                current.append(n)
+            elif current:
+                stretches.append(current)
+                current = []
+        if current:
+            stretches.append(current)
+        for stretch in stretches:
+            start = 0
+            while True:
+                window = stretch[start:start + size]
+                zones.append((chain, window[0], window[-1]))
+                if start + size >= len(stretch):
+                    break
+                start += step
+                if start + size > len(stretch):
+                    start = max(0, len(stretch) - size)
+    return zones
+
+
+def _mdatk_main(api):
+    for path in DICTIONARIES:
+        print('Reading dictionary', path)
+        api['read_dictionary'](path)
+    imol = api['read_pdb'](MODEL)
+    if imol is None or imol < 0:
+        raise RuntimeError('Coot could not read the model ' + MODEL)
+    imap = api['read_map'](MAP, 0)
+    if imap is None or imap < 0:
+        raise RuntimeError('Coot could not read the map ' + MAP)
+    api['set_refinement_map'](imap)
+    api['immediate_replacement'](1)
+    if TORSIONS:
+        if api['torsions'] is None:
+            print('WARNING: this Coot has no set_refine_with_torsion_restraints; torsions not restrained')
+        else:
+            api['torsions'](1)
+    if WEIGHT_MODE == 'fixed' and WEIGHT is not None:
+        if api['set_weight'] is None:
+            print('WARNING: this Coot has no set_matrix; keeping its default map weight')
+        else:
+            api['set_weight'](float(WEIGHT))
+            print('Map weight', WEIGHT)
+    zones = ZONES
+    if zones is None:
+        with open(MODEL) as fh:
+            zones = refinement_zones(pdb_residues(fh.read()), RANGES, ZONE_SIZE, OVERLAP)
+    if not zones:
+        raise RuntimeError('no residues to refine')
+    if WEIGHT_MODE == 'auto':
+        if api['auto_weight'] is None:
+            print('WARNING: this Coot has no auto_weight_for_refinement; keeping its default map weight')
+        else:
+            api['auto_weight']()
+    for cycle in range(CYCLES):
+        for k, (chain, first, last) in enumerate(zones):
+            print('Cycle %d/%d, zone %d/%d: chain %s residues %d-%d'
+                  % (cycle + 1, CYCLES, k + 1, len(zones), chain or '_', first, last))
+            sys.stdout.flush()
+            api['refine_zone'](imol, chain, first, last, '')
+            api['accept']()
+    api['write_pdb'](imol, OUTPUT)
+    print('Wrote', OUTPUT)
+
+
+def _mdatk_finish(status):
+    sys.stdout.flush()
+    try:
+        exit_coot = _mdatk_exit_function()
+    except Exception:
+        exit_coot = None
+    if exit_coot is not None:
+        exit_coot(status)
+    sys.exit(status)
+
+
+def _mdatk_exit_function():
+    for space in _namespaces():
+        for name in API_NAMES['exit']:
+            if callable(space.get(name)):
+                return space[name]
+    return None
+
+
+try:
+    _mdatk_main(coot_api())
+except Exception:
+    traceback.print_exc()
+    print('ERROR: Coot refinement failed')
+    _mdatk_finish(1)
+_mdatk_finish(0)

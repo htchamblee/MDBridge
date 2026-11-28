@@ -1,0 +1,4 @@
+>apt1 A:1-6
+gggcac
+>apt1 B:7-12
+gugccc

@@ -1,0 +1,22 @@
+# Plan my-plan-v2
+
+Written by MDBridge <VERSION> on <DATE>. File names follow `<project>_<step>_<tool>_<time>.<ext>` with time stamp `20261015-1432`.
+
+## 01 · Amber · system build
+
+Folder: `01_amber-build`  
+Type: Amber · system build  
+MDBridge: `mdbridge` from PATH (MDBRIDGE in the scripts overrides it)
+
+Inputs:
+- structure: `/golden/inputs/structure.pdb`
+
+Outputs:
+- topology: `01_amber-build/my-plan-v2_01_parmed_20261015-1432.parm7`
+- coordinates: `01_amber-build/my-plan-v2_01_tleap_20261015-1432.rst7`
+- pdb: `01_amber-build/my-plan-v2_01_tleap_20261015-1432.pdb`
+
+Files written: `my-plan-v2_01_cp-lib_20261015-1432.py`, `my-plan-v2_01_prep_20261015-1432.py`, `my-plan-v2_01_tleap_20261015-1432.leap`, `my-plan-v2_01_parmed_20261015-1432.in`, `my-plan-v2_01_amber-build_20261015-1432.sh`
+
+Checks:
+- WARNING: Starting structure (PDB): file not found (yet): /golden/inputs/structure.pdb

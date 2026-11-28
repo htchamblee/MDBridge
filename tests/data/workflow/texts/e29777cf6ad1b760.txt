@@ -1,0 +1,23 @@
+# Plan golden
+
+Written by MDBridge <VERSION> on <DATE>. File names follow `<project>_<step>_<tool>_<time>.<ext>` with time stamp `20261015-1432`.
+
+## 03 · GROMACS · MD
+
+Folder: `03_gromacs`  
+Type: GROMACS · MD
+
+Inputs:
+- topology: `/golden/inputs/topology.parm7`
+- coordinates: `/golden/inputs/coordinates.rst7`
+
+Outputs:
+- topology: `03_gromacs/golden_03_convert_20261015-1432.top`
+- structure: `03_gromacs/golden_03_md_20261015-1432.gro`
+- trajectory: `03_gromacs/golden_03_nvt_20261015-1432.xtc`, `03_gromacs/golden_03_md_20261015-1432.xtc`
+
+Files written: `golden_03_convert_20261015-1432.py`, `golden_03_posre_20261015-1432.py`, `golden_03_em_20261015-1432.mdp`, `golden_03_nvt_20261015-1432.mdp`, `golden_03_npt_20261015-1432.mdp`, `golden_03_md_20261015-1432.mdp`, `golden_03_gromacs_20261015-1432.sh`, `golden_03_gromacs-prod_20261015-1432.sh`
+
+Checks:
+- WARNING: Topology (parm7/top): file not found (yet): /golden/inputs/topology.parm7
+- WARNING: Coordinates (rst7/gro): file not found (yet): /golden/inputs/coordinates.rst7

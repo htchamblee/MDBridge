@@ -1,0 +1,38 @@
+# Plan golden
+
+Written by MDBridge <VERSION> on <DATE>. File names follow `<project>_<step>_<tool>_<time>.<ext>` with time stamp `20261015-1432`.
+
+## 02 · Amber · system build
+
+Folder: `02_amber-build`  
+Type: Amber · system build  
+MDBridge: `mdbridge` from PATH (MDBRIDGE in the scripts overrides it)
+
+Inputs:
+- structure: `/golden/inputs/structure.pdb`
+
+Outputs:
+- topology: `02_amber-build/golden_02_parmed_20261015-1432.parm7`
+- coordinates: `02_amber-build/golden_02_tleap_20261015-1432.rst7`
+- pdb: `02_amber-build/golden_02_tleap_20261015-1432.pdb`
+
+Files written: `golden_02_cp-lib_20261015-1432.py`, `golden_02_prep_20261015-1432.py`, `golden_02_tleap_20261015-1432.leap`, `golden_02_parmed_20261015-1432.in`, `golden_02_amber-build_20261015-1432.sh`
+
+Checks:
+- WARNING: Starting structure (PDB): file not found (yet): /golden/inputs/structure.pdb
+
+## 02 · Amber · helix restraints
+
+Folder: `02_amber-restraints`  
+Type: Amber · helix restraints
+
+Inputs:
+- topology: `/golden/inputs/t.parm7`
+
+Outputs:
+- restraints: `02_amber-restraints/golden_02_helix_20261015-1432.dist`
+
+Files written: `golden_02_helix_20261015-1432.py`, `golden_02_amber-restraints_20261015-1432.sh`
+
+Checks:
+- WARNING: Topology (parm7): file not found (yet): /golden/inputs/t.parm7

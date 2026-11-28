@@ -1,0 +1,37 @@
+#!/bin/bash
+# Master script of plan apt1 - written by MDBridge <VERSION> on <DATE>.
+# Runs the main script of every step in plan order.  Scripts marked 'run separately'
+# (e.g. production runs for a cluster) are listed but not started.
+
+set -eo pipefail
+cd "$(dirname "$0")"
+
+# 01 · Rosetta · FARFAR2 (rna_denovo)
+bash "01_farfar2/apt1_01_farfar2_20261015-1432.sh"
+
+# 02 · Rosetta · FARFAR2 models (cluster / extract / DSSR)
+bash "02_farfar2-models/apt1_02_farfar2-models_20261015-1432.sh"
+
+# 03 · Amber · system build
+bash "03_amber-build/apt1_03_amber-build_20261015-1432.sh"
+
+# 04 · Amber · helix restraints
+bash "04_amber-restraints/apt1_04_amber-restraints_20261015-1432.sh"
+
+# 05 · Amber · MD stages
+bash "05_amber-md/apt1_05_amber-md_20261015-1432.sh"
+#   run separately: bash 05_amber-md/apt1_05_amber-prod_20261015-1432.sh
+
+# 06 · VMD · visualisation
+bash "06_vmd/apt1_06_vmd_20261015-1432.sh"
+
+# 07 · SimRNA · folding
+bash "07_simrna/apt1_07_simrna_20261015-1432.sh"
+bash "07_simrna/apt1_07_simrna-cluster_20261015-1432.sh"
+
+# 08 · RNAMake · design
+bash "08_rnamake/apt1_08_rnamake_20261015-1432.sh"
+
+# 09 · GROMACS · MD
+bash "09_gromacs/apt1_09_gromacs_20261015-1432.sh"
+#   run separately: bash 09_gromacs/apt1_09_gromacs-prod_20261015-1432.sh

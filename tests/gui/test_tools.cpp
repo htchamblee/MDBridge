@@ -522,14 +522,18 @@ void ToolTests::fitCancelIsLoggedAsCancelled() {
 void ToolTests::helixCancelStopsTheFittedBuild() {
     Fixture f;
     BuilderWindow* dlg = f.openBuilder();
-    setText(dlg, "seq", QStringLiteral("AAGAGAAGGAAGAGAAGGAA"));
+    // ten mixed levels: the closure takes tens of seconds after its first report on any runner
+    setText(dlg, "seq", QStringLiteral("AAGAGAAGGA"));
     choose(dlg, "pairing", "hoogsteen");
     const fs::path out = f.dir / "hoogsteen.pdb";
     setText(dlg, "helix_out", qs(out));
     dlg->setPage(QStringLiteral("helix"));
     dlg->runCurrent();
     QVERIFY(dlg->busy());
-    QVERIFY(QTest::qWaitFor([&] { return dlg->jobs().fraction() > 0.05; }, 120000));  // the closure has begun
+    // the closure has begun: its first report (after the reference fit and the t = 0 solve), however
+    // fast the runner is (a fraction would depend on its speed; Windows took over 120 s to reach 5 %)
+    QVERIFY(QTest::qWaitFor([&] { return dlg->jobs().statusText().contains(QStringLiteral("closing the strands")); },
+                            600000));
     click(dlg, "cancel");
     QVERIFY(QTest::qWaitFor([&] { return !dlg->busy(); }, 120000));
     QCOMPARE(dlg->reportText(), QStringLiteral("Cancelled: the helix build stopped, nothing was written."));

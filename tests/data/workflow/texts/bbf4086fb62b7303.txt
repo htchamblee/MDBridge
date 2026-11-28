@@ -1,0 +1,13 @@
+#
+# 0BPh on the solvated topology
+# ParmEd input written by MDBridge <VERSION>
+#
+# Additional parameters from 0BPh
+changeLJPair @%H5 @%OR 2.8808 0.0505
+changeLJPair @%H4 @%OR 2.9308 0.0505
+#
+# L-RNA pairs: bridging phosphate oxygens of the L-RNA library have the type LD
+changeLJPair @%H5 @%LD 2.8808 0.0505
+changeLJPair @%H4 @%LD 2.9308 0.0505
+#
+outparm golden_03_parmed_20261015-1432.parm7

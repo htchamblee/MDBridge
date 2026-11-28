@@ -1,0 +1,6 @@
+modification	type_i	type_j	rmin_angstrom	epsilon_kcal_per_mol	source	status
+nbfix19	NB,NC	H	2.1	0.63	MDATK v0.0.4.1 mdatk/workflows/amber.py:80 (the owner's table; attributed there to Mlynsky, Kuehrova, Bussi, Otyepka, Sponer & Banas, 2026)	publication not found
+nbfix19	HO	O2	2.73	0.01	MDATK v0.0.4.1 mdatk/workflows/amber.py:86 (as above)	publication not found
+nbfix19	HO	OS	3.03	0.01	MDATK v0.0.4.1 mdatk/workflows/amber.py:87 (as above)	publication not found
+0bph	H5	OS	2.8808	0.0505	Mlynsky et al., J. Chem. Theory Comput. 19, 8423 (2023), doi:10.1021/acs.jctc.3c00990, Methods (Details about AMBER RNA and DNA ffs): H5-OR/OS reduced by 0.25 A to 2.8808 A, epsilon kept at 0.0505 kcal/mol	checked against the article (CC BY 4.0)
+0bph	H4	OS	2.9308	0.0505	Mlynsky et al. 2023 (as above): H4-OR/OS 2.9308 A	checked against the article (CC BY 4.0)

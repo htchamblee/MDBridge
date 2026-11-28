@@ -1,0 +1,20 @@
+#!/bin/bash
+# MDBridge structure builder: Ideal helix (parallel tHH)
+# Project golden, step 03 - written by MDBridge <VERSION> on <DATE>.
+# MDBridge only writes this script; review it, then run it with: bash golden_03_build_20261015-1432.sh
+# MDBridge must be on PATH, or MDBRIDGE must name the program.
+# Please cite (Arnott A-RNA fiber model (MDATK helix builder), Parallel poly(A) duplex, PDB 4JRD
+# (MDATK parallel helices and triplexes)):
+#   - Arnott S., Hukins D. W. L., Dover S. D. Biochem. Biophys. Res. Commun. 1972, 48, 1392-1399.
+#     doi:10.1016/0006-291X(72)90867-4
+#   - Safaee N., Noronha A. M., Rodionov D., Kozlov G., Wilds C. J., Sheldrick G. M., Gehring K.
+#     Angew. Chem. Int. Ed. 2013, 52, 10370-10373. doi:10.1002/anie.201303461
+
+set -eo pipefail
+cd "$(dirname "$0")"
+
+# MDBridge: the mdbridge program on PATH, unless MDBRIDGE names another
+MDBRIDGE="${MDBRIDGE:-mdbridge}"
+
+"$MDBRIDGE" build helix --seq '' --partner auto --chirality D --chains A,B --pairing hh --start=1,1 -o golden_03_helix_20261015-1432.pdb
+[ -s "golden_03_helix_20261015-1432.pdb" ] || { echo "ERROR: mdbridge build did not write golden_03_helix_20261015-1432.pdb" >&2; exit 1; }

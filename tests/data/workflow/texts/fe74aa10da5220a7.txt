@@ -1,0 +1,41 @@
+# Plan golden
+
+Written by MDBridge <VERSION> on <DATE>. File names follow `<project>_<step>_<tool>_<time>.<ext>` with time stamp `20261015-1432`.
+
+## 01 · Rosetta · FARFAR2 (rna_denovo)
+
+Folder: `01_farfar2`  
+Type: Rosetta · FARFAR2 (rna_denovo)
+
+Outputs:
+- silent: `01_farfar2/golden_01_farfar2-r01_20261015-1432.out`, `01_farfar2/golden_01_farfar2-r02_20261015-1432.out`, `01_farfar2/golden_01_farfar2-r03_20261015-1432.out`, `01_farfar2/golden_01_farfar2-r04_20261015-1432.out`, `01_farfar2/golden_01_farfar2-r05_20261015-1432.out`, `01_farfar2/golden_01_farfar2-r06_20261015-1432.out`, `01_farfar2/golden_01_farfar2-r07_20261015-1432.out`, `01_farfar2/golden_01_farfar2-r08_20261015-1432.out`, `01_farfar2/golden_01_farfar2-r09_20261015-1432.out`, `01_farfar2/golden_01_farfar2-r10_20261015-1432.out`, `01_farfar2/golden_01_farfar2-r11_20261015-1432.out`, `01_farfar2/golden_01_farfar2-r12_20261015-1432.out`
+- fasta: `01_farfar2/golden_01_farfar2_20261015-1432.fasta`
+- secstruct: `01_farfar2/golden_01_farfar2_20261015-1432.secstruct`
+
+Files written: `golden_01_farfar2_20261015-1432.fasta`, `golden_01_farfar2_20261015-1432.secstruct`, `golden_01_farfar2_20261015-1432.flags`, `golden_01_farfar2_20261015-1432.sh`
+
+## 02 · Rosetta · FARFAR2 (rna_denovo)
+
+Folder: `02_farfar2`  
+Type: Rosetta · FARFAR2 (rna_denovo)
+
+Outputs:
+- silent: `02_farfar2/golden_02_farfar2-r01_20261015-1432.out`, `02_farfar2/golden_02_farfar2-r02_20261015-1432.out`, `02_farfar2/golden_02_farfar2-r03_20261015-1432.out`, `02_farfar2/golden_02_farfar2-r04_20261015-1432.out`, `02_farfar2/golden_02_farfar2-r05_20261015-1432.out`, `02_farfar2/golden_02_farfar2-r06_20261015-1432.out`, `02_farfar2/golden_02_farfar2-r07_20261015-1432.out`, `02_farfar2/golden_02_farfar2-r08_20261015-1432.out`, `02_farfar2/golden_02_farfar2-r09_20261015-1432.out`, `02_farfar2/golden_02_farfar2-r10_20261015-1432.out`, `02_farfar2/golden_02_farfar2-r11_20261015-1432.out`, `02_farfar2/golden_02_farfar2-r12_20261015-1432.out`
+- fasta: `02_farfar2/golden_02_farfar2_20261015-1432.fasta`
+- secstruct: `02_farfar2/golden_02_farfar2_20261015-1432.secstruct`
+
+Files written: `golden_02_farfar2_20261015-1432.fasta`, `golden_02_farfar2_20261015-1432.secstruct`, `golden_02_farfar2_20261015-1432.flags`, `golden_02_farfar2_20261015-1432.sh`
+
+## 03 · Rosetta · FARFAR2 models (cluster / extract / DSSR)
+
+Folder: `03_farfar2-models`  
+Type: Rosetta · FARFAR2 models (cluster / extract / DSSR)
+
+Inputs:
+- silent: `01_farfar2/golden_01_farfar2-r01_20261015-1432.out`, `01_farfar2/golden_01_farfar2-r02_20261015-1432.out`, `01_farfar2/golden_01_farfar2-r03_20261015-1432.out`, `01_farfar2/golden_01_farfar2-r04_20261015-1432.out`, `01_farfar2/golden_01_farfar2-r05_20261015-1432.out`, `01_farfar2/golden_01_farfar2-r06_20261015-1432.out`, `01_farfar2/golden_01_farfar2-r07_20261015-1432.out`, `01_farfar2/golden_01_farfar2-r08_20261015-1432.out`, `01_farfar2/golden_01_farfar2-r09_20261015-1432.out`, `01_farfar2/golden_01_farfar2-r10_20261015-1432.out`, `01_farfar2/golden_01_farfar2-r11_20261015-1432.out`, `01_farfar2/golden_01_farfar2-r12_20261015-1432.out`, `02_farfar2/golden_02_farfar2-r01_20261015-1432.out`, `02_farfar2/golden_02_farfar2-r02_20261015-1432.out`, `02_farfar2/golden_02_farfar2-r03_20261015-1432.out`, `02_farfar2/golden_02_farfar2-r04_20261015-1432.out`, `02_farfar2/golden_02_farfar2-r05_20261015-1432.out`, `02_farfar2/golden_02_farfar2-r06_20261015-1432.out`, `02_farfar2/golden_02_farfar2-r07_20261015-1432.out`, `02_farfar2/golden_02_farfar2-r08_20261015-1432.out`, `02_farfar2/golden_02_farfar2-r09_20261015-1432.out`, `02_farfar2/golden_02_farfar2-r10_20261015-1432.out`, `02_farfar2/golden_02_farfar2-r11_20261015-1432.out`, `02_farfar2/golden_02_farfar2-r12_20261015-1432.out` (from 01 · Rosetta · FARFAR2 (rna_denovo))
+
+Outputs:
+- best: `03_farfar2-models/golden_03_model-01_20261015-1432.pdb`
+- models: `03_farfar2-models/golden_03_model-01_20261015-1432.pdb`, `03_farfar2-models/golden_03_model-02_20261015-1432.pdb`, `03_farfar2-models/golden_03_model-03_20261015-1432.pdb`, `03_farfar2-models/golden_03_model-04_20261015-1432.pdb`, `03_farfar2-models/golden_03_model-05_20261015-1432.pdb`, `03_farfar2-models/golden_03_model-06_20261015-1432.pdb`, `03_farfar2-models/golden_03_model-07_20261015-1432.pdb`, `03_farfar2-models/golden_03_model-08_20261015-1432.pdb`, `03_farfar2-models/golden_03_model-09_20261015-1432.pdb`, `03_farfar2-models/golden_03_model-10_20261015-1432.pdb`
+
+Files written: `golden_03_farfar2-models_20261015-1432.sh`

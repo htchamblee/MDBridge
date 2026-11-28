@@ -1,0 +1,19 @@
+# Plan golden
+
+Written by MDBridge <VERSION> on <DATE>. File names follow `<project>_<step>_<tool>_<time>.<ext>` with time stamp `20261015-1432`.
+
+## 03 · Amber · system build
+
+Folder: `03_amber-build`  
+Type: Amber · system build
+
+Inputs:
+- structure: `<ROOT>/inputs/model.pdb`
+
+Outputs:
+- topology: `03_amber-build/golden_03_parmed_20261015-1432.parm7`
+- coordinates: `03_amber-build/golden_03_tleap_20261015-1432.rst7`
+- pdb: `03_amber-build/golden_03_tleap_20261015-1432.pdb`
+
+Checks:
+- ERROR: the L-RNA library does not define LA, LC, LC3, LG5, LU, the names MDATK writes for the L residues, and no addPdbResMap maps them onto its units (A0, A03, A05, C0, C03, C05, G0, G03, G05, U0, U03, U05). tleap would silently read LA and LU as the lanthanum and lutetium ion of AmberTools' atomic_ions.lib and invent parameterless units for the rest. Add under 'Leap commands before loadpdb': addPdbResMap { { "LA" "A0" } { "LC" "C0" } { "LC3" "C03" } { "LG5" "G05" } { "LU" "U0" } }

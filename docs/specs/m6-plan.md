@@ -542,8 +542,10 @@ primary sources; docs/DIFFERENCES.md "Chemistry reference data"):
      structures (NCS and crystallographic copies of one molecule counted once) and used in restraints
      and tests; end-of-run and lattice-contact layers are checked for their effect on the statistics
      (the interior set is used if leaving them out moves a mean by more than its spread). The docs say
-     the geometry is crystal-derived and that the solution conformation may differ by a few degrees
-     of twist per step (to be quantified; NMR: 2M8K 33.0° / 3.36 Å; the hTR pseudoknots 28.7° / 3.72 Å).
+     the geometry is crystal-derived and that the solution conformation may differ (measured on
+     duplexes solved both ways: about 1-3° of mean twist and up to about 0.2 Å of rise, either
+     direction; docs/reports/2026-11-28-crystal-vs-solution.md; NMR: 2M8K 33.0° / 3.36 Å; the hTR
+     pseudoknots 28.7° / 3.72 Å).
 
 ## 8. Risks
 

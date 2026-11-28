@@ -199,8 +199,8 @@ NON_WC = ("--pairing", "--triplex")
 def command_of(argv):
     """The command of a command line as CHEM and PENDING name it: 'pdb', 'density fit', 'build helix',
     'build helix pairings' (a pairing other than wc, or a triplex), 'analyze' ..."""
-    if argv[:1] == ["density"] and len(argv) > 1:
-        return f"density {argv[1]}"
+    if argv[:1] in (["density"], ["workflow"]) and len(argv) > 1:
+        return f"{argv[0]} {argv[1]}"
     if argv[:1] == ["build"] and len(argv) > 1:
         if argv[1] == "helix":
             options = {argv[i]: argv[i + 1] for i in range(len(argv) - 1) if argv[i] in NON_WC}
@@ -217,6 +217,13 @@ CHEM = {"pdb", "build", "build helix", "build helix pairings", "build mutate", "
 # (unless --include-pending) and by tests/cli/test_commands.cpp ("pending": true). Remove a command
 # here when it lands (the other pairings and triplexes of build helix landed with milestone 6 W2-A).
 PENDING = set()
+# The workflow commands (milestone 7, docs/specs/m7-plan.md 1.8): recorded in "needs" like the chem commands
+# (the step log's time is masked in their files) and pending until W2-E lands them; their texts are masked
+# as improvements_workflow.mask() masks them (WORKFLOW_MASKS below).
+WORKFLOW = {"workflow"} | {f"workflow {c}" for c in ("tools", "check", "write", "run", "generate", "template",
+                                                     "restraints")}
+CHEM |= WORKFLOW
+PENDING |= WORKFLOW
 
 
 # `list` without conda installations, and with a fake one: an installation whose base and three
@@ -945,6 +952,184 @@ def chem_cases():
     return [*pdb_cases(), *build_cases(), *dict_cases(), *density_chem_cases()]
 
 
+# ---- the workflow commands (milestone 7: tools, check, write, run, generate, template, restraints) -------
+# Plans in project files written here (the settings a case changes; MDATK fills in the defaults), MDATK run
+# with MDBridge's workflow improvements (improvements_workflow.apply_cli: WG-01 ... WG-21, D3, D6, D9, D11,
+# D13, D14). Scripts started by `workflow run` / `--run` call stand-ins of VMD on PATH (FAKE_VMD: prints its
+# arguments, VMD_FAILS: exits with 3). Texts: the version after the program's name -> <VERSION>, dates ->
+# <DATE> (D11); the cases with "wstamp" also mask the plan's time stamp (yyyymmdd-hhmm, from the clock) as
+# {wstamp} in texts and file names.
+FAKE_VMD = "#!/bin/sh\necho \"stand-in vmd $*\"\n"
+VMD_FAILS = "#!/bin/sh\necho 'stand-in vmd: cannot open display' >&2\nexit 3\n"
+WF_ENV = {**NO_CONDA, "PATH": "{work}/bin:" + SYSTEM_PATH}
+WF_STAMP = "20261015-1432"
+
+
+def wf_project(nodes, edges=(), stamp=WF_STAMP, name="apt1", out_dir="plan", extra=""):
+    """A project file with a plan: nodes (id, tool, step, settings, files) and edges (src, out, dst, in)."""
+    lines = ['format = "mdatk-project"', "", "[workflow]", f'project_name = "{name}"', f'stamp = "{stamp}"',
+             f'out_dir = "{out_dir}"', extra]
+    for k, (nid, tool, step, settings, files) in enumerate(nodes):
+        lines += ["", "[[workflow.nodes]]", f'id = "{nid}"', f'tool = "{tool}"', f"step = {step}",
+                  f"x = {40.0 + 280 * k}", "y = 40.0"]
+        if settings:
+            lines += ["", "[workflow.nodes.settings]"] + [f"{key} = {json.dumps(v)}" for key, v in settings.items()]
+        if files:
+            lines += ["", "[workflow.nodes.files]"] + [f'{port} = "{path}"' for port, path in files.items()]
+    for src, out, dst, inp in edges:
+        lines += ["", "[[workflow.edges]]", f'source = "{src}"', f'output = "{out}"', f'target = "{dst}"',
+                  f'input = "{inp}"']
+    return "\n".join(lines) + "\n"
+
+
+VMD_NODE = ("v", "vmd", 1, {}, {"topology": "{work}/demo_dry.parm7", "trajectory": "{work}/demo_dry.nc"})
+WF_SS = {"sequence": "GCAUGGCAUCGA UCGAUGCCAUGC", "dotbracket": "(((((((((((( ))))))))))))"}
+WF_PLANS = {
+    # one VMD step on the demo files (runs the stand-in VMD)
+    "vmd.mdatk.toml": wf_project([VMD_NODE]),
+    "vmd_other.mdatk.toml": wf_project([("v", "vmd", 1, {"rna_style": "Tube"}, VMD_NODE[4])]),
+    "vmd_nostamp.mdatk.toml": wf_project([VMD_NODE], stamp=""),
+    # a build without its structure (an error), the steps reading from it, an independent VMD step (WG-02)
+    "broken.mdatk.toml": wf_project(
+        [("b", "amber-build", 1, {}, {}), ("r", "amber-restraints", 2, WF_SS, {}), ("m", "amber-md", 3, {}, {}),
+         ("v", "vmd", 4, {}, VMD_NODE[4])],
+        [("b", "topology", "r", "topology"), ("b", "topology", "m", "topology"), ("b", "coordinates", "m", "coordinates"),
+         ("r", "restraints", "m", "restraints")]),
+    # the amber template's chain with every input (writes every file; the restraints read the demo topology)
+    "amber.mdatk.toml": wf_project(
+        [("b", "amber-build", 1, {"mg_count": 4}, {"structure": "{work}/model.pdb"}),
+         ("r", "amber-restraints", 2, WF_SS, {"topology": "{work}/demo_dry.parm7"}),
+         ("m", "amber-md", 3, {"engine": "pmemd.MPI"}, {}), ("k", "mdatk", 0, {}, {})],
+        [("b", "topology", "m", "topology"), ("b", "coordinates", "m", "coordinates"), ("r", "restraints", "m", "restraints"),
+         ("m", "topology", "k", "topology"), ("m", "trajectory", "k", "trajectory")]),
+    "empty.mdatk.toml": wf_project([]),
+}
+WF_DEMO = {**DEMO, "model.pdb": "workflow/fixtures/d_duplex.pdb"}
+TOOLS_LIST = ["amber-build", "amber-restraints", "amber-md", "structure-builder", "restraint-dicts", "farfar2",
+              "farfar2-models", "gromacs", "note", "input-file", "mdatk", "phenix-rsr", "coot-rsr", "rnamake", "simrna",
+              "vmd"]
+
+
+def wf_case(name, argv, plans=(), before=None, run=False, wstamp=False, setup_extra=None, **kw):
+    setup = {p: WF_PLANS[p] for p in plans}
+    setup.update(setup_extra or {})
+    if run:
+        setup.update({"bin/vmd": FAKE_VMD, "bin/vmd-fails": VMD_FAILS})
+    c = case(name, argv, WF_DEMO, setup, before=before,
+             env=WF_ENV, executable=["bin/vmd", "bin/vmd-fails"] if run else None, **kw)
+    if wstamp or (argv[1:2] == ["generate"] and not {"--stamp", "--no-stamp"} & set(argv)):
+        c["wstamp"] = True  # the stamp of the clock (generate without a project stamp)
+    return c
+
+
+def workflow_cases():
+    W = ["workflow"]
+    gen = [*W, "generate"]
+    md_inputs = ["-i", "topology=sys.parm7", "-i", "coordinates=sys.rst7", "-i", "restraints=h.dist"]
+    out = [wf_case("workflow_tools", [*W, "tools"]),
+           wf_case("workflow_tools_unknown", [*W, "tools", "nothing"]),
+           wf_case("workflow_no_action", W, exit_only=True)]
+    out += [wf_case(f"workflow_tools_{t.replace('-', '_')}", [*W, "tools", t]) for t in TOOLS_LIST]
+    out += [
+        # template
+        wf_case("workflow_template_list", [*W, "template"]),
+        wf_case("workflow_template_add", [*W, "template", "amber", "-p", "empty.mdatk.toml"], ["empty.mdatk.toml"]),
+        wf_case("workflow_template_add_twice", [*W, "template", "amber-gromacs", "-p", "empty.mdatk.toml"],
+                ["empty.mdatk.toml"], before=[[*W, "template", "cryoem-refine", "-p", "empty.mdatk.toml"]]),
+        wf_case("workflow_template_no_project", [*W, "template", "amber"]),
+        wf_case("workflow_template_unknown", [*W, "template", "nothing", "-p", "empty.mdatk.toml"], ["empty.mdatk.toml"]),
+        # check
+        wf_case("workflow_check_ok", [*W, "check", "-p", "amber.mdatk.toml"], ["amber.mdatk.toml"]),
+        wf_case("workflow_check_errors", [*W, "check", "-p", "broken.mdatk.toml"], ["broken.mdatk.toml"]),
+        wf_case("workflow_check_quiet", [*W, "check", "-p", "broken.mdatk.toml", "-q"], ["broken.mdatk.toml"]),
+        wf_case("workflow_check_naming", [*W, "check", "-p", "amber.mdatk.toml", "--project-name", "my plan",
+                                          "--no-stamp", "-o", "other"], ["amber.mdatk.toml"]),
+        wf_case("workflow_check_no_project", [*W, "check"]),
+        # write
+        wf_case("workflow_write", [*W, "write", "-p", "amber.mdatk.toml"], ["amber.mdatk.toml"]),
+        wf_case("workflow_write_step", [*W, "write", "-p", "amber.mdatk.toml", "--step", "2"], ["amber.mdatk.toml"]),
+        wf_case("workflow_write_step_unknown", [*W, "write", "-p", "amber.mdatk.toml", "--step", "7"],
+                ["amber.mdatk.toml"]),
+        wf_case("workflow_write_errors", [*W, "write", "-p", "broken.mdatk.toml"], ["broken.mdatk.toml"]),
+        wf_case("workflow_write_force", [*W, "write", "-p", "broken.mdatk.toml", "--force", "-q"], ["broken.mdatk.toml"]),
+        wf_case("workflow_write_no_stamp", [*W, "write", "-p", "amber.mdatk.toml", "--no-stamp", "--project-name",
+                                            "x y"], ["amber.mdatk.toml"]),
+        wf_case("workflow_write_new_stamp", [*W, "write", "-p", "vmd_nostamp.mdatk.toml"], ["vmd_nostamp.mdatk.toml"],
+                wstamp=True),
+        wf_case("workflow_write_new_stamp_no_save", [*W, "write", "-p", "vmd_nostamp.mdatk.toml", "--no-save"],
+                ["vmd_nostamp.mdatk.toml"], wstamp=True),
+        wf_case("workflow_write_stamp_option", [*W, "write", "-p", "vmd_nostamp.mdatk.toml", "--stamp", "20260101-0000"],
+                ["vmd_nostamp.mdatk.toml"]),
+        wf_case("workflow_write_run", [*W, "write", "-p", "vmd.mdatk.toml", "--run"], ["vmd.mdatk.toml"], run=True),
+        # run (WG-02, D14 / WG-13)
+        wf_case("workflow_run", [*W, "run", "-p", "vmd.mdatk.toml"], ["vmd.mdatk.toml"], run=True,
+                before=[[*W, "write", "-p", "vmd.mdatk.toml"]]),
+        wf_case("workflow_run_step", [*W, "run", "-p", "vmd.mdatk.toml", "--step", "1"], ["vmd.mdatk.toml"], run=True,
+                before=[[*W, "write", "-p", "vmd.mdatk.toml"]]),
+        wf_case("workflow_run_fails", [*W, "run", "-p", "vmd_fails.mdatk.toml"], [], run=True,
+                setup_extra={"vmd_fails.mdatk.toml": wf_project([("v", "vmd", 1, {"vmd_exe": "vmd-fails"}, VMD_NODE[4])])},
+                before=[[*W, "write", "-p", "vmd_fails.mdatk.toml"]]),
+        wf_case("workflow_run_unwritten", [*W, "run", "-p", "vmd.mdatk.toml"], ["vmd.mdatk.toml"], run=True),
+        wf_case("workflow_run_stale", [*W, "run", "-p", "vmd_other.mdatk.toml"], ["vmd.mdatk.toml", "vmd_other.mdatk.toml"],
+                run=True, before=[[*W, "write", "-p", "vmd.mdatk.toml"]]),
+        wf_case("workflow_run_stale_force", [*W, "run", "-p", "vmd_other.mdatk.toml", "--force"],
+                ["vmd.mdatk.toml", "vmd_other.mdatk.toml"], run=True, before=[[*W, "write", "-p", "vmd.mdatk.toml"]]),
+        wf_case("workflow_run_errors_upstream", [*W, "run", "-p", "broken.mdatk.toml"], ["broken.mdatk.toml"], run=True,
+                before=[[*W, "write", "-p", "broken.mdatk.toml", "--force", "-q"]]),
+        wf_case("workflow_run_step_unknown", [*W, "run", "-p", "vmd.mdatk.toml", "--step", "9"], ["vmd.mdatk.toml"]),
+        wf_case("workflow_run_nothing", [*W, "run", "-p", "empty.mdatk.toml"], ["empty.mdatk.toml"]),
+        # generate (the stand-alone wizard; --set records, --input, errors, WG-11 / WG-12)
+        wf_case("workflow_generate_dry_run", [*gen, "amber-md", *md_inputs, "--set", "engine=pmemd.MPI", "--dry-run"]),
+        wf_case("workflow_generate_records", [*gen, "amber-md", *md_inputs, "-s", "stages.5.nstlim=1000", "-s",
+                                              "stages.2.segments=3", "-s", "stages.0.title=First min", "--dry-run"]),
+        wf_case("workflow_generate_records_json", [*gen, "gromacs", "-i", "topology=a.parm7", "-i", "coordinates=a.rst7",
+                                                   "-s", 'stages=[{"name": "em", "kind": "em"}]', "--dry-run"]),
+        wf_case("workflow_generate_record_missing", [*gen, "amber-md", *md_inputs, "-s", "stages.9.nstlim=1"]),
+        wf_case("workflow_generate_unknown_setting", [*gen, "vmd", "-s", "nothing=1"]),
+        wf_case("workflow_generate_not_key_value", [*gen, "vmd", "-s", "nothing"]),
+        wf_case("workflow_generate_bad_value", [*gen, "amber-build", "-i", "structure=m.pdb", "-s", "water=sea"]),
+        wf_case("workflow_generate_nan", [*gen, "amber-build", "-i", "structure=m.pdb", "-s", "buffer=nan", "--dry-run"]),
+        wf_case("workflow_generate_inf", [*gen, "amber-md", *md_inputs, "-s", "stages.3.dt=inf", "--dry-run"]),
+        wf_case("workflow_generate_int_overflow", [*gen, "amber-md", *md_inputs, "-s", "stages.0.maxcyc=1e400",
+                                                   "--dry-run"]),
+        wf_case("workflow_generate_errors", [*gen, "farfar2"]),
+        wf_case("workflow_generate_quiet", [*gen, "farfar2", "-q", "-s", "sequence=GGGCAC GUGCCC", "-s",
+                                            "dotbracket=(((((( ))))))", "-s", "input_res_mode=stems", "--dry-run"]),
+        wf_case("workflow_generate_inputs_several", [*gen, "farfar2-models", "-i", "silent=a.out;b.out;", "--dry-run"]),
+        wf_case("workflow_generate_input_bad", [*gen, "vmd", "-i", "topology"]),
+        wf_case("workflow_generate_input_spaces", [*gen, "amber-md", "-i", "topology=my files/sys.parm7", "-i",
+                                                   "coordinates=my files/sys.rst7", "-i", "restraints=h.dist",
+                                                   "--dry-run"]),
+        wf_case("workflow_generate_unknown_tool", [*gen, "nothing"]),
+        wf_case("workflow_generate_write", [*gen, "vmd", "-i", "topology=demo_dry.parm7", "-i", "trajectory=demo_dry.nc",
+                                            "-o", "out", "--stamp", WF_STAMP, "--step", "4"], ["empty.mdatk.toml"]),
+        wf_case("workflow_generate_write_project", [*gen, "amber-restraints", "-p", "amber.mdatk.toml", "-i",
+                                                    "topology=demo_dry.parm7", "-s", "sequence=" + WF_SS["sequence"],
+                                                    "-s", "dotbracket=" + WF_SS["dotbracket"]], ["amber.mdatk.toml"]),
+        wf_case("workflow_generate_no_stamp", [*gen, "structure-builder", "-s", "sequence=GGCAUC", "-o", "out",
+                                               "--no-stamp", "--project-name", "helix"]),
+        wf_case("workflow_generate_run", [*gen, "vmd", "-i", "topology=demo_dry.parm7", "-i", "trajectory=demo_dry.nc",
+                                          "-o", "out", "--stamp", WF_STAMP, "--run"], ["empty.mdatk.toml"], run=True),
+        # restraints
+        wf_case("workflow_restraints", [*W, "restraints", "--top", "demo_dry.parm7", "--sequence", WF_SS["sequence"],
+                                        "--dotbracket", WF_SS["dotbracket"]]),
+        wf_case("workflow_restraints_options", [*W, "restraints", "--top", "demo_dry.parm7", "--sequence",
+                                                "GCAUGGCAUCGA UCGAUGCCAUGC", "--dotbracket", "((((.(((((.( ).))))).))))",
+                                                "--offset", "0", "--wobble", "--r", "2.0", "2.5", "3.5", "4.0",
+                                                "--rk", "20", "5.5", "-o", "out.dist"]),
+        wf_case("workflow_restraints_offset", [*W, "restraints", "--top", "demo_dry.parm7", "--sequence", "GCAUGG",
+                                               "--dotbracket", "((..))", "--offset", "3"]),
+        wf_case("workflow_restraints_bad_structure", [*W, "restraints", "--top", "demo_dry.parm7", "--sequence", "GGG",
+                                                      "--dotbracket", "(("]),
+        wf_case("workflow_restraints_order", [*W, "restraints", "--top", "demo_dry.parm7", "--sequence", WF_SS["sequence"],
+                                              "--dotbracket", WF_SS["dotbracket"], "--r", "3", "2", "1", "0"]),
+        wf_case("workflow_restraints_missing_top", [*W, "restraints", "--top", "none.parm7", "--sequence", "GC",
+                                                    "--dotbracket", "()"]),
+        wf_case("workflow_restraints_usage", [*W, "restraints", "--top", "demo_dry.parm7"], exit_only=True),
+    ]
+    return out
+
+
 CASES = [
     # ---- init / init-params
     case("init_default", ["init", "new.mdatk.toml"]),
@@ -1137,6 +1322,9 @@ CASES = [
 
     # ---- pdb, build, dict, density fit / simulate (milestone 6, pending until they land)
     *chem_cases(),
+
+    # ---- workflow (milestone 7, pending until W2-E lands the commands)
+    *workflow_cases(),
 ]
 
 STAMP_RE = re.compile(r"\d{4}-\d{2}-\d{2}_\d{6}")
@@ -1423,6 +1611,22 @@ def step_log_mask(text):
     return LOG_DURATION_RE.sub("duration_s = 0.0", LOG_TIME_RE.sub("time = {time}", text))
 
 
+WSTAMP_RE = re.compile(r"(?<![0-9])20\d{6}-\d{4}(?![0-9])")
+
+
+def workflow_mask(case_):
+    """The workflow cases' texts (WORKFLOW): improvements_workflow.mask (D11: the version after the program's
+    name, dates), with "wstamp" the plan's time stamp from the clock; None for other cases."""
+    if case_["argv"][:1] != ["workflow"]:
+        return None
+    import improvements_workflow
+
+    def mask(text):
+        text = improvements_workflow.mask(text)
+        return WSTAMP_RE.sub("{wstamp}", text) if case_.get("wstamp") else text
+    return mask
+
+
 def result(case_, folder, code, stdout, stderr, before):
     paths = {}
     files = collect(case_, folder, paths)
@@ -1439,6 +1643,11 @@ def result(case_, folder, code, stdout, stderr, before):
     else:
         # the chem cases (needs): the step log's time masked; fitted ones: texts kept whole
         mask = step_log_mask if case_.get("needs") else None
+        wf_mask = workflow_mask(case_)
+        if wf_mask:  # the workflow cases: also D11's version and dates (and "wstamp") in texts and names
+            mask = lambda text: wf_mask(step_log_mask(text))  # noqa: E731
+            files = {wf_mask(rel): data for rel, data in files.items()}
+            stdout, stderr = wf_mask(stdout), wf_mask(stderr)
         limit = None if case_.get("fitted") is not None else LIMIT
         written = {rel: written_entry(rel, data, folder, mask, limit) for rel, data in files.items()}
     return {"exit": code, "stdout": normalise(stdout, folder), "stderr": normalise(stderr, folder),
@@ -1501,6 +1710,9 @@ def child(mdatk, jobs_file, results_file):
     import improvements_chem
 
     improvements_chem.apply_cli()  # the chem layer's improvements (CH-01 ... CH-15, D7, D11 ... D13)
+    import improvements_workflow
+
+    improvements_workflow.apply_cli()  # the workflow layer's (WG-01 ... WG-21, D3, D6, D9, D11, D13, D14)
     from mdatk import cli
     import citations_command
 

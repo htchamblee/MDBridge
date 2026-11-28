@@ -1,0 +1,17 @@
+# Plan golden
+
+Written by MDBridge <VERSION> on <DATE>. File names follow `<project>_<step>_<tool>_<time>.<ext>` with time stamp `20261015-1432`.
+
+## 03 · Structure builder (MDATK)
+
+Folder: `03_build`  
+Type: Structure builder (MDATK)
+
+Inputs:
+- pdb: `<ROOT>/inputs/model.pdb`
+
+Outputs:
+- pdb: `03_build/golden_03_mutant_20261015-1432.pdb`
+
+Checks:
+- ERROR: residue(s) not in the model: B:12

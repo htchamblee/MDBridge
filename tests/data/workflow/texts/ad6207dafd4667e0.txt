@@ -1,0 +1,23 @@
+# Plan golden
+
+Written by MDBridge <VERSION> on <DATE>. File names follow `<project>_<step>_<tool>_<time>.<ext>` with time stamp `20261015-1432`.
+
+## 03 · Phenix · real-space refinement
+
+Folder: `03_phenix-rsr`  
+Type: Phenix · real-space refinement
+
+Inputs:
+- model: `/golden/inputs/model.pdb`
+- map: `/golden/inputs/map.map`
+- secstruct: `<ROOT>/inputs/hairpin_no_sequence.secstruct`
+
+Outputs:
+- refined: `03_phenix-rsr/golden_03_refined_20261015-1432.pdb`
+- log: `03_phenix-rsr/golden_03_phenix-rsr_20261015-1432.log`
+
+Files written: `golden_03_basepairs_20261015-1432.eff`, `golden_03_phenix-rsr_20261015-1432.sh`
+
+Checks:
+- WARNING: Model (PDB): file not found (yet): /golden/inputs/model.pdb
+- WARNING: Density map: file not found (yet): /golden/inputs/map.map

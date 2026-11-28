@@ -1,0 +1,1618 @@
+{
+ "format": "mdbridge-gui-case",
+ "version": 1,
+ "description": "Project Planner: the amber template, a VMD step connected by dragging from a port (a wrong kind refused), a box moved, inputs and settings filled in, Write all, a step edited in its wizard, Use for analysis, the project saved",
+ "source": "MDATK v0.0.4.1's GTK window driven by tests/parity/make_gui_cases.py, with MDBridge's window improvements (tests/parity/improvements_gui.py)",
+ "clock": "2026-11-25T12:00:00",
+ "items": [],
+ "mdatk_test": "tests/test_workflow_gui.py::test_planner_template_connect_and_write",
+ "needs": [
+  "lossless",
+  "snapshot",
+  "start",
+  "workflow"
+ ],
+ "canvas": {
+  "width": 960,
+  "height": 540
+ },
+ "files": {
+  "model.pdb": "workflow/fixtures/d_duplex.pdb",
+  "p.mdatk.toml": "gui/workflow/planner_template_connect_write/in/p.mdatk.toml"
+ },
+ "start": {
+  "project": "p.mdatk.toml"
+ },
+ "actions": [
+  {
+   "action": "wf.planner.open"
+  },
+  {
+   "action": "wf.planner.template",
+   "name": "amber"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "workflow": {
+    "planner": true
+   }
+  },
+  {
+   "action": "wf.planner.add",
+   "tool": "vmd",
+   "x": 900,
+   "y": 420
+  },
+  {
+   "action": "wf.planner.connect",
+   "source": [
+    "n1",
+    "pdb"
+   ],
+   "target": [
+    "n5",
+    "topology"
+   ]
+  },
+  {
+   "action": "wf.planner.connect",
+   "source": [
+    "n1",
+    "coordinates"
+   ],
+   "target": [
+    "n5",
+    "topology"
+   ]
+  },
+  {
+   "action": "wf.planner.move",
+   "node": "n3",
+   "by": [
+    100,
+    50
+   ]
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "workflow": {
+    "planner": true
+   }
+  },
+  {
+   "action": "wf.planner.files",
+   "node": "n1",
+   "port": "structure",
+   "path": "{case_dir}/model.pdb"
+  },
+  {
+   "action": "wf.planner.settings",
+   "node": "n2",
+   "values": {
+    "sequence": "GGGCAC GUGCCC",
+    "dotbracket": "(((((( ))))))"
+   }
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "workflow": {
+    "planner": true
+   }
+  },
+  {
+   "action": "wf.planner.write"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "workflow": {
+    "planner": true
+   }
+  },
+  {
+   "action": "wf.planner.wizard",
+   "node": "n3"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "workflow": {
+    "planner": false,
+    "wizard": "n3"
+   }
+  },
+  {
+   "action": "wf.wizard.title",
+   "node": "n3",
+   "text": "Production MD"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "workflow": {
+    "planner": true
+   }
+  },
+  {
+   "action": "wf.planner.use_for_analysis",
+   "node": "n4"
+  },
+  {
+   "action": "snapshot",
+   "keys": [
+    "inputs.topology",
+    "inputs.trajectories",
+    "cleaning.enabled"
+   ]
+  },
+  {
+   "action": "save"
+  }
+ ],
+ "expected": {
+  "p.mdatk.toml": "gui/workflow/planner_template_connect_write/out/p.mdatk.toml",
+  "plans/apt1_workflow/apt1_00_plan_20261125-1200.md": "gui/workflow/planner_template_connect_write/out/plans/apt1_workflow/apt1_00_plan_20261125-1200.md",
+  "plans/apt1_workflow/apt1_00_plan_20261125-1200.sh": "gui/workflow/planner_template_connect_write/out/plans/apt1_workflow/apt1_00_plan_20261125-1200.sh",
+  "plans/apt1_workflow/01_amber-build/apt1_01_amber-build_20261125-1200.sh": "gui/workflow/planner_template_connect_write/out/plans/apt1_workflow/01_amber-build/apt1_01_amber-build_20261125-1200.sh",
+  "plans/apt1_workflow/01_amber-build/apt1_01_cp-lib_20261125-1200.py": "gui/workflow/planner_template_connect_write/out/plans/apt1_workflow/01_amber-build/apt1_01_cp-lib_20261125-1200.py",
+  "plans/apt1_workflow/01_amber-build/apt1_01_parmed_20261125-1200.in": "gui/workflow/planner_template_connect_write/out/plans/apt1_workflow/01_amber-build/apt1_01_parmed_20261125-1200.in",
+  "plans/apt1_workflow/01_amber-build/apt1_01_prep_20261125-1200.py": "gui/workflow/planner_template_connect_write/out/plans/apt1_workflow/01_amber-build/apt1_01_prep_20261125-1200.py",
+  "plans/apt1_workflow/01_amber-build/apt1_01_tleap_20261125-1200.leap": "gui/workflow/planner_template_connect_write/out/plans/apt1_workflow/01_amber-build/apt1_01_tleap_20261125-1200.leap",
+  "plans/apt1_workflow/02_amber-restraints/apt1_02_amber-restraints_20261125-1200.sh": "gui/workflow/planner_template_connect_write/out/plans/apt1_workflow/02_amber-restraints/apt1_02_amber-restraints_20261125-1200.sh",
+  "plans/apt1_workflow/02_amber-restraints/apt1_02_helix_20261125-1200.py": "gui/workflow/planner_template_connect_write/out/plans/apt1_workflow/02_amber-restraints/apt1_02_helix_20261125-1200.py",
+  "plans/apt1_workflow/03_amber-md/apt1_03_amber-md_20261125-1200.sh": "gui/workflow/planner_template_connect_write/out/plans/apt1_workflow/03_amber-md/apt1_03_amber-md_20261125-1200.sh",
+  "plans/apt1_workflow/03_amber-md/apt1_03_amber-prod_20261125-1200.sh": "gui/workflow/planner_template_connect_write/out/plans/apt1_workflow/03_amber-md/apt1_03_amber-prod_20261125-1200.sh",
+  "plans/apt1_workflow/03_amber-md/apt1_03_eq-free_20261125-1200.in": "gui/workflow/planner_template_connect_write/out/plans/apt1_workflow/03_amber-md/apt1_03_eq-free_20261125-1200.in",
+  "plans/apt1_workflow/03_amber-md/apt1_03_eq_20261125-1200.in": "gui/workflow/planner_template_connect_write/out/plans/apt1_workflow/03_amber-md/apt1_03_eq_20261125-1200.in",
+  "plans/apt1_workflow/03_amber-md/apt1_03_heat_20261125-1200.in": "gui/workflow/planner_template_connect_write/out/plans/apt1_workflow/03_amber-md/apt1_03_heat_20261125-1200.in",
+  "plans/apt1_workflow/03_amber-md/apt1_03_min1_20261125-1200.in": "gui/workflow/planner_template_connect_write/out/plans/apt1_workflow/03_amber-md/apt1_03_min1_20261125-1200.in",
+  "plans/apt1_workflow/03_amber-md/apt1_03_min2_20261125-1200.in": "gui/workflow/planner_template_connect_write/out/plans/apt1_workflow/03_amber-md/apt1_03_min2_20261125-1200.in",
+  "plans/apt1_workflow/03_amber-md/apt1_03_prod_20261125-1200.in": "gui/workflow/planner_template_connect_write/out/plans/apt1_workflow/03_amber-md/apt1_03_prod_20261125-1200.in",
+  "plans/apt1_workflow/04_vmd/apt1_04_vmd_20261125-1200.sh": "gui/workflow/planner_template_connect_write/out/plans/apt1_workflow/04_vmd/apt1_04_vmd_20261125-1200.sh",
+  "plans/apt1_workflow/04_vmd/apt1_04_vmd_20261125-1200.tcl": "gui/workflow/planner_template_connect_write/out/plans/apt1_workflow/04_vmd/apt1_04_vmd_20261125-1200.tcl"
+ },
+ "log": [
+  "Project Planner: Wrote 19 files to {case_dir}/plans/apt1_workflow",
+  "Master script: {case_dir}/plans/apt1_workflow/apt1_00_plan_20261125-1200.sh",
+  "Analysis inputs from the plan: {case_dir}/plans/apt1_workflow/01_amber-build/apt1_01_parmed_20261125-1200.parm7 + 1 trajectory file(s) (not created yet - run the plan's scripts first)",
+  "Saved project {case_dir}/p.mdatk.toml"
+ ],
+ "outcome": {
+  "snapshots": [
+   {
+    "action": 2,
+    "workflow": {
+     "planner": {
+      "open": true,
+      "nodes": [
+       [
+        "n1",
+        "amber-build",
+        1,
+        "",
+        40.0,
+        40.0
+       ],
+       [
+        "n2",
+        "amber-restraints",
+        2,
+        "",
+        320.0,
+        230.0
+       ],
+       [
+        "n3",
+        "amber-md",
+        3,
+        "",
+        600.0,
+        40.0
+       ],
+       [
+        "n4",
+        "mdatk",
+        0,
+        "",
+        880.0,
+        40.0
+       ]
+      ],
+      "edges": [
+       [
+        "n1",
+        "topology",
+        "n2",
+        "topology"
+       ],
+       [
+        "n1",
+        "topology",
+        "n3",
+        "topology"
+       ],
+       [
+        "n1",
+        "coordinates",
+        "n3",
+        "coordinates"
+       ],
+       [
+        "n2",
+        "restraints",
+        "n3",
+        "restraints"
+       ],
+       [
+        "n3",
+        "topology",
+        "n4",
+        "topology"
+       ],
+       [
+        "n3",
+        "trajectory",
+        "n4",
+        "trajectory"
+       ]
+      ],
+      "issues": [
+       [
+        "01 · Amber · system build",
+        "error",
+        "Starting structure (PDB): connect a step that produces it or choose a file"
+       ],
+       [
+        "01 · Amber · system build",
+        "info",
+        "the CP library and parameters are generated from AmberTools' RNA.lib and parm10.dat when the script runs (AMBERHOME or tleap on PATH)"
+       ],
+       [
+        "02 · Amber · helix restraints",
+        "error",
+        "enter the secondary structure (dot-bracket and sequence) or connect a secondary-structure file"
+       ],
+       [
+        "03 · Amber · MD stages",
+        "info",
+        "no environment setup: pmemd and cpptraj must be on PATH when the script runs"
+       ],
+       [
+        "MDATK analysis",
+        "info",
+        "topology comes from 03 · Amber · MD stages; the file exists once that step has run"
+       ],
+       [
+        "MDATK analysis",
+        "info",
+        "trajectory comes from 03 · Amber · MD stages; the file exists once that step has run"
+       ]
+      ],
+      "naming": {
+       "project": "apt1",
+       "stamp": "",
+       "use_stamp": true,
+       "step_folders": true,
+       "shown": "20261125-1200 (set on first write)"
+      },
+      "status": "3 steps · 6 connections · 2 errors · 0 warnings · folder {case_dir}/plans/apt1_workflow"
+     }
+    }
+   },
+   {
+    "action": 7,
+    "workflow": {
+     "planner": {
+      "open": true,
+      "nodes": [
+       [
+        "n1",
+        "amber-build",
+        1,
+        "",
+        40.0,
+        40.0
+       ],
+       [
+        "n2",
+        "amber-restraints",
+        2,
+        "",
+        320.0,
+        230.0
+       ],
+       [
+        "n4",
+        "mdatk",
+        0,
+        "",
+        880.0,
+        40.0
+       ],
+       [
+        "n5",
+        "vmd",
+        4,
+        "",
+        900.0,
+        420.0
+       ],
+       [
+        "n3",
+        "amber-md",
+        3,
+        "",
+        700,
+        90
+       ]
+      ],
+      "edges": [
+       [
+        "n1",
+        "topology",
+        "n2",
+        "topology"
+       ],
+       [
+        "n1",
+        "topology",
+        "n3",
+        "topology"
+       ],
+       [
+        "n1",
+        "coordinates",
+        "n3",
+        "coordinates"
+       ],
+       [
+        "n2",
+        "restraints",
+        "n3",
+        "restraints"
+       ],
+       [
+        "n3",
+        "topology",
+        "n4",
+        "topology"
+       ],
+       [
+        "n3",
+        "trajectory",
+        "n4",
+        "trajectory"
+       ],
+       [
+        "n1",
+        "pdb",
+        "n5",
+        "topology"
+       ]
+      ],
+      "issues": [
+       [
+        "01 · Amber · system build",
+        "error",
+        "Starting structure (PDB): connect a step that produces it or choose a file"
+       ],
+       [
+        "01 · Amber · system build",
+        "info",
+        "the CP library and parameters are generated from AmberTools' RNA.lib and parm10.dat when the script runs (AMBERHOME or tleap on PATH)"
+       ],
+       [
+        "02 · Amber · helix restraints",
+        "error",
+        "enter the secondary structure (dot-bracket and sequence) or connect a secondary-structure file"
+       ],
+       [
+        "03 · Amber · MD stages",
+        "info",
+        "no environment setup: pmemd and cpptraj must be on PATH when the script runs"
+       ],
+       [
+        "MDATK analysis",
+        "info",
+        "topology comes from 03 · Amber · MD stages; the file exists once that step has run"
+       ],
+       [
+        "MDATK analysis",
+        "info",
+        "trajectory comes from 03 · Amber · MD stages; the file exists once that step has run"
+       ],
+       [
+        "04 · VMD · visualisation",
+        "info",
+        "alignment and smoothing need a trajectory"
+       ]
+      ],
+      "naming": {
+       "project": "apt1",
+       "stamp": "",
+       "use_stamp": true,
+       "step_folders": true,
+       "shown": "20261125-1200 (set on first write)"
+      },
+      "status": "Cannot connect: Topology accepts Amber topology, PDB structure, GROMACS coordinates, GROMACS topology, not Amber coordinates / restart"
+     }
+    }
+   },
+   {
+    "action": 10,
+    "workflow": {
+     "planner": {
+      "open": true,
+      "nodes": [
+       [
+        "n1",
+        "amber-build",
+        1,
+        "",
+        40.0,
+        40.0
+       ],
+       [
+        "n2",
+        "amber-restraints",
+        2,
+        "",
+        320.0,
+        230.0
+       ],
+       [
+        "n4",
+        "mdatk",
+        0,
+        "",
+        880.0,
+        40.0
+       ],
+       [
+        "n5",
+        "vmd",
+        4,
+        "",
+        900.0,
+        420.0
+       ],
+       [
+        "n3",
+        "amber-md",
+        3,
+        "",
+        700,
+        90
+       ]
+      ],
+      "edges": [
+       [
+        "n1",
+        "topology",
+        "n2",
+        "topology"
+       ],
+       [
+        "n1",
+        "topology",
+        "n3",
+        "topology"
+       ],
+       [
+        "n1",
+        "coordinates",
+        "n3",
+        "coordinates"
+       ],
+       [
+        "n2",
+        "restraints",
+        "n3",
+        "restraints"
+       ],
+       [
+        "n3",
+        "topology",
+        "n4",
+        "topology"
+       ],
+       [
+        "n3",
+        "trajectory",
+        "n4",
+        "trajectory"
+       ],
+       [
+        "n1",
+        "pdb",
+        "n5",
+        "topology"
+       ]
+      ],
+      "issues": [
+       [
+        "01 · Amber · system build",
+        "info",
+        "the CP library and parameters are generated from AmberTools' RNA.lib and parm10.dat when the script runs (AMBERHOME or tleap on PATH)"
+       ],
+       [
+        "03 · Amber · MD stages",
+        "info",
+        "no environment setup: pmemd and cpptraj must be on PATH when the script runs"
+       ],
+       [
+        "MDATK analysis",
+        "info",
+        "topology comes from 03 · Amber · MD stages; the file exists once that step has run"
+       ],
+       [
+        "MDATK analysis",
+        "info",
+        "trajectory comes from 03 · Amber · MD stages; the file exists once that step has run"
+       ],
+       [
+        "04 · VMD · visualisation",
+        "info",
+        "alignment and smoothing need a trajectory"
+       ]
+      ],
+      "naming": {
+       "project": "apt1",
+       "stamp": "",
+       "use_stamp": true,
+       "step_folders": true,
+       "shown": "20261125-1200 (set on first write)"
+      },
+      "status": "4 steps · 7 connections · 0 errors · 0 warnings · folder {case_dir}/plans/apt1_workflow"
+     }
+    }
+   },
+   {
+    "action": 12,
+    "workflow": {
+     "planner": {
+      "open": true,
+      "nodes": [
+       [
+        "n1",
+        "amber-build",
+        1,
+        "",
+        40.0,
+        40.0
+       ],
+       [
+        "n2",
+        "amber-restraints",
+        2,
+        "",
+        320.0,
+        230.0
+       ],
+       [
+        "n4",
+        "mdatk",
+        0,
+        "",
+        880.0,
+        40.0
+       ],
+       [
+        "n5",
+        "vmd",
+        4,
+        "",
+        900.0,
+        420.0
+       ],
+       [
+        "n3",
+        "amber-md",
+        3,
+        "",
+        700,
+        90
+       ]
+      ],
+      "edges": [
+       [
+        "n1",
+        "topology",
+        "n2",
+        "topology"
+       ],
+       [
+        "n1",
+        "topology",
+        "n3",
+        "topology"
+       ],
+       [
+        "n1",
+        "coordinates",
+        "n3",
+        "coordinates"
+       ],
+       [
+        "n2",
+        "restraints",
+        "n3",
+        "restraints"
+       ],
+       [
+        "n3",
+        "topology",
+        "n4",
+        "topology"
+       ],
+       [
+        "n3",
+        "trajectory",
+        "n4",
+        "trajectory"
+       ],
+       [
+        "n1",
+        "pdb",
+        "n5",
+        "topology"
+       ]
+      ],
+      "issues": [
+       [
+        "01 · Amber · system build",
+        "info",
+        "the CP library and parameters are generated from AmberTools' RNA.lib and parm10.dat when the script runs (AMBERHOME or tleap on PATH)"
+       ],
+       [
+        "03 · Amber · MD stages",
+        "info",
+        "no environment setup: pmemd and cpptraj must be on PATH when the script runs"
+       ],
+       [
+        "MDATK analysis",
+        "info",
+        "topology comes from 03 · Amber · MD stages; the file exists once that step has run"
+       ],
+       [
+        "MDATK analysis",
+        "info",
+        "trajectory comes from 03 · Amber · MD stages; the file exists once that step has run"
+       ],
+       [
+        "04 · VMD · visualisation",
+        "info",
+        "alignment and smoothing need a trajectory"
+       ]
+      ],
+      "naming": {
+       "project": "apt1",
+       "stamp": "20261125-1200",
+       "use_stamp": true,
+       "step_folders": true,
+       "shown": "20261125-1200"
+      },
+      "status": "Wrote 19 files to {case_dir}/plans/apt1_workflow"
+     }
+    }
+   },
+   {
+    "action": 14,
+    "workflow": {
+     "wizard": {
+      "open": true,
+      "tool": "amber-md",
+      "pages": 5,
+      "changed": {},
+      "files_in": {},
+      "issues": [
+       [
+        "info",
+        "no environment setup: pmemd and cpptraj must be on PATH when the script runs"
+       ]
+      ],
+      "files": [
+       "apt1_03_min1_20261125-1200.in",
+       "apt1_03_min2_20261125-1200.in",
+       "apt1_03_heat_20261125-1200.in",
+       "apt1_03_eq_20261125-1200.in",
+       "apt1_03_eq-free_20261125-1200.in",
+       "apt1_03_prod_20261125-1200.in",
+       "apt1_03_amber-md_20261125-1200.sh",
+       "apt1_03_amber-prod_20261125-1200.sh"
+      ],
+      "write": true,
+      "run": true,
+      "status": "8 files · 0 errors · 0 warnings",
+      "title": "",
+      "step": 3
+     }
+    }
+   },
+   {
+    "action": 16,
+    "workflow": {
+     "planner": {
+      "open": true,
+      "nodes": [
+       [
+        "n1",
+        "amber-build",
+        1,
+        "",
+        40.0,
+        40.0
+       ],
+       [
+        "n2",
+        "amber-restraints",
+        2,
+        "",
+        320.0,
+        230.0
+       ],
+       [
+        "n4",
+        "mdatk",
+        0,
+        "",
+        880.0,
+        40.0
+       ],
+       [
+        "n5",
+        "vmd",
+        4,
+        "",
+        900.0,
+        420.0
+       ],
+       [
+        "n3",
+        "amber-md",
+        3,
+        "Production MD",
+        700,
+        90
+       ]
+      ],
+      "edges": [
+       [
+        "n1",
+        "topology",
+        "n2",
+        "topology"
+       ],
+       [
+        "n1",
+        "topology",
+        "n3",
+        "topology"
+       ],
+       [
+        "n1",
+        "coordinates",
+        "n3",
+        "coordinates"
+       ],
+       [
+        "n2",
+        "restraints",
+        "n3",
+        "restraints"
+       ],
+       [
+        "n3",
+        "topology",
+        "n4",
+        "topology"
+       ],
+       [
+        "n3",
+        "trajectory",
+        "n4",
+        "trajectory"
+       ],
+       [
+        "n1",
+        "pdb",
+        "n5",
+        "topology"
+       ]
+      ],
+      "issues": [
+       [
+        "01 · Amber · system build",
+        "info",
+        "the CP library and parameters are generated from AmberTools' RNA.lib and parm10.dat when the script runs (AMBERHOME or tleap on PATH)"
+       ],
+       [
+        "03 · Production MD",
+        "info",
+        "no environment setup: pmemd and cpptraj must be on PATH when the script runs"
+       ],
+       [
+        "MDATK analysis",
+        "info",
+        "topology comes from 03 · Production MD; the file exists once that step has run"
+       ],
+       [
+        "MDATK analysis",
+        "info",
+        "trajectory comes from 03 · Production MD; the file exists once that step has run"
+       ],
+       [
+        "04 · VMD · visualisation",
+        "info",
+        "alignment and smoothing need a trajectory"
+       ]
+      ],
+      "naming": {
+       "project": "apt1",
+       "stamp": "20261125-1200",
+       "use_stamp": true,
+       "step_folders": true,
+       "shown": "20261125-1200"
+      },
+      "status": "4 steps · 7 connections · 0 errors · 0 warnings · folder {case_dir}/plans/apt1_workflow"
+     }
+    }
+   },
+   {
+    "action": 18,
+    "values": {
+     "inputs.topology": "{case_dir}/plans/apt1_workflow/01_amber-build/apt1_01_parmed_20261125-1200.parm7",
+     "inputs.trajectories": [
+      "{case_dir}/plans/apt1_workflow/03_amber-md/apt1_03_prod_20261125-1200.nc"
+     ],
+     "cleaning.enabled": true
+    }
+   }
+  ],
+  "settings": "gui/workflow/planner_template_connect_write/settings.after.toml"
+ },
+ "mdatk": {
+  "expected": {
+   "p.mdatk.toml": "gui/workflow/planner_template_connect_write/mdatk/p.mdatk.toml",
+   "plans/apt1_workflow/01_amber-build/apt1_01_amber-build_20261125-1200.sh": "gui/workflow/planner_template_connect_write/mdatk/plans/apt1_workflow/01_amber-build/apt1_01_amber-build_20261125-1200.sh",
+   "plans/apt1_workflow/01_amber-build/apt1_01_cp-lib_20261125-1200.py": "gui/workflow/planner_template_connect_write/mdatk/plans/apt1_workflow/01_amber-build/apt1_01_cp-lib_20261125-1200.py",
+   "plans/apt1_workflow/01_amber-build/apt1_01_parmed_20261125-1200.in": "gui/workflow/planner_template_connect_write/mdatk/plans/apt1_workflow/01_amber-build/apt1_01_parmed_20261125-1200.in",
+   "plans/apt1_workflow/01_amber-build/apt1_01_pdbtools_20261125-1200.py": "gui/workflow/planner_template_connect_write/mdatk/plans/apt1_workflow/01_amber-build/apt1_01_pdbtools_20261125-1200.py",
+   "plans/apt1_workflow/01_amber-build/apt1_01_prep_20261125-1200.py": "gui/workflow/planner_template_connect_write/mdatk/plans/apt1_workflow/01_amber-build/apt1_01_prep_20261125-1200.py",
+   "plans/apt1_workflow/01_amber-build/apt1_01_tleap_20261125-1200.leap": "gui/workflow/planner_template_connect_write/mdatk/plans/apt1_workflow/01_amber-build/apt1_01_tleap_20261125-1200.leap",
+   "plans/apt1_workflow/02_amber-restraints/apt1_02_amber-restraints_20261125-1200.sh": "gui/workflow/planner_template_connect_write/mdatk/plans/apt1_workflow/02_amber-restraints/apt1_02_amber-restraints_20261125-1200.sh",
+   "plans/apt1_workflow/02_amber-restraints/apt1_02_helix_20261125-1200.py": "gui/workflow/planner_template_connect_write/mdatk/plans/apt1_workflow/02_amber-restraints/apt1_02_helix_20261125-1200.py",
+   "plans/apt1_workflow/03_amber-md/apt1_03_amber-md_20261125-1200.sh": "gui/workflow/planner_template_connect_write/mdatk/plans/apt1_workflow/03_amber-md/apt1_03_amber-md_20261125-1200.sh",
+   "plans/apt1_workflow/03_amber-md/apt1_03_amber-prod_20261125-1200.sh": "gui/workflow/planner_template_connect_write/mdatk/plans/apt1_workflow/03_amber-md/apt1_03_amber-prod_20261125-1200.sh",
+   "plans/apt1_workflow/04_vmd/apt1_04_vmd_20261125-1200.sh": "gui/workflow/planner_template_connect_write/mdatk/plans/apt1_workflow/04_vmd/apt1_04_vmd_20261125-1200.sh",
+   "plans/apt1_workflow/04_vmd/apt1_04_vmd_20261125-1200.tcl": "gui/workflow/planner_template_connect_write/mdatk/plans/apt1_workflow/04_vmd/apt1_04_vmd_20261125-1200.tcl",
+   "plans/apt1_workflow/apt1_00_plan_20261125-1200.md": "gui/workflow/planner_template_connect_write/mdatk/plans/apt1_workflow/apt1_00_plan_20261125-1200.md",
+   "plans/apt1_workflow/apt1_00_plan_20261125-1200.sh": "gui/workflow/planner_template_connect_write/mdatk/plans/apt1_workflow/apt1_00_plan_20261125-1200.sh"
+  },
+  "log": [
+   "Project Planner: Wrote 20 files to {case_dir}/plans/apt1_workflow",
+   "Master script: {case_dir}/plans/apt1_workflow/apt1_00_plan_20261125-1200.sh",
+   "Analysis inputs from the plan: {case_dir}/plans/apt1_workflow/01_amber-build/apt1_01_parmed_20261125-1200.parm7 + 1 trajectory file(s) (not created yet - run the plan's scripts first)",
+   "Saved project {case_dir}/p.mdatk.toml"
+  ],
+  "snapshots": [
+   {
+    "action": 2,
+    "workflow": {
+     "planner": {
+      "open": true,
+      "nodes": [
+       [
+        "n1",
+        "amber-build",
+        1,
+        "",
+        40.0,
+        40.0
+       ],
+       [
+        "n2",
+        "amber-restraints",
+        2,
+        "",
+        320.0,
+        230.0
+       ],
+       [
+        "n3",
+        "amber-md",
+        3,
+        "",
+        600.0,
+        40.0
+       ],
+       [
+        "n4",
+        "mdatk",
+        0,
+        "",
+        880.0,
+        40.0
+       ]
+      ],
+      "edges": [
+       [
+        "n1",
+        "topology",
+        "n2",
+        "topology"
+       ],
+       [
+        "n1",
+        "topology",
+        "n3",
+        "topology"
+       ],
+       [
+        "n1",
+        "coordinates",
+        "n3",
+        "coordinates"
+       ],
+       [
+        "n2",
+        "restraints",
+        "n3",
+        "restraints"
+       ],
+       [
+        "n3",
+        "topology",
+        "n4",
+        "topology"
+       ],
+       [
+        "n3",
+        "trajectory",
+        "n4",
+        "trajectory"
+       ]
+      ],
+      "issues": [
+       [
+        "01 · Amber · system build",
+        "error",
+        "Starting structure (PDB): connect a step that produces it or choose a file"
+       ],
+       [
+        "01 · Amber · system build",
+        "info",
+        "the CP library and parameters are generated from AmberTools' RNA.lib and parm10.dat when the script runs (AMBERHOME or tleap on PATH)"
+       ],
+       [
+        "01 · Amber · system build",
+        "info",
+        "tleap gives HO the same Lennard-Jones type as water HW (both zero) and O2 the same as carbonyl O, so 'changeLJPair @%HO ...' also changes water-H and carbonyl-O pairs; tick 'Separate HO and O2 Lennard-Jones types first' if that is not intended"
+       ],
+       [
+        "02 · Amber · helix restraints",
+        "error",
+        "enter the secondary structure (dot-bracket and sequence) or connect a secondary-structure file"
+       ],
+       [
+        "03 · Amber · MD stages",
+        "info",
+        "no environment setup: pmemd and cpptraj must be on PATH when the script runs"
+       ],
+       [
+        "MDATK analysis",
+        "info",
+        "topology comes from 03 · Amber · MD stages; the file exists once that step has run"
+       ],
+       [
+        "MDATK analysis",
+        "info",
+        "trajectory comes from 03 · Amber · MD stages; the file exists once that step has run"
+       ]
+      ],
+      "naming": {
+       "project": "apt1",
+       "stamp": "",
+       "use_stamp": true,
+       "step_folders": true,
+       "shown": "20261125-1200 (set on first write)"
+      },
+      "status": "3 steps · 6 connections · 2 errors · 0 warnings · folder {case_dir}/plans/apt1_workflow"
+     }
+    }
+   },
+   {
+    "action": 7,
+    "workflow": {
+     "planner": {
+      "open": true,
+      "nodes": [
+       [
+        "n1",
+        "amber-build",
+        1,
+        "",
+        40.0,
+        40.0
+       ],
+       [
+        "n2",
+        "amber-restraints",
+        2,
+        "",
+        320.0,
+        230.0
+       ],
+       [
+        "n4",
+        "mdatk",
+        0,
+        "",
+        880.0,
+        40.0
+       ],
+       [
+        "n5",
+        "vmd",
+        4,
+        "",
+        900.0,
+        420.0
+       ],
+       [
+        "n3",
+        "amber-md",
+        3,
+        "",
+        700,
+        90
+       ]
+      ],
+      "edges": [
+       [
+        "n1",
+        "topology",
+        "n2",
+        "topology"
+       ],
+       [
+        "n1",
+        "topology",
+        "n3",
+        "topology"
+       ],
+       [
+        "n1",
+        "coordinates",
+        "n3",
+        "coordinates"
+       ],
+       [
+        "n2",
+        "restraints",
+        "n3",
+        "restraints"
+       ],
+       [
+        "n3",
+        "topology",
+        "n4",
+        "topology"
+       ],
+       [
+        "n3",
+        "trajectory",
+        "n4",
+        "trajectory"
+       ],
+       [
+        "n1",
+        "pdb",
+        "n5",
+        "topology"
+       ]
+      ],
+      "issues": [
+       [
+        "01 · Amber · system build",
+        "error",
+        "Starting structure (PDB): connect a step that produces it or choose a file"
+       ],
+       [
+        "01 · Amber · system build",
+        "info",
+        "the CP library and parameters are generated from AmberTools' RNA.lib and parm10.dat when the script runs (AMBERHOME or tleap on PATH)"
+       ],
+       [
+        "01 · Amber · system build",
+        "info",
+        "tleap gives HO the same Lennard-Jones type as water HW (both zero) and O2 the same as carbonyl O, so 'changeLJPair @%HO ...' also changes water-H and carbonyl-O pairs; tick 'Separate HO and O2 Lennard-Jones types first' if that is not intended"
+       ],
+       [
+        "02 · Amber · helix restraints",
+        "error",
+        "enter the secondary structure (dot-bracket and sequence) or connect a secondary-structure file"
+       ],
+       [
+        "03 · Amber · MD stages",
+        "info",
+        "no environment setup: pmemd and cpptraj must be on PATH when the script runs"
+       ],
+       [
+        "MDATK analysis",
+        "info",
+        "topology comes from 03 · Amber · MD stages; the file exists once that step has run"
+       ],
+       [
+        "MDATK analysis",
+        "info",
+        "trajectory comes from 03 · Amber · MD stages; the file exists once that step has run"
+       ],
+       [
+        "04 · VMD · visualisation",
+        "info",
+        "alignment and smoothing need a trajectory"
+       ]
+      ],
+      "naming": {
+       "project": "apt1",
+       "stamp": "",
+       "use_stamp": true,
+       "step_folders": true,
+       "shown": "20261125-1200 (set on first write)"
+      },
+      "status": "Cannot connect: Topology accepts Amber topology, PDB structure, GROMACS coordinates, GROMACS topology, not Amber coordinates / restart"
+     }
+    }
+   },
+   {
+    "action": 10,
+    "workflow": {
+     "planner": {
+      "open": true,
+      "nodes": [
+       [
+        "n1",
+        "amber-build",
+        1,
+        "",
+        40.0,
+        40.0
+       ],
+       [
+        "n2",
+        "amber-restraints",
+        2,
+        "",
+        320.0,
+        230.0
+       ],
+       [
+        "n4",
+        "mdatk",
+        0,
+        "",
+        880.0,
+        40.0
+       ],
+       [
+        "n5",
+        "vmd",
+        4,
+        "",
+        900.0,
+        420.0
+       ],
+       [
+        "n3",
+        "amber-md",
+        3,
+        "",
+        700,
+        90
+       ]
+      ],
+      "edges": [
+       [
+        "n1",
+        "topology",
+        "n2",
+        "topology"
+       ],
+       [
+        "n1",
+        "topology",
+        "n3",
+        "topology"
+       ],
+       [
+        "n1",
+        "coordinates",
+        "n3",
+        "coordinates"
+       ],
+       [
+        "n2",
+        "restraints",
+        "n3",
+        "restraints"
+       ],
+       [
+        "n3",
+        "topology",
+        "n4",
+        "topology"
+       ],
+       [
+        "n3",
+        "trajectory",
+        "n4",
+        "trajectory"
+       ],
+       [
+        "n1",
+        "pdb",
+        "n5",
+        "topology"
+       ]
+      ],
+      "issues": [
+       [
+        "01 · Amber · system build",
+        "info",
+        "the CP library and parameters are generated from AmberTools' RNA.lib and parm10.dat when the script runs (AMBERHOME or tleap on PATH)"
+       ],
+       [
+        "01 · Amber · system build",
+        "info",
+        "tleap gives HO the same Lennard-Jones type as water HW (both zero) and O2 the same as carbonyl O, so 'changeLJPair @%HO ...' also changes water-H and carbonyl-O pairs; tick 'Separate HO and O2 Lennard-Jones types first' if that is not intended"
+       ],
+       [
+        "03 · Amber · MD stages",
+        "info",
+        "no environment setup: pmemd and cpptraj must be on PATH when the script runs"
+       ],
+       [
+        "MDATK analysis",
+        "info",
+        "topology comes from 03 · Amber · MD stages; the file exists once that step has run"
+       ],
+       [
+        "MDATK analysis",
+        "info",
+        "trajectory comes from 03 · Amber · MD stages; the file exists once that step has run"
+       ],
+       [
+        "04 · VMD · visualisation",
+        "info",
+        "alignment and smoothing need a trajectory"
+       ]
+      ],
+      "naming": {
+       "project": "apt1",
+       "stamp": "",
+       "use_stamp": true,
+       "step_folders": true,
+       "shown": "20261125-1200 (set on first write)"
+      },
+      "status": "4 steps · 7 connections · 0 errors · 0 warnings · folder {case_dir}/plans/apt1_workflow"
+     }
+    }
+   },
+   {
+    "action": 12,
+    "workflow": {
+     "planner": {
+      "open": true,
+      "nodes": [
+       [
+        "n1",
+        "amber-build",
+        1,
+        "",
+        40.0,
+        40.0
+       ],
+       [
+        "n2",
+        "amber-restraints",
+        2,
+        "",
+        320.0,
+        230.0
+       ],
+       [
+        "n4",
+        "mdatk",
+        0,
+        "",
+        880.0,
+        40.0
+       ],
+       [
+        "n5",
+        "vmd",
+        4,
+        "",
+        900.0,
+        420.0
+       ],
+       [
+        "n3",
+        "amber-md",
+        3,
+        "",
+        700,
+        90
+       ]
+      ],
+      "edges": [
+       [
+        "n1",
+        "topology",
+        "n2",
+        "topology"
+       ],
+       [
+        "n1",
+        "topology",
+        "n3",
+        "topology"
+       ],
+       [
+        "n1",
+        "coordinates",
+        "n3",
+        "coordinates"
+       ],
+       [
+        "n2",
+        "restraints",
+        "n3",
+        "restraints"
+       ],
+       [
+        "n3",
+        "topology",
+        "n4",
+        "topology"
+       ],
+       [
+        "n3",
+        "trajectory",
+        "n4",
+        "trajectory"
+       ],
+       [
+        "n1",
+        "pdb",
+        "n5",
+        "topology"
+       ]
+      ],
+      "issues": [
+       [
+        "01 · Amber · system build",
+        "info",
+        "the CP library and parameters are generated from AmberTools' RNA.lib and parm10.dat when the script runs (AMBERHOME or tleap on PATH)"
+       ],
+       [
+        "01 · Amber · system build",
+        "info",
+        "tleap gives HO the same Lennard-Jones type as water HW (both zero) and O2 the same as carbonyl O, so 'changeLJPair @%HO ...' also changes water-H and carbonyl-O pairs; tick 'Separate HO and O2 Lennard-Jones types first' if that is not intended"
+       ],
+       [
+        "03 · Amber · MD stages",
+        "info",
+        "no environment setup: pmemd and cpptraj must be on PATH when the script runs"
+       ],
+       [
+        "MDATK analysis",
+        "info",
+        "topology comes from 03 · Amber · MD stages; the file exists once that step has run"
+       ],
+       [
+        "MDATK analysis",
+        "info",
+        "trajectory comes from 03 · Amber · MD stages; the file exists once that step has run"
+       ],
+       [
+        "04 · VMD · visualisation",
+        "info",
+        "alignment and smoothing need a trajectory"
+       ]
+      ],
+      "naming": {
+       "project": "apt1",
+       "stamp": "20261125-1200",
+       "use_stamp": true,
+       "step_folders": true,
+       "shown": "20261125-1200"
+      },
+      "status": "Wrote 20 files to {case_dir}/plans/apt1_workflow"
+     }
+    }
+   },
+   {
+    "action": 14,
+    "workflow": {
+     "wizard": {
+      "open": true,
+      "tool": "amber-md",
+      "pages": 5,
+      "changed": {},
+      "files_in": {},
+      "issues": [
+       [
+        "info",
+        "no environment setup: pmemd and cpptraj must be on PATH when the script runs"
+       ]
+      ],
+      "files": [
+       "apt1_03_min1_20261125-1200.in",
+       "apt1_03_min2_20261125-1200.in",
+       "apt1_03_heat_20261125-1200.in",
+       "apt1_03_eq_20261125-1200.in",
+       "apt1_03_eq-free_20261125-1200.in",
+       "apt1_03_prod_20261125-1200.in",
+       "apt1_03_amber-md_20261125-1200.sh",
+       "apt1_03_amber-prod_20261125-1200.sh"
+      ],
+      "write": true,
+      "run": true,
+      "status": "8 files · 0 errors · 0 warnings",
+      "title": "",
+      "step": 3
+     }
+    }
+   },
+   {
+    "action": 16,
+    "workflow": {
+     "planner": {
+      "open": true,
+      "nodes": [
+       [
+        "n1",
+        "amber-build",
+        1,
+        "",
+        40.0,
+        40.0
+       ],
+       [
+        "n2",
+        "amber-restraints",
+        2,
+        "",
+        320.0,
+        230.0
+       ],
+       [
+        "n4",
+        "mdatk",
+        0,
+        "",
+        880.0,
+        40.0
+       ],
+       [
+        "n5",
+        "vmd",
+        4,
+        "",
+        900.0,
+        420.0
+       ],
+       [
+        "n3",
+        "amber-md",
+        3,
+        "Production MD",
+        700,
+        90
+       ]
+      ],
+      "edges": [
+       [
+        "n1",
+        "topology",
+        "n2",
+        "topology"
+       ],
+       [
+        "n1",
+        "topology",
+        "n3",
+        "topology"
+       ],
+       [
+        "n1",
+        "coordinates",
+        "n3",
+        "coordinates"
+       ],
+       [
+        "n2",
+        "restraints",
+        "n3",
+        "restraints"
+       ],
+       [
+        "n3",
+        "topology",
+        "n4",
+        "topology"
+       ],
+       [
+        "n3",
+        "trajectory",
+        "n4",
+        "trajectory"
+       ],
+       [
+        "n1",
+        "pdb",
+        "n5",
+        "topology"
+       ]
+      ],
+      "issues": [
+       [
+        "01 · Amber · system build",
+        "info",
+        "the CP library and parameters are generated from AmberTools' RNA.lib and parm10.dat when the script runs (AMBERHOME or tleap on PATH)"
+       ],
+       [
+        "01 · Amber · system build",
+        "info",
+        "tleap gives HO the same Lennard-Jones type as water HW (both zero) and O2 the same as carbonyl O, so 'changeLJPair @%HO ...' also changes water-H and carbonyl-O pairs; tick 'Separate HO and O2 Lennard-Jones types first' if that is not intended"
+       ],
+       [
+        "03 · Production MD",
+        "info",
+        "no environment setup: pmemd and cpptraj must be on PATH when the script runs"
+       ],
+       [
+        "MDATK analysis",
+        "info",
+        "topology comes from 03 · Production MD; the file exists once that step has run"
+       ],
+       [
+        "MDATK analysis",
+        "info",
+        "trajectory comes from 03 · Production MD; the file exists once that step has run"
+       ],
+       [
+        "04 · VMD · visualisation",
+        "info",
+        "alignment and smoothing need a trajectory"
+       ]
+      ],
+      "naming": {
+       "project": "apt1",
+       "stamp": "20261125-1200",
+       "use_stamp": true,
+       "step_folders": true,
+       "shown": "20261125-1200"
+      },
+      "status": "4 steps · 7 connections · 0 errors · 0 warnings · folder {case_dir}/plans/apt1_workflow"
+     }
+    }
+   },
+   {
+    "action": 18,
+    "values": {
+     "inputs.topology": "{case_dir}/plans/apt1_workflow/01_amber-build/apt1_01_parmed_20261125-1200.parm7",
+     "inputs.trajectories": [
+      "{case_dir}/plans/apt1_workflow/03_amber-md/apt1_03_prod_20261125-1200.nc"
+     ],
+     "cleaning.enabled": true
+    }
+   }
+  ]
+ }
+}

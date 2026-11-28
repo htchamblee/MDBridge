@@ -1,0 +1,13 @@
+#!/bin/bash
+# Master script of plan golden - written by MDBridge <VERSION> on <DATE>.
+# Runs the main script of every step in plan order.  Scripts marked 'run separately'
+# (e.g. production runs for a cluster) are listed but not started.
+
+set -eo pipefail
+cd "$(dirname "$0")"
+
+# 01 · Amber · system build
+bash "01_amber-build/golden_01_amber-build_20261015-1432.sh"
+
+# 02 · VMD · visualisation
+bash "02_vmd/golden_02_vmd_20261015-1432.sh"

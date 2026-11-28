@@ -1,0 +1,3 @@
+type	replaces	rmin_half_angstrom	epsilon_kcal_per_mol	mass	polarizability	source
+OP	O2	1.7493	0.2100	16.00	0.434	Steinbrecher, Latzer & Case, J. Chem. Theory Comput. 8, 4405 (2012), Table 1 (cited); the same numbers in AmberTools 26 dat/leap/parm/frcmod.phosaa10 NONB line 73 (OP); mass and polarizability of O2 in parm10.dat MASS line 52
+OR	OS	1.7718	0.1700	16.00	0.465	Steinbrecher, Latzer & Case 2012, Table 1 (cited); frcmod.phosaa10 NONB line 75 (OR); mass and polarizability of OS in parm10.dat MASS line 54

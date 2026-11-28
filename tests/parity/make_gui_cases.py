@@ -3,7 +3,7 @@
 
     python -I -B tests/parity/make_gui_cases.py MDATK_CHECKOUT DATA_DIR [--only NAME ...]
 
-Writes DATA_DIR/gui/<topic>/<case>.json (topics: roundtrip, pages, ap, canvas) with the case's
+Writes DATA_DIR/gui/<topic>/<case>.json (topics: roundtrip, pages, ap, canvas, tools, workflow) with the case's
 input files (<case>/in/), the files MDBridge's window must write (<case>/out/) and MDATK's own,
 where they differ (<case>/mdatk/). DATA_DIR is a tests/data tree: the cases read its committed
 files (projects/, project-file/mdatk-0.1.1/, the demo files topology/demo_dry.parm7,
@@ -56,7 +56,7 @@ chem_common.pin_kernels()
 CLOCK = "2026-11-25T12:00:00"           # the window's clock of every case
 INPUT_CLOCK = real_dt.datetime(2026, 11, 25, 11, 0, 0)  # input projects written by MDATK
 CANVAS = {"width": 960, "height": 540}
-TOPICS = ("roundtrip", "pages", "ap", "canvas", "tools")
+TOPICS = ("roundtrip", "pages", "ap", "canvas", "tools", "workflow")
 DEMO = {"demo_dry.parm7": "topology/demo_dry.parm7", "demo_dry.nc": "io/trajectories/demo_dry.nc"}
 MAP = {"map.mrc": "render/inputs/demo_dry_map.mrc"}
 PROJECT = "p.mdatk.toml"
@@ -565,6 +565,121 @@ case("tools", "builder_fit", "Structure builder: Fit to map, a local refinement 
     fitted={"in_fit.pdb": 0.01, "p.mdatk.toml": 0.0})
 
 
+# ---- the Project Planner and the script wizard (milestone 7, W0-A): MDATK's tests/test_workflow_gui.py
+# scenarios as action scripts (wf.*), driven through the windows' own methods and widgets (the planner
+# canvas' press / motion / release handlers with synthetic events at the ports, the details pane, the
+# wizard's forms, record editor, input fields and buttons); the plan files written and the project saved
+# compared. Generated texts under the plan folder are masked as improvements_workflow.mask() masks them
+# (D11: the version after the program's name, dates). The improved pass applies improvements_workflow.py
+# too (the planner's New stamp: WG-15). The planner's questions are answered by the script ("answers":
+# {"errors": "yes" / "no"}); its messages are recorded as dialogs.
+
+def wf(action, **kw):
+    return a(f"wf.{action}", **kw)
+
+
+def wfsnap(planner=False, wizard=None, **kw):
+    """A snapshot of the planner (nodes, edges, issues, status, naming bar) and / or a wizard ("standalone",
+    or a node id for the planner's wizard of that step: tool, settings changed from the defaults, inputs,
+    issues, files, sensitivity of Write, status)."""
+    spec = {"planner": planner, **kw}  # sensitive / visible: "section.key" fields; preview: the preview's text
+    if wizard is not None:
+        spec["wizard"] = wizard
+    return a("snapshot", keys=[], workflow=spec)
+
+
+WF_PROJECT = {"p.mdatk.toml": "wf_project"}
+GENERATING = ["amber-build", "amber-restraints", "amber-md", "structure-builder", "restraint-dicts", "farfar2",
+              "farfar2-models", "gromacs", "phenix-rsr", "coot-rsr", "rnamake", "simrna", "vmd"]
+case("workflow", "wizard_every_tool", "Script wizard on its own: every step type selected, then Amber MD's engine, "
+     "its input files, the checks and the preview, Write, the scratch settings saved in the project", [
+    wf("wizard.open", tool="amber-md"),
+    wfsnap(wizard="standalone"),
+    *[x for t in GENERATING for x in (wf("wizard.tool", tool=t), wfsnap(wizard="standalone"))],
+    wf("wizard.tool", tool="amber-md"),
+    wf("wizard.set", section="engine", key="engine", value="pmemd.MPI"),
+    wfsnap(wizard="standalone", sensitive=["engine.nproc", "engine.gpu"]),
+    wf("wizard.input", port="topology", path="/x/sys.parm7"),
+    wf("wizard.input", port="coordinates", path="/x/sys.rst7"),
+    wf("wizard.input", port="restraints", path="/x/h.dist"),
+    wfsnap(wizard="standalone", preview=True),
+    wf("wizard.write"),
+    wfsnap(wizard="standalone"),
+    a("save")], build=WF_PROJECT, mdatk_test="tests/test_workflow_gui.py::test_standalone_wizard_every_tool")
+case("workflow", "wizard_stage_editor", "Script wizard: the stage editor (fields of a minimisation and an MD stage, "
+     "add from a template, duplicate, remove, move), an error that blocks Write, Defaults", [
+    wf("wizard.open", tool="amber-md"),
+    wf("wizard.records", section="stages", do="select", index=0),
+    wfsnap(wizard="standalone", visible=["stages.nstlim", "stages.maxcyc", "stages.ensemble"]),
+    wf("wizard.records", section="stages", do="select", index=2),
+    wfsnap(wizard="standalone", visible=["stages.nstlim", "stages.maxcyc", "stages.ensemble"]),
+    wf("wizard.records", section="stages", do="add", template="prod-free"),
+    wf("wizard.records", section="stages", do="duplicate"),
+    wfsnap(wizard="standalone"),
+    wf("wizard.records", section="stages", do="remove"),
+    wf("wizard.records", section="stages", do="move", by=-1),
+    wfsnap(wizard="standalone"),
+    wf("wizard.set", section="stages", key="dt", value=0.004),
+    wf("wizard.set", section="stages", key="shake", value=False),
+    wfsnap(wizard="standalone"),
+    wf("wizard.defaults"),
+    wfsnap(wizard="standalone"),
+    a("save")], build=WF_PROJECT, mdatk_test="tests/test_workflow_gui.py::test_wizard_stage_editor")
+case("workflow", "planner_template_connect_write", "Project Planner: the amber template, a VMD step connected by "
+     "dragging from a port (a wrong kind refused), a box moved, inputs and settings filled in, Write all, a step "
+     "edited in its wizard, Use for analysis, the project saved", [
+    wf("planner.open"),
+    wf("planner.template", name="amber"),
+    wfsnap(planner=True),
+    wf("planner.add", tool="vmd", x=900, y=420),
+    wf("planner.connect", source=["n1", "pdb"], target=["n5", "topology"]),
+    wf("planner.connect", source=["n1", "coordinates"], target=["n5", "topology"]),
+    wf("planner.move", node="n3", by=[100, 50]),
+    wfsnap(planner=True),
+    wf("planner.files", node="n1", port="structure", path="{case_dir}/model.pdb"),
+    wf("planner.settings", node="n2", values={"sequence": "GGGCAC GUGCCC", "dotbracket": "(((((( ))))))"}),
+    wfsnap(planner=True),
+    wf("planner.write"),
+    wfsnap(planner=True),
+    wf("planner.wizard", node="n3"),
+    wfsnap(wizard="n3"),
+    wf("wizard.title", node="n3", text="Production MD"),
+    wfsnap(planner=True),
+    wf("planner.use_for_analysis", node="n4"),
+    a("snapshot", keys=["inputs.topology", "inputs.trajectories", "cleaning.enabled"]),
+    a("save")], build=WF_PROJECT, files={"model.pdb": "workflow/fixtures/d_duplex.pdb"},
+    mdatk_test="tests/test_workflow_gui.py::test_planner_template_connect_and_write")
+case("workflow", "planner_delete_and_roundtrip", "Project Planner: the amber-gromacs template, the GROMACS step "
+     "deleted with its connections, a note typed in the details pane, the project saved and opened again", [
+    wf("planner.open"),
+    wf("planner.template", name="amber-gromacs"),
+    wf("planner.select", node="n2"),
+    wf("planner.delete"),
+    wf("planner.add", tool="note", x=40, y=600),
+    wf("planner.note", node="n2", text="check the Mg count"),
+    wfsnap(planner=True),
+    a("save"),
+    a("open", path="p.mdatk.toml"),
+    wfsnap(planner=True)], build=WF_PROJECT,
+    mdatk_test="tests/test_workflow_gui.py::test_planner_delete_and_project_roundtrip")
+case("workflow", "planner_naming_and_errors", "Project Planner: the naming bar (project name, no step folders, time "
+     "stamp off and on, New stamp twice within a minute: WG-15), a step with errors written after the question "
+     "(no, then yes: the master skips its readers, WG-02), the details pane's title and step number", [
+    wf("planner.open"),
+    wf("planner.template", name="amber"),
+    wf("planner.naming", project="my plan", folders=False),
+    wfsnap(planner=True),
+    wf("planner.new_stamp"),
+    wfsnap(planner=True),
+    wf("planner.new_stamp"),
+    wfsnap(planner=True),
+    wf("planner.write", answers={"errors": "no"}),
+    wf("planner.write", answers={"errors": "yes"}),
+    wf("planner.details", node="n2", title="Helix restraints", step=5),
+    wfsnap(planner=True),
+    a("save")], build=WF_PROJECT, items=["WG-02", "WG-15"])
+
+
 # ================================================================================================
 # main process: run the workers, merge, write
 
@@ -616,6 +731,8 @@ def needs_of(c, outcome, lossless):
             out.add("canvas")
         elif name.startswith("tool."):
             out.add("tools")
+        elif name.startswith("wf."):
+            out.add("workflow")
         elif name not in base:
             out.add(name)
         if "answers" in act:
@@ -934,6 +1051,14 @@ def worker(kind, mdatk, data, cases_file, out_file):
     def b_default_project():
         return Project()
 
+    def b_wf_project():
+        """The project of MDATK's test_workflow_gui.py fixture: a new project, plan name apt1, its output
+        folder plans (MDATK_output/ is ignored by git)."""
+        p = Project()
+        p.output.out_dir = "plans"
+        p.workflow.project_name = "apt1"
+        return p
+
     def b_notes_keep_me():
         p = Project()
         p.notes = "keep me"
@@ -1168,6 +1293,8 @@ def worker(kind, mdatk, data, cases_file, out_file):
             rec["modified"] = IG.modified(win)
         if act.get("tool"):
             rec["tool"] = tool_snapshot(win, act["tool"])
+        if act.get("workflow"):
+            rec["workflow"] = wf_snapshot(win, act["workflow"])
         H.snapshots.append(rec)
 
     def point(win, spec):
@@ -1334,6 +1461,230 @@ def worker(kind, mdatk, data, cases_file, out_file):
                                 for k in spec["sensitive"]}
         return out
 
+
+    # -- the Project Planner and the script wizard (milestone 7, W0-A)
+    import improvements_workflow as IW  # mask() in both passes; the patches in the improved one
+
+    wf_ready = []
+
+    def wf_setup():
+        """Once, before the first workflow action: the step log's durations fixed, the plan's clock the
+        case's (naming.new_stamp), the windows' questions answered by the script and their messages
+        recorded; in the improved pass MDBridge's workflow improvements (improvements_workflow.py) and
+        WG-15's New stamp."""
+        if wf_ready:
+            return
+        wf_ready.append(True)
+        PF.time = types.SimpleNamespace(monotonic=lambda: 0.0)
+        from mdatk.workflows import naming
+
+        naming._dt = types.SimpleNamespace(datetime=FixedDateTime)
+        if improved:
+            IW.apply_mdatk()
+        from mdatk.gui import planner as PL
+        from mdatk.gui import wizard as WZ
+
+        def ask(self, text, detail):
+            answer = H.current.get("answers", {}).get("errors", "yes")
+            H.questions.append({"action": H.action, "kind": "errors", "text": text, "detail": detail,
+                                "answer": answer})
+            return answer == "yes"
+
+        def message(self, text, detail="", kind=None):
+            H.dialogs.append({"action": H.action, "kind": "planner", "text": text, "detail": detail})
+
+        def error(self, text, detail=""):
+            H.dialogs.append({"action": H.action, "kind": "wizard", "text": text, "detail": detail})
+
+        PL.PlannerWindow._ask = ask
+        PL.PlannerWindow._message = message
+        WZ.WizardWindow._error = error
+        if improved:  # WG-15
+            def new_stamp(self):
+                current = self.plan.stamp if self.plan is not None else self.workflow.stamp
+                self.workflow.stamp = IW.new_stamp_after(naming._dt.datetime.now(), current)
+                self.changed()
+
+            PL.PlannerWindow.new_stamp = new_stamp
+
+    def wf_wizards(win):
+        out = [win.wizard] if win.wizard is not None else []
+        if win.planner is not None:
+            out += list(win.planner.wizards.values())
+        return out
+
+    def wf_settle(win):
+        """The planner's and the wizards' 250 ms refresh timers run now, as a user waiting would see them."""
+        for _ in range(1000):
+            while Gtk.events_pending():
+                Gtk.main_iteration_do(False)
+            pl = win.planner
+            if pl is not None and pl._resolve_id:
+                GLib.source_remove(pl._resolve_id)
+                pl._resolve_timeout()
+                continue
+            busy = [w for w in wf_wizards(win) if w._refresh_id]
+            if busy:
+                GLib.source_remove(busy[0]._refresh_id)
+                busy[0]._refresh_timeout()
+                continue
+            return
+
+    class WEv:
+        def __init__(self, x, y, typ=None):
+            self.x, self.y, self.x_root, self.y_root = x, y, x, y
+            self.button, self.state = 1, 0
+            self.type = typ or Gdk.EventType.BUTTON_PRESS
+
+    def wf_wizard(win, which):
+        wz = win.wizard if which in (None, "standalone") else win.planner.wizards.get(which)
+        if wz is None:
+            raise RuntimeError(f"no wizard {which!r} is open")
+        return wz
+
+    def wf_action(win, act):
+        wf_setup()
+        what = act["action"][len("wf."):]
+        pl = win.planner
+        work = os.getcwd()
+        if what == "planner.open":
+            win.open_planner()
+        elif what == "planner.template":
+            pl.add_template(act["name"])
+        elif what == "planner.add":
+            pl.add_step(act["tool"], act["x"], act["y"])
+        elif what in ("planner.connect", "planner.move"):
+            c = pl.canvas
+            at = lambda x, y: WEv(x * c.zoom, y * c.zoom)  # noqa: E731 (model -> event coordinates)
+            if what == "planner.connect":
+                start = c.port_pos(pl.node(act["source"][0]), act["source"][1], True)
+                end = c.port_pos(pl.node(act["target"][0]), act["target"][1], False)
+            else:
+                n = pl.node(act["node"])
+                start = (n.x + 20, n.y + 10)
+                end = (start[0] + act["by"][0], start[1] + act["by"][1])
+            c._on_press(c, at(*start))
+            c._on_motion(c, at(*end))
+            c._on_release(c, at(*end))
+        elif what == "planner.files":
+            pl.node(act["node"]).files[act["port"]] = act["path"].replace("{case_dir}", work)
+            pl.changed()
+        elif what == "planner.settings":
+            pl.node(act["node"]).settings.update(act["values"])
+            pl.changed()
+        elif what == "planner.select":
+            pl.canvas.select(act["node"])
+        elif what == "planner.delete":
+            pl.delete_selected()
+        elif what == "planner.note":
+            pl.show_details(act["node"])
+            pl.d_note.get_buffer().set_text(act["text"])
+        elif what == "planner.details":
+            pl.show_details(act["node"])
+            pl.d_name.set_text(act["title"])
+            pl.d_step.set_value(act["step"])
+        elif what == "planner.write":
+            pl.write(None)
+        elif what == "planner.wizard":
+            pl.open_wizard(pl.node(act["node"]))
+        elif what == "planner.use_for_analysis":
+            pl.use_for_analysis(pl.node(act["node"]))
+        elif what == "planner.new_stamp":
+            pl.new_stamp()
+        elif what == "planner.naming":
+            if "project" in act:
+                pl.project_entry.set_text(act["project"])
+            if "stamp" in act:
+                pl.stamp_check.set_active(act["stamp"])
+            if "folders" in act:
+                pl.folders_check.set_active(act["folders"])
+        elif what == "wizard.open":
+            win.open_wizard(act["tool"])
+        else:
+            wz = wf_wizard(win, act.get("node"))
+            if what == "wizard.tool":
+                wz.select_tool(act["tool"])
+            elif what == "wizard.set":
+                form = wz.forms[act["section"]]
+                rows = form.form.rows if hasattr(form, "records") else form.rows
+                rows[act["key"]][4](act["value"])
+            elif what == "wizard.input":
+                wz.input_widgets[act["port"]].entry.set_text(act["path"])
+            elif what == "wizard.title":
+                wz.title_entry.set_text(act["text"])
+            elif what == "wizard.write":
+                wz.write_files()
+            elif what == "wizard.defaults":
+                wz.reset_defaults()
+            elif what == "wizard.records":
+                editor = wz.forms[act["section"]]
+                do = act["do"]
+                if do == "select":
+                    editor.select(act["index"])
+                elif do == "add":
+                    editor.add(act["template"])
+                elif do == "move":
+                    editor.move(act["by"])
+                else:
+                    getattr(editor, do)()
+            else:
+                raise ValueError(f"unknown action {act['action']}")
+        wf_settle(win)
+
+    def wf_snapshot(win, spec):
+        from mdatk.workflows import TOOLS
+
+        out = {}
+        if spec.get("planner"):
+            pl = win.planner
+            if pl is None:
+                out["planner"] = {"open": False}
+            else:
+                plan = pl.plan or pl.resolve()
+                wf_ = pl.workflow
+                out["planner"] = {
+                    "open": True,
+                    "nodes": [[n.id, n.tool, n.step, n.title, n.x, n.y] for n in wf_.nodes],
+                    "edges": [[e.source, e.output, e.target, e.input] for e in wf_.edges],
+                    "issues": [[plan.steps[nid].label if nid in plan.steps else "plan", i.level, i.message]
+                               for nid, i in plan.all_issues()],
+                    "naming": {"project": wf_.project_name, "stamp": wf_.stamp, "use_stamp": wf_.use_stamp,
+                               "step_folders": wf_.step_folders, "shown": pl.stamp_label.get_text()},
+                    "status": pl.status.get_text()}
+        which = spec.get("wizard")
+        if which is not None:
+            wz = win.wizard if which == "standalone" else (win.planner.wizards.get(which) if win.planner else None)
+            if wz is None:
+                out["wizard"] = {"open": False}
+            else:
+                tool = wz.tool
+                defaults = tool.normalise({})
+                rows = []
+                for row in wz.issue_list.get_children():
+                    issue = getattr(row, "issue", None)
+                    if issue is not None:
+                        rows.append([issue.level, issue.message])
+                rec = {"open": True, "tool": tool.name, "pages": wz.notebook.get_n_pages(),
+                       "changed": {k: v for k, v in wz.node.settings.items() if v != defaults.get(k)},
+                       "files_in": dict(wz.node.files), "issues": rows,
+                       "files": [f.name for f in wz.files], "write": wz.write_btn.get_sensitive(),
+                       "run": wz.run_btn.get_sensitive(), "status": wz.status.get_text(),
+                       "title": wz.node.title, "step": wz.node.step}
+                for key in spec.get("sensitive", []):
+                    section, opt = key.split(".")
+                    form = wz.forms[section]
+                    rows_ = form.form.rows if hasattr(form, "records") else form.rows
+                    rec.setdefault("sensitive", {})[key] = rows_[opt][1].get_sensitive()
+                for key in spec.get("visible", []):
+                    section, opt = key.split(".")
+                    rec.setdefault("visible", {})[key] = wz.forms[section].form.rows[opt][1].get_visible()
+                if spec.get("preview"):
+                    buf = wz.preview.get_buffer()
+                    rec["preview"] = {"file": wz.preview_combo.get_active_id(),
+                                      "text": IW.mask(buf.get_text(buf.get_start_iter(), buf.get_end_iter(), False))}
+                out["wizard"] = plain(rec)
+        return out
+
     def run_action(state, act):
         win = state["win"]
         name = act["action"]
@@ -1380,6 +1731,8 @@ def worker(kind, mdatk, data, cases_file, out_file):
             canvas_action(win, act)
         elif name.startswith("tool."):
             tool_action(win, act)
+        elif name.startswith("wf."):
+            wf_action(win, act)
         elif name == "snapshot":
             snapshot(win, act)
         elif name == "save":
@@ -1501,6 +1854,9 @@ def worker(kind, mdatk, data, cases_file, out_file):
             H.capturing = False
             after = snapshot_files(work)
             files = {n: entry(v, subst) for n, v in after.items() if before.get(n) != v}
+            for n, e in files.items():  # the plan's generated texts: D11's masks (improvements_workflow.mask)
+                if "_workflow/" in n and "text" in e:
+                    e["text"] = IW.mask(e["text"])
             spath = os.path.join(cfg, "mdatk", "settings.toml")
             settings = None
             if os.path.isfile(spath):

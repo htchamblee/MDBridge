@@ -1,0 +1,47 @@
+#!/bin/bash
+# Phenix real-space refinement (Phenix 2.x)
+# Project golden, step 03 - written by MDBridge <VERSION> on <DATE>.
+# MDBridge only writes this script; review it, then run it with: bash golden_03_phenix-rsr_20261015-1432.sh
+# Phenix 2.x: minimization_global, local_grid_search, adp; 5 macro cycles.
+# Please cite (Phenix, phenix.real_space_refine):
+#   - Liebschner D., Afonine P. V., Baker M. L., Bunkóczi G., Chen V. B., Croll T. I., Hintze B.,
+#     Hung L.-W., Jain S., McCoy A. J., Moriarty N. W., Oeffner R. D., Poon B. K., Prisant M. G.,
+#     Read R. J., Richardson J. S., Richardson D. C., Sammito M. D., Sobolev O. V., Stockwell D. H.,
+#     Terwilliger T. C., Urzhumtsev A. G., Videau L. L., Williams C. J., Adams P. D. Acta Cryst. D
+#     2019, 75, 861-877. doi:10.1107/S2059798319011471
+#   - Afonine P. V., Poon B. K., Read R. J., Sobolev O. V., Terwilliger T. C., Urzhumtsev A., Adams
+#     P. D. Acta Cryst. D 2018, 74, 531-544. doi:10.1107/S2059798318006551
+
+set -eo pipefail
+cd "$(dirname "$0")"
+
+command -v phenix.real_space_refine >/dev/null || { echo "ERROR: phenix.real_space_refine not found on PATH" >&2; exit 1; }
+
+# real-space refinement (Phenix's own log: golden_03_phenix-rsr_20261015-1432*real_space_refined*.log)
+phenix.real_space_refine \
+    /golden/inputs/model.pdb \
+    /golden/inputs/map.map \
+    golden_03_basepairs_20261015-1432.eff \
+    resolution=3.5 \
+    run=minimization_global+local_grid_search+adp \
+    macro_cycles=5 \
+    pdb_interpretation.secondary_structure.enabled=True \
+    output.prefix=golden_03_phenix-rsr_20261015-1432 \
+    > golden_03_phenix-rsr_20261015-1432.log 2>&1 || { echo "ERROR: phenix.real_space_refine failed (see golden_03_phenix-rsr_20261015-1432.log)" >&2; exit 1; }
+
+# the refined model: Phenix names it <prefix>_real_space_refined_NNN.pdb (newest first)
+OUT=$(ls -t golden_03_phenix-rsr_20261015-1432*real_space_refined*.pdb 2>/dev/null | head -n 1 || true)
+CIF=$(ls -t golden_03_phenix-rsr_20261015-1432*real_space_refined*.cif 2>/dev/null | head -n 1 || true)
+[ -n "$CIF" ] && cp "$CIF" golden_03_refined_20261015-1432.cif
+if [ -z "$OUT" ] && [ -n "$CIF" ]; then
+  # only mmCIF output (e.g. names that do not fit the PDB format): convert it
+  phenix.cif_as_pdb "$CIF" >> golden_03_phenix-rsr_20261015-1432.log 2>&1 || true
+  [ -s "${CIF%.cif}.pdb" ] && OUT="${CIF%.cif}.pdb"
+fi
+[ -n "$OUT" ] || { echo "ERROR: no golden_03_phenix-rsr_20261015-1432*real_space_refined*.pdb found (see golden_03_phenix-rsr_20261015-1432.log)" >&2; exit 1; }
+cp "$OUT" golden_03_refined_20261015-1432.pdb
+[ -s "golden_03_refined_20261015-1432.pdb" ] || { echo "ERROR: phenix.real_space_refine did not write golden_03_refined_20261015-1432.pdb" >&2; exit 1; }
+
+# final model statistics
+grep -E "CC_mask|Clashscore|MolProbity score" golden_03_phenix-rsr_20261015-1432.log | tail -n 6 || true
+echo "Refined model: golden_03_refined_20261015-1432.pdb"

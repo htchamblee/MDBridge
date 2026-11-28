@@ -1,0 +1,58 @@
+table	id	field	value	found_in	sha256
+forcefield	ol3cp	leaprc	leaprc.RNA.OL3	dat/leap/cmd/leaprc.RNA.OL3	e57b1bce6db32fa6803878745908fd9038b48e716ae03c18ddb0e2d6862a0fa5
+forcefield	ol3	leaprc	leaprc.RNA.OL3	dat/leap/cmd/leaprc.RNA.OL3	e57b1bce6db32fa6803878745908fd9038b48e716ae03c18ddb0e2d6862a0fa5
+forcefield	ljbb	leaprc	leaprc.RNA.LJbb	dat/leap/cmd/leaprc.RNA.LJbb	cb88947e7ea1f3c8f813e5f5fb08ab35f1c2cab983acb511db34b91cdb594a7a
+forcefield	roc	leaprc	leaprc.RNA.ROC	dat/leap/cmd/leaprc.RNA.ROC	d9439829d5bda95e5bc5007f8faecdfbe2556408a90c13bb6e4a1f6bc4236647
+forcefield	yil	leaprc	leaprc.RNA.YIL	dat/leap/cmd/leaprc.RNA.YIL	b238a8eb7708e9cda503ec47983ad71da29dd5444dbbd62f6cabcbdf56f5314f
+forcefield	shaw	leaprc	leaprc.RNA.Shaw	dat/leap/cmd/leaprc.RNA.Shaw	9221615d251e9586e297ee9da48e72596915afb24b2664c949e0b9bee694a6b7
+water	spce	leaprc	leaprc.water.spce	dat/leap/cmd/leaprc.water.spce	3365270f1c08ec982c9b39650d735eda418f3909633bc29d5db0a9e36159cc13
+water	spce	box	SPCBOX	dat/leap/lib/solvents.lib	c8aeb703f5769331541d1233e2f2c8f823dd516e861b04e215ae4da903f1d69b
+water	spce	four_site	0	dat/leap/lib/solvents.lib	c8aeb703f5769331541d1233e2f2c8f823dd516e861b04e215ae4da903f1d69b
+water	spce	parmed_1264	SPCE	parmed/tools/actions.py	d43667e5046983896c55306d93dbff9ea326bf8d71bc96dae206a843acacc985
+water	spce	frcmod_1264	frcmod.ions234lm_1264_spce	dat/leap/parm/frcmod.ions234lm_1264_spce	3bad8ace0e58ea05b7f82386a16a1e6d6df632472329b104b4e69b638e7de456
+water	tip3p	leaprc	leaprc.water.tip3p	dat/leap/cmd/leaprc.water.tip3p	679041e7b6a6776cd6a7552480ded0986c33ddd209da58f0c30a96bfb8818db7
+water	tip3p	box	TIP3PBOX	dat/leap/lib/solvents.lib	c8aeb703f5769331541d1233e2f2c8f823dd516e861b04e215ae4da903f1d69b
+water	tip3p	four_site	0	dat/leap/lib/solvents.lib	c8aeb703f5769331541d1233e2f2c8f823dd516e861b04e215ae4da903f1d69b
+water	tip3p	parmed_1264	TIP3P	parmed/tools/actions.py	d43667e5046983896c55306d93dbff9ea326bf8d71bc96dae206a843acacc985
+water	tip3p	frcmod_1264	frcmod.ions234lm_1264_tip3p	dat/leap/parm/frcmod.ions234lm_1264_tip3p	d2edcac0fffe49d4a45cb785e9207292bc4cdd4cd1866bca872be1e8a76eb9dd
+water	opc	leaprc	leaprc.water.opc	dat/leap/cmd/leaprc.water.opc	f52a59ec59cb31c7976be5006593061fc27e56ffa33c0c578f2d8d870838c7e6
+water	opc	box	OPCBOX	dat/leap/lib/solvents.lib	c8aeb703f5769331541d1233e2f2c8f823dd516e861b04e215ae4da903f1d69b
+water	opc	four_site	1	dat/leap/lib/solvents.lib	c8aeb703f5769331541d1233e2f2c8f823dd516e861b04e215ae4da903f1d69b
+water	opc	parmed_1264	OPC	parmed/tools/actions.py	d43667e5046983896c55306d93dbff9ea326bf8d71bc96dae206a843acacc985
+water	opc	frcmod_1264	frcmod.ionslm_1264_opc	dat/leap/parm/frcmod.ionslm_1264_opc	385b6099614063d8a29f93a4a44c4831d8fdc968051ee8aea1331b0d7ce08ecb
+water	opc3	leaprc	leaprc.water.opc3	dat/leap/cmd/leaprc.water.opc3	9ea2ebc2e91f487f072699a2a3e48d428629c0ca9f4f8c86ff98a3a690883efb
+water	opc3	box	OPC3BOX	dat/leap/lib/solvents.lib	c8aeb703f5769331541d1233e2f2c8f823dd516e861b04e215ae4da903f1d69b
+water	opc3	four_site	0	dat/leap/lib/solvents.lib	c8aeb703f5769331541d1233e2f2c8f823dd516e861b04e215ae4da903f1d69b
+water	opc3	parmed_1264	OPC3	parmed/tools/actions.py	d43667e5046983896c55306d93dbff9ea326bf8d71bc96dae206a843acacc985
+water	opc3	frcmod_1264	frcmod.ionslm_1264_opc3	dat/leap/parm/frcmod.ionslm_1264_opc3	8874bfc69d140a343b5cd3e517dc33ac7d3dfc73a06cfc3b3a26618583612b07
+water	tip4pew	leaprc	leaprc.water.tip4pew	dat/leap/cmd/leaprc.water.tip4pew	a9806b4c41cb3d813af5afc483c692b47136e1ec7c500f3689fafe8909075ac0
+water	tip4pew	box	TIP4PEWBOX	dat/leap/lib/solvents.lib	c8aeb703f5769331541d1233e2f2c8f823dd516e861b04e215ae4da903f1d69b
+water	tip4pew	four_site	1	dat/leap/lib/solvents.lib	c8aeb703f5769331541d1233e2f2c8f823dd516e861b04e215ae4da903f1d69b
+water	tip4pew	parmed_1264	TIP4PEW	parmed/tools/actions.py	d43667e5046983896c55306d93dbff9ea326bf8d71bc96dae206a843acacc985
+water	tip4pew	frcmod_1264	frcmod.ions234lm_1264_tip4pew	dat/leap/parm/frcmod.ions234lm_1264_tip4pew	25100d8830ea790fa1b28bd8d27ca4bf6fe5996708edb57e8412c6ccfd597f04
+water	fb3	leaprc	leaprc.water.fb3	dat/leap/cmd/leaprc.water.fb3	788328d328dcd33e73bacf7630693a2652473d4473bc03ecc2a960fa54638f66
+water	fb3	box	FB3BOX	dat/leap/lib/solvents.lib	c8aeb703f5769331541d1233e2f2c8f823dd516e861b04e215ae4da903f1d69b
+water	fb3	four_site	0	dat/leap/lib/solvents.lib	c8aeb703f5769331541d1233e2f2c8f823dd516e861b04e215ae4da903f1d69b
+water	fb3	parmed_1264	FB3	parmed/tools/actions.py	d43667e5046983896c55306d93dbff9ea326bf8d71bc96dae206a843acacc985
+water	fb3	frcmod_1264	frcmod.ionslm_1264_fb3	dat/leap/parm/frcmod.ionslm_1264_fb3	46b6ebc4bb0595fdc2117db8a7ec8ba974bb1b3d6160cd3597745616ba35b04f
+water	tip4pd	leaprc	leaprc.water.tip4pd	dat/leap/cmd/leaprc.water.tip4pd	1e435ba37882d32f178f2f0215fc6aad72b1edb0ac15d28af4b4653b6dc4c821
+water	tip4pd	box	TIP4PDBOX	dat/leap/lib/tip4pd.off	25a8e24b9f09f84bcfcf70a2f0a958b71ab28b968425db4ac32c7b0671e5babb
+water	tip4pd	four_site	1	dat/leap/lib/tip4pd.off	25a8e24b9f09f84bcfcf70a2f0a958b71ab28b968425db4ac32c7b0671e5babb
+water	tip4pd	parmed_1264		parmed/tools/actions.py	d43667e5046983896c55306d93dbff9ea326bf8d71bc96dae206a843acacc985
+water	tip4pd	frcmod_1264		dat/leap/parm/frcmod.*1264*tip4pd	
+water	tip4p2005	leaprc	leaprc.water.tip4pew	dat/leap/cmd/leaprc.water.tip4pew	a9806b4c41cb3d813af5afc483c692b47136e1ec7c500f3689fafe8909075ac0
+water	tip4p2005	box	TIP4P2005BOX	written by the tip4p2005 helper from dat/leap/lib/tip4pewbox.off (TIP4PEWBOX)	
+water	tip4p2005	four_site	1	dat/leap/lib/solvents.lib	c8aeb703f5769331541d1233e2f2c8f823dd516e861b04e215ae4da903f1d69b
+water	tip4p2005	parmed_1264		parmed/tools/actions.py	d43667e5046983896c55306d93dbff9ea326bf8d71bc96dae206a843acacc985
+water	tip4p2005	frcmod_1264		dat/leap/parm (none for TIP4P/2005)	
+strip	water	alias	WAT	dat/leap/cmd/leaprc.water.* (every water model above)	
+strip	water	alias	HOH	dat/leap/cmd/leaprc.water.* (every water model above)	
+strip	ion	unit	Na+	dat/leap/lib/atomic_ions.lib	0f56b0f1b1cbf0e275c7e5e815f7f85b9b22e26de3b591a0b8a87c28d75d0d53
+strip	ion	unit	Cl-	dat/leap/lib/atomic_ions.lib	0f56b0f1b1cbf0e275c7e5e815f7f85b9b22e26de3b591a0b8a87c28d75d0d53
+strip	ion	unit	K+	dat/leap/lib/atomic_ions.lib	0f56b0f1b1cbf0e275c7e5e815f7f85b9b22e26de3b591a0b8a87c28d75d0d53
+strip	ion	unit	MG	dat/leap/lib/atomic_ions.lib	0f56b0f1b1cbf0e275c7e5e815f7f85b9b22e26de3b591a0b8a87c28d75d0d53
+helper_input	cp-lib	file	lib/RNA.lib	dat/leap/lib/RNA.lib	8387dd670b78374cdbf6bf90886d55104cfab6253ecb3feea16429a7774b661e
+helper_input	cp-lib	file	parm/parm10.dat	dat/leap/parm/parm10.dat	dc0c02d28fb7ee4f04d0a5edee3cd62968ba5e9bdb69e0f728bf01d242d7d062
+helper_input	cp-lib	file	parm/lj_1264_pol.dat	dat/leap/parm/lj_1264_pol.dat	9a64b54fc4ba6b683bb9ea1bd51b5f6d36793cce53d3a5e54838c719722c7429
+helper_input	tip4p2005	file	lib/tip4pewbox.off	dat/leap/lib/tip4pewbox.off	d1cec1e8a670ddb7f2cccb94b07a851187057cf6f6dae9dc321f6ec6c25dbaa2
+helper_input	tip4p2005	file	parm/frcmod.tip4pew	dat/leap/parm/frcmod.tip4pew	609cde69b276022f130fcdd320e5b542c8b290c98d73088ec93e834884797d1a
