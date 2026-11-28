@@ -86,6 +86,15 @@ else()
 endif()
 gtest_discover_tests(mdbridge_numerics_tests DISCOVERY_MODE PRE_TEST)
 
+# workflow/lua: the Lua host of the generators (milestone 7 W0-B; docs/specs/m7-plan.md 4.4, 4.5):
+# sandbox, limits, errors with file and line, Value <-> Lua round trips, the same bytes under two
+# string-hash seeds, the determinism lint; and the lint over the bundled generators (src/workflow/lua)
+add_executable(mdbridge_lua_host_tests workflow/test_lua_host.cpp workflow/test_lua_lint.cpp)
+target_link_libraries(mdbridge_lua_host_tests PRIVATE mdbridge::lua_host GTest::gtest_main)
+mdbridge_target_warnings(mdbridge_lua_host_tests)
+gtest_discover_tests(mdbridge_lua_host_tests DISCOVERY_MODE PRE_TEST)
+add_test(NAME lua_lint_bundled_generators COMMAND mdbridge_lua_lint "${PROJECT_SOURCE_DIR}/src/workflow/lua")
+
 # analysis: the framework (registry, instance ids, labels, cache keys, runner, common helpers) as
 # MDATK computes it (data/analysis, tests/parity/make_analysis_framework_cases.py), the analyses
 # against MDATK's runs (tests/parity/make_analysis_cases.py), MDATK's spatial helpers

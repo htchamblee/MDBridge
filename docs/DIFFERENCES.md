@@ -3444,6 +3444,35 @@ WA-08's). MDATK 0.1.1 uses the same SciPy calls with the same options. The diffe
   `RealRootsOfTheSubspaceQuartic` (np.roots' real roots within 1e-12, multiple roots excepted)
   test the pieces.
 
+## Workflow: the Lua host (src/workflow/lua; milestone 7 W0-B)
+
+MDATK's step generators are Python modules run in the program itself; MDBridge's are Lua files run
+in a sandboxed Lua 5.4.9 state (`docs/specs/m7-plan.md` 4.4, 4.5, owner decisions D1 and D8). No
+MDATK version (0.0.4.1 to 0.1.2) limits a generator or has user-added step files, so these follow
+the plan, not an MDATK design.
+
+- **LUA-01 A generator that loops or grows without end is stopped and reported.** In MDATK an
+  endless loop in a generator hangs the planner and a runaway allocation ends in MemoryError or the
+  system's out-of-memory killer. MDBridge gives each generator file a memory cap (256 MiB, through
+  Lua's allocator) and each call from the program an instruction budget (100 million Lua
+  instructions, counted by a hook every 1 000); reaching either is the step's issue `internal
+  error while checking this step: the generator ran out of time` / `... ran out of memory` (MDATK's
+  prefix for an exception in a step's check, plan.py:290). `pcall` and `xpcall` cannot catch these
+  two errors, `load` cannot swallow a memory error, and `setmetatable` refuses `__gc` (Lua runs
+  finalizers with hooks off, where no budget applies). Every other generator error reads `internal
+  error while checking this step: <file>:<line>: <message>`, with the file's full name even where
+  Lua shortens it. Tested by `tests/workflow/test_lua_host.cpp` (`LuaHostLimits.*`,
+  `LuaHostErrors.*`).
+- **LUA-02 Output does not depend on hash order.** Python dicts keep insertion order; Lua tables do
+  not, and Lua seeds its string hashes from the clock and addresses. MDBridge seeds them from the
+  host (a fixed seed by default, `luai_makeseed`, Lua's own configuration hook), starts
+  `math.random` from a fixed seed (`math.randomseed()` without a seed is refused), converts Lua
+  tables to values with their keys in a fixed order (the order of the value they came from, else
+  sorted by bytes), lets `pairs` over the settings visit keys in their order, and checks the
+  bundled generators with a lint (`mdbridge_lua_lint`: `pairs`, `tostring`, float formats, `..` of
+  floats, libraries outside the sandbox). `LuaHostHashSeed.*` runs a generator under two seeds and
+  compares the bytes; `LuaLint.*` tests the lint.
+
 ## Planned (from the improvement register; add each entry here when it lands)
 
 None: every FIX and ASK item of the improvement register (docs/IMPROVEMENTS.md) has landed
