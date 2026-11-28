@@ -12,7 +12,9 @@ def is_nucleic(resname):
     core = resname.strip().upper().rstrip("0123456789")
     if core.endswith("N") and len(core) > 1:
         core = core[:-1]
-    if len(core) > 1 and core[0] in "RDL":
+    if len(core) > 2 and core.startswith("LD"):  # L-DNA: LDA LDC LDG LDT (the units of MDATK's L-DNA library)
+        core = core[2:]
+    elif len(core) > 1 and core[0] in "RDL":
         core = core[1:]
     return core in ("A", "C", "G", "U", "T")
 
@@ -83,7 +85,7 @@ def main(argv, itp_pattern, force):
 
 
 # --- settings written by MDBridge ---
-ITP_PATTERN = 'golden_02_posre-{mol}_20261015-1432.itp'
+ITP_PATTERN = 'golden_03_posre-{mol}_20261015-1432.itp'
 FORCE = 1000.0
 
 

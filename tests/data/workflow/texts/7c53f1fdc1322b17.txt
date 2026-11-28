@@ -37,10 +37,9 @@ while read -r SCORE TAG FILE; do
 done < golden_03_ranking_20261015-1432.txt
 
 # Annotate every model with DSSR
-for f in golden_03_model-[0-9][0-9]_20261015-1432.pdb; do
+for f in golden_03_model-[0-9]*_20261015-1432.pdb; do
   [ -e "$f" ] || continue
   x3dna-dssr -i="$f" -o="${f%.pdb}.dssr"
-  x3dna-dssr -i="$f" --json -o="${f%.pdb}.json"
 done
 x3dna-dssr --cleanup > /dev/null 2>&1 || true
 

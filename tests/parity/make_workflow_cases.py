@@ -84,7 +84,7 @@ def plan(nodes, edges=(), name="golden", stamp=STAMP, use_stamp=True, step_folde
 # the items a step type's default case shows besides D11 (which every generated text shows)
 DEFAULT_ITEMS = {"amber-build": ["D3", "D9"], "restraint-dicts": ["D3"], "structure-builder": ["WG-18", "D6"],
                  "farfar2": ["WG-07"], "simrna": ["WG-07", "WG-08", "WG-09"], "farfar2-models": ["WG-09"],
-                 "rnamake": ["WG-09"]}
+                 "rnamake": ["WG-09"], "gromacs": ["WG-21"]}
 
 
 def build_cases():
@@ -171,8 +171,9 @@ def build_cases():
         tool = TOOLS[name]
         for label, change in variants(tool):
             items = DEFAULT_ITEMS.get(name, []) if label == "default" else []
-            if (name, label) in (("vmd", "render=movie"), ("amber-build", "split_types=False")):
-                items = ["WG-09"] if name == "vmd" else ["D9"]
+            items += {("vmd", "render=movie"): ["WG-09"], ("amber-build", "split_types=False"): ["D9"],
+                      ("simrna", "cluster=False"): ["WG-20"], ("farfar2-models", "cluster=False"): ["WG-09", "WG-19"],
+                      ("farfar2-models", "default"): ["WG-19"]}.get((name, label), [])
             tool_case(name, label, change, items=items)
         for label, change in record_variants(tool):
             tool_case(name, label, change)
@@ -250,6 +251,8 @@ def extra_tool_cases(tool_case, add, TOOLS):
             tool_case(name, "typed-ss", dict(ss, **more), optional=False)
     tool_case("structure-builder", "mode=fit+resolution", {"mode": "fit", "resolution": 4.0})
     tool_case("farfar2", "typed-ss+stems", dict(ss, input_res_mode="stems"), optional=False)
+    tool_case("farfar2-models", "n_models=105", {"n_models": 105, "cluster": False}, items=["WG-19"])
+    tool_case("farfar2-models", "n_models=105+json", {"n_models": 105, "dssr_json": True}, items=["WG-19"])
 
     # amber-md: segments, production, continuation, ramps (WG-04, WG-05)
     md = T["amber-md"]

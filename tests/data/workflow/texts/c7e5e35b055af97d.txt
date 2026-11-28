@@ -1,7 +1,7 @@
 #!/bin/bash
 # FARFAR2 models: cluster, extract, annotate
-# Project golden, step 02 - written by MDBridge <VERSION> on <DATE>.
-# MDBridge only writes this script; review it, then run it with: bash golden_02_farfar2-models_20261015-1432.sh
+# Project golden, step 03 - written by MDBridge <VERSION> on <DATE>.
+# MDBridge only writes this script; review it, then run it with: bash golden_03_farfar2-models_20261015-1432.sh
 # Please cite (Rosetta, FARFAR2, DSSR (x3dna-dssr)):
 #   - Leman J. K., Weitzner B. D., Lewis S. M., Adolf-Bryfogle J., Alam N., Alford R. F., Aprahamian
 #     M., Baker D., Barlow K. A., Barth P., et al. Nat. Methods 2020, 17, 665-680.
@@ -19,13 +19,13 @@ rank_models() {
 }
 
 # Cluster all models (best cluster first)
-rm -f golden_02_cluster_20261015-1432.out
-rna_cluster -in:file:silent /golden/inputs/a.out -out:file:silent golden_02_cluster_20261015-1432.out -cluster:radius 2.0 -nstruct 400 > golden_02_cluster_20261015-1432.log 2>&1
-[ -s "golden_02_cluster_20261015-1432.out" ] || { echo "ERROR: rna_cluster did not write golden_02_cluster_20261015-1432.out" >&2; exit 1; }
-rank_models golden_02_cluster_20261015-1432.out > golden_02_ranking_20261015-1432.txt
+rm -f golden_03_cluster_20261015-1432.out
+rna_cluster -in:file:silent /golden/inputs/silent.silent -out:file:silent golden_03_cluster_20261015-1432.out -cluster:radius 2.0 -nstruct 400 > golden_03_cluster_20261015-1432.log 2>&1
+[ -s "golden_03_cluster_20261015-1432.out" ] || { echo "ERROR: rna_cluster did not write golden_03_cluster_20261015-1432.out" >&2; exit 1; }
+rank_models golden_03_cluster_20261015-1432.out > golden_03_ranking_20261015-1432.txt
 
 # Extract the best 10 models as numbered PDB files (those of an earlier run go first)
-rm -f golden_02_models_20261015-1432.txt golden_02_model-[0-9]*_20261015-1432.pdb
+rm -f golden_03_models_20261015-1432.txt golden_03_model-[0-9]*_20261015-1432.pdb
 K=0
 while read -r SCORE TAG FILE; do
   K=$((K + 1))
@@ -33,15 +33,16 @@ while read -r SCORE TAG FILE; do
   N=$(printf "%02d" "$K")
   rm -f "$TAG.pdb"
   extract_pdbs -in:file:silent "$FILE" -in:file:tags "$TAG" > /dev/null || true
-  if [ -s "$TAG.pdb" ]; then mv "$TAG.pdb" "golden_02_model-${N}_20261015-1432.pdb"; echo "$N $SCORE $TAG $FILE" >> golden_02_models_20261015-1432.txt; else echo "could not extract $TAG from $FILE" >&2; fi
-done < golden_02_ranking_20261015-1432.txt
+  if [ -s "$TAG.pdb" ]; then mv "$TAG.pdb" "golden_03_model-${N}_20261015-1432.pdb"; echo "$N $SCORE $TAG $FILE" >> golden_03_models_20261015-1432.txt; else echo "could not extract $TAG from $FILE" >&2; fi
+done < golden_03_ranking_20261015-1432.txt
 
 # Annotate every model with DSSR
-for f in golden_02_model-[0-9][0-9]_20261015-1432.pdb; do
+for f in golden_03_model-[0-9]*_20261015-1432.pdb; do
   [ -e "$f" ] || continue
   x3dna-dssr -i="$f" -o="${f%.pdb}.dssr"
+  x3dna-dssr -i="$f" --json -o="${f%.pdb}.json"
 done
 x3dna-dssr --cleanup > /dev/null 2>&1 || true
 
-[ -s "golden_02_model-01_20261015-1432.pdb" ] || { echo "ERROR: the extraction did not write golden_02_model-01_20261015-1432.pdb" >&2; exit 1; }
-echo "Best model: golden_02_model-01_20261015-1432.pdb (ranking in golden_02_models_20261015-1432.txt)"
+[ -s "golden_03_model-01_20261015-1432.pdb" ] || { echo "ERROR: the extraction did not write golden_03_model-01_20261015-1432.pdb" >&2; exit 1; }
+echo "Best model: golden_03_model-01_20261015-1432.pdb (ranking in golden_03_models_20261015-1432.txt)"

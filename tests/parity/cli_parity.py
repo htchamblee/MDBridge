@@ -944,7 +944,7 @@ def chem_cases():
 
 # ---- the workflow commands (milestone 7: tools, check, write, run, generate, template, restraints) -------
 # Plans in project files written here (the settings a case changes; MDATK fills in the defaults), MDATK run
-# with MDBridge's workflow improvements (improvements_workflow.apply_cli: WG-01 ... WG-18, D3, D6, D9, D11,
+# with MDBridge's workflow improvements (improvements_workflow.apply_cli: WG-01 ... WG-21, D3, D6, D9, D11,
 # D13, D14). Scripts started by `workflow run` / `--run` call stand-ins of VMD on PATH (FAKE_VMD: prints its
 # arguments, VMD_FAILS: exits with 3). Texts: the version after the program's name -> <VERSION>, dates ->
 # <DATE> (D11); the cases with "wstamp" also mask the plan's time stamp (yyyymmdd-hhmm, from the clock) as
@@ -1702,7 +1702,7 @@ def child(mdatk, jobs_file, results_file):
     improvements_chem.apply_cli()  # the chem layer's improvements (CH-01 ... CH-15, D7, D11 ... D13)
     import improvements_workflow
 
-    improvements_workflow.apply_cli()  # the workflow layer's (WG-01 ... WG-18, D3, D6, D9, D11, D13, D14)
+    improvements_workflow.apply_cli()  # the workflow layer's (WG-01 ... WG-21, D3, D6, D9, D11, D13, D14)
     from mdatk import cli
     import citations_command
 

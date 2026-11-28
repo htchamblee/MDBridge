@@ -37,7 +37,7 @@ while read -r SCORE TAG FILE; do
 done < apt1_02_ranking_20261015-1432.txt
 
 # Annotate every model with DSSR
-for f in apt1_02_model-[0-9][0-9]_20261015-1432.pdb; do
+for f in apt1_02_model-[0-9]*_20261015-1432.pdb; do
   [ -e "$f" ] || continue
   x3dna-dssr -i="$f" -o="${f%.pdb}.dssr"
 done

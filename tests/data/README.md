@@ -1231,7 +1231,7 @@ and `regenerate_all.py` compares the file as JSON within a relative 1e-12 where 
 sixteen step types, the plan, its master script and summary, the templates, the graph edits) on cases and
 records what it writes, for `src/workflow` (`tests/workflow/*.cpp`, docs/specs/m7-plan.md 4.2 and 4.3).
 The case design is MDATK 0.1.2's `tests/golden.py` (the owner's code) with full texts. MDATK runs with
-MDBridge's workflow improvements (`tests/parity/improvements_workflow.py`: WG-01 ... WG-18 of the plan's
+MDBridge's workflow improvements (`tests/parity/improvements_workflow.py`: WG-01 ... WG-21 of the plan's
 section 5 and the owner decisions D3, D6, D9, D11, D13, D14, each named in that file with the MDATK version
 whose design it follows; it applies `improvements_chem.py` and `improvements_citations.py` first, since the
 plan-time checks read files with the chem layer and the scripts cite with MDBridge's table), and once more

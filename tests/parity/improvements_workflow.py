@@ -1,5 +1,5 @@
 """MDBridge's deliberate differences in MDATK v0.0.4.1's workflow layer (docs/specs/m7-plan.md
-section 5, WG-01 ... WG-18, and the owner decisions D3, D6, D9, D11, D13, D14 of section 7), as
+section 5, WG-01 ... WG-21, and the owner decisions D3, D6, D9, D11, D13, D14 of section 7), as
 test-side patches of MDATK, so that make_workflow_cases.py, make_workflow_goldens.py and
 cli_parity.py record MDBridge's behaviour. Where a later MDATK fixed the item, its design is followed
 and named (MDATK's own code, ported); every other byte stays as MDATK v0.0.4.1 writes it.
@@ -56,6 +56,14 @@ cli_parity.py calls both). mask() is the masking of generated texts (D11). Each 
   WG-10  (MDATK 0.1.0) a secondary-structure file with the dot-bracket line only and no sequence typed:
          "the secondary-structure file has no sequence line: type the sequence" (keys sequence,
          input:<port>) in every step that reads one (amber-restraints, simrna, phenix-rsr)
+  WG-19  (MDATK 0.1.0) the FARFAR2 models script annotates every extracted model with DSSR: the loop
+         globs <project>_<NN>_model-[0-9]*_<stamp>.pdb (0.0.4.1's model-[0-9][0-9] left out models 100 on)
+  WG-20  (MDATK 0.1.0) a SimRNA step without clustering writes its output 'trajectory' itself: its run
+         script ends with "# all replica trajectories of all runs", cat runs/r*/*.trafl > <all>.trafl and
+         the check that it was written (0.0.4.1 promised the file, and only the clustering script wrote it)
+  WG-21  (MDATK 0.1.0 gmx_posre.is_nucleic) the GROMACS position-restraint helper takes the L-DNA residue
+         names LDA LDC LDG LDT (and their terminal / N variants) for nucleic acid: an L-DNA strand got no
+         restraints; every name recognised before is recognised as before (the helper's only change, D4)
   WG-18  (D6) the structure builder's script starts MDBridge, "$MDBRIDGE" build ..., unless the step's
          Python setting names another interpreter (then MDATK's "<python> -m mdatk" stays); the plan
          summary records the program under each step that runs it (see D3)
@@ -877,8 +885,30 @@ def _xargs_failures(text, s, program, fewer, missing, exports_old, exports_new):
     return _sub(text, f"\n{xargs}\n", "\n" + "\n".join(block) + "\n")
 
 
+POSRE_OLD = """    if len(core) > 1 and core[0] in "RDL":
+        core = core[1:]
+"""
+POSRE_NEW = """    if len(core) > 2 and core.startswith("LD"):  # L-DNA: LDA LDC LDG LDT (the units of MDATK's L-DNA library)
+        core = core[2:]
+    elif len(core) > 1 and core[0] in "RDL":
+        core = core[1:]
+"""
+
+
 def _patch_modelling():
-    from mdatk.workflows import farfar2, rnamake, simrna, vmd
+    from mdatk.workflows import farfar2, gromacs, rnamake, simrna, vmd
+
+    G = gromacs.GromacsTool if hasattr(gromacs, "GromacsTool") else next(
+        v for v in vars(gromacs).values() if isinstance(v, type) and getattr(v, "name", "") == "gromacs")
+    generate_g = G.generate
+
+    def generate_gromacs(self, s, ctx):  # WG-21 (MDATK 0.1.0)
+        files = generate_g(self, s, ctx)
+        helper = ctx.name("posre", "py")
+        return [_replace_file([f], helper, _sub(f.content, POSRE_OLD, POSRE_NEW))[0] if f.name == helper else f
+                for f in files]
+
+    G.generate = generate_gromacs
 
     F = farfar2.FarfarTool
     generate_f = F.generate
@@ -907,7 +937,12 @@ def _patch_modelling():
         old = f"# Extract the best {s['n_models']} models as numbered PDB files\nK=0\n"
         new = (f"# Extract the best {s['n_models']} models as numbered PDB files (those of an earlier run go first)\n"
                f"rm -f {ctx.name('models', 'txt')} {every}\nK=0\n")
-        return _replace_file(files, script, _sub(text, old, new))
+        text = _sub(text, old, new)
+        if s["dssr"]:  # WG-19 (MDATK 0.1.0)
+            pattern = ctx.name("model-MODELNUM", "pdb").replace("MODELNUM", "[0-9][0-9]")
+            text = _sub(text, f"# Annotate every model with DSSR\nfor f in {pattern}; do\n",
+                        f"# Annotate every model with DSSR\nfor f in {every}; do\n")
+        return _replace_file(files, script, text)
 
     M.generate = generate_models
 
@@ -924,6 +959,12 @@ def _patch_modelling():
                                         'return 1; }\n')
         text = _xargs_failures(text, s, "SimRNA", "frames", "their trajectories", "export SIMRNA_DIR",
                                "export SIMRNA_DIR FAILED")
+        if not s["cluster"]:  # WG-20 (MDATK 0.1.0): the output 'trajectory' (with clustering its script writes it)
+            from mdatk.workflows.base import require_file
+
+            all_trafl = ctx.name("simrna-all", "trafl")
+            text += "\n".join(["", "# all replica trajectories of all runs", f"cat runs/r*/*.trafl > {all_trafl}",
+                               require_file(all_trafl, "SimRNA"), ""])
         files = _replace_file(files, script, text)
         if s["cluster"]:
             cluster = ctx.name("simrna-cluster", "sh")

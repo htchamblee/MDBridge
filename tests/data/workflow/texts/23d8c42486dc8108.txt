@@ -18,11 +18,8 @@ rank_models() {
   awk -v f="$1" '$1=="SCORE:" { if ($0 ~ /description/) { s=2; d=NF; for (i=2; i<=NF; i++) { if ($i=="score") s=i; if ($i=="description") d=i }; next } print $s, $d, f }' "$1"
 }
 
-# Cluster all models (best cluster first)
-rm -f golden_03_cluster_20261015-1432.out
-rna_cluster -in:file:silent ../01_farfar2/golden_01_farfar2-r01_20261015-1432.out ../01_farfar2/golden_01_farfar2-r02_20261015-1432.out ../01_farfar2/golden_01_farfar2-r03_20261015-1432.out ../01_farfar2/golden_01_farfar2-r04_20261015-1432.out ../01_farfar2/golden_01_farfar2-r05_20261015-1432.out ../01_farfar2/golden_01_farfar2-r06_20261015-1432.out ../01_farfar2/golden_01_farfar2-r07_20261015-1432.out ../01_farfar2/golden_01_farfar2-r08_20261015-1432.out ../01_farfar2/golden_01_farfar2-r09_20261015-1432.out ../01_farfar2/golden_01_farfar2-r10_20261015-1432.out ../01_farfar2/golden_01_farfar2-r11_20261015-1432.out ../01_farfar2/golden_01_farfar2-r12_20261015-1432.out ../02_farfar2/golden_02_farfar2-r01_20261015-1432.out ../02_farfar2/golden_02_farfar2-r02_20261015-1432.out ../02_farfar2/golden_02_farfar2-r03_20261015-1432.out ../02_farfar2/golden_02_farfar2-r04_20261015-1432.out ../02_farfar2/golden_02_farfar2-r05_20261015-1432.out ../02_farfar2/golden_02_farfar2-r06_20261015-1432.out ../02_farfar2/golden_02_farfar2-r07_20261015-1432.out ../02_farfar2/golden_02_farfar2-r08_20261015-1432.out ../02_farfar2/golden_02_farfar2-r09_20261015-1432.out ../02_farfar2/golden_02_farfar2-r10_20261015-1432.out ../02_farfar2/golden_02_farfar2-r11_20261015-1432.out ../02_farfar2/golden_02_farfar2-r12_20261015-1432.out -out:file:silent golden_03_cluster_20261015-1432.out -cluster:radius 2.0 -nstruct 400 > golden_03_cluster_20261015-1432.log 2>&1
-[ -s "golden_03_cluster_20261015-1432.out" ] || { echo "ERROR: rna_cluster did not write golden_03_cluster_20261015-1432.out" >&2; exit 1; }
-rank_models golden_03_cluster_20261015-1432.out > golden_03_ranking_20261015-1432.txt
+# Rank every model of every run by total score
+for f in /golden/inputs/silent.silent; do rank_models "$f"; done | sort -g -k1,1 > golden_03_ranking_20261015-1432.txt
 
 # Extract the best 10 models as numbered PDB files (those of an earlier run go first)
 rm -f golden_03_models_20261015-1432.txt golden_03_model-[0-9]*_20261015-1432.pdb
@@ -37,7 +34,7 @@ while read -r SCORE TAG FILE; do
 done < golden_03_ranking_20261015-1432.txt
 
 # Annotate every model with DSSR
-for f in golden_03_model-[0-9][0-9]_20261015-1432.pdb; do
+for f in golden_03_model-[0-9]*_20261015-1432.pdb; do
   [ -e "$f" ] || continue
   x3dna-dssr -i="$f" -o="${f%.pdb}.dssr"
 done
