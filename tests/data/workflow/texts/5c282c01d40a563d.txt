@@ -1,0 +1,22 @@
+# Plan golden
+
+Written by MDBridge <VERSION> on <DATE>. File names follow `<project>_<step>_<tool>_<time>.<ext>` with time stamp `20261015-1432`.
+
+## 03 · Coot · real-space refinement (batch)
+
+Folder: `03_coot-rsr`  
+Type: Coot · real-space refinement (batch)
+
+Inputs:
+- model: `<ROOT>/inputs/model.pdb`
+- map: `/golden/inputs/map.map`
+
+Outputs:
+- refined: `03_coot-rsr/golden_03_refined_20261015-1432.pdb`
+- log: `03_coot-rsr/golden_03_coot-rsr_20261015-1432.log`
+
+Files written: `golden_03_coot-rsr_20261015-1432.py`, `golden_03_coot-rsr_20261015-1432.sh`
+
+Checks:
+- WARNING: Density map: file not found (yet): /golden/inputs/map.map
+- WARNING: Coot does not recognise the residue names LG5 x2, LG x2, LC x2, LA x2, LU x2, LC3 x2 (Amber-style names); convert with 'mdatk pdb clean --scheme ccd' first

@@ -1,0 +1,67 @@
+# Plan golden
+
+Written by MDBridge <VERSION> on <DATE>. File names follow `<project>_<step>_<tool>_<time>.<ext>` with time stamp `20261015-1432`.
+
+## Existing file
+
+Type: Existing file
+
+Checks:
+- ERROR: choose the file
+
+## Existing file
+
+Type: Existing file
+
+Checks:
+- ERROR: choose the file
+
+## 01 · Restraint dictionaries · acedrg / eLBOW
+
+Folder: `01_dicts`  
+Type: Restraint dictionaries · acedrg / eLBOW  
+MDBridge: `mdbridge` from PATH (MDBRIDGE in the scripts overrides it)
+
+Outputs:
+- dictionaries: `01_dicts/golden_01_0A5_20261015-1432.cif`, `01_dicts/golden_01_0A3_20261015-1432.cif`, `01_dicts/golden_01_0C5_20261015-1432.cif`, `01_dicts/golden_01_0C3_20261015-1432.cif`, `01_dicts/golden_01_0G5_20261015-1432.cif`, `01_dicts/golden_01_0G3_20261015-1432.cif`, `01_dicts/golden_01_0U5_20261015-1432.cif`, `01_dicts/golden_01_0U3_20261015-1432.cif`
+
+Files written: `golden_01_0A5_20261015-1432.smi`, `golden_01_0A3_20261015-1432.smi`, `golden_01_0C5_20261015-1432.smi`, `golden_01_0C3_20261015-1432.smi`, `golden_01_0G5_20261015-1432.smi`, `golden_01_0G3_20261015-1432.smi`, `golden_01_0U5_20261015-1432.smi`, `golden_01_0U3_20261015-1432.smi`, `golden_01_dicts_20261015-1432.sh`
+
+Checks:
+- WARNING: Model (PDB): Existing file does not produce this file with its current settings
+
+## 02 · Phenix · real-space refinement
+
+Folder: `02_phenix-rsr`  
+Type: Phenix · real-space refinement
+
+Inputs:
+- dictionaries: `01_dicts/golden_01_0A5_20261015-1432.cif`, `01_dicts/golden_01_0A3_20261015-1432.cif`, `01_dicts/golden_01_0C5_20261015-1432.cif`, `01_dicts/golden_01_0C3_20261015-1432.cif`, `01_dicts/golden_01_0G5_20261015-1432.cif`, `01_dicts/golden_01_0G3_20261015-1432.cif`, `01_dicts/golden_01_0U5_20261015-1432.cif`, `01_dicts/golden_01_0U3_20261015-1432.cif` (from 01 · Restraint dictionaries · acedrg / eLBOW)
+
+Outputs:
+- refined: `02_phenix-rsr/golden_02_refined_20261015-1432.pdb`
+- log: `02_phenix-rsr/golden_02_phenix-rsr_20261015-1432.log`
+
+Checks:
+- ERROR: Model (PDB): Existing file does not produce this file with its current settings
+- ERROR: Model (PDB): connect a step that produces it or choose a file
+- ERROR: Density map: Existing file does not produce this file with its current settings
+- ERROR: Density map: connect a step that produces it or choose a file
+- ERROR: give the resolution of the map (Å)
+
+## 03 · Coot · real-space refinement (batch)
+
+Folder: `03_coot-rsr`  
+Type: Coot · real-space refinement (batch)
+
+Inputs:
+- model: `02_phenix-rsr/golden_02_refined_20261015-1432.pdb` (from 02 · Phenix · real-space refinement)
+- dictionaries: `01_dicts/golden_01_0A5_20261015-1432.cif`, `01_dicts/golden_01_0A3_20261015-1432.cif`, `01_dicts/golden_01_0C5_20261015-1432.cif`, `01_dicts/golden_01_0C3_20261015-1432.cif`, `01_dicts/golden_01_0G5_20261015-1432.cif`, `01_dicts/golden_01_0G3_20261015-1432.cif`, `01_dicts/golden_01_0U5_20261015-1432.cif`, `01_dicts/golden_01_0U3_20261015-1432.cif` (from 01 · Restraint dictionaries · acedrg / eLBOW)
+
+Outputs:
+- refined: `03_coot-rsr/golden_03_refined_20261015-1432.pdb`
+- log: `03_coot-rsr/golden_03_coot-rsr_20261015-1432.log`
+
+Checks:
+- ERROR: Density map: Existing file does not produce this file with its current settings
+- ERROR: Density map: connect a step that produces it or choose a file

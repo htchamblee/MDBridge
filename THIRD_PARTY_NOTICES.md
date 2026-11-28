@@ -23,6 +23,7 @@ programs on Windows).
 | ColorBrewer colour schemes (via Matplotlib) | as in Matplotlib 3.11.2 | Apache License 2.0 (`ColorBrewer-LICENSE.txt`) | the Set1-3, Pastel1-2, Dark2, Accent and Paired colormaps in `src/render/core/mpl_colors.inc` (compiled in). Copyright (c) 2002 Cynthia Brewer, Mark Harrower, and The Pennsylvania State University | https://colorbrewer2.org |
 | SciPy (ndimage filtering and interpolation, the Powell and Brent minimisers, least_squares' trust region reflective method and finite differences, LSMR) | 1.18.1 | BSD-3-Clause (`scipy-LICENSE.txt`, with the ndimage package's own notice, Travis E. Oliphant's notice of the optimize module and the BSD licence of LSMR / LSQR: Copyright (C) 2010 David Fong and Michael Saunders; Copyright (c) 2006, Systems Optimization Laboratory) | `gaussian_filter1d` / `gaussian_filter` (modes "constant" and "reflect", one sigma per axis), `uniform_filter1d` (mode "constant"), order-1 `map_coordinates` (modes "nearest" and "constant") and order-1 `affine_transform` (mode "constant") of `scipy.ndimage` ported to C++ in `src/numerics/ndimage.cpp`, used by the molecular surface `src/render/molecule/surface.cpp`, the density shadow `src/render/molecule/density_shadow.cpp`, the software renderer `src/render/molecule/software.cpp` and the Vulkan renderer's halo weights `src/render/vulkan/scene_renderer.cpp`; `minimize(method="Powell")` with its Brent line search (`scipy/optimize/_optimize.py`) in `src/numerics/powell.cpp`; `least_squares(method="trf")` with its 2-point finite-difference Jacobian and column grouping (`scipy/optimize/_lsq/least_squares.py`, `trf.py`, `common.py`, `_numdiff.py`, `_group_columns.pyx`) in `src/numerics/least_squares.cpp`; `scipy.sparse.linalg.lsmr` in `src/numerics/lsmr.cpp` (compiled in) | https://github.com/scipy/scipy |
 | ducc0 FFT (as SciPy vendors it for `scipy.fft`) | 0.40.0 (SciPy 1.18.1's `subprojects/duccfft`; `third_party/ducc0`, unmodified, SHA-256 in `third_party/ducc0/SHA256SUMS`) | BSD-3-Clause (`ducc0-LICENSE.txt`; the sources offer BSD-3-Clause or GPL-2.0-or-later, MDBridge takes BSD-3-Clause). Copyright (C) 2010-2026 Max-Planck-Society, Copyright (C) 2019 Peter Bell; authors Martin Reinecke, Peter Bell | the real 3-D FFTs `rfftn` / `irfftn` of `src/numerics/fft.cpp` (the density fit's FFT translation search) (compiled in) | https://gitlab.mpcdf.mpg.de/mtr/ducc |
+| Lua | 5.4.9 (`third_party/lua`, the release unmodified, SHA-256 in `third_party/lua/SHA256SUMS`) | MIT (`lua-LICENSE.txt`). Copyright (C) 1994-2026 Lua.org, PUC-Rio | the interpreter that runs the workflow step generators (`src/workflow/lua`), with the base, string, table, math and utf8 libraries only (compiled in) | https://www.lua.org |
 | chemfiles (XTC decompression only) | commit 920a1347 | BSD-3-Clause (`chemfiles-LICENSE.txt`) | XTC coordinate decompression ported to C++ in `src/io/gromacs.cpp` (compiled in) | https://github.com/chemfiles/chemfiles |
 | xdrfile (via chemfiles' port) | as in chemfiles | BSD-2-Clause (`xdrfile-LICENSE.txt`) | the XTC decompression routines chemfiles took from xdrfile, in `src/io/gromacs.cpp` (compiled in) | https://github.com/chemfiles/chemfiles (src/files/XDRFile.cpp) |
 | OpenMM (force-field data only) | 8.1.2 | MIT (`OpenMM-LICENSE.txt`) | residue and atom names with their elements in `src/core/include/mdbridge/core/detail/data_tables_independent.inc`, used by the selection macros, element and mass guessing and the PDB writer, and the amber14 residue templates (atom names, partial charges, Lennard-Jones parameters) in `src/analysis/energy_lj_tables.inc`, used by the energy analysis (compiled in); the same tables also use the wwPDB Chemical Component Dictionary (CC0) and CIAAW/IUPAC atomic weights, see `data/sources/ATTRIBUTION.md` | https://github.com/openmm/openmm |
@@ -32,11 +33,13 @@ implements the format from numpy's published description (`numpy.lib.format`, NE
 application note, without numpy code, so no further notice applies.
 
 **Chemistry data.** The structure builder's and the restraint dictionaries' tables compiled into
-MDBridge (`src/chem/helix_tables.inc`, `src/chem/component_tables.inc`) come from the wwPDB
-Chemical Component Dictionary (the components A, C, G, U, 0A, 0C, 0G, 0U) and PDB entry 4JRD
-(Safaee et al. 2013), both CC0 1.0 (no notice required; credited as a courtesy), and from the
-published A-RNA fibre coordinates of Arnott, Hukins & Dover (1972), used as facts.
-`data/sources/ATTRIBUTION.md` lists every source with its licence. <!-- W2-A -->
+MDBridge (`src/chem/helix_tables.inc`, `src/chem/component_tables.inc`, `src/chem/triplex_tables.inc`)
+come from the wwPDB Chemical Component Dictionary (the components A, C, G, U, 0A, 0C, 0G, 0U and the
+N3-protonated cytidine CH), PDB entry 4JRD (Safaee et al. 2013) and PDB entries 3P22, 4PLX, 6SVS and
+7JNH (Mitton-Fry et al. 2010, Brown et al. 2014, Ruszkowska et al. 2020, Torabi et al. 2021), all CC0
+1.0 (no notice required; credited as a courtesy), and from the published A-RNA fibre coordinates of
+Arnott, Hukins & Dover (1972), used as facts. `data/sources/ATTRIBUTION.md` lists every source with
+its licence.
 
 **Qt (LGPL v3).** MDBridge links Qt dynamically. The Qt libraries are separate files: in the
 AppImage under `usr/lib` (`./MDBridge-*.AppImage --appimage-extract` unpacks them), on Windows next

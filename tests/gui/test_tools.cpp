@@ -18,6 +18,7 @@
 #include <optional>
 #include <sstream>
 #include <string>
+#include <tuple>
 #include <vector>
 
 #include <QAbstractButton>
@@ -28,6 +29,7 @@
 #include <QApplication>
 #include <QCheckBox>
 #include <QComboBox>
+#include <QStandardItemModel>
 #include <QDoubleSpinBox>
 #include <QLabel>
 #include <QLineEdit>
@@ -58,6 +60,7 @@
 #include "gui/tools/tool_actions.hpp"
 #include "gui/tools/tool_windows.hpp"
 #include "gui_harness.hpp"
+#include "mdbridge/chem/helix.hpp"
 #include "mdbridge/core/paths.hpp"
 #include "mdbridge/core/project_document.hpp"
 #include "mdbridge/core/project_file.hpp"
@@ -246,8 +249,10 @@ private slots:
     void pdbCleanWritesWhatTheCommandWrites();
     void builderHelixWritesWhatTheCommandWrites();
     void builderNonWcHelixBuildsInTheBackground();
+    void builderGreysOutWhatRnaDoesNotForm();
     void mutateAndFitWriteWhatTheCommandsWrite();
     void fitCancelIsLoggedAsCancelled();
+    void helixCancelStopsTheFittedBuild();
     void closingDuringABuildAsks();
     void hostedWithoutTheAnalysisWindow();
     void everyControlIsNamedAndReachable();
@@ -386,9 +391,7 @@ void ToolTests::builderHelixWritesWhatTheCommandWrites() {
 }
 
 // MDATK tests/test_gui.py::test_builder_non_wc_helix_builds_in_the_background: the build runs on
-// the window's worker and the window stays responsive. The fitted helix builder (W2-A) is not there
-// yet: the library's "not available yet" is reported cleanly and nothing is written; once it lands
-// the file is written and the PENDING branch below goes.
+// the window's worker and the window stays responsive; the file is what the command line writes
 void ToolTests::builderNonWcHelixBuildsInTheBackground() {
     Fixture f;
     BuilderWindow* dlg = f.openBuilder();
@@ -405,17 +408,48 @@ void ToolTests::builderNonWcHelixBuildsInTheBackground() {
     QVERIFY(control<QPushButton>(dlg, "write")->isEnabled());
     QVERIFY(!control<QProgressBar>(dlg, "progress")->isVisible());
     const QString report = dlg->reportText();
-    if (report.contains(QStringLiteral("not available yet"))) {
-        QCOMPARE(report, QStringLiteral("ERROR: pairing hh is built by the fitted helix builder (not available yet)"));
-        QVERIFY(!fs::exists(out));
-        const core::Array entries = stepLog(f.project);  // as the command line: a failed step
-        QCOMPARE(entries.size(), std::size_t{1});
-        QCOMPARE(entryText(entries[0], "status"), std::string("failed"));
-        QCOMPARE(entryText(entries[0], "title"), std::string("Ideal parallel tHH D-RNA helix AAAA"));
-        QSKIP("PENDING(W2-A): the non-Watson-Crick pairings are not built yet; the window reports it cleanly");
-    }
     QVERIFY2(report.contains(QStringLiteral("Wrote")), qPrintable(report));
     QVERIFY(fs::exists(out));
+    QCOMPARE(runCommand({"build", "helix", "--seq", "AAAA", "--pairing", "hh", "-o", "cli_hh.pdb"}), 0);
+    QCOMPARE(readFile(out), readFile(f.dir / "cli_hh.pdb"));
+    const core::Array entries = stepLog(f.project);
+    QCOMPARE(entries.size(), std::size_t{1});
+    QCOMPARE(entryText(entries[0], "title"), std::string("Ideal parallel tHH D-RNA helix AAAA"));
+}
+
+// CH-18: reverse-wc, reverse-hoogsteen and the purine-motif triplex are greyed out in their lists, with the
+// reason as the tooltip; set anyway (a project, a script), Check and Write report the library's error and
+// nothing is written (the step is logged as failed, as the command line's)
+void ToolTests::builderGreysOutWhatRnaDoesNotForm() {
+    Fixture f;
+    BuilderWindow* dlg = f.openBuilder();
+    for (const auto& [key, id, rna] :
+         {std::make_tuple("pairing", "reverse-wc", false), std::make_tuple("pairing", "reverse-hoogsteen", false),
+          std::make_tuple("triplex", "reverse-hoogsteen", false), std::make_tuple("pairing", "hoogsteen", true),
+          std::make_tuple("pairing", "hh", true), std::make_tuple("triplex", "hoogsteen", true)}) {
+        QComboBox* box = control<QComboBox>(dlg, key);
+        const int index = box->findData(QString::fromLatin1(id));
+        QVERIFY2(index >= 0, id);
+        auto* model = qobject_cast<QStandardItemModel*>(box->model());
+        QVERIFY(model);
+        QCOMPARE(model->item(index)->isEnabled(), rna);
+        const QString tip = box->itemData(index, Qt::ToolTipRole).toString();
+        QCOMPARE(tip.contains(QStringLiteral("RNA is not known to form")), !rna);
+    }
+    setText(dlg, "seq", QStringLiteral("AAGA"));
+    choose(dlg, "pairing", "reverse-wc");
+    dlg->setPage(QStringLiteral("helix"));
+    dlg->checkCurrent();
+    const QString message = QString::fromStdString(*chem::rnaRefusal("reverse-wc"));
+    QVERIFY2(dlg->reportText().contains(message), qPrintable(dlg->reportText()));
+    const fs::path out = f.dir / "rwc.pdb";
+    setText(dlg, "helix_out", qs(out));
+    dlg->runCurrent();
+    QVERIFY(QTest::qWaitFor([&] { return !dlg->busy(); }, 120000));
+    QCOMPARE(dlg->reportText(), QStringLiteral("ERROR: ") + message);
+    QVERIFY(!fs::exists(out));
+    QCOMPARE(runCommand({"build", "helix", "--seq", "AAGA", "--pairing", "reverse-wc", "-o", "cli_rwc.pdb"}), 1);
+    QVERIFY(!fs::exists(f.dir / "cli_rwc.pdb"));
 }
 
 void ToolTests::mutateAndFitWriteWhatTheCommandsWrite() {
@@ -481,6 +515,34 @@ void ToolTests::fitCancelIsLoggedAsCancelled() {
     QCOMPARE(entryText(entries[1], "step"), std::string("build fit"));
     QCOMPARE(entryText(entries[1], "status"), std::string("cancelled"));
     QVERIFY(entries[1].find("files") == nullptr);
+}
+
+// A fitted helix build cancelled while it closes its strands stops (the fit and the closure poll the job's
+// cancel): nothing is written and the step is logged as cancelled, not as succeeded
+void ToolTests::helixCancelStopsTheFittedBuild() {
+    Fixture f;
+    BuilderWindow* dlg = f.openBuilder();
+    // ten mixed levels: the closure takes tens of seconds after its first report on any runner
+    setText(dlg, "seq", QStringLiteral("AAGAGAAGGA"));
+    choose(dlg, "pairing", "hoogsteen");
+    const fs::path out = f.dir / "hoogsteen.pdb";
+    setText(dlg, "helix_out", qs(out));
+    dlg->setPage(QStringLiteral("helix"));
+    dlg->runCurrent();
+    QVERIFY(dlg->busy());
+    // the closure has begun: its first report (after the reference fit and the t = 0 solve), however
+    // fast the runner is (a fraction would depend on its speed; Windows took over 120 s to reach 5 %)
+    QVERIFY(QTest::qWaitFor([&] { return dlg->jobs().statusText().contains(QStringLiteral("closing the strands")); },
+                            600000));
+    click(dlg, "cancel");
+    QVERIFY(QTest::qWaitFor([&] { return !dlg->busy(); }, 120000));
+    QCOMPARE(dlg->reportText(), QStringLiteral("Cancelled: the helix build stopped, nothing was written."));
+    QVERIFY(!fs::exists(out));
+    const core::Array entries = stepLog(f.project);
+    QCOMPARE(entries.size(), std::size_t{1});
+    QCOMPARE(entryText(entries[0], "step"), std::string("build helix"));
+    QCOMPARE(entryText(entries[0], "status"), std::string("cancelled"));
+    QVERIFY(entries[0].find("files") == nullptr);
 }
 
 // TW-04 (JB-01): closing the builder while it builds asks; Cancel keeps it, Close cancels and waits

@@ -25,6 +25,17 @@ and compiled with the numerics library. CMake checks every file against
 `python -I -B tools/vendor_ducc0.py scipy-1.18.1.tar.gz --check` compares the copy with SciPy's
 source release (PyPI), and without `--check` writes it again.
 
+Lua 5.4.9 (MIT), which runs the workflow step generators, is vendored the same way: PUC-Rio's
+release, unmodified, in `third_party/lua` (`tools/vendor_lua.py lua-5.4.9.tar.gz [--check]`, the
+tarball from https://www.lua.org/ftp/, checked against its SHA-256; CMake checks
+`third_party/lua/SHA256SUMS`). It is compiled as C++ (so Lua errors unwind through the host's C++
+frames), only its core and the base, string, table, math and utf8 libraries, by
+`src/workflow/lua/CMakeLists.txt`, with GCC's `-Wall -Wextra` (GCC 11 gives no warning) and
+MSVC's default `/W3`; MDBridge's stricter warnings and warnings-as-errors apply to the host code
+only. To update Lua, change the version and SHA-256 in `tools/vendor_lua.py` and the
+version in `src/workflow/lua/CMakeLists.txt`, run the script, and check that
+`src/workflow/lua/lua_seed.hpp` still matches `luai_makeseed` in `lstate.c`.
+
 ### Getting Qt
 
 Qt is not fetched (building it per checkout would take an hour). Any of:

@@ -1,0 +1,41 @@
+# Plan golden
+
+Written by MDBridge <VERSION> on <DATE>. File names follow `<project>_<step>_<tool>_<time>.<ext>` with time stamp `20261015-1432`.
+
+## 01 · Amber · system build
+
+Folder: `01_amber-build`  
+Type: Amber · system build  
+MDBridge: `mdbridge` from PATH (MDBRIDGE in the scripts overrides it)
+
+Inputs:
+- structure: `/golden/inputs/structure.pdb`
+
+Outputs:
+- topology: `01_amber-build/golden_01_parmed_20261015-1432.parm7`
+- coordinates: `01_amber-build/golden_01_tleap_20261015-1432.rst7`
+- pdb: `01_amber-build/golden_01_tleap_20261015-1432.pdb`
+
+Files written: `golden_01_cp-lib_20261015-1432.py`, `golden_01_prep_20261015-1432.py`, `golden_01_tleap_20261015-1432.leap`, `golden_01_parmed_20261015-1432.in`, `golden_01_amber-build_20261015-1432.sh`
+
+Checks:
+- WARNING: Starting structure (PDB): file not found (yet): /golden/inputs/structure.pdb
+
+## 02 · Amber · MD stages
+
+Folder: `02_amber-md`  
+Type: Amber · MD stages
+
+Inputs:
+- coordinates: `01_amber-build/golden_01_tleap_20261015-1432.rst7` (from 01 · Amber · system build)
+- restraints: `/golden/inputs/h.dist`
+
+Outputs:
+- restart: `02_amber-md/golden_02_prod_20261015-1432.rst7`
+- trajectory: `02_amber-md/golden_02_prod_20261015-1432.nc`
+- dry_pdb: `02_amber-md/golden_02_dry_20261015-1432.pdb`
+
+Checks:
+- ERROR: Topology (parm7) cannot take a PDB structure
+- ERROR: Topology (parm7): connect a step that produces it or choose a file
+- WARNING: Restraints (DISANG): file not found (yet): /golden/inputs/h.dist

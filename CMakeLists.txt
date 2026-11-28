@@ -47,6 +47,7 @@ add_subdirectory(src/io)
 add_subdirectory(src/numerics)  # scipy.ndimage / fft / optimize / spatial pieces MDATK uses; no Qt
 add_subdirectory(src/chem)
 add_subdirectory(src/analysis)
+add_subdirectory(src/workflow/lua)  # the Lua host of the workflow generators (vendored Lua 5.4); no Qt
 add_subdirectory(src/render/core)  # the render module's Qt-free part
 add_subdirectory(src/render/molecule)  # 3D representation geometry; no Qt
 add_subdirectory(src/render/vulkan)  # Vulkan without a window (offscreen rendering, probe); no Qt

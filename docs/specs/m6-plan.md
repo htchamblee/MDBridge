@@ -83,7 +83,7 @@ used: DIFFERENCES "No Barnaba".
 | Arnott A-RNA monomer, base templates, hydrogen rules | builder.py:84-135, 137-243 | cylindrical coordinates from AmberTools' `nucgen.dat` `$ARNA` (section 3.3); `_place`, `_hydrogens` (ideal C-H / N-H / O-H, HO2' torsion 180°), `template`, wobble turns G −13.3° / U 11.4°, `_screw` (32.7°, 2.81 Å), `_dyad` | done (M6 W1-D: src/chem/helix.cpp; CHD-01) |
 | Sequences and messages | :244-457 | `parse_sequence` (T read as U, `5'-...-3'`), `complement`, `helix_kind`, `check_pairing`, `check_triplex`, `auto_partner`, `resolve_partner`, `pair_types`, `pairing_kinds`, `resolve_third`, `triplex_kinds`, `check_helix` (the levelled messages the planner and the window show) | done (M6 W1-D: `chem::parseSequence`, `complement`, `helixKind`, `checkPairing`, `checkTriplex`, `resolvePartner`, `checkHelix`, ..., src/chem/helix.cpp) |
 | Watson-Crick helix | :460-690 | `_tail` (column limits), `_strand_residue` (5'-OH or 5'-phosphate with OP3, HO5' / HO3'), `_parse_pair` / `_parse_ids` (chains, start numbers), `build_helix`: duplex / single strand, D or L (x -> −x mirror), names through `convert_names` (default scheme `rosetta`-like: A C G U / 0A 0C 0G 0U, no terminals), `REMARK 951` header, mismatch / wobble notes, centring | done (M6 W1-D: `chem::buildHelix` with pairing `wc`, names through W1-A's `chem::convertNames` / `setRecords`; CH-01, CH-02, D13) |
-| Other pairings and triplexes | :693-1878 | PDB 4JRD nucleotide (:820-829, CC0), `PAIRINGS` (reverse-wc, hoogsteen, reverse-hoogsteen, hh) and triplex motifs, H-bond tables (:850-865), `_pair_fit` (least squares, :1010-1063), the reference helix fit `_helix_fit` (:1363-1375; `least_squares` from `_HELIX_START`, cached per kind), `_level_pose` (mismatches moved off, :1624-1669), `_close_levels` (joint closure: rigid levels + per-nucleotide torsions, sparse-Jacobian TRF with LSMR, contact terms refreshed with `cKDTree.query_pairs`, :1453-1581), contacts and geometry notes (`_close_contacts`, `_geometry_notes`, `_torsion_note`, :1746-1878), `_turn_terminal_hydroxyls` (:693-720) | - |
+| Other pairings and triplexes | :693-1878 | PDB 4JRD nucleotide (:820-829, CC0), `PAIRINGS` (reverse-wc, hoogsteen, reverse-hoogsteen, hh) and triplex motifs, H-bond tables (:850-865), `_pair_fit` (least squares, :1010-1063), the reference helix fit `_helix_fit` (:1363-1375; `least_squares` from `_HELIX_START`, cached per kind), `_level_pose` (mismatches moved off, :1624-1669), `_close_levels` (joint closure: rigid levels + per-nucleotide torsions, sparse-Jacobian TRF with LSMR, contact terms refreshed with `cKDTree.query_pairs`, :1453-1581), contacts and geometry notes (`_close_contacts`, `_geometry_notes`, `_torsion_note`, :1746-1878), `_turn_terminal_hydroxyls` (:693-720) | done (M6 W2-A: src/chem/helix_fit.cpp behind `chem::buildHelix`; CH-16 continuation closure, CH-17 continuous torsion term, NU-03) |
 | Mutations | :1881-2117 | `parse_mutations` (`A:5G`, `A:5>G`, `:5G`), `mutated_name` (scheme, hand, terminal kept), `_partners` (`PairDetector`), `_swap_base` (weighted Kabsch on C1' + glycosidic frame, B-factor / record from C1', altlocs merged, chirality re-checked), `mutate` (compensatory partners, `--wobble`, REMARK 950 dropped) | done (M6 W2-B: `chem::parseMutations`, `mutatedName`, `mutate`, src/chem/mutate.cpp; CH-08, CH-09) |
 | Rigid-body fit | :2120-2250 | `model_atoms` (heavy atoms, first altloc), `transform_pdb_text` (coordinates and ANISOU only), `fit_to_map` (global / local through `density.fit_model`; damaged columns rewritten through `write_pdb`), notes (CC, rotation, shift, CRYST1 kept) | done (M2: `io::transformPdbText`, `io::newAtomTail`; M6 W2-B: `chem::atomElement`, `modelAtoms`, `fitToMap`, src/chem/fit_to_map.cpp; CH-10) |
 | Command line | :2253-2324 | `helix` / `mutate` / `fit` parsers, `run` writes the output | done (M6 W2-C: chem_commands.cpp) |
@@ -522,6 +522,30 @@ primary sources; docs/DIFFERENCES.md "Chemistry reference data"):
     for DNA and DNA-RNA hybrids (the owner's example: HBV) with DNA structure building.
   - The CH-17 refit of the reference helices is dropped: its reverse-hoogsteen strands interpenetrate
     from 5 levels on. CH-17's smooth term stays in the closure.
+- **D19 Sequences a kind cannot pair; C+; crystal and solution (CH-18 revised, CH-19 ... CH-21)** (decided
+  2026-11-27, after the review of CH-18). Owner: "Reliable geometry is infinitely more important than
+  runtime. It could take 1,000 times longer if that's what it takes to produce realistic geometry."
+  1. Hoogsteen-kind builds (the Hoogsteen duplex, the pyrimidine-motif triplex) with a U or C on strand 1,
+     the strand whose Hoogsteen edge must be a purine's, are refused, the message naming the positions
+     (the owner chose "refuse" over warn or keep).
+  2. hh builds accept A·A levels only; other bases are refused (hh is the poly(rA) duplex of 4JRD).
+  3. C+·G Hoogsteen pairs (C+·G-C triples, Hoogsteen C·G pairs): the cytidine is the wwPDB CCD's
+     N3-protonated cytidine `CH` (atom names and definition from the CCD entry, data/sources, generated
+     tables), with its N3 proton when hydrogens are written: "Use the CCD code for protonated cytosine,
+     CH. If a downstream program can't read it, we will address it when that program is used. We should
+     start out using CCD standards." Without hydrogens the residue is still `CH` (CH-21).
+  4. Crystal and solution: "Exotic geometry with only crystallographic data should be handled while
+     bearing in mind that its native solution conformation may differ somewhat from what it adopts
+     under crystallization." Physical checks stay strict (no clashes, H-bond lengths, link lengths and
+     angles, stacking within the experimental range: chemistry, not crystal artefacts). Twist and rise
+     are approximate: the crystal mean stays the target, the spreads are computed over independent
+     structures (NCS and crystallographic copies of one molecule counted once) and used in restraints
+     and tests; end-of-run and lattice-contact layers are checked for their effect on the statistics
+     (the interior set is used if leaving them out moves a mean by more than its spread). The docs say
+     the geometry is crystal-derived and that the solution conformation may differ (measured on
+     duplexes solved both ways: about 1-3° of mean twist and up to about 0.2 Å of rise, either
+     direction; docs/reports/2026-11-28-crystal-vs-solution.md; NMR: 2M8K 33.0° / 3.36 Å; the hTR
+     pseudoknots 28.7° / 3.72 Å).
 
 ## 8. Risks
 

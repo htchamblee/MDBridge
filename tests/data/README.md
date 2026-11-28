@@ -506,8 +506,8 @@ with 1. The chem commands of milestone 6 (`pdb clean / check / to-lrna / annotat
 mutate / fit`, `dict list / smiles / finish / pubchem`, `density fit / simulate`, and `render` with a
 map and `auto_fit`) have their cases too; each records the chem commands it `needs`, and a case is
 marked `pending` while one of them is in cli_parity.py's `PENDING` (skipped when comparing and by the
-C++ test; since milestone 6 W2-C only `build helix pairings`, the other pairings and triplexes of
-W2-A): their inputs come from
+C++ test; `PENDING` has been empty since milestone 6 W2-A, which brought the other pairings and
+triplexes): their inputs come from
 `build helix` run first, `chem/maps` and `chem/dictionaries`; MDATK runs with `improvements_chem.py`
 and the command line in `sys.argv` (the step log records it), the step log's `time` / `duration_s`
 are masked, and `dict pubchem` asks a stand-in PubChem on 127.0.0.1 (`MDBRIDGE_PUBCHEM_URL`, owner
@@ -577,7 +577,7 @@ docstring:
 | `annotate_cases.json` | `make_annotate_cases.py` | built helices and crafted files; `annotate` with every option and engine (records, notes, text) |
 | `dict_cases.json`, `dictionaries/*.cif` | `make_dict_cases.py` (pytest: `tests/test_dictionaries.py`'s synthetic dictionaries) | `COMPONENTS`; `parse_smiles` (test strings, the components, a fuzzed set); `match_graph`; `check_smiles` / `identify_smiles`; `finish_dictionary` of synthetic acedrg / eLBOW dictionaries with every option; two dictionaries for `cli_parity.py`'s `dict finish` cases |
 | `builder_cases.json` | `make_builder_cases.py` | `check_helix` and the sequence functions; the A-form templates; Watson-Crick `build_helix` over its options; `mutate` and `parse_mutations` |
-| `builder_fitted_cases.json`, `maps/{helix_moved,strand_moved,strand_nan}.mrc` | `make_builder_cases.py` | the reference helix fits of the other pairings (start, the refined parameters `least_squares` reaches, cost, screw, torsions, contacts), `_pair_fit` of every canonical pair, the rebuilt helices (other pairings, triplexes: text, notes, heavy-atom coordinates), `fit_to_map` on the maps (one model with shifted columns takes the rewrite; read by `tests/chem/test_mutate.cpp`, the fits within D10's tolerance) |
+| `builder_fitted_cases.json`, `maps/{helix_moved,strand_moved,strand_nan}.mrc` | `make_builder_cases.py` | the reference helix fits of the kinds still built (hh, the Hoogsteen duplex, the pyrimidine-motif triplex; CH-18: start(s), the fit's parameters, cost, nfev, status, and the screw, torsions and contacts of those parameters), `_pair_fit` of every canonical pair (MDATK's H-bond fits; CH-18's kinds pose theirs from the RNA triple helices), the rebuilt helices (other pairings, triplexes, CH-16's continuation closure, CH-18's geometry; the refused kinds (CH-18) and sequences (CH-19) as errors: text, notes, heavy-atom coordinates; read by `tests/chem/test_builder.cpp` within D10; built in parallel worker processes, `MDBRIDGE_GENERATOR_JOBS`), `fit_to_map` on the maps (one model with shifted columns takes the rewrite; read by `tests/chem/test_mutate.cpp`, the fits within D10's tolerance) |
 | `density_fit_cases.json`, `maps/fit_*.mrc` | `make_density_fit_cases.py` (MDAnalysis: the demo frame) | `rotation_samples`, `_fft_size`, per model x map the `FitProblem`, CCs, flips, the coarse search's grid and peaks, `refine`, `fit_model` global and manual; errors (read by `tests/chem/test_density_fit.cpp`: fits within D10's tolerance) |
 
 numpy's and OpenBLAS' kernels are pinned (`chem_common.py`, as `make_analysis_cases.py`). The
@@ -589,17 +589,15 @@ digit); the maps are made without BLAS products and compared byte for byte. Pinn
 the reference machine's bits on every CI runner: on one (CI run 45898985841) the density fits' flips
 (a 3 x 3 product and LAPACK's eigh) moved by a few ulps, every other pinned number keeping its bits,
 and the results whose path runs through them moved further: Powell's evaluation counts of two global
-fits (by 0.4 % and 0.9 %; transforms and CCs within the chem tolerance) and the least-squares
-closures of 17 rebuilt helices and three `build helix` command-line cases (MDATK's closures are four
-passes of at most 40 evaluations with contact sets refreshed between them, so they stop wherever the
-path has led: up to 2.8 Å apart, one close-contact note reworded). `regenerate_all.py` therefore
-checks whether the fresh flips equal the committed ones bit for bit (`KERNEL_PROBE`); where they do
-not, it prints `OTHER KERNELS` and compares those results (`PATH_DEPENDENT`) for what does not follow
-the path: evaluation counts within 5 % (as `tests/numerics/test_optimize.cpp` compares SciPy's nfev
-without glibc), rebuilt helices and the command-line cases with `fitted` with their inputs, atom
-records (columns 1-30 and 55-), heavy-atom names, line and note counts equal and every other line
-equal with its numbers masked. Everywhere else, and on runners that reproduce the flips, they are
-compared as above. The C++ tests compare
+fits (by 0.4 % and 0.9 %; transforms and CCs within the chem tolerance). `regenerate_all.py`
+therefore checks whether the fresh flips equal the committed ones bit for bit (`KERNEL_PROBE`); where
+they do not, it prints `OTHER KERNELS` and compares those results (`PATH_DEPENDENT`) with their wider
+tolerances: evaluation counts within 5 % (as `tests/numerics/test_optimize.cpp` compares SciPy's nfev
+without glibc); the rebuilt helices and the command-line cases with `fitted` with D10 (atom records'
+columns 1-30 and 55- equal, every atom within 0.05 Å, the heavy atoms within 0.01 Å RMSD, the notes'
+numbers within one unit of their last printed digit, the rest equal), which the continuation closure
+(docs/DIFFERENCES.md CH-16) meets on any kernel. Everywhere else, and on runners that reproduce the
+flips, they are compared as above. The C++ tests compare
 fitted results with D10's tolerances (non-Watson-Crick helices: heavy-atom RMSD <= 0.01 Å, every
 atom <= 0.05 Å; fits: 0.5°, 0.2 Å, CC 1e-3; plan 4.1). To regenerate, with an MDATK checkout at
 `v0.0.4.1` (nothing is written into it):
@@ -614,16 +612,30 @@ atom <= 0.05 Å; fits: 0.5°, 0.2 Å, CC 1e-3; plan 4.1). To regenerate, with an
 
 The chemistry reference tables of milestone 6 are not test data but are regenerated (and compared)
 by the same job: `tools/gen_chem_tables.py` writes `src/chem/helix_tables.inc` (the Arnott A-RNA
-monomer from `data/sources/helix`, the 4JRD nucleotide and screw from `data/sources/pdb`) and
+monomer from `data/sources/helix`, the 4JRD nucleotide and screw from `data/sources/pdb`),
 `src/chem/component_tables.inc` (the CCD's L-ribonucleotides 0A 0C 0G 0U from
-`data/sources/ccd/ribonucleotide_*.tsv`), pure Python and deterministic, and compares them with
+`data/sources/ccd/ribonucleotide_*.tsv`, the N3-protonated cytidine CH from
+`protonated_cytidine_*.tsv`) and `src/chem/triplex_tables.inc` (the mean base triples, screws and
+spreads of the RNA triple helices PDB 3P22, 4PLX, 6SVS and 7JNH from `data/sources/pdb/triplex_levels.tsv`
+and the `*_triplex_atoms.tsv` extracts; every site, a molecule's copies counted once:
+data/sources/pdb/README.md, docs/DIFFERENCES.md CH-18, CH-20), pure Python and deterministic, and compares them with
 MDATK 0.0.4.1's embedded tables (`builder.py`, `dictionaries.py`): a difference that is not one of
 its documented ones (docs/DIFFERENCES.md CHD-01, CHD-02) fails the step. `tests/chem/test_reference_tables.cpp`
 checks the tables' chemistry (bond lengths, links, compositions).
 
 ```bash
-python3 -I -B tools/gen_chem_tables.py /tmp/mdatk   # src/chem/helix_tables.inc, component_tables.inc
+python3 -I -B tools/gen_chem_tables.py /tmp/mdatk   # src/chem/helix_tables.inc, component_tables.inc, triplex_tables.inc
 ```
+
+`BuilderGeometry.ExperimentalKindsMatchTheRnaTripleHelices` (tests/chem/test_builder.cpp) holds the
+experimental ranges of these steps, measured as docs/reports/2026-11-27-non-wc-geometry.md measures
+them (the rigid fit of C1' and the base atoms both residues of a strand have; the base planes of all
+strands; strand stacking; the inclination of a level's base plane to the step's axis): purine and
+Hoogsteen strands (53 steps) twist 21.6-37.7°, rise 2.55-3.93 Å, base planes 3.06-3.49 Å, inclination
+3.0-17.1°, stacking at most 3.42 / 3.71 Å; the triples twist 26.9-34.9°, rise 2.78-3.78 Å, base planes
+3.13-3.49 Å, inclination 0.7-14.2°, stacking at most 3.42 / 3.79 / 3.71 Å; links C3'-O3'-P 117.1-124.6°,
+O3'-P-O5' 100.2-106.4°, epsilon −188 ... −101°; and the tables' means (30.48° / 3.007 Å / 3.270 Å and
+30.40° / 3.021 Å / 3.263 Å). Change them with the data, not by hand: they are the report's numbers.
 
 The workflow generators' tables and helper texts of milestone 7 (W0-C) are regenerated and compared
 the same way: `tools/gen_workflow_tables.py` writes `src/workflow/tables.inc` (force fields, water
@@ -1218,8 +1230,9 @@ closed). `needs` holds `tools` for these cases. The density fit's case (`builder
 `fitted` (above): the fitted PDB's coordinates within 0.01 Å (D10's fit agreement is 0.5° and 0.2
 Å; the case asks for less), the project's step log within the last printed digit;
 `regenerate_all.py` compares the fit case's files across machines by the chemistry's rule
-(FITTED_TEXT). The non-Watson-Crick builds are not in
-the cases until the fitted builder (W2-A) lands: their *Check* messages are.
+(FITTED_TEXT). The non-Watson-Crick builds are in the cases since W2-A (`builder_helix`: the *Check*
+messages of hh, reverse Hoogsteen, now the CH-18 refusal, and a triplex); their built models are
+compared in `chem/builder_fitted_cases.json` and the command-line cases.
 
 ## numerics: SciPy's numerics (milestone 6, W0-C)
 
@@ -1239,6 +1252,90 @@ and `regenerate_all.py` compares the file as JSON within a relative 1e-12 where 
 ```bash
 /opt/mdbridge-venv/bin/python -I -B tests/parity/make_numerics_cases.py tests/data/numerics
 ```
+
+## workflow: the Project Planner's step types (milestone 7, W0-A)
+
+`tests/parity/make_workflow_cases.py` runs MDATK v0.0.4.1's workflow layer (`mdatk/workflows`: the
+sixteen step types, the plan, its master script and summary, the templates, the graph edits) on cases and
+records what it writes, for `src/workflow` (`tests/workflow/*.cpp`, docs/specs/m7-plan.md 4.2 and 4.3).
+The case design is MDATK 0.1.2's `tests/golden.py` (the owner's code) with full texts. MDATK runs with
+MDBridge's workflow improvements (`tests/parity/improvements_workflow.py`: WG-01 ... WG-21 of the plan's
+section 5 and the owner decisions D3, D6, D9, D11, D13, D14, each named in that file with the MDATK version
+whose design it follows; it applies `improvements_chem.py` and `improvements_citations.py` first, since the
+plan-time checks read files with the chem layer and the scripts cite with MDBridge's table), and once more
+as MDATK v0.0.4.1, whose output is recorded where it differs (beyond D11's program name).
+
+| Path | Content |
+|---|---|
+| `workflow/fixtures/` | the input files the plan-time checks read, written by the generator: `d_duplex.pdb`, `l_duplex.pdb` (MDATK's builder, GGCAUC / GAUGCC with Amber names, D and L), `dl_duplex.pdb` (a D and an L duplex), `blank_chains.pdb` (the D duplex with blank chain ids, both strands numbered 1-6: WG-06), `annotated.pdb` (the D duplex with REMARK 950 PAIR records, the builtin engine), `hairpin.secstruct` / `hairpin_no_sequence.secstruct` (WG-10), `lrna_a0.lib` / `lrna_dudek.lib` (minimal OFF libraries with A0-style and Dudek-style L units: D9's lanthanide check), `cp_types.frcmod`. Cases also read `topology/demo_dry.parm7` (the direct DISANG file) |
+| `workflow/cases/<group>.json` | `{"stamp", "root", "texts", "cases": [...]}`, one case per line; the groups are `templates`, `plan`, `graph` and one per step type |
+| `workflow/texts/<id>.txt` | every generated text once, named by the first 16 hex digits of the SHA-256 of its (masked) UTF-8 bytes |
+
+A case: `name`, `items` (the WG / D ids it shows; D11 shows in every generated text), `workflow`
+(`project_name`, `stamp`, `use_stamp`, `step_folders`, `nodes` with `id`, `tool`, `step`, `title`, `x`, `y`,
+`settings` (only the values that differ from MDBridge's defaults: the plan normalises them) and `files`
+(hand-picked inputs), `edges` as `[source, output, target, input]`), `groups` (the residue groups the plan
+is resolved with: a new project's, or none), `fixtures` (plan-folder path -> file under `tests/data`, copied
+into the plan folder first), `mdatk_test` (the MDATK test it follows, where one does) and `result`:
+
+* `issues`: `[node id ("" for the plan), level, message, keys]` in `Plan.all_issues()` order; `order`;
+* `steps`: per node `label`, `ok`, `describe`, `resources`, `folder`, `inputs` / `outputs` as port values
+  (`paths`, `kind`, `data` (an RNA model as its chains, dot-bracket and pairs), `source`, `source_label`),
+  and for steps that generate `files`: `[{name, role, description, text}]` (`text`: the id in `texts/`, the
+  text as written: a final newline added when the generator gave none, `eol_added`). A step with errors is
+  not written; its generator's files are recorded all the same (`forced`; `exception` when it raised);
+* `write`: `Plan.write()` of the whole plan: `written` (plan-relative path -> `text` id and `mode`, 755 for
+  scripts), `skipped`, `master`, `summary`, `stamp` (the plan's afterwards).
+
+`mdatk`, where present, is MDATK v0.0.4.1's own result where it differs: `issues`, `texts` (step files as
+`<node>/<name>` and the master and summary by path -> the first 16 hex digits of the SHA-256 of MDATK's
+text; null: a file MDATK does not write), `skipped`, or `crash` (the exception MDATK raises, e.g. on a NaN
+setting). `graph` cases hold `ops` (planner edits: add_node, connect, remove_node, apply_template,
+next_step, new_node_id, scratch_node, single_step_plan, analysis_inputs) and the result of each (or the
+error's type and message), and the final nodes and edges.
+
+Texts are masked as `improvements_workflow.mask()` masks them (D11; MDATK 0.1.2's golden test does the
+same): the version after the program's name -> `<VERSION>` ("written by MDBridge <VERSION>"), every date
+YYYY-MM-DD -> `<DATE>`, and the plan folder -> `<ROOT>` (a case's plan folder is a temporary folder; its
+fixtures live in `<ROOT>/inputs`). The C++ tests mask MDBridge's output the same way. Dummy inputs are
+`/golden/inputs/<port>.<kind>` (they do not exist), hand-picked paths with spaces `/golden/my inputs/...`
+(WG-01). The stamp is `20261015-1432`.
+
+The cases: every template with a dummy file for each unconnected input, the farfar2-amber chain of MDATK's
+`test_all_generated_scripts_pass_bash_syntax_check` (with SimRNA, RNAMake, GROMACS) and the amber template
+written whole on `d_duplex.pdb`; every step type with its defaults, then each check box flipped and each
+radio / combo choice taken, one at a time (the defaults are MDBridge's: D9 turns `split_types` on), each
+record template of the repeated sections as a list of its own (9 Amber stages, 5 GROMACS stages) and each
+check box / choice of the record options on the first default record it applies to; typed secondary
+structures with G-U and U-G pairs (wobble off / on); amber-md segments, ramps, continuation, production
+and stage-name collisions (WG-04, WG-05); NaN / infinite settings (WG-11, WG-12, D13); the Mg²⁺ sets with
+L-RNA types and two-pass builds (D9); the fixtures above (L-RNA detection and the lanthanide trap, the
+solute count, the direct DISANG file, dictionary codes, the Phenix pairs from an annotation, Coot's
+residue names, mutations, existing files); spaced paths for every step type (WG-01); and plan cases
+(names, stamps, step folders, unknown types, duplicate ids, loops, edges to missing or changed ports,
+wrong kinds, two connections into one input, connected and chosen files, shared step numbers, the shared
+outputs of WG-03, the master and summary of WG-02, notes, titles, the steps that run MDBridge: D3, D6).
+Every `.sh` text passes `bash -n` and every `.py` text parses (MDATK's test, kept).
+
+```bash
+/opt/mdbridge-venv/bin/python -I -B tests/parity/make_workflow_cases.py /tmp/mdatk tests/data/workflow
+```
+
+The generator runs its two passes in child processes (`--worker`), builds the fixtures in a third
+(`--fixtures`, numpy's kernels pinned as in the chem generators) and needs MDATK's dependencies
+(MDAnalysis is imported by the citation patches). The output is the same with any `PYTHONHASHSEED`.
+
+The workflow commands (`workflow tools / check / write / run / generate / template / restraints`) have
+cases in `cli/cli_cases.json` (`cli_parity.py` `workflow_cases()`), recorded with
+`improvements_workflow.apply_cli()` (also WG-02's `run` and D14's stale check with `--force`) and pending
+until W2-E lands the commands: plans in project files written by the case, the demo files and
+`workflow/fixtures/d_duplex.pdb` as inputs, stand-ins of VMD on PATH for `run` and `--run` (one prints its
+arguments, one fails), and their texts masked as above (`{wstamp}` for the stamp of a plan written without
+one, from the clock). `project-file/workflow/` gains `golden_nondefault.mdatk.toml` (every step type with
+every option changed, scratch records, the naming keys) and `golden_written_stamp.mdatk.toml` (the stamp a
+first write fixes), written by MDATK itself (`make_workflow_goldens.py`, without the improvements: they test
+the project file). `gui/workflow/` holds MDATK's `tests/test_workflow_gui.py` scenarios as action scripts
+(`make_gui_cases.py`, section "gui"; actions `wf.*`, need `workflow`).
 
 ## Checking that the data is reproducible
 

@@ -1,0 +1,22 @@
+# Plan golden
+
+Written by MDBridge <VERSION> on <DATE>. File names follow `<project>_<step>_<tool>_<time>.<ext>` with time stamp `20261015-1432`.
+
+## 03 · Structure builder (MDATK)
+
+Folder: `03_build`  
+Type: Structure builder (MDATK)  
+MDBridge: `mdbridge` from PATH (MDBRIDGE in the scripts overrides it)
+
+Inputs:
+- pdb: `/golden/inputs/pdb.pdb`
+- map: `/golden/inputs/map.map`
+
+Outputs:
+- pdb: `03_build/golden_03_fitted_20261015-1432.pdb`
+
+Files written: `golden_03_build_20261015-1432.sh`
+
+Checks:
+- WARNING: Model (PDB): file not found (yet): /golden/inputs/pdb.pdb
+- WARNING: Density map: file not found (yet): /golden/inputs/map.map

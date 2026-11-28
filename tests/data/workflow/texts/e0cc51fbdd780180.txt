@@ -1,0 +1,20 @@
+# Plan golden
+
+Written by MDBridge <VERSION> on <DATE>. File names follow `<project>_<step>_<tool>_<time>.<ext>` with time stamp `20261015-1432`.
+
+## 03 · Restraint dictionaries · acedrg / eLBOW
+
+Folder: `03_dicts`  
+Type: Restraint dictionaries · acedrg / eLBOW  
+MDBridge: `mdbridge` from PATH (MDBRIDGE in the scripts overrides it)
+
+Inputs:
+- structure: `/golden/inputs/structure.pdb`
+
+Outputs:
+- dictionaries: `03_dicts/golden_03_0A5_20261015-1432.cif`, `03_dicts/golden_03_0A3_20261015-1432.cif`, `03_dicts/golden_03_0C5_20261015-1432.cif`, `03_dicts/golden_03_0C3_20261015-1432.cif`, `03_dicts/golden_03_0G5_20261015-1432.cif`, `03_dicts/golden_03_0G3_20261015-1432.cif`, `03_dicts/golden_03_0U5_20261015-1432.cif`, `03_dicts/golden_03_0U3_20261015-1432.cif`, `03_dicts/golden_03_0A_20261015-1432.cif`, `03_dicts/golden_03_0C_20261015-1432.cif`, `03_dicts/golden_03_0G_20261015-1432.cif`, `03_dicts/golden_03_0U_20261015-1432.cif`
+
+Files written: `golden_03_0A5_20261015-1432.smi`, `golden_03_0A3_20261015-1432.smi`, `golden_03_0C5_20261015-1432.smi`, `golden_03_0C3_20261015-1432.smi`, `golden_03_0G5_20261015-1432.smi`, `golden_03_0G3_20261015-1432.smi`, `golden_03_0U5_20261015-1432.smi`, `golden_03_0U3_20261015-1432.smi`, `golden_03_0A_20261015-1432.smi`, `golden_03_0C_20261015-1432.smi`, `golden_03_0G_20261015-1432.smi`, `golden_03_0U_20261015-1432.smi`, `golden_03_dicts_20261015-1432.sh`
+
+Checks:
+- WARNING: Model (PDB): file not found (yet): /golden/inputs/structure.pdb

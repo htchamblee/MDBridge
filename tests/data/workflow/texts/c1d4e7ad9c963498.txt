@@ -1,0 +1,15 @@
+# Plan golden
+
+Written by MDBridge <VERSION> on <DATE>. File names follow `<project>_<step>_<tool>_<time>.<ext>` with time stamp `20261015-1432`.
+
+## 03 · Structure builder (MDATK)
+
+Folder: `03_build`  
+Type: Structure builder (MDATK)  
+MDBridge: `mdbridge` from PATH (MDBRIDGE in the scripts overrides it)
+
+Outputs:
+- pdb: `03_build/golden_03_helix_20261015-1432.pdb`
+- secstruct: `03_build/golden_03_helix_20261015-1432.secstruct`
+
+Files written: `golden_03_build_20261015-1432.sh`, `golden_03_helix_20261015-1432.secstruct`

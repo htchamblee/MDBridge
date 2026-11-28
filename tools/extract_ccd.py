@@ -37,6 +37,11 @@ needs are kept:
   H5'A are the mirror images of H62 / H61 / H5'' / H5'. (The CCD's model and ideal coordinates do not
   always agree on such pairs; tools/gen_chem_tables.py reports where.) Bonds: atom ids, order,
   aromatic flag and ordinal.
+* protonated_cytidine_components.tsv, protonated_cytidine_atoms.tsv, protonated_cytidine_bonds.tsv: the
+  N3-protonated cytidine CH (the C+ of the builder's G·C+ Hoogsteen pairs, docs/DIFFERENCES.md CH-21), as
+  the ribonucleotide extracts: component (with its parent, mon_nstd_parent_comp_id), every atom (element,
+  formal charge, aromatic / leaving flags, CIP label, ordinal, model and ideal coordinates; '?' where the
+  CCD has none), every bond.
 """
 
 from __future__ import annotations
@@ -194,6 +199,7 @@ def match_atoms(own, standard):
 
 
 RIBO_STANDARD = ("A", "C", "G", "U")
+PROTONATED = ("CH",)  # the N3-protonated cytidine (C+)
 RIBO_L = {"0A": "A", "0C": "C", "0G": "G", "0U": "U"}
 
 
@@ -341,11 +347,13 @@ def main() -> int:
     extra = protein_list() - standard
     std_rows, mono_rows, hgcl_rows, extra_rows, ldna_rows = [], [], [], [], []
     d_dna, l_dna = {}, []
-    ribo = {}
+    ribo, prot = {}, {}
     for comp, atoms, bonds in components(src):
         cid = comp.get("id", "")
         if cid in RIBO_STANDARD or cid in RIBO_L:
             ribo[cid] = (comp, atoms, bonds)
+        if cid in PROTONATED:
+            prot[cid] = (comp, atoms, bonds)
         if cid in ("DA", "DC", "DG", "DT"):
             d_dna[cid] = atom_graph(atoms, bonds)
         if (comp.get("type", "").upper() == "L-DNA LINKING" and comp.get("pdbx_release_status") == "REL"
@@ -375,6 +383,24 @@ def main() -> int:
         for a in atoms:
             ldna_rows.append((cid, letter, a["atom_id"], mapping[a["atom_id"]], a["type_symbol"]))
     ribo_comps, ribo_atoms, ribo_bonds = ribonucleotide_rows(ribo)
+    prot_comps, prot_atoms, prot_bonds = [], [], []
+    for cid in PROTONATED:
+        if cid not in prot:
+            raise SystemExit(f"component {cid} not in the CCD")
+        comp, atoms, bonds = prot[cid]
+        prot_comps.append((cid, comp.get("name", ""), comp.get("type", ""), comp.get("formula", ""),
+                           comp.get("pdbx_formal_charge", ""), comp.get("one_letter_code", ""),
+                           comp.get("mon_nstd_parent_comp_id", ""), comp.get("pdbx_release_status", ""),
+                           comp.get("pdbx_modified_date", ""), comp.get("_inchi", "")))
+        for a in atoms:
+            prot_atoms.append((cid, a["atom_id"], a["type_symbol"], a["charge"], a["pdbx_aromatic_flag"],
+                               a["pdbx_leaving_atom_flag"], a["pdbx_stereo_config"], a["pdbx_ordinal"],
+                               *(a[k] for k in ("model_Cartn_x", "model_Cartn_y", "model_Cartn_z",
+                                                "pdbx_model_Cartn_x_ideal", "pdbx_model_Cartn_y_ideal",
+                                                "pdbx_model_Cartn_z_ideal"))))
+        for b in bonds:
+            prot_bonds.append((cid, b["atom_id_1"], b["atom_id_2"], b["value_order"], b["pdbx_aromatic_flag"],
+                               b["pdbx_ordinal"]))
     os.makedirs(OUT, exist_ok=True)
     for name, header, rows in (  # in the components' own order (atom and bond ordinals)
         ("ribonucleotide_components.tsv",
@@ -385,6 +411,14 @@ def main() -> int:
          ribo_atoms),
         ("ribonucleotide_bonds.tsv",
          "comp_id\tatom_id_1\tatom_id_2\tvalue_order\taromatic_flag\tordinal", ribo_bonds),
+        ("protonated_cytidine_components.tsv",
+         "comp_id\tname\ttype\tformula\tformal_charge\tone_letter_code\tparent\trelease_status\tmodified_date"
+         "\tinchi", prot_comps),
+        ("protonated_cytidine_atoms.tsv",
+         "comp_id\tatom_id\telement\tcharge\taromatic_flag\tleaving_flag\tstereo_config\tordinal"
+         "\tmodel_x\tmodel_y\tmodel_z\tideal_x\tideal_y\tideal_z", prot_atoms),
+        ("protonated_cytidine_bonds.tsv",
+         "comp_id\tatom_id_1\tatom_id_2\tvalue_order\taromatic_flag\tordinal", prot_bonds),
     ):
         with open(os.path.join(OUT, name), "w", encoding="utf-8", newline="\n") as fh:
             fh.write(header + "\n")

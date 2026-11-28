@@ -1,15 +1,19 @@
 #pragma once
-// MDATK's structure builder (mdatk/builder.py), part 1: the Arnott A-RNA templates with their ideal
+// MDATK's structure builder (mdatk/builder.py): the Arnott A-RNA templates with their ideal
 // hydrogens, the sequence functions and the levelled messages the builder window and the planner
-// show (check_helix), and the Watson-Crick helix (build_helix with pairing "wc", no triplex): a
-// duplex or a single strand of either hand, byte for byte as MDATK writes it, with MDBridge's fixes
-// (docs/DIFFERENCES.md CH-01, CH-02, CHD-01, D13 "REMARK 951 MDBridge IDEAL").
+// show (check_helix), the Watson-Crick helix (build_helix with pairing "wc", no triplex: a duplex or
+// a single strand of either hand, byte for byte as MDATK writes it; helix.cpp) and the other
+// pairings and triplexes (hh fitted on the 4JRD nucleotide, the Hoogsteen duplex and the
+// pyrimidine-motif triplex on the RNA triple helices of PDB 3P22, 4PLX, 6SVS, 7JNH; helix_fit.cpp),
+// with MDBridge's fixes (docs/DIFFERENCES.md CH-01, CH-02, CH-16, CH-17, CH-18, CHD-01, CHD-02, D13
+// "REMARK 951 MDBridge IDEAL").
 //
 // Python's None is std::nullopt where MDATK tells it apart from "" (partner, pairing, triplex,
 // third, scheme). Errors are io::BuildError (io::PdbError for the CH-01 column check), with MDATK's
 // messages.
 
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <span>
@@ -20,6 +24,10 @@
 #include "mdbridge/chem/pdbtools.hpp"
 #include "mdbridge/io/pdb.hpp"
 
+namespace mdbridge::core {
+class Reporter;
+}
+
 namespace mdbridge::chem {
 
 using io::BuildError;
@@ -28,8 +36,8 @@ using io::BuildError;
 inline constexpr double kHelixTwist = 32.7;  // degrees per residue
 inline constexpr double kHelixRise = 2.81;   // Angstrom per residue
 
-// The pairings (PAIRINGS) and triplex motifs (TRIPLEX_MOTIFS) MDATK knows; only "wc" without a
-// triplex is built here (the others: chem/helix_fit, milestone 6 W2-A).
+// The pairings (PAIRINGS) and triplex motifs (TRIPLEX_MOTIFS) MDATK knows; RNA builds of
+// reverse-wc, reverse-hoogsteen and the reverse-hoogsteen triplex are refused (rnaRefusal, CH-18).
 inline constexpr std::array<std::string_view, 5> kPairings = {"wc", "reverse-wc", "hoogsteen", "reverse-hoogsteen",
                                                               "hh"};
 inline constexpr std::array<std::string_view, 2> kTriplexMotifs = {"hoogsteen", "reverse-hoogsteen"};
@@ -121,6 +129,20 @@ struct HelixMessage {
     std::string text;
     bool operator==(const HelixMessage&) const = default;
 };
+// The kinds RNA is not known to form (docs/DIFFERENCES.md CH-18): for a checked pairing and triplex
+// motif (nullopt: none) the error that refuses the build ("pairing reverse-wc: RNA is not known to
+// form the parallel reverse Watson-Crick (tWW) duplex; DNA and DNA-RNA hybrid builds of it will come
+// with DNA structure building"), nullopt for a kind that is built. Refused: the reverse-wc and
+// reverse-hoogsteen pairings and the reverse-hoogsteen (purine-motif) triplex.
+std::optional<std::string> rnaRefusal(std::string_view pairing, std::optional<std::string_view> motif = {});
+// D19 (docs/DIFFERENCES.md CH-19): the sequences a kind that is built cannot pair. The Hoogsteen duplex
+// and the pyrimidine-motif triplex pair the Hoogsteen edge of strand 1, which a pyrimidine does not have
+// ("pairing hoogsteen: strand 2 pairs with the Hoogsteen edge of strand 1, which must be a purine (A, G);
+// strand 1 has U or C at 3:U, 6:C"); hh is the poly(rA) duplex of PDB 4JRD, A·A levels only ("pairing hh:
+// the parallel duplex of PDB 4JRD has A·A pairs only; other bases at 2:G·U"); eight positions at most,
+// then " ...". sequence and partner are the resolved strands (the partner 5'->3'). nullopt: built.
+std::optional<std::string> sequenceRefusal(std::string_view pairing, std::optional<std::string_view> motif,
+                                           std::string_view sequence, std::string_view partner);
 // check_helix: the sequence-level messages of a build request (every pairing and triplex).
 std::vector<HelixMessage> checkHelix(std::string_view sequence, std::optional<std::string_view> partner = "auto",
                                      std::optional<std::string_view> pairing = "wc",
@@ -144,14 +166,23 @@ struct HelixOptions {
     bool hydrogens = false;
     bool phosphate5 = false;                      // P, OP1, OP2, OP3 on each 5' end (default 5'-OH)
     bool center = true;                           // helix centre at the origin (axis along z)
-    std::optional<std::string> pairing;           // nullopt / "" / "wc" (others: helix_fit, W2-A)
-    std::optional<std::string> triplex;           // nullopt / "" / "none" (triplexes: helix_fit, W2-A)
+    std::optional<std::string> pairing;           // nullopt / "" / "wc", reverse-wc, hoogsteen, ...
+    std::optional<std::string> triplex;           // nullopt / "" / "none", hoogsteen, reverse-hoogsteen
     std::optional<std::string> third = "auto";    // the third strand of a triplex
+    // The fitted builds (other pairings, triplexes): progress and cancellation (core::Cancelled) of
+    // the fits, and the threads of their finite differences (0: the machine's; the result does not
+    // depend on the count).
+    const core::Reporter* reporter = nullptr;
+    std::size_t threads = 0;
 };
 
-// build_helix for Watson-Crick duplexes and single strands: the PDB text; the build notes are
-// appended to `notes` (when given) only on success. A pairing other than wc or a triplex throws
-// BuildError("... is built by the fitted helix builder (not available yet)") until helix_fit lands.
+// build_helix: the PDB text; the build notes are appended to `notes` (when given) only on success.
+// Watson-Crick duplexes and single strands byte for byte as MDATK builds them (with CH-18's note of
+// pairs without a base-base H-bond); the other pairings and triplexes (chem/helix_fit.cpp) from
+// converged fits (hh: of the 4JRD nucleotide; hoogsteen and the pyrimidine-motif triplex: restrained
+// to the RNA triple helices, CH-18), the strands closed by continuation (docs/DIFFERENCES.md CH-16),
+// within docs/specs/m6-plan.md D10 of the patched MDATK's. The kinds rnaRefusal names throw.
+// A fitted build of ten levels takes seconds to minutes (reporter: progress, cancellation).
 std::string buildHelix(std::string_view sequence, const HelixOptions& options = {},
                        std::vector<std::string>* notes = nullptr);
 

@@ -1,0 +1,15 @@
+key	value
+_entry.id	3P22
+_struct.title	Crystal structure of the ENE, a viral RNA stability element, in complex with A9 RNA
+_exptl.method	X-RAY DIFFRACTION
+_refine.ls_d_res_high	2.501
+_pdbx_database_status.recvd_initial_deposition_date	2010-10-01
+_citation.title	Poly(A) tail recognition by a viral RNA element through assembly of a triple helix.
+_citation.journal_abbrev	Science
+_citation.journal_volume	330
+_citation.page_first	1244
+_citation.page_last	1247
+_citation.year	2010
+_citation.pdbx_database_id_DOI	10.1126/science.1195858
+_citation.pdbx_database_id_PubMed	21109672
+_pdbx_audit_revision_history.revision_date (latest)	2024-02-21

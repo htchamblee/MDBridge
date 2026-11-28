@@ -4,7 +4,9 @@
 #include <exception>
 #include <filesystem>
 #include <initializer_list>
+#include <optional>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -18,6 +20,7 @@
 #include <QScrollArea>
 #include <QSpinBox>
 #include <QSplitter>
+#include <QStandardItemModel>
 #include <QTabBar>
 #include <QTabWidget>
 #include <QVBoxLayout>
@@ -28,6 +31,7 @@
 #include "gui/pages/form_page.hpp"
 #include "gui/tools/host.hpp"
 #include "gui/tools/tool_actions.hpp"
+#include "mdbridge/chem/helix.hpp"
 #include "mdbridge/core/paths.hpp"
 
 namespace mdbridge::app::tools {
@@ -35,6 +39,24 @@ namespace mdbridge::app::tools {
 namespace fs = std::filesystem;
 
 namespace {
+
+// CH-18: the kinds RNA is not known to form are greyed out in their list (not chosen by hand); the
+// tooltip says why. A project or script that sets one still gets the library's error in the report.
+void greyRefused(QComboBox* combo, bool triplex) {
+    auto* model = qobject_cast<QStandardItemModel*>(combo->model());
+    for (int i = 0; i < combo->count(); ++i) {
+        const std::string id = combo->itemData(i).toString().toStdString();
+        const std::optional<std::string> refused =
+            triplex ? chem::rnaRefusal("wc", std::optional<std::string_view>(id)) : chem::rnaRefusal(id);
+        if (refused && id != "none") {
+            if (model) {
+                if (QStandardItem* item = model->item(i)) item->setEnabled(false);
+            }
+            combo->setItemData(i, combo->itemText(i) + QStringLiteral(": ") + QString::fromStdString(*refused),
+                               Qt::ToolTipRole);
+        }
+    }
+}
 
 using forms::toQString;
 using forms::toStdString;
@@ -143,14 +165,17 @@ QWidget* BuilderWindow::helixPage() {
                            {"reverse-hoogsteen", "reverse Hoogsteen (tWH), antiparallel"},
                            {"hh", "Hoogsteen/Hoogsteen A·A (tHH, PDB 4JRD), parallel"}},
                           "wc");
+    greyRefused(m_pairing, false);
     sequence->form()->add(QStringLiteral("Pairing"), m_pairing,
                           QStringLiteral("Base-pair geometry of the duplex; for the Hoogsteen pairings strand 1 is the "
-                                         "purine strand. Mismatches are allowed and reported."));
+                                         "purine strand. Mismatches are allowed and reported. RNA is not known to "
+                                         "form the greyed-out kinds (they come with DNA structure building)."));
     m_triplex = makeCombo(QStringLiteral("triplex"), QStringLiteral("Triplex"),
                           {{"none", "none (duplex)"},
                            {"hoogsteen", "pyrimidine motif: Hoogsteen, parallel"},
                            {"reverse-hoogsteen", "purine motif: reverse Hoogsteen, antiparallel"}},
                           "none");
+    greyRefused(m_triplex, true);
     sequence->form()->add(QStringLiteral("Triplex"), m_triplex,
                           QStringLiteral("A third strand in the major groove on the Hoogsteen edge of the strand-1 "
                                          "purines (Watson-Crick duplex only)"));

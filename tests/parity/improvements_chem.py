@@ -64,6 +64,37 @@ child of cli_parity.py calls both). Each patch is listed with its id:
          rise (_JRD_NUCLEOTIDE, JRD_TWIST, JRD_RISE from tools/gen_chem_tables.jrd_nucleotide(), the
          tables of src/chem/helix_tables.inc): every non-Watson-Crick build, and REMARK 951's hh TWIST
          41.7 (MDATK: 41.8); 0.1.1 not changed
+  CH-16  (owner decision D17) the other pairings' strand closure (builder._close_levels) by
+         continuation: from the uniform helix (every partner nucleoside on its strand's reference
+         pose, closed by _helix_fit's torsions) the partner poses move to their _level_pose poses
+         along the rigid transform (rotation vector about the reference C1' and C1' shift, scaled by
+         t) in CLOSURE_STEPS steps; a step whose solve stops on its evaluation limit, or whose
+         contact pairs need more than CLOSURE_ROUNDS_OK refreshes, is retried as two half steps
+         (recursively, down to 1/320 of the interval). Every solve: MDATK's residuals at its last
+         pass's contact weight 0.01, TRF with the exact subproblem (2-point differences grouped by
+         MDATK's level-span sparsity, then dense), ftol = xtol = gtol = 1e-10; the contact pairs
+         within 4.5 Å (MDATK: 3.8) refreshed before every solve, kept once scored, in (p, q) order,
+         the solve repeated while the set grows; a solve's variables are the move from its start (TRF's
+         first trust radius 1, not the start's norm). _pair_fit, _level_pose and _helix_fit converged
+         (ftol = xtol = gtol = 1e-14). MDATK's four truncated passes ended in machine-dependent
+         minima (up to 1.6 Å RMSD between kernels); 0.1.1 has the same closure. No SciPy private API:
+         the column groups and the differences are written out (column_groups, fd_jacobian; SciPy's
+         group_columns / approx_derivative give the same numbers)
+  CH-17  the link torsions' term of the other pairings' closure is continuous (continuous_link_residuals:
+         MDATK's (1 + cos 3 theta) * 1.5 + wrap(theta - ref) / 120 jumps by 3 at theta = ref + 180,
+         where closures crept): the tilt TILT_A sin d + TILT_B sin 2d (d = theta - ref) has MDATK's
+         slope at the reference and its values +-1 at the staggered positions +-120 degrees; the
+         reference helices' fits keep MDATK's term (D18); 0.1.1 has MDATK's term
+  CH-18  (owner decision D18) realistic non-Watson-Crick geometry (_patch_ch18): RNA builds of
+         reverse-wc, reverse-hoogsteen and the reverse-hoogsteen (purine-motif) triplex are refused
+         (refusal(): build_helix raises, check_helix gives the one error, after MDATK's own request
+         checks); the Hoogsteen duplex and the pyrimidine-motif triplex take their nucleotides, pairs,
+         screw and stacking from the RNA triple helices of PDB 3P22, 4PLX, 6SVS, 7JNH
+         (tools/gen_chem_tables.triplex_tables; strand nucleotides exp_core, pairs table_pose, the
+         restrained reference fit exp_fit), and their closures keep the stacking; every reference fit
+         scores contacts over CONTACT_LEVELS levels (MDATK: 2); a build with a partner notes the pairs
+         without a base-base H-bond (hbond_note); REMARK 951 / the build note name the triplex
+         structures; 0.1.1 has MDATK's builder
   D7     dict pubchem asks MDBRIDGE_PUBCHEM_URL (the PUG REST root, default MDATK's PUBCHEM_REST) when
          that variable is set: the local stand-in server of cli_parity.py
   D9(M4) retired: `render` / `preview` fit a shown map without a placement again when auto_fit is on
@@ -126,6 +157,8 @@ def apply_mdatk():
     _patch_annotate()
     _patch_builder()
     _patch_density()
+    _patch_closure()
+    _patch_ch18()
 
 
 # ---------------------------------------------------------------------------------------------
@@ -520,6 +553,1369 @@ def _patch_builder():
 
 
 # ---------------------------------------------------------------------------------------------
+# the backbone torsion terms of the other pairings' fits (CH-17)
+
+# MDATK's term of a link torsion, (1 + cos 3 theta) * 1.5 + wrap(theta - ref) / 120, jumps by 3 where
+# theta - ref crosses +-180 degrees (wrap: +1.5 to -1.5), so the cost is discontinuous there: MDATK's
+# reference helices sit next to the jump (hoogsteen strand 2: epsilon +26 / alpha 139; the triplexes'
+# alpha 113 and 121, the jump at 118) and closures creep against it until their evaluation limit
+# (hoogsteen AAGAGAAGGA: every step at 1/320 of the interval still at its limit; a 2-degree C1 ramp
+# in place of the jump left a stiff trough in which hoogsteen GAGGAUCA crept as long). CH-17's tilt is
+# smooth and periodic, with MDATK's slope at the reference (1/120 per degree) and MDATK's values at
+# the other staggered positions (+-1 at +-120 degrees): TILT_A sin d + TILT_B sin 2d.
+TILT_B = (1.5 / math.pi - 2.0 / math.sqrt(3.0)) / 3.0
+TILT_A = 2.0 / math.sqrt(3.0) + TILT_B
+
+
+def torsion_tilt(delta):
+    """CH-17's tilt of torsions delta degrees from their references (numpy arrays or floats)."""
+    import numpy as np
+
+    r = np.radians(delta)
+    return TILT_A * np.sin(r) + TILT_B * np.sin(2.0 * r)
+
+
+def continuous_link_residuals(a, b):
+    """MDATK's builder._link_residuals with CH-17's tilt."""
+    import numpy as np
+    from mdatk import builder as B
+
+    def torsion(theta, ref):
+        return (1 + np.cos(np.radians(3 * theta))) * 1.5 + torsion_tilt(theta - ref)
+
+    eps = B._dihedral(a["C4'"], a["C3'"], a["O3'"], b["P"])
+    return np.concatenate([
+        (np.linalg.norm(a["O3'"] - b["P"], axis=-1) - B.LINK) / 0.01,
+        (B._angle(a["C3'"], a["O3'"], b["P"]) - B._GEOM["C3'-O3'-P"]) / 1.5,
+        (B._angle(a["O3'"], b["P"], b["O5'"]) - B._GEOM["O3'-P-O5'"]) / 1.5,
+        torsion(eps, B._TORSIONS["epsilon"]) + np.clip(np.abs(B._wrap(eps + 120.0)) - 60.0, 0.0, None) / 10.0,
+        torsion(B._dihedral(a["C3'"], a["O3'"], b["P"], b["O5'"]), B._TORSIONS["zeta"]),
+        torsion(B._dihedral(a["O3'"], b["P"], b["O5'"], b["C5'"]), B._TORSIONS["alpha"])])
+
+
+# ---------------------------------------------------------------------------------------------
+# the other pairings' strand closure (CH-16, owner decision D17)
+
+# Continuation: the partner nucleosides move from their strand's reference pose (t = 0, the uniform
+# helix closed by _helix_fit's torsions) to their _level_pose poses (t = 1) along the rigid transform
+# (rotation vector about the reference C1' and C1' shift, both scaled by t). The interval is walked in
+# CLOSURE_STEPS equal steps; a step whose solve stops on its evaluation limit, or whose contact pairs
+# needed more than CLOSURE_ROUNDS_OK refreshes, is retried as two half steps (from the last accepted
+# point, recursively, down to CLOSURE_MAX_HALVINGS halvings; the smallest steps get the larger limit
+# and are accepted as they end). Every solve: MDATK's residuals at its last pass's contact weight, TRF
+# with the exact subproblem (2-point differences grouped by MDATK's level-span sparsity, then dense),
+# ftol = xtol = gtol = CLOSURE_TOL; the contact pairs within CLOSURE_CUTOFF (MDATK's filters) are
+# refreshed before every solve, kept once scored, in (p, q) order, and the solve repeats while the set
+# grows (at most CLOSURE_MAX_ROUNDS times). A solve's variables are the move from its start (TRF's
+# first trust radius is then 1 in x_scale's units, not the norm of the start: a start of torsions near
+# 100 degrees let the first steps jump by hundreds of degrees into another basin).
+CLOSURE_STEPS = 10
+CLOSURE_MAX_HALVINGS = 5          # down to 1 / 320 of the interval
+CLOSURE_WEIGHT = 0.01             # contact weight (MDATK's last pass)
+CLOSURE_TOL = 1e-10
+CLOSURE_MAX_NFEV = 1000           # evaluation limit of a step that may still be halved
+CLOSURE_FINAL_NFEV = 20000        # ... of the t = 0 solve and of the smallest steps
+CLOSURE_CUTOFF = 4.5              # Å (MDATK: 3.8)
+POLISH_MARGIN = 1e-9              # D19: the final solve from the reference torsions wins by more
+CLOSURE_ROUNDS_OK = 4             # pair refreshes a step may need before it is halved
+CLOSURE_MAX_ROUNDS = 50
+SMALL_FIT_TOL = 1e-14             # _pair_fit, _level_pose, _helix_fit
+SMALL_FIT_MAX_NFEV = 5000
+
+# the solver the closure and the small fits call (a test harness may wrap it)
+SOLVER = {}
+
+
+def _rotation_vector(R):
+    """Rotation vector (radians) of a rotation matrix (angle below pi)."""
+    import numpy as np
+
+    c = (np.trace(R) - 1.0) / 2.0
+    w = np.array([R[2, 1] - R[1, 2], R[0, 2] - R[2, 0], R[1, 0] - R[0, 1]])
+    th = math.atan2(float(np.linalg.norm(w)) / 2.0, c)  # well conditioned at every angle
+    if th < 1e-12:
+        return np.zeros(3)
+    if th > math.pi - 1e-6:  # near pi: the axis from R = 2 u u.T - I (as helix_fit.cpp rotationVector)
+        u = np.sqrt(np.maximum(0.0, (np.diag(R) + 1.0) / 2.0))
+        big = int(np.argmax(u))
+        for i in range(3):
+            if i != big and R[big, i] + R[i, big] < 0:
+                u[i] = -u[i]
+        return u / np.linalg.norm(u) * th
+    return w / np.linalg.norm(w) * th
+
+
+def step_parameters(r, t, origin, axis):
+    """(offset 1, offset 2 (Å), tilt 1, tilt 2, twist (degrees), rise (Å)) of the rigid move x -> r x + t
+    about the screw (origin, axis): tools/gen_chem_tables.py step_parameters (numpy)."""
+    import numpy as np
+
+    w = math.sqrt(max(0.0, 1.0 + r[0, 0] + r[1, 1] + r[2, 2])) / 2.0
+    v = np.array([(r[2, 1] - r[1, 2]) / (4 * w), (r[0, 2] - r[2, 0]) / (4 * w), (r[1, 0] - r[0, 1]) / (4 * w)])
+    angle = 2.0 * math.atan2(float(np.linalg.norm(v)), w)
+    u = v / np.linalg.norm(v)
+    d = float(u @ t)
+    perp = t - d * u
+    point = 0.5 * (perp + (1.0 / math.tan(angle / 2.0)) * np.cross(u, perp))
+    a = -u
+    u1 = np.cross(axis, [1.0, 0.0, 0.0])
+    u1 = u1 / np.linalg.norm(u1)
+    u2 = np.cross(axis, u1)
+    q = point + (float((origin - point) @ axis) / float(a @ axis)) * a
+    t2 = math.degrees(math.asin(max(-1.0, min(1.0, float(a @ u1)))))
+    t1 = -math.degrees(math.atan2(float(a @ u2), float(a @ axis)))
+    return np.array([float((q - origin) @ u1), float((q - origin) @ u2), t1, t2, math.degrees(angle), d])
+
+
+def column_groups(structure):
+    """Columns of a boolean Jacobian structure (m, n) that share no row, as SciPy's
+    group_columns(structure, order=0) forms them (greedy over numpy.random.RandomState(0).permutation(n))."""
+    import numpy as np
+
+    m, n = structure.shape
+    order = np.random.RandomState(0).permutation(n)
+    cols = structure[:, order].T  # (n, m)
+    groups = -np.ones(n, dtype=np.intp)
+    current = 0
+    for i in range(n):
+        if groups[i] >= 0:
+            continue
+        groups[i] = current
+        union = cols[i].copy()
+        all_grouped = True
+        for j in range(n):
+            if groups[j] >= 0:
+                continue
+            all_grouped = False
+            if not np.any(union & cols[j]):
+                union |= cols[j]
+                groups[j] = current
+        if all_grouped:
+            break
+        current += 1
+    out = np.empty(n, dtype=np.intp)
+    out[order] = groups
+    return out
+
+
+def fd_jacobian(fun, x, rows_of, groups):
+    """2-point finite-difference Jacobian (dense) with column groups (rows_of[j]: the rows of column j in
+    the structure), as SciPy's approx_derivative(fun, x, method="2-point", sparsity=(structure, groups))
+    computes it."""
+    import numpy as np
+
+    f0 = fun(x)
+    h = np.finfo(np.float64).eps ** 0.5 * np.where(x >= 0, 1.0, -1.0) * np.maximum(1.0, np.abs(x))
+    jac = np.zeros((len(f0), len(x)))
+    for g in range(int(groups.max()) + 1):
+        cols = np.nonzero(groups == g)[0]
+        xg = x.copy()
+        xg[cols] = x[cols] + h[cols]
+        df = fun(xg) - f0
+        for j in cols:
+            rows = rows_of[j]
+            jac[rows, j] = df[rows] / (xg[j] - x[j])
+    return jac
+
+
+def _patch_closure():
+    import functools
+
+    import numpy as np
+    import scipy.optimize
+    from mdatk import builder as B
+    from mdatk.spatial import kabsch
+
+    SOLVER.setdefault("least_squares", scipy.optimize.least_squares)
+    depth = [0]
+
+    def least_squares(fun, x0, *args, **kwargs):  # the small fits converged
+        if depth[0] > 0:
+            kwargs.update(ftol=SMALL_FIT_TOL, xtol=SMALL_FIT_TOL, gtol=SMALL_FIT_TOL,
+                          max_nfev=kwargs.get("max_nfev") or SMALL_FIT_MAX_NFEV)
+        return SOLVER["least_squares"](fun, x0, *args, **kwargs)
+
+    scipy.optimize.least_squares = least_squares  # the builder imports it when it fits
+
+    def converged(fn):
+        inner = getattr(fn, "__wrapped__", fn)
+
+        @functools.lru_cache(maxsize=None)
+        def wrapper(*args):
+            depth[0] += 1
+            try:
+                return inner(*args)
+            finally:
+                depth[0] -= 1
+        return wrapper
+
+    for name in ("_pair_fit", "_level_pose", "_helix_fit"):
+        setattr(B, name, converged(getattr(B, name)))
+
+    helix_strands = B._helix_strands
+
+    def _helix_strands(kind, sequences):
+        CLOSURE_CONTEXT["kind"] = kind
+        return helix_strands(kind, sequences)
+
+    B._helix_strands = _helix_strands
+    names, slots, base_code = B._STRAND_NAMES, B._BASE_SLOTS, B._BASE_CODE
+
+    def _close_levels(placed, bases, steps, start):
+        kind = CLOSURE_CONTEXT["kind"]
+        spec = B._HELICES[kind]
+        screws = triplex()["screws"]
+        stack = (screws[kind]["stack"], screws[kind]["stack_sd"]) if kind in EXP_KINDS else None
+        screw = B._helix_fit(kind).screw
+        n_s, n = len(placed), len(placed[0])
+        # D19: in the experimental kinds every partner nucleoside also moves within its level (a pose offset
+        # about its C1', restrained by the experimental pose spreads; its canonical pairs' H-bonds restrained),
+        # and every step is restrained to the experimental screw over the steps' spreads
+        offsets = kind in EXP_KINDS and n_s > 1
+        off_base = 6 + 3 * n_s
+        width = off_base + (6 * (n_s - 1) if offsets else 0)
+        limits = exp_limits() if offsets else B._FIT_LIMITS
+        if kind in EXP_KINDS:
+            step_sd = np.array(screws[kind]["sd"], dtype=np.float64)
+            u_axis = B._unit(np.array(screw.axis, dtype=np.float64))
+            origin = np.array(screw.origin, dtype=np.float64)
+            rs = B._turn_matrix(u_axis, -screw.twist)
+            bs = origin - rs @ origin - screw.rise * u_axis
+            step_ref = step_parameters(rs, bs, origin, u_axis)
+            tilt_sd = screws[kind]["incl_sd"]
+        else:
+            step_sd = None
+        pose_sd = {st: (rot, sh) for st, rot, sh in triplex()["pose_sd"]}
+        tab_hb = {(rule, x, y): (m, sd) for rule, x, y, m, sd in triplex()["hbonds"]}
+        hbonds = []  # (p, q, level, low, high, sd): atom indices of the H-bonded base atoms
+        n_atoms_slot = len(names) + slots
+        if offsets:
+            for s_ in range(1, n_s):
+                for k in range(n):
+                    a, b = bases[0][k], bases[s_][k]
+                    if not B._canonical(spec[s_].rule, a, b):
+                        continue
+                    for x, y, *_ in B._PAIR_HBONDS[(spec[s_].rule, a, b)]:
+                        low, high, sd = GC_HBOND
+                        if (a, b) == ("A", "U"):
+                            m, sd = tab_hb[(spec[s_].rule, x, y)]
+                            low = high = m
+                        hbonds.append(((0 * n + k) * n_atoms_slot + len(names) + list(B._base_slots(a)).index(x),
+                                       (s_ * n + k) * n_atoms_slot + len(names) + list(B._base_slots(b)).index(y),
+                                       k, low, high, sd))
+        hbond_keys = {min(h[0], h[1]) * 10 ** 7 + max(h[0], h[1]) for h in hbonds}
+        # per partner nucleoside: the reference pose and the rigid move to its _level_pose pose
+        moves = [None]
+        for s in range(1, n_s):
+            rot, shift = reference_pose(kind, s)  # CH-18: the kind's reference pose and nucleosides
+            row = []
+            for k in range(n):
+                ref = {a: screw.apply(v, k) for a, v in B._moved(kind_core(kind, s, bases[s][k]), rot, shift).items()}
+                common = [a for a in placed[s][k] if a in ref and a != "H3+"]
+                P = np.array([ref[a] for a in common])
+                Q = np.array([placed[s][k][a] for a in common])
+                R, pc, qc = kabsch(P, Q, np.ones(len(common)))
+                c = ref["C1'"]
+                row.append((ref, _rotation_vector(R), c, (c - pc) @ R.T + qc - c))
+            moves.append(row)
+
+        def placed_at(t):
+            if t == 1.0:
+                return placed
+            out = [placed[0]]
+            for s in range(1, n_s):
+                row = []
+                for ref, w, c, d in moves[s]:
+                    R = B._rotvec(w * t)
+                    row.append({a: (v - c) @ R.T + c + t * d for a, v in ref.items()})
+                out.append(row)
+            return out
+
+        codes = np.array([[base_code[b] for b in bs] for bs in bases])
+        cls_tab, inside_tab, link_tab = B._contact_tables()
+        n_atoms = len(names) + slots
+        cls = cls_tab[codes].ravel()
+        atom_s, atom_k, atom_i = np.unravel_index(np.arange(n_s * n * n_atoms), (n_s, n, n_atoms))
+        step_of = np.asarray(steps)
+        order = [np.arange(n) if st > 0 else np.arange(n)[::-1] for st in steps]
+        geo = {}
+
+        def set_geometry(pl):
+            arrays = [B._core_arrays(p, b, True) for p, b in zip(pl, bases)]
+            base_xyz = np.full((n_s, n, slots, 3), 1e4)
+            for s in range(n_s):
+                for k, (core, b) in enumerate(zip(pl[s], bases[s])):
+                    base_xyz[s, k, :len(B._base_slots(b))] = [core[a] for a in B._base_slots(b)]
+            geo.update(arrays=arrays, base_xyz=base_xyz, centre=np.mean([a[0] for a in arrays], axis=0))
+
+        def build(x):  # MDATK's, with the partner offsets (D19)
+            v = x.reshape(n, width)
+            rot = B._rotvecs(np.radians(v[:, 0:3]))
+            centre = geo["centre"]
+
+            def move(y):
+                return np.einsum("nij,nmj->nmi", rot, y - centre[:, None]) + centre[:, None] + v[:, None, 3:6]
+
+            def offset(s, y):  # y (n, m, 3) of strand s: its offset about its C1' (s > 0)
+                if not offsets or s == 0:
+                    return y
+                o = v[:, off_base + 6 * (s - 1):off_base + 6 * s]
+                r = B._rotvecs(np.radians(o[:, 0:3]))
+                c = geo["arrays"][s][0][:, None]
+                return np.einsum("nij,nmj->nmi", r, y - c) + c + o[:, None, 3:6]
+
+            nts, atoms = [], []
+            for s, (c1, glyco, sugar) in enumerate(geo["arrays"]):
+                q = v[:, 6 + 3 * s:9 + 3 * s]
+                c1, glyco, sugar = offset(s, c1[:, None])[:, 0], offset(s, glyco[:, None])[:, 0], offset(s, sugar)
+                nt = B._nucleotides(move(c1[:, None])[:, 0], move(glyco[:, None])[:, 0], move(sugar), q[:, 0],
+                                    q[:, 1], q[:, 2])
+                o = order[s]
+                prev = np.empty((n, 3))
+                prev[o[1:]] = nt["O3'"][o[:-1]]
+                prev[o[0]] = B._place(nt["C5'"][o[0]], nt["O5'"][o[0]], nt["P"][o[0]], B.LINK,
+                                      B._GEOM["O3'-P-O5'"], B._TORSIONS["alpha"])
+                nt["OP1"], nt["OP2"] = B._phosphate_oxygens_many(nt["P"], prev, nt["O5'"])
+                nts.append(nt)
+                atoms.append(np.concatenate([np.stack([nt[a] for a in names], axis=1),
+                                             move(offset(s, geo["base_xyz"][s]))], axis=1))
+            return nts, np.array(atoms).reshape(-1, 3)
+
+        pairs = {}
+
+        def refresh(x):
+            """The pairs within CLOSURE_CUTOFF (MDATK's filters) added to those scored so far, in (p, q)
+            order; whether the set grew."""
+            from scipy.spatial import cKDTree
+
+            xyz = build(x)[1]
+            real = np.nonzero(cls != 6)[0]
+            found = cKDTree(xyz[real]).query_pairs(CLOSURE_CUTOFF, output_type="ndarray")
+            p, q = real[found[:, 0]], real[found[:, 1]]
+            sp, kp, ip, sq, kq, iq = atom_s[p], atom_k[p], atom_i[p], atom_s[q], atom_k[q], atom_i[q]
+            keep = (kp != kq) | (sp != sq) & ((ip < len(names)) | (iq < len(names)))
+            same = (sp == sq) & (kp == kq)
+            keep[same] = inside_tab[codes[sp[same], kp[same]], ip[same], iq[same]]
+            if offsets:  # the partners move within their level: their bases scored, but the pairs' H-bonds
+                level = (sp != sq) & (kp == kq) & (ip >= len(names)) & (iq >= len(names))
+                keep[level] = ~np.isin(np.minimum(p, q)[level] * 10 ** 7 + np.maximum(p, q)[level],
+                                       np.fromiter(hbond_keys, dtype=np.int64, count=len(hbond_keys)))
+            linked = (sp == sq) & (kq - kp == step_of[sp])
+            keep[linked] = link_tab[codes[sp[linked], kp[linked]], codes[sq[linked], kq[linked]], ip[linked],
+                                    iq[linked]]
+            linked = (sp == sq) & (kp - kq == step_of[sp])
+            keep[linked] = link_tab[codes[sq[linked], kq[linked]], codes[sp[linked], kp[linked]], iq[linked],
+                                    ip[linked]]
+            limit = limits[cls[p], cls[q]]
+            if offsets:  # stacked bases (D19)
+                stacked = (kp != kq) & (ip >= len(names)) & (iq >= len(names))
+                limit = np.where(stacked, stacked_limit(limit), limit)
+            keep &= limit > 0
+            ext_p = np.clip(np.where((ip == 1) | (ip == 2), kp - step_of[sp], kp), 0, n - 1)
+            ext_q = np.clip(np.where((iq == 1) | (iq == 2), kq - step_of[sq], kq), 0, n - 1)
+            lo = np.minimum(np.minimum(kp, kq), np.minimum(ext_p, ext_q))
+            hi = np.maximum(np.maximum(kp, kq), np.maximum(ext_p, ext_q))
+            new = dict(p=p[keep], q=q[keep], limit=limit[keep], lo=lo[keep], hi=hi[keep])
+            before = len(pairs.get("p", ()))
+            if pairs:
+                new = {k: np.concatenate([pairs[k], new[k]]) for k in new}
+            _u, first = np.unique(new["p"] * len(cls) + new["q"], return_index=True)
+            pairs.update({k: v[first] for k, v in new.items()})
+            return len(pairs["p"]) != before
+
+        def step_move(v, k):
+            """(A, b) of the move x -> A x + b of level k onto level k + 1: T(k + 1) o S o T(k)^-1."""
+            def level(j):
+                r = B._rotvec(np.radians(v[j, 0:3]))
+                c = geo["centre"][j]
+                return r, c + v[j, 3:6] - r @ c
+            r0, b0 = level(k)
+            r1, b1 = level(k + 1)
+            a1 = rs @ r0.T
+            c1 = rs @ (-(r0.T @ b0)) + bs
+            return r1 @ a1, r1 @ c1 + b1
+
+        def residuals(x):  # MDATK's
+            v = x.reshape(n, width)
+            nts, xyz = build(x)
+            out = [continuous_link_residuals({k: a[o[:-1]] for k, a in nt.items()},
+                                             {k: a[o[1:]] for k, a in nt.items()})
+                   for nt, o in zip(nts, order)]
+            out += [B._torsion_priors(v[:, 6 + 3 * s], v[:, 7 + 3 * s], v[:, 8 + 3 * s]) for s in range(n_s)]
+            viol = pairs["limit"] - np.linalg.norm(xyz[pairs["p"]] - xyz[pairs["q"]], axis=-1)
+            out += [(v[:, 0:3] / B.LEVEL_MOVE[0]).ravel(), (v[:, 3:6] / B.LEVEL_MOVE[1]).ravel()]
+            if offsets:
+                o = v[:, off_base:].reshape(n, n_s - 1, 6)
+                sd = np.array([[pose_sd[EXP_KINDS[kind][st]][0]] * 3 + [pose_sd[EXP_KINDS[kind][st]][1]] * 3
+                               for st in range(1, n_s)])
+                out.append((o / sd[None]).ravel())
+                if hbonds:
+                    hp = np.array([h[0] for h in hbonds]); hq = np.array([h[1] for h in hbonds])
+                    low = np.array([h[3] for h in hbonds]); high = np.array([h[4] for h in hbonds])
+                    hsd = np.array([h[5] for h in hbonds])
+                    d = np.linalg.norm(xyz[hp] - xyz[hq], axis=-1)
+                    out.append((np.clip(low - d, 0.0, None) + np.clip(d - high, 0.0, None)) / hsd)
+            if step_sd is not None:  # D19: the levels' tilt (rotation off the axis), then the steps
+                w = v[:, 0:3]
+                out.append(((w - (w @ u_axis)[:, None] * u_axis[None]) / tilt_sd).ravel())
+                out.append(np.concatenate([(step_parameters(*step_move(v, k), origin, u_axis) - step_ref) / step_sd
+                                           for k in range(n - 1)]))
+            if stack:  # CH-18: the base-plane separation of consecutive levels
+                a = xyz.reshape(n_s, n, n_atoms, 3)
+                levels = [np.concatenate([a[s_, k, len(names):len(names) + len(B.BASE_NAMES[bases[s_][k]])]
+                                          for s_ in range(n_s)]) for k in range(n)]
+                out.append(np.array([(plane_separation(levels[k], levels[k + 1]) - stack[0]) / stack[1]
+                                     for k in range(n - 1)]))
+            out.append(np.clip(viol, 0.0, None) / CLOSURE_WEIGHT)
+            return np.concatenate(out)
+
+        def structure():  # MDATK's level spans
+            lo, hi = [], []
+            for o in order:
+                a, b = np.minimum(o[:-1], o[1:]), np.maximum(o[:-1], o[1:])
+                lo += list(a) * 6
+                hi += list(b) * 6
+            lo += list(range(n)) * 4 * n_s
+            hi += list(range(n)) * 4 * n_s
+            lo += list(np.repeat(np.arange(n), 3)) * 2
+            hi += list(np.repeat(np.arange(n), 3)) * 2
+            if offsets:
+                lo += list(np.repeat(np.arange(n), 6 * (n_s - 1))) + [h[2] for h in hbonds]
+                hi += list(np.repeat(np.arange(n), 6 * (n_s - 1))) + [h[2] for h in hbonds]
+            if step_sd is not None:
+                lo += list(np.repeat(np.arange(n), 3)) + list(np.repeat(np.arange(n - 1), 6))
+                hi += list(np.repeat(np.arange(n), 3)) + list(np.repeat(np.arange(1, n), 6))
+            if stack:
+                lo += list(range(n - 1))
+                hi += list(range(1, n))
+            lo = np.concatenate([np.asarray(lo, dtype=np.intp), pairs["lo"]])
+            hi = np.concatenate([np.asarray(hi, dtype=np.intp), pairs["hi"]])
+            level = np.arange(n * width) // width
+            return (lo[:, None] <= level[None]) & (level[None] <= hi[:, None])
+
+        scale = np.tile([3.0, 3.0, 3.0, 0.2, 0.2, 0.2] + [10.0] * 3 * n_s
+                        + ([3.0, 3.0, 3.0, 0.2, 0.2, 0.2] * (n_s - 1) if offsets else []), n)
+        group_cache = {}
+
+        def solve(x, max_nfev):
+            sp = structure()
+            key = sp.tobytes()
+            if key not in group_cache:
+                group_cache.clear()
+                group_cache[key] = (column_groups(sp), [np.nonzero(sp[:, j])[0] for j in range(sp.shape[1])])
+            groups, rows_of = group_cache[key]
+
+            def moved(y):  # the variables as the move from x: TRF's first trust radius is then 1 (scaled)
+                return residuals(x + y)
+
+            sol = SOLVER["least_squares"](moved, np.zeros_like(x),
+                                          jac=lambda yy: fd_jacobian(moved, yy, rows_of, groups),
+                                          tr_solver="exact", x_scale=scale, ftol=CLOSURE_TOL, xtol=CLOSURE_TOL,
+                                          gtol=CLOSURE_TOL, max_nfev=max_nfev)
+            return x + sol.x, sol.status == 0
+
+        def step(x, t, max_nfev, halvable):
+            """Solve at t from x with the pair refreshes: (x, whether the step had trouble); a step that
+            can still be halved stops at its first trouble."""
+            set_geometry(placed_at(t))
+            trouble = False
+            for rounds in range(CLOSURE_MAX_ROUNDS):
+                if not refresh(x) and rounds > 0:
+                    break
+                x, hit = solve(x, max_nfev)
+                trouble = trouble or hit or rounds >= CLOSURE_ROUNDS_OK
+                if trouble and halvable:
+                    break
+            return x, trouble
+
+        def advance(x, t0, t1, halvings):
+            last = halvings >= CLOSURE_MAX_HALVINGS
+            saved = {k: v.copy() for k, v in pairs.items()}
+            y, trouble = step(x, t1, CLOSURE_FINAL_NFEV if last else CLOSURE_MAX_NFEV, not last)
+            if not trouble or last:
+                return y
+            pairs.clear()
+            pairs.update(saved)
+            mid = 0.5 * (t0 + t1)
+            return advance(advance(x, t0, mid, halvings + 1), mid, t1, halvings + 1)
+
+        x = np.concatenate([np.zeros((n, 6))] + [np.asarray(q, dtype=np.float64).reshape(n, 3) for q in start]
+                           + ([np.zeros((n, 6 * (n_s - 1)))] if offsets else []), axis=1).ravel()
+        x = step(x, 0.0, CLOSURE_FINAL_NFEV, False)[0]
+        for i in range(CLOSURE_STEPS):
+            x = advance(x, i / CLOSURE_STEPS, (i + 1) / CLOSURE_STEPS, 0)
+        # D19: the end of the path, and a solve from it with every nucleotide's torsions back on the
+        # reference helix's; the lower cost is kept (the path alone can end in a higher minimum of the
+        # purine strand's alpha / gamma that a 1e-8 change of a start avoids)
+        alt = x.reshape(n, width).copy()
+        for s_ in range(n_s):
+            alt[:, 6 + 3 * s_:9 + 3 * s_] = np.asarray(start[s_], dtype=np.float64).reshape(n, 3)
+        alt = step(alt.ravel(), 1.0, CLOSURE_FINAL_NFEV, False)[0]
+        if 0.5 * float(np.sum(residuals(alt) ** 2)) < 0.5 * float(np.sum(residuals(x) ** 2)) - POLISH_MARGIN:
+            x = alt
+        set_geometry(placed)
+        v = x.reshape(n, width)
+        rot = B._rotvecs(np.radians(v[:, 0:3]))
+        centre = geo["centre"]
+        def offset_of(s, k, y):
+            if not offsets or s == 0:
+                return y
+            o = v[k, off_base + 6 * (s - 1):off_base + 6 * s]
+            c = geo["arrays"][s][0][k]
+            return (y - c) @ B._rotvec(np.radians(o[0:3])).T + c + o[3:6]
+
+        moved = [[{a: (offset_of(s, k, y) - centre[k]) @ rot[k].T + centre[k] + v[k, 3:6] for a, y in core.items()}
+                  for k, core in enumerate(strand)] for s, strand in enumerate(placed)]
+        return [v[:, 6 + 3 * s:9 + 3 * s] for s in range(n_s)], moved
+
+    B._close_levels = _close_levels
+
+
+# ---------------------------------------------------------------------------------------------
+# realistic non-Watson-Crick geometry (CH-18, owner decision D18)
+
+# The kinds RNA is not known to form are refused: what the error names, per pairing / triplex motif.
+REFUSED_PAIRINGS = {"reverse-wc": "the parallel reverse Watson-Crick (tWW) duplex",
+                    "reverse-hoogsteen": "the reverse-Hoogsteen (tHW) duplex"}
+REFUSED_TRIPLEXES = {"reverse-hoogsteen": "the purine-motif (reverse-Hoogsteen) triplex"}
+# The kinds whose reference geometry comes from the RNA triple helices (gen_chem_tables.triplex_tables):
+# kind -> the table strand (0 purine, 1 Watson-Crick, 2 Hoogsteen) of each of its strands.
+EXP_KINDS = {"hoogsteen": (0, 2), "triplex-hoogsteen": (0, 1, 2)}
+# the canonical pairs the tables give: (rule, strand-1 base, partner) -> (level type, table strand)
+TABLE_PAIRS = {("wc", "A", "U"): ("AUU", 1), ("hoogsteen", "A", "U"): ("AUU", 2),
+               ("wc", "G", "C"): ("GCC", 1), ("hoogsteen", "G", "C"): ("GCC", 2)}
+GC_HBOND = (2.8, 3.1, 0.05)  # Å: the band the refined C+·G-C pairs' H-bonds are brought into, the scale of a miss
+CONTACT_LEVELS = 12  # levels after a reference level whose contacts the reference fits score (a turn)
+REFERENCE_CUTOFF = 6.0  # Å: the contact pairs a restrained reference fit scores (refreshed at its solutions)
+REFERENCE_ROUNDS = 20
+REFERENCE_STARTS = ((0.0, 58.0, 174.0), (-10.0, 60.0, 160.0), (10.0, 50.0, 190.0), (0.0, 80.0, 150.0),
+                    (0.0, 120.0, 180.0))  # torsion starts (chi change, gamma, beta) of the restrained fits
+REFERENCE_SCALE_SCREW = (1.0, 1.0, 5.0, 5.0, 5.0, 0.3)
+REFERENCE_SCALE_POSE = (3.0, 3.0, 3.0, 0.2, 0.2, 0.2)
+HBOND_NOTE = 3.5  # Å: a base-base H-bond of the note is a donor-acceptor N/O pair closer than this
+# D19: the link angles the notes accept (degrees; the RNA triple helices of CH-18: C3'-O3'-P 119.7 ± 1.1,
+# O3'-P-O5' 103.1 ± 1.1, about four standard deviations)
+LINK_ANGLES = {"C3'-O3'-P": (115.0, 124.0), "O3'-P-O5'": (99.0, 108.0)}
+# D19: the walls of the experimental kinds' reference fits and closures, 0.1 Å outside CONTACT_REPORT
+# (MDATK's CONTACT_FIT keeps hydrogens 2.4 Å from heavy atoms, which the experimental helices'
+# backbones, hydrogens placed by the builder's rules, do not); two base atoms of different levels
+# (stacked bases) do not H-bond: an N/O pair that could is kept as far apart as other heavy atoms
+CONTACT_FIT_EXP = {"heavy": 3.1, "hbond": 2.7, "hh": 2.1, "polar": 1.7, "hx": 2.0}
+
+
+def exp_limits():
+    from mdatk import builder as B
+
+    return _cached(("exp limits",), lambda: B._limit_matrix(CONTACT_FIT_EXP))
+
+
+def stacked_limit(limit):
+    """The wall of two base atoms of different levels (numpy arrays or floats)."""
+    import numpy as np
+
+    return np.where(limit == CONTACT_FIT_EXP["hbond"], CONTACT_FIT_EXP["heavy"], limit)
+
+
+def plus_text(text):
+    """D19 / CH-21: MDATK's C+ messages, the cytidine now the CCD's N3-protonated CH."""
+    return {
+        "G·C+ Hoogsteen pairs need N3-protonated cytosine (C+); written as plain C (protonate or restrain for the "
+        "simulation)": "G·C+ Hoogsteen pairs need N3-protonated cytosine (C+): written as CH, the CCD's "
+        "N3-protonated cytidine (HN3 with the hydrogens; L: plain C; restrain the pair for the simulation)",
+        "C+·G-C triples need N3-protonated cytosine (C+) in the third strand; written as plain C (protonate or "
+        "restrain for the simulation)": "C+·G-C triples need N3-protonated cytosine (C+) in the third strand: "
+        "written as CH, the CCD's N3-protonated cytidine (HN3 with the hydrogens; L: plain C; restrain the triple "
+        "for the simulation)"}.get(text, text)
+EXP_SOURCES = "3P22, 4PLX, 6SVS and 7JNH"
+
+
+def refusal(pairing, motif):
+    """The error of a kind RNA is not known to form, or None (the purine-motif triplex forms only with
+    three DNA strands: no hybrid builds of it)."""
+    what = REFUSED_TRIPLEXES.get(motif) if motif else REFUSED_PAIRINGS.get(pairing)
+    if what is None:
+        return None
+    asked = f"triplex {motif}" if motif else f"pairing {pairing}"
+    built = "DNA" if motif else "DNA and DNA-RNA hybrid"
+    return f"{asked}: RNA is not known to form {what}; {built} builds of it will come with DNA structure building"
+
+
+def sequence_refusal(pairing, motif, seq, other):
+    """D19: the error of sequences a built kind cannot pair, or None. The Hoogsteen duplex and the
+    pyrimidine-motif triplex pair the Hoogsteen edge of strand 1 (a pyrimidine has none); hh is the
+    poly(rA) duplex of PDB 4JRD (A·A levels only). Eight positions at most, then " ..."."""
+    if pairing == "hh" and not motif:
+        rows = [f"{k + 1}:{a}·{b}" for k, (a, b) in enumerate(zip(seq, other)) if (a, b) != ("A", "A")]
+        head = "pairing hh: the parallel duplex of PDB 4JRD has A·A pairs only; other bases at "
+    elif (pairing == "hoogsteen" and not motif) or (pairing == "wc" and motif == "hoogsteen"):
+        rows = [f"{k + 1}:{a}" for k, a in enumerate(seq) if a in "CU"]
+        head = ("triplex hoogsteen: the third strand pairs with the Hoogsteen edge of strand 1, which must be a "
+                "purine (A, G); strand 1 has U or C at " if motif else
+                "pairing hoogsteen: strand 2 pairs with the Hoogsteen edge of strand 1, which must be a purine "
+                "(A, G); strand 1 has U or C at ")
+    else:
+        return None
+    if not rows:
+        return None
+    return head + ", ".join(rows[:8]) + (" ..." if len(rows) > 8 else "")
+
+
+def triplex():
+    if "t" not in _TRIPLEX:
+        _TRIPLEX["t"] = chem_tables().triplex_tables()
+    return _TRIPLEX["t"]
+
+
+_TRIPLEX = {}
+_CACHE = {}
+
+
+def _cached(key, make):
+    if key not in _CACHE:
+        _CACHE[key] = make()
+    return _CACHE[key]
+
+
+def _table_atoms(level_type, strand):
+    import numpy as np
+
+    return {n: np.array([x, y, z]) for n, x, y, z in triplex()["levels"][level_type][strand]}
+
+
+def strand_nucleotide(t):
+    """The template nucleotide of table strand t in the helix frame of the tables: the 4JRD nucleotide
+    (CHD-02) without its base, superposed by C1' and its sugar atoms onto the mean U·A-U nucleoside of
+    the strand, and that nucleoside's mean base atoms."""
+    import numpy as np
+    from mdatk import builder as B
+    from mdatk.spatial import kabsch
+
+    def make():
+        base = "AUU"[t]
+        table = _table_atoms("AUU", t)
+        jrd = {n: B._cartesian(r, p, z) for n, r, p, z in B._JRD_NUCLEOTIDE}
+        names = ["C1'"] + list(chem_tables().TRIPLEX_SUGAR)
+        rot, mc, rc = kabsch(np.array([jrd[n] for n in names]), np.array([table[n] for n in names]),
+                             np.ones(len(names)))
+        out = {n: (x - mc) @ rot.T + rc for n, x in jrd.items() if n not in B.BASE_NAMES["A"]}
+        out.update({n: table[n] for n in B.BASE_NAMES[base]})
+        return base, out
+    return _cached(("nucleotide", t), make)
+
+
+def exp_core(t, base):
+    """_core_template on the strand-t template nucleotide (the Arnott base of `base` on its glycosidic
+    frame; base and ring hydrogens; C: H3+)."""
+    import numpy as np
+    from mdatk import builder as B
+    from mdatk.spatial import kabsch
+
+    def make():
+        tb, nuc = strand_nucleotide(t)
+        arn = B.template(base, hydrogens=False)
+        old, new = ["C1'"] + list(B.GLYCOSIDIC[tb]), ["C1'"] + list(B.GLYCOSIDIC[base])
+        rot, mc, rc = kabsch(np.array([arn[a] for a in new]), np.array([nuc[a] for a in old]),
+                             np.array([2.0, 2.0, 1.0, 1.0]))
+        heavy = {n: x for n, x in nuc.items() if n not in B.BASE_NAMES[tb]}
+        heavy.update({n: (arn[n] - mc) @ rot.T + rc for n in B.BASE_NAMES[base]})
+        keep = {h for h, *_ in B._H_RULES[base]} | set(B._SUGAR_H)
+        hyd = {n: x for n, x in B._hydrogens(heavy, base).items() if n in keep}
+        if base == "C":
+            n3 = heavy["N3"]
+            hyd["H3+"] = n3 - B.BOND_H["nh"] * B._unit(B._unit(heavy["C2"] - n3) + B._unit(heavy["C4"] - n3))
+        return tuple((n, tuple(x)) for n, x in list(heavy.items()) + list(hyd.items()))
+    return {n: np.array(x) for n, x in _cached(("core", t, base), make)}
+
+
+def kind_core(kind, strand, base):
+    from mdatk import builder as B
+
+    return exp_core(EXP_KINDS[kind][strand], base) if kind in EXP_KINDS else B._core(base)
+
+
+def table_pose(rule, b1, b2):
+    """(rotation, shift) of the strand core of b2 on the strand-1 core of b1 as in the mean level of
+    the tables (each core superposed, unweighted, on C1', its base and sugar atoms there)."""
+    import numpy as np
+    from mdatk import builder as B
+    from mdatk.spatial import kabsch
+
+    def make():
+        level, t = TABLE_PAIRS[(rule, b1, b2)]
+        names1, names2 = chem_tables().nucleoside_names(b1), chem_tables().nucleoside_names(b2)
+        a1, a2 = _table_atoms(level, 0), _table_atoms(level, t)
+        c1, c2 = exp_core(0, b1), exp_core(t, b2)
+        r1, m1, s1 = kabsch(np.array([c1[n] for n in names1]), np.array([a1[n] for n in names1]),
+                            np.ones(len(names1)))
+        r2, m2, s2 = kabsch(np.array([c2[n] for n in names2]), np.array([a2[n] for n in names2]),
+                            np.ones(len(names2)))
+        rot0 = r1.T @ r2
+        shift0 = (s2 - r2 @ m2 - s1) @ r1 + m1
+        if level == "AUU":
+            return rot0, shift0
+        # the C+·G-C mean (5 triples; its N2-O2 2.58 Å, its O6-H41 1.6 Å) refined: the partner moved
+        # (about its C1') as little as the U·A-U pose spreads allow while its H-bonds come into
+        # the band GC_HBOND
+        rot_sd, shift_sd = {st: (r, sh) for st, r, sh in triplex()["pose_sd"]}[t]
+        start = {n: x @ rot0.T + shift0 for n, x in c2.items()}
+        centre = start["C1'"]
+        bonds = B._PAIR_HBONDS[(rule, b1, b2)]
+
+        def residuals(p):
+            r = B._rotvec(np.radians(p[:3]))
+            res = list(p[:3] / rot_sd) + list(p[3:] / shift_sd)
+            for x, y, *_ in bonds:
+                d = np.linalg.norm(c1[x] - ((start[y] - centre) @ r.T + centre + p[3:]))
+                res.append((max(GC_HBOND[0] - d, 0.0) + max(d - GC_HBOND[1], 0.0)) / GC_HBOND[2])
+            return np.array(res)
+
+        sol = SOLVER["least_squares"](residuals, np.zeros(6), ftol=SMALL_FIT_TOL, xtol=SMALL_FIT_TOL,
+                                      gtol=SMALL_FIT_TOL, max_nfev=SMALL_FIT_MAX_NFEV)
+        r = B._rotvec(np.radians(sol.x[:3]))
+        return r @ rot0, (shift0 - centre) @ r.T + centre + sol.x[3:]
+    return _cached(("table pose", rule, b1, b2), make)
+
+
+def hbond_pair_fit(rule, b1, b2, t1, t2):
+    """MDATK's _pair_fit on the given nucleosides t1 (strand 1) and t2 (its body, MDATK 0.0.4.1)."""
+    import numpy as np
+    from scipy.optimize import least_squares
+    from mdatk import builder as B
+    from mdatk.spatial import kabsch
+
+    bonds = B._PAIR_HBONDS[(rule, b1, b2)]
+    ring1, n1 = B._base_plane(t1, b1)
+    ring2, n2 = B._base_plane(t2, b2)
+    a = np.array([t1[x] for x, *_ in bonds])
+    b = np.array([t2[y] for _x, y, *_ in bonds])
+    out = B._unit(np.cross(n1, a[-1] - a[0]))
+    if np.dot(out, a.mean(axis=0) - ring1) < 0:
+        out = -out
+    targets = a + B.HBOND * out
+    centre = targets.mean(axis=0) + out * np.linalg.norm(b.mean(axis=0) - ring2)
+    names1 = list(B.BASE_NAMES[b1]) + ["C1'"] + list(B._SUGAR)
+    names2 = list(B.BASE_NAMES[b2]) + ["C1'"] + list(B._SUGAR)
+    fixed = np.array([t1[n] for n in names1])
+    mobile = np.array([t2[n] for n in names2])
+    hbonded = {(x, y) for x, y, *_ in bonds}
+    free = np.array([[(x, y) not in hbonded for y in names2] for x in names1])
+    planar = np.array([t2[n] for n in B.BASE_NAMES[b2]])
+    best = None
+    for sign in (1.0, -1.0):
+        r0, cs, cd = kabsch(np.vstack([b, ring2, ring2 + n2]), np.vstack([targets, centre, centre + sign * n1]),
+                            np.array([10.0] * len(b) + [1.0, 1.0]))
+
+        def move(p, x, r0=r0, cs=cs, cd=cd):
+            return (x - cs) @ (B._rotvec(p[:3]) @ r0).T + cd + p[3:]
+
+        def residuals(p, move=move):
+            res = []
+            for x, y, side, h in bonds:
+                acc, don = (move(p, t2[y]), t1[x]) if side == 1 else (t1[x], move(p, t2[y]))
+                hyd = t1[h] if side == 1 else move(p, t2[h])
+                d = np.linalg.norm(don - acc)
+                res += [(d - B.HBOND) * 4.0, (d - np.linalg.norm(hyd - acc) - B.BOND_H["nh"]) * 3.0]
+            res += list((move(p, planar) - ring1) @ n1)
+            dist = np.linalg.norm(fixed[:, None] - move(p, mobile)[None], axis=-1)
+            res += list((np.clip(3.1 - dist, 0.0, None) * free).ravel() * 3.0)
+            return np.array(res)
+
+        sol = SOLVER["least_squares"](residuals, np.zeros(6), ftol=SMALL_FIT_TOL, xtol=SMALL_FIT_TOL,
+                                      gtol=SMALL_FIT_TOL, max_nfev=SMALL_FIT_MAX_NFEV)
+        if best is None or sol.cost < best[0]:
+            rot = B._rotvec(sol.x[:3]) @ r0
+            best = (sol.cost, rot, cd + sol.x[3:] - cs @ rot.T)
+    return best[1], best[2]
+
+
+def kind_pair_fit(kind, strand, rule, b1, b2):
+    """The canonical pair (rule, b1, b2) of `strand` of `kind`: MDATK's _pair_fit; for the triplex
+    kinds the tables' pose of their canonical triples, or the H-bond fit on the kind's nucleosides."""
+    from mdatk import builder as B
+
+    if kind not in EXP_KINDS:
+        return B._pair_fit(rule, b1, b2)
+    if (rule, b1, b2) in TABLE_PAIRS:
+        return table_pose(rule, b1, b2)
+    return _cached(("pair", kind, strand, rule, b1, b2),
+                   lambda: hbond_pair_fit(rule, b1, b2, kind_core(kind, 0, b1), kind_core(kind, strand, b2)))
+
+
+def _contact_pairs_of(strands, placed, experimental=False):
+    """MDATK's _contact_pairs over levels 0 .. CONTACT_LEVELS (MDATK: 0 .. 2); the experimental kinds with
+    their walls (CONTACT_FIT_EXP, stacked_limit)."""
+    import numpy as np
+    from mdatk import builder as B
+
+    q = [(0.0, 58.0, 174.0)] * len(strands)
+    names, owner, _ = B._level_atoms(placed, strands, q, B._Screw((0, 0, 0), (0, 0, 1), 30.0, 3.0))
+    bases = [strands[s].base for s in owner]
+    cls = np.array([B._atom_class(b, a) for a, b in zip(names, bases)])
+    hbonded = set()
+    for s, st in enumerate(strands[1:], start=1):
+        for x, y, *_ in B._PAIR_HBONDS.get((st.rule, strands[0].base, st.base), ()):
+            hbonded |= {((0, x), (s, y)), ((s, y), (0, x))}
+    rows = []
+    for i, (a, s) in enumerate(zip(names, owner)):
+        for j, (b, t) in enumerate(zip(names, owner)):
+            for level in range(CONTACT_LEVELS + 1):
+                if level == 0 and j <= i:
+                    continue
+                if s == t and level == 0:
+                    path = B._bond_path(bases[i], a, b)
+                elif s == t and level == 1:
+                    path = (B._link_path(bases[i], a, bases[j], b) if strands[s].step > 0
+                            else B._link_path(bases[j], b, bases[i], a))
+                else:
+                    path = 99
+                if path < 4 or (level == 0 and ((s, a), (t, b)) in hbonded):
+                    continue
+                limit = (exp_limits() if experimental else B._FIT_LIMITS)[cls[i], cls[j]]
+                if experimental and level > 0 and a in B.BASE_NAMES[bases[i]] and b in B.BASE_NAMES[bases[j]]:
+                    limit = float(stacked_limit(limit))
+                if limit > 0:
+                    rows.append((i, j, level, limit, cls[i] < 4 and cls[j] < 4, cls[i] in (4, 5) and cls[j] in (4, 5)))
+    i, j, level, limit, heavy, hh = (np.array(c) for c in zip(*rows))
+    return i.astype(int), j.astype(int), level.astype(int), limit.astype(float), heavy.astype(bool), hh.astype(bool)
+
+
+def _distances(pairs, placed, strands, q, screw):
+    import numpy as np
+    from mdatk import builder as B
+
+    i, j, level, *_rest = pairs
+    xyz = B._level_atoms(placed, strands, q, screw)[2]
+    levels = np.stack([xyz] + [screw.apply(xyz, k) for k in range(1, CONTACT_LEVELS + 1)])
+    return np.linalg.norm(xyz[i] - levels[level, j], axis=-1)
+
+
+def _perp_basis(a):
+    import numpy as np
+
+    u1 = np.cross(a, [1.0, 0.0, 0.0])
+    u1 = u1 / np.linalg.norm(u1)
+    return u1, np.cross(a, u1)
+
+
+def exp_screw(kind, p):
+    """The screw of parameters p[:6] about the tables' screw of `kind`: axis offset (Å, two components
+    in the plane through its origin), tilts (degrees), twist and rise changes (gen_chem_tables
+    step_parameters' definitions)."""
+    import numpy as np
+    from mdatk import builder as B
+
+    sc = triplex()["screws"][kind]
+    a0, o0 = np.array(sc["axis"], dtype=np.float64), np.array(sc["origin"], dtype=np.float64)
+    u1, u2 = _perp_basis(a0)
+    t1, t2 = math.radians(p[2]), math.radians(p[3])
+    axis = math.cos(t1) * math.cos(t2) * a0 + math.sin(t2) * u1 - math.sin(t1) * math.cos(t2) * u2
+    origin = o0 + p[0] * u1 + p[1] * u2
+    return B._Screw(tuple(origin), tuple(axis), float(sc["twist"] + p[4]), float(sc["rise"] + p[5]))
+
+
+def _exp_level(kind, p):
+    """The reference level of an experimental kind at parameters p: strand 1's core as it is, each
+    partner's core on its tables pose moved by p's rotation (degrees, about its C1') and shift."""
+    import numpy as np
+    from mdatk import builder as B
+
+    spec = B._HELICES[kind]
+    out = [kind_core(kind, 0, spec[0].base)]
+    for s in range(1, len(spec)):
+        rot, shift = table_pose(spec[s].rule, spec[0].base, spec[s].base)
+        core = B._moved(kind_core(kind, s, spec[s].base), rot, shift)
+        v = p[6 + 6 * (s - 1):12 + 6 * (s - 1)]
+        r = B._rotvec(np.radians(v[:3]))
+        c = core["C1'"]
+        out.append({n: (x - c) @ r.T + c + v[3:] for n, x in core.items()})
+    return out
+
+
+def exp_residuals(kind, p, active=None):
+    """The restrained reference fit of an experimental kind: MDATK's link residuals and torsion priors
+    of every strand, the screw's parameters over the tables' step spreads, the partner poses' moves
+    over the tables' pose spreads, the reference pairs' H-bonds about the tables' means, the
+    separation of consecutive base planes about the tables' mean, and the contacts (CONTACT_FIT)
+    of a level with itself and the CONTACT_LEVELS levels after it (active: the indices of the contact
+    pairs scored; None: all)."""
+    import numpy as np
+    from mdatk import builder as B
+
+    spec = B._HELICES[kind]
+    ns = len(spec)
+    npose = 6 * (ns - 1)
+    tab = triplex()
+    sc = tab["screws"][kind]
+    screw = exp_screw(kind, p)
+    placed = _exp_level(kind, p)
+    q = [p[6 + npose + 3 * s:9 + npose + 3 * s] for s in range(ns)]
+    out = []
+    for core, st, qs in zip(placed, spec, q):
+        here = B._nucleotides(*B._core_arrays([core], st.base), *[np.array([v]) for v in qs])
+        names = list(here)
+        moved = screw.apply(np.concatenate([here[k] for k in names]), st.step)
+        there = {k: moved[i:i + 1] for i, k in enumerate(names)}
+        out += [B._link_residuals(here, there), B._torsion_priors(*[np.array([v]) for v in qs])]
+    # D19: the reference helix is the mean helix: its screw, poses, H-bonds and stacking are restrained by
+    # the standard errors of the experimental means (spread / sqrt(independent steps or triples))
+    step_se = math.sqrt(sc["sites"])
+    level_se = math.sqrt(tab["sites"]["AUU"])
+    out.append(np.asarray(p[:6], dtype=np.float64) / (np.array(sc["sd"]) / step_se))
+    spread = {s: (rot, shift) for s, rot, shift in tab["pose_sd"]}
+    for s in range(1, ns):
+        v = np.asarray(p[6 + 6 * (s - 1):12 + 6 * (s - 1)], dtype=np.float64)
+        rot, shift = spread[EXP_KINDS[kind][s]]
+        out.append(np.concatenate([v[:3] / (rot / level_se), v[3:] / (shift / level_se)]))
+    hb = {(rule, x, y): (m, sd) for rule, x, y, m, sd in tab["hbonds"]}
+    for s in range(1, ns):
+        for x, y, *_ in B._PAIR_HBONDS[(spec[s].rule, spec[0].base, spec[s].base)]:
+            m, sd = hb[(spec[s].rule, x, y)]
+            out.append(np.array([(np.linalg.norm(placed[0][x] - placed[s][y]) - m) / (sd / level_se)]))
+    base_atoms = np.array([c[n] for c, st in zip(placed, spec) for n in B.BASE_NAMES[st.base]])
+    out.append(np.array([(plane_separation(base_atoms, screw.apply(base_atoms, 1)) - sc["stack"])
+                         / (sc["stack_sd"] / step_se)]))
+    pairs = _cached(("exp pairs", kind), lambda: _contact_pairs_of(spec, _exp_level(kind, np.zeros(6 + npose)), True))
+    if active is not None:
+        pairs = tuple(c[active] for c in pairs)
+    d = _distances(pairs, placed, spec, q, screw)
+    out.append(np.clip(pairs[3] - d, 0.0, None) / B._FIT_CONTACT_WEIGHT)
+    return np.concatenate(out)
+
+
+def _exp_near(kind, p):
+    """The indices of the contact pairs within REFERENCE_CUTOFF at p."""
+    import numpy as np
+    from mdatk import builder as B
+
+    spec = B._HELICES[kind]
+    ns = len(spec)
+    npose = 6 * (ns - 1)
+    pairs = _cached(("exp pairs", kind), lambda: _contact_pairs_of(spec, _exp_level(kind, np.zeros(6 + npose)), True))
+    q = [p[6 + npose + 3 * s:9 + npose + 3 * s] for s in range(ns)]
+    d = _distances(pairs, _exp_level(kind, p), spec, q, exp_screw(kind, p))
+    return np.nonzero(d < REFERENCE_CUTOFF)[0]
+
+
+def plane_separation(a, b):
+    """Separation of the least-squares planes of two point sets along their mean normal."""
+    import numpy as np
+
+    ca, cb = a.mean(axis=0), b.mean(axis=0)
+    na, nb = np.linalg.svd(a - ca)[2][2], np.linalg.svd(b - cb)[2][2]
+    if na @ nb < 0:
+        nb = -nb
+    n = (na + nb) / np.linalg.norm(na + nb)
+    return abs(float((cb - ca) @ n))
+
+
+def exp_fit(kind):
+    """The restrained reference fit (exp_residuals) of an experimental kind from the REFERENCE_STARTS
+    (the lowest cost wins): {"x", "cost", "nfev", "screw", "torsions", "poses" (strand -> (rotation,
+    shift) of its reference pair), "contact", "contact_h"}."""
+    import numpy as np
+    from mdatk import builder as B
+
+    def make():
+        spec = B._HELICES[kind]
+        ns = len(spec)
+        npose = 6 * (ns - 1)
+        scale = np.array(list(REFERENCE_SCALE_SCREW) + list(REFERENCE_SCALE_POSE) * (ns - 1) + [10.0] * 3 * ns)
+        best = None
+        for start in REFERENCE_STARTS:
+            # the contact pairs within REFERENCE_CUTOFF scored, those within it at a solution added
+            # (in the pairs' order) and the solve repeated from there while the set grows
+            x = np.concatenate([np.zeros(6 + npose), np.tile(start, ns)])
+            active = _exp_near(kind, x)
+            nfev = 0
+            for _round in range(REFERENCE_ROUNDS):
+                sol = SOLVER["least_squares"](lambda p, a=active: exp_residuals(kind, p, a), x, x_scale=scale,
+                                              ftol=SMALL_FIT_TOL, xtol=SMALL_FIT_TOL, gtol=SMALL_FIT_TOL,
+                                              max_nfev=SMALL_FIT_MAX_NFEV)
+                nfev += sol.nfev
+                x = sol.x
+                grown = np.union1d(active, _exp_near(kind, x))
+                if len(grown) == len(active):
+                    break
+                active = grown
+            sol.nfev = nfev
+            if best is None or sol.cost < best.cost - 1e-9:
+                best = sol
+        x = best.x
+        screw = exp_screw(kind, x)
+        placed = _exp_level(kind, x)
+        poses = {}
+        for s in range(1, ns):
+            rot0, shift0 = table_pose(spec[s].rule, spec[0].base, spec[s].base)
+            v = x[6 + 6 * (s - 1):12 + 6 * (s - 1)]
+            r = B._rotvec(np.radians(v[:3]))
+            c = shift0 + rot0 @ kind_core(kind, s, spec[s].base)["C1'"]
+            poses[s] = (r @ rot0, (shift0 - c) @ r.T + c + v[3:])
+        torsions = tuple(tuple(float(v) for v in x[6 + npose + 3 * s:9 + npose + 3 * s]) for s in range(ns))
+        pairs = _cached(("exp pairs", kind), lambda: _contact_pairs_of(spec, _exp_level(kind, np.zeros(6 + npose)), True))
+        d = _distances(pairs, placed, spec, [np.array(t) for t in torsions], screw)
+        return {"x": x, "cost": float(best.cost), "nfev": int(best.nfev), "status": int(best.status),
+                "screw": screw, "torsions": torsions, "poses": poses,
+                "contact": float(d[pairs[4]].min()), "contact_h": float(d[pairs[5]].min())}
+    return _cached(("exp fit", kind), make)
+
+
+def reference_pose(kind, strand):
+    """(rotation, shift) of the reference partner of `strand` (its rule's pair with the strand-1
+    reference base): MDATK's _pair_fit, for an experimental kind its fitted pose."""
+    from mdatk import builder as B
+
+    spec = B._HELICES[kind]
+    if kind in EXP_KINDS:
+        return exp_fit(kind)["poses"][strand]
+    return B._pair_fit(spec[strand].rule, spec[0].base, spec[strand].base)
+
+
+def _patch_ch18():
+    import numpy as np
+    from mdatk import builder as B
+
+    # contacts over the whole helix (CONTACT_LEVELS levels after a level; MDATK: two)
+    @functools_cache
+    def _contact_pairs(kind):
+        return _contact_pairs_of(B._HELICES[kind], B._reference_level(kind)[0])
+
+    def _level_distances(kind, placed, strands, q, screw):
+        pairs = B._contact_pairs(kind)
+        return _distances(pairs, placed, strands, q, screw), pairs
+
+    B._contact_pairs = _contact_pairs
+    B._level_distances = _level_distances
+    geometry_notes = B._geometry_notes
+
+    def _geometry_notes(labels, res_atoms, segments, pairs, bases=None):  # D19: the link angles
+        out = geometry_notes(labels, res_atoms, segments, pairs, bases)
+        coords = [{n: np.asarray(x) for n, x in atoms} for atoms in res_atoms]
+        links = [(a, b) for seg in segments for a, b in zip(seg, seg[1:]) if "O3'" in coords[a] and "P" in coords[b]]
+        if not links:
+            return out
+        ang = []
+        for a, b in links:
+            if "C3'" in coords[a] and "O5'" in coords[b]:
+                ang.append((float(B._angle(coords[a]["C3'"], coords[a]["O3'"], coords[b]["P"])),
+                            float(B._angle(coords[a]["O3'"], coords[b]["P"], coords[b]["O5'"]))))
+            else:
+                ang.append((0.0, 0.0))
+        at = next(i for i, m in enumerate(out) if m.startswith("O3'-P links: "))
+        c, o = [x for x, _ in ang], [y for _, y in ang]
+        out[at] += (f"; angles C3'-O3'-P {min(c):.1f}-{max(c):.1f}°, O3'-P-O5' {min(o):.1f}-{max(o):.1f}°")
+        strained = []
+        for (a, b), (x, y) in zip(links, ang):
+            what = []
+            if not LINK_ANGLES["C3'-O3'-P"][0] <= x <= LINK_ANGLES["C3'-O3'-P"][1]:
+                what.append(f"C3'-O3'-P {x:.1f}°")
+            if not LINK_ANGLES["O3'-P-O5'"][0] <= y <= LINK_ANGLES["O3'-P-O5'"][1]:
+                what.append(f"O3'-P-O5' {y:.1f}°")
+            if what:
+                strained.append(f"{labels[a]}-{labels[b]} " + ", ".join(what))
+        if strained:
+            lo1, hi1 = LINK_ANGLES["C3'-O3'-P"]
+            lo2, hi2 = LINK_ANGLES["O3'-P-O5'"]
+            at += 1  # after the links' note, before a gap warning
+            out.insert(at, f"WARNING: {len(strained)} O3'-P link(s) with a strained angle (C3'-O3'-P outside "
+                           f"{lo1:.0f}-{hi1:.0f}°, O3'-P-O5' outside {lo2:.0f}-{hi2:.0f}°; RNA crystal structures "
+                           "119.7 ± 1.1° and 103.1 ± 1.1°; minimise before use): " + "; ".join(strained[:8])
+                           + (" ..." if len(strained) > 8 else ""))
+        return out
+
+    B._geometry_notes = _geometry_notes
+    # D19 / CH-21: the N3 proton of the C+ (CH's HN3) is a polar hydrogen, H-bonded in its Hoogsteen pair
+    B._POLAR_H = B._POLAR_H | {chem_tables().protonated_cytidine()[2]}
+
+    helix_fit = B._helix_fit
+
+    def _helix_fit(kind):
+        if kind in EXP_KINDS:
+            f = exp_fit(kind)
+            return B._HelixFit(f["screw"], f["torsions"], f["cost"], f["contact"], f["contact_h"])
+        return helix_fit(kind)
+
+    B._helix_fit = _helix_fit
+
+    reference_level = B._reference_level
+
+    def _reference_level(kind):
+        if kind not in EXP_KINDS:
+            return reference_level(kind)
+        spec = B._HELICES[kind]
+        placed = [kind_core(kind, 0, spec[0].base)] + [B._moved(kind_core(kind, s, spec[s].base),
+                                                               *reference_pose(kind, s)) for s in range(1, len(spec))]
+        t1 = placed[0]
+        n = -B._base_normal(t1, spec[0].base)
+        e1 = B._unit(np.cross(n, [1.0, 0.0, 0.0]))
+        centre = np.mean([p["C1'"] for p in placed], axis=0)
+        return placed, centre, n, e1, np.cross(n, e1)
+
+    B._reference_level = _reference_level
+
+    level_pose = B._level_pose
+
+    def _level_pose(kind, strand, level):
+        if kind not in EXP_KINDS:
+            return level_pose(kind, strand, level)
+        return _cached(("level pose", kind, strand, level), lambda: _exp_level_pose(kind, strand, level))
+
+    def _exp_level_pose(kind, strand, level):  # MDATK's _level_pose on the kind's nucleosides
+        from scipy.optimize import least_squares  # noqa: F401  (SOLVER)
+
+        spec = B._HELICES[kind]
+        rule, a, b = spec[strand].rule, level[0], level[strand]
+        if B._canonical(rule, a, b):
+            if (a, b) == (spec[0].base, spec[strand].base):
+                return reference_pose(kind, strand)
+            return kind_pair_fit(kind, strand, rule, a, b)
+        rot0, shift0 = reference_pose(kind, strand)
+        others = [kind_core(kind, 0, a)] + [B._moved(kind_core(kind, t, level[t]), *_level_pose(kind, t, level[:t + 1]))
+                                            for t in range(1, strand)]
+        keep = set(B._RIGID) | {"C1'"}
+
+        def atoms(coords, base):
+            names = [x for x in coords if x in keep or (x in B._base_slots(base) and x != "H3+")]
+            return np.array([coords[x] for x in names]), np.array([B._atom_class(base, x) for x in names])
+
+        fixed = [atoms(c, base) for c, base in zip(others, level)]
+        fixed_xyz = np.vstack([f[0] for f in fixed])
+        fixed_cls = np.concatenate([f[1] for f in fixed])
+        start = B._moved(kind_core(kind, strand, b), rot0, shift0)
+        mobile, mobile_cls = atoms(start, b)
+        limit = exp_limits()[mobile_cls[:, None], fixed_cls[None, :]]
+        planar = np.array([start[x] for x in B.BASE_NAMES[b]])
+        ring1, n1 = B._base_plane(others[0], a)
+        centre = start["C1'"]
+
+        def move(p, x):
+            return (x - centre) @ B._rotvec(np.radians(p[:3])).T + centre + p[3:]
+
+        def residuals(p):
+            d = np.linalg.norm(move(p, mobile)[:, None] - fixed_xyz[None], axis=-1)
+            return np.concatenate([p[:3] / 10.0, p[3:] / 0.5, ((move(p, planar) - ring1) @ n1) / 0.25,
+                                   (np.clip(limit - d, 0.0, None) / 0.05).ravel()])
+
+        best = None
+        for turn in (0.0, 25.0, -25.0, 50.0, -50.0):
+            sol = SOLVER["least_squares"](residuals, np.concatenate([np.degrees(n1 * math.radians(turn)), np.zeros(3)]),
+                                          ftol=SMALL_FIT_TOL, xtol=SMALL_FIT_TOL, gtol=SMALL_FIT_TOL,
+                                          max_nfev=SMALL_FIT_MAX_NFEV)
+            if best is None or sol.cost < best.cost - 1e-9:
+                best = sol
+        r = B._rotvec(np.radians(best.x[:3]))
+        return r @ rot0, (shift0 - centre) @ r.T + centre + best.x[3:]
+
+    B._level_pose = _level_pose
+
+    helix_strands = B._helix_strands
+
+    def _helix_strands(kind, sequences):
+        if kind not in EXP_KINDS:
+            return helix_strands(kind, sequences)
+        CLOSURE_CONTEXT["kind"] = kind
+        fit = B._helix_fit(kind)
+        spec = B._HELICES[kind]
+        screw = fit.screw
+        seq = sequences[0]
+        n = len(seq)
+        placed = [[{x: screw.apply(v, k) for x, v in kind_core(kind, 0, a).items()} for k, a in enumerate(seq)]]
+        level_bases = [seq]
+        at_level = [(a,) for a in seq]
+        levels, uniform = [], True
+        for s, (st, other) in enumerate(zip(spec[1:], sequences[1:]), start=1):
+            strand, lvls = [], []
+            for k, a in enumerate(seq):
+                b = other[k] if st.step > 0 else other[n - 1 - k]
+                at_level[k] += (b,)
+                canonical = B._canonical(st.rule, a, b)
+                rot, shift = B._level_pose(kind, s, at_level[k])
+                uniform = uniform and (a, b) == (spec[0].base, st.base)
+                strand.append({x: screw.apply(v, k) for x, v in B._moved(kind_core(kind, s, b), rot, shift).items()})
+                lvls.append(B._Level(k, a + b, canonical, B._PAIR_HBONDS[(st.rule, a, b)] if canonical else ()))
+            placed.append(strand)
+            level_bases.append("".join(lv.bases[1] for lv in lvls))
+            levels.append(lvls)
+        torsions = [np.tile(q, (n, 1)) for q in fit.torsions]
+        if not uniform:
+            torsions, placed = B._close_levels(placed, level_bases, [st.step for st in spec], torsions)
+        strands = []
+        for s, (st, nucleosides, bases, q) in enumerate(zip(spec, placed, level_bases, torsions)):
+            o = slice(None) if st.step > 0 else slice(None, None, -1)
+            heavy = B._strand_heavy(list(nucleosides)[o], bases[o], np.asarray(q)[o])
+            if s > 0 and st.rule == "hoogsteen" and CLOSURE_CONTEXT.get("hand", "D") == "D":
+                # D19 / CH-21: the cytidines of the canonical G·C+ Hoogsteen pairs are C+ (CCD CH)
+                plus = [lv.canonical and lv.bases == "GC" for lv in levels[s - 1]]
+                plus = plus if st.step > 0 else plus[::-1]
+                for j, flag in enumerate(plus):
+                    if flag:
+                        heavy[j]["_plus"] = np.zeros(3)
+                        CLOSURE_CONTEXT.setdefault("plus", []).append((s, j))
+            strands.append(heavy)
+        return strands, levels, fit
+
+    B._helix_strands = _helix_strands
+
+    residue_atoms = B._residue_atoms
+
+    def _residue_atoms(heavy, base, five, three, phosphate5, hydrogens):
+        atoms = residue_atoms(heavy, base, five, three, phosphate5, hydrogens)
+        if "_plus" in heavy and hydrogens:  # CH's N3 proton, before the base hydrogens
+            _code, _b, proton, parent = chem_tables().protonated_cytidine()
+            n3 = heavy[parent]
+            h = n3 - B.BOND_H["nh"] * B._unit(B._unit(heavy["C2"] - n3) + B._unit(heavy["C4"] - n3))
+            at = [n for n, _x in atoms].index(B._H_RULES[base][0][0])
+            atoms.insert(at, (proton, h))
+        return atoms
+
+    B._residue_atoms = _residue_atoms
+    convert_names = B.pdbtools.convert_names
+
+    def convert_names_ch(s, scheme, *args, **kwargs):  # after the scheme's names: the C+ are CH
+        out = convert_names(s, scheme, *args, **kwargs)
+        for si, j in CLOSURE_CONTEXT.get("plus", ()):
+            s.segments[si][j].name = chem_tables().protonated_cytidine()[0]
+        return out
+
+    B.pdbtools.convert_names = convert_names_ch
+
+    # the refusals, the experimental kinds' REMARK and note, the base-base H-bond note
+    check_helix = B.check_helix
+
+    def check_helix_refusing(sequence, partner="auto", pairing="wc", triplex=None, third="auto"):
+        try:
+            p = B.check_pairing(pairing)
+            motif = B.check_triplex(triplex)
+            _seq, other, _notes = B.resolve_partner(sequence, partner, p)
+            valid = other is not None and not (motif and p != "wc")
+        except B.BuildError:
+            valid = False
+        if valid and refusal(p, motif):
+            return [("error", refusal(p, motif))]
+        if valid and sequence_refusal(p, motif, _seq, other):  # D19
+            return [("error", sequence_refusal(p, motif, _seq, other))]
+        return [(level, plus_text(text)) for level, text in check_helix(sequence, partner, pairing, triplex, third)]
+
+    B.check_helix = check_helix_refusing
+    build_helix = B.build_helix
+
+    def build_helix_refusing(sequence, partner="auto", chirality="D", chains=("A", "B"), start=(1, 1), scheme=None,
+                             terminals=True, hydrogens=False, phosphate5=False, center=True, notes=None,
+                             pairing="wc", triplex=None, third="auto"):
+        p = B.check_pairing(pairing)
+        motif = B.check_triplex(triplex)
+        seq, other, _msgs = B.resolve_partner(sequence, partner, p)
+        hand = (chirality or "D").strip().upper()
+        if hand in ("D", "L") and other is not None and not (motif and p != "wc") and refusal(p, motif):
+            raise B.BuildError(refusal(p, motif))
+        if hand in ("D", "L") and other is not None and not (motif and p != "wc") and \
+                sequence_refusal(p, motif, seq, other):  # D19
+            raise B.BuildError(sequence_refusal(p, motif, seq, other))
+        mine = []
+        CLOSURE_CONTEXT["plus"] = []
+        CLOSURE_CONTEXT["hand"] = hand
+        CLOSURE_CONTEXT["triplexes"] = p == "hoogsteen" or (p == "wc" and motif == "hoogsteen")
+        try:
+            text = build_helix(sequence, partner, chirality, chains, start, scheme, terminals, hydrogens, phosphate5,
+                               center, mine, pairing, triplex, third)
+        finally:
+            CLOSURE_CONTEXT["plus"] = []
+        mine = [plus_note(m, hydrogens, hand) for m in mine]
+        kind = (p if p != "wc" else "triplex-" + motif) if (p != "wc" or motif) else None
+        if kind in EXP_KINDS:
+            text = text.replace("REMARK 951 NUCLEOTIDE OF PDB 4JRD,", "REMARK 951 PDB 3P22 4PLX 6SVS 7JNH,")
+            mine = [m.replace("nucleotides (C3'-endo, anti) from PDB 4JRD with backbone torsions fitted to close the "
+                              "O3'-P links (reference helix:",
+                              "nucleotides (C3'-endo, anti), base pairs and stacking from the RNA triple helices of "
+                              f"PDB {EXP_SOURCES} (mean U·A-U triples), the helix, the pairs and the "
+                              "backbone torsions fitted to them and to close the O3'-P links (reference helix:")
+                    for m in mine]
+        if other is not None:
+            note = hbond_note(text, seq, other, p, motif, third)
+            if note:
+                built = next(i for i, m in enumerate(mine) if m.startswith("Built "))
+                mine.insert(built, note)
+        if notes is not None:
+            notes.extend(mine)
+        return text
+
+    B.build_helix = build_helix_refusing
+
+
+PLUS_NOTE = ("G·C+ Hoogsteen pair(s): the cytosine is written as plain C (N3 unprotonated); protonate N3 (C+) for "
+             "the force field or restrain the pair (at neutral pH it is weak)")
+
+
+def plus_note(note, hydrogens, hand):
+    """D19 / CH-21: MDATK's C+ build note, the cytidine now the CCD's N3-protonated CH (D only)."""
+    count, _sep, rest = note.partition(" ")
+    if rest != PLUS_NOTE:
+        return note
+    if hand == "L":
+        return (f"{count} G·C+ Hoogsteen pair(s): the cytosine is written as plain C (N3 unprotonated; the CCD has "
+                "no N3-protonated L-cytidine); protonate N3 (C+) for the force field or restrain the pair (at neutral "
+                "pH it is weak)")
+    code, _b, proton, _p = chem_tables().protonated_cytidine()
+    with_h = f", with {proton}" if hydrogens else f"; {proton} comes with the hydrogens"
+    return (f"{count} G·C+ Hoogsteen pair(s): the cytosine is N3-protonated (C+), residue {code} (the CCD's "
+            f"N3-protonated cytidine{with_h}); at neutral pH the pair is weak: restrain it for the simulation")
+
+
+def functools_cache(fn):
+    import functools
+
+    return functools.lru_cache(maxsize=None)(fn)
+
+
+CLOSURE_CONTEXT = {}
+
+_DONORS = {"A": ("N6",), "G": ("N1", "N2"), "C": ("N4",), "U": ("N3",)}
+_ACCEPTORS = {"A": ("N1", "N3", "N7"), "G": ("O6", "N3", "N7"), "C": ("O2", "N3"), "U": ("O2", "O4")}
+
+
+def _hbonded(r1, b1, r2, b2):
+    import numpy as np
+
+    for donors, acceptors, d_res, a_res in ((_DONORS[b1], _ACCEPTORS[b2], r1, r2),
+                                            (_DONORS[b2], _ACCEPTORS[b1], r2, r1)):
+        for x in donors:
+            for y in acceptors:
+                if x in d_res and y in a_res and np.linalg.norm(d_res[x] - a_res[y]) < HBOND_NOTE:
+                    return True
+    return False
+
+
+def hbond_note(text, seq, other, pairing, motif, third):
+    """The warning of the base pairs (strand-1 base with each partner at its level) whose bases have
+    no donor-acceptor pair (N, O) within HBOND_NOTE, or None."""
+    import numpy as np
+    from mdatk import builder as B
+    from mdatk import pdbtools as pt
+
+    s = pt.read_pdb(text)
+    segs = s.segments
+    n = len(seq)
+    rows = []
+    partners = [(1, B.PARALLEL[pairing])]
+    if motif:
+        partners.append((2, motif == "hoogsteen"))
+    for k in range(n):
+        r1 = segs[0][k]
+        b1 = seq[k]
+        c1 = {a.name: np.array(a.xyz) for a in r1.atoms}
+        for idx, par in partners:
+            j = k if par else n - 1 - k
+            r2 = segs[idx][j]
+            b2 = "C" if r2.name == chem_tables().protonated_cytidine()[0] else pt.parse_residue_name(r2.name).base
+            c2 = {a.name: np.array(a.xyz) for a in r2.atoms}
+            if not _hbonded(c1, b1, c2, b2):
+                rows.append(f"{r1.chain}:{r1.resseq} {b1} · {r2.chain}:{r2.resseq} {b2}")
+    if not rows:
+        return None
+    return (f"WARNING: {len(rows)} base pair(s) without a base-base H-bond (no N/O donor-acceptor pair within "
+            f"{HBOND_NOTE:.1f} Å): " + ", ".join(rows[:8]) + (" ..." if len(rows) > 8 else ""))
+
+
+# ---------------------------------------------------------------------------------------------
 # density (CH-11)
 
 def finite_map(dmap):
@@ -604,6 +2000,16 @@ def apply_cli():
 
     cli._pdb_annotate = pdb_annotate_checked
 
+    from mdatk import citations as C
+
+    keys_for = C.keys_for
+
+    def keys_for_triplexes(resources, *args, **kwargs):  # D19: the RNA triple helices of a Hoogsteen build
+        if list(resources) == ["arnott-arna", "pdb-4jrd"] and CLOSURE_CONTEXT.get("triplexes"):
+            resources = list(resources) + ["pdb-triplexes"]
+        return keys_for(resources, *args, **kwargs)
+
+    C.keys_for = keys_for_triplexes
     build_run = B.run
 
     def build_run_checked(args, progress=None):

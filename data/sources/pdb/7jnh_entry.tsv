@@ -1,0 +1,15 @@
+key	value
+_entry.id	7JNH
+_struct.title	Crystal structure of a double-ENE RNA stability element in complex with a 28-mer poly(A) RNA
+_exptl.method	X-RAY DIFFRACTION
+_refine.ls_d_res_high	2.8900
+_pdbx_database_status.recvd_initial_deposition_date	2020-08-04
+_citation.title	RNA stabilization by a poly(A) tail 3'-end binding pocket and other modes of poly(A)-RNA interaction.
+_citation.journal_abbrev	Science
+_citation.journal_volume	371
+_citation.page_first	?
+_citation.page_last	?
+_citation.year	2021
+_citation.pdbx_database_id_DOI	10.1126/science.abe6523
+_citation.pdbx_database_id_PubMed	33414189
+_pdbx_audit_revision_history.revision_date (latest)	2026-08-12

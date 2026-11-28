@@ -1,0 +1,1421 @@
+{
+ "format": "mdbridge-gui-case",
+ "version": 1,
+ "description": "Script wizard on its own: every step type selected, then Amber MD's engine, its input files, the checks and the preview, Write, the scratch settings saved in the project",
+ "source": "MDATK v0.0.4.1's GTK window driven by tests/parity/make_gui_cases.py, with MDBridge's window improvements (tests/parity/improvements_gui.py)",
+ "clock": "2026-11-25T12:00:00",
+ "items": [],
+ "mdatk_test": "tests/test_workflow_gui.py::test_standalone_wizard_every_tool",
+ "needs": [
+  "lossless",
+  "snapshot",
+  "start",
+  "workflow"
+ ],
+ "canvas": {
+  "width": 960,
+  "height": 540
+ },
+ "files": {
+  "p.mdatk.toml": "gui/workflow/wizard_every_tool/in/p.mdatk.toml"
+ },
+ "start": {
+  "project": "p.mdatk.toml"
+ },
+ "actions": [
+  {
+   "action": "wf.wizard.open",
+   "tool": "amber-md"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "workflow": {
+    "planner": false,
+    "wizard": "standalone"
+   }
+  },
+  {
+   "action": "wf.wizard.tool",
+   "tool": "amber-build"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "workflow": {
+    "planner": false,
+    "wizard": "standalone"
+   }
+  },
+  {
+   "action": "wf.wizard.tool",
+   "tool": "amber-restraints"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "workflow": {
+    "planner": false,
+    "wizard": "standalone"
+   }
+  },
+  {
+   "action": "wf.wizard.tool",
+   "tool": "amber-md"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "workflow": {
+    "planner": false,
+    "wizard": "standalone"
+   }
+  },
+  {
+   "action": "wf.wizard.tool",
+   "tool": "structure-builder"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "workflow": {
+    "planner": false,
+    "wizard": "standalone"
+   }
+  },
+  {
+   "action": "wf.wizard.tool",
+   "tool": "restraint-dicts"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "workflow": {
+    "planner": false,
+    "wizard": "standalone"
+   }
+  },
+  {
+   "action": "wf.wizard.tool",
+   "tool": "farfar2"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "workflow": {
+    "planner": false,
+    "wizard": "standalone"
+   }
+  },
+  {
+   "action": "wf.wizard.tool",
+   "tool": "farfar2-models"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "workflow": {
+    "planner": false,
+    "wizard": "standalone"
+   }
+  },
+  {
+   "action": "wf.wizard.tool",
+   "tool": "gromacs"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "workflow": {
+    "planner": false,
+    "wizard": "standalone"
+   }
+  },
+  {
+   "action": "wf.wizard.tool",
+   "tool": "phenix-rsr"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "workflow": {
+    "planner": false,
+    "wizard": "standalone"
+   }
+  },
+  {
+   "action": "wf.wizard.tool",
+   "tool": "coot-rsr"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "workflow": {
+    "planner": false,
+    "wizard": "standalone"
+   }
+  },
+  {
+   "action": "wf.wizard.tool",
+   "tool": "rnamake"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "workflow": {
+    "planner": false,
+    "wizard": "standalone"
+   }
+  },
+  {
+   "action": "wf.wizard.tool",
+   "tool": "simrna"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "workflow": {
+    "planner": false,
+    "wizard": "standalone"
+   }
+  },
+  {
+   "action": "wf.wizard.tool",
+   "tool": "vmd"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "workflow": {
+    "planner": false,
+    "wizard": "standalone"
+   }
+  },
+  {
+   "action": "wf.wizard.tool",
+   "tool": "amber-md"
+  },
+  {
+   "action": "wf.wizard.set",
+   "section": "engine",
+   "key": "engine",
+   "value": "pmemd.MPI"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "workflow": {
+    "planner": false,
+    "sensitive": [
+     "engine.nproc",
+     "engine.gpu"
+    ],
+    "wizard": "standalone"
+   }
+  },
+  {
+   "action": "wf.wizard.input",
+   "port": "topology",
+   "path": "/x/sys.parm7"
+  },
+  {
+   "action": "wf.wizard.input",
+   "port": "coordinates",
+   "path": "/x/sys.rst7"
+  },
+  {
+   "action": "wf.wizard.input",
+   "port": "restraints",
+   "path": "/x/h.dist"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "workflow": {
+    "planner": false,
+    "preview": true,
+    "wizard": "standalone"
+   }
+  },
+  {
+   "action": "wf.wizard.write"
+  },
+  {
+   "action": "snapshot",
+   "keys": [],
+   "workflow": {
+    "planner": false,
+    "wizard": "standalone"
+   }
+  },
+  {
+   "action": "save"
+  }
+ ],
+ "expected": {
+  "p.mdatk.toml": "gui/workflow/wizard_every_tool/out/p.mdatk.toml",
+  "plans/apt1_workflow/01_amber-md/apt1_01_amber-md_20261125-1200.sh": "gui/workflow/wizard_every_tool/out/plans/apt1_workflow/01_amber-md/apt1_01_amber-md_20261125-1200.sh",
+  "plans/apt1_workflow/01_amber-md/apt1_01_amber-prod_20261125-1200.sh": "gui/workflow/wizard_every_tool/out/plans/apt1_workflow/01_amber-md/apt1_01_amber-prod_20261125-1200.sh",
+  "plans/apt1_workflow/01_amber-md/apt1_01_eq-free_20261125-1200.in": "gui/workflow/wizard_every_tool/out/plans/apt1_workflow/01_amber-md/apt1_01_eq-free_20261125-1200.in",
+  "plans/apt1_workflow/01_amber-md/apt1_01_eq_20261125-1200.in": "gui/workflow/wizard_every_tool/out/plans/apt1_workflow/01_amber-md/apt1_01_eq_20261125-1200.in",
+  "plans/apt1_workflow/01_amber-md/apt1_01_heat_20261125-1200.in": "gui/workflow/wizard_every_tool/out/plans/apt1_workflow/01_amber-md/apt1_01_heat_20261125-1200.in",
+  "plans/apt1_workflow/01_amber-md/apt1_01_min1_20261125-1200.in": "gui/workflow/wizard_every_tool/out/plans/apt1_workflow/01_amber-md/apt1_01_min1_20261125-1200.in",
+  "plans/apt1_workflow/01_amber-md/apt1_01_min2_20261125-1200.in": "gui/workflow/wizard_every_tool/out/plans/apt1_workflow/01_amber-md/apt1_01_min2_20261125-1200.in",
+  "plans/apt1_workflow/01_amber-md/apt1_01_prod_20261125-1200.in": "gui/workflow/wizard_every_tool/out/plans/apt1_workflow/01_amber-md/apt1_01_prod_20261125-1200.in"
+ },
+ "log": [
+  "Wizard wrote 8 files to {case_dir}/plans/apt1_workflow/01_amber-md",
+  "Saved project {case_dir}/p.mdatk.toml"
+ ],
+ "outcome": {
+  "snapshots": [
+   {
+    "action": 1,
+    "workflow": {
+     "wizard": {
+      "open": true,
+      "tool": "amber-md",
+      "pages": 5,
+      "changed": {},
+      "files_in": {},
+      "issues": [
+       [
+        "error",
+        "Topology (parm7): connect a step that produces it or choose a file"
+       ],
+       [
+        "error",
+        "Coordinates (rst7): connect a step that produces it or choose a file"
+       ],
+       [
+        "error",
+        "stages min2, heat, eq, eq-free, prod use helix distance restraints but no DISANG file is connected or chosen (an 'Amber · helix restraints' step writes one)"
+       ],
+       [
+        "info",
+        "no environment setup: pmemd and cpptraj must be on PATH when the script runs"
+       ]
+      ],
+      "files": [],
+      "write": false,
+      "run": false,
+      "status": "0 files · 3 errors · 0 warnings",
+      "title": "",
+      "step": 1
+     }
+    }
+   },
+   {
+    "action": 3,
+    "workflow": {
+     "wizard": {
+      "open": true,
+      "tool": "amber-build",
+      "pages": 8,
+      "changed": {},
+      "files_in": {},
+      "issues": [
+       [
+        "error",
+        "Starting structure (PDB): connect a step that produces it or choose a file"
+       ],
+       [
+        "info",
+        "the CP library and parameters are generated from AmberTools' RNA.lib and parm10.dat when the script runs (AMBERHOME or tleap on PATH)"
+       ]
+      ],
+      "files": [],
+      "write": false,
+      "run": false,
+      "status": "0 files · 1 errors · 0 warnings",
+      "title": "",
+      "step": 1
+     }
+    }
+   },
+   {
+    "action": 5,
+    "workflow": {
+     "wizard": {
+      "open": true,
+      "tool": "amber-restraints",
+      "pages": 3,
+      "changed": {},
+      "files_in": {},
+      "issues": [
+       [
+        "error",
+        "Topology (parm7): connect a step that produces it or choose a file"
+       ],
+       [
+        "error",
+        "enter the secondary structure (dot-bracket and sequence) or connect a secondary-structure file"
+       ]
+      ],
+      "files": [],
+      "write": false,
+      "run": false,
+      "status": "0 files · 2 errors · 0 warnings",
+      "title": "",
+      "step": 1
+     }
+    }
+   },
+   {
+    "action": 7,
+    "workflow": {
+     "wizard": {
+      "open": true,
+      "tool": "amber-md",
+      "pages": 5,
+      "changed": {},
+      "files_in": {},
+      "issues": [
+       [
+        "error",
+        "Topology (parm7): connect a step that produces it or choose a file"
+       ],
+       [
+        "error",
+        "Coordinates (rst7): connect a step that produces it or choose a file"
+       ],
+       [
+        "error",
+        "stages min2, heat, eq, eq-free, prod use helix distance restraints but no DISANG file is connected or chosen (an 'Amber · helix restraints' step writes one)"
+       ],
+       [
+        "info",
+        "no environment setup: pmemd and cpptraj must be on PATH when the script runs"
+       ]
+      ],
+      "files": [],
+      "write": false,
+      "run": false,
+      "status": "0 files · 3 errors · 0 warnings",
+      "title": "",
+      "step": 1
+     }
+    }
+   },
+   {
+    "action": 9,
+    "workflow": {
+     "wizard": {
+      "open": true,
+      "tool": "structure-builder",
+      "pages": 6,
+      "changed": {},
+      "files_in": {},
+      "issues": [
+       [
+        "error",
+        "enter the sequence"
+       ]
+      ],
+      "files": [],
+      "write": false,
+      "run": false,
+      "status": "0 files · 1 errors · 0 warnings",
+      "title": "",
+      "step": 1
+     }
+    }
+   },
+   {
+    "action": 11,
+    "workflow": {
+     "wizard": {
+      "open": true,
+      "tool": "restraint-dicts",
+      "pages": 5,
+      "changed": {},
+      "files_in": {},
+      "issues": [
+       [
+        "info",
+        "acedrg must be on PATH (or set the CCP4 setup script)"
+       ]
+      ],
+      "files": [
+       "apt1_01_0A5_20261125-1200.smi",
+       "apt1_01_0A3_20261125-1200.smi",
+       "apt1_01_0C5_20261125-1200.smi",
+       "apt1_01_0C3_20261125-1200.smi",
+       "apt1_01_0G5_20261125-1200.smi",
+       "apt1_01_0G3_20261125-1200.smi",
+       "apt1_01_0U5_20261125-1200.smi",
+       "apt1_01_0U3_20261125-1200.smi",
+       "apt1_01_dicts_20261125-1200.sh"
+      ],
+      "write": true,
+      "run": true,
+      "status": "9 files · 0 errors · 0 warnings",
+      "title": "",
+      "step": 1
+     }
+    }
+   },
+   {
+    "action": 13,
+    "workflow": {
+     "wizard": {
+      "open": true,
+      "tool": "farfar2",
+      "pages": 7,
+      "changed": {},
+      "files_in": {},
+      "issues": [
+       [
+        "error",
+        "enter the RNA sequence"
+       ],
+       [
+        "warning",
+        "-fixed_stems needs a secondary structure"
+       ]
+      ],
+      "files": [],
+      "write": false,
+      "run": false,
+      "status": "0 files · 1 errors · 1 warnings",
+      "title": "",
+      "step": 1
+     }
+    }
+   },
+   {
+    "action": 15,
+    "workflow": {
+     "wizard": {
+      "open": true,
+      "tool": "farfar2-models",
+      "pages": 5,
+      "changed": {},
+      "files_in": {},
+      "issues": [
+       [
+        "error",
+        "Silent files: connect a step that produces it or choose a file"
+       ],
+       [
+        "info",
+        "x3dna-dssr needs its own (free academic) licence and binary"
+       ]
+      ],
+      "files": [],
+      "write": false,
+      "run": false,
+      "status": "0 files · 1 errors · 0 warnings",
+      "title": "",
+      "step": 1
+     }
+    }
+   },
+   {
+    "action": 17,
+    "workflow": {
+     "wizard": {
+      "open": true,
+      "tool": "gromacs",
+      "pages": 5,
+      "changed": {},
+      "files_in": {},
+      "issues": [
+       [
+        "error",
+        "Topology (parm7/top): connect a step that produces it or choose a file"
+       ],
+       [
+        "error",
+        "Coordinates (rst7/gro): connect a step that produces it or choose a file"
+       ]
+      ],
+      "files": [],
+      "write": false,
+      "run": false,
+      "status": "0 files · 2 errors · 0 warnings",
+      "title": "",
+      "step": 1
+     }
+    }
+   },
+   {
+    "action": 19,
+    "workflow": {
+     "wizard": {
+      "open": true,
+      "tool": "phenix-rsr",
+      "pages": 5,
+      "changed": {},
+      "files_in": {},
+      "issues": [
+       [
+        "error",
+        "Model (PDB): connect a step that produces it or choose a file"
+       ],
+       [
+        "error",
+        "Density map: connect a step that produces it or choose a file"
+       ],
+       [
+        "error",
+        "give the resolution of the map (Å)"
+       ],
+       [
+        "info",
+        "phenix.real_space_refine must be on PATH (or set the Phenix installation)"
+       ]
+      ],
+      "files": [],
+      "write": false,
+      "run": false,
+      "status": "0 files · 3 errors · 0 warnings",
+      "title": "",
+      "step": 1
+     }
+    }
+   },
+   {
+    "action": 21,
+    "workflow": {
+     "wizard": {
+      "open": true,
+      "tool": "coot-rsr",
+      "pages": 4,
+      "changed": {},
+      "files_in": {},
+      "issues": [
+       [
+        "error",
+        "Model (PDB): connect a step that produces it or choose a file"
+       ],
+       [
+        "error",
+        "Density map: connect a step that produces it or choose a file"
+       ]
+      ],
+      "files": [],
+      "write": false,
+      "run": false,
+      "status": "0 files · 2 errors · 0 warnings",
+      "title": "",
+      "step": 1
+     }
+    }
+   },
+   {
+    "action": 23,
+    "workflow": {
+     "wizard": {
+      "open": true,
+      "tool": "rnamake",
+      "pages": 6,
+      "changed": {},
+      "files_in": {},
+      "issues": [
+       [
+        "error",
+        "Scaffold (PDB): connect a step that produces it or choose a file"
+       ],
+       [
+        "error",
+        "give the start bp (e.g. A222-A251)"
+       ],
+       [
+        "error",
+        "give the end bp (e.g. A222-A251)"
+       ]
+      ],
+      "files": [],
+      "write": false,
+      "run": false,
+      "status": "0 files · 3 errors · 0 warnings",
+      "title": "",
+      "step": 1
+     }
+    }
+   },
+   {
+    "action": 25,
+    "workflow": {
+     "wizard": {
+      "open": true,
+      "tool": "simrna",
+      "pages": 6,
+      "changed": {},
+      "files_in": {},
+      "issues": [
+       [
+        "error",
+        "enter the sequence (or connect a starting PDB)"
+       ]
+      ],
+      "files": [],
+      "write": false,
+      "run": false,
+      "status": "0 files · 1 errors · 0 warnings",
+      "title": "",
+      "step": 1
+     }
+    }
+   },
+   {
+    "action": 27,
+    "workflow": {
+     "wizard": {
+      "open": true,
+      "tool": "vmd",
+      "pages": 6,
+      "changed": {},
+      "files_in": {},
+      "issues": [
+       [
+        "error",
+        "Topology: connect a step that produces it or choose a file"
+       ],
+       [
+        "info",
+        "alignment and smoothing need a trajectory"
+       ]
+      ],
+      "files": [],
+      "write": false,
+      "run": false,
+      "status": "0 files · 1 errors · 0 warnings",
+      "title": "",
+      "step": 1
+     }
+    }
+   },
+   {
+    "action": 30,
+    "workflow": {
+     "wizard": {
+      "open": true,
+      "tool": "amber-md",
+      "pages": 5,
+      "changed": {
+       "engine": "pmemd.MPI"
+      },
+      "files_in": {},
+      "issues": [
+       [
+        "error",
+        "Topology (parm7): connect a step that produces it or choose a file"
+       ],
+       [
+        "error",
+        "Coordinates (rst7): connect a step that produces it or choose a file"
+       ],
+       [
+        "error",
+        "stages min2, heat, eq, eq-free, prod use helix distance restraints but no DISANG file is connected or chosen (an 'Amber · helix restraints' step writes one)"
+       ],
+       [
+        "info",
+        "no environment setup: pmemd and cpptraj must be on PATH when the script runs"
+       ]
+      ],
+      "files": [],
+      "write": false,
+      "run": false,
+      "status": "0 files · 3 errors · 0 warnings",
+      "title": "",
+      "step": 1,
+      "sensitive": {
+       "engine.nproc": true,
+       "engine.gpu": false
+      }
+     }
+    }
+   },
+   {
+    "action": 34,
+    "workflow": {
+     "wizard": {
+      "open": true,
+      "tool": "amber-md",
+      "pages": 5,
+      "changed": {
+       "engine": "pmemd.MPI"
+      },
+      "files_in": {
+       "topology": "/x/sys.parm7",
+       "coordinates": "/x/sys.rst7",
+       "restraints": "/x/h.dist"
+      },
+      "issues": [
+       [
+        "warning",
+        "Topology (parm7): file not found (yet): /x/sys.parm7"
+       ],
+       [
+        "warning",
+        "Coordinates (rst7): file not found (yet): /x/sys.rst7"
+       ],
+       [
+        "warning",
+        "Restraints (DISANG): file not found (yet): /x/h.dist"
+       ],
+       [
+        "info",
+        "no environment setup: pmemd and cpptraj must be on PATH when the script runs"
+       ]
+      ],
+      "files": [
+       "apt1_01_min1_20261125-1200.in",
+       "apt1_01_min2_20261125-1200.in",
+       "apt1_01_heat_20261125-1200.in",
+       "apt1_01_eq_20261125-1200.in",
+       "apt1_01_eq-free_20261125-1200.in",
+       "apt1_01_prod_20261125-1200.in",
+       "apt1_01_amber-md_20261125-1200.sh",
+       "apt1_01_amber-prod_20261125-1200.sh"
+      ],
+      "write": true,
+      "run": true,
+      "status": "8 files · 0 errors · 3 warnings",
+      "title": "",
+      "step": 1,
+      "preview": {
+       "file": "apt1_01_amber-prod_20261125-1200.sh",
+       "text": "#!/bin/bash\n# Amber production\n# Project apt1, step 01 - written by MDBridge <VERSION> on <DATE>.\n# MDBridge only writes this script; review it, then run it with: bash apt1_01_amber-prod_20261125-1200.sh\n# Amber 26; engine pmemd.MPI.\n# Please cite (AmberTools, pmemd (Amber), CPPTRAJ):\n#   - Case D. A., Aktulga H. M., Belfon K., Cerutti D. S., Cisneros G. A., Cruzeiro V. W. D.,\n#     Forouzesh N., Giese T. J., Götz A. W., Gohlke H., et al. J. Chem. Inf. Model. 2023, 63,\n#     6183-6191. doi:10.1021/acs.jcim.3c01153\n#   - Salomon-Ferrer R., Götz A. W., Poole D., Le Grand S., Walker R. C. J. Chem. Theory Comput.\n#     2013, 9, 3878-3888. doi:10.1021/ct400314y\n#   - Götz A. W., Williamson M. J., Xu D., Poole D., Le Grand S., Walker R. C. J. Chem. Theory\n#     Comput. 2012, 8, 1542-1555. doi:10.1021/ct200909j\n#   - Roe D. R., Cheatham T. E. J. Chem. Theory Comput. 2013, 9, 3084-3095. doi:10.1021/ct400341p\n\nset -eo pipefail\ncd \"$(dirname \"$0\")\"\n\nPMEMD=\"mpirun -np 8 pmemd.MPI\"\nTOP=\"/x/sys.parm7\"\n\n# a stage counts as finished when its output has the final timing lines\n# (pmemd: \"Total wall time\", sander: \"Run   done at\")\nfinished() { [ -s \"$1\" ] && grep -qE \"Total wall time|Run +done at\" \"$1\"; }\n\n# prod: Production, helix pairs held\nif finished apt1_01_prod_20261125-1200.out; then\n  echo \"prod: already finished - skipping\"\nelse\n  $PMEMD -O -i apt1_01_prod_20261125-1200.in -p \"$TOP\" -c apt1_01_eq-free_20261125-1200.rst7 -ref apt1_01_eq-free_20261125-1200.rst7 -o apt1_01_prod_20261125-1200.out -r apt1_01_prod_20261125-1200.rst7 -x apt1_01_prod_20261125-1200.nc -inf apt1_01_prod_20261125-1200.mdinfo\nfi\n[ -s \"apt1_01_prod_20261125-1200.rst7\" ] || { echo \"ERROR: pmemd (prod) did not write apt1_01_prod_20261125-1200.rst7\" >&2; exit 1; }\n"
+      }
+     }
+    }
+   },
+   {
+    "action": 36,
+    "workflow": {
+     "wizard": {
+      "open": true,
+      "tool": "amber-md",
+      "pages": 5,
+      "changed": {
+       "engine": "pmemd.MPI"
+      },
+      "files_in": {
+       "topology": "/x/sys.parm7",
+       "coordinates": "/x/sys.rst7",
+       "restraints": "/x/h.dist"
+      },
+      "issues": [
+       [
+        "warning",
+        "Topology (parm7): file not found (yet): /x/sys.parm7"
+       ],
+       [
+        "warning",
+        "Coordinates (rst7): file not found (yet): /x/sys.rst7"
+       ],
+       [
+        "warning",
+        "Restraints (DISANG): file not found (yet): /x/h.dist"
+       ],
+       [
+        "info",
+        "no environment setup: pmemd and cpptraj must be on PATH when the script runs"
+       ]
+      ],
+      "files": [
+       "apt1_01_min1_20261125-1200.in",
+       "apt1_01_min2_20261125-1200.in",
+       "apt1_01_heat_20261125-1200.in",
+       "apt1_01_eq_20261125-1200.in",
+       "apt1_01_eq-free_20261125-1200.in",
+       "apt1_01_prod_20261125-1200.in",
+       "apt1_01_amber-md_20261125-1200.sh",
+       "apt1_01_amber-prod_20261125-1200.sh"
+      ],
+      "write": true,
+      "run": true,
+      "status": "8 files · 0 errors · 3 warnings",
+      "title": "",
+      "step": 1
+     }
+    }
+   }
+  ],
+  "settings": "gui/workflow/wizard_every_tool/settings.after.toml"
+ },
+ "mdatk": {
+  "expected": {
+   "p.mdatk.toml": "gui/workflow/wizard_every_tool/mdatk/p.mdatk.toml",
+   "plans/apt1_workflow/01_amber-md/apt1_01_amber-md_20261125-1200.sh": "gui/workflow/wizard_every_tool/mdatk/plans/apt1_workflow/01_amber-md/apt1_01_amber-md_20261125-1200.sh",
+   "plans/apt1_workflow/01_amber-md/apt1_01_amber-prod_20261125-1200.sh": "gui/workflow/wizard_every_tool/mdatk/plans/apt1_workflow/01_amber-md/apt1_01_amber-prod_20261125-1200.sh"
+  },
+  "snapshots": [
+   {
+    "action": 1,
+    "workflow": {
+     "wizard": {
+      "open": true,
+      "tool": "amber-md",
+      "pages": 5,
+      "changed": {},
+      "files_in": {},
+      "issues": [
+       [
+        "error",
+        "Topology (parm7): connect a step that produces it or choose a file"
+       ],
+       [
+        "error",
+        "Coordinates (rst7): connect a step that produces it or choose a file"
+       ],
+       [
+        "error",
+        "stages min2, heat, eq, eq-free, prod use helix distance restraints but no DISANG file is connected or chosen (an 'Amber · helix restraints' step writes one)"
+       ],
+       [
+        "info",
+        "no environment setup: pmemd and cpptraj must be on PATH when the script runs"
+       ]
+      ],
+      "files": [],
+      "write": false,
+      "run": false,
+      "status": "0 files · 3 errors · 0 warnings",
+      "title": "",
+      "step": 1
+     }
+    }
+   },
+   {
+    "action": 3,
+    "workflow": {
+     "wizard": {
+      "open": true,
+      "tool": "amber-build",
+      "pages": 8,
+      "changed": {},
+      "files_in": {},
+      "issues": [
+       [
+        "error",
+        "Starting structure (PDB): connect a step that produces it or choose a file"
+       ],
+       [
+        "info",
+        "the CP library and parameters are generated from AmberTools' RNA.lib and parm10.dat when the script runs (AMBERHOME or tleap on PATH)"
+       ],
+       [
+        "info",
+        "tleap gives HO the same Lennard-Jones type as water HW (both zero) and O2 the same as carbonyl O, so 'changeLJPair @%HO ...' also changes water-H and carbonyl-O pairs; tick 'Separate HO and O2 Lennard-Jones types first' if that is not intended"
+       ]
+      ],
+      "files": [],
+      "write": false,
+      "run": false,
+      "status": "0 files · 1 errors · 0 warnings",
+      "title": "",
+      "step": 1
+     }
+    }
+   },
+   {
+    "action": 5,
+    "workflow": {
+     "wizard": {
+      "open": true,
+      "tool": "amber-restraints",
+      "pages": 3,
+      "changed": {},
+      "files_in": {},
+      "issues": [
+       [
+        "error",
+        "Topology (parm7): connect a step that produces it or choose a file"
+       ],
+       [
+        "error",
+        "enter the secondary structure (dot-bracket and sequence) or connect a secondary-structure file"
+       ]
+      ],
+      "files": [],
+      "write": false,
+      "run": false,
+      "status": "0 files · 2 errors · 0 warnings",
+      "title": "",
+      "step": 1
+     }
+    }
+   },
+   {
+    "action": 7,
+    "workflow": {
+     "wizard": {
+      "open": true,
+      "tool": "amber-md",
+      "pages": 5,
+      "changed": {},
+      "files_in": {},
+      "issues": [
+       [
+        "error",
+        "Topology (parm7): connect a step that produces it or choose a file"
+       ],
+       [
+        "error",
+        "Coordinates (rst7): connect a step that produces it or choose a file"
+       ],
+       [
+        "error",
+        "stages min2, heat, eq, eq-free, prod use helix distance restraints but no DISANG file is connected or chosen (an 'Amber · helix restraints' step writes one)"
+       ],
+       [
+        "info",
+        "no environment setup: pmemd and cpptraj must be on PATH when the script runs"
+       ]
+      ],
+      "files": [],
+      "write": false,
+      "run": false,
+      "status": "0 files · 3 errors · 0 warnings",
+      "title": "",
+      "step": 1
+     }
+    }
+   },
+   {
+    "action": 9,
+    "workflow": {
+     "wizard": {
+      "open": true,
+      "tool": "structure-builder",
+      "pages": 6,
+      "changed": {},
+      "files_in": {},
+      "issues": [
+       [
+        "error",
+        "enter the sequence"
+       ]
+      ],
+      "files": [],
+      "write": false,
+      "run": false,
+      "status": "0 files · 1 errors · 0 warnings",
+      "title": "",
+      "step": 1
+     }
+    }
+   },
+   {
+    "action": 11,
+    "workflow": {
+     "wizard": {
+      "open": true,
+      "tool": "restraint-dicts",
+      "pages": 5,
+      "changed": {},
+      "files_in": {},
+      "issues": [
+       [
+        "info",
+        "acedrg must be on PATH (or set the CCP4 setup script)"
+       ]
+      ],
+      "files": [
+       "apt1_01_dictionaries_20261125-1200.py",
+       "apt1_01_0A5_20261125-1200.smi",
+       "apt1_01_0A3_20261125-1200.smi",
+       "apt1_01_0C5_20261125-1200.smi",
+       "apt1_01_0C3_20261125-1200.smi",
+       "apt1_01_0G5_20261125-1200.smi",
+       "apt1_01_0G3_20261125-1200.smi",
+       "apt1_01_0U5_20261125-1200.smi",
+       "apt1_01_0U3_20261125-1200.smi",
+       "apt1_01_dicts_20261125-1200.sh"
+      ],
+      "write": true,
+      "run": true,
+      "status": "10 files · 0 errors · 0 warnings",
+      "title": "",
+      "step": 1
+     }
+    }
+   },
+   {
+    "action": 13,
+    "workflow": {
+     "wizard": {
+      "open": true,
+      "tool": "farfar2",
+      "pages": 7,
+      "changed": {},
+      "files_in": {},
+      "issues": [
+       [
+        "error",
+        "enter the RNA sequence"
+       ],
+       [
+        "warning",
+        "-fixed_stems needs a secondary structure"
+       ]
+      ],
+      "files": [],
+      "write": false,
+      "run": false,
+      "status": "0 files · 1 errors · 1 warnings",
+      "title": "",
+      "step": 1
+     }
+    }
+   },
+   {
+    "action": 15,
+    "workflow": {
+     "wizard": {
+      "open": true,
+      "tool": "farfar2-models",
+      "pages": 5,
+      "changed": {},
+      "files_in": {},
+      "issues": [
+       [
+        "error",
+        "Silent files: connect a step that produces it or choose a file"
+       ],
+       [
+        "info",
+        "x3dna-dssr needs its own (free academic) licence and binary"
+       ]
+      ],
+      "files": [],
+      "write": false,
+      "run": false,
+      "status": "0 files · 1 errors · 0 warnings",
+      "title": "",
+      "step": 1
+     }
+    }
+   },
+   {
+    "action": 17,
+    "workflow": {
+     "wizard": {
+      "open": true,
+      "tool": "gromacs",
+      "pages": 5,
+      "changed": {},
+      "files_in": {},
+      "issues": [
+       [
+        "error",
+        "Topology (parm7/top): connect a step that produces it or choose a file"
+       ],
+       [
+        "error",
+        "Coordinates (rst7/gro): connect a step that produces it or choose a file"
+       ]
+      ],
+      "files": [],
+      "write": false,
+      "run": false,
+      "status": "0 files · 2 errors · 0 warnings",
+      "title": "",
+      "step": 1
+     }
+    }
+   },
+   {
+    "action": 19,
+    "workflow": {
+     "wizard": {
+      "open": true,
+      "tool": "phenix-rsr",
+      "pages": 5,
+      "changed": {},
+      "files_in": {},
+      "issues": [
+       [
+        "error",
+        "Model (PDB): connect a step that produces it or choose a file"
+       ],
+       [
+        "error",
+        "Density map: connect a step that produces it or choose a file"
+       ],
+       [
+        "error",
+        "give the resolution of the map (Å)"
+       ],
+       [
+        "info",
+        "phenix.real_space_refine must be on PATH (or set the Phenix installation)"
+       ]
+      ],
+      "files": [],
+      "write": false,
+      "run": false,
+      "status": "0 files · 3 errors · 0 warnings",
+      "title": "",
+      "step": 1
+     }
+    }
+   },
+   {
+    "action": 21,
+    "workflow": {
+     "wizard": {
+      "open": true,
+      "tool": "coot-rsr",
+      "pages": 4,
+      "changed": {},
+      "files_in": {},
+      "issues": [
+       [
+        "error",
+        "Model (PDB): connect a step that produces it or choose a file"
+       ],
+       [
+        "error",
+        "Density map: connect a step that produces it or choose a file"
+       ]
+      ],
+      "files": [],
+      "write": false,
+      "run": false,
+      "status": "0 files · 2 errors · 0 warnings",
+      "title": "",
+      "step": 1
+     }
+    }
+   },
+   {
+    "action": 23,
+    "workflow": {
+     "wizard": {
+      "open": true,
+      "tool": "rnamake",
+      "pages": 6,
+      "changed": {},
+      "files_in": {},
+      "issues": [
+       [
+        "error",
+        "Scaffold (PDB): connect a step that produces it or choose a file"
+       ],
+       [
+        "error",
+        "give the start bp (e.g. A222-A251)"
+       ],
+       [
+        "error",
+        "give the end bp (e.g. A222-A251)"
+       ]
+      ],
+      "files": [],
+      "write": false,
+      "run": false,
+      "status": "0 files · 3 errors · 0 warnings",
+      "title": "",
+      "step": 1
+     }
+    }
+   },
+   {
+    "action": 25,
+    "workflow": {
+     "wizard": {
+      "open": true,
+      "tool": "simrna",
+      "pages": 6,
+      "changed": {},
+      "files_in": {},
+      "issues": [
+       [
+        "error",
+        "enter the sequence (or connect a starting PDB)"
+       ]
+      ],
+      "files": [],
+      "write": false,
+      "run": false,
+      "status": "0 files · 1 errors · 0 warnings",
+      "title": "",
+      "step": 1
+     }
+    }
+   },
+   {
+    "action": 27,
+    "workflow": {
+     "wizard": {
+      "open": true,
+      "tool": "vmd",
+      "pages": 6,
+      "changed": {},
+      "files_in": {},
+      "issues": [
+       [
+        "error",
+        "Topology: connect a step that produces it or choose a file"
+       ],
+       [
+        "info",
+        "alignment and smoothing need a trajectory"
+       ]
+      ],
+      "files": [],
+      "write": false,
+      "run": false,
+      "status": "0 files · 1 errors · 0 warnings",
+      "title": "",
+      "step": 1
+     }
+    }
+   },
+   {
+    "action": 30,
+    "workflow": {
+     "wizard": {
+      "open": true,
+      "tool": "amber-md",
+      "pages": 5,
+      "changed": {
+       "engine": "pmemd.MPI"
+      },
+      "files_in": {},
+      "issues": [
+       [
+        "error",
+        "Topology (parm7): connect a step that produces it or choose a file"
+       ],
+       [
+        "error",
+        "Coordinates (rst7): connect a step that produces it or choose a file"
+       ],
+       [
+        "error",
+        "stages min2, heat, eq, eq-free, prod use helix distance restraints but no DISANG file is connected or chosen (an 'Amber · helix restraints' step writes one)"
+       ],
+       [
+        "info",
+        "no environment setup: pmemd and cpptraj must be on PATH when the script runs"
+       ]
+      ],
+      "files": [],
+      "write": false,
+      "run": false,
+      "status": "0 files · 3 errors · 0 warnings",
+      "title": "",
+      "step": 1,
+      "sensitive": {
+       "engine.nproc": true,
+       "engine.gpu": false
+      }
+     }
+    }
+   },
+   {
+    "action": 34,
+    "workflow": {
+     "wizard": {
+      "open": true,
+      "tool": "amber-md",
+      "pages": 5,
+      "changed": {
+       "engine": "pmemd.MPI"
+      },
+      "files_in": {
+       "topology": "/x/sys.parm7",
+       "coordinates": "/x/sys.rst7",
+       "restraints": "/x/h.dist"
+      },
+      "issues": [
+       [
+        "warning",
+        "Topology (parm7): file not found (yet): /x/sys.parm7"
+       ],
+       [
+        "warning",
+        "Coordinates (rst7): file not found (yet): /x/sys.rst7"
+       ],
+       [
+        "warning",
+        "Restraints (DISANG): file not found (yet): /x/h.dist"
+       ],
+       [
+        "info",
+        "no environment setup: pmemd and cpptraj must be on PATH when the script runs"
+       ]
+      ],
+      "files": [
+       "apt1_01_min1_20261125-1200.in",
+       "apt1_01_min2_20261125-1200.in",
+       "apt1_01_heat_20261125-1200.in",
+       "apt1_01_eq_20261125-1200.in",
+       "apt1_01_eq-free_20261125-1200.in",
+       "apt1_01_prod_20261125-1200.in",
+       "apt1_01_amber-md_20261125-1200.sh",
+       "apt1_01_amber-prod_20261125-1200.sh"
+      ],
+      "write": true,
+      "run": true,
+      "status": "8 files · 0 errors · 3 warnings",
+      "title": "",
+      "step": 1,
+      "preview": {
+       "file": "apt1_01_amber-prod_20261125-1200.sh",
+       "text": "#!/bin/bash\n# Amber production\n# Project apt1, step 01 - written by MDATK <VERSION> on <DATE>.\n# MDATK only writes this script; review it, then run it with: bash apt1_01_amber-prod_20261125-1200.sh\n# Amber 26; engine pmemd.MPI.\n# Please cite (AmberTools, pmemd (Amber), CPPTRAJ):\n#   - Case D. A., Aktulga H. M., Belfon K., Cerutti D. S., Cisneros G. A., Cruzeiro V. W. D.,\n#     Forouzesh N., Giese T. J., Götz A. W., Gohlke H., et al. J. Chem. Inf. Model. 2023, 63,\n#     6183-6191. doi:10.1021/acs.jcim.3c01153\n#   - Salomon-Ferrer R., Götz A. W., Poole D., Le Grand S., Walker R. C. J. Chem. Theory Comput.\n#     2013, 9, 3878-3888. doi:10.1021/ct400314y\n#   - Götz A. W., Williamson M. J., Xu D., Poole D., Le Grand S., Walker R. C. J. Chem. Theory\n#     Comput. 2012, 8, 1542-1555. doi:10.1021/ct200909j\n#   - Roe D. R., Cheatham T. E. J. Chem. Theory Comput. 2013, 9, 3084-3095. doi:10.1021/ct400341p\n\nset -eo pipefail\ncd \"$(dirname \"$0\")\"\n\nPMEMD=\"mpirun -np 8 pmemd.MPI\"\nTOP=\"/x/sys.parm7\"\n\n# a stage counts as finished when its output has the final timing lines\n# (pmemd: \"Total wall time\", sander: \"Run   done at\")\nfinished() { [ -s \"$1\" ] && grep -qE \"Total wall time|Run +done at\" \"$1\"; }\n\n# prod: Production, helix pairs held\nif finished apt1_01_prod_20261125-1200.out; then\n  echo \"prod: already finished - skipping\"\nelse\n  $PMEMD -O -i apt1_01_prod_20261125-1200.in -p \"$TOP\" -c apt1_01_eq-free_20261125-1200.rst7 -ref apt1_01_eq-free_20261125-1200.rst7 -o apt1_01_prod_20261125-1200.out -r apt1_01_prod_20261125-1200.rst7 -x apt1_01_prod_20261125-1200.nc -inf apt1_01_prod_20261125-1200.mdinfo\nfi\n[ -s \"apt1_01_prod_20261125-1200.rst7\" ] || { echo \"ERROR: pmemd (prod) did not write apt1_01_prod_20261125-1200.rst7\" >&2; exit 1; }\n"
+      }
+     }
+    }
+   },
+   {
+    "action": 36,
+    "workflow": {
+     "wizard": {
+      "open": true,
+      "tool": "amber-md",
+      "pages": 5,
+      "changed": {
+       "engine": "pmemd.MPI"
+      },
+      "files_in": {
+       "topology": "/x/sys.parm7",
+       "coordinates": "/x/sys.rst7",
+       "restraints": "/x/h.dist"
+      },
+      "issues": [
+       [
+        "warning",
+        "Topology (parm7): file not found (yet): /x/sys.parm7"
+       ],
+       [
+        "warning",
+        "Coordinates (rst7): file not found (yet): /x/sys.rst7"
+       ],
+       [
+        "warning",
+        "Restraints (DISANG): file not found (yet): /x/h.dist"
+       ],
+       [
+        "info",
+        "no environment setup: pmemd and cpptraj must be on PATH when the script runs"
+       ]
+      ],
+      "files": [
+       "apt1_01_min1_20261125-1200.in",
+       "apt1_01_min2_20261125-1200.in",
+       "apt1_01_heat_20261125-1200.in",
+       "apt1_01_eq_20261125-1200.in",
+       "apt1_01_eq-free_20261125-1200.in",
+       "apt1_01_prod_20261125-1200.in",
+       "apt1_01_amber-md_20261125-1200.sh",
+       "apt1_01_amber-prod_20261125-1200.sh"
+      ],
+      "write": true,
+      "run": true,
+      "status": "8 files · 0 errors · 3 warnings",
+      "title": "",
+      "step": 1
+     }
+    }
+   }
+  ]
+ }
+}

@@ -16,9 +16,8 @@
 //                 on a worker thread (the window stays responsive) with the progress bar, the fit
 //                 with *Cancel fit*
 //
-// The other pairings and triplexes are offered as in MDATK; until the fitted helix builder lands
-// (W2-A) the build reports the library's "... is built by the fitted helix builder (not available
-// yet)" as its error. Nothing in the window changes when it lands (tool_actions.hpp).
+// The other pairings and triplexes are offered as in MDATK and built by the library's fitted helix
+// builder (chem/helix_fit.cpp, milestone 6 W2-A) on the worker thread (tool_actions.hpp).
 //
 // Differences from v0.0.4.1 (docs/DIFFERENCES.md TW-xx): the host interface (TW-01), *Check* reports
 // a file that is not UTF-8 text (TW-02, MDATK 0.1.0), a cancelled fit is logged as cancelled and

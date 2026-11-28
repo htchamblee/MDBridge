@@ -1,0 +1,17 @@
+# Plan golden
+
+Written by MDBridge <VERSION> on <DATE>. File names follow `<project>_<step>_<tool>_<time>.<ext>` with time stamp `20261015-1432`.
+
+## 03 · Amber · helix restraints
+
+Folder: `03_amber-restraints`  
+Type: Amber · helix restraints
+
+Inputs:
+- topology: `<ROOT>/inputs/demo_dry.parm7`
+
+Outputs:
+- restraints: `03_amber-restraints/golden_03_helix_20261015-1432.dist`
+
+Checks:
+- ERROR: topology check: residue 2 is C in the topology but the secondary structure expects G: check the sequence and residue offset

@@ -1,13 +1,15 @@
 # Milestone 6: status (2026-11-28)
 
-Milestone 6 is complete except the other pairings and triplexes of the structure builder (W2-A),
-which wait for their integration <!-- W2-A -->: every other package is done, and CI is green on the
-branch head before W3-C (d15a295). W3-C changes documents only.
+Milestone 6 is complete: every package is done, W2-A (the other pairings and triplexes of the
+structure builder, with D17 ... D19) last; CI was green on the branch head before W3-C (d15a295), and
+W3-C changes documents only.
 
 Plan: `docs/specs/m6-plan.md`; owner decisions D1-D14 accepted (2026-11-26), D15 (CHD-01: guanine
 amino hydrogens follow the wwPDB CCD), D16 (CHD-02: non-WC builds in the fitted 4JRD frame), D17
-(CH-16: a continuation closure for the non-WC builds, 2026-11-27) and D18 (CH-18: realistic non-WC
-geometry; RNA builds of the kinds RNA does not form refused, 2026-11-27). <!-- W2-A: D19 -->
+(CH-16: a continuation closure for the non-WC builds, 2026-11-27), D18 (CH-18: realistic non-WC
+geometry; RNA builds of the kinds RNA does not form refused, 2026-11-27) and D19 (CH-18 revised,
+CH-19 ... CH-21: sequences a kind cannot pair refused, C+ as the CCD's CH, statistics over independent
+structures, 2026-11-27).
 
 Reports kept for reference (`docs/reports/`):
 
@@ -22,7 +24,6 @@ Reports kept for reference (`docs/reports/`):
   structures (D18).
 - `2026-11-27-mdatk-bug-report-addendum-2-builder-geometry.md`: the builder geometry items 107-115,
   checked on MDATK 0.1.2.
-
 ## Wave 0: done (CI green at a7cacc5)
 
 Chem generators and `improvements_chem.py` (128 command-line cases pending until the commands
@@ -44,20 +45,35 @@ within D10). The regenerate job has a kernel probe: on runners whose pinned kern
 MDATK's path-dependent chem results (density-fit evaluation counts, non-WC closures) are compared
 structurally (interim; tighten once W2-A makes the non-WC builds well-conditioned).
 
-## Wave 2: W2-B and W2-C done (CI green at 89a7f0e); W2-A pending integration <!-- W2-A -->
+## Wave 2: done (W2-B and W2-C: CI green at 89a7f0e)
 
 W2-B mutations and fit-to-map, W2-C the `pdb`, `build`, `dict` and `density fit` / `simulate`
 commands, the pipeline's automatic fit and `chem/generator_api.hpp` (merged at bf1f67d; two test bugs
-the sanitizer job found fixed at c4342d6).
-
-<!-- W2-A: replace this paragraph with W2-A's summary when it is integrated. -->
-W2-A (other pairings and triplexes) is pending integration: it implements D17 (CH-16, MDATK's
-`_close_levels` replaced by a continuation closure) and D18 (CH-18) with their expected data. Until
-then the library answers the other pairings with `pairing ... is built by the fitted helix builder
-(not available yet)` (TW-07), and the 5 pairing cases of the command line are pending
-(`cli_parity.py` PENDING).
-
-## Wave 3: W3-A, W3-B and W3-C done (W3-A / W3-B: CI green at 5f404b0)
+the sanitizer job found fixed at c4342d6). W2-A, the other pairings and triplexes (`src/chem/helix_fit.cpp`):
+the owner's D17 continuation closure (CH-16), made reproducible by a continuous backbone torsion term
+(CH-17: MDATK's term jumps at ref + 180°, where its reference helices sit) and solves that start with
+a unit trust radius; the closures of the expected data agree within PDB rounding across BLAS
+kernels and 1e-8 start perturbations (8 closures, 0.0002 Å heavy-atom RMSD, 0.0014 Å for one atom), the C++ builds within 0.001 Å of the patched
+MDATK's. `build
+helix --pairing / --triplex`, the builder window and the 5 command-line cases work; the regenerate
+job compares the rebuilt helices with D10 on runners with other kernels (no longer masked). D18
+(CH-18, docs/reports/2026-11-27-non-wc-geometry.md): only hh's reference helix was realistic, so the
+Hoogsteen duplex and the pyrimidine-motif triplex now take their nucleotides, pairs, screw and
+stacking from the RNA triple helices of PDB 3P22, 4PLX, 6SVS and 7JNH (a restrained reference fit;
+at first uniform helices 33.3° / 3.02 Å and 31.6° / 3.16 Å, base planes 3.35 / 3.34 Å apart), the closure keeps their stacking, every reference fit scores
+contacts over twelve levels, pairs without a base-base H-bond are noted, and RNA builds of reverse-wc,
+reverse-hoogsteen and the purine-motif triplex are refused (library, command line, builder window).
+CH-17's refit of the reference helices is dropped (its smooth term stays in the closure). D19, after
+the review of CH-18: strand-1 pyrimidines of the Hoogsteen kinds and hh's non-A levels are refused
+(CH-19); the statistics count each crystal molecule once and the triples' selection is a tool (CH-20);
+the C+ of G·C+ Hoogsteen pairs is the CCD's CH, with HN3 (CH-21); the reference fits are restrained
+by the experimental means' standard errors and the closure also moves the partners within their
+levels with their pairs, steps and tilt restrained: uniform helices 31.9° / 3.02 Å and 31.4° / 3.05 Å
+(experiment 30.5° / 3.01 Å and 30.4° / 3.02 Å), mixed sequences with every link angle and stacked
+pair and nearly every step within the experimental ranges (exceptions, single triplex steps and
+strand stacking up to 0.08 Å over: docs/reports/2026-11-27-non-wc-geometry.md "Final geometry"). The builder window's
+*Cancel* now stops a fitted build (code review), long closures use a row-wise Givens QR (NU-03).
+## Wave 3: done (W3-A / W3-B: CI green at 5f404b0)
 
 - W3-A, the density fit in the window: *Global search* and *Refine* on the Structure page run the
   command line's fit as a window job, the placement stored as one undo step, nothing on Cancel, a map
@@ -65,9 +81,9 @@ then the library answers the other pairings with `pairing ... is built by the fi
   placement (DIFFERENCES WF-01 ... WF-03; GUI case `canvas/density_fit`).
 - W3-B, the PDB clean-up and structure builder windows behind the host interface (D1), opened from
   the Workflow menu (DIFFERENCES TW-01 ... TW-08; GUI cases `tools/*`; ctest `gui.tools`,
-  `gui.tools.scale150`, `gui.tools.scale200`). The non-WC builds of the builder window wait for W2-A
-  (`ToolTests::builderNonWcHelixBuildsInTheBackground` is marked `PENDING(W2-A)`). <!-- W2-A -->
-- Integrated together: a GUI case's `fitted` (`{file: tolerance}`, need `fitted`) is one mechanism
+  `gui.tools.scale150`, `gui.tools.scale200`). The non-WC builds of the builder window came with W2-A
+  (`ToolTests::builderNonWcHelixBuildsInTheBackground` writes the file the command line writes).
+ Integrated together: a GUI case's `fitted` (`{file: tolerance}`, need `fitted`) is one mechanism
   for both (tests/data/README.md "gui"): fitted files line by line with their decimals within the last
   printed digit or the tolerance, a project's `[density]` table within D10's angle / shift / CC
   tolerances, and the case's log, snapshots and reports with their decimals within the last digit.
@@ -81,6 +97,5 @@ then the library answers the other pairings with `pairing ... is built by the fi
   what, why, the MDATK version compared and its C++ and command-line tests; the citation keys of the
   chem commands; DIC-01 / DIC-02 checked on 0.1.2).
 
-Pending for the milestone: W2-A's integration, and with it its DIFFERENCES entries (CH-16 ...),
-TW-07, the README's and ARCHITECTURE's status lines and the parts of this file marked W2-A.
-<!-- W2-A -->
+W2-A's DIFFERENCES entries: CH-16 ... CH-21, TW-07, NU-03 and "W2-A"; its report:
+docs/reports/2026-11-27-non-wc-geometry.md ("Final geometry").

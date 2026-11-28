@@ -1,0 +1,17 @@
+# Plan golden
+
+Written by MDBridge <VERSION> on <DATE>. File names follow `<project>_<step>_<tool>_<time>.<ext>` with time stamp `20261015-1432`.
+
+## 03 · Restraint dictionaries · acedrg / eLBOW
+
+Folder: `03_dicts`  
+Type: Restraint dictionaries · acedrg / eLBOW  
+MDBridge: `mdbridge` from PATH (MDBRIDGE in the scripts overrides it)
+
+Inputs:
+- structure: `<ROOT>/inputs/model.pdb`
+
+Outputs:
+- dictionaries: `03_dicts/golden_03_0C3_20261015-1432.cif`, `03_dicts/golden_03_0G5_20261015-1432.cif`
+
+Files written: `golden_03_0C3_20261015-1432.smi`, `golden_03_0G5_20261015-1432.smi`, `golden_03_dicts_20261015-1432.sh`

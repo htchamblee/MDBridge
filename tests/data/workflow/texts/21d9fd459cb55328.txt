@@ -1,0 +1,22 @@
+# Plan golden
+
+Written by MDBridge <VERSION> on <DATE>. File names follow `<project>_<step>_<tool>_<time>.<ext>` (no time stamp).
+
+## 01 · Amber · system build
+
+Folder: `01_amber-build`  
+Type: Amber · system build  
+MDBridge: `mdbridge` from PATH (MDBRIDGE in the scripts overrides it)
+
+Inputs:
+- structure: `/golden/inputs/structure.pdb`
+
+Outputs:
+- topology: `01_amber-build/golden_01_parmed.parm7`
+- coordinates: `01_amber-build/golden_01_tleap.rst7`
+- pdb: `01_amber-build/golden_01_tleap.pdb`
+
+Files written: `golden_01_cp-lib.py`, `golden_01_prep.py`, `golden_01_tleap.leap`, `golden_01_parmed.in`, `golden_01_amber-build.sh`
+
+Checks:
+- WARNING: Starting structure (PDB): file not found (yet): /golden/inputs/structure.pdb

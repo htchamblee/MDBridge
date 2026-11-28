@@ -4,7 +4,9 @@
   (file last modified 2026-11-14 17:40:24 GMT), retrieved 2026-11-24.
 - **Licence:** CC0 1.0 Universal (public domain dedication); wwPDB data usage policy,
   https://www.wwpdb.org/about/usage-policies. Attribution is given as a courtesy.
-- **Cut with:** `python3 -I tools/extract_ccd.py components.cif.gz`.
+- **Cut with:** `python3 -I tools/extract_ccd.py components.cif.gz` (the file of 2026-11-24: SHA-256
+  `09a7334bfb0b56d05daa5352b46d8be9a70827afc80abeb0754c5840f07ee4f5`, 121 031 032 bytes; the CH extracts
+  were cut from the same file on 2026-11-27, the other extracts unchanged).
 
 | File | Content |
 |---|---|
@@ -16,6 +18,7 @@
 | `ribonucleotide_components.tsv` | comp_id, name, type, formula, formal charge, one-letter code, modification date and InChI of the standard ribonucleotides A, C, G, U and the L-ribonucleotides 0A, 0C, 0G, 0U |
 | `ribonucleotide_atoms.tsv` | every atom of those eight components: element, formal charge, aromatic / leaving flags, CIP label, ordinal, model and ideal coordinates, and standard_atom_id / standard_ordinal, the matching atom of the standard residue (the atom itself for A ... U). The match is `match_atoms`' bond-graph match; the two hydrogens of a CH2 / NH2 group that the CCD names its own way (0A's HN6 / HN6A, H5' / H5'A) are named by their position in the ideal coordinates (`name_by_geometry`): HN6, HN6A, H5', H5'A are the mirror images of H62, H61, H5'', H5'. The L components are checked to be the mirror images (CIP labels, chiral volumes of the ideal coordinates) |
 | `ribonucleotide_bonds.tsv` | every bond of those eight components: atom ids, order, aromatic flag, ordinal |
+| `protonated_cytidine_components.tsv`, `protonated_cytidine_atoms.tsv`, `protonated_cytidine_bonds.tsv` | the N3-protonated cytidine CH (released, RNA linking, parent C): component (name, type, formula, formal charge, one-letter code, parent, release status, modification date, InChI), every atom (element, formal charge, aromatic / leaving flags, CIP label, ordinal, model and ideal coordinates, `?` where the CCD has none: its ideal coordinates lack HOP3) and bond. The builder's C+ of the G·C+ Hoogsteen pairs (docs/DIFFERENCES.md CH-21): `tools/gen_chem_tables.py` `protonated_cytidine` checks that CH's atoms are C's and one hydrogen (HN3, bonded to N3 only) and writes the code and the proton's name to `src/chem/component_tables.inc` |
 
 The ribonucleotide extracts are the reference of the restraint dictionaries and the hydrogen naming
 (`tools/gen_chem_tables.py`, `src/chem/component_tables.inc`). The CCD does not agree with itself

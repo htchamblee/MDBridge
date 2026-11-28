@@ -306,11 +306,17 @@ ToolResult buildHelix(const HelixRequest& r, const fs::path& project, const core
         if (!r.triplex.empty()) o.triplex = r.triplex;
         o.third = r.third;
         std::vector<std::string> notes;
+        o.reporter = &reporter;  // the fit and the closure stop on the job's cancel
         const std::string text = chem::buildHelix(r.sequence, o, &notes);
+        reporter.checkCancel();  // a build abandoned at its end writes nothing and logs no step
         writeText(r.output, text);
         entry.files = {r.output};
         entry.summary = joined(notes);
-        entry.citations = helixInBackground(r) ? keysFor({"arnott-arna", "pdb-4jrd"}) : keysFor({"arnott-arna"});
+        // D19: the Hoogsteen duplex and the pyrimidine-motif triplex also cite their RNA triple helices
+        const bool triplexes = r.pairing == "hoogsteen" || (r.pairing == "wc" && r.triplex == "hoogsteen");
+        entry.citations = triplexes                ? keysFor({"arnott-arna", "pdb-4jrd", "pdb-triplexes"})
+                          : helixInBackground(r) ? keysFor({"arnott-arna", "pdb-4jrd"})
+                                                 : keysFor({"arnott-arna"});
         result.notes = std::move(notes);
     });
     return result;

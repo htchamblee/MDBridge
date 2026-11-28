@@ -1,0 +1,117 @@
+#!/usr/bin/env python3
+"""Helix-preserving distance restraints (Amber DISANG) - written by MDBridge <VERSION>.
+
+Pairs come from: 01 · Rosetta · FARFAR2 (rna_denovo).  Usage:
+    python3 THIS_SCRIPT TOPOLOGY.parm7 OUTPUT.dist
+Needs only Python 3 (no ParmEd).  Atom indices are looked up by residue number and atom name, so run it on the final topology (after solvation / ParmEd).
+"""
+
+import sys
+
+NAME_SECTIONS = ("ATOM_NAME", "RESIDUE_LABEL", "RESIDUE_POINTER")
+
+
+def read_parm7_names(path):
+    """Atom names, residue labels and 1-based residue pointers of an Amber parm7 file."""
+    data = {}
+    current = None
+    width = 4
+    with open(path, "r", encoding="utf-8", errors="replace") as fh:
+        for line in fh:
+            if line.startswith("%FLAG"):
+                name = line[5:].strip()
+                current = name if name in NAME_SECTIONS else None
+                if current:
+                    data[current] = []
+                continue
+            if line.startswith("%FORMAT"):
+                fmt = line[line.index("(") + 1:line.index(")")]
+                pos = next(i for i, c in enumerate(fmt) if c.isalpha())
+                width = int(fmt[pos + 1:].split(".")[0])
+                continue
+            if current is None or line.startswith("%"):
+                continue
+            text = line.rstrip("\n")
+            data[current].extend(text[k:k + width] for k in range(0, len(text), width))
+    missing = [s for s in NAME_SECTIONS if s not in data]
+    if missing:
+        raise ValueError(f"{path}: not an Amber topology (missing {', '.join(missing)})")
+    names = [s.strip() for s in data["ATOM_NAME"]]
+    labels = [s.strip() for s in data["RESIDUE_LABEL"] if s.strip()]
+    pointers = [int(s) for s in data["RESIDUE_POINTER"] if s.strip()]
+    return names, labels, pointers
+
+
+def base_letter(label):
+    """Nucleotide letter of an Amber residue label (G, G5, G3, RG, LG, GN ... -> G)."""
+    core = label.strip().upper().rstrip("0123456789")
+    if core.endswith("N") and len(core) > 1:
+        core = core[:-1]
+    if len(core) > 1 and core[0] in "RLD":
+        core = core[1:]
+    return core
+
+
+def atom_index(names, labels, pointers, resnum, atom):
+    if resnum < 1 or resnum > len(pointers):
+        raise ValueError(f"residue {resnum} does not exist (the topology has {len(pointers)} residues)")
+    start = pointers[resnum - 1] - 1
+    end = pointers[resnum] - 1 if resnum < len(pointers) else len(names)
+    hits = [i + 1 for i in range(start, end) if names[i] == atom]
+    if len(hits) != 1:
+        raise ValueError(f"residue {resnum} ({labels[resnum - 1]}) atom {atom}: found {hits}")
+    return hits[0]
+
+
+def restraint_text(names, labels, pointers, pairs, bonds, window, offset=0):
+    """DISANG text: one &rst block per hydrogen bond of every base pair."""
+    lines = []
+    for a, b, kind in pairs:
+        ra, rb = a + offset, b + offset
+        for res, letter in ((ra, kind[0]), (rb, kind[1])):
+            if 1 <= res <= len(labels) and base_letter(labels[res - 1]) != letter:
+                raise ValueError(f"residue {res} is {labels[res - 1]} in the topology but the secondary "
+                                 f"structure expects {letter}: check the sequence and residue offset")
+        for an, bn in bonds[kind]:
+            ia = atom_index(names, labels, pointers, ra, an)
+            ib = atom_index(names, labels, pointers, rb, bn)
+            lines.append(f"# {ra} {an} -- {rb} {bn}")
+            lines.append("&rst")
+            lines.append(f" iat={ia},{ib},")
+            lines.append(f" {window}")
+            lines.append("&end")
+    return "\n".join(lines) + ("\n" if lines else "")
+
+
+def main(argv, pairs, bonds, window, offset=0):
+    if not argv or argv[0] in ("-h", "--help"):
+        print("usage: python3 THIS_SCRIPT TOPOLOGY.parm7 [OUTPUT.dist]", file=sys.stderr)
+        return 2
+    top = argv[0]
+    try:
+        names, labels, pointers = read_parm7_names(top)
+        text = restraint_text(names, labels, pointers, pairs, bonds, window, offset)
+    except (OSError, ValueError) as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+    if len(argv) > 1:
+        with open(argv[1], "w") as out:
+            out.write(text)
+        target = argv[1]
+    else:
+        sys.stdout.write(text)
+        target = "stdout"
+    print(f"wrote {text.count('&rst')} restraints for {len(pairs)} base pairs to {target} from {top}",
+          file=sys.stderr)
+    return 0
+
+
+# --- settings written by MDBridge ---
+PAIRS = []
+BONDS = {}
+WINDOW = 'r1=2.3, r2=2.7, r3=3.2, r4=3.7, rk2=10.0, rk3=10.0,'
+OFFSET = 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:], PAIRS, BONDS, WINDOW, OFFSET))

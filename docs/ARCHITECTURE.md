@@ -6,9 +6,9 @@ cache, the frame-parallel runner), 4 (`render`: figures, charts, the structure v
 software and Vulkan renderers, MP4 video with bundled LGPL FFmpeg, the commands `render`, `charts`
 and `preview`) and 5 (`app`: MDATK's analysis window in Qt Widgets with its six pages, the canvas
 layout editor whose structure panel is the 3D view, jobs, undo, recovery copies, and the commands
-`demo`, `clean` and `citations`) are done. Milestone 6 (`chem`) is done except the other pairings and
-triplexes of the structure builder (W2-A, pending integration; `docs/specs/m6-status.md`) <!-- W2-A -->:
+`demo`, `clean` and `citations`) are done. Milestone 6 (`chem`) is done (`docs/specs/m6-status.md`):
 PDB hygiene, annotation, restraint dictionaries and SMILES, the Watson-Crick helix builder, mutations,
+the other pairings and triplexes of the helix builder (fitted, from 4JRD and RNA triple helices),
 the density fit, the `numerics` library, the commands `pdb`, `build`, `dict` and `density fit` /
 `simulate`, the density fit in the window and the PDB clean-up and structure builder windows.
 Milestone 7 (`workflow`) is planned (`docs/specs/m7-plan.md`). The C++ successor of MDATK is named
@@ -76,7 +76,7 @@ Each module is a library with a C++ API; only `app` depends on Qt widgets.
 | `chem` | PDB hygiene (L-RNA detection, naming schemes, chains, renumbering), base pairs, dot-bracket, annotation, helix builder, mutations, dictionary renaming, the rigid-body density fit | core, io, numerics |
 | `analysis` | RMSD, contacts, H-bonds, Mg/O-Mg-O, stacking, energy, trace/proximity; parallel over frames; result cache | core, io, chem |
 | `render` | Vulkan scene (trace, cartoon, licorice, surfaces, density shadow), panels and charts, video encoding; usable headless for batch videos | core, io, analysis, chem, numerics |
-| `workflow` | planner model, step types and checks; generators written in Lua and loaded from `.lua` files (users can add steps) | core, chem |
+| `workflow` | planner model, step types and checks; generators written in Lua and loaded from `.lua` files (users can add steps). Its Lua host (`src/workflow/lua`, target `mdbridge_lua_host`: the sandboxed state, limits, `Value` <-> Lua, the determinism lint) runs on the vendored Lua 5.4 (`third_party/lua`) | core, chem |
 | `app` | Qt GUI and the CLI: two thin front ends over the same libraries. The PDB clean-up and structure builder windows (`gui/tools`) know only a small host interface (`tools/host.hpp`: the project, its step log, messages, Save), which the analysis window implements; milestone 7 hosts them in RNAdo (owner decision D1 of milestone 6) | all |
 
 Analyses run in one pass over the frames, frame-parallel (`runAnalyses`, `analysis.hpp`): one

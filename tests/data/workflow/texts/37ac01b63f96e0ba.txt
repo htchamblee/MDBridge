@@ -1,0 +1,24 @@
+# Plan golden
+
+Written by MDBridge <VERSION> on <DATE>. File names follow `<project>_<step>_<tool>_<time>.<ext>` with time stamp `20261015-1432`.
+
+## 03 · Rosetta · FARFAR2 (rna_denovo)
+
+Folder: `03_farfar2`  
+Type: Rosetta · FARFAR2 (rna_denovo)
+
+Inputs:
+- structure: `/golden/my inputs/structure.pdb`
+- map: `/golden/my inputs/map.map`
+
+Outputs:
+- silent: `03_farfar2/golden_03_farfar2-r01_20261015-1432.out`, `03_farfar2/golden_03_farfar2-r02_20261015-1432.out`, `03_farfar2/golden_03_farfar2-r03_20261015-1432.out`, `03_farfar2/golden_03_farfar2-r04_20261015-1432.out`, `03_farfar2/golden_03_farfar2-r05_20261015-1432.out`, `03_farfar2/golden_03_farfar2-r06_20261015-1432.out`, `03_farfar2/golden_03_farfar2-r07_20261015-1432.out`, `03_farfar2/golden_03_farfar2-r08_20261015-1432.out`, `03_farfar2/golden_03_farfar2-r09_20261015-1432.out`, `03_farfar2/golden_03_farfar2-r10_20261015-1432.out`, `03_farfar2/golden_03_farfar2-r11_20261015-1432.out`, `03_farfar2/golden_03_farfar2-r12_20261015-1432.out`
+- fasta: `03_farfar2/golden_03_farfar2_20261015-1432.fasta`
+- secstruct: `03_farfar2/golden_03_farfar2_20261015-1432.secstruct`
+
+Checks:
+- WARNING: Fixed helices (-s): file not found (yet): /golden/my inputs/structure.pdb
+- WARNING: Density map: file not found (yet): /golden/my inputs/map.map
+- ERROR: enter the RNA sequence
+- WARNING: -fixed_stems needs a secondary structure
+- ERROR: say which residues the fixed-helix PDB provides (-input_res) or choose 'All helix residues'

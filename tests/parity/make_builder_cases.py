@@ -3,9 +3,12 @@ mutate (tests/chem/test_builder.cpp; docs/specs/m6-plan.md 1.3, 4.1, 4.2).
 
     python3 -I -B make_builder_cases.py MDATK_CHECKOUT OUT_DIR
 
-Needs numpy and scipy (least_squares, cKDTree, the density fit). MDBridge's chem improvements are
-applied first (improvements_chem.py: CH-01 / CH-02 numbering, CH-08 mutation specs, CH-09 / D11
-hydrogens of mutated bases, CH-10 / CH-11 in the fit, D13 "REMARK 951 MDBridge IDEAL ..."). numpy's
+Needs numpy and scipy (least_squares, cKDTree, the density fit). The rebuilt helices run in parallel
+worker processes (MDBRIDGE_GENERATOR_JOBS, default the CPUs; some 20 minutes of CPU time, CH-16's
+continuation closures). MDBridge's chem improvements are applied first (improvements_chem.py: CH-01 /
+CH-02 numbering, CH-08 mutation specs, CH-09 / D11 hydrogens of mutated bases, CH-10 / CH-11 in the
+fit, CH-16 / CH-17 the closure of the other pairings, CH-18 their experimental geometry and the refused
+kinds, D13 "REMARK 951 MDBridge IDEAL ..."). numpy's
 and OpenBLAS' kernels are pinned (chem_common.pin_kernels). Writes:
 
   OUT_DIR/builder_cases.json
@@ -20,9 +23,9 @@ and OpenBLAS' kernels are pinned (chem_common.pin_kernels). Writes:
                 or the error
   OUT_DIR/builder_fitted_cases.json (least-squares and density fits; compared within the tolerance
   of docs/specs/m6-plan.md 4.1 / D10)
-    reference   per helix kind of _HELIX_START: the start, the refined parameters least_squares
-                reaches (the "refined starts": W2-A may start from them), cost, nfev, screw twist /
-                rise, per-strand torsions, closest contacts (_helix_fit)
+    reference   per helix kind still built (hh, hoogsteen, triplex-hoogsteen; CH-18): the start(s),
+                the parameters of the reference fit, its cost, nfev and status, the screw's twist and
+                rise and the per-strand torsions of those parameters, closest contacts (_helix_fit)
     pair_fits   _pair_fit(rule, b1, b2): rotation and shift of every canonical pair (float.hex)
     rebuilt     build_helix with other pairings and triplexes (MDATK's tests' builds, mismatches,
                 L, phosphate5): text, notes and the heavy-atom coordinates as numbers
@@ -228,17 +231,37 @@ def mutation_cases():
 # --- fitted outputs --------------------------------------------------------------------------------
 
 def reference_cases():
-    from scipy.optimize import least_squares
-
+    """The reference helix of every kind still built (CH-18: reverse-wc, reverse-hoogsteen and the
+    purine-motif triplex are refused): hh MDATK's _helix_fit from _HELIX_START (converged as the
+    builder's), the Hoogsteen duplex and the pyrimidine-motif triplex the restrained fit to the RNA
+    triple helices (improvements_chem.exp_fit). x, cost, nfev and status are the fit's; screw, torsions
+    and contacts are read from that x (as _helix_fit's)."""
     out = []
-    for kind in B._HELIX_START:
-        start = np.array(B._HELIX_START[kind], dtype=np.float64)
-        sol = least_squares(lambda p, k=kind, s=start: B._fit_residuals(k, p, s), start, x_scale=B._fit_scale(kind))
+    for kind in ("hh", "hoogsteen", "triplex-hoogsteen"):
+        if kind in improvements_chem.EXP_KINDS:
+            f = improvements_chem.exp_fit(kind)
+            start = [list(q) for q in improvements_chem.REFERENCE_STARTS]
+            x, cost, nfev, status = f["x"], f["cost"], f["nfev"], f["status"]
+        else:
+            start = list(B._HELIX_START[kind])
+            p0 = np.array(start, dtype=np.float64)
+            sol = improvements_chem.SOLVER["least_squares"](
+                lambda p, k=kind, s=p0: B._fit_residuals(k, p, s), p0, x_scale=B._fit_scale(kind),
+                ftol=improvements_chem.SMALL_FIT_TOL, xtol=improvements_chem.SMALL_FIT_TOL,
+                gtol=improvements_chem.SMALL_FIT_TOL, max_nfev=improvements_chem.SMALL_FIT_MAX_NFEV)
+            x, cost, nfev, status = sol.x, sol.cost, sol.nfev, sol.status
         fit = B._helix_fit(kind)
-        out.append({"kind": kind, "start": list(B._HELIX_START[kind]), "x": vector(sol.x), "cost": fhex(sol.cost),
-                    "nfev": int(sol.nfev), "status": int(sol.status), "twist": fhex(fit.screw.twist),
-                    "rise": fhex(fit.screw.rise), "torsions": [vector(q) for q in fit.torsions],
-                    "contact": fhex(fit.contact), "contact_h": fhex(fit.contact_h)})
+        screw, q = (improvements_chem.exp_screw(kind, x), None) if kind in improvements_chem.EXP_KINDS else \
+            B._unpack_fit(kind, x)
+        if q is None:
+            ns = len(B._HELICES[kind])
+            npose = 6 * (ns - 1)
+            q = [x[6 + npose + 3 * s:9 + npose + 3 * s] for s in range(ns)]
+        assert abs(screw.twist - fit.screw.twist) < 1e-9 and abs(float(cost) - fit.cost) < 1e-9, kind
+        out.append({"kind": kind, "start": start, "x": vector(x), "cost": fhex(cost), "nfev": int(nfev),
+                    "status": int(status), "twist": fhex(screw.twist), "rise": fhex(screw.rise),
+                    "torsions": [vector(t) for t in q], "contact": fhex(fit.contact),
+                    "contact_h": fhex(fit.contact_h)})
     return out
 
 
@@ -250,18 +273,22 @@ def pair_fit_cases():
     return out
 
 
-REBUILT = [("reverse-wc", None, "GAGGAUCA", {"hydrogens": True}), ("reverse-wc", None, "AUGCAU", {"hydrogens": True}),
-           ("hoogsteen", None, "GAGGAUCA", {"hydrogens": True}), ("reverse-hoogsteen", None, "GAAGAG", {"hydrogens": True}),
-           ("reverse-hoogsteen", None, "AUGCAU", {"hydrogens": True}), ("hh", None, "GAGGAUCA", {"hydrogens": True}),
+# the kinds RNA is not known to form are refused (CH-18), and so are the sequences a kind cannot pair (D19:
+# strand-1 pyrimidines of the Hoogsteen kinds, hh's non-A levels): their requests are kept as error cases
+REBUILT = [("reverse-wc", None, "GAGGAUCA", {"hydrogens": True}), ("hoogsteen", None, "GAGGAUCA", {"hydrogens": True}),
+           ("reverse-hoogsteen", None, "GAAGAG", {"hydrogens": True}), ("hh", None, "GAGGAUCA", {"hydrogens": True}),
            ("wc", "hoogsteen", "GAGGAUCA", {"hydrogens": True}), ("wc", "reverse-hoogsteen", "AUGCAU", {"hydrogens": True}),
-           ("reverse-wc", None, "GAUCAGUAGC", {}), ("hoogsteen", None, "AAGAGAAGGA", {}),
-           ("reverse-hoogsteen", None, "AAGAAGGAAG", {}), ("hh", None, "AAAAAAAA", {}),
+           ("hoogsteen", None, "AAGAGAAGGA", {}), ("hh", None, "AAAAAAAA", {}),
            ("hh", None, "AAAAAAAAAA", {"phosphate5": True}), ("wc", "hoogsteen", "AAGAGAAGGA", {}),
-           ("wc", "reverse-hoogsteen", "AAGAGAAGGA", {}), ("hoogsteen", None, "AAGA", {"partner": "UUUU"}),
-           ("wc", "hoogsteen", "AAUAG", {}), ("hoogsteen", None, "AAGAG", {"chirality": "L", "scheme": "amber"}),
+           ("hoogsteen", None, "AAGA", {"partner": "UUUU"}), ("wc", "hoogsteen", "AAUAG", {}),
+           ("hoogsteen", None, "AAGAG", {"chirality": "L", "scheme": "amber"}),
            ("wc", "hoogsteen", "AAGAG", {"chains": "P,Q", "start": "5,10"}), ("reverse-wc", None, "A", {}),
            ("hh", None, "AA", {"partner": "none"}), ("wc", "hoogsteen", "AAGAG", {"third": "UUC"}),
-           ("wc", "hoogsteen", "AAGAG", {"partner": "none"}), ("reverse-wc", "hoogsteen", "AAGAG", {})]
+           ("wc", "hoogsteen", "AAGAG", {"partner": "none"}), ("reverse-wc", "hoogsteen", "AAGAG", {}),
+           ("hoogsteen", None, "AAAAAAAAAAAA", {"hydrogens": True}),
+           ("wc", "hoogsteen", "AAAAAAAAAAAA", {"hydrogens": True}),
+           ("hoogsteen", None, "GGGGGGGG", {}), ("wc", "hoogsteen", "GGAGGA", {}), ("hoogsteen", None, "A", {}),
+           ("hoogsteen", None, "AGGAAG", {"hydrogens": True}), ("hh", None, "AAAA", {"partner": "AACA"})]
 
 
 def heavy_coordinates(text):
@@ -274,19 +301,31 @@ def heavy_coordinates(text):
     return out
 
 
+def rebuilt_case(index):
+    pairing, motif, seq, kw = REBUILT[index]
+    notes = []
+    case = {"pairing": pairing, "triplex": motif, "sequence": seq, "options": kw}
+    try:
+        case["text"] = B.build_helix(seq, pairing=pairing, triplex=motif, notes=notes, **kw)
+        case["notes"] = notes
+        case["heavy"] = heavy_coordinates(case["text"])
+    except ERRORS as exc:
+        case["error"] = error(exc)
+    return case
+
+
 def rebuilt_cases():
-    out = []
-    for pairing, motif, seq, kw in REBUILT:
-        notes = []
-        case = {"pairing": pairing, "triplex": motif, "sequence": seq, "options": kw}
-        try:
-            case["text"] = B.build_helix(seq, pairing=pairing, triplex=motif, notes=notes, **kw)
-            case["notes"] = notes
-            case["heavy"] = heavy_coordinates(case["text"])
-        except ERRORS as exc:
-            case["error"] = error(exc)
-        out.append(case)
-    return out
+    """The REBUILT builds, each in its own worker process (MDBRIDGE_GENERATOR_JOBS, default: the CPUs):
+    the continuation closures (CH-16) take minutes each in Python. The workers fork after the reference
+    helices are fitted (reference_cases), every build is independent, so the result is the same for any
+    number of workers."""
+    import multiprocessing
+
+    jobs = int(os.environ.get("MDBRIDGE_GENERATOR_JOBS") or os.cpu_count() or 1)
+    if jobs <= 1:
+        return [rebuilt_case(i) for i in range(len(REBUILT))]
+    with multiprocessing.get_context("fork").Pool(min(jobs, len(REBUILT))) as pool:
+        return pool.map(rebuilt_case, range(len(REBUILT)), chunksize=1)
 
 
 def write_moved_map(name, text, rotvec, shift, resolution, nan_voxel=False):

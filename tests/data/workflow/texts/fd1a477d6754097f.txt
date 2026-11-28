@@ -1,0 +1,175 @@
+#!/usr/bin/env python3
+"""TIP4P/2005 water files for tleap - written by MDBridge <VERSION>.
+
+Usage: python3 THIS_SCRIPT AMBERHOME OUTPUT_DIR
+"""
+
+import math
+import os
+import re
+import sys
+from typing import List, Tuple
+
+# Abascal & Vega 2005, Table I and section II
+EPS_K = 93.2  # epsilon/k (K)
+SIGMA = 3.1589  # Å
+Q_H = 0.5564  # e; q(M) = -2 q(H)
+D_OM = 0.1546  # Å
+R_OH = 0.9572  # Å
+HOH = 104.52  # degrees
+
+R_KCAL = 1.987204e-3  # gas constant, kcal/(mol K)
+BOX = "TIP4P2005BOX"
+UNIT = "TIP4P2005"
+
+
+def nonbond() -> Tuple[float, float]:
+    """(Rmin/2 in Å, epsilon in kcal/mol) of OW."""
+    return SIGMA * 2.0 ** (1.0 / 6.0) / 2.0, EPS_K * R_KCAL
+
+
+def frcmod_text() -> str:
+    rmin_half, eps = nonbond()
+    r_hh = 2.0 * R_OH * math.sin(math.radians(HOH) / 2.0)
+    # the zero-force-constant angles only satisfy tleap; their values are the real geometry
+    return "\n".join([
+        "TIP4P/2005 water (Abascal & Vega, J. Chem. Phys. 123, 234505 (2005)), frcmod.tip4pew layout",
+        "MASS",
+        "OW    16.0",
+        "HW     1.008   0.000",
+        "EP     0.0",
+        "",
+        "BOND",
+        f"OW-EP   553.000   {D_OM:.4f}",
+        f"OW-HW   553.0     {R_OH:.4f}",
+        f"HW-HW   553.0     {r_hh:.4f}",
+        "",
+        "ANGLE",
+        f"HW-OW-EP    0.0       {HOH / 2.0:.2f}",
+        f"HW-OW-HW    100.      {HOH:.2f}",
+        f"HW-HW-OW      0.      {(180.0 - HOH) / 2.0:.2f}",
+        "",
+        "DIHE",
+        "X -HW-OW-X    2       0.0         0.0         1.0",
+        "",
+        "NONBON",
+        f"  OW       {rmin_half:.6f}  {eps:.6f}",
+        "  HW          0.0000  0.0000",
+        "  EP       1.0       0.0",
+        "", ""])
+
+
+def _sections(text: str) -> List[Tuple[str, List[str]]]:
+    """OFF library as (header line, body lines) pairs."""
+    out: List[Tuple[str, List[str]]] = []
+    for line in text.splitlines():
+        if line.startswith("!"):
+            out.append((line, []))
+        elif out:
+            out[-1][1].append(line)
+    return out
+
+
+def _m_site(o: List[float], h1: List[float], h2: List[float]) -> List[float]:
+    u1 = [a - b for a, b in zip(h1, o)]
+    u2 = [a - b for a, b in zip(h2, o)]
+    n1, n2 = math.sqrt(sum(a * a for a in u1)), math.sqrt(sum(a * a for a in u2))
+    bis = [a / n1 + b / n2 for a, b in zip(u1, u2)]
+    nb = math.sqrt(sum(a * a for a in bis))
+    return [c + D_OM * b / nb for c, b in zip(o, bis)]
+
+
+def _single_unit() -> List[str]:
+    """TIP4P2005 single-molecule unit, laid out like T4E in AmberTools' solvents.lib."""
+    half = math.radians(HOH) / 2.0
+    pos = [(0.0, 0.0, 0.0), (R_OH, 0.0, 0.0),
+           (R_OH * math.cos(2.0 * half), R_OH * math.sin(2.0 * half), 0.0),
+           (D_OM * math.cos(half), D_OM * math.sin(half), 0.0)]
+    e = f"!entry.{UNIT}.unit"
+    out = [f"{e}.atoms table  str name  str type  int typex  int resx  int flags  int seq  int elmnt"
+           "  dbl chg",
+           ' "O" "OW" 0 1 131072 1 8 0.0',
+           f' "H1" "HW" 0 1 131072 2 1 {Q_H:.6f}',
+           f' "H2" "HW" 0 1 131072 3 1 {Q_H:.6f}',
+           f' "EPW" "EP" 0 1 131072 4 0 {-2.0 * Q_H:.6f}',
+           f"{e}.atomspertinfo table  str pname  str ptype  int ptypex  int pelmnt  dbl pchg",
+           ' "O" "OW" 0 -1 0.0', ' "H1" "HW" 0 -1 0.0', ' "H2" "HW" 0 -1 0.0', ' "EPW" "EP" 0 -1 0.0',
+           f"{e}.boundbox array dbl", " -1.000000", " 0.0", " 0.0", " 0.0", " 0.0",
+           f"{e}.childsequence single int", " 2",
+           f"{e}.connect array int", " 0", " 0",
+           f"{e}.connectivity table  int atom1x  int atom2x  int flags",
+           " 1 4 1", " 2 1 1", " 2 3 1", " 3 1 1",
+           f"{e}.hierarchy table  str abovetype  int abovex  str belowtype  int belowx",
+           ' "U" 0 "R" 1', ' "R" 1 "A" 1', ' "R" 1 "A" 2', ' "R" 1 "A" 3', ' "R" 1 "A" 4',
+           f"{e}.name single str", f' "{UNIT}"',
+           f"{e}.positions table  dbl x  dbl y  dbl z"]
+    out += [f" {x:.6f} {y:.6f} {z:.6f}" for x, y, z in pos]
+    out += [f"{e}.residueconnect table  int c1x  int c2x  int c3x  int c4x  int c5x  int c6x",
+            " 0 0 0 0 0 0",
+            f"{e}.residues table  str name  int seq  int childseq  int startatomx  str restype  int imagingx",
+            ' "WAT" 1 5 1 "w" 1',
+            f"{e}.residuesPdbSequenceNumber array int", " 0",
+            f"{e}.solventcap array dbl", " -1.000000", " 0.0", " 0.0", " 0.0", " 0.0",
+            f"{e}.velocities table  dbl x  dbl y  dbl z"]
+    return out + [" 0.0 0.0 0.0"] * 4
+
+
+def off_text(tip4pewbox: str) -> str:
+    """TIP4P2005BOX + TIP4P2005 OFF library from the text of AmberTools' lib/tip4pewbox.off."""
+    secs = _sections(tip4pewbox)
+    if (not secs or secs[0][0].strip() != "!!index array str" or len(secs[0][1]) != 1
+            or secs[0][1][0].strip() != '"TIP4PEWBOX"'):
+        raise ValueError("not AmberTools' tip4pewbox.off (expected the single unit TIP4PEWBOX)")
+    body = {head.split()[0].rsplit(".", 1)[-1]: lines for head, lines in secs[1:]}
+    names = [ln.split()[0].strip('"') for ln in body["atoms"]]
+    if not names or len(names) % 4 or any(names[i:i + 4] != ["O", "H1", "H2", "EPW"]
+                                          for i in range(0, len(names), 4)):
+        raise ValueError("unexpected atom order in TIP4PEWBOX (want O, H1, H2, EPW per water)")
+    pos = [[float(v) for v in ln.split()] for ln in body["positions"]]
+    if len(pos) != len(names):
+        raise ValueError("TIP4PEWBOX atom and position counts differ")
+    for i in range(0, len(pos), 4):
+        pos[i + 3] = _m_site(pos[i], pos[i + 1], pos[i + 2])
+    charge = {"H1": f"{Q_H:.6f}", "H2": f"{Q_H:.6f}", "EPW": f"{-2.0 * Q_H:.6f}"}
+    out = ["!!index array str", f' "{BOX}"', f' "{UNIT}"']
+    for head, lines in secs[1:]:
+        field = head.split()[0].rsplit(".", 1)[-1]
+        out.append(head.replace("!entry.TIP4PEWBOX.", f"!entry.{BOX}.", 1))
+        if field == "atoms":
+            lines = [re.sub(r"\S+$", charge.get(nm, "0.0"), ln) for nm, ln in zip(names, lines)]
+        elif field == "positions":
+            lines = [f" {x:.6f} {y:.6f} {z:.6f}" for x, y, z in pos]
+        out.extend(lines)
+    out.extend(_single_unit())
+    return "\n".join(out) + "\n"
+
+
+def main(argv):
+    """argv: [tip4pewbox.off or $AMBERHOME, output directory]; writes tip4p2005box.off, frcmod.tip4p2005."""
+    if len(argv) != 2 or argv[0] in ("-h", "--help"):
+        print("usage: python3 THIS_SCRIPT AMBERHOME|tip4pewbox.off OUTPUT_DIR", file=sys.stderr)
+        return 2
+    src = argv[0]
+    if os.path.isdir(src):
+        src = os.path.join(src, "dat", "leap", "lib", "tip4pewbox.off")
+    try:
+        with open(src) as fh:
+            off = off_text(fh.read())
+        os.makedirs(argv[1], exist_ok=True)
+        with open(os.path.join(argv[1], "tip4p2005box.off"), "w") as fh:
+            fh.write(off)
+        with open(os.path.join(argv[1], "frcmod.tip4p2005"), "w") as fh:
+            fh.write(frcmod_text())
+    except (OSError, ValueError) as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+    print(f"{argv[1]}: tip4p2005box.off ({BOX}, {UNIT}) and frcmod.tip4p2005 written from {src}",
+          file=sys.stderr)
+    return 0
+
+
+# --- settings written by MDBridge ---
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

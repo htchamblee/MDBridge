@@ -58,7 +58,7 @@ gtest_discover_tests(mdbridge_io_tests DISCOVERY_MODE PRE_TEST)
 # restraint dictionaries, the Watson-Crick helix builder and the density fit as MDATK computes them
 add_executable(mdbridge_chem_tests chem/test_secstruct.cpp chem/test_reference_tables.cpp chem/test_pdbtools.cpp
     chem/test_pdbtools_mdatk.cpp chem/test_annotate.cpp chem/test_dictionaries.cpp chem/test_helix.cpp
-    chem/test_density_fit.cpp chem/test_generator_api.cpp chem/test_mutate.cpp)
+    chem/test_density_fit.cpp chem/test_generator_api.cpp chem/test_mutate.cpp chem/test_builder.cpp)
 target_include_directories(mdbridge_chem_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/core")
 target_link_libraries(mdbridge_chem_tests PRIVATE mdbridge::chem GTest::gtest_main)
 target_compile_definitions(mdbridge_chem_tests PRIVATE MDBRIDGE_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data")
@@ -85,6 +85,15 @@ else()
     target_compile_options(mdbridge_numerics_tests PRIVATE -ffp-contract=off)
 endif()
 gtest_discover_tests(mdbridge_numerics_tests DISCOVERY_MODE PRE_TEST)
+
+# workflow/lua: the Lua host of the generators (milestone 7 W0-B; docs/specs/m7-plan.md 4.4, 4.5):
+# sandbox, limits, errors with file and line, Value <-> Lua round trips, the same bytes under two
+# string-hash seeds, the determinism lint; and the lint over the bundled generators (src/workflow/lua)
+add_executable(mdbridge_lua_host_tests workflow/test_lua_host.cpp workflow/test_lua_lint.cpp)
+target_link_libraries(mdbridge_lua_host_tests PRIVATE mdbridge::lua_host GTest::gtest_main)
+mdbridge_target_warnings(mdbridge_lua_host_tests)
+gtest_discover_tests(mdbridge_lua_host_tests DISCOVERY_MODE PRE_TEST)
+add_test(NAME lua_lint_bundled_generators COMMAND mdbridge_lua_lint "${PROJECT_SOURCE_DIR}/src/workflow/lua")
 
 # analysis: the framework (registry, instance ids, labels, cache keys, runner, common helpers) as
 # MDATK computes it (data/analysis, tests/parity/make_analysis_framework_cases.py), the analyses

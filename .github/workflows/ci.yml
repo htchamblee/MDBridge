@@ -513,7 +513,7 @@ jobs:
     name: Parity with MDATK v0.0.4.1 (project files, command line)
     needs: linux
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 60  # MDATK's non-Watson-Crick builds (CH-16 closures) take minutes each in Python
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
 
@@ -593,7 +593,7 @@ jobs:
     # tree, which must equal the committed files byte for byte (one CPU-dependent file within a
     # tolerance: see the script); no build needed
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 90  # make_builder_cases.py: the CH-16 closures (some 20 min of CPU, in parallel workers)
     env:
       LC_ALL: C.UTF-8
     steps:

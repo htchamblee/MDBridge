@@ -1,0 +1,15 @@
+#!/bin/bash
+# Helix-preserving distance restraints (DISANG)
+# Project golden, step 01 - written by MDBridge <VERSION> on <DATE>.
+# MDBridge only writes this script; review it, then run it with: bash golden_01_amber-restraints_20261015-1432.sh
+# Please cite (AmberTools):
+#   - Case D. A., Aktulga H. M., Belfon K., Cerutti D. S., Cisneros G. A., Cruzeiro V. W. D.,
+#     Forouzesh N., Giese T. J., Götz A. W., Gohlke H., et al. J. Chem. Inf. Model. 2023, 63,
+#     6183-6191. doi:10.1021/acs.jcim.3c01153
+
+set -eo pipefail
+cd "$(dirname "$0")"
+
+# 3 base pairs from the typed secondary structure
+python3 golden_01_helix_20261015-1432.py /golden/inputs/u.parm7 golden_01_helix_20261015-1432.dist
+[ -s "golden_01_helix_20261015-1432.dist" ] || { echo "ERROR: the restraint script did not write golden_01_helix_20261015-1432.dist" >&2; exit 1; }

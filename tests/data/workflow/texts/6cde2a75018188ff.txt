@@ -1,0 +1,31 @@
+#!/bin/bash
+# SimRNA: 8 runs × 10 replicas, 4 at a time
+# Project golden, step 03 - written by MDBridge <VERSION> on <DATE>.
+# MDBridge only writes this script; review it, then run it with: bash golden_03_simrna_20261015-1432.sh
+# Each run works in runs/rNN with a link to SimRNA's data folder.
+# Please cite (SimRNA):
+#   - Boniecki M. J., Lach G., Dawson W. K., Tomala K., Lukasz P., Soltysinski T., Rother K. M.,
+#     Bujnicki J. M. Nucleic Acids Res. 2016, 44, e63. doi:10.1093/nar/gkv1479
+
+cd "$(dirname "$0")"
+
+SIMRNA_DIR="${SIMRNA:?set SIMRNA to the SimRNA installation folder (it contains data/)}"
+[ -d "$SIMRNA_DIR/data" ] || { echo "ERROR: $SIMRNA_DIR/data not found" >&2; exit 1; }
+
+run_one() {
+  I=$1
+  N=$(printf "%02d" "$I")
+  mkdir -p "runs/r$N" && cd "runs/r$N" || return 1
+  ln -sfn "$SIMRNA_DIR/data" data
+  SimRNA -c ../../golden_03_simrna_20261015-1432.config -p /golden/inputs/structure.pdb -E 10 -R $((1000 + I)) -o golden_03_simrna-r${N}_20261015-1432 \
+    > ../../golden_03_simrna-r${N}_20261015-1432.log 2>&1 || { echo "run $N failed - see golden_03_simrna-r${N}_20261015-1432.log" >&2; : > "$FAILED/$N"; return 1; }
+}
+export -f run_one
+FAILED=$(mktemp -d)
+export SIMRNA_DIR FAILED
+
+# a failed run does not stop the others and leaves fewer frames; the step fails when every run failed
+seq 1 8 | xargs -P 4 -I{} bash -c 'run_one {}' || true
+NFAILED=$(ls "$FAILED" | wc -l); rm -rf "$FAILED"
+if [ "$NFAILED" -ge 8 ]; then echo "ERROR: every SimRNA run failed (see above)" >&2; exit 1; fi
+if [ "$NFAILED" -gt 0 ]; then echo "WARNING: $NFAILED of 8 SimRNA runs failed (see above): their trajectories are missing" >&2; fi

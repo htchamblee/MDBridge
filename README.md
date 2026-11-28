@@ -8,7 +8,7 @@ manage a language runtime: a Linux AppImage and a Windows installer.
 The plan (modules, libraries, migration order, definition of done) is in
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-## Status: milestone 6 done (`chem`) except the non-Watson-Crick pairings <!-- W2-A -->; next: milestone 7 (`workflow`)
+## Status: milestone 6 done (`chem`); next: milestone 7 (`workflow`)
 
 **Milestone 1, the skeleton**, proved the delivery path before any science moved:
 
@@ -170,9 +170,13 @@ structure builder, restraint dictionaries and the density fit, checked against M
   pairs, in any naming scheme, with hydrogens (`--hydrogens`) and a 5'-phosphate (`--phosphate5`) on
   request; base mutations that keep the glycosidic frame and change the paired partner too, with
   hydrogens on the new base when the model has them; rigid-body fits of a model into a density map
-  (`--search global` or `local`). <!-- W2-A --> The other pairings (`--pairing`) and triplexes
-  (`--triplex`) are accepted but not built yet: `build helix` reports that the fitted helix builder
-  is not available.
+  (`--search global` or `local`). The other pairings (`--pairing hh`, `hoogsteen`) and the
+  pyrimidine-motif triplex (`--triplex hoogsteen`) are built by a fitted builder: hh as PDB 4JRD, the
+  Hoogsteen duplex and the triplex with the base triples, stacking and screw of RNA triple helices
+  (PDB 3P22, 4PLX, 6SVS, 7JNH), the C+ of G·C+ Hoogsteen pairs as the CCD's CH; the kinds RNA is not
+  known to form (`reverse-wc`, `reverse-hoogsteen`, the purine-motif triplex) and sequences a kind
+  cannot pair (U or C on strand 1 of the Hoogsteen kinds, other bases than A in hh) are refused
+  (docs/DIFFERENCES.md CH-16 ... CH-21).
 - **Restraint dictionaries** (`dict list`, `dict smiles`, `dict finish`, `dict pubchem`): the SMILES
   of the L-ribonucleotides for acedrg and eLBOW, and their dictionaries renamed to the atom names of
   the wwPDB Chemical Component Dictionary (CCD) components 0A, 0C, 0G, 0U and their 5' / 3'

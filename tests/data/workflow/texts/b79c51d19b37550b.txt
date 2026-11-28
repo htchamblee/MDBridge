@@ -1,0 +1,38 @@
+# Plan golden
+
+Written by MDBridge <VERSION> on <DATE>. File names follow `<project>_<step>_<tool>_<time>.<ext>` with time stamp `20261015-1432`.
+
+## 01 · Amber · system build
+
+Folder: `01_amber-build`  
+Type: Amber · system build  
+MDBridge: `mdbridge` from PATH (MDBRIDGE in the scripts overrides it)
+
+Inputs:
+- structure: `/golden/inputs/structure.pdb`
+
+Outputs:
+- topology: `01_amber-build/golden_01_parmed_20261015-1432.parm7`
+- coordinates: `01_amber-build/golden_01_tleap_20261015-1432.rst7`
+- pdb: `01_amber-build/golden_01_tleap_20261015-1432.pdb`
+
+Files written: `golden_01_cp-lib_20261015-1432.py`, `golden_01_prep_20261015-1432.py`, `golden_01_tleap_20261015-1432.leap`, `golden_01_parmed_20261015-1432.in`, `golden_01_amber-build_20261015-1432.sh`
+
+Checks:
+- WARNING: Starting structure (PDB): file not found (yet): /golden/inputs/structure.pdb
+
+## 02 · GROMACS · MD
+
+Folder: `02_gromacs`  
+Type: GROMACS · MD
+
+Inputs:
+- topology: `01_amber-build/golden_01_parmed_20261015-1432.parm7` (from 01 · Amber · system build)
+- coordinates: `01_amber-build/golden_01_tleap_20261015-1432.rst7` (from 01 · Amber · system build)
+
+Outputs:
+- topology: `02_gromacs/golden_02_convert_20261015-1432.top`
+- structure: `02_gromacs/golden_02_md_20261015-1432.gro`
+- trajectory: `02_gromacs/golden_02_md_20261015-1432.xtc`
+
+Files written: `golden_02_convert_20261015-1432.py`, `golden_02_posre_20261015-1432.py`, `golden_02_em_20261015-1432.mdp`, `golden_02_nvt_20261015-1432.mdp`, `golden_02_npt_20261015-1432.mdp`, `golden_02_md_20261015-1432.mdp`, `golden_02_gromacs_20261015-1432.sh`, `golden_02_gromacs-prod_20261015-1432.sh`

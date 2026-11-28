@@ -559,6 +559,166 @@
     "tool": {
      "name": "builder",
      "open": true,
+     "report": "ERROR: pairing hh: the parallel duplex of PDB 4JRD has A·A pairs only; other bases at 3:G·G, 4:G·G"
+    }
+   },
+   {
+    "action": 45,
+    "tool": {
+     "name": "builder",
+     "open": true,
+     "report": "ERROR: pairing reverse-hoogsteen: RNA is not known to form the reverse-Hoogsteen (tHW) duplex; DNA and DNA-RNA hybrid builds of it will come with DNA structure building"
+    }
+   },
+   {
+    "action": 48,
+    "tool": {
+     "name": "builder",
+     "open": true,
+     "sensitive": {
+      "third": true,
+      "chain3": true,
+      "start3": true
+     }
+    }
+   },
+   {
+    "action": 50,
+    "tool": {
+     "name": "builder",
+     "open": true,
+     "report": "INFO: partner strand: Watson-Crick complement\nINFO: third strand: U·A, C+·G on the strand-1 purines, parallel to strand 1\nINFO: triplex (pyrimidine motif: Hoogsteen third strand parallel to the purine strand (U·A-U, C+·G-C)): 4 canonical base triple(s), 0 mismatched\nINFO: C+·G-C triples need N3-protonated cytosine (C+) in the third strand: written as CH, the CCD's N3-protonated cytidine (HN3 with the hydrogens; L: plain C; restrain the triple for the simulation)\nINFO: 4 base pairs: 4 Watson-Crick, 0 G·U wobble, 0 mismatched"
+    }
+   },
+   {
+    "action": 53,
+    "tool": {
+     "name": "builder",
+     "open": true,
+     "report": "ERROR: third strand: invalid letter(s) X (RNA: A, C, G, U)"
+    }
+   },
+   {
+    "action": 56,
+    "tool": {
+     "name": "builder",
+     "open": true,
+     "report": "Choose an output file."
+    }
+   }
+  ]
+ },
+ "mdatk": {
+  "expected": {
+   "helix_d.pdb": "gui/tools/builder_helix/mdatk/helix_d.pdb",
+   "helix_l.pdb": "gui/tools/builder_helix/mdatk/helix_l.pdb",
+   "mismatch.pdb": "gui/tools/builder_helix/mdatk/mismatch.pdb",
+   "single.pdb": "gui/tools/builder_helix/mdatk/single.pdb"
+  },
+  "snapshots": [
+   {
+    "action": 1,
+    "tool": {
+     "name": "builder",
+     "open": true,
+     "sensitive": {
+      "partner": false,
+      "chain2": true,
+      "pairing": true,
+      "triplex": true,
+      "third": false,
+      "chain3": false,
+      "check": true
+     }
+    }
+   },
+   {
+    "action": 4,
+    "tool": {
+     "name": "builder",
+     "open": true,
+     "report": "INFO: partner strand: Watson-Crick complement\nINFO: 8 base pairs: 8 Watson-Crick, 0 G·U wobble, 0 mismatched"
+    }
+   },
+   {
+    "action": 7,
+    "tool": {
+     "name": "builder",
+     "open": true,
+     "report": "Wrote helix_d.pdb\n\npartner strand: Watson-Crick complement\nResidue names A, C, G, U, ATOM records\nBuilt an ideal A-form RNA duplex of 8 base pairs (right-handed, D): 336 atoms, heavy atoms only"
+    }
+   },
+   {
+    "action": 18,
+    "tool": {
+     "name": "builder",
+     "open": true,
+     "report": "Wrote helix_l.pdb\n\npartner strand: Watson-Crick complement\nRenamed 16 residues to the amber scheme: G->LG x4, C->LC x4, G->LG5 x2, A->LA x2, U->LU x2, C->LC3 x2\nWARNING: the Amber 5' units have no 5'-phosphate (tleap cannot type P/OP1/OP2/OP3 of A5/LA5 ...); build without the 5'-phosphate for tleap\nBuilt an ideal A-form RNA duplex of 8 base pairs (left-handed, L: mirror image): 520 atoms, hydrogens included"
+    }
+   },
+   {
+    "action": 20,
+    "tool": {
+     "name": "builder",
+     "open": true,
+     "sensitive": {
+      "partner": true
+     }
+    }
+   },
+   {
+    "action": 27,
+    "tool": {
+     "name": "builder",
+     "open": true,
+     "report": "INFO: 8 base pairs: 7 Watson-Crick, 1 G·U wobble, 0 mismatched"
+    }
+   },
+   {
+    "action": 30,
+    "tool": {
+     "name": "builder",
+     "open": true,
+     "report": "Wrote mismatch.pdb\n\nResidue names A, C, G, U, ATOM records\n1 G·U pair(s) built with an approximate wobble geometry (bases turned in their plane about C1'); minimise before production\nBuilt an ideal A-form RNA duplex of 8 base pairs (right-handed, D): 336 atoms, heavy atoms only"
+    }
+   },
+   {
+    "action": 32,
+    "tool": {
+     "name": "builder",
+     "open": true,
+     "sensitive": {
+      "partner": false,
+      "chain2": false,
+      "start2": false,
+      "pairing": false,
+      "triplex": false
+     }
+    }
+   },
+   {
+    "action": 36,
+    "tool": {
+     "name": "builder",
+     "open": true,
+     "report": "Wrote single.pdb\n\nsequence: T read as U (RNA)\nResidue names A, C, G, U, ATOM records\nBuilt an ideal A-form RNA single strand of 4 nucleotides (right-handed, D): 82 atoms, heavy atoms only"
+    }
+   },
+   {
+    "action": 40,
+    "tool": {
+     "name": "builder",
+     "open": true,
+     "sensitive": {
+      "triplex": false
+     }
+    }
+   },
+   {
+    "action": 42,
+    "tool": {
+     "name": "builder",
+     "open": true,
      "report": "INFO: partner strand: tHH partners of strand 1 (A·A, C·C, G·G, U·U), parallel\nINFO: trans Hoogsteen/Hoogsteen A·A (as PDB 4JRD), parallel: 4 pairs, 2 canonical tHH, 2 mismatched\nWARNING: mismatched pairs (no tHH pair) start from the reference A·A pair, are moved off the bases they would hit and are reported: 3:G·G, 4:G·G"
     }
    },
@@ -607,13 +767,5 @@
     }
    }
   ]
- },
- "mdatk": {
-  "expected": {
-   "helix_d.pdb": "gui/tools/builder_helix/mdatk/helix_d.pdb",
-   "helix_l.pdb": "gui/tools/builder_helix/mdatk/helix_l.pdb",
-   "mismatch.pdb": "gui/tools/builder_helix/mdatk/mismatch.pdb",
-   "single.pdb": "gui/tools/builder_helix/mdatk/single.pdb"
-  }
  }
 }

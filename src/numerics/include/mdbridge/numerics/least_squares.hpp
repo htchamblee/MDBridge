@@ -9,7 +9,8 @@
 // iterates.
 //
 // Linear algebra that SciPy hands to LAPACK is MDBridge's own: the SVD of tr_solver="exact"
-// (one-sided Jacobi rotations), the QR of the 2-D subspace (Householder reflections with LAPACK's sign
+// (one-sided Jacobi rotations; for a tall Jacobian of its rows that are not all zero, after a
+// Householder QR, as LAPACK's dgesdd also reduces a tall matrix first), the QR of the 2-D subspace (Householder reflections with LAPACK's sign
 // convention) and np.roots of the subspace's quartic (its real roots by bracketing and Newton steps,
 // not the eigenvalues of the companion matrix). They agree with LAPACK to rounding, and BLAS sums
 // (J^T f, norms) are taken in index order, so the iterates agree with SciPy's to rounding, not bit for
@@ -72,6 +73,12 @@ struct LeastSquaresOptions {
     LsmrOptions lsmr;
     // jac_sparsity: the structure of the Jacobian (rows = residuals, cols = variables), or none (dense)
     std::optional<CsrMatrix> jacSparsity;
+    // With jacSparsity: the structure only groups the finite differences (SciPy's column groups, one
+    // evaluation per group) and the Jacobian is then dense, solved with tr_solver "exact" (trSolver
+    // Auto or Exact). SciPy refuses tr_solver="exact" with jac_sparsity; this is its
+    // least_squares(jac=lambda x: approx_derivative(fun, x, sparsity=...).toarray(), tr_solver="exact").
+    // MDBridge's extension, for the helix builder's strand closure (docs/DIFFERENCES.md CH-16).
+    bool denseFromSparsity = false;
     // finite-difference evaluations run on up to this many threads (each column or group of columns
     // is one evaluation; the Jacobian does not depend on the count). The residual function must
     // then be safe to call concurrently. 1: in the caller's thread.

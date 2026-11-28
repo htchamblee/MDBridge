@@ -1,0 +1,15 @@
+# Plan golden
+
+Written by MDBridge <VERSION> on <DATE>. File names follow `<project>_<step>_<tool>_<time>.<ext>` with time stamp `20261015-1432`.
+
+## 03 · Restraint dictionaries · acedrg / eLBOW
+
+Folder: `03_dicts`  
+Type: Restraint dictionaries · acedrg / eLBOW
+
+Outputs:
+- dictionaries: `03_dicts/golden_03_0G5_20261015-1432.cif`, `03_dicts/golden_03_0A_20261015-1432.cif`, `03_dicts/golden_03_XYZ_20261015-1432.cif`
+
+Checks:
+- ERROR: Custom SMILES line 1: expected 'code = SMILES'
+- ERROR: no SMILES for XYZ: add 'code = SMILES' lines
